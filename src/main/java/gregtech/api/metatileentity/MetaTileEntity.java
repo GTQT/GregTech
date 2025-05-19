@@ -526,7 +526,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                     MetaTileEntityUIFactory.INSTANCE.openUI(getHolder(), (EntityPlayerMP) playerIn);
                 }
 
-                if (getOwner() == null) {
+                if (getOwnerGt() == null) {
                     this.owner = playerIn.getUniqueID();
                 }
             }
@@ -1508,7 +1508,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     @Nullable
-    public UUID getOwner() {
+    public UUID getOwnerGt() {
         return owner;
     }
 
