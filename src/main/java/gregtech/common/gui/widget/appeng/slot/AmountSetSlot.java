@@ -54,7 +54,17 @@ public class AmountSetSlot<T extends IAEStack<T>> extends Widget {
     public void setNewAmount(String amount) {
         try {
             long newAmount = Long.parseLong(amount);
-            writeClientAction(1, buf -> buf.writeVarLong(newAmount));
+            if (isRemote()) {
+                writeClientAction(1, buf -> buf.writeVarLong(newAmount));
+            } else {
+                if (this.index < 0) {
+                    return;
+                }
+                IConfigurableSlot<T> slot = this.parentWidget.getConfig(this.index);
+                if (newAmount > 0 && slot.getConfig() != null) {
+                    slot.getConfig().setStackSize(newAmount);
+                }
+            }
         } catch (NumberFormatException ignore) {}
     }
 

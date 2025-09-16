@@ -4,6 +4,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.cover.Cover;
+import gregtech.api.cover.IAECover;
 import gregtech.api.gui.IUIHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
@@ -64,29 +65,28 @@ import static gregtech.api.capability.GregtechDataCodes.INITIALIZE_MTE;
                    modid = Mods.Names.APPLIED_ENERGISTICS2,
                    striprefs = true) })
 public class MetaTileEntityHolder extends TickableTileEntityBase implements IGregTechTileEntity, IUIHolder,
-                                  IWorldNameable, IActionHost, IGridProxyable {
+                                                                            IWorldNameable, IActionHost,
+                                                                            IGridProxyable {
 
+    public static final int TRACKED_TICKS = 20;
+    protected static final DecimalFormat tricorderFormat = new DecimalFormat("#.#########");
+    private final int[] timeStatistics = new int[TRACKED_TICKS];
     MetaTileEntity metaTileEntity;
     private boolean needToUpdateLightning = false;
     private String customName;
     @SideOnly(Side.CLIENT)
     private GTNameTagParticle nameTagParticle;
-
-    public static final int TRACKED_TICKS = 20;
-    private final int[] timeStatistics = new int[TRACKED_TICKS];
     private int timeStatisticsIndex = 0;
     private int lagWarningCount = 0;
-    protected static final DecimalFormat tricorderFormat = new DecimalFormat("#.#########");
 
     public MetaTileEntity getMetaTileEntity() {
         return metaTileEntity;
     }
 
     /**
-     * Sets this holder's current meta tile entity to copy of given one
-     * Note that this method copies given meta tile entity and returns actual instance
-     * so it is safe to call it on sample meta tile entities
-     * Also can use certain data to preinit the block before data is synced
+     * Sets this holder's current meta tile entity to copy of given one Note that this method copies given meta tile
+     * entity and returns actual instance so it is safe to call it on sample meta tile entities Also can use certain
+     * data to preinit the block before data is synced
      */
     @Override
     public MetaTileEntity setMetaTileEntity(@NotNull MetaTileEntity sampleMetaTileEntity,
@@ -264,7 +264,7 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
                 list.add(new TextComponentTranslation("behavior.tricorder.debug_cpu_load",
                         new TextComponentTranslation(
                                 TextFormattingUtil.formatNumbers(averageTickTime / timeStatistics.length))
-                                        .setStyle(new Style().setColor(TextFormatting.YELLOW)),
+                                .setStyle(new Style().setColor(TextFormatting.YELLOW)),
                         new TextComponentTranslation(TextFormattingUtil.formatNumbers(timeStatistics.length))
                                 .setStyle(new Style().setColor(TextFormatting.GREEN)),
                         new TextComponentTranslation(TextFormattingUtil.formatNumbers(worstTickTime))
@@ -285,8 +285,8 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
     }
 
     /**
-     * @return double array of length 2, with index 0 being the average time and index 1 the worst time, in ns.
-     *         If there is no tick time, it will return null.
+     * @return double array of length 2, with index 0 being the average time and index 1 the worst time, in ns. If there
+     * is no tick time, it will return null.
      */
     public double[] getTimeStatistics() {
         if (timeStatistics.length > 0) {
@@ -521,6 +521,16 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
     @Override
     @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
     public IGridNode getGridNode(@NotNull AEPartLocation part) {
+        MetaTileEntity te = this.getMetaTileEntity();
+        if (te != null) {
+            Cover cover = te.getCoverAtSide(part.getFacing());
+            if (cover != null) {
+                if (cover instanceof IAECover aeCover && aeCover.getGridNode(part) != null) {
+                    return aeCover.getGridNode(part);
+                }
+            }
+        }
+
         // Forbid it connects the faces it shouldn't connect.
         if (this.getCableConnectionType(part) == AECableType.NONE) {
             return null;
@@ -533,6 +543,16 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
     @Override
     @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
     public AECableType getCableConnectionType(@NotNull AEPartLocation part) {
+        MetaTileEntity te = this.getMetaTileEntity();
+        if (te != null) {
+            Cover cover = te.getCoverAtSide(part.getFacing());
+            if (cover != null) {
+                if (cover instanceof IAECover aeCover && aeCover.getCableConnectionType(part) != AECableType.NONE) {
+                    return aeCover.getCableConnectionType(part);
+                }
+            }
+        }
+
         return metaTileEntity == null ? AECableType.NONE : metaTileEntity.getCableConnectionType(part);
     }
 
