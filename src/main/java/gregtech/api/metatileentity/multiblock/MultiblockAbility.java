@@ -51,6 +51,11 @@ public class MultiblockAbility<T> {
     public static final MultiblockAbility<IItemHandlerModifiable> STEAM_EXPORT_ITEMS = ability(
             "steam_export_items", IItemHandlerModifiable.class);
 
+    public static final MultiblockAbility<IFluidTank> STEAM_IMPORT_FLUID = ability(
+            "steam_import_fluid", IFluidTank.class);
+    public static final MultiblockAbility<IFluidTank> STEAM_EXPORT_FLUID = ability(
+            "steam_export_fluid", IFluidTank.class);
+
     public static final MultiblockAbility<IMaintenanceHatch> MAINTENANCE_HATCH = ability(
             "maintenance_hatch", IMaintenanceHatch.class);
     public static final MultiblockAbility<IMufflerHatch> MUFFLER_HATCH = ability(

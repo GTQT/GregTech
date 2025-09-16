@@ -1,21 +1,14 @@
 package gregtech.api.metatileentity.multiblock;
 
-import com.google.common.collect.Lists;
-
-import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
-import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
-import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.SteamMultiWorkable;
 import gregtech.api.capability.impl.SteamMultiblockRecipeLogic;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
-import gregtech.api.metatileentity.IDataInfoProvider;
 import gregtech.api.metatileentity.MTETrait;
-import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.PatternMatchContext;
@@ -24,8 +17,6 @@ import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.KeyUtil;
 import gregtech.common.ConfigHolder;
-
-import gtqt.api.util.GTQTUtility;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -41,6 +32,7 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import gtqt.api.util.GTQTUtility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,32 +40,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class RecipeMapSteamMultiblockController extends MultiblockWithDisplayBase implements IControllable,
-                                                                                                      IDistinctBusController{
+                                                                                                      IDistinctBusController {
 
     protected static final double CONVERSION_RATE = ConfigHolder.machines.multiblockSteamToEU;
 
     public final RecipeMap<?> recipeMap;
     protected SteamMultiWorkable recipeMapWorkable;
-    ParallelLogicType type;
     protected IItemHandlerModifiable inputInventory;
     protected IItemHandlerModifiable outputInventory;
     protected IMultipleTankHandler steamFluidTank;
     protected IMultipleTankHandler inputFluidInventory;
     protected IMultipleTankHandler outputFluidInventory;
+    ParallelLogicType type;
+    private boolean isDistinct = false;
 
     public RecipeMapSteamMultiblockController(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
-                                              double conversionRate,ParallelLogicType type) {
+                                              double conversionRate, ParallelLogicType type) {
         super(metaTileEntityId);
         this.recipeMap = recipeMap;
-        this.recipeMapWorkable = new SteamMultiWorkable(this, conversionRate ,type);
-        this.refreshBeforeConsumptions = new ArrayList<>();
+        this.recipeMapWorkable = new SteamMultiWorkable(this, conversionRate, type);
         resetTileAbilities();
     }
+
     @Override
     public boolean canBeDistinct() {
         return false;
     }
-    private boolean isDistinct = false;
+
     @Override
     public boolean isDistinct() {
         return isDistinct;
@@ -94,18 +87,21 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
             this.notifiedItemInputList.add(this.inputInventory);
         }
     }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        if(type==ParallelLogicType.APPEND_ITEMS)tooltip.add(I18n.format("多方块并行模式：配方并发（允许同时运行多个配方，但是输入物品仅限一个）"));
-        if(type==ParallelLogicType.MULTIPLY)tooltip.add(I18n.format("多方块并行模式：单配方并行（只允许同时运行一个配方）"));
+        if (type == ParallelLogicType.APPEND_ITEMS)
+            tooltip.add(I18n.format("多方块并行模式：配方并发（允许同时运行多个配方，但是输入物品仅限一个）"));
+        if (type == ParallelLogicType.MULTIPLY)
+            tooltip.add(I18n.format("多方块并行模式：单配方并行（只允许同时运行一个配方）"));
     }
-
 
     public IItemHandlerModifiable getInputInventory() {
         return inputInventory;
     }
+
     public IItemHandlerModifiable getOutputInventory() {
         return outputInventory;
     }
@@ -113,12 +109,13 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
     public IMultipleTankHandler getSteamFluidTank() {
         return steamFluidTank;
     }
+
     public IMultipleTankHandler getInputFluidInventory() {return inputFluidInventory;}
+
     public IMultipleTankHandler getOutputFluidInventory() {return outputFluidInventory;}
 
     /**
-     * Performs extra checks for validity of given recipe before multiblock
-     * will start it's processing.
+     * Performs extra checks for validity of given recipe before multiblock will start it's processing.
      */
     public boolean checkRecipe(Recipe recipe, boolean consumeIfProcess) {
         return true;
@@ -141,31 +138,22 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
         recipeMapWorkable.update();
     }
 
-
     protected void initializeAbilities() {
-        List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputItems.addAll(getAbilities(MultiblockAbility.STEAM_IMPORT_ITEMS));
-        this.inputInventory = new ItemHandlerList(inputItems);
         this.steamFluidTank = new FluidTankList(true, getAbilities(MultiblockAbility.STEAM));
-        List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
+
+        List<IItemHandler> inputItems = new ArrayList<>(getAbilities(MultiblockAbility.STEAM_IMPORT_ITEMS));
+        this.inputInventory = new ItemHandlerList(inputItems);
+
+        List<IMultipleTankHandler> inputFluids = new ArrayList<>();
+        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.STEAM_IMPORT_FLUID)));
         this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
 
-        List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputItems.addAll(getAbilities(MultiblockAbility.STEAM_EXPORT_ITEMS));
+        List<IItemHandler> outputItems = new ArrayList<>(getAbilities(MultiblockAbility.STEAM_EXPORT_ITEMS));
         this.outputInventory = new ItemHandlerList(outputItems);
-        List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
+
+        List<IMultipleTankHandler> outputFluids = new ArrayList<>();
+        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.STEAM_EXPORT_FLUID)));
         this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
-
-
-        for (IMultiblockPart part : getMultiblockParts()) {
-            if (part instanceof IRefreshBeforeConsumption refresh) {
-                refreshBeforeConsumptions.add(refresh);
-            }
-        }
     }
 
     private void resetTileAbilities() {
@@ -175,12 +163,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
         this.outputFluidInventory = new FluidTankList(true);
         this.steamFluidTank = new FluidTankList(true);
     }
-    protected List<IRefreshBeforeConsumption> refreshBeforeConsumptions;
-    public void refreshAllBeforeConsumption() {
-        for (IRefreshBeforeConsumption refresh : refreshBeforeConsumptions) {
-            refresh.refreshBeforeConsumption();
-        }
-    }
+
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         builder.setWorkingStatus(recipeMapWorkable.isWorkingEnabled(), recipeMapWorkable.isActive())
@@ -222,13 +205,15 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
 
     @Override
     public TraceabilityPredicate autoAbilities() {
-        return autoAbilities(true, true, true, true, true);
+        return autoAbilities(true, true, true, true, true, true, true);
     }
 
     public TraceabilityPredicate autoAbilities(boolean checkSteam,
                                                boolean checkMaintainer,
                                                boolean checkItemIn,
                                                boolean checkItemOut,
+                                               boolean checkFluidIn,
+                                               boolean checkFluidOut,
                                                boolean checkMuffler) {
         TraceabilityPredicate predicate = super.autoAbilities(checkMaintainer, checkMuffler)
                 .or(checkSteam ? abilities(MultiblockAbility.STEAM).setMinGlobalLimited(1).setPreviewCount(1) :
@@ -241,6 +226,16 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
         if (checkItemOut) {
             if (recipeMap.getMaxOutputs() > 0) {
                 predicate = predicate.or(abilities(MultiblockAbility.STEAM_EXPORT_ITEMS).setPreviewCount(1));
+            }
+        }
+        if (checkFluidIn) {
+            if (recipeMap.getMaxFluidInputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.STEAM_IMPORT_FLUID).setPreviewCount(1));
+            }
+        }
+        if (checkFluidOut) {
+            if (recipeMap.getMaxFluidOutputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.STEAM_EXPORT_FLUID).setPreviewCount(1));
             }
         }
         return predicate;

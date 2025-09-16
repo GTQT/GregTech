@@ -122,8 +122,10 @@ import gregtech.common.metatileentities.steam.SteamRockBreaker;
 import gregtech.common.metatileentities.steam.boiler.SteamCoalBoiler;
 import gregtech.common.metatileentities.steam.boiler.SteamLavaBoiler;
 import gregtech.common.metatileentities.steam.boiler.SteamSolarBoiler;
+import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamFluidHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamItemBus;
+import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntitySteamFluidHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntitySteamHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntitySteamItemBus;
 import gregtech.common.metatileentities.storage.MetaTileEntityBuffer;
@@ -349,12 +351,16 @@ public class MetaTileEntities {
     public static MetaTileEntityPrimitiveWaterPump PRIMITIVE_WATER_PUMP;
     public static MetaTileEntityMagicEnergyAbsorber MAGIC_ENERGY_ABSORBER;
     public static MetaTileEntityCokeOvenHatch COKE_OVEN_HATCH;
-    public static MetaTileEntityHugeSteamItemBus HUGE_STEAM_EXPORT_BUS;
-    public static MetaTileEntityHugeSteamItemBus HUGE_STEAM_IMPORT_BUS;
+    public static MetaTileEntitySteamHatch STEAM_HATCH;
+    public static MetaTileEntityHugeSteamHatch HUGE_STEAM_HATCH;
     public static MetaTileEntitySteamItemBus STEAM_EXPORT_BUS;
     public static MetaTileEntitySteamItemBus STEAM_IMPORT_BUS;
-    public static MetaTileEntityHugeSteamHatch HUGE_STEAM_HATCH;
-    public static MetaTileEntitySteamHatch STEAM_HATCH;
+    public static MetaTileEntitySteamFluidHatch STEAM_EXPORT_HATCH;
+    public static MetaTileEntitySteamFluidHatch STEAM_IMPORT_HATCH;
+    public static MetaTileEntityHugeSteamItemBus HUGE_STEAM_EXPORT_BUS;
+    public static MetaTileEntityHugeSteamItemBus HUGE_STEAM_IMPORT_BUS;
+    public static MetaTileEntityHugeSteamFluidHatch HUGE_STEAM_EXPORT_HATCH;
+    public static MetaTileEntityHugeSteamFluidHatch HUGE_STEAM_IMPORT_HATCH;
     public static MetaTileEntityMaintenanceHatch MAINTENANCE_HATCH;
     public static MetaTileEntityMaintenanceHatch CONFIGURABLE_MAINTENANCE_HATCH;
     public static MetaTileEntityAutoMaintenanceHatch AUTO_MAINTENANCE_HATCH;
@@ -1203,21 +1209,28 @@ public class MetaTileEntities {
         CREATIVE_ENERGY = registerMetaTileEntity(2003, new MetaTileEntityCreativeEnergy());
 
         // Steam Hatches/Buses
-        HUGE_STEAM_EXPORT_BUS = registerMetaTileEntity(2005,
-                new MetaTileEntityHugeSteamItemBus(gregtechId("huge_steam_export_bus"), true));
-        HUGE_STEAM_IMPORT_BUS = registerMetaTileEntity(2006,
-                new MetaTileEntityHugeSteamItemBus(gregtechId("huge_steam_import_bus"), false));
-        HUGE_STEAM_HATCH = registerMetaTileEntity(2007, new MetaTileEntityHugeSteamHatch(gregtechId("huge_steam_hatch")));
+        STEAM_HATCH = registerMetaTileEntity(2004, new MetaTileEntitySteamHatch(gregtechId("steam_hatch")));
+        HUGE_STEAM_HATCH = registerMetaTileEntity(2005, new MetaTileEntityHugeSteamHatch(gregtechId("huge_steam_hatch")));
 
-        STEAM_EXPORT_BUS = registerMetaTileEntity(2010,
+        STEAM_EXPORT_BUS = registerMetaTileEntity(2006,
                 new MetaTileEntitySteamItemBus(gregtechId("steam_export_bus"), true));
-        STEAM_IMPORT_BUS = registerMetaTileEntity(2011,
+        STEAM_IMPORT_BUS = registerMetaTileEntity(2007,
                 new MetaTileEntitySteamItemBus(gregtechId("steam_import_bus"), false));
-        STEAM_HATCH = registerMetaTileEntity(2012, new MetaTileEntitySteamHatch(gregtechId("steam_hatch")));
 
-        CLIPBOARD_TILE = registerMetaTileEntity(2013, new MetaTileEntityClipboard(gregtechId("clipboard")));
+        STEAM_EXPORT_HATCH = registerMetaTileEntity(2008,
+                new MetaTileEntitySteamFluidHatch(gregtechId("steam_export_hatch"), true));
+        STEAM_IMPORT_HATCH = registerMetaTileEntity(2009,
+                new MetaTileEntitySteamFluidHatch(gregtechId("steam_import_hatch"), false));
 
-        MONITOR_SCREEN = registerMetaTileEntity(2014, new MetaTileEntityMonitorScreen(gregtechId("monitor_screen")));
+        HUGE_STEAM_EXPORT_BUS = registerMetaTileEntity(2010,
+                new MetaTileEntityHugeSteamItemBus(gregtechId("huge_steam_export_bus"), true));
+        HUGE_STEAM_IMPORT_BUS = registerMetaTileEntity(2011,
+                new MetaTileEntityHugeSteamItemBus(gregtechId("huge_steam_import_bus"), false));
+
+        HUGE_STEAM_EXPORT_HATCH=registerMetaTileEntity(2012,
+                new MetaTileEntityHugeSteamFluidHatch(gregtechId("huge_steam_export_hatch"), true));
+        HUGE_STEAM_IMPORT_HATCH=registerMetaTileEntity(2013,
+                new MetaTileEntityHugeSteamFluidHatch(gregtechId("huge_steam_import_hatch"), false));
 
         // Creative Chest and Tank, IDs 1668-1669
         CREATIVE_CHEST = registerMetaTileEntity(2015, new MetaTileEntityCreativeChest(gregtechId("creative_chest")));
@@ -1277,6 +1290,11 @@ public class MetaTileEntities {
                 new MetaTileEntityTankValve(gregtechId("tank_valve.steel"), true));
         STEEL_TANK = registerMetaTileEntity(2053,
                 new MetaTileEntityMultiblockTank(gregtechId("tank.steel"), true, 1000 * 1000));
+
+
+        CLIPBOARD_TILE = registerMetaTileEntity(2055, new MetaTileEntityClipboard(gregtechId("clipboard")));
+
+        MONITOR_SCREEN = registerMetaTileEntity(2056, new MetaTileEntityMonitorScreen(gregtechId("monitor_screen")));
 
         // Drums, IDs 1610-1624
         WOODEN_DRUM = registerMetaTileEntity(2060,

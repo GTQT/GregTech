@@ -59,7 +59,7 @@ import static gregtech.common.blocks.BlockMetalCasing.MetalCasingType.BRONZE_BRI
 import static gregtech.common.blocks.MetaBlocks.METAL_CASING;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
-import static gregtech.common.metatileentities.MetaTileEntities.HUGE_STEAM_IMPORT_BUS;
+import static gregtech.common.metatileentities.MetaTileEntities.HUGE_STEAM_IMPORT_HATCH;
 import static gtqt.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_EXPORT_BUS;
 import static gtqt.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_IMPORT_BUS;
 
@@ -1486,6 +1486,20 @@ public class MachineRecipeLoader {
             ModHandler.addShapedRecipe("huge_steam_bus_input_to_output_" + HUGE_STEAM_IMPORT_BUS.getTier(),
                     HUGE_STEAM_IMPORT_BUS.getStackForm(),
                     "d", "B", 'B', HUGE_STEAM_EXPORT_BUS.getStackForm());
+
+            ModHandler.addShapedRecipe("steam_hatch_output_to_input_" + STEAM_EXPORT_HATCH.getTier(),
+                    STEAM_EXPORT_HATCH.getStackForm(),
+                    "d", "B", 'B', STEAM_IMPORT_HATCH.getStackForm());
+            ModHandler.addShapedRecipe("steam_hatch_input_to_output_" + STEAM_IMPORT_HATCH.getTier(),
+                    STEAM_IMPORT_HATCH.getStackForm(),
+                    "d", "B", 'B', STEAM_EXPORT_HATCH.getStackForm());
+
+            ModHandler.addShapedRecipe("huge_steam_hatch_output_to_input_" + HUGE_STEAM_EXPORT_HATCH.getTier(),
+                    HUGE_STEAM_EXPORT_HATCH.getStackForm(),
+                    "d", "B", 'B', HUGE_STEAM_IMPORT_HATCH.getStackForm());
+            ModHandler.addShapedRecipe("huge_steam_hatch_input_to_output_" + HUGE_STEAM_IMPORT_HATCH.getTier(),
+                    HUGE_STEAM_IMPORT_HATCH.getStackForm(),
+                    "d", "B", 'B', HUGE_STEAM_EXPORT_HATCH.getStackForm());
         }
     }
 }

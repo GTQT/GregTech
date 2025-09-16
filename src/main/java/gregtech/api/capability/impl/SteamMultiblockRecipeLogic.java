@@ -238,14 +238,7 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
         return false;
     }
 
-    @Override
-    public boolean prepareRecipe(Recipe recipe) {
-        ((RecipeMapSteamMultiblockController) metaTileEntity).refreshAllBeforeConsumption();
-        return super.prepareRecipe(recipe);
-    }
-
     protected boolean prepareRecipeDistinct(Recipe recipe) {
-        ((RecipeMapSteamMultiblockController) metaTileEntity).refreshAllBeforeConsumption();
         recipe = Recipe.trimRecipeOutputs(recipe, getRecipeMap(), metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
         boolean dualInput = hasDualInput();

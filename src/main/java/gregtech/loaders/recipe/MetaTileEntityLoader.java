@@ -698,6 +698,10 @@ public class MetaTileEntityLoader {
                     MetaTileEntities.STEAM_MACERATOR_BRONZE.getStackForm(), 'C',
                     MetaBlocks.METAL_CASING.getItemVariant(BRONZE_BRICKS));
         }
+        ModHandler.addShapedRecipe(true, "steam_input_hatch", MetaTileEntities.STEAM_IMPORT_HATCH.getStackForm(), "C",
+                "H", 'H', MetaBlocks.STEAM_CASING.getItemVariant(BRONZE_HULL), 'C', MetaTileEntities.BRONZE_DRUM.getStackForm());
+        ModHandler.addShapedRecipe(true, "steam_output_hatch", MetaTileEntities.STEAM_EXPORT_HATCH.getStackForm(), "H",
+                "C", 'H', MetaBlocks.STEAM_CASING.getItemVariant(BRONZE_HULL), 'C', MetaTileEntities.BRONZE_DRUM.getStackForm());
 
         ModHandler.addShapedRecipe(true, "steam_hatch", MetaTileEntities.STEAM_HATCH.getStackForm(), "BPB", "BTB",
                 "BPB", 'B', new UnificationEntry(OrePrefix.plate, Materials.Bronze), 'P',
@@ -721,6 +725,13 @@ public class MetaTileEntityLoader {
         ModHandler.addShapedRecipe(true, "huge_steam_output_bus", MetaTileEntities.HUGE_STEAM_EXPORT_BUS.getStackForm(),
                 "H",
                 "C", 'H', MetaBlocks.STEAM_CASING.getItemVariant(STEEL_HULL), 'C', OreDictNames.chestWood);
+
+        ModHandler.addShapedRecipe(true, "huge_steam_input_hatch", MetaTileEntities.HUGE_STEAM_IMPORT_HATCH.getStackForm(),
+                "C",
+                "H", 'H', MetaBlocks.STEAM_CASING.getItemVariant(STEEL_HULL), 'C',  MetaTileEntities.BRONZE_DRUM.getStackForm());
+        ModHandler.addShapedRecipe(true, "huge_steam_output_hatch", MetaTileEntities.HUGE_STEAM_EXPORT_HATCH.getStackForm(),
+                "H",
+                "C", 'H', MetaBlocks.STEAM_CASING.getItemVariant(STEEL_HULL),  'C', MetaTileEntities.BRONZE_DRUM.getStackForm());
 
         ModHandler.addShapedRecipe(true, "processing_array", MetaTileEntities.PROCESSING_ARRAY.getStackForm(), "COC",
                 "RHR", "CPC", 'C', new UnificationEntry(OrePrefix.circuit, Tier.IV), 'O',
