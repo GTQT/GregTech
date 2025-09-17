@@ -13,6 +13,7 @@ import gregtech.api.util.Mods;
 import gregtech.api.util.function.TriPredicate;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.RenderUtil;
+import gregtech.integration.ftb.utility.FTBChunksHelper;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -48,11 +49,6 @@ import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ItemSlot;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
-import com.feed_the_beast.ftblib.lib.EnumTeamStatus;
-import com.feed_the_beast.ftblib.lib.data.ForgePlayer;
-import com.feed_the_beast.ftblib.lib.math.ChunkDimPos;
-import com.feed_the_beast.ftbutilities.data.ClaimedChunk;
-import com.feed_the_beast.ftbutilities.data.ClaimedChunks;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -69,7 +65,7 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
     private int breakProgressTicksLeft;
     private float currentBlockHardness;
     private static final List<@NotNull TriPredicate<@NotNull World, @NotNull BlockPos, @NotNull FakePlayer>> PREDICATE_LIST = new ObjectArrayList<>(
-            2);
+            3);
 
     static {
         PREDICATE_LIST.add((world, blockPos, fakePlayer) -> !world.isAirBlock(blockPos));
@@ -77,17 +73,7 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
                 (world, blockPos, fakePlayer) -> !(world.getBlockState(blockPos).getBlock() instanceof BlockLiquid));
         PREDICATE_LIST.add((world, blockPos, fakePlayer) -> world.isBlockModifiable(fakePlayer, blockPos));
         if (Mods.FTB_UTILITIES.isModLoaded()) {
-            PREDICATE_LIST.add((world, blockPos, fakePlayer) -> {
-                ClaimedChunks instance = ClaimedChunks.instance;
-                ClaimedChunk claimedChunk = instance.getChunk(new ChunkDimPos(blockPos, world.provider.getDimension()));
-                if (claimedChunk != null) {
-                    ForgePlayer forgePlayer = instance.universe.getPlayer(fakePlayer.getUniqueID());
-                    EnumTeamStatus status = claimedChunk.getData().getEditBlocksStatus();
-                    return !claimedChunk.getTeam().hasStatus(forgePlayer, status);
-                } else {
-                    return true;
-                }
-            });
+            PREDICATE_LIST.add(FTBChunksHelper::isBlockModifiableByPlayer);
         }
     }
 
@@ -95,7 +81,7 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
      * Add a predicate check to the block breaker. Intended to be used to prevent a certain block from being broken.
      * <br/>
      * <b>Warning!</b> the {@link FakePlayer} passed to the predicate is not a real player, but a fake one with
-     * the same UUID as the real player who placed the block breaker <br/>
+     * the same UUID as the real player who placed the block breaker. <br/>
      * Return {@code false} to cancel a break attempt on this block. <br/>
      * Return {@code true} to move onto the next predicate, and eventually break the block only if all other predicates
      * returned {@code false}.
@@ -275,11 +261,12 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
         return facing != outputFacing;
     }
 
+    @NotNull
     public EnumFacing getOutputFacing() {
         return outputFacing == null ? EnumFacing.SOUTH : outputFacing;
     }
 
-    public void setOutputFacing(EnumFacing outputFacing) {
+    public void setOutputFacing(@NotNull EnumFacing outputFacing) {
         this.outputFacing = outputFacing;
         if (!getWorld().isRemote) {
             notifyBlockUpdate();
@@ -289,12 +276,10 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
     }
 
     @Override
-    public void setFrontFacing(EnumFacing frontFacing) {
+    public void setFrontFacing(@NotNull EnumFacing frontFacing) {
         super.setFrontFacing(frontFacing);
-        if (this.outputFacing == null) {
-            // set initial output facing as opposite to front
-            setOutputFacing(frontFacing.getOpposite());
-        }
+        // Set initial output facing as opposite to front
+        setOutputFacing(frontFacing.getOpposite());
     }
 
     public int getEnergyPerBlockBreak() {
@@ -315,6 +300,14 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
 
     public float getEfficiencyMultiplier() {
         return 1.0f - MathHelper.clamp(1.0f - 0.2f * (getTier() - 1.0f), 0.1f, 1.0f);
+    }
+
+    public int getBreakProgressTicksLeft() {
+        return breakProgressTicksLeft;
+    }
+
+    public float getCurrentBlockHardness() {
+        return currentBlockHardness;
     }
 
     @Override

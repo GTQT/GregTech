@@ -1,21 +1,14 @@
 package gregtech.common.metatileentities.steam.multiblockpart;
 
-import com.cleanroommc.modularui.widget.Widget;
-
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.client.utils.TooltipHelper;
-import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityItemBus;
 
 import net.minecraft.client.resources.I18n;
@@ -27,18 +20,9 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.factory.PosGuiData;
-import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widgets.ItemSlot;
-import com.cleanroommc.modularui.widgets.layout.Grid;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
@@ -85,7 +69,6 @@ public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
         }
     }
 
-
     @Override
     public int getDefaultPaintingColor() {
         return 0xFFFFFF;
@@ -94,10 +77,5 @@ public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
     @Override
     public GTGuiTheme getUITheme() {
         return IS_STEEL ? GTGuiTheme.STEEL : GTGuiTheme.BRONZE;
-    }
-
-    @Override
-    public boolean hasGhostCircuitInventory() {
-        return true;
     }
 }
