@@ -68,8 +68,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Range;
-import org.jetbrains.annotations.Range;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -1078,7 +1076,7 @@ public class GTUtility {
         return map.get(key.toWildcard());
     }
 
-    public static boolean areFluidsEqual(@Nullable FluidStack a, @Nullable FluidStack b) {
+    public static boolean areFluidStacksEqual(@Nullable FluidStack a, @Nullable FluidStack b) {
         if (a == b) return true;
         if (a == null) return false;
         return a.isFluidEqual(b);
