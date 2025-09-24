@@ -39,7 +39,7 @@ public class ScrollableTextWidget extends Widget<ScrollableTextWidget>
     private Object lastIngredient;
 
     private final ScrollArea scroll = new ScrollArea();
-    private final TextRenderer renderer = new TextRenderer();
+    private final TextRenderer renderer = new ScrollingTextRenderer();
 
     public ScrollableTextWidget() {
         listenGuiAction((IGuiAction.MouseReleased) mouseButton -> {
@@ -227,5 +227,21 @@ public class ScrollableTextWidget extends Widget<ScrollableTextWidget>
     @Override
     public @Nullable Object getIngredient() {
         return this.lastIngredient;
+    }
+
+    public static class ScrollingTextRenderer extends TextRenderer {
+
+        public int getLastY() {
+            return (int) lastY;
+        }
+
+        public int getLastX() {
+            return (int) lastX;
+        }
+
+        @Override
+        protected int getStartY(float height) {
+            return this.y; // always draw at the top
+        }
     }
 }

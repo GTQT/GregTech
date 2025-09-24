@@ -8,6 +8,8 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 
+import org.jetbrains.annotations.NotNull;
+
 public class LargeSlotItemStackHandler extends NotifiableItemStackHandler {
 
     Supplier<Integer> slotCapacity;
@@ -35,7 +37,7 @@ public class LargeSlotItemStackHandler extends NotifiableItemStackHandler {
     }
 
     @Override
-    public ItemStack extractItem(int slot, int amount, boolean simulate) {
+    public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
         if (amount == 0) return ItemStack.EMPTY;
 
         validateSlotIndex(slot);

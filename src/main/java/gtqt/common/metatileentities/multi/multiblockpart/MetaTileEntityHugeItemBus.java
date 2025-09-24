@@ -33,6 +33,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMulti
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -43,6 +44,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -130,8 +132,6 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     protected void initializeInventory() {
-
-        super.initializeInventory();
         this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null, false, () -> Integer.MAX_VALUE);
 
         if (this.hasGhostCircuitInventory()) {
@@ -141,6 +141,8 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         } else {
             this.actualImportItems = null;
         }
+
+        super.initializeInventory();
     }
 
     @Override
@@ -213,7 +215,9 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+        if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.largeSlotItemStackHandler);
+        } if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
             return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
         }
         return super.getCapability(capability, side);
@@ -329,7 +333,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         BooleanSyncValue workingStateValue = new BooleanSyncValue(this::isWorkingEnabled, this::setWorkingEnabled);
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
 
-        IItemHandlerModifiable handler = isExportHatch ? exportItems : importItems;
+        IItemHandlerModifiable handler = isExportHatch ? exportItems : largeSlotItemStackHandler;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
@@ -461,4 +465,18 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
         super.addToolUsages(stack, world, tooltip, advanced);
     }
+
+    @Override
+    public void onRemoval() {
+        super.onRemoval();
+        for (int i = 0; i < largeSlotItemStackHandler.getSlots(); i++) {
+            var pos = getPos();
+            if (!largeSlotItemStackHandler.getStackInSlot(i).isEmpty()) {
+                getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                        largeSlotItemStackHandler.getStackInSlot(i)));
+                largeSlotItemStackHandler.extractItem(i, 1, false);
+            }
+        }
+    }
+
 }

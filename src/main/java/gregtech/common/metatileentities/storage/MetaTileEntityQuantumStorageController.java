@@ -229,6 +229,7 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
     public void onLoad() {
         calculateEnergyUsage();
         super.onLoad();
+        rebuildNetwork();
     }
 
     // Used when this controller is initially placed. Try to find all possible

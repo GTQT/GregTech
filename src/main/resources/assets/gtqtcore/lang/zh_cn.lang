@@ -661,3 +661,7 @@ gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data
 gregtech.machine.budget_crib_proxy.data_stick_use=Linked to Budget CRIB at X: %s, Y: %s, Z: %s
 #item group
 itemGroup.gtqt_programmable=量子跃迁 | 可编程舱室
+#村民
+entity.Villager.level_lv=民间科学家
+entity.Villager.level_mv=村民工匠
+entity.Villager.level_hv=村民工程师

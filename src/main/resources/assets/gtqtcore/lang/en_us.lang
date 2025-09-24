@@ -271,7 +271,7 @@ gregtech.machine.thread_hatch.max.name=Thread Hatch(Max)
 gregtech.machine.thread_hatch.tooltip=Can simultaneously process tasks for §b%s§7 cores at maximum.
 gregtech.machine.thread_hatch.display=Adjust independent core count for multiblocks.
 
-gregtech.machine.me_huge_dual_hatch.import.name=ME Input Bus
+gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
 
 gregtech.machine.wireless_energy_hatch.tooltip.1=Stores energy in wireless network, capacity up to 2^(2^31) EU.
@@ -651,6 +651,9 @@ gregtech.gui.dual_auto_collapse.tooltip.disabled=Item/Fluid Stack Auto-Collapse 
 # Tooltips
 gregtech.machine.super_item_bus.tooltip=Single Tank Capacity: INT MAX
 
+gregtech.machine.dual_hatch.import.tooltip=Input items and fluids for a multi-block structure
+gregtech.machine.dual_hatch.export.tooltip=Output items and fluids for multi-block structures
+
 gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders machines after marking recipes with patterns
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items
 gregtech.machine.me_pattern.tooltip.3=Pattern Optimization: Automatically multiplies patterns according to current thread count, adjusts dynamically with multiblock parallel changes
@@ -663,3 +666,8 @@ gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data
 gregtech.machine.budget_crib_proxy.data_stick_use=Linked to Budget CRIB at X: %s, Y: %s, Z: %s
 #item group
 itemGroup.gtqt_programmable=GTQT | Programmable Hatch
+#Villager
+entity.Villager.level_lv=Folk Scientist
+entity.Villager.level_mv=Villager Craftsmen
+entity.Villager.level_hv=Villager Engineer
+

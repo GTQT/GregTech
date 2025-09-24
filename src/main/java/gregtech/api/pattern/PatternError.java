@@ -1,5 +1,7 @@
 package gregtech.api.pattern;
 
+import com.cleanroommc.modularui.api.drawable.IKey;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -53,7 +55,7 @@ public class PatternError {
             }
         }
         builder.append("...");
-        return I18n.format("gregtech.multiblock.pattern.error", builder.toString(), getPosString(worldState.pos));
+        return IKey.lang("gregtech.multiblock.pattern.error", builder.toString(), getPosString(worldState.pos)).toString();
     }
     public String getPosString(BlockPos pos) {
         return "[X:"+pos.getX()+" Y:"+pos.getY()+" Z:"+pos.getZ()+"]";

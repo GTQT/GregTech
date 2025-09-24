@@ -33,7 +33,7 @@ public class VillagerHandler {
     // 常量定义
     public static final String FOLK_SCIENTIST_ID = "gregtech:folk_scientist";
     private static final String FOLK_SCIENTIST_TEXTURE = "gregtech:textures/entity/villagers/folk_scientist.png";
-    private static final String ZOMBIE_VILLAGER_TEXTURE = "minecraft:textures/entity/zombie_villager/zombie_villager.png";
+    private static final String ZOMBIE_VILLAGER_TEXTURE = "minecraft:textures/entity/villagers/zombie_villager.png";
 
     // 职业等级常量
     private static final String CAREER_LEVEL_LV = "level_lv";
