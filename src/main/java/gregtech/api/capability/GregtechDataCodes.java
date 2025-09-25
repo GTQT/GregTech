@@ -172,6 +172,9 @@ public class GregtechDataCodes {
     public static final int LOCK_OBJECT_HOLDER = assignId();
     public static final int CACHED_CWU = assignId();
 
+    //多线程
+    public static final int UPDATE_THREAD_STATE = assignId();
+
     // NBT Keys
 
     // From MetaTileEntityHolder

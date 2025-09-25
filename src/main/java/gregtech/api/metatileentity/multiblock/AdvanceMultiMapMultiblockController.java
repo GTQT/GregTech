@@ -28,6 +28,7 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.widgets.CycleButtonWidget;
 import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -215,7 +216,7 @@ public abstract class AdvanceMultiMapMultiblockController extends AdvanceRecipeM
     }
 
     @Override
-    public void receiveCustomData(int dataId, PacketBuffer buf) {
+    public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
         if (dataId == GregtechDataCodes.RECIPE_MAP_INDEX) {
             recipeMapIndex = buf.readByte();

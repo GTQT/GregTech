@@ -112,6 +112,10 @@ public class MultiblockUIBuilder {
         return this;
     }
 
+    public int syncsInteger(int  value){
+        return this.getSyncer().syncInt(value);
+    }
+
     /** Set the current working enabled and active status of this multiblock, used by many line addition calls. */
     public MultiblockUIBuilder setWorkingStatus(boolean isWorkingEnabled, boolean isActive) {
         this.isWorkingEnabled = this.getSyncer().syncBoolean(isWorkingEnabled);

@@ -1,6 +1,7 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
@@ -31,7 +32,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fluids.IFluidTank;
+import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -52,7 +53,9 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                    IDistinctBusController {
 
     public final RecipeMap<?> recipeMap;
+
     protected ArrayList<MultiblockRecipeLogic> recipeMapWorkable = new ArrayList<>();
+
     protected IItemHandlerModifiable inputInventory;
     protected IItemHandlerModifiable outputInventory;
     protected IMultipleTankHandler inputFluidInventory;
@@ -127,9 +130,19 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     public void refreshThread(int thread) {
         if (!checkWorkingEnable()) {
-            recipeMapWorkable = new ArrayList<>();
-            for (int i = 0; i < thread; i++)
-                recipeMapWorkable.add(new MultiblockRecipeLogic(this));
+            forceRefreshThread(thread);
+        }
+    }
+
+    public void forceRefreshThread(int thread) {
+        recipeMapWorkable = new ArrayList<>();
+        for (int i = 0; i < thread; i++)
+            recipeMapWorkable.add(new MultiblockRecipeLogic(this));
+
+        markDirty();
+        World world = getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.UPDATE_THREAD_STATE, buf -> buf.writeInt(thread));
         }
     }
 
@@ -211,69 +224,39 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         this.refreshBeforeConsumptions.clear();
     }
 
-    protected IMultipleTankHandler extendedImportFluidList(IMultipleTankHandler fluids) {
-        List<IFluidTank> tanks = new ArrayList<>(fluids.getFluidTanks());
-        // iterate import items to look for and tanks that we might have missed
-        // honestly this might not be worth checking because
-        // it might already be handled in ARL/MRL
-        for (var handler : getAbilities(MultiblockAbility.IMPORT_ITEMS)) {
-            if (handler instanceof IFluidTank tank) {
-                if (!tanks.contains(tank)) tanks.add(tank);
-            } else if (handler instanceof IMultipleTankHandler multipleTankHandler) {
-                for (var tank : multipleTankHandler.getFluidTanks()) {
-                    if (!tanks.contains(tank)) tanks.add(tank);
-                }
-            }
-        }
-        for (var handler : getAbilities(MultiblockAbility.DUAL_IMPORT)) {
-            for (var tank : handler.getFluidTanks()) {
-                if (!tanks.contains(tank)) tanks.add(tank);
-            }
-        }
-
-        return new FluidTankList(allowSameFluidFillForOutputs(), tanks);
-    }
-
-    public boolean allowSameFluidFillForOutputs() {
-        return true;
-    }
-
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
-        if (recipeMapWorkable.size() == 1) {
+        if (!isStructureFormed()) return;
+        int syncsParallel = builder.syncsInteger(recipeMapWorkable.size());
+        if (syncsParallel == 1) {
             builder.setWorkingStatus(recipeMapWorkable.get(0).isWorkingEnabled(), recipeMapWorkable.get(0).isActive())
                     .addEnergyUsageLine(this.getEnergyContainer())
                     .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.get(0).getMaxVoltage()))
                     .addParallelsLine(recipeMapWorkable.get(0).getParallelLimit())
                     .addWorkingStatusLine()
                     .addProgressLine(recipeMapWorkable.get(0).getProgress(), recipeMapWorkable.get(0).getMaxProgress())
-                    .addRecipeOutputLine(recipeMapWorkable.get(0));
-        } else {
+                    .addRecipeOutputLine(recipeMapWorkable.get(0))
+                    .addCustom(this::addCustomCapacity);
+        } else if (syncsParallel > 1) {
             builder.addEnergyUsageLine(this.getEnergyContainer())
                     .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.get(0).getMaxVoltage()))
                     .addParallelsLine(recipeMapWorkable.get(0).getParallelLimit())
                     .addCustom(this::addCustomCapacity)
                     .addCustom((list, syncer) -> {
-                        if (isStructureFormed()) {
-                            list.add(KeyUtil.lang(TextFormatting.GOLD, "总线程数：%s",
-                                    syncer.syncInt(recipeMapWorkable.size())));
-                        }
+                        list.add(KeyUtil.lang(TextFormatting.GOLD, "总线程数：%s",
+                                syncer.syncInt(syncsParallel)));
                     });
-            for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable) {
-                if (!recipeMapWorkable.isActive()) continue;
-                builder.addCustom((list, syncer) -> {
-                            if (isStructureFormed()) {
-                                list.add(KeyUtil.lang(TextFormatting.GOLD, ">>线程："));
-                            }
-                        })
-                        .setWorkingStatus(recipeMapWorkable.isWorkingEnabled(), recipeMapWorkable.isActive())
-                        .addWorkingStatusLine()
-                        .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                        .addEmptyLine();
 
+            for (int i = 0; i < syncsParallel; i++) {
+                builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.GOLD, ">>线程：")))
+                        .setWorkingStatus(recipeMapWorkable.get(i).isWorkingEnabled(),
+                                recipeMapWorkable.get(i).isActive())
+                        .addWorkingStatusLine()
+                        .addProgressLine(recipeMapWorkable.get(i).getProgress(),
+                                recipeMapWorkable.get(i).getMaxProgress())
+                        .addEmptyLine();
             }
         }
-
     }
 
     protected void addCustomCapacity(KeyManager keyManager, UISyncer syncer) {
@@ -355,6 +338,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setBoolean("isDistinct", isDistinct);
+        data.setInteger("thread", thread);
+
+        // 修复索引：直接使用循环索引，从0开始
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            data.setTag("thread" + i, recipeMapWorkable.get(i).serializeNBT());
+        }
         return data;
     }
 
@@ -362,18 +351,46 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         isDistinct = data.getBoolean("isDistinct");
+
+        thread = data.getInteger("thread");
+
+        // 修复索引：从0开始，添加边界检查
+        forceRefreshThread(thread);
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            String tagName = "thread" + i;
+            if (data.hasKey(tagName)) {
+                recipeMapWorkable.get(i).deserializeNBT(data.getCompoundTag(tagName));
+            }
+        }
+    }
+
+    @Override
+    public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == GregtechDataCodes.UPDATE_THREAD_STATE) {
+            this.thread = buf.readInt();
+        }
     }
 
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
         buf.writeBoolean(isDistinct);
+        buf.writeInt(thread);
+        for (MultiblockRecipeLogic logic : recipeMapWorkable) {
+            logic.writeInitialSyncData(buf);
+        }
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
         isDistinct = buf.readBoolean();
+        thread = buf.readInt();
+        forceRefreshThread(thread); // 使用实际读取的数量
+        for (MultiblockRecipeLogic logic : recipeMapWorkable) {
+            logic.receiveInitialSyncData(buf);
+        }
     }
 
     @Override
@@ -513,5 +530,4 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
             recipeMapWorkable.setBatchEnable(enable);
     }
-
 }
