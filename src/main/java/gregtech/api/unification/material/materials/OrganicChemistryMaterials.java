@@ -141,7 +141,7 @@ public class OrganicChemistryMaterials {
                 .polymer(1)
                 .liquid(new FluidBuilder().temperature(600))
                 .color(0x646464)
-                .flags(STD_METAL, GENERATE_FRAME, GENERATE_FOIL)
+                .flags(STD_METAL, GENERATE_FRAME, GENERATE_FOIL,GENERATE_RING)
                 .components(Carbon, 2, Fluorine, 4)
                 .fluidPipeProperties(600, 100, true, true, false, false)
                 .build();
