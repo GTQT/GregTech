@@ -162,7 +162,6 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
                 return;
             }
         }
-        GregTechMod.LOGGER.warn("Meow !");
         trySearchNewRecipeCombined();
     }
 

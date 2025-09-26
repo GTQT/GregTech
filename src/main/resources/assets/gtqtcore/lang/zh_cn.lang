@@ -275,6 +275,7 @@ gregtech.machine.thread_hatch.display=调整多方块的独立核心数量。
 
 gregtech.machine.me_dual_hatch.import.name=ME输入总成
 gregtech.machine.me_dual_hatch.export.name=ME输出总成
+gregtech.machine.me_pattern_provider_proxy.name=ME代理样板总成
 
 gregtech.machine.wireless_energy_hatch.tooltip.1=将能量存储于无线能量网络中，上限为2^(2^31)EU。
 gregtech.machine.wireless_energy_hatch.tooltip.2=无需连接导线，此仓室可以自动与网络交互来抽取/存储能量。
@@ -654,11 +655,15 @@ gregtech.machine.me_pattern.tooltip.2=阻挡模式：只允许与总成缓存的
 gregtech.machine.me_pattern.tooltip.3=样板优化：将样板自动倍乘到当前并行数量，多方块并行变更也会导致样板倍乘自动变更
 gregtech.machine.me_pattern.tooltip.4=高级样板电路：在样板读取中如果读取到虚拟电路（不包含可编程电路）则自动设置当前虚拟电路为样板中电路的值并将虚拟电路发送回网络
 
-gregtech.machine.budget_crib_proxy.tooltip=Shares the inventory of the linked Budget CRIB
+gregtech.machine.budget_crib.data_stick_use=坐标数据已写入闪存
+gregtech.machine.budget_crib.data_stick_name=总成位置信息
+gregtech.machine.budget_crib_proxy.data_stick_use=已连接位于 X: %s, Y: %s, Z: %s 的总成
 
-gregtech.machine.budget_crib.data_stick_use=Wrote location to data stick
-gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data
-gregtech.machine.budget_crib_proxy.data_stick_use=Linked to Budget CRIB at X: %s, Y: %s, Z: %s
+# 代理仓工具提示
+gtqt.machine.me_pattern_proxy.tooltip.function=为多方块结构提供远程物品和流体输入代理
+gtqt.machine.me_pattern_proxy.tooltip.features=与主仓共享物品和流体库存，支持一对多代理连接，可直接访问主仓控制界面
+gtqt.machine.me_pattern_proxy.tooltip.usage=使用闪存右键点击主仓进行绑定，右键点击代理仓应用绑定数据，重新成型多方块结构以激活代理功能
+gtqt.machine.me_pattern_proxy.tooltip.requirements=只可绑定处于同一维度的仓口，请保证对应区块的加载！
 #item group
 itemGroup.gtqt_programmable=量子跃迁 | 可编程舱室
 #村民

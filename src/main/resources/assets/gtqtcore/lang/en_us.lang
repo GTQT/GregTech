@@ -273,6 +273,7 @@ gregtech.machine.thread_hatch.display=Adjust independent core count for multiblo
 
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
+gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy
 
 gregtech.machine.wireless_energy_hatch.tooltip.1=Stores energy in wireless network, capacity up to 2^(2^31) EU.
 gregtech.machine.wireless_energy_hatch.tooltip.2=No cables needed, automatically interacts with network to draw/store energy.
@@ -659,11 +660,15 @@ gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matc
 gregtech.machine.me_pattern.tooltip.3=Pattern Optimization: Automatically multiplies patterns according to current thread count, adjusts dynamically with multiblock parallel changes
 gregtech.machine.me_pattern.tooltip.4=Advanced Template Circuit: In Template Reading, if a virtual circuit (without programmable circuits) is read, the value of the current virtual circuit is automatically set to the circuit in the template and the virtual circuit is sent back to the network
 
-gregtech.machine.budget_crib_proxy.tooltip=Shares the inventory of the linked Budget CRIB
-
 gregtech.machine.budget_crib.data_stick_use=Wrote location to data stick
 gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data
 gregtech.machine.budget_crib_proxy.data_stick_use=Linked to Budget CRIB at X: %s, Y: %s, Z: %s
+
+# ME Pattern Provider Proxy Tooltips
+gtqt.machine.me_pattern_proxy.tooltip.function=Provides remote item and fluid input proxy for multiblock structures
+gtqt.machine.me_pattern_proxy.tooltip.features=Shares inventory with the main bus, supports one-to-many proxy connections, and direct access to the main bus GUI
+gtqt.machine.me_pattern_proxy.tooltip.usage=Use a data stick to bind by right-clicking the main bus, then apply the binding data by right-clicking the proxy bus. Reform the multiblock to activate the proxy function
+gtqt.machine.me_pattern_proxy.tooltip.requirements=Can only bind to the main bus in the same dimension. Please ensure the corresponding chunks are loaded!
 #item group
 itemGroup.gtqt_programmable=GTQT | Programmable Hatch
 #Villager

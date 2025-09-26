@@ -245,10 +245,6 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
         return this.actualImportItems == null ? largeSlotItemStackHandler : this.actualImportItems;
     }
 
-    public IItemHandlerModifiable getActualImportItems() {
-        return actualImportItems;
-    }
-
     @Override
     public void addToMultiBlock(MultiblockControllerBase controllerBase) {
         super.addToMultiBlock(controllerBase);

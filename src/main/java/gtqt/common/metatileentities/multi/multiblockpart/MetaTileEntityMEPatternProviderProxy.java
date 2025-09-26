@@ -1,9 +1,12 @@
 package gtqt.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.capability.DualHandler;
+import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.INotifiableHandler;
+import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
+import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -16,6 +19,7 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -26,13 +30,24 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+
+import net.minecraftforge.items.IItemHandlerModifiable;
+
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+
+import static net.minecraft.util.text.TextFormatting.GREEN;
 
 public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<DualHandler>,
@@ -68,15 +83,6 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
         if (controllerBase != null) {
             addNotifiedInput(getMain().getImportItems());
             addNotifiedInput(getMain().getImportFluids());
-
-            if (hasMain() && getMain().hasGhostCircuitInventory() && getMain().getActualImportItems() instanceof ItemHandlerList) {
-                for (IItemHandler handler : ((ItemHandlerList) getMain().getActualImportItems()).getBackingHandlers()) {
-                    if (handler instanceof INotifiableHandler notifiable) {
-                        notifiable.addNotifiableMetaTileEntity(controllerBase);
-                        notifiable.addToNotifiedList(this, handler, false);
-                    }
-                }
-            }
         }
     }
 
@@ -211,6 +217,29 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
         }
     }
 
+    @Override
+    protected IItemHandlerModifiable createImportItemHandler() {
+        return getMain()==null?super.createImportItemHandler():getMain().createImportItemHandler();
+    }
+    @Override
+    protected FluidTankList createImportFluidHandler() {
+        return getMain()==null?super.createImportFluidHandler():this.getMain().createImportFluidHandler();
+    }
+    @Override
+    public IItemHandlerModifiable getImportItems() {
+        return this.getMain() == null ? super.getImportItems() : this.getMain().getActualImportItems();
+    }
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(getMain().getImportItems());
+        }
+        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(getMain());
+        }
+        return super.getCapability(capability, side);
+    }
+
 
     @Override
     protected boolean openGUIOnRightClick() {
@@ -238,6 +267,19 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if(hasMain())abilityInstances.add(new DualHandler(getMain().getActualImportItems(), getMain().getImportFluids(), false));
+        if(hasMain())
+            abilityInstances.add(new DualHandler(getMain().getActualImportItems(), getMain().getImportFluids(), false));
+        else
+            abilityInstances.add(new DualHandler(this.importItems, importFluids, false));
     }
+
+    @Override
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
+        tooltip.add(GREEN + I18n.format("gtqt.machine.me_pattern_proxy.tooltip.function"));
+        tooltip.add(I18n.format("gtqt.machine.me_pattern_proxy.tooltip.features"));
+        tooltip.add(I18n.format("gtqt.machine.me_pattern_proxy.tooltip.usage"));
+        tooltip.add(I18n.format("gtqt.machine.me_pattern_proxy.tooltip.requirements"));
+    }
+
 }

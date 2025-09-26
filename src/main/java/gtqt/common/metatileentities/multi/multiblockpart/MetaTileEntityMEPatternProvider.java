@@ -184,6 +184,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
         initializeInventory();
     }
 
+    public int getNumSlots() {
+        return numSlots;
+    }
     public int getSlotByTier() {
         return getTier() * getTier();
     }

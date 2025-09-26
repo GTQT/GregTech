@@ -265,7 +265,7 @@ public class GTGuiTextures {
             18, 36, 18, 18, true);
 
     public static final UITexture MENU_OVERLAY = fullImage("textures/gui/overlay/menu_overlay.png");
-
+    public static final UITexture BUTTON_EXPORT_FACE = fullImage("textures/gui/overlay/button_export_face.png");
     public static final UITexture RECIPE_LOCK = fullImage("textures/gui/widget/lock.png");
     public static final UITexture PRIMITIVE_FURNACE_OVERLAY = fullImage(
             "textures/gui/primitive/overlay_primitive_furnace.png");
@@ -489,6 +489,14 @@ public class GTGuiTextures {
      */
     public static final UITexture[] OVERLAY_DISTINCT_BUSES = slice("textures/gui/widget/button_distinct_buses.png",
             18, 36, 18, 18, false);
+
+    public static final UITexture[] OVERLAY_ITEM_EXPORT = slice("textures/gui/widget/button_item_export.png",
+            18, 36, 18, 18, false);
+
+    public static final UITexture[] OVERLAY_FLUID_EXPORT = slice("textures/gui/widget/button_fluid_export.png",
+            18, 36, 18, 18, false);
+
+
     public static final UITexture[] OVERLAY_BATCH = slice("textures/gui/widget/button_batch.png",
             18, 36, 18, 18, false);
 

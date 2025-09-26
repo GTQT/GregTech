@@ -5,11 +5,15 @@ import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.MarkerMaterial;
 import gregtech.api.util.Mods;
 
+import gregtech.common.items.MetaItems;
+
 import net.minecraft.item.ItemStack;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
 import static gregtech.api.unification.ore.OrePrefix.circuit;
+import static gregtech.common.items.MetaItems.COVER_ENDER_FLUID_LINK;
+import static gregtech.common.items.MetaItems.COVER_ENDER_ITEM_LINK;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 import static gtqt.api.util.MaterialHelper.Plastic;
 import static gtqt.common.metatileentities.GTQTMetaTileEntities.*;
@@ -126,5 +130,15 @@ public class HatchHandlers {
                 .input(circuit, MarkerMaterial.create(GTValues.VN[IV].toLowerCase()), 4)
                 .output(ME_DUAL_EXPORT_HATCH)
                 .duration(100).EUt(VA[IV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(DUAL_IMPORT_HATCH[IV])
+                .input(COVER_ENDER_ITEM_LINK)
+                .input(COVER_ENDER_FLUID_LINK)
+                .input(MetaItems.EMITTER_IV,4)
+                .input(MetaItems.SENSOR_IV,4)
+                .input(circuit, MarkerMaterial.create(GTValues.VN[IV].toLowerCase()), 8)
+                .output(ME_PATTERN_PROVIDER_PROXY)
+                .duration(200).EUt(VA[IV]).buildAndRegister();
     }
 }
