@@ -496,6 +496,11 @@ public class GTGuiTextures {
     public static final UITexture[] OVERLAY_FLUID_EXPORT = slice("textures/gui/widget/button_fluid_export.png",
             18, 36, 18, 18, false);
 
+    public static final UITexture[] OVERLAY_ITEM_EXPORT_IMPORT = slice("textures/gui/widget/overlay_item_export_import.png",
+            18, 36, 18, 18, false);
+
+    public static final UITexture[] OVERLAY_FLUID_EXPORT_IMPORT = slice("textures/gui/widget/overlay_fluid_export_import.png",
+            18, 36, 18, 18, false);
 
     public static final UITexture[] OVERLAY_BATCH = slice("textures/gui/widget/button_batch.png",
             18, 36, 18, 18, false);

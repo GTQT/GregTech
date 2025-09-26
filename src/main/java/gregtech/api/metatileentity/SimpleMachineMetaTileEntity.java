@@ -800,6 +800,25 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                                 .addTooltipLine("设置背面流体IO")
                                 .addTooltipLine(getEnumFacingName(frontFacing.getOpposite()))
                         )
+
+                        //允许从输出口输入
+                        .child(new ToggleButton()
+                                .pos(60, 65)
+                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT_IMPORT[1])
+                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT_IMPORT[0])
+                                .value(new BooleanSyncValue(this::isAllowInputFromOutputSideItems, this::setAllowInputFromOutputSideItems))
+                                .addTooltip(true, IKey.lang("允许从物品输出口输入物品"))
+                                .addTooltip(false, IKey.lang("禁止从物品输出口输入物品"))
+                        )
+
+                        .child(new ToggleButton()
+                                .pos(140, 65)
+                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT_IMPORT[1])
+                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT_IMPORT[0])
+                                .value(new BooleanSyncValue(this::isAllowInputFromOutputSideFluids, this::setAllowInputFromOutputSideFluids))
+                                .addTooltip(true, IKey.lang("允许从流体输出口输入物品"))
+                                .addTooltip(false, IKey.lang("禁止从流体输出口输入物品"))
+                        )
                 );
     }
 
