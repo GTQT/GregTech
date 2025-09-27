@@ -71,7 +71,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected LinkedList<Recipe> latestRecipes = new LinkedList<>();
     protected int parallelRecipesPerformed;
     protected boolean canRecipeProgress = true;
-    protected int progressTime;
+    public int progressTime;
     protected int maxProgressTime;
     protected long recipeEUt;
     @NotNull

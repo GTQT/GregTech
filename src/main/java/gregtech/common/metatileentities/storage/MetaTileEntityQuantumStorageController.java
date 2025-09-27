@@ -63,6 +63,7 @@ import static gregtech.api.capability.IQuantumStorage.Type.*;
 public class MetaTileEntityQuantumStorageController extends MetaTileEntity implements IQuantumController {
 
     private static final int MAX_DISTANCE_RADIUS = 16;
+    private boolean needsRebuild = true;
 
     private EnergyContainerList energyHandler = new EnergyContainerList(Collections.emptyList());
     private final List<IEnergyContainer> energyContainers = new ArrayList<>();
@@ -97,6 +98,11 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
         if (getWorld().isRemote) return;
 
         if (getOffsetTimer() % 10 == 0) {
+            if (this.needsRebuild == true){
+                rebuildNetwork();
+                this.needsRebuild = false;
+            }
+            
             boolean isPowered = energyHandler.getEnergyStored() > energyConsumption && energyConsumption > 0;
             if (isPowered) energyHandler.removeEnergy(energyConsumption);
 
