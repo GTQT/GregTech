@@ -192,7 +192,7 @@ public abstract class AdvanceMultiMapMultiblockController extends AdvanceRecipeM
 
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        super.writeToNBT(data);
+         super.writeToNBT(data);
         data.setInteger("RecipeMapIndex", recipeMapIndex);
         return data;
     }
