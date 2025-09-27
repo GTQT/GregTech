@@ -1,5 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.GregTechMod;
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IDistinctBusController;
@@ -44,6 +45,7 @@ import gtqt.api.util.GTQTUtility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +55,6 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                    IDistinctBusController {
 
     public final RecipeMap<?> recipeMap;
-
     protected ArrayList<MultiblockRecipeLogic> recipeMapWorkable = new ArrayList<>();
 
     protected IItemHandlerModifiable inputInventory;
@@ -85,6 +86,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     }
 
     public IEnergyContainer getEnergyContainer() {
+
         return energyContainer;
     }
 
@@ -122,13 +124,17 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
         thread = this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty() ? 1 :
                 this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).getCurrentThread();
-
+        if(!recipeMapWorkable.isEmpty()) return;
         recipeMapWorkable = new ArrayList<>();
         for (int i = 0; i < thread; i++)
             recipeMapWorkable.add(new MultiblockRecipeLogic(this));
+
     }
 
     public void refreshThread(int thread) {
+        if(recipeMapWorkable.size() == 2) {
+
+        }
         if (!checkWorkingEnable()) {
             forceRefreshThread(thread);
         }
@@ -366,6 +372,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
+
         super.receiveCustomData(dataId, buf);
         if (dataId == GregtechDataCodes.UPDATE_THREAD_STATE) {
             this.thread = buf.readInt();
@@ -374,9 +381,14 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
+        //在此之前recipeMapWorkable已经被修改
         super.writeInitialSyncData(buf);
+
         buf.writeBoolean(isDistinct);
         buf.writeInt(thread);
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            buf.writeCompoundTag(recipeMapWorkable.get(i).serializeNBT());
+        }
         for (MultiblockRecipeLogic logic : recipeMapWorkable) {
             logic.writeInitialSyncData(buf);
         }
@@ -384,13 +396,28 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
+        ArrayList<MultiblockRecipeLogic> recipeMapWorkable_Temp = new ArrayList<>();
         super.receiveInitialSyncData(buf);
         isDistinct = buf.readBoolean();
         thread = buf.readInt();
         forceRefreshThread(thread); // 使用实际读取的数量
+        for(int i = 0;i < thread;i++){
+            recipeMapWorkable_Temp.add(new MultiblockRecipeLogic(this));
+        }
+        for (int i = 0; i < thread; i++) {
+            try {
+                NBTTagCompound nbt = buf.readCompoundTag();
+                assert nbt != null;
+                recipeMapWorkable_Temp.get(i).deserializeNBT(nbt);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            //recipeMapWorkable.set(i,buf.readCompoundTag());
+        }
         for (MultiblockRecipeLogic logic : recipeMapWorkable) {
             logic.receiveInitialSyncData(buf);
         }
+        recipeMapWorkable = recipeMapWorkable_Temp;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.GregTechMod;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.capability.GregtechCapabilities;
