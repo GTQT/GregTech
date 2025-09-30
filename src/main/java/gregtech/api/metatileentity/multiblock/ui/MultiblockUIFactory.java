@@ -1,5 +1,8 @@
 package gregtech.api.metatileentity.multiblock.ui;
 
+import com.cleanroommc.modularui.utils.MouseData;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+
 import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
@@ -458,7 +461,8 @@ public class MultiblockUIFactory {
                 .debugName("side_col")
                 .coverChildren()
                 .child(createBatchButton(mainPanel, panelSyncManager))
-                .child(gcymButton);
+                .child(gcymButton)
+                .child(createStructureCheckButton(mainPanel, panelSyncManager));
     }
 
     protected IWidget createDistinctButton(@NotNull ModularPanel mainPanel,
@@ -531,6 +535,20 @@ public class MultiblockUIFactory {
                 .overlay(false, GTGuiTextures.OVERLAY_BATCH[0])
                 .addTooltip(true, IKey.lang("gregtech.multiblock.universal.batch_enabled"))
                 .addTooltip(false, IKey.lang("gregtech.multiblock.universal.batch_disabled"));
+    }
+
+    protected IWidget createStructureCheckButton(@NotNull ModularPanel mainPanel,
+                                        @NotNull PanelSyncManager panelSyncManager) {
+        return new ButtonWidget<>()
+                .debugName("structure_button")
+                .size(18)
+                .onMousePressed(mouseButton -> {
+                    mte.checkStructurePattern();
+                    return true;
+                })
+                .overlay(GTGuiTextures.BUTTON_STRUCTURE)
+                .addTooltipLine(IKey.lang("gregtech.multiblock.universal.structure_check"))
+                .disableHoverBackground();
     }
 
     @Nullable

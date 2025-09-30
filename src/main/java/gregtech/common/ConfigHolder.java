@@ -227,8 +227,19 @@ public class ConfigHolder {
         //每次检查的时间间隔（单位tick）
         @Config.Comment({ "The delay between structure checks for machines that require a structure.",
                 "值得注意的是，在原版逻辑中，就是每20tick检测一次，如果你设置为20tick，那么他将什么效果都没有",})
-        @Config.RangeInt(min = 20, max = 200)
+        @Config.RangeInt(min = 20, max = 2000)
         public int delayStructureCheckTick = 100;
+
+        @Config.Comment({ "Specifies whether to enable delayed structure checks for machines that require a structure in the standby state.",
+                "If detected, detection is delayed for multi-party blocks that mark the need for delayed detection.", "If it is not detected, it will be the same as the original",
+                "Default: true",})
+        public boolean delayStructureCheckStandbySwitch = true;
+
+        //待机状态时，检测间隔延长x倍
+        @Config.Comment({ "The delay multiplier for structure checks for machines that require a structure.",
+                "对配方类型多方块待机时的检测间隔，需要设置的比delayStructureCheckTick大，否则你会更卡"})
+        @Config.RangeInt(min = 20, max = 2000)
+        public int delayStructureCheckStandby = 600;
 
         //是否开启抽样多方块成型检测
         @Config.Comment({ "Whether to enable sampling for structure checks for machines that require a structure.",
@@ -365,6 +376,12 @@ public class ConfigHolder {
                 "Whether to nerf the output amounts of the first circuit in a set to 1 (from 2) and SoC to 2 (from 4).",
                 "Default: false" })
         public boolean harderCircuitRecipes = false;
+
+        @Config.Comment({ "Allows HotIngot to be cooled by throwing it into water.", "Default: false" })
+        public boolean easyCooling = true;
+
+        @Config.Comment({ "Allows cleaning by water instead of a cauldron.", "Default: false" })
+        public boolean easyCleaning = true;
     }
 
     public static class CompatibilityOptions {

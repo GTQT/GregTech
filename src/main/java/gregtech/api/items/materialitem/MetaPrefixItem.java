@@ -14,8 +14,10 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
+import gregtech.common.ConfigHolder;
 import gregtech.common.creativetab.GTCreativeTabs;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelBakery;
@@ -24,9 +26,14 @@ import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -47,12 +54,19 @@ public class MetaPrefixItem extends StandardMetaItem {
     private final OrePrefix prefix;
 
     public static final Map<OrePrefix, OrePrefix> purifyMap = new HashMap<>();
+    public static final Map<OrePrefix, OrePrefix> hotMap = new HashMap<>();
 
     static {
         purifyMap.put(OrePrefix.crushed, OrePrefix.crushedPurified);
         purifyMap.put(OrePrefix.dustImpure, OrePrefix.dust);
         purifyMap.put(OrePrefix.dustPure, OrePrefix.dust);
+
+        hotMap.put(OrePrefix.ingotHot, OrePrefix.nugget);
     }
+
+    // Configuration flags - these should be set from your config system
+    private static final boolean EASY_COOLING = ConfigHolder.recipes.easyCooling;
+    private static final boolean EASY_CLEANING = ConfigHolder.recipes.easyCleaning;
 
     public MetaPrefixItem(@NotNull MaterialRegistry registry, @NotNull OrePrefix orePrefix) {
         super();
@@ -246,6 +260,111 @@ public class MetaPrefixItem extends StandardMetaItem {
         if (itemEntity.getEntityWorld().isRemote)
             return false;
 
+        // Easy Cooling - Cooling hot items in water
+        if (EASY_COOLING && hotMap.containsKey(this.prefix)) {
+            boolean checkWater = true;
+            BlockPos pos = itemEntity.getPosition();
+            AxisAlignedBB boundingBox = new AxisAlignedBB(
+                    itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
+                    itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
+            List<EntityPlayer> players1 = itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, boundingBox);
+
+            Material mat = getMaterial(itemEntity.getItem());
+            float heatDamage = prefix.heatDamageFunction.apply(mat.getBlastTemperature());
+
+            for (int left = -1; left <= 1; left++) {
+                for (int up = -1; up <= 1; up++) {
+                    BlockPos checkPos = pos.add(left, 0, up);
+                    IBlockState state = itemEntity.world.getBlockState(checkPos);
+                    Block block = state.getBlock();
+                    if (block != Blocks.WATER) {
+                        checkWater = false;
+                    }
+                }
+                if (!checkWater) {
+                    break;
+                }
+            }
+
+            if (checkWater) {
+                ItemStack stack = itemEntity.getItem();
+                int count = stack.getCount();
+                ItemStack newStack = stack.copy();
+                NBTTagCompound data = itemEntity.getEntityData();
+
+                if (!data.hasKey("cooling")) {
+                    itemEntity.getEntityData().setInteger("cooling", 0);
+                }
+                int cooling = data.getInteger("cooling");
+
+                if (cooling < 200) {
+                    if (cooling % 40 == 0) {
+                        itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, 1.0F);
+                        for (EntityPlayer player : players1) {
+                            player.attackEntityFrom(DamageSources.getHeatDamage().setDamageBypassesArmor(), heatDamage);
+                        }
+                        data.setInteger("cooling", cooling + 1);
+                    } else if (cooling % 10 == 0) {
+                        itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, 1.0F);
+                        data.setInteger("cooling", cooling + 1);
+                    } else {
+                        data.setInteger("cooling", cooling + 1);
+                    }
+                } else {
+                    itemEntity.getEntityData().removeTag("cooling");
+                    itemEntity.world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                    itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, -2.0F);
+                    itemEntity.playSound(SoundEvents.ENTITY_ITEM_BREAK, 1.0F, 1.0F);
+
+                    ItemStack nuggetStack = OreDictUnifier.get(hotMap.get(prefix), mat, 9);
+                    EntityItem nuggetEntity = new EntityItem(itemEntity.world, pos.getX(), pos.getY() + 0.25, pos.getZ(), nuggetStack);
+
+                    if (count > 1) {
+                        newStack.setCount(count - 1);
+                        EntityItem overStack = new EntityItem(itemEntity.world, pos.getX(), pos.getY(), pos.getZ(), newStack);
+                        itemEntity.world.spawnEntity(overStack);
+                    }
+
+                    List<EntityPlayer> players2 = itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(2.0, 2.0, 2.0));
+                    for (EntityPlayer player : players2) {
+                        player.attackEntityFrom(DamageSources.getHeatDamage().setDamageBypassesArmor(), heatDamage + 0.5F);
+                    }
+
+                    itemEntity.world.spawnEntity(nuggetEntity);
+                    itemEntity.setDead();
+                }
+                return false;
+            }
+        }
+
+        // Easy Cleaning - Washing with water blocks
+        if (EASY_CLEANING && purifyMap.containsKey(this.prefix)) {
+            BlockPos pos = itemEntity.getPosition();
+            IBlockState state = itemEntity.world.getBlockState(pos);
+            Block block = state.getBlock();
+
+            if (block == Blocks.WATER) {
+                Material mat = getMaterial(itemEntity.getItem());
+                int count = itemEntity.getItem().getCount();
+                ItemStack replacementStack = OreDictUnifier.get(purifyMap.get(prefix), mat, 1);
+
+                if (count > 1) {
+                    ItemStack newStack = itemEntity.getItem().copy();
+                    newStack.setCount(count - 1);
+                    EntityItem overStack = new EntityItem(itemEntity.world, itemEntity.posX, itemEntity.posY, itemEntity.posZ, newStack);
+                    itemEntity.world.spawnEntity(overStack);
+                    overStack.setPickupDelay(10);
+                }
+
+                // Using a placeholder sound - you might want to replace this with the actual GTSoundEvents.BATH
+                itemEntity.playSound(SoundEvents.BLOCK_WATER_AMBIENT, 0.5F, 1.0F);
+                itemEntity.world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                itemEntity.setItem(replacementStack);
+                return false;
+            }
+        }
+
+        // Original cauldron cleaning behavior
         Material material = getMaterial(itemEntity.getItem());
         if (!purifyMap.containsKey(this.prefix))
             return false;

@@ -207,16 +207,31 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public void update() {
         super.update();
         if (!getWorld().isRemote) {
-            if (shouldDelayCheck() && ConfigHolder.machines.delayStructureCheckSwitch &&
-                    getOffsetTimer() % ConfigHolder.machines.delayStructureCheckTick == 0 || isFirstTick()) {
-                checkStructurePattern();
-            } else if (getOffsetTimer() % 20 == 0 || isFirstTick()) {
-                checkStructurePattern();
-            }
+            doStructureCheck();
             // DummyWorld is the world for the JEI preview. We do not want to update the Multi in this world,
             // besides initially forming it in checkStructurePattern
             if (isStructureFormed() && !(getWorld() instanceof DummyWorld)) {
                 updateFormedValid();
+            }
+        }
+    }
+
+    public void doStructureCheck() {
+        // 如果是首次tick，直接进行检测
+        if (isFirstTick()) {
+            checkStructurePattern();
+            return;
+        }
+        // 检查是否启用延迟检测
+        if (ConfigHolder.machines.delayStructureCheckSwitch && shouldDelayCheck()) {
+            // 延迟检测模式：使用配置的检测间隔
+            if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckTick == 0) {
+                checkStructurePattern();
+            }
+        } else {
+            // 正常检测模式：每20tick检测一次
+            if (getOffsetTimer() % 20 == 0) {
+                checkStructurePattern();
             }
         }
     }

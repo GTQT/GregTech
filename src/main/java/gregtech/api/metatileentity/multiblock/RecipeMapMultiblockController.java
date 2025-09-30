@@ -76,6 +76,47 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         resetTileAbilities();
     }
 
+    @Override
+    public void doStructureCheck() {
+        // 如果是首次tick，直接进行检测
+        if (isFirstTick()) {
+            checkStructurePattern();
+            return;
+        }
+
+        long timer = getOffsetTimer();
+
+        // 根据多方块是否工作采用不同的检测策略
+        if (recipeMapWorkable.isActive()) {
+            // 工作状态：
+            if (ConfigHolder.machines.delayStructureCheckSwitch && shouldDelayCheck()) {
+                // 延迟检测模式：使用配置的检测间隔
+                if (timer % ConfigHolder.machines.delayStructureCheckTick == 0) {
+                    checkStructurePattern();
+                }
+            } else if (timer % 20 == 0) {
+                // 正常检测模式：每20tick检测一次
+                checkStructurePattern();
+            }
+        } else {
+            // 待机状态
+            if (ConfigHolder.machines.delayStructureCheckStandbySwitch && shouldDelayCheck()) {
+                // 启用待机延迟检测时，使用待机检测间隔
+                if (timer % ConfigHolder.machines.delayStructureCheckStandby == 0) {
+                    checkStructurePattern();
+                }
+            } else if (ConfigHolder.machines.delayStructureCheckSwitch && shouldDelayCheck()) {
+                // 未启用待机延迟检测但启用主延迟检测时，使用工作延迟检测间隔
+                if (timer % ConfigHolder.machines.delayStructureCheckTick == 0) {
+                    checkStructurePattern();
+                }
+            } else if (timer % 20 == 0) {
+                // 未启用任何延迟检测时，使用默认的20tick检测间隔
+                checkStructurePattern();
+            }
+        }
+    }
+
     public void refreshAllBeforeConsumption() {
         for (IRefreshBeforeConsumption refresh : refreshBeforeConsumptions) {
             refresh.refreshBeforeConsumption();

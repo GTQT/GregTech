@@ -1,6 +1,5 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.GregTechMod;
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IDistinctBusController;
@@ -45,7 +44,6 @@ import gtqt.api.util.GTQTUtility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,7 +72,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public AdvanceRecipeMapMultiblockController(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap) {
         super(metaTileEntityId, recipeMap);
         this.recipeMap = recipeMap;
+
+        //随便初始化一个
+        recipeMapWorkable = new ArrayList<>();
         recipeMapWorkable.add(new MultiblockRecipeLogic(this));
+
         this.refreshBeforeConsumptions = new ArrayList<>();
         resetTileAbilities();
     }
@@ -86,7 +88,6 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     }
 
     public IEnergyContainer getEnergyContainer() {
-
         return energyContainer;
     }
 
@@ -121,36 +122,20 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         initializeAbilities();
-
-        thread = this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty() ? 1 :
-                this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).getCurrentThread();
-        if(!recipeMapWorkable.isEmpty()) return;
-        recipeMapWorkable = new ArrayList<>();
-        for (int i = 0; i < thread; i++)
-            recipeMapWorkable.add(new MultiblockRecipeLogic(this));
-
+        refreshThread(getThread());
     }
 
-    public void refreshThread(int thread) {
-        if(recipeMapWorkable.size() == 2) {
 
-        }
-        if (!checkWorkingEnable()) {
-            forceRefreshThread(thread);
+    public void refreshThread(int currentThread) {
+        if (currentThread == 0) return;
+        if (!isActive()) {
+            recipeMapWorkable = new ArrayList<>();
+            for (int i = 0; i < currentThread; i++) {
+                recipeMapWorkable.add(new MultiblockRecipeLogic(this));
+            }
         }
     }
 
-    public void forceRefreshThread(int thread) {
-        recipeMapWorkable = new ArrayList<>();
-        for (int i = 0; i < thread; i++)
-            recipeMapWorkable.add(new MultiblockRecipeLogic(this));
-
-        markDirty();
-        World world = getWorld();
-        if (world != null && !world.isRemote) {
-            writeCustomData(GregtechDataCodes.UPDATE_THREAD_STATE, buf -> buf.writeInt(thread));
-        }
-    }
 
     public int getThread() {
         thread = this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty() ? 1 :
@@ -250,10 +235,10 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                     .addCustom(this::addCustomCapacity)
                     .addCustom((list, syncer) -> {
                         list.add(KeyUtil.lang(TextFormatting.GOLD, "总线程数：%s",
-                                syncer.syncInt(syncsParallel)));
+                                syncsParallel));
                     });
 
-            for (int i = 0; i < syncsParallel; i++) {
+            for (int i = 0; i < Math.min(syncsParallel, recipeMapWorkable.size()); i++) {
                 builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.GOLD, ">>线程：")))
                         .setWorkingStatus(recipeMapWorkable.get(i).isWorkingEnabled(),
                                 recipeMapWorkable.get(i).isActive())
@@ -262,6 +247,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                                 recipeMapWorkable.get(i).getMaxProgress())
                         .addEmptyLine();
             }
+            if(syncsParallel != recipeMapWorkable.size()){
+                if(!isActive())refreshThread(syncsParallel);
+                builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.RED, "线程服务器同步失败，但不会影响实际使用！")));
+                builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.RED, "将会在下次待机刷新线程！")));
+            }
+
         }
     }
 
@@ -345,11 +336,6 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         super.writeToNBT(data);
         data.setBoolean("isDistinct", isDistinct);
         data.setInteger("thread", thread);
-
-        // 修复索引：直接使用循环索引，从0开始
-        for (int i = 0; i < recipeMapWorkable.size(); i++) {
-            data.setTag("thread" + i, recipeMapWorkable.get(i).serializeNBT());
-        }
         return data;
     }
 
@@ -357,67 +343,23 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         isDistinct = data.getBoolean("isDistinct");
-
         thread = data.getInteger("thread");
-
-        // 修复索引：从0开始，添加边界检查
-        forceRefreshThread(thread);
-        for (int i = 0; i < recipeMapWorkable.size(); i++) {
-            String tagName = "thread" + i;
-            if (data.hasKey(tagName)) {
-                recipeMapWorkable.get(i).deserializeNBT(data.getCompoundTag(tagName));
-            }
-        }
-    }
-
-    @Override
-    public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
-
-        super.receiveCustomData(dataId, buf);
-        if (dataId == GregtechDataCodes.UPDATE_THREAD_STATE) {
-            this.thread = buf.readInt();
-        }
+        refreshThread(thread);
     }
 
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
-        //在此之前recipeMapWorkable已经被修改
         super.writeInitialSyncData(buf);
-
         buf.writeBoolean(isDistinct);
         buf.writeInt(thread);
-        for (int i = 0; i < recipeMapWorkable.size(); i++) {
-            buf.writeCompoundTag(recipeMapWorkable.get(i).serializeNBT());
-        }
-        for (MultiblockRecipeLogic logic : recipeMapWorkable) {
-            logic.writeInitialSyncData(buf);
-        }
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
-        ArrayList<MultiblockRecipeLogic> recipeMapWorkable_Temp = new ArrayList<>();
         super.receiveInitialSyncData(buf);
         isDistinct = buf.readBoolean();
         thread = buf.readInt();
-        forceRefreshThread(thread); // 使用实际读取的数量
-        for(int i = 0;i < thread;i++){
-            recipeMapWorkable_Temp.add(new MultiblockRecipeLogic(this));
-        }
-        for (int i = 0; i < thread; i++) {
-            try {
-                NBTTagCompound nbt = buf.readCompoundTag();
-                assert nbt != null;
-                recipeMapWorkable_Temp.get(i).deserializeNBT(nbt);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            //recipeMapWorkable.set(i,buf.readCompoundTag());
-        }
-        for (MultiblockRecipeLogic logic : recipeMapWorkable) {
-            logic.receiveInitialSyncData(buf);
-        }
-        recipeMapWorkable = recipeMapWorkable_Temp;
+        refreshThread(thread);
     }
 
     @Override
@@ -556,5 +498,47 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public void setBatchEnable(boolean enable) {
         for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
             recipeMapWorkable.setBatchEnable(enable);
+    }
+
+    /// /////////////////////////////////////////////////////////////////
+    @Override
+    public void doStructureCheck() {
+        // 如果是首次tick，直接进行检测
+        if (isFirstTick()) {
+            checkStructurePattern();
+            return;
+        }
+
+        long timer = getOffsetTimer();
+
+        // 根据多方块是否工作采用不同的检测策略
+        if (checkActive()) {
+            // 工作状态：
+            if (ConfigHolder.machines.delayStructureCheckSwitch && shouldDelayCheck()) {
+                // 延迟检测模式：使用配置的检测间隔
+                if (timer % ConfigHolder.machines.delayStructureCheckTick == 0) {
+                    checkStructurePattern();
+                }
+            } else if (timer % 20 == 0) {
+                // 正常检测模式：每20tick检测一次
+                checkStructurePattern();
+            }
+        } else {
+            // 待机状态
+            if (ConfigHolder.machines.delayStructureCheckStandbySwitch && shouldDelayCheck()) {
+                // 启用待机延迟检测时，使用待机检测间隔
+                if (timer % ConfigHolder.machines.delayStructureCheckStandby == 0) {
+                    checkStructurePattern();
+                }
+            } else if (ConfigHolder.machines.delayStructureCheckSwitch && shouldDelayCheck()) {
+                // 未启用待机延迟检测但启用主延迟检测时，使用工作延迟检测间隔
+                if (timer % ConfigHolder.machines.delayStructureCheckTick == 0) {
+                    checkStructurePattern();
+                }
+            } else if (timer % 20 == 0) {
+                // 未启用任何延迟检测时，使用默认的20tick检测间隔
+                checkStructurePattern();
+            }
+        }
     }
 }
