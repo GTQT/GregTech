@@ -2,6 +2,7 @@ package gregtech.loaders.recipe.handlers;
 
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.recipes.ModHandler;
+import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.builders.BlastRecipeBuilder;
 import gregtech.api.unification.OreDictUnifier;
@@ -11,9 +12,11 @@ import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.DustProperty;
 import gregtech.api.unification.material.properties.IngotProperty;
+import gregtech.api.unification.material.properties.MixProperty;
 import gregtech.api.unification.material.properties.OreProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
+import gregtech.api.unification.stack.MaterialStack;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
@@ -72,6 +75,10 @@ public class MaterialRecipeHandler {
         ItemStack dustStack = OreDictUnifier.get(dustPrefix, mat);
         OreProperty oreProperty = mat.hasProperty(PropertyKey.ORE) ? mat.getProperty(PropertyKey.ORE) : null;
         int workingTier = mat.getWorkingTier();
+        if (mat.hasProperty(PropertyKey.MIX)) {
+            MixProperty mixproperty = mat.getProperty(PropertyKey.MIX);
+            processMixerRecipes(mat, mixproperty);
+        }
         if (mat.hasProperty(PropertyKey.GEM)) {
             ItemStack gemStack = OreDictUnifier.get(OrePrefix.gem, mat);
 
@@ -187,6 +194,39 @@ public class MaterialRecipeHandler {
                 }
             }
         }
+    }
+
+    private static void processMixerRecipes(Material material, MixProperty property) {
+        int duration = property.getDurationOverride();
+        int EUt = property.getEUtOverride();
+        int circuit = property.getCircuit();
+        if (EUt <= 0) EUt = VA[MV];
+
+        int amount = 0;
+        // generate builder
+        RecipeBuilder<?> builder;
+
+        builder = RecipeMaps.MIXER_RECIPES.recipeBuilder();
+
+        for (MaterialStack component : material.getMaterialComponents()) {
+            amount += (int) component.amount;
+            builder.input(dust, component.material, (int) component.amount);
+        }
+
+
+        if(circuit<0) builder.circuitMeta(amount % 10);
+        else builder.circuitMeta(circuit);
+
+        builder.output(dust, material, amount)
+                .EUt(EUt);
+
+        if (duration <= 0) {
+            builder.duration(20 * amount);
+        } else {
+            builder.duration(duration);
+        }
+
+        builder.buildAndRegister();
     }
 
     private static void processEBFRecipe(Material material, BlastProperty property, ItemStack output) {

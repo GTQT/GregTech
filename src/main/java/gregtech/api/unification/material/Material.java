@@ -23,6 +23,7 @@ import gregtech.api.unification.material.properties.IngotProperty;
 import gregtech.api.unification.material.properties.ItemPipeProperties;
 import gregtech.api.unification.material.properties.MaterialProperties;
 import gregtech.api.unification.material.properties.MaterialToolProperty;
+import gregtech.api.unification.material.properties.MixProperty;
 import gregtech.api.unification.material.properties.OreProperty;
 import gregtech.api.unification.material.properties.PolymerProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
@@ -1044,6 +1045,23 @@ public class Material implements Comparable<Material> {
             return this;
         }
 
+        public Builder mix(){
+            properties.setProperty(PropertyKey.MIX, new MixProperty());
+            return this;
+        }
+
+        public Builder mix(int eutOverride, int durationOverride){
+            properties.setProperty(PropertyKey.MIX, new MixProperty(eutOverride, durationOverride));
+            return this;
+        }
+        public Builder mix(int circuit){
+            properties.setProperty(PropertyKey.MIX, new MixProperty(circuit));
+            return this;
+        }
+        public Builder mix(int eutOverride, int durationOverride,int circuit){
+            properties.setProperty(PropertyKey.MIX, new MixProperty(eutOverride, durationOverride,circuit));
+            return this;
+        }
         public Builder ore() {
             properties.ensureSet(PropertyKey.ORE);
             return this;
