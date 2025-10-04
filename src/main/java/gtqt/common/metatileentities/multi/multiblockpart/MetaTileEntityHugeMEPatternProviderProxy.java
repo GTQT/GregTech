@@ -46,16 +46,16 @@ import java.util.List;
 
 import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblockNotifiablePart
+public class MetaTileEntityHugeMEPatternProviderProxy extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<DualHandler>,
                    IDataStickIntractable {
 
-    private MetaTileEntityMEPatternProvider main;
+    private MetaTileEntityHugeMEPatternProvider main;
     private BlockPos mainPos;
     private boolean checkForMain = true;
 
-    public MetaTileEntityMEPatternProviderProxy(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, 6, false);
+    public MetaTileEntityHugeMEPatternProviderProxy(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, 9, false);
     }
 
     private void tryToSetMain() {
@@ -68,7 +68,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
         }
 
         MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
-        if (!(metaTileEntity instanceof MetaTileEntityMEPatternProvider budgetCRIB)) {
+        if (!(metaTileEntity instanceof MetaTileEntityHugeMEPatternProvider budgetCRIB)) {
             this.checkForMain = true;
             return;
         }
@@ -88,7 +88,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
         return MultiblockAbility.DUAL_IMPORT;
     }
 
-    private MetaTileEntityMEPatternProvider getMain() {
+    private MetaTileEntityHugeMEPatternProvider getMain() {
         return main;
     }
 
@@ -178,7 +178,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMEPatternProviderProxy(metaTileEntityId);
+        return new MetaTileEntityHugeMEPatternProviderProxy(metaTileEntityId);
     }
 
     @Override

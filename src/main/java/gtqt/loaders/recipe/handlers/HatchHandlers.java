@@ -132,13 +132,23 @@ public class HatchHandlers {
                 .duration(100).EUt(VA[IV]).buildAndRegister();
 
         ASSEMBLER_RECIPES.recipeBuilder()
-                .input(DUAL_IMPORT_HATCH[IV])
+                .input(DUAL_IMPORT_HATCH[LuV])
                 .input(COVER_ENDER_ITEM_LINK)
                 .input(COVER_ENDER_FLUID_LINK)
-                .input(MetaItems.EMITTER_IV,4)
-                .input(MetaItems.SENSOR_IV,4)
-                .input(circuit, MarkerMaterial.create(GTValues.VN[IV].toLowerCase()), 8)
+                .input(MetaItems.EMITTER_LuV,4)
+                .input(MetaItems.SENSOR_LuV,4)
+                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 8)
                 .output(ME_PATTERN_PROVIDER_PROXY)
-                .duration(200).EUt(VA[IV]).buildAndRegister();
+                .duration(200).EUt(VA[LuV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(DUAL_IMPORT_HATCH[UHV])
+                .input(COVER_ENDER_ITEM_LINK)
+                .input(COVER_ENDER_FLUID_LINK)
+                .input(MetaItems.EMITTER_UHV,4)
+                .input(MetaItems.SENSOR_UHV,4)
+                .input(circuit, MarkerMaterial.create(GTValues.VN[UHV].toLowerCase()), 8)
+                .output(HUGE_ME_PATTERN_PROVIDER_PROXY)
+                .duration(200).EUt(VA[UHV]).buildAndRegister();
     }
 }
