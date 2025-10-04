@@ -444,8 +444,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
-
-            SimpleOverlayRenderer overlay = Textures.DUAL_HATCH_INPUT_OVERLAY;
+            SimpleOverlayRenderer overlay = Textures.ME_BUFFER_HATCH_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
@@ -671,8 +670,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
-                (rowSize + 1) * 18 + 14); // Bus Inv width
+                9 * 18 + 18 + 14 + 5 + 18,   // Player Inv width
+                (rowSize + 1) * 18 + 14 + 18); // Bus Inv width
         int backgroundHeight = 18 + 18 * rowSize + 94;
 
         List<List<IWidget>> widgetsItem = new ArrayList<>();
@@ -795,15 +794,14 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
                                         .leftRel(0.5f)
                                         .matrix(widgetsItem)))
                 .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
+                        .pos(backgroundWidth - 7 - 36, backgroundHeight - 18 * 4 - 7 - 5)
                         .width(18).height(18 * 4 + 5)
-                        .child(new ToggleButton()
+
+                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget()
                                 .top(18 * 3 + 5)
-                                .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
-                                        exportStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.EXPORT_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("返回模式"))))
+                                .size(17)
+                        )
+
                         .child(new ToggleButton()
                                 .top(18 * 2)
                                 .value(new BoolValue.Dynamic(blockStateValue::getBoolValue,
@@ -811,6 +809,16 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
                                 .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
                                 .tooltipBuilder(t -> t.setAutoUpdate(true)
                                         .addLine(IKey.lang("阻挡模式"))))
+                        .child(new ToggleButton()
+                                .top(18 * 2)
+                                .left(18)
+                                .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
+                                        exportStateValue::setBoolValue))
+                                .overlay(GTGuiTextures.EXPORT_OVERLAY)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.lang("返回模式"))))
+
+
                         .child(new ToggleButton()
                                 .top(18)
                                 .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
@@ -821,12 +829,12 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
 
                         .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
                                 .top(18)
-                                .left(18 + 10)
+                                .left(18)
                                 .slot(SyncHandlers.itemSlot(circuitInventory, 0))
                                 .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
                         .childIf(!hasGhostCircuit, new Widget<>()
                                 .top(18)
-                                .left(18 + 10)
+                                .left(18)
                                 .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
                                 .tooltip(t -> t.addLine(
                                         IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))
@@ -842,12 +850,14 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
 
                         .child(new ToggleButton()
                                 .top(0)
-                                .left(18 + 10)
+                                .left(18)
                                 .value(new BoolValue.Dynamic(ghostCircuitStateValue::getBoolValue,
                                         ghostCircuitStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.CIRCUIT_OVERLAY)
                                 .tooltipBuilder(t -> t.setAutoUpdate(true)
                                         .addLine(IKey.lang("高级样板电路"))))
+
+
                 );
     }
 

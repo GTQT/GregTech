@@ -289,10 +289,10 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                 .where('S', selfPredicate())
                 .where('P', states(boilerType.pipeState))
                 .where('X', states(boilerType.fireboxState).setMinGlobalLimited(4)
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(1).setMaxGlobalLimited(3).setPreviewCount(1))
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS).setMaxGlobalLimited(1).setPreviewCount(1))
-                        .or(abilities(MultiblockAbility.MUFFLER_HATCH).setExactLimit(1))
-                        .or(abilities(MultiblockAbility.MAINTENANCE_HATCH).setExactLimit(1)))
+                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(1, 1))
+                        // setting this to max 2 makes the import fluids max 2 for some reason
+                        .or(abilities(MultiblockAbility.IMPORT_ITEMS).setMaxGlobalLimited(2, 1))
+                        .or(autoAbilities())) // muffler, maintenance
                 .where('C', states(boilerType.casingState).setMinGlobalLimited(20)
                         .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setMinGlobalLimited(1)))
                 .build();

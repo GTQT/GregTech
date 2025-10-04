@@ -350,6 +350,13 @@ public class Textures {
             "overlay/machine/overlay_dual_hatch_output");
     public static final SimpleOverlayRenderer DUAL_HATCH_INPUT_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_dual_hatch_input");
+
+    //样板总成
+    public static final SimpleOverlayRenderer ME_BUFFER_HATCH_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/me_buffer_hatch");
+    public static final SimpleOverlayRenderer ME_BUFFER_HATCH_PROXY_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/me_buffer_hatch_proxy");
+
     public static final ICubeRenderer BRONZE_FIREBOX = new SidedCubeRenderer("casings/firebox/overlay/bronze");
     public static final ICubeRenderer BRONZE_FIREBOX_ACTIVE = new FireboxActiveRenderer(
             "casings/firebox/overlay/bronze/active");
@@ -754,7 +761,7 @@ public class Textures {
                 ArrayUtils.addAll(ops, new TransformationList(translation), uvList));
 
         if (Mods.Loliasm.isModLoaded()) {
-            if (!LoliConfig.instance.onDemandAnimatedTextures || Mods.Optifine.isModLoaded() ||
+            if (!LoliConfig.instance.onDemandAnimatedTextures || Mods.ShadersMod.isModLoaded() ||
                     renderState.getVertexFormat() == DefaultVertexFormats.ITEM) {
                 renderState.render();
             } else {

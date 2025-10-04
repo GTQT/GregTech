@@ -6,7 +6,6 @@ import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
-import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -34,14 +33,12 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-
-import net.minecraftforge.items.IItemHandlerModifiable;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -151,8 +148,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
-
-            SimpleOverlayRenderer overlay = Textures.DUAL_HATCH_INPUT_OVERLAY;
+            SimpleOverlayRenderer overlay = Textures.ME_BUFFER_HATCH_PROXY_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
@@ -188,7 +184,8 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     @Override
     public void addToMultiBlock(MultiblockControllerBase controllerBase) {
         super.addToMultiBlock(controllerBase);
-        if (hasMain() && getMain().hasGhostCircuitInventory() && getMain().getActualImportItems() instanceof ItemHandlerList) {
+        if (hasMain() && getMain().hasGhostCircuitInventory() &&
+                getMain().getActualImportItems() instanceof ItemHandlerList) {
             for (IItemHandler handler : ((ItemHandlerList) getMain().getActualImportItems()).getBackingHandlers()) {
                 if (handler instanceof INotifiableHandler notifiable) {
                     notifiable.addNotifiableMetaTileEntity(controllerBase);
@@ -197,10 +194,12 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
             }
         }
     }
+
     @Override
     public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
         super.removeFromMultiBlock(controllerBase);
-        if (hasMain()&&getMain().hasGhostCircuitInventory() && getMain().getActualImportItems() instanceof ItemHandlerList) {
+        if (hasMain() && getMain().hasGhostCircuitInventory() &&
+                getMain().getActualImportItems() instanceof ItemHandlerList) {
             for (IItemHandler handler : ((ItemHandlerList) getMain().getActualImportItems()).getBackingHandlers()) {
                 if (handler instanceof INotifiableHandler notifiable) {
                     notifiable.removeNotifiableMetaTileEntity(controllerBase);
@@ -208,27 +207,31 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
             }
         }
     }
+
     @Override
     public void update() {
         super.update();
 
         if (!getWorld().isRemote && getOffsetTimer() % 100 == 0) {
-            if(checkForMain && !hasMain())tryToSetMain();
+            if (checkForMain && !hasMain()) tryToSetMain();
         }
     }
 
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
-        return getMain()==null?super.createImportItemHandler():getMain().createImportItemHandler();
+        return getMain() == null ? super.createImportItemHandler() : getMain().createImportItemHandler();
     }
+
     @Override
     protected FluidTankList createImportFluidHandler() {
-        return getMain()==null?super.createImportFluidHandler():this.getMain().createImportFluidHandler();
+        return getMain() == null ? super.createImportFluidHandler() : this.getMain().createImportFluidHandler();
     }
+
     @Override
     public IItemHandlerModifiable getImportItems() {
         return this.getMain() == null ? super.getImportItems() : this.getMain().getActualImportItems();
     }
+
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
@@ -239,7 +242,6 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
         }
         return super.getCapability(capability, side);
     }
-
 
     @Override
     protected boolean openGUIOnRightClick() {
@@ -267,7 +269,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if(hasMain())
+        if (hasMain())
             abilityInstances.add(new DualHandler(getMain().getActualImportItems(), getMain().getImportFluids(), false));
         else
             abilityInstances.add(new DualHandler(this.importItems, importFluids, false));
