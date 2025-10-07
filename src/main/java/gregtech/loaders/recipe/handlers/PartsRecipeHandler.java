@@ -23,8 +23,7 @@ import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.BENDER_RECIPES;
-import static gregtech.api.recipes.RecipeMaps.LATHE_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.DyeUtil.determineDyeColor;
@@ -270,7 +269,7 @@ public class PartsRecipeHandler {
         ItemStack stack = OreDictUnifier.get(lensPrefix, material);
         int workingTier = material.getWorkingTier();
 
-        LATHE_RECIPES.recipeBuilder()
+        POLISHER_RECIPES.recipeBuilder()
                 .input(plate, material)
                 .output(lens, material)
                 .output(dustSmall, material)
@@ -279,7 +278,7 @@ public class PartsRecipeHandler {
                 .buildAndRegister();
 
         if (!OreDictUnifier.get(gemExquisite, material).isEmpty()) {
-            LATHE_RECIPES.recipeBuilder()
+            POLISHER_RECIPES.recipeBuilder()
                     .input(gemExquisite, material)
                     .output(lens, material)
                     .output(dust, material, 2)

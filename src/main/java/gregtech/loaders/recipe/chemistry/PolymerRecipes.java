@@ -32,14 +32,14 @@ public class PolymerRecipes {
                 .fluidOutputs(Oxygen.getFluid(5000))
                 .duration(400).EUt(200).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Air.getFluid(1000))
                 .fluidInputs(Ethylene.getFluid(144))
                 .fluidOutputs(Polyethylene.getFluid(144))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Oxygen.getFluid(1000))
                 .fluidInputs(Ethylene.getFluid(144))
@@ -87,14 +87,14 @@ public class PolymerRecipes {
                 .fluidOutputs(HydrochloricAcid.getFluid(3000))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Air.getFluid(1000))
                 .fluidInputs(VinylChloride.getFluid(144))
                 .fluidOutputs(PolyvinylChloride.getFluid(144))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Oxygen.getFluid(1000))
                 .fluidInputs(VinylChloride.getFluid(144))
@@ -143,14 +143,14 @@ public class PolymerRecipes {
                 .fluidOutputs(HydrochloricAcid.getFluid(12000))
                 .duration(540).EUt(VA[IV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Air.getFluid(1000))
                 .fluidInputs(Tetrafluoroethylene.getFluid(144))
                 .fluidOutputs(Polytetrafluoroethylene.getFluid(144))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Oxygen.getFluid(1000))
                 .fluidInputs(Tetrafluoroethylene.getFluid(144))
@@ -300,7 +300,7 @@ public class PolymerRecipes {
                 .fluidOutputs(DilutedHydrochloricAcid.getFluid(1000))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .input(dust, SodiumHydroxide, 3)
                 .fluidInputs(Epichlorohydrin.getFluid(1000))
                 .fluidInputs(BisphenolA.getFluid(1000))
@@ -336,21 +336,21 @@ public class PolymerRecipes {
                 .duration(30).EUt(VA[LV])
                 .buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(Butadiene.getFluid(3000))
                 .fluidInputs(Styrene.getFluid(1000))
                 .fluidInputs(Air.getFluid(15000))
                 .output(dust, RawStyreneButadieneRubber, 27)
                 .duration(480).EUt(240).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(Butadiene.getFluid(3000))
                 .fluidInputs(Styrene.getFluid(1000))
                 .fluidInputs(Oxygen.getFluid(15000))
                 .output(dust, RawStyreneButadieneRubber, 41)
                 .duration(480).EUt(240).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .input(dust, RawStyreneButadieneRubber, 9)
                 .input(dust, Sulfur)
                 .fluidOutputs(StyreneButadieneRubber.getFluid(1296))
@@ -358,7 +358,7 @@ public class PolymerRecipes {
     }
 
     private static void polybenzimidazoleProcess() {
-        CHEMICAL_RECIPES.recipeBuilder().EUt(VA[IV]).duration(100)
+        POLYMERIZATION_RECIPES.recipeBuilder().EUt(VA[IV]).duration(100)
                 .fluidInputs(Diaminobenzidine.getFluid(1000))
                 .fluidInputs(DiphenylIsophtalate.getFluid(1000))
                 .fluidOutputs(Phenol.getFluid(1000))

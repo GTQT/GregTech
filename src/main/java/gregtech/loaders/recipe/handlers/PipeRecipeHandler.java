@@ -325,6 +325,14 @@ public class PipeRecipeHandler {
                 .duration(30)
                 .EUt(VA[ULV])
                 .buildAndRegister();
+
+        RecipeMaps.UNPACKER_RECIPES.recipeBuilder()
+                .inputs(quadPipe)
+                .circuitMeta(4)
+                .outputs(GTUtility.copy(4, smallPipe))
+                .duration(30)
+                .EUt(VA[ULV])
+                .buildAndRegister();
     }
 
     private static void processPipeNonuple(OrePrefix pipePrefix, Material material, FluidPipeProperties property) {
@@ -338,6 +346,14 @@ public class PipeRecipeHandler {
                 .inputs(GTUtility.copy(9, smallPipe))
                 .circuitMeta(9)
                 .outputs(nonuplePipe)
+                .duration(40)
+                .EUt(VA[ULV])
+                .buildAndRegister();
+
+        RecipeMaps.UNPACKER_RECIPES.recipeBuilder()
+                .inputs(nonuplePipe)
+                .circuitMeta(9)
+                .outputs(GTUtility.copy(9, smallPipe))
                 .duration(40)
                 .EUt(VA[ULV])
                 .buildAndRegister();

@@ -130,6 +130,13 @@ public class MaterialRecipeHandler {
                         .explosives(new ItemStack(MetaBlocks.ITNT))
                         .EUt(GTUtility.scaleVoltage(VA[LV], workingTier))
                         .buildAndRegister();
+
+                RecipeMaps.ELECTRIC_IMPLOSION_RECIPES.recipeBuilder()
+                        .inputs(GTUtility.copy(4, dustStack))
+                        .outputs(GTUtility.copy(3, gemStack))
+                        .chancedOutput(dust, Materials.DarkAsh, 2500, 0)
+                        .EUt(GTUtility.scaleVoltage(VA[LV], workingTier))
+                        .buildAndRegister();
             }
 
             if (oreProperty != null) {
@@ -306,8 +313,8 @@ public class MaterialRecipeHandler {
                 .outputs(dustStack)
                 .buildAndRegister();
 
-        RecipeMaps.PACKER_RECIPES.recipeBuilder().input(OrePrefix.dust, material)
-                .circuitMeta(2)
+        RecipeMaps.UNPACKER_RECIPES.recipeBuilder().input(OrePrefix.dust, material)
+                .circuitMeta(4)
                 .outputs(GTUtility.copy(4, smallDustStack))
                 .buildAndRegister();
     }
@@ -326,8 +333,8 @@ public class MaterialRecipeHandler {
                 .outputs(dustStack)
                 .buildAndRegister();
 
-        RecipeMaps.PACKER_RECIPES.recipeBuilder().input(OrePrefix.dust, material)
-                .circuitMeta(1)
+        RecipeMaps.UNPACKER_RECIPES.recipeBuilder().input(OrePrefix.dust, material)
+                .circuitMeta(9)
                 .outputs(GTUtility.copy(9, tinyDustStack))
                 .buildAndRegister();
     }
@@ -477,12 +484,13 @@ public class MaterialRecipeHandler {
                     .EUt(16)
                     .buildAndRegister();
 
+            //雕刻宝石
             RecipeMaps.LASER_ENGRAVER_RECIPES.recipeBuilder()
                     .inputs(prevStack)
                     .notConsumable(OrePrefix.craftingLens, MarkerMaterials.Color.White)
                     .output(gemPrefix, material)
-                    .duration(300)
-                    .EUt(GTUtility.scaleVoltage(240, workingTier))
+                    .duration(200)
+                    .EUt(GTUtility.scaleVoltage(480, workingTier))
                     .buildAndRegister();
         }
     }

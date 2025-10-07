@@ -117,7 +117,7 @@ public class WireRecipeHandler {
 
         // Rubber Recipe (ULV-EV cables)
         if (voltageTier <= GTValues.EV) {
-            var builder = ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[ULV]).duration(100)
+            var builder = LAMINATOR_RECIPES.recipeBuilder().EUt(VA[ULV]).duration(100)
                     .input(wirePrefix, material)
                     .output(cablePrefix, material)
                     .fluidInputs(Rubber.getFluid(GTValues.L * insulationAmount));
@@ -129,7 +129,7 @@ public class WireRecipeHandler {
         }
 
         // Silicone Rubber Recipe (all cables)
-        var builder = ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[ULV]).duration(100)
+        var builder = LAMINATOR_RECIPES.recipeBuilder().EUt(VA[ULV]).duration(100)
                 .input(wirePrefix, material)
                 .output(cablePrefix, material);
 
@@ -147,7 +147,7 @@ public class WireRecipeHandler {
                 .buildAndRegister();
 
         // Styrene Butadiene Rubber Recipe (all cables)
-        builder = ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[ULV]).duration(100)
+        builder = LAMINATOR_RECIPES.recipeBuilder().EUt(VA[ULV]).duration(100)
                 .input(wirePrefix, material)
                 .output(cablePrefix, material);
 

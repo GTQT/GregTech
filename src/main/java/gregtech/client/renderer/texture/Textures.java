@@ -264,6 +264,7 @@ public class Textures {
     public static final OrientedOverlayRenderer MIXER_OVERLAY = new OrientedOverlayRenderer("machines/mixer");
     public static final OrientedOverlayRenderer ORE_WASHER_OVERLAY = new OrientedOverlayRenderer("machines/ore_washer");
     public static final OrientedOverlayRenderer PACKER_OVERLAY = new OrientedOverlayRenderer("machines/packer");
+    public static final OrientedOverlayRenderer UNPACKER_OVERLAY = new OrientedOverlayRenderer("machines/unpacker");
     public static final OrientedOverlayRenderer POLARIZER_OVERLAY = new OrientedOverlayRenderer("machines/polarizer");
     public static final OrientedOverlayRenderer LASER_ENGRAVER_OVERLAY = new OrientedOverlayRenderer(
             "machines/laser_engraver");
@@ -287,6 +288,10 @@ public class Textures {
             "machines/world_accelerator");
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_TE_OVERLAY = new OrientedOverlayRenderer(
             "machines/world_accelerator_te");
+
+    public static final OrientedOverlayRenderer LAMINATOR_OVERLAY = new OrientedOverlayRenderer("machines/laminator");
+    public static final OrientedOverlayRenderer POLISHER_OVERLAY = new OrientedOverlayRenderer("machines/polisher");
+    public static final OrientedOverlayRenderer POLYMERIZATION_TANK_OVERLAY = new OrientedOverlayRenderer("machines/polymerization_tank");
     // Simple Overlay Renderers
     public static final SimpleOverlayRenderer SCREEN = new SimpleOverlayRenderer("overlay/machine/overlay_screen");
     public static final SimpleOverlayRenderer DISPLAY = new SimpleOverlayRenderer("cover/overlay_display");

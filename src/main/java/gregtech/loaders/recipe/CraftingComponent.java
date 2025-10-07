@@ -48,6 +48,7 @@ public class CraftingComponent {
     public static Component DENSE_PLATE;
     public static Component HULL_PLATE;
     public static Component MOTOR;
+    public static Component GEAR;
     public static Component ROTOR;
     public static Component SENSOR;
     public static Component GRINDER;
@@ -420,6 +421,19 @@ public class CraftingComponent {
                 .entry(ZPM, OrePrefix.plate, Materials.NaquadahAlloy)
                 .entry(UV, OrePrefix.plate, Materials.Darmstadtium)
                 .entry(UHV, OrePrefix.plate, Materials.Neutronium)
+                .build();
+
+        GEAR = new Component.Builder()
+                .entry(ULV, OrePrefix.gear, Materials.WroughtIron)
+                .entry(LV, OrePrefix.gear, Materials.Steel)
+                .entry(MV, OrePrefix.gear, Materials.Aluminium)
+                .entry(HV, OrePrefix.gear, Materials.StainlessSteel)
+                .entry(EV, OrePrefix.gear, Materials.Titanium)
+                .entry(IV, OrePrefix.gear, Materials.TungstenSteel)
+                .entry(LuV, OrePrefix.gear, Materials.RhodiumPlatedPalladium)
+                .entry(ZPM, OrePrefix.gear, Materials.NaquadahAlloy)
+                .entry(UV, OrePrefix.gear, Materials.Darmstadtium)
+                .entry(UHV, OrePrefix.gear, Materials.Neutronium)
                 .build();
 
         DOUBLE_PLATE = new Component.Builder()
