@@ -255,6 +255,38 @@ gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§r巨型样板总成
 gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§r巨型样板总成
 gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§r巨型样板总成
 
+gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r回环总成
+gregtech.machine.complex_dual_hatch.lv.name=§7LV§r回环总成
+gregtech.machine.complex_dual_hatch.mv.name=§bMV§r回环总成
+gregtech.machine.complex_dual_hatch.hv.name=§6HV§r回环总成
+gregtech.machine.complex_dual_hatch.ev.name=§5EV§r回环总成
+gregtech.machine.complex_dual_hatch.iv.name=§1IV§r回环总成
+gregtech.machine.complex_dual_hatch.luv.name=§dLuV§r回环总成
+gregtech.machine.complex_dual_hatch.zpm.name=§cZPM§r回环总成
+gregtech.machine.complex_dual_hatch.uv.name=§3UV§r回环总成
+gregtech.machine.complex_dual_hatch.uhv.name=§4UHV§r回环总成
+gregtech.machine.complex_dual_hatch.uev.name=§aUEV§r回环总成
+gregtech.machine.complex_dual_hatch.uiv.name=§2UIV§r回环总成
+gregtech.machine.complex_dual_hatch.uxv.name=§eUXV§r回环总成
+gregtech.machine.complex_dual_hatch.opv.name=§9OpV§r回环总成
+gregtech.machine.complex_dual_hatch.max.name=§c§lMAX§r回环总成
+
+gregtech.machine.huge_complex_dual_hatch.ulv.name=§8ULV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.lv.name=§7LV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.mv.name=§bMV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.hv.name=§6HV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.ev.name=§5EV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.iv.name=§1IV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.luv.name=§dLuV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.zpm.name=§cZPM§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.uv.name=§3UV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.uhv.name=§4UHV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.uev.name=§aUEV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.uiv.name=§2UIV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.uxv.name=§eUXV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.opv.name=§9OpV§r巨型回环总成
+gregtech.machine.huge_complex_dual_hatch.max.name=§c§lMAX§r巨型回环总成
+
 gregtech.machine.thread_hatch.lv.name=线程控制仓(LV)
 gregtech.machine.thread_hatch.mv.name=线程控制仓(MV)
 gregtech.machine.thread_hatch.hv.name=线程控制仓(HV)
@@ -642,6 +674,9 @@ gregtech.gui.dual_auto_input.tooltip.disabled=物品/流体自动输入已禁用
 gregtech.gui.dual_auto_output.tooltip.enabled=物品/流体自动输出已启用
 gregtech.gui.dual_auto_output.tooltip.disabled=物品/流体自动输出已禁用
 
+gregtech.gui.complex_dual_auto_io.tooltip.enabled=物品/流体自动输入输出已启用
+gregtech.gui.complex_dual_auto_io.tooltip.disabled=物品/流体自动输入输出已禁用
+
 gregtech.gui.dual_auto_collapse.tooltip.enabled=物品/流体堆叠自动合并已启用
 gregtech.gui.dual_auto_collapse.tooltip.disabled=物品/流体堆叠自动合并已禁用
 
@@ -650,6 +685,8 @@ gregtech.machine.super_item_bus.tooltip=单槽容量：INT MAX
 
 gregtech.machine.dual_hatch.import.tooltip=为多方块结构输入物品与流体
 gregtech.machine.dual_hatch.export.tooltip=为多方块结构输出物品与流体
+
+gregtech.machine.complex_dual_hatch.tooltip=为多方块结构输入物品与流体的同时输出物品与流体
 
 gregtech.machine.me_pattern.tooltip.1=内置样板供应器，使用样板标记配方后可直接下单至机器
 gregtech.machine.me_pattern.tooltip.2=阻挡模式：只允许与总成缓存的相同配方物品流进入总成，其他配方的物品流将被阻挡

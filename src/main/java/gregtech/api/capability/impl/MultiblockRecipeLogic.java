@@ -93,6 +93,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         List<IItemHandlerModifiable> inputItems = new ArrayList<>(
                 controller.getAbilities(MultiblockAbility.IMPORT_ITEMS));
         inputItems.addAll(controller.getAbilities(MultiblockAbility.DUAL_IMPORT));
+        inputItems.addAll(controller.getAbilities(MultiblockAbility.COMPLEX_DUAL));
         return inputItems;
     }
 

@@ -253,6 +253,38 @@ gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§rHuge Dual Pattern Ha
 gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§rHuge Dual Pattern Hatch
 gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§rHuge Dual Pattern Hatch
 
+gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.lv.name=§7LV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.mv.name=§bMV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.hv.name=§6HV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.ev.name=§5EV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.iv.name=§1IV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.luv.name=§dLuV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.zpm.name=§cZPM§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.uv.name=§3UV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.uhv.name=§4UHV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.uev.name=§aUEV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.uiv.name=§2UIV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.uxv.name=§eUXV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.opv.name=§9OpV§rComplex Dual Hatch
+gregtech.machine.complex_dual_hatch.max.name=§c§lMAX§rComplex Dual Hatch
+
+gregtech.machine.huge_complex_dual_hatch.ulv.name=§8ULV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.lv.name=§7LV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.mv.name=§bMV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.hv.name=§6HV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.ev.name=§5EV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.iv.name=§1IV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.luv.name=§dLuV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.zpm.name=§cZPM§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.uv.name=§3UV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.uhv.name=§4UHV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.uev.name=§aUEV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.uiv.name=§2UIV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.uxv.name=§eUXV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.opv.name=§9OpV§rHuge Complex Dual Hatch
+gregtech.machine.huge_complex_dual_hatch.max.name=§c§lMAX§rHuge Complex Dual Hatch
+
 gregtech.machine.thread_hatch.lv.name=Thread Hatch(LV)
 gregtech.machine.thread_hatch.mv.name=Thread Hatch(MV)
 gregtech.machine.thread_hatch.hv.name=Thread Hatch(HV)
@@ -647,14 +679,19 @@ gregtech.gui.dual_auto_input.tooltip.disabled=Item/Fluid Auto-Input (Disabled)
 gregtech.gui.dual_auto_output.tooltip.enabled=Item/Fluid Auto-Output (Enabled)
 gregtech.gui.dual_auto_output.tooltip.disabled=Item/Fluid Auto-Output (Disabled)
 
+gregtech.gui.complex_dual_auto_io.tooltip.enabled=Item/fluid Auto-Input/Output (Enabled)
+gregtech.gui.complex_dual_auto_io.tooltip.disabled=Item/fluid Auto-Input/Output (Disabled)
+
 gregtech.gui.dual_auto_collapse.tooltip.enabled=Item/Fluid Stack Auto-Collapse (Enabled)
 gregtech.gui.dual_auto_collapse.tooltip.disabled=Item/Fluid Stack Auto-Collapse (Disabled)
 
 # Tooltips
 gregtech.machine.super_item_bus.tooltip=Single Tank Capacity: INT MAX
 
-gregtech.machine.dual_hatch.import.tooltip=Input items and fluids for a multi-block structure
-gregtech.machine.dual_hatch.export.tooltip=Output items and fluids for multi-block structures
+gregtech.machine.dual_hatch.import.tooltip=Input items and fluids for a multiblock structure
+gregtech.machine.dual_hatch.export.tooltip=Output items and fluids for multiblock structures
+
+gregtech.machine.complex_dual_hatch.tooltip=Input items and fluids for multiblock structures and output items and fluids at the same time
 
 gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders machines after marking recipes with patterns
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items

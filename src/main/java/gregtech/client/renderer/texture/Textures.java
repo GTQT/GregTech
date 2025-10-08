@@ -355,6 +355,9 @@ public class Textures {
             "overlay/machine/overlay_dual_hatch_output");
     public static final SimpleOverlayRenderer DUAL_HATCH_INPUT_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_dual_hatch_input");
+    public static final SimpleOverlayRenderer COMPLEX_DUAL_HATCH = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_complex_dual_hatch");
+
 
     //样板总成
     public static final SimpleOverlayRenderer ME_BUFFER_HATCH_OVERLAY = new SimpleOverlayRenderer(

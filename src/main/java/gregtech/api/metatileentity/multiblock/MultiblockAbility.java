@@ -96,6 +96,8 @@ public class MultiblockAbility<T> {
             "dual_export", DualHandler.class);
     public static final MultiblockAbility<DualHandler> DUAL_IMPORT = ability(
             "dual_import", DualHandler.class);
+    public static final MultiblockAbility<DualHandler> COMPLEX_DUAL = ability(
+            "complex_dual", DualHandler.class);
 
     //无线管理
     public static final MultiblockAbility<IWirelessController> WIRELESS_CONTROLLER = ability(
