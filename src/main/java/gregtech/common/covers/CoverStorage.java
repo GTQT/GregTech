@@ -4,6 +4,7 @@ import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuis;
 import gregtech.client.renderer.texture.Textures;
 
@@ -36,14 +37,14 @@ import java.util.List;
 
 public class CoverStorage extends CoverBase implements CoverWithUI {
 
-    private static final int MAX_WIDTH = 176;
-    private static final int MAX_HEIGHT = 126;
-    private static final int SLOT_SIZE = 18;
-    private final ItemStackHandler storageHandler = new ItemStackHandler(9);
+    private final ItemStackHandler storageHandler;
+    int inventorySize;
 
     public CoverStorage(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
-                        @NotNull EnumFacing attachedSide) {
+                        @NotNull EnumFacing attachedSide, int inventorySize) {
         super(definition, coverableView, attachedSide);
+        this.inventorySize = inventorySize;
+        storageHandler = new ItemStackHandler(inventorySize);
     }
 
     @Override
@@ -87,20 +88,23 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
 
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager) {
-        guiSyncManager.registerSlotGroup("item_inv", this.storageHandler.getSlots());
+        guiSyncManager.registerSlotGroup("item_inv", 9);
 
-        int rowSize = this.storageHandler.getSlots();
+        int rows = inventorySize / 9;
         List<List<IWidget>> widgets = new ArrayList<>();
-        widgets.add(new ArrayList<>());
-        for (int i = 0; i < rowSize; i++) {
-            widgets.get(0)
-                    .add(new ItemSlot().slot(SyncHandlers.itemSlot(this.storageHandler, i).slotGroup("item_inv")));
+        for (int i = 0; i < rows; i++) {
+            widgets.add(new ArrayList<>());
+            for (int j = 0; j < 9; j++) {
+                int index = i * 9 + j;
+                widgets.get(i).add(new ItemSlot().slot(SyncHandlers.itemSlot(storageHandler, index)
+                        .slotGroup("item_inv")));
+            }
         }
-        return GTGuis.createPanel(this, MAX_WIDTH, MAX_HEIGHT)
+        return GTGuis.createPanel(this, 9 * 18 + 14, 18 + 4 * 18 + 5 + 14 + 18 * rows)
                 .child(IKey.lang("cover.storage.title").asWidget().pos(5, 5))
                 .bindPlayerInventory()
                 .child(new Grid()
-                        .top((MAX_HEIGHT - SLOT_SIZE * 5) / 2).left(7).right(7).height(18)
+                        .top(18).left(7).right(7).height(rows * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .matrix(widgets));

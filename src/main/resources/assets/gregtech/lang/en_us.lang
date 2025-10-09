@@ -973,8 +973,14 @@ metaitem.cover.item.voiding.name=Item Voiding Cover
 metaitem.cover.item.voiding.tooltip=Voids §fItems§7 as §fCover§7./nActivate with §fSoft Mallet§7 after placement.
 metaitem.cover.item.voiding.advanced.name=Advanced Item Voiding Cover
 metaitem.cover.item.voiding.advanced.tooltip=Voids §fItems§7 with amount control as §fCover§7./nActivate with §fSoft Mallet§7 after placement.
-metaitem.cover.storage.name=Storage Cover
-metaitem.cover.storage.tooltip=Small storage space for odds and ends
+metaitem.cover.storage.name=Small Storage Cover
+metaitem.cover.storage.tooltip=Small storage space for bits and pieces.
+metaitem.cover.storage_medium.name=Medium Storage Cover
+metaitem.cover.storage_medium.tooltip=Medium storage space for bits and pieces.
+metaitem.cover.storage_large.name=Large Storage Cover
+metaitem.cover.storage_large.tooltip=Large storage space for bits and pieces.
+metaitem.cover.storage_huge.name=Huge Storage Cover
+metaitem.cover.storage_huge.tooltip=Huge storage space for bits and pieces.
 metaitem.cover.maintenance.detector.name=Needs Maintenance Cover
 metaitem.cover.maintenance.detector.tooltip=Gives out §fMaintenance Problems§7 as Redstone as §fCover§7.
 

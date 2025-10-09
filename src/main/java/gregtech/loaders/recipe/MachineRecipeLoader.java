@@ -636,9 +636,39 @@ public class MachineRecipeLoader {
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(OreDictNames.chestWood.toString())
                 .input(ELECTRIC_PISTON_LV)
-                .input(plate, Iron)
+                .input(plate, Steel)
                 .fluidInputs(SolderingAlloy.getFluid(72))
                 .output(COVER_STORAGE)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(OreDictNames.chestWood.toString())
+                .input(ELECTRIC_PISTON_MV)
+                .input(plate, Aluminium)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_STORAGE_MEDIUM)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(OreDictNames.chestWood.toString())
+                .input(ELECTRIC_PISTON_HV)
+                .input(plate, StainlessSteel)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_STORAGE_LARGE)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(OreDictNames.chestWood.toString())
+                .input(ELECTRIC_PISTON_EV)
+                .input(plate, Titanium)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_STORAGE_HUGE)
                 .EUt(16)
                 .duration(100)
                 .buildAndRegister();

@@ -233,7 +233,12 @@ public final class CoverBehaviors {
         registerBehavior(gregtechId("item_voiding"), MetaItems.COVER_ITEM_VOIDING, CoverItemVoiding::new);
         registerBehavior(gregtechId("item_voiding.advanced"), MetaItems.COVER_ITEM_VOIDING_ADVANCED,
                 CoverItemVoidingAdvanced::new);
-        registerBehavior(gregtechId("storage"), MetaItems.COVER_STORAGE, CoverStorage::new);
+        registerBehavior(gregtechId("storage"), MetaItems.COVER_STORAGE,   (def, tile, side) -> new CoverStorage(def, tile, side,9));
+        registerBehavior(gregtechId("storage_medium"), MetaItems.COVER_STORAGE_MEDIUM,   (def, tile, side) -> new CoverStorage(def, tile, side,18));
+        registerBehavior(gregtechId("storage_large"), MetaItems.COVER_STORAGE_LARGE,   (def, tile, side) -> new CoverStorage(def, tile, side,27));
+        registerBehavior(gregtechId("storage_huge"), MetaItems.COVER_STORAGE_HUGE,   (def, tile, side) -> new CoverStorage(def, tile, side,36));
+
+
     }
 
     /**

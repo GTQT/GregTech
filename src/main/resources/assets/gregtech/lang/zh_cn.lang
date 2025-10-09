@@ -972,8 +972,14 @@ metaitem.cover.item.voiding.name=物品销毁覆盖板
 metaitem.cover.item.voiding.tooltip=作§f覆盖板§7时销毁物品。/n加装后使用§f软锤§7右击激活。
 metaitem.cover.item.voiding.advanced.name=进阶物品销毁覆盖板
 metaitem.cover.item.voiding.advanced.tooltip=作§f覆盖板§7时允许按数量销毁§f物品§7。/n加装后使用§f软锤§7右击激活。
-metaitem.cover.storage.name=存储覆盖板
+metaitem.cover.storage.name=小型存储覆盖板
 metaitem.cover.storage.tooltip=给零碎的小玩意准备的小型存储空间
+metaitem.cover.storage_medium.name=中型存储覆盖板
+metaitem.cover.storage_medium.tooltip=给零碎的小玩意准备的中型存储空间
+metaitem.cover.storage_large.name=大型存储覆盖板
+metaitem.cover.storage_large.tooltip=给零碎的小玩意准备的大型存储空间
+metaitem.cover.storage_huge.name=巨型存储覆盖板
+metaitem.cover.storage_huge.tooltip=给零碎的小玩意准备的巨型存储空间
 metaitem.cover.maintenance.detector.name=维护需求覆盖板
 metaitem.cover.maintenance.detector.tooltip=作§f覆盖板§7时在机器§f需要维护§7时发出红石信号。
 
