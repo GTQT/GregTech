@@ -66,7 +66,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private final OCParams ocParams = new OCParams();
     private final OCResult ocResult = new OCResult();
     protected Recipe previousRecipe;
-    protected Recipe batchRecipes;
     protected Recipe showRecipes;
     protected LinkedList<Recipe> latestRecipes = new LinkedList<>();
     protected int parallelRecipesPerformed;
@@ -455,7 +454,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     public void forceRecipeRecheck() {
         this.previousRecipe = null;
-        this.batchRecipes = null;
         this.latestRecipes.clear();
 
         trySearchNewRecipe();
@@ -525,13 +523,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         if (this.previousRecipe == null) return false;
         if (this.previousRecipe.getEUt() > this.getMaxVoltage()) return false;
         return this.previousRecipe.matches(false, getInputInventory(), getInputTank());
-    }
-
-    protected boolean checkBatchRecipes() {
-        if (this.batchRecipes == null) return false;
-        if (this.batchRecipes.getEUt() > this.getMaxVoltage()) return false;
-        if(this.batchRecipes.getDuration()>128)return false;
-        return this.batchRecipes.matches(false, getInputInventory(), getInputTank());
     }
 
     /**
@@ -815,7 +806,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
             this.isOutputsFull = false;
             if (recipe.matches(true, importInventory, importFluids)) {
                 this.metaTileEntity.addNotifiedInput(importInventory);
-                this.batchRecipes = recipe;
                 return recipe;
             }
         }
@@ -1361,7 +1351,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @MustBeInvokedByOverriders
     public void invalidate() {
         previousRecipe = null;
-        batchRecipes = null;
         progressTime = 0;
         maxProgressTime = 0;
         recipeEUt = 0;

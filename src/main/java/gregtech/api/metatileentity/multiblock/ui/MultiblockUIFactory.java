@@ -317,8 +317,7 @@ public class MultiblockUIFactory {
     }
 
     public boolean checkSideButton(MultiblockWithDisplayBase mte) {
-        if (mte instanceof IBatch batch) return batch.isBatchAllowed();
-        return false;
+        return !(mte instanceof RecipeMapPrimitiveMultiblockController);
     }
 
     /**

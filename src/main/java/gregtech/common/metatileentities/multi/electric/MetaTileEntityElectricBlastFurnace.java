@@ -207,4 +207,9 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                         .setStyle(new Style().setColor(TextFormatting.RED))));
         return list;
     }
+
+    @Override
+    public boolean isBatchAllowed() {
+        return true;
+    }
 }
