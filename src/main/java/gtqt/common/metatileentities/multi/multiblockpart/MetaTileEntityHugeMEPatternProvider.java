@@ -515,7 +515,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setTag("Pattern", this.patternSlot.serializeNBT());
-
+        data.setTag("largeSlotItemStackHandler", this.largeSlotItemStackHandler.serializeNBT());
         data.setBoolean("workingEnabled", workingEnabled);
         data.setBoolean("BlockingEnabled", this.isBlockedMode);
         data.setBoolean("Export", this.export);
@@ -536,7 +536,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMultibloc
         super.readFromNBT(data);
         this.patternSlot.deserializeNBT(data.getCompoundTag("Pattern"));
         setPatternDetails();
-
+        this.largeSlotItemStackHandler.deserializeNBT(data.getCompoundTag("largeSlotItemStackHandler"));
         this.workingEnabled = data.getBoolean("workingEnabled");
         this.isBlockedMode = data.getBoolean("BlockingEnabled");
         this.export = data.getBoolean("Export");

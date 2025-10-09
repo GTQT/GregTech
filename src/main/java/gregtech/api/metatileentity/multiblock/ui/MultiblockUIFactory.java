@@ -317,15 +317,8 @@ public class MultiblockUIFactory {
     }
 
     public boolean checkSideButton(MultiblockWithDisplayBase mte) {
-        //GCYM一定是IBatch
-        if(mte instanceof RecipeMapPrimitiveMultiblockController)return false;
-        if(mte instanceof FuelMultiblockController)return false;
-        return true;
-        /*
         if (mte instanceof IBatch batch) return batch.isBatchAllowed();
         return false;
-
-         */
     }
 
     /**
