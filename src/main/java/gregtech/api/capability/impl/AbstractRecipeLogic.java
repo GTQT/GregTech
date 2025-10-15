@@ -31,6 +31,10 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
+import lombok.Getter;
+
+import lombok.Setter;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -46,6 +50,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import stanhebben.zenscript.annotations.ZenGetter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,7 +67,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private static final String ALLOW_OVERCLOCKING = "AllowOverclocking";
     private static final String OVERCLOCK_VOLTAGE = "OverclockVoltage";
 
-    public final RecipeMap<?> recipeMap;
+    public RecipeMap<?> recipeMap;
     private final OCParams ocParams = new OCParams();
     private final OCResult ocResult = new OCResult();
     protected Recipe previousRecipe;
@@ -70,13 +75,18 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected Recipe showRecipes;
     protected LinkedList<Recipe> latestRecipes = new LinkedList<>();
     protected int parallelRecipesPerformed;
+    @Getter
+    @Setter
     protected boolean canRecipeProgress = true;
     public int progressTime;
     protected int maxProgressTime;
+    @Setter
     protected long recipeEUt;
     @NotNull
+    @Setter
     protected List<FluidStack> fluidOutputs = Collections.emptyList();
     @NotNull
+    @Setter
     protected List<ItemStack> itemOutputs = Collections.emptyList();
     protected boolean isActive;
     protected boolean workingEnabled = true;
@@ -88,6 +98,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private double euDiscount = -1;
     private double speedBonus = -1;
     private boolean allowOverclocking = true;
+    @Setter @Getter
     private long overclockVoltage;
 
     private boolean enableBatch = false;
@@ -99,19 +110,23 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * List of non-chanced item outputs.The actual non-chanced item outputs are taken from the item outputs saved list,
      * taking the first n elements.
      */
+    @Setter
     private int nonChancedItemAmt = 0;
     /**
      * Map of chanced item outputs to their boosted chance, for this recipe.
      */
+    @Setter
     private List<Pair<ItemStack, Integer>> chancedItemOutputs = null;
     /**
      * Number of non-chanced fluid outputs. The actual non-chanced fluid outputs are taken from the fluid outputs saved
      * list, taking the first n elements.
      */
+    @Setter
     private int nonChancedFluidAmt = 0;
     /**
      * Map of chanced item outputs to their boosted chance, for this recipe.
      */
+    @Setter
     private List<Pair<FluidStack, Integer>> chancedFluidOutputs = null;
 
     public AbstractRecipeLogic(MetaTileEntity tileEntity, RecipeMap<?> recipeMap) {
@@ -1243,7 +1258,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      *
      * @param active true to set active, false to set inactive
      */
-    protected void setActive(boolean active) {
+    public void setActive(boolean active) {
         if (this.isActive != active) {
             this.isActive = active;
             metaTileEntity.markDirty();
@@ -1383,6 +1398,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Override
     public NBTTagCompound serializeNBT() {
         NBTTagCompound compound = new NBTTagCompound();
+        //compound.setInteger("parallelRecipesPerformed",this.parallelRecipesPerformed);
+        //compound.setInteger("parallelLimit",this.parallelLimit);
         compound.setBoolean("Batch", enableBatch);
         compound.setBoolean("WorkEnabled", workingEnabled);
         compound.setBoolean("CanRecipeProgress", canRecipeProgress);
@@ -1416,6 +1433,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
     @Override
     public void deserializeNBT(@NotNull NBTTagCompound compound) {
+        //this.parallelRecipesPerformed = compound.getInteger("parallelRecipesPerformed");
+        //this.parallelLimit = compound.getInteger("parallelLimit");
         this.enableBatch = compound.getBoolean("Batch");
         this.workingEnabled = compound.getBoolean("WorkEnabled");
         this.canRecipeProgress = compound.getBoolean("CanRecipeProgress");
@@ -1521,4 +1540,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
         nbt.setTag(key, entries);
     }
+
+    public void setRecipeMap(RecipeMap<?> recipeMap) {this.recipeMap = recipeMap;}
+
+    public void setProgressTime(int progressTime) {this.progressTime = progressTime;}
 }
