@@ -1571,6 +1571,53 @@ public final class RecipeMaps {
             )
             .sound(GTSoundEvents.CHEMICAL_REACTOR)
             .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> DESULFURIZATION_RECIPES = new RecipeMapBuilder<>("desulfurizer",
+            new SimpleRecipeBuilder())
+            .itemInputs(2)
+            .itemOutputs(2)
+            .fluidInputs(2)
+            .fluidOutputs(2)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.MOLD_OVERLAY, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE)
+            )
+            .sound(GTSoundEvents.COMBUSTION)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> BIO_REACTOR_RECIPES = new RecipeMapBuilder<>("bio_reactor",
+            new SimpleRecipeBuilder())
+            .itemInputs(6)
+            .itemOutputs(1)
+            .fluidInputs(3)
+            .fluidOutputs(2)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.DISH_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_3, false, false)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_4, false, true)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_3, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE))
+            .sound(GTSoundEvents.CHEMICAL_REACTOR)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> LOOM_RECIPES = new RecipeMapBuilder<>("loom",
+            new SimpleRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(2)
+            .fluidInputs(1)
+            .fluidOutputs(0)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.STRING_SLOT_OVERLAY, false)
+                    .fluidSlotOverlay(GTGuiTextures.STRING_SLOT_OVERLAY_2, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_MAGNET))
+            .sound(GTSoundEvents.COMPRESSOR)
+            .build();
+
     /**
      * Example:
      *

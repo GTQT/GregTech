@@ -166,6 +166,7 @@ public class PartsRecipeHandler {
                     .duration((int) material.getMass() * 3 / 2)
                     .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier))
                     .buildAndRegister();
+
         }
 
         RecipeMaps.WIREMILL_RECIPES.recipeBuilder()
@@ -175,6 +176,16 @@ public class PartsRecipeHandler {
                 .duration((int) material.getMass() * 2)
                 .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier))
                 .buildAndRegister();
+
+        if(material.hasFluid()) {
+            LOOM_RECIPES.recipeBuilder()
+                    .fluidInputs(material.getFluid(144))
+                    .circuitMeta(3)
+                    .output(fineWirePrefix, material, 8)
+                    .duration((int) material.getMass() * 2)
+                    .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier))
+                    .buildAndRegister();
+        }
     }
 
     public static void processGear(OrePrefix gearPrefix, Material material, DustProperty property) {

@@ -292,6 +292,10 @@ public class Textures {
     public static final OrientedOverlayRenderer LAMINATOR_OVERLAY = new OrientedOverlayRenderer("machines/laminator");
     public static final OrientedOverlayRenderer POLISHER_OVERLAY = new OrientedOverlayRenderer("machines/polisher");
     public static final OrientedOverlayRenderer POLYMERIZATION_TANK_OVERLAY = new OrientedOverlayRenderer("machines/polymerization_tank");
+    public static final OrientedOverlayRenderer TOOL_CASTER_OVERLAY = new OrientedOverlayRenderer("machines/tool_caster");
+    public static final OrientedOverlayRenderer DESULFURIZER_OVERLAY = new OrientedOverlayRenderer("machines/desulfurizer");
+    public static final OrientedOverlayRenderer BIO_REACTOR_OVERLAY = new OrientedOverlayRenderer("machines/bio_reactor");
+    public static final OrientedOverlayRenderer LOOM_OVERLAY = new OrientedOverlayRenderer("machines/loom");
     // Simple Overlay Renderers
     public static final SimpleOverlayRenderer SCREEN = new SimpleOverlayRenderer("overlay/machine/overlay_screen");
     public static final SimpleOverlayRenderer DISPLAY = new SimpleOverlayRenderer("cover/overlay_display");

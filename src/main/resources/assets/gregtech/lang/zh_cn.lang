@@ -2531,6 +2531,9 @@ recipemap.gas_collector.name=集气室
 recipemap.rock_breaker.name=碎岩机
 recipemap.laminator.name=过胶器
 recipemap.polymerization_tank.name=聚合反应
+recipemap.desulfurizer.name=脱硫机
+recipemap.bio_reactor.name=生物反应
+recipemap.loom.name=纺线器
 recipemap.primitive_blast_furnace.name=土高炉
 recipemap.coke_oven.name=焦炉
 recipemap.research_station.name=研究站
@@ -3230,6 +3233,18 @@ gregtech.machine.block_breaker.hv.name=进阶方块破坏器 II
 gregtech.machine.block_breaker.ev.name=进阶方块破坏器 III
 gregtech.machine.block_breaker.tooltip=挖掘面前的方块并收集掉落物
 gregtech.machine.block_breaker.speed_bonus=§e速度加成：§f%,d%%
+
+# Tool Caster
+gregtech.machine.tool_caster.lv.name=基础工具铸造机
+gregtech.machine.tool_caster.lv.tooltip=工匠作坊
+gregtech.machine.tool_caster.mv.name=进阶工具铸造机
+gregtech.machine.tool_caster.mv.tooltip=工匠作坊
+gregtech.machine.tool_caster.hv.name=进阶工具铸造机 II
+gregtech.machine.tool_caster.hv.tooltip=工匠作坊
+gregtech.machine.tool_caster.ev.name=进阶工具铸造机 III
+gregtech.machine.tool_caster.ev.tooltip=工匠作坊
+gregtech.machine.tool_caster.iv.name=精英工具铸造机
+gregtech.machine.tool_caster.iv.tooltip=大师匠台
 
 # Electric Furnace
 gregtech.machine.electric_furnace.lv.name=基础电炉
@@ -4777,6 +4792,90 @@ gregtech.machine.polymerization_tank.uxv.name=史诗聚合缸 IV
 gregtech.machine.polymerization_tank.uxv.tooltip=重力牵引装置
 gregtech.machine.polymerization_tank.opv.name=传奇聚合缸
 gregtech.machine.polymerization_tank.opv.tooltip=重力牵引装置
+
+# Desulfurizer
+gregtech.machine.desulfurizer.lv.name=基础脱硫机
+gregtech.machine.desulfurizer.lv.tooltip=煤炭净化器
+gregtech.machine.desulfurizer.mv.name=进阶脱硫机
+gregtech.machine.desulfurizer.mv.tooltip=煤炭净化器
+gregtech.machine.desulfurizer.hv.name=进阶脱硫机 II
+gregtech.machine.desulfurizer.hv.tooltip=煤炭净化器
+gregtech.machine.desulfurizer.ev.name=进阶脱硫机 III
+gregtech.machine.desulfurizer.ev.tooltip=石油脱硫装置
+gregtech.machine.desulfurizer.iv.name=精英脱硫机
+gregtech.machine.desulfurizer.iv.tooltip=石油脱硫装置
+gregtech.machine.desulfurizer.luv.name=精英脱硫机 II
+gregtech.machine.desulfurizer.luv.tooltip=石油脱硫装置
+gregtech.machine.desulfurizer.zpm.name=精英脱硫机 III
+gregtech.machine.desulfurizer.zpm.tooltip=天然气处理器
+gregtech.machine.desulfurizer.uv.name=终极脱硫机
+gregtech.machine.desulfurizer.uv.tooltip=天然气处理器
+gregtech.machine.desulfurizer.uhv.name=史诗脱硫机
+gregtech.machine.desulfurizer.uhv.tooltip=工业废气净化器
+gregtech.machine.desulfurizer.uev.name=史诗脱硫机 II
+gregtech.machine.desulfurizer.uev.tooltip=工业废气净化器
+gregtech.machine.desulfurizer.uiv.name=史诗脱硫机 III
+gregtech.machine.desulfurizer.uiv.tooltip=工业废气净化器
+gregtech.machine.desulfurizer.uxv.name=史诗脱硫机 IV
+gregtech.machine.desulfurizer.uxv.tooltip=工业废气净化器
+gregtech.machine.desulfurizer.opv.name=传奇脱硫机
+gregtech.machine.desulfurizer.opv.tooltip=工业废气净化器
+
+# Bio Reactor
+gregtech.machine.bio_reactor.lv.name=基础生物反应室
+gregtech.machine.bio_reactor.lv.tooltip=制糖厂
+gregtech.machine.bio_reactor.mv.name=进阶生物反应室
+gregtech.machine.bio_reactor.mv.tooltip=制糖厂
+gregtech.machine.bio_reactor.hv.name=进阶生物反应室 II
+gregtech.machine.bio_reactor.hv.tooltip=制糖厂
+gregtech.machine.bio_reactor.ev.name=进阶生物反应室 III
+gregtech.machine.bio_reactor.ev.tooltip=细菌培养缸
+gregtech.machine.bio_reactor.iv.name=精英生物反应室
+gregtech.machine.bio_reactor.iv.tooltip=细菌培养缸
+gregtech.machine.bio_reactor.luv.name=精英生物反应室 II
+gregtech.machine.bio_reactor.luv.tooltip=细菌培养缸
+gregtech.machine.bio_reactor.zpm.name=精英生物反应室 III
+gregtech.machine.bio_reactor.zpm.tooltip=DNA检测器
+gregtech.machine.bio_reactor.uv.name=终极生物反应室
+gregtech.machine.bio_reactor.uv.tooltip=DNA检测器
+gregtech.machine.bio_reactor.uhv.name=史诗生物反应室
+gregtech.machine.bio_reactor.uhv.tooltip=基因编辑器
+gregtech.machine.bio_reactor.uev.name=史诗生物反应室 II
+gregtech.machine.bio_reactor.uev.tooltip=基因编辑器
+gregtech.machine.bio_reactor.uiv.name=史诗生物反应室 III
+gregtech.machine.bio_reactor.uiv.tooltip=基因编辑器
+gregtech.machine.bio_reactor.uxv.name=史诗生物反应室 IV
+gregtech.machine.bio_reactor.uxv.tooltip=基因编辑器
+gregtech.machine.bio_reactor.opv.name=传奇生物反应室
+gregtech.machine.bio_reactor.opv.tooltip=基因编辑器
+
+# Loom
+gregtech.machine.loom.lv.name=基础纺线器
+gregtech.machine.loom.lv.tooltip=棉纺机
+gregtech.machine.loom.mv.name=进阶纺线器
+gregtech.machine.loom.mv.tooltip=棉纺机
+gregtech.machine.loom.hv.name=进阶纺线器 II
+gregtech.machine.loom.hv.tooltip=棉纺机
+gregtech.machine.loom.ev.name=进阶纺线器 III
+gregtech.machine.loom.ev.tooltip=丝绸织机
+gregtech.machine.loom.iv.name=精英纺线器
+gregtech.machine.loom.iv.tooltip=丝绸织机
+gregtech.machine.loom.luv.name=精英纺线器 II
+gregtech.machine.loom.luv.tooltip=丝绸织机
+gregtech.machine.loom.zpm.name=精英纺线器 III
+gregtech.machine.loom.zpm.tooltip=合成纤维制造机
+gregtech.machine.loom.uv.name=终极纺线器
+gregtech.machine.loom.uv.tooltip=合成纤维制造机
+gregtech.machine.loom.uhv.name=史诗纺线器
+gregtech.machine.loom.uhv.tooltip=纳米纺织机
+gregtech.machine.loom.uev.name=史诗纺线器 II
+gregtech.machine.loom.uev.tooltip=纳米纺织机
+gregtech.machine.loom.uiv.name=史诗纺线器 III
+gregtech.machine.loom.uiv.tooltip=纳米纺织机
+gregtech.machine.loom.uxv.name=史诗纺线器 IV
+gregtech.machine.loom.uxv.tooltip=纳米纺织机
+gregtech.machine.loom.opv.name=传奇纺线器
+gregtech.machine.loom.opv.tooltip=纳米纺织机
 
 # Fisher
 gregtech.machine.fisher.lv.name=基础捕鱼机

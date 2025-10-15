@@ -83,6 +83,16 @@ public class WireRecipeHandler {
                 .EUt(GTUtility.scaleVoltage(getVoltageMultiplier(material), workingTier))
                 .buildAndRegister();
 
+        if(material.hasFluid()) {
+            LOOM_RECIPES.recipeBuilder()
+                    .fluidInputs(material.getFluid(144))
+                    .circuitMeta(1)
+                    .output(wireGtSingle, material, 2)
+                    .duration((int) material.getMass())
+                    .EUt(GTUtility.scaleVoltage(getVoltageMultiplier(material), workingTier))
+                    .buildAndRegister();
+        }
+
         for (OrePrefix wireSize : wireSizes) {
             final int multiplier = (int) (wireSize.getMaterialAmount(material) / GTValues.M);
             WIREMILL_RECIPES.recipeBuilder()
@@ -92,6 +102,16 @@ public class WireRecipeHandler {
                     .duration((int) (material.getMass() * multiplier))
                     .EUt(GTUtility.scaleVoltage(getVoltageMultiplier(material), workingTier))
                     .buildAndRegister();
+
+            if(material.hasFluid()) {
+                LOOM_RECIPES.recipeBuilder()
+                        .fluidInputs(material.getFluid(multiplier * 144))
+                        .circuitMeta(multiplier * 2)
+                        .output(wireSize, material)
+                        .duration((int) (material.getMass() * multiplier))
+                        .EUt(GTUtility.scaleVoltage(getVoltageMultiplier(material), workingTier))
+                        .buildAndRegister();
+            }
         }
 
         if (!material.hasFlag(NO_WORKING) && material.hasFlag(GENERATE_PLATE) && workingTier <= HV) {

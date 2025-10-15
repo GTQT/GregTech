@@ -242,9 +242,14 @@ public class MetaTileEntities {
     public static final MetaTileEntityRockBreaker[] ROCK_BREAKER = new MetaTileEntityRockBreaker[GTValues.V.length - 1];
     public static final MetaTileEntityMiner[] MINER = new MetaTileEntityMiner[GTValues.V.length - 1];
 
+    public static final SimpleMachineMetaTileEntity[] TOOL_CASTER = new SimpleMachineMetaTileEntity[5];
     public static final SimpleMachineMetaTileEntity[] POLISHER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] LAMINATOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] POLYMERIZATION_TANK = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] DESULFURIZER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] BIO_REACTOR = new SimpleMachineMetaTileEntity[GTValues.V.length -1];
+    public static final SimpleMachineMetaTileEntity[] LOOM = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+
     // GENERATORS SECTION
     public static final SimpleGeneratorMetaTileEntity[] COMBUSTION_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] STEAM_TURBINE = new SimpleGeneratorMetaTileEntity[5];
@@ -733,13 +738,21 @@ public class MetaTileEntities {
                     new MetaTileEntityPump(gregtechId("pump." + GTValues.VN[i + 1].toLowerCase()), i + 1));
         }
 
-        // Block Breakers, IDs 740-754
+        // Block Breakers, IDs 740-745
         for (int i = 0; i < BLOCK_BREAKER.length; i++) {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
             BLOCK_BREAKER[i] = new MetaTileEntityBlockBreaker(gregtechId("block_breaker." + voltageName), i + 1);
             registerMetaTileEntity(740 + i, BLOCK_BREAKER[i]);
         }
-        //745-755 FREE
+
+        //工具铸造 IDs 745-750
+        for (int i = 0; i < TOOL_CASTER.length; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            TOOL_CASTER[i] = new SimpleMachineMetaTileEntity(gregtechId("tool_caster." + voltageName), RecipeMaps.TOOL_CASTER_RECIPES, Textures.TOOL_CASTER_OVERLAY, i+1,true);
+            registerMetaTileEntity(745 + i, TOOL_CASTER[i]);
+        }
+
+        //Free IDs 750-755
 
         //过胶机 IDs 755-770
         registerSimpleMetaTileEntity(LAMINATOR, 755, "laminator", RecipeMaps.LAMINATOR_RECIPES, Textures.LAMINATOR_OVERLAY, true);
@@ -748,12 +761,16 @@ public class MetaTileEntities {
         registerSimpleMetaTileEntity(POLYMERIZATION_TANK, 770, "polymerization_tank", RecipeMaps.POLYMERIZATION_RECIPES, Textures.POLYMERIZATION_TANK_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
 
         //脱硫 IDs 785-800
+        registerSimpleMetaTileEntity(DESULFURIZER, 785, "desulfurizer", RecipeMaps.DESULFURIZATION_RECIPES, Textures.DESULFURIZER_OVERLAY, true);
 
-        //生物反应
+        //生物反应 IDs 800-815
+        registerSimpleMetaTileEntity(BIO_REACTOR, 800, "bio_reactor", RecipeMaps.BIO_REACTOR_RECIPES, Textures.BIO_REACTOR_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
 
-        //部件组装
+        //部件组装 IDs 815-830
 
-        //纺线器
+        //纺线器 IDs 830-845 LOOM
+        registerSimpleMetaTileEntity(LOOM, 830, "loom", RecipeMaps.LOOM_RECIPES, Textures.LOOM_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+
 
         // Chunk Miner, IDs 920-934
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));

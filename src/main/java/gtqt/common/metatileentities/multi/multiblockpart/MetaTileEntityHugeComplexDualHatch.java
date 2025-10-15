@@ -183,10 +183,16 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         super.update();
         if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
             if (workingEnabled) {
-                pushItemsIntoNearbyHandlers(getFrontFacing());
-                pullItemsFromNearbyHandlers(getFrontFacing());
-                pushFluidsIntoNearbyHandlers(getFrontFacing());
-                pullFluidsFromNearbyHandlers(getFrontFacing());
+                long timer = getOffsetTimer() / 5;
+                if (timer % 2 == 0) {
+                    // 偶数时刻执行push操作
+                    pushItemsIntoNearbyHandlers(getFrontFacing());
+                    pushFluidsIntoNearbyHandlers(getFrontFacing());
+                } else {
+                    // 奇数时刻执行pull操作
+                    pullItemsFromNearbyHandlers(getFrontFacing());
+                    pullFluidsFromNearbyHandlers(getFrontFacing());
+                }
             }
             // Only attempt to auto collapse the inventory contents once the bus has been notified
             if (isAutoCollapse()) {
