@@ -691,7 +691,8 @@ gregtech.machine.super_item_bus.tooltip=Single Tank Capacity: INT MAX
 gregtech.machine.dual_hatch.import.tooltip=Input items and fluids for a multiblock structure
 gregtech.machine.dual_hatch.export.tooltip=Output items and fluids for multiblock structures
 
-gregtech.machine.complex_dual_hatch.tooltip=Input items and fluids for multiblock structures and output items and fluids at the same time
+gregtech.machine.complex_dual_hatch.tooltip.1=Input items and fluids for multiblock structures and output items and fluids at the same time
+gregtech.machine.complex_dual_hatch.tooltip.2=If the IO function is enabled, the assembly pull will be performed at odd times, and the assembly push operation will be performed at even times
 
 gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders machines after marking recipes with patterns
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items

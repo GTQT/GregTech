@@ -195,23 +195,13 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
             if (isAutoCollapse()) {
                 // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
                 // from the slot
-                IItemHandlerModifiable inventory = (super.getImportItems());
+                IItemHandlerModifiable inventory = actualImportItems;
                 if (!isAttachedToMultiBlock() || (this.getNotifiedItemInputList().contains(inventory))) {
                     GTUtility.collapseInventorySlotContents(inventory);
                 }
 
-                FluidTankList fluidInventory = (this.getImportFluids());
+                FluidTankList fluidInventory = fluidTankList;
                 if (!isAttachedToMultiBlock() || (this.getNotifiedFluidInputList().contains(fluidInventory))) {
-                    GTUtility.collapseFluidTankContents(fluidInventory);
-                }
-
-                inventory = (this.getExportItems());
-                if (!isAttachedToMultiBlock() || (this.getNotifiedItemOutputList().contains(inventory))) {
-                    GTUtility.collapseInventorySlotContents(inventory);
-                }
-
-                fluidInventory = (this.getExportFluids());
-                if (!isAttachedToMultiBlock() || (this.getNotifiedFluidOutputList().contains(fluidInventory))) {
                     GTUtility.collapseFluidTankContents(fluidInventory);
                 }
             }
@@ -492,7 +482,8 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
-        tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.2"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getInventorySize()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
