@@ -2300,7 +2300,8 @@ gregtech.material.granite=花岗岩
 gregtech.material.brick=砖
 gregtech.material.fireclay=耐火粘土
 gregtech.material.diorite=闪长岩
-
+gregtech.material.water_coolant=冷却液
+gregtech.material.hot_water_coolant=热冷却液
 
 # Fourth Degree Materials
 gregtech.material.red_alloy=红色合金

@@ -2304,7 +2304,8 @@ gregtech.material.granite=Granite
 gregtech.material.brick=Brick
 gregtech.material.fireclay=Fireclay
 gregtech.material.diorite=Diorite
-
+gregtech.material.water_coolant=Coolant
+gregtech.material.hot_water_coolant=Hot Coolant
 
 # Fourth Degree Materials
 gregtech.material.red_alloy=Red Alloy

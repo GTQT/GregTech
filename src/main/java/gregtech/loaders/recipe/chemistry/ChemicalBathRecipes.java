@@ -1,5 +1,7 @@
 package gregtech.loaders.recipe.chemistry;
 
+import gregtech.api.unification.material.Material;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.StoneVariantBlock;
 import gregtech.common.blocks.StoneVariantBlock.StoneVariant;
@@ -9,6 +11,7 @@ import net.minecraft.init.Items;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.CHEMICAL_BATH_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.MIXER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 
@@ -79,65 +82,41 @@ public class ChemicalBathRecipes {
                 .output(dust, LithiumChloride, 4)
                 .duration(210).EUt(960).buildAndRegister();
 
+        //冷却
+        ChemicalBathCoolMaterial(Kanthal);
+        ChemicalBathCoolMaterial(StainlessSteel);
+        ChemicalBathCoolMaterial(Silicon);
+        ChemicalBathCoolMaterial(BlackSteel);
+        ChemicalBathCoolMaterial(RedSteel);
+        ChemicalBathCoolMaterial(BlueSteel);
+
+        MIXER_RECIPES.recipeBuilder()
+                .input(dust, Lapis,9)
+                .fluidInputs(Water.getFluid(1000))
+                .fluidOutputs(WaterCoolant.getFluid(1000))
+                .duration(200)
+                .EUt(VA[MV]).buildAndRegister();
+
         CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, Kanthal)
-                .fluidInputs(Water.getFluid(100))
-                .output(ingot, Kanthal)
+                .fluidInputs(HotWaterCoolant.getFluid(100))
+                .fluidOutputs(WaterCoolant.getFluid(100))
+                .duration(200)
+                .EUt(VA[LV]).buildAndRegister();
+    }
+
+    public static void ChemicalBathCoolMaterial(Material material)
+    {
+        CHEMICAL_BATH_RECIPES.recipeBuilder()
+                .input(ingotHot, material)
+                .fluidInputs(DistilledWater.getFluid(400))
+                .output(OrePrefix.ingot, material)
+                .duration(1200).EUt(VA[MV]).buildAndRegister();
+
+        CHEMICAL_BATH_RECIPES.recipeBuilder()
+                .input(ingotHot, material)
+                .fluidInputs(WaterCoolant.getFluid(100))
+                .output(OrePrefix.ingot, material)
+                .fluidOutputs(HotWaterCoolant.getFluid(100))
                 .duration(400).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, Kanthal)
-                .fluidInputs(DistilledWater.getFluid(100))
-                .output(ingot, Kanthal)
-                .duration(250).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, Silicon)
-                .fluidInputs(Water.getFluid(100))
-                .output(ingot, Silicon)
-                .duration(200).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, Silicon)
-                .fluidInputs(DistilledWater.getFluid(100))
-                .output(ingot, Silicon)
-                .duration(125).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, BlackSteel)
-                .fluidInputs(Water.getFluid(100))
-                .output(ingot, BlackSteel)
-                .duration(200).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, BlackSteel)
-                .fluidInputs(DistilledWater.getFluid(100))
-                .output(ingot, BlackSteel)
-                .duration(125).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, RedSteel)
-                .fluidInputs(Water.getFluid(100))
-                .output(ingot, RedSteel)
-                .duration(400).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, RedSteel)
-                .fluidInputs(DistilledWater.getFluid(100))
-                .output(ingot, RedSteel)
-                .duration(250).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, BlueSteel)
-                .fluidInputs(Water.getFluid(100))
-                .output(ingot, BlueSteel)
-                .duration(400).EUt(VA[MV]).buildAndRegister();
-
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
-                .input(ingotHot, BlueSteel)
-                .fluidInputs(DistilledWater.getFluid(100))
-                .output(ingot, BlueSteel)
-                .duration(250).EUt(VA[MV]).buildAndRegister();
-
     }
 }
