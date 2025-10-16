@@ -471,7 +471,7 @@ public class ComponentRecipes {
                 .inputs(ELECTRIC_PUMP_LuV.getStackForm())
                 .input(circuit, Tier.LuV, 2)
                 .circuitMeta(1)
-                .outputs(FLUID_REGULATOR_LUV.getStackForm())
+                .outputs(FLUID_REGULATOR_LuV.getStackForm())
                 .EUt(VA[LuV])
                 .duration(150)
                 .buildAndRegister();

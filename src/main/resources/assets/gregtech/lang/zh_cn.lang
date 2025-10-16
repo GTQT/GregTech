@@ -2493,6 +2493,7 @@ recipemap.distillery.name=蒸馏室
 recipemap.fermenter.name=发酵槽
 recipemap.fluid_solidifier.name=流体固化器
 recipemap.tool_caster.name=工具铸造器
+recipemap.bath_condenser.name=水浴冷凝
 recipemap.fusion_reactor.name=核聚变反应堆
 recipemap.fusion_reactor.value=启动耗能：%s EU
 recipemap.centrifuge.name=离心机
@@ -3246,6 +3247,18 @@ gregtech.machine.tool_caster.ev.name=进阶工具铸造机 III
 gregtech.machine.tool_caster.ev.tooltip=工匠作坊
 gregtech.machine.tool_caster.iv.name=精英工具铸造机
 gregtech.machine.tool_caster.iv.tooltip=大师匠台
+
+# Bath Condenser
+gregtech.machine.bath_condenser.lv.name=基础水浴冷凝机
+gregtech.machine.bath_condenser.lv.tooltip=冷凝工坊
+gregtech.machine.bath_condenser.mv.name=进阶水浴冷凝机
+gregtech.machine.bath_condenser.mv.tooltip=冷凝工坊
+gregtech.machine.bath_condenser.hv.name=进阶水浴冷凝机 II
+gregtech.machine.bath_condenser.hv.tooltip=冷凝工坊
+gregtech.machine.bath_condenser.ev.name=进阶水浴冷凝机 III
+gregtech.machine.bath_condenser.ev.tooltip=冷凝工坊
+gregtech.machine.bath_condenser.iv.name=精英水浴冷凝机
+gregtech.machine.bath_condenser.iv.tooltip=精密冷凝装置
 
 # Electric Furnace
 gregtech.machine.electric_furnace.lv.name=基础电炉

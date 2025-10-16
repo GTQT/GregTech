@@ -180,7 +180,7 @@ public final class CoverBehaviors {
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.EV, 1280 * 64));
         registerBehavior(gregtechId("fluid.regulator.iv"), MetaItems.FLUID_REGULATOR_IV,
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.IV, 1280 * 64 * 4));
-        registerBehavior(gregtechId("fluid.regulator.luv"), MetaItems.FLUID_REGULATOR_LUV,
+        registerBehavior(gregtechId("fluid.regulator.luv"), MetaItems.FLUID_REGULATOR_LuV,
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.LuV, 1280 * 64 * 16));
         registerBehavior(gregtechId("fluid.regulator.zpm"), MetaItems.FLUID_REGULATOR_ZPM,
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.ZPM, 1280 * 64 * 64));

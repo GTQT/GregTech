@@ -622,7 +622,7 @@ public class MetaItem1 extends StandardMetaItem {
             lines.add(I18n.format("metaitem.fluid.regulator.tooltip"));
             lines.add(I18n.format("gregtech.universal.tooltip.fluid_transfer_rate", 1280 * 64 * 4 / 20));
         }));
-        FLUID_REGULATOR_LUV = addItem(252, "fluid.regulator.luv").addComponents(new TooltipBehavior(lines -> {
+        FLUID_REGULATOR_LuV = addItem(252, "fluid.regulator.luv").addComponents(new TooltipBehavior(lines -> {
             lines.add(I18n.format("metaitem.fluid.regulator.tooltip"));
             lines.add(I18n.format("gregtech.universal.tooltip.fluid_transfer_rate", 1280 * 64 * 16 / 20));
         }));

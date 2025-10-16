@@ -243,6 +243,7 @@ public class MetaTileEntities {
     public static final MetaTileEntityMiner[] MINER = new MetaTileEntityMiner[GTValues.V.length - 1];
 
     public static final SimpleMachineMetaTileEntity[] TOOL_CASTER = new SimpleMachineMetaTileEntity[5];
+    public static final SimpleMachineMetaTileEntity[] BATH_CONDENSER = new SimpleMachineMetaTileEntity[5];
     public static final SimpleMachineMetaTileEntity[] POLISHER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] LAMINATOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] POLYMERIZATION_TANK = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
@@ -752,7 +753,12 @@ public class MetaTileEntities {
             registerMetaTileEntity(745 + i, TOOL_CASTER[i]);
         }
 
-        //Free IDs 750-755
+        //水浴冷凝 IDs 750-755
+        for (int i = 0; i < BATH_CONDENSER.length; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            BATH_CONDENSER[i] = new SimpleMachineMetaTileEntity(gregtechId("bath_condenser." + voltageName), RecipeMaps.BATH_CONDENSER_RECIPES, Textures.BATH_CONDENSER_OVERLAY, i+1,true);
+            registerMetaTileEntity(750 + i, BATH_CONDENSER[i]);
+        }
 
         //过胶机 IDs 755-770
         registerSimpleMetaTileEntity(LAMINATOR, 755, "laminator", RecipeMaps.LAMINATOR_RECIPES, Textures.LAMINATOR_OVERLAY, true);

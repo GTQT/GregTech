@@ -497,7 +497,7 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
-        tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.2"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getInventorySize()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));

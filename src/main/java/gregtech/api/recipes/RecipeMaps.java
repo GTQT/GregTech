@@ -910,6 +910,7 @@ public final class RecipeMaps {
              .buildAndRegister();
      * </pre>
      */
+    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder>  TOOL_CASTER_RECIPES = new RecipeMapBuilder<>(
             "tool_caster", new SimpleRecipeBuilder())
             .itemInputs(1)
@@ -920,6 +921,21 @@ public final class RecipeMaps {
                 .progressBar(GTGuiTextures.PROGRESS_BAR_UNPACKER)
             )
             .sound(GTSoundEvents.FORGE_HAMMER)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder>   BATH_CONDENSER_RECIPES = new RecipeMapBuilder<>(
+            "bath_condenser", new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(1)
+            .fluidInputs(2)
+            .fluidOutputs(1)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR)
+            )
+            .sound(GTSoundEvents.COOLING)
             .build();
 
     /**

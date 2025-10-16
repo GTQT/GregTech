@@ -2497,6 +2497,7 @@ recipemap.distillery.name=Distillery
 recipemap.fermenter.name=Fermenter
 recipemap.fluid_solidifier.name=Fluid Solidifier
 recipemap.tool_caster.name=Tool Caster
+recipemap.bath_condenser.name=Bath Condenser
 recipemap.fusion_reactor.name=Fusion Reactor
 recipemap.fusion_reactor.value=Start: %s EU
 recipemap.centrifuge.name=Centrifuge
@@ -3239,16 +3240,28 @@ gregtech.machine.block_breaker.tooltip=Mines block on front face and collects it
 gregtech.machine.block_breaker.speed_bonus=§eSpeed Bonus: §f%,d%%
 
 # Tool Caster
-gregtech.machine.tool_caster.lv.name=基础工具铸造机
-gregtech.machine.tool_caster.lv.tooltip=工匠作坊
-gregtech.machine.tool_caster.mv.name=进阶工具铸造机
-gregtech.machine.tool_caster.mv.tooltip=工匠作坊
-gregtech.machine.tool_caster.hv.name=进阶工具铸造机 II
-gregtech.machine.tool_caster.hv.tooltip=工匠作坊
-gregtech.machine.tool_caster.ev.name=进阶工具铸造机 III
-gregtech.machine.tool_caster.ev.tooltip=工匠作坊
-gregtech.machine.tool_caster.iv.name=精英工具铸造机
-gregtech.machine.tool_caster.iv.tooltip=大师匠台
+gregtech.machine.tool_caster.lv.name=Basic Tool Caster
+gregtech.machine.tool_caster.lv.tooltip=Artisan Workshop
+gregtech.machine.tool_caster.mv.name=Advanced Tool Caster
+gregtech.machine.tool_caster.mv.tooltip=Artisan Workshop
+gregtech.machine.tool_caster.hv.name=Advanced Tool Caster II
+gregtech.machine.tool_caster.hv.tooltip=Artisan Workshop
+gregtech.machine.tool_caster.ev.name=Advanced Tool Caster III
+gregtech.machine.tool_caster.ev.tooltip=Artisan Workshop
+gregtech.machine.tool_caster.iv.name=Elite Tool Caster
+gregtech.machine.tool_caster.iv.tooltip=Master Crafting Station
+
+# Bath Condenser
+gregtech.machine.bath_condenser.lv.name=Basic Bath Condenser
+gregtech.machine.bath_condenser.lv.tooltip=Condensation Workshop
+gregtech.machine.bath_condenser.mv.name=Advanced Bath Condenser
+gregtech.machine.bath_condenser.mv.tooltip=Condensation Workshop
+gregtech.machine.bath_condenser.hv.name=Advanced Bath Condenser II
+gregtech.machine.bath_condenser.hv.tooltip=Condensation Workshop
+gregtech.machine.bath_condenser.ev.name=Advanced Bath Condenser III
+gregtech.machine.bath_condenser.ev.tooltip=Condensation Workshop
+gregtech.machine.bath_condenser.iv.name=Elite Bath Condenser
+gregtech.machine.bath_condenser.iv.tooltip=Precision Condensation Unit
 
 # Electric Furnace
 gregtech.machine.electric_furnace.lv.name=Basic Electric Furnace
