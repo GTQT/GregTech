@@ -61,6 +61,14 @@ public class HatchHandlers {
                     .duration(100).EUt(VA[ULV + i]).buildAndRegister();
 
             ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(DUAL_IMPORT_HATCH[i + 1])
+                    .input(DUAL_EXPORT_HATCH[i + 1])
+                    .input(circuit, MarkerMaterial.create(GTValues.VN[i + 1].toLowerCase()), 4)
+                    .fluidInputs(Plastic.get(i).getFluid(L * 4))
+                    .output(COMPLEX_DUAL_HATCH[i])
+                    .duration(100).EUt(VA[ULV + i]).buildAndRegister();
+
+            ASSEMBLER_RECIPES.recipeBuilder()
                     .input(DUAL_IMPORT_HATCH[i])
                     .inputs(normalInterface)
                     .inputs(fluidInterface)
@@ -86,6 +94,14 @@ public class HatchHandlers {
                     .input(circuit, MarkerMaterial.create(GTValues.VN[i + 1].toLowerCase()), 16)
                     .fluidInputs(Plastic.get(i).getFluid(L * 4))
                     .output(HUGE_DUAL_EXPORT_HATCH[i])
+                    .duration(400).EUt(VA[ULV + i]).buildAndRegister();
+
+            ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(HUGE_DUAL_IMPORT_HATCH[i + 1])
+                    .input(HUGE_DUAL_EXPORT_HATCH[i + 1])
+                    .input(circuit, MarkerMaterial.create(GTValues.VN[i + 1].toLowerCase()), 16)
+                    .fluidInputs(Plastic.get(i).getFluid(L * 4))
+                    .output(HUGE_COMPLEX_DUAL_HATCH[i])
                     .duration(400).EUt(VA[ULV + i]).buildAndRegister();
 
             ASSEMBLER_RECIPES.recipeBuilder()

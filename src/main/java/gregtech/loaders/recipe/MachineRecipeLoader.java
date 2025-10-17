@@ -636,9 +636,39 @@ public class MachineRecipeLoader {
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(OreDictNames.chestWood.toString())
                 .input(ELECTRIC_PISTON_LV)
-                .input(plate, Iron)
+                .input(plate, Steel)
                 .fluidInputs(SolderingAlloy.getFluid(72))
                 .output(COVER_STORAGE)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(OreDictNames.chestWood.toString())
+                .input(ELECTRIC_PISTON_MV)
+                .input(plate, Aluminium)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_STORAGE_MEDIUM)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(OreDictNames.chestWood.toString())
+                .input(ELECTRIC_PISTON_HV)
+                .input(plate, StainlessSteel)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_STORAGE_LARGE)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(OreDictNames.chestWood.toString())
+                .input(ELECTRIC_PISTON_EV)
+                .input(plate, Titanium)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_STORAGE_HUGE)
                 .EUt(16)
                 .duration(100)
                 .buildAndRegister();
@@ -842,16 +872,18 @@ public class MachineRecipeLoader {
         //RHODIUM_PLATED_PALLADIUM_CRATE
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, RhodiumPlatedPalladium, 2)
                 .input(plate, RhodiumPlatedPalladium, 4)
-                .outputs(RHODIUM_PLATED_PALLADIUM_CRATE.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
+                .outputs(RHODIUM_PLATED_PALLADIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
         //NAQUADAH_ALLOY_CRATE
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, NaquadahAlloy, 2).input(plate, NaquadahAlloy, 4)
-                .outputs(NAQUADAH_ALLOY_CRATE.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
+                .outputs(NAQUADAH_ALLOY_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
         //DARMSTADTIUM_CRATE
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Darmstadtium, 2).input(plate, Darmstadtium, 4)
-                .outputs(DARMSTADTIUM_CRATE.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
+                .outputs(DARMSTADTIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
         //NEUTRONIUM_CRATE
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Neutronium, 2).input(plate, Neutronium, 4)
-                .outputs(NEUTRONIUM_CRATE.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
+                .outputs(NEUTRONIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
+
+        //Drum
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Bronze, 2).input(plate, Bronze, 4)
                 .outputs(BRONZE_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Steel, 2).input(plate, Steel, 4)

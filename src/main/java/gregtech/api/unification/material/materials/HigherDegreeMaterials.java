@@ -184,5 +184,21 @@ public class HigherDegreeMaterials {
                 .components(Electrotine, 4, Silver, 1)
                 .cableProperties(GTValues.V[GTValues.HV], 2, 1)
                 .build();
+
+        //冷却液 水+9青金石
+        WaterCoolant = new Material.Builder(2528, gregtechId("water_coolant"))
+                .fluid()
+                .color(0x0000FF)
+                .flags(DISABLE_DECOMPOSITION)
+                .components(Water, 1, Lapis, 9)
+                .build();
+
+        //热冷却液
+        HotWaterCoolant = new Material.Builder(2529, gregtechId("hot_water_coolant"))
+                .fluid()
+                .color(0xFF0000)
+                .flags(DISABLE_DECOMPOSITION)
+                .components(Water, 1, Lapis, 9)
+                .build();
     }
 }

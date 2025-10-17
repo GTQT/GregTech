@@ -16,6 +16,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import java.util.Map;
 
 import static gregtech.api.recipes.RecipeMaps.PACKER_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.UNPACKER_RECIPES;
 import static gregtech.api.unification.ore.OrePrefix.*;
 
 public class WireCombiningHandler {
@@ -80,20 +81,18 @@ public class WireCombiningHandler {
                         .circuitMeta((int) Math.pow(2, i))
                         .outputs(OreDictUnifier.get(WIRE_DOUBLING_ORDER[startTier + i], material, 1))
                         .buildAndRegister();
-            }
-        }
 
-        for (int i = 1; i < 5; i++) {
-            PACKER_RECIPES.recipeBuilder()
-                    .inputs(OreDictUnifier.get(WIRE_DOUBLING_ORDER[i], material, 1))
-                    .circuitMeta(1)
-                    .outputs(OreDictUnifier.get(WIRE_DOUBLING_ORDER[0], material, (int) Math.pow(2, i)))
-                    .buildAndRegister();
+                UNPACKER_RECIPES.recipeBuilder()
+                        .inputs(OreDictUnifier.get(WIRE_DOUBLING_ORDER[startTier + i], material, 1))
+                        .circuitMeta((int) Math.pow(2, i))
+                        .outputs(OreDictUnifier.get(WIRE_DOUBLING_ORDER[startTier], material, 1 << i))
+                        .buildAndRegister();
+            }
         }
     }
 
     private static void processCableStripping(OrePrefix prefix, Material material, WireProperties property) {
-        PACKER_RECIPES.recipeBuilder()
+        UNPACKER_RECIPES.recipeBuilder()
                 .input(prefix, material)
                 .output(cableToWireMap.get(prefix), material)
                 .output(plate, Materials.Rubber, (int) (prefix.secondaryMaterials.get(0).amount / GTValues.M))

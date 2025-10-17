@@ -27,6 +27,7 @@ public class CraftingComponent {
     public static Component HIGH_CIRCUIT;
     public static Component BETTER_CIRCUIT;
     public static Component PUMP;
+    public static Component FLUID_REGULATOR;
     public static Component WIRE_ELECTRIC;
     public static Component WIRE_QUAD;
     public static Component WIRE_OCT;
@@ -48,6 +49,7 @@ public class CraftingComponent {
     public static Component DENSE_PLATE;
     public static Component HULL_PLATE;
     public static Component MOTOR;
+    public static Component GEAR;
     public static Component ROTOR;
     public static Component SENSOR;
     public static Component GRINDER;
@@ -166,6 +168,28 @@ public class CraftingComponent {
                     .entry(UXV, MetaItems.ELECTRIC_PUMP_UXV)
                     .entry(OpV, MetaItems.ELECTRIC_PUMP_OpV)
                     .entry(MAX, MetaItems.ELECTRIC_PUMP_MAX)
+                    .build());
+        }
+
+        FLUID_REGULATOR = new Component.Builder()
+                .entry(LV, MetaItems.FLUID_REGULATOR_LV)
+                .entry(MV, MetaItems.FLUID_REGULATOR_MV)
+                .entry(HV, MetaItems.FLUID_REGULATOR_HV)
+                .entry(EV, MetaItems.FLUID_REGULATOR_EV)
+                .entry(IV, MetaItems.FLUID_REGULATOR_IV)
+                .entry(LuV, MetaItems.FLUID_REGULATOR_LuV)
+                .entry(ZPM, MetaItems.FLUID_REGULATOR_ZPM)
+                .entry(UV, MetaItems.FLUID_REGULATOR_UV)
+                .build();
+
+        if (GregTechAPI.isHighTier()) {
+            FLUID_REGULATOR.updateIngredients(new Component.Builder()
+                    .entry(UHV, MetaItems.FLUID_REGULATOR_UHV)
+                    .entry(UEV, MetaItems.FLUID_REGULATOR_UEV)
+                    .entry(UIV, MetaItems.FLUID_REGULATOR_UIV)
+                    .entry(UXV, MetaItems.FLUID_REGULATOR_UXV)
+                    .entry(OpV, MetaItems.FLUID_REGULATOR_OpV)
+                    .entry(MAX, MetaItems.FLUID_REGULATOR_MAX)
                     .build());
         }
 
@@ -420,6 +444,19 @@ public class CraftingComponent {
                 .entry(ZPM, OrePrefix.plate, Materials.NaquadahAlloy)
                 .entry(UV, OrePrefix.plate, Materials.Darmstadtium)
                 .entry(UHV, OrePrefix.plate, Materials.Neutronium)
+                .build();
+
+        GEAR = new Component.Builder()
+                .entry(ULV, OrePrefix.gear, Materials.WroughtIron)
+                .entry(LV, OrePrefix.gear, Materials.Steel)
+                .entry(MV, OrePrefix.gear, Materials.Aluminium)
+                .entry(HV, OrePrefix.gear, Materials.StainlessSteel)
+                .entry(EV, OrePrefix.gear, Materials.Titanium)
+                .entry(IV, OrePrefix.gear, Materials.TungstenSteel)
+                .entry(LuV, OrePrefix.gear, Materials.RhodiumPlatedPalladium)
+                .entry(ZPM, OrePrefix.gear, Materials.NaquadahAlloy)
+                .entry(UV, OrePrefix.gear, Materials.Darmstadtium)
+                .entry(UHV, OrePrefix.gear, Materials.Neutronium)
                 .build();
 
         DOUBLE_PLATE = new Component.Builder()

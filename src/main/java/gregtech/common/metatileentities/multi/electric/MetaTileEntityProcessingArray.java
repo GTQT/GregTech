@@ -228,6 +228,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
 
         predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
 
+        predicate = predicate.or(abilities(MultiblockAbility.COMPLEX_DUAL).setPreviewCount(1));
+
         return predicate;
     }
 

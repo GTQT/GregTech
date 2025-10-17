@@ -107,6 +107,19 @@ public abstract class AdvanceMultiMapMultiblockController extends AdvanceRecipeM
                         .setMaxGlobalLimited(3).setPreviewCount(1) : new TraceabilityPredicate());
 
         for (RecipeMap<?> recipeMap : getAvailableRecipeMaps()) {
+            if (checkItemIn || checkFluidIn) {
+                if (recipeMap.getMaxInputs() > 0 || recipeMap.getMaxFluidInputs() > 0) {
+                    predicate = predicate.or(abilities(MultiblockAbility.DUAL_IMPORT).setPreviewCount(1));
+                }
+            }
+            if (checkItemOut || checkFluidOut) {
+                if (recipeMap.getMaxOutputs() > 0 || recipeMap.getMaxFluidOutputs() > 0) {
+                    predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
+                }
+            }
+
+            predicate = predicate.or(abilities(MultiblockAbility.COMPLEX_DUAL).setPreviewCount(1));
+
             if (!checkedItemIn && checkItemIn) {
                 if (recipeMap.getMaxInputs() > 0) {
                     checkedItemIn = true;
@@ -129,16 +142,6 @@ public abstract class AdvanceMultiMapMultiblockController extends AdvanceRecipeM
                 if (recipeMap.getMaxFluidOutputs() > 0) {
                     checkedFluidOut = true;
                     predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
-                }
-            }
-            if (checkItemIn || checkFluidIn) {
-                if (recipeMap.getMaxInputs() > 0 || recipeMap.getMaxFluidInputs() > 0) {
-                    predicate = predicate.or(abilities(MultiblockAbility.DUAL_IMPORT).setPreviewCount(1));
-                }
-            }
-            if (checkItemOut || checkFluidOut) {
-                if (recipeMap.getMaxOutputs() > 0 || recipeMap.getMaxFluidOutputs() > 0) {
-                    predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
                 }
             }
         }

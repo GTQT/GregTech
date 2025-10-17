@@ -763,6 +763,8 @@ public class Materials {
     public static Material Brick;
     public static Material Fireclay;
     public static Material Diorite;
+    public static Material WaterCoolant;
+    public static Material HotWaterCoolant;
 
     /**
      * Fourth Degree Materials

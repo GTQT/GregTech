@@ -326,6 +326,7 @@ public class GTGuiTextures {
     public static final UITexture CUTTER_OVERLAY = fullImage("textures/gui/overlay/cutter_overlay.png", true);
     public static final UITexture DARK_CANISTER_OVERLAY = fullImage("textures/gui/overlay/dark_canister_overlay.png",
             true);
+    public static final UITexture DISH_OVERLAY = fullImage("textures/gui/overlay/dish_overlay.png", true);
     public static final UITexture DUST_OVERLAY = fullImage("textures/gui/overlay/dust_overlay.png", true);
     public static final UITexture DUST_OVERLAY_BRONZE = fullImage("textures/gui/overlay/dust_overlay_bronze.png");
     public static final UITexture DUST_OVERLAY_STEEL = fullImage("textures/gui/overlay/dust_overlay_steel.png");
@@ -377,6 +378,7 @@ public class GTGuiTextures {
     public static final UITexture SAWBLADE_OVERLAY = fullImage("textures/gui/overlay/sawblade_overlay.png", true);
     public static final UITexture SOLIDIFIER_OVERLAY = fullImage("textures/gui/overlay/solidifier_overlay.png", true);
     public static final UITexture STRING_SLOT_OVERLAY = fullImage("textures/gui/overlay/string_slot_overlay.png", true);
+    public static final UITexture STRING_SLOT_OVERLAY_2 = fullImage("textures/gui/overlay/string_slot_overlay_2.png");
     public static final UITexture TOOL_SLOT_OVERLAY = fullImage("textures/gui/overlay/tool_slot_overlay.png", true);
     public static final UITexture TURBINE_OVERLAY = fullImage("textures/gui/overlay/turbine_overlay.png", true);
     public static final UITexture VIAL_OVERLAY_1 = fullImage("textures/gui/overlay/vial_overlay_1.png", true);

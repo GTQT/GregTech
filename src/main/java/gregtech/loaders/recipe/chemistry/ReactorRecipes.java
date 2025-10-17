@@ -19,14 +19,14 @@ import static gregtech.api.unification.ore.OrePrefix.*;
 public class ReactorRecipes {
 
     public static void init() {
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Isoprene.getFluid(144))
                 .fluidInputs(Air.getFluid(2000))
                 .output(dust, RawRubber)
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        POLYMERIZATION_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(Isoprene.getFluid(144))
                 .fluidInputs(Oxygen.getFluid(2000))

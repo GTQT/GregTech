@@ -21,7 +21,7 @@ import net.minecraft.world.World;
 
 import java.util.List;
 
-public class RenderItemBehavior implements IItemBehaviour, ItemUIFactory {
+public class RenderItemBehavior implements IItemBehaviour {
 
     MultiblockControllerBase controller;
     private BlockPos initialRelativePos;

@@ -23,8 +23,7 @@ import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.BENDER_RECIPES;
-import static gregtech.api.recipes.RecipeMaps.LATHE_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.DyeUtil.determineDyeColor;
@@ -167,6 +166,7 @@ public class PartsRecipeHandler {
                     .duration((int) material.getMass() * 3 / 2)
                     .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier))
                     .buildAndRegister();
+
         }
 
         RecipeMaps.WIREMILL_RECIPES.recipeBuilder()
@@ -176,6 +176,16 @@ public class PartsRecipeHandler {
                 .duration((int) material.getMass() * 2)
                 .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier))
                 .buildAndRegister();
+
+        if(material.hasFluid()) {
+            LOOM_RECIPES.recipeBuilder()
+                    .fluidInputs(material.getFluid(144))
+                    .circuitMeta(3)
+                    .output(fineWirePrefix, material, 8)
+                    .duration((int) material.getMass() * 2)
+                    .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier))
+                    .buildAndRegister();
+        }
     }
 
     public static void processGear(OrePrefix gearPrefix, Material material, DustProperty property) {
@@ -270,7 +280,7 @@ public class PartsRecipeHandler {
         ItemStack stack = OreDictUnifier.get(lensPrefix, material);
         int workingTier = material.getWorkingTier();
 
-        LATHE_RECIPES.recipeBuilder()
+        POLISHER_RECIPES.recipeBuilder()
                 .input(plate, material)
                 .output(lens, material)
                 .output(dustSmall, material)
@@ -279,7 +289,7 @@ public class PartsRecipeHandler {
                 .buildAndRegister();
 
         if (!OreDictUnifier.get(gemExquisite, material).isEmpty()) {
-            LATHE_RECIPES.recipeBuilder()
+            POLISHER_RECIPES.recipeBuilder()
                     .input(gemExquisite, material)
                     .output(lens, material)
                     .output(dust, material, 2)

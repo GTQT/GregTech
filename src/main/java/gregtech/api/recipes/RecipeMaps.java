@@ -910,14 +910,32 @@ public final class RecipeMaps {
              .buildAndRegister();
      * </pre>
      */
+    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder>  TOOL_CASTER_RECIPES = new RecipeMapBuilder<>(
             "tool_caster", new SimpleRecipeBuilder())
             .itemInputs(1)
             .itemOutputs(9)
             .fluidInputs(1)
-            .itemSlotOverlay(GuiTextures.MOLD_OVERLAY, false)
-            .progressBar(GuiTextures.PROGRESS_BAR_UNPACKER)
+            .uiBuilder(b -> b
+                .itemSlotOverlay(GTGuiTextures.MOLD_OVERLAY, false)
+                .progressBar(GTGuiTextures.PROGRESS_BAR_UNPACKER)
+            )
             .sound(GTSoundEvents.FORGE_HAMMER)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder>   BATH_CONDENSER_RECIPES = new RecipeMapBuilder<>(
+            "bath_condenser", new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(1)
+            .fluidInputs(2)
+            .fluidOutputs(1)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR)
+            )
+            .sound(GTSoundEvents.COOLING)
             .build();
 
     /**
@@ -1091,6 +1109,18 @@ public final class RecipeMaps {
             .sound(SoundEvents.ENTITY_GENERIC_EXPLODE)
             .build();
 
+    //电力
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> ELECTRIC_IMPLOSION_RECIPES = new RecipeMapBuilder<>(
+            "electric_implosion_recipes", new SimpleRecipeBuilder().duration(20).EUt(VA[LV]))
+            .itemInputs(2)
+            .itemOutputs(2)
+            .itemSlotOverlay(GuiTextures.IMPLOSION_OVERLAY_1, false, true)
+            .itemSlotOverlay(GuiTextures.IMPLOSION_OVERLAY_2, false, false)
+            .itemSlotOverlay(GuiTextures.DUST_OVERLAY, true, true)
+            .progressBar(GuiTextures.PROGRESS_BAR_ARROW_MULTIPLE)
+            .sound(SoundEvents.ENTITY_GENERIC_EXPLODE)
+            .build();
     /**
      * Example:
      *
@@ -1306,6 +1336,32 @@ public final class RecipeMaps {
             .sound(GTSoundEvents.ASSEMBLER)
             .build();
 
+    //UNPACKER_RECIPES
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> UNPACKER_RECIPES = new RecipeMapBuilder<>("unpacker",
+            new SimpleRecipeBuilder().EUt(12).duration(10))
+            .itemInputs(2)
+            .itemOutputs(2)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.BOX_OVERLAY, false, true)
+                    .itemSlotOverlay(GTGuiTextures.BOXED_OVERLAY, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_UNPACKER))
+            .sound(GTSoundEvents.ASSEMBLER)
+            .build();
+
+    //LAMINATOR_RECIPES
+    //自动注册线缆过胶
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> LAMINATOR_RECIPES = new RecipeMapBuilder<>("laminator", new SimpleRecipeBuilder())
+            .itemInputs(6)
+            .itemOutputs(1)
+            .fluidInputs(2)
+            .uiBuilder(builder -> builder
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE)
+            )
+            .sound(GTSoundEvents.COOLING)
+            .build();
+
     /**
      * Example:
      *
@@ -1465,6 +1521,117 @@ public final class RecipeMaps {
             .uiBuilder(b -> b
                     .progressBar(GTGuiTextures.PROGRESS_BAR_SIFT, Direction.DOWN))
             .sound(SoundEvents.BLOCK_SAND_PLACE)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> POLISHER_RECIPES = new RecipeMapBuilder<>("polisher", new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(2)
+            .fluidInputs(1)
+            .fluidOutputs(0)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.SAWBLADE_OVERLAY, false, false)
+                    .itemSlotOverlay(GTGuiTextures.CUTTER_OVERLAY, true, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_BATH)
+            )
+            .sound(GTSoundEvents.CUT)
+            .onBuild(gregtechId("polisher_fluid"), recipeBuilder -> {
+                if (recipeBuilder.getFluidInputs().isEmpty()) {
+                    int duration = recipeBuilder.getDuration();
+                    long eut = recipeBuilder.getEUt();
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(Materials.Water.getFluid(GTUtility.safeCastLongToInt(Math.max(4,
+                                    Math.min(1000, duration * eut / 320)))))
+                            .duration(duration * 2)
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(
+                                    Materials.DistilledWater.getFluid(GTUtility.safeCastLongToInt(Math.max(3,
+                                            Math.min(750, duration * eut / 426)))))
+                            .duration((int) (duration * 1.5))
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(Materials.Lubricant.getFluid(GTUtility.safeCastLongToInt(Math.max(1,
+                                    Math.min(250, duration * eut / 1280)))))
+                            .duration(Math.max(1, duration))
+                            .buildAndRegister();
+
+                    // Don't call buildAndRegister as we are mutating the original recipe and already in the
+                    // middle of a buildAndRegister call.
+                    // Adding a second call will result in duplicate recipe generation attempts
+                    recipeBuilder
+                            .fluidInputs(Materials.MolybdeniteLubricant
+                                    .getFluid(GTUtility.safeCastLongToInt(Math.max(1,
+                                            Math.min(125, duration * eut / 2560)))))
+                            .duration(Math.max(1, (int) (duration * 0.8)));
+
+                }
+            })
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> POLYMERIZATION_RECIPES = new RecipeMapBuilder<>("polymerization_tank",
+            new SimpleRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(3)
+            .fluidInputs(3)
+            .fluidOutputs(3)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.VIAL_OVERLAY_1, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE)
+            )
+            .sound(GTSoundEvents.CHEMICAL_REACTOR)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> DESULFURIZATION_RECIPES = new RecipeMapBuilder<>("desulfurizer",
+            new SimpleRecipeBuilder())
+            .itemInputs(2)
+            .itemOutputs(2)
+            .fluidInputs(2)
+            .fluidOutputs(2)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.MOLD_OVERLAY, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE)
+            )
+            .sound(GTSoundEvents.COMBUSTION)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> BIO_REACTOR_RECIPES = new RecipeMapBuilder<>("bio_reactor",
+            new SimpleRecipeBuilder())
+            .itemInputs(6)
+            .itemOutputs(1)
+            .fluidInputs(3)
+            .fluidOutputs(2)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.DISH_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_3, false, false)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_4, false, true)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_3, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE))
+            .sound(GTSoundEvents.CHEMICAL_REACTOR)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> LOOM_RECIPES = new RecipeMapBuilder<>("loom",
+            new SimpleRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(2)
+            .fluidInputs(1)
+            .fluidOutputs(0)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.STRING_SLOT_OVERLAY, false)
+                    .fluidSlotOverlay(GTGuiTextures.STRING_SLOT_OVERLAY_2, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_MAGNET))
+            .sound(GTSoundEvents.COMPRESSOR)
             .build();
 
     /**

@@ -70,35 +70,35 @@ public class PetrochemRecipes {
     }
 
     private static void desulfurizationRecipes() {
-        CHEMICAL_RECIPES.recipeBuilder()
+        DESULFURIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(SulfuricHeavyFuel.getFluid(8000))
                 .fluidInputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(HydrogenSulfide.getFluid(1000))
                 .fluidOutputs(HeavyFuel.getFluid(8000))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        DESULFURIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(SulfuricLightFuel.getFluid(12000))
                 .fluidInputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(HydrogenSulfide.getFluid(1000))
                 .fluidOutputs(LightFuel.getFluid(12000))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        DESULFURIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(SulfuricNaphtha.getFluid(12000))
                 .fluidInputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(HydrogenSulfide.getFluid(1000))
                 .fluidOutputs(Naphtha.getFluid(12000))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        DESULFURIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(SulfuricGas.getFluid(16000))
                 .fluidInputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(HydrogenSulfide.getFluid(1000))
                 .fluidOutputs(RefineryGas.getFluid(16000))
                 .duration(160).EUt(VA[LV]).buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        DESULFURIZATION_RECIPES.recipeBuilder()
                 .fluidInputs(NaturalGas.getFluid(16000))
                 .fluidInputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(HydrogenSulfide.getFluid(1000))

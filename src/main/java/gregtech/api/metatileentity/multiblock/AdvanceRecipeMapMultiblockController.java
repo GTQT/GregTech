@@ -181,17 +181,22 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     protected void initializeAbilities() {
         List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
         inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
+        inputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
         this.inputInventory = new ItemHandlerList(inputItems);
 
         List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
         inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
+        inputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
         this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
 
         List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
         outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
+        outputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
         this.outputInventory = new ItemHandlerList(outputItems);
+
         List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
         outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
+        outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
         this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
 
         List<IEnergyContainer> inputEnergy = new ArrayList<>(getAbilities(MultiblockAbility.INPUT_ENERGY));

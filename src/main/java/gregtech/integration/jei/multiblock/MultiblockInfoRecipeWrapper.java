@@ -80,20 +80,25 @@ import java.util.stream.Collectors;
 
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
-    private static final int MAX_PARTS = 18;
-    private static final int PARTS_HEIGHT = 36;
+    private static final int MAX_PARTS = 27;
+    private static final int PARTS_HEIGHT = 54;
     private static final int SLOT_SIZE = 18;
     private static final int SLOTS_PER_ROW = 9;
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
-
+    private static ItemStack tooltipBlockStack;
+    private static long lastRender;
+    private static MultiblockInfoRecipeWrapper lastWrapper;
     private final MultiblockControllerBase controller;
-    private MBPattern[] patterns;
-
     private final Map<GuiButton, Runnable> buttons = new HashMap<>();
-    private RecipeLayout recipeLayout;
     private final List<ItemStack> allItemStackInputs = new ArrayList<>();
-
+    private final GuiButton buttonPreviousPattern;
+    private final GuiButton buttonNextPattern;
+    private final GuiButton nextLayerButton;
+    private final GuiButton nextTierButton;
+    private final List<TraceabilityPredicate.SimplePredicate> predicates;
+    private MBPattern[] patterns;
+    private RecipeLayout recipeLayout;
     private int layerIndex = -1;
     private int tierIndex = 0;
     private int currentRendererPage = 0;
@@ -103,21 +108,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private float rotationYaw;
     private float rotationPitch;
     private float zoom;
-
-    private final GuiButton buttonPreviousPattern;
-    private final GuiButton buttonNextPattern;
-    private final GuiButton nextLayerButton;
-    private final GuiButton nextTierButton;
-
     private IDrawable slot;
     private IDrawable infoIcon;
     private boolean drawInfoIcon;
-    private static ItemStack tooltipBlockStack;
-    private static long lastRender;
     private List<String> predicateTips;
-
     private BlockPos selected;
-    private final List<TraceabilityPredicate.SimplePredicate> predicates;
     private TraceabilityPredicate father;
 
     @SuppressWarnings("NewExpressionSideOnly")
@@ -135,7 +130,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         this.buttonNextPattern = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), 90, ICON_SIZE, ICON_SIZE, ">");
 
-        this.nextTierButton = new GuiButton(0, 176 - ((2 * ICON_SIZE) + RIGHT_PADDING + 1), 70, ICON_SIZE, ICON_SIZE, "^");
+        this.nextTierButton = new GuiButton(0, 176 - ((2 * ICON_SIZE) + RIGHT_PADDING + 1), 70, ICON_SIZE, ICON_SIZE,
+                "^");
 
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
         this.buttons.put(buttonPreviousPattern, () -> switchRenderPage(-1));
@@ -149,13 +145,101 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
     }
 
+    @NotNull
+    private static Collection<PartInfo> gatherStructureBlocks(World world, @NotNull Map<BlockPos, BlockInfo> blocks,
+                                                              Set<ItemStack> parts) {
+        Map<ItemStack, PartInfo> partsMap = new Object2ObjectOpenCustomHashMap<>(
+                ItemStackHashStrategy.comparingAllButCount());
+        for (Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
+            BlockPos pos = entry.getKey();
+            IBlockState state = world.getBlockState(pos);
+            Block block = state.getBlock();
+
+            ItemStack stack = ItemStack.EMPTY;
+
+            // first check if the block is a GT machine
+            TileEntity tileEntity = world.getTileEntity(pos);
+            if (tileEntity instanceof IGregTechTileEntity) {
+                stack = ((IGregTechTileEntity) tileEntity).getMetaTileEntity().getStackForm();
+            }
+            if (stack.isEmpty()) {
+                // first, see what the block has to say for itself before forcing it to use a particular meta value
+                stack = block.getPickBlock(state, new RayTraceResult(Vec3d.ZERO, EnumFacing.UP, pos), world, pos,
+                        new GregFakePlayer(world));
+            }
+            if (stack.isEmpty()) {
+                // try the default itemstack constructor if we're not a GT machine
+                stack = GTUtility.toItem(state);
+            }
+            if (stack.isEmpty()) {
+                // add the first of the block's drops if the others didn't work
+                NonNullList<ItemStack> list = NonNullList.create();
+                state.getBlock().getDrops(list, world, pos, state, 0);
+                if (!list.isEmpty()) {
+                    ItemStack is = list.get(0);
+                    if (!is.isEmpty()) {
+                        stack = is;
+                    }
+                }
+            }
+
+            // if we got a stack, add it to the set and map
+            if (!stack.isEmpty()) {
+                parts.add(stack);
+
+                PartInfo partInfo = partsMap.get(stack);
+                if (partInfo == null) {
+                    partInfo = new PartInfo(stack, entry.getValue());
+                    partsMap.put(stack, partInfo);
+                }
+                partInfo.amount++;
+            }
+        }
+        return partsMap.values();
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static void renderBlockOverLay(BlockPos pos, int r, int g, int b) {
+        if (pos == null) return;
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+        GlStateManager.translate((pos.getX() + 0.5), (pos.getY() + 0.5), (pos.getZ() + 0.5));
+        GlStateManager.scale(1.01, 1.01, 1.01);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        GlStateManager.disableTexture2D();
+        CCRenderState renderState = CCRenderState.instance();
+        renderState.startDrawing(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR, tessellator.getBuffer());
+        ColourMultiplier multiplier = new ColourMultiplier(0);
+        renderState.setPipeline(new Translation(-0.5, -0.5, -0.5), multiplier);
+        BlockRenderer.BlockFace blockFace = new BlockRenderer.BlockFace();
+        renderState.setModel(blockFace);
+        for (EnumFacing renderSide : EnumFacing.VALUES) {
+            multiplier.colour = RenderUtil.packColor(r, g, b, 255);
+            blockFace.loadCuboidFace(Cuboid6.full, renderSide.getIndex());
+            renderState.render();
+        }
+        renderState.draw();
+        GlStateManager.scale(1 / 1.01, 1 / 1.01, 1 / 1.01);
+        GlStateManager.translate(-(pos.getX() + 0.5), -(pos.getY() + 0.5), -(pos.getZ() + 0.5));
+        GlStateManager.enableTexture2D();
+
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.color(1, 1, 1, 1);
+    }
+
+    public static ItemStack getHoveredItemStack() {
+        if (lastRender > System.currentTimeMillis() - 100) {
+            return tooltipBlockStack;
+        }
+        return null;
+    }
+
     @Override
     public void getIngredients(IIngredients ingredients) {
         ingredients.setInputs(VanillaTypes.ITEM, allItemStackInputs);
         ingredients.setOutput(VanillaTypes.ITEM, controller.getStackForm());
     }
-
-    private static MultiblockInfoRecipeWrapper lastWrapper;
 
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
         this.recipeLayout = layout;
@@ -216,6 +300,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         setNextLayer(layerIndex);
     }
+
     private void toggleNextTier() {
         if (++this.tierIndex > controller.getMaxStructureTier()) {
             this.tierIndex = 0;
@@ -305,7 +390,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         renderer.render(recipeLayout.getPosX(), recipeLayout.getPosY(), recipeWidth, sceneHeight,
                 mouseX + recipeLayout.getPosX(), mouseY + recipeLayout.getPosY());
         drawMultiblockName(recipeWidth);
-
+        drawMultiblockTier(recipeWidth);
         // reset colors (so any elements render after this point are not dark)
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
@@ -412,6 +497,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
     }
 
+    private void drawMultiblockTier(int recipeWidth) {
+        FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+        String toShow = "Tier: " + (currentRendererPage + 1) + " / Max: " + (patterns.length);
+        List<String> lines = fontRenderer.listFormattedStringToWidth(toShow, recipeWidth - 10);
+        for (int i = 0; i < lines.size(); i++) {
+            fontRenderer.drawString(lines.get(i), (recipeWidth - fontRenderer.getStringWidth(lines.get(i))) / 2,
+                    8 + fontRenderer.FONT_HEIGHT * i, ConfigHolder.client.multiblockPreviewFontColor);
+        }
+    }
+
     @Override
     public boolean handleClick(@NotNull Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
         for (Entry<GuiButton, Runnable> button : buttons.entrySet()) {
@@ -498,88 +593,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         return Collections.emptyList();
     }
 
-    private static class PartInfo {
-
-        final ItemStack itemStack;
-        boolean isController = false;
-        boolean isTile = false;
-        final int blockId;
-        int amount = 0;
-
-        PartInfo(final ItemStack itemStack, final BlockInfo blockInfo) {
-            this.itemStack = itemStack;
-            this.blockId = Block.getIdFromBlock(blockInfo.getBlockState().getBlock());
-            TileEntity tileEntity = blockInfo.getTileEntity();
-            if (tileEntity != null) {
-                this.isTile = true;
-                if (tileEntity instanceof IGregTechTileEntity iGregTechTileEntity) {
-                    MetaTileEntity mte = iGregTechTileEntity.getMetaTileEntity();
-                    this.isController = mte instanceof MultiblockControllerBase;
-                }
-            }
-        }
-
-        @NotNull
-        ItemStack getItemStack() {
-            ItemStack result = this.itemStack.copy();
-            result.setCount(this.amount);
-            return result;
-        }
-    }
-
-    @NotNull
-    private static Collection<PartInfo> gatherStructureBlocks(World world, @NotNull Map<BlockPos, BlockInfo> blocks,
-                                                              Set<ItemStack> parts) {
-        Map<ItemStack, PartInfo> partsMap = new Object2ObjectOpenCustomHashMap<>(
-                ItemStackHashStrategy.comparingAllButCount());
-        for (Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
-            BlockPos pos = entry.getKey();
-            IBlockState state = world.getBlockState(pos);
-            Block block = state.getBlock();
-
-            ItemStack stack = ItemStack.EMPTY;
-
-            // first check if the block is a GT machine
-            TileEntity tileEntity = world.getTileEntity(pos);
-            if (tileEntity instanceof IGregTechTileEntity) {
-                stack = ((IGregTechTileEntity) tileEntity).getMetaTileEntity().getStackForm();
-            }
-            if (stack.isEmpty()) {
-                // first, see what the block has to say for itself before forcing it to use a particular meta value
-                stack = block.getPickBlock(state, new RayTraceResult(Vec3d.ZERO, EnumFacing.UP, pos), world, pos,
-                        new GregFakePlayer(world));
-            }
-            if (stack.isEmpty()) {
-                // try the default itemstack constructor if we're not a GT machine
-                stack = GTUtility.toItem(state);
-            }
-            if (stack.isEmpty()) {
-                // add the first of the block's drops if the others didn't work
-                NonNullList<ItemStack> list = NonNullList.create();
-                state.getBlock().getDrops(list, world, pos, state, 0);
-                if (!list.isEmpty()) {
-                    ItemStack is = list.get(0);
-                    if (!is.isEmpty()) {
-                        stack = is;
-                    }
-                }
-            }
-
-            // if we got a stack, add it to the set and map
-            if (!stack.isEmpty()) {
-                parts.add(stack);
-
-                PartInfo partInfo = partsMap.get(stack);
-                if (partInfo == null) {
-                    partInfo = new PartInfo(stack, entry.getValue());
-                    partsMap.put(stack, partInfo);
-                }
-                partInfo.amount++;
-            }
-        }
-        return partsMap.values();
-    }
-
     @SuppressWarnings("NewExpressionSideOnly")
     @NotNull
     private MBPattern initializePattern(@NotNull MultiblockShapeInfo shapeInfo, @NotNull Set<ItemStack> parts) {
@@ -652,40 +665,32 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         return new MBPattern(worldSceneRenderer, sortedParts, predicateMap);
     }
 
-    @SideOnly(Side.CLIENT)
-    private static void renderBlockOverLay(BlockPos pos, int r, int g, int b) {
-        if (pos == null) return;
-        GlStateManager.enableBlend();
-        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-        GlStateManager.translate((pos.getX() + 0.5), (pos.getY() + 0.5), (pos.getZ() + 0.5));
-        GlStateManager.scale(1.01, 1.01, 1.01);
+    private static class PartInfo {
 
-        Tessellator tessellator = Tessellator.getInstance();
-        GlStateManager.disableTexture2D();
-        CCRenderState renderState = CCRenderState.instance();
-        renderState.startDrawing(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR, tessellator.getBuffer());
-        ColourMultiplier multiplier = new ColourMultiplier(0);
-        renderState.setPipeline(new Translation(-0.5, -0.5, -0.5), multiplier);
-        BlockRenderer.BlockFace blockFace = new BlockRenderer.BlockFace();
-        renderState.setModel(blockFace);
-        for (EnumFacing renderSide : EnumFacing.VALUES) {
-            multiplier.colour = RenderUtil.packColor(r, g, b, 255);
-            blockFace.loadCuboidFace(Cuboid6.full, renderSide.getIndex());
-            renderState.render();
+        final ItemStack itemStack;
+        final int blockId;
+        boolean isController = false;
+        boolean isTile = false;
+        int amount = 0;
+
+        PartInfo(final ItemStack itemStack, final BlockInfo blockInfo) {
+            this.itemStack = itemStack;
+            this.blockId = Block.getIdFromBlock(blockInfo.getBlockState().getBlock());
+            TileEntity tileEntity = blockInfo.getTileEntity();
+            if (tileEntity != null) {
+                this.isTile = true;
+                if (tileEntity instanceof IGregTechTileEntity iGregTechTileEntity) {
+                    MetaTileEntity mte = iGregTechTileEntity.getMetaTileEntity();
+                    this.isController = mte instanceof MultiblockControllerBase;
+                }
+            }
         }
-        renderState.draw();
-        GlStateManager.scale(1 / 1.01, 1 / 1.01, 1 / 1.01);
-        GlStateManager.translate(-(pos.getX() + 0.5), -(pos.getY() + 0.5), -(pos.getZ() + 0.5));
-        GlStateManager.enableTexture2D();
 
-        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GlStateManager.color(1, 1, 1, 1);
-    }
-
-    public static ItemStack getHoveredItemStack() {
-        if (lastRender > System.currentTimeMillis() - 100) {
-            return tooltipBlockStack;
+        @NotNull
+        ItemStack getItemStack() {
+            ItemStack result = this.itemStack.copy();
+            result.setCount(this.amount);
+            return result;
         }
-        return null;
     }
 }

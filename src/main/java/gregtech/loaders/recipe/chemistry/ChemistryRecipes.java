@@ -75,7 +75,6 @@ public class ChemistryRecipes {
         vacuumAir(Xenon, 3);
         vacuumAir(Methane, 3);
         vacuumAir(Oxygen, 4);
-        vacuumAir(Helium, 4);
         vacuumAir(Hydrogen, 4);
         vacuumAir(Neon, 4);
         vacuumAir(Helium, 4);

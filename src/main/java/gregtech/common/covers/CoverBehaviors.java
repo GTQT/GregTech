@@ -180,7 +180,7 @@ public final class CoverBehaviors {
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.EV, 1280 * 64));
         registerBehavior(gregtechId("fluid.regulator.iv"), MetaItems.FLUID_REGULATOR_IV,
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.IV, 1280 * 64 * 4));
-        registerBehavior(gregtechId("fluid.regulator.luv"), MetaItems.FLUID_REGULATOR_LUV,
+        registerBehavior(gregtechId("fluid.regulator.luv"), MetaItems.FLUID_REGULATOR_LuV,
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.LuV, 1280 * 64 * 16));
         registerBehavior(gregtechId("fluid.regulator.zpm"), MetaItems.FLUID_REGULATOR_ZPM,
                 (def, tile, side) -> new CoverFluidRegulator(def, tile, side, GTValues.ZPM, 1280 * 64 * 64));
@@ -233,7 +233,12 @@ public final class CoverBehaviors {
         registerBehavior(gregtechId("item_voiding"), MetaItems.COVER_ITEM_VOIDING, CoverItemVoiding::new);
         registerBehavior(gregtechId("item_voiding.advanced"), MetaItems.COVER_ITEM_VOIDING_ADVANCED,
                 CoverItemVoidingAdvanced::new);
-        registerBehavior(gregtechId("storage"), MetaItems.COVER_STORAGE, CoverStorage::new);
+        registerBehavior(gregtechId("storage"), MetaItems.COVER_STORAGE,   (def, tile, side) -> new CoverStorage(def, tile, side,9));
+        registerBehavior(gregtechId("storage_medium"), MetaItems.COVER_STORAGE_MEDIUM,   (def, tile, side) -> new CoverStorage(def, tile, side,18));
+        registerBehavior(gregtechId("storage_large"), MetaItems.COVER_STORAGE_LARGE,   (def, tile, side) -> new CoverStorage(def, tile, side,27));
+        registerBehavior(gregtechId("storage_huge"), MetaItems.COVER_STORAGE_HUGE,   (def, tile, side) -> new CoverStorage(def, tile, side,36));
+
+
     }
 
     /**

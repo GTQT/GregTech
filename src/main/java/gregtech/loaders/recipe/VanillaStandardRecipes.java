@@ -981,12 +981,6 @@ public class VanillaStandardRecipes {
         ModHandler.addSmeltingRecipe(new ItemStack(Items.SLIME_BALL), STICKY_RESIN.getStackForm(), 0.3f);
 
         ASSEMBLER_RECIPES.recipeBuilder()
-                .inputs(new ItemStack(Items.STRING, 4))
-                .circuitMeta(4)
-                .outputs(new ItemStack(Blocks.WOOL, 1, 0))
-                .duration(100).EUt(4).buildAndRegister();
-
-        ASSEMBLER_RECIPES.recipeBuilder()
                 .input(cobblestone.name(), 1)
                 .inputs(new ItemStack(Blocks.VINE))
                 .outputs(new ItemStack(Blocks.MOSSY_COBBLESTONE))

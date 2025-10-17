@@ -201,7 +201,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_HV;
     public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_EV;
     public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_IV;
-    public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_LUV;
+    public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_LuV;
     public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_ZPM;
     public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_UV;
     public static MetaItem<?>.MetaValueItem FLUID_REGULATOR_UHV;
@@ -481,6 +481,9 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem COVER_ITEM_VOIDING;
     public static MetaItem<?>.MetaValueItem COVER_ITEM_VOIDING_ADVANCED;
     public static MetaItem<?>.MetaValueItem COVER_STORAGE;
+    public static MetaItem<?>.MetaValueItem COVER_STORAGE_MEDIUM;
+    public static MetaItem<?>.MetaValueItem COVER_STORAGE_LARGE;
+    public static MetaItem<?>.MetaValueItem COVER_STORAGE_HUGE;
 
     public static MetaItem<?>.MetaValueItem COVER_SOLAR_PANEL;
     public static MetaItem<?>.MetaValueItem COVER_SOLAR_PANEL_ULV;

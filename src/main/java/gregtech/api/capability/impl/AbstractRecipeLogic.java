@@ -71,7 +71,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private final OCParams ocParams = new OCParams();
     private final OCResult ocResult = new OCResult();
     protected Recipe previousRecipe;
-    protected Recipe batchRecipes;
     protected Recipe showRecipes;
     protected LinkedList<Recipe> latestRecipes = new LinkedList<>();
     protected int parallelRecipesPerformed;
@@ -470,7 +469,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     public void forceRecipeRecheck() {
         this.previousRecipe = null;
-        this.batchRecipes = null;
         this.latestRecipes.clear();
 
         trySearchNewRecipe();
@@ -486,15 +484,12 @@ public abstract class AbstractRecipeLogic extends MTETrait
         IMultipleTankHandler importFluids = getInputTank();
 
         // see if the last recipe we used still works
-        if (enableBatch && checkBatchRecipes()) {
-            currentRecipe = this.batchRecipes;
-            // If there is no active recipe, then we need to find one.
-        } else if (!enableBatch && checkPreviousRecipe()) {
+        if (checkPreviousRecipe()) {
             currentRecipe = this.previousRecipe;
             // If there is no active recipe, then we need to find one.
         }
         // 若无效则遍历历史记录寻找其他有效配方
-        else if (!enableBatch) {
+        else {
             for (int i = latestRecipes.size() - 2; i >= 0; i--) { // 从倒数第二个开始
                 Recipe recipe = latestRecipes.get(i);
                 if (recipe == null) continue;
@@ -509,18 +504,13 @@ public abstract class AbstractRecipeLogic extends MTETrait
         if (currentRecipe == null) {
             currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
         }
-
-
-        // 批处理无用
         // If a recipe was found, then inputs were valid. Cache found recipe.
-        if (!enableBatch && currentRecipe != null) {
+        if (currentRecipe != null) {
             //最临近配方
             this.previousRecipe = currentRecipe;
             //热点配方
             addToPreviousRecipes(currentRecipe);
         }
-
-
         this.invalidInputsForRecipes = (currentRecipe == null);
 
         // proceed if we have a usable recipe.
@@ -528,6 +518,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
             prepareRecipe(currentRecipe);
         }
     }
+
 
     protected void addToPreviousRecipes(Recipe recipe) {
         // 移除已存在的旧记录
@@ -547,13 +538,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         if (this.previousRecipe == null) return false;
         if (this.previousRecipe.getEUt() > this.getMaxVoltage()) return false;
         return this.previousRecipe.matches(false, getInputInventory(), getInputTank());
-    }
-
-    protected boolean checkBatchRecipes() {
-        if (this.batchRecipes == null) return false;
-        if (this.batchRecipes.getEUt() > this.getMaxVoltage()) return false;
-        if(this.batchRecipes.getDuration()>128)return false;
-        return this.batchRecipes.matches(false, getInputInventory(), getInputTank());
     }
 
     /**
@@ -803,55 +787,29 @@ public abstract class AbstractRecipeLogic extends MTETrait
                                                                  @NotNull IMultipleTankHandler importFluids) {
         calculateOverclock(recipe);
 
+        // Complete time reduction calculation here
         modifyOverclockPost(ocResult, recipe.propertyStorage());
 
-        if (ocResult.parallel() > 1) {
+        // Batch processing algorithm
+        boolean batchSuccess = false;
+        if (enableBatch) {
+            // Batch processing and TOC are mutually exclusive due to functional overlap
+            Recipe batchedRecipe = batchProcessing(ocResult, recipe, importInventory, importFluids);
+            if (batchedRecipe != recipe) {
+                // Batch processing was successful and changed the recipe
+                recipe = batchedRecipe;
+                batchSuccess = true;
+            }
+        }
+
+        // TOC algorithm
+        // Only perform TOC algorithm when batch processing is not enabled, or when batch processing is enabled but failed
+        if (ocResult.parallel() > 1 && !(enableBatch && batchSuccess)) {
             recipe = subTickOC(ocResult, recipe, importInventory, importFluids);
             if (recipe == null) {
                 invalidateInputs();
                 return null;
             }
-        }
-
-        if (enableBatch) {
-            if (ocResult.duration() <= 64) {
-                // 保存原始配方，以便批处理失败时恢复
-                Recipe originalRecipe = recipe;
-                int baseDuration = ocResult.duration();
-
-                // 计算最大可能的批处理倍数（不超过128 ticks）
-                int maxMultiplier = (int) Math.floor(128.0 / baseDuration);
-                int minMultiplier = 1;
-                int bestMultiplier = 1; // 默认使用原始倍数
-
-                // 寻找最大可行的批处理倍数
-                while (minMultiplier <= maxMultiplier) {
-                    int midMultiplier = minMultiplier + (maxMultiplier - minMultiplier) / 2;
-                    RecipeBuilder<?> batchBuilder = new RecipeBuilder<>(originalRecipe, recipeMap)
-                            .batch(originalRecipe, midMultiplier, baseDuration);
-                    Recipe batchedRecipe = batchBuilder.build().getResult();
-
-                    if (batchedRecipe != null && batchedRecipe.matches(false, importInventory, importFluids)) {
-                        // 当前倍数可行，尝试更大的倍数
-                        bestMultiplier = midMultiplier;
-                        minMultiplier = midMultiplier + 1;
-                    } else {
-                        // 当前倍数不可行，尝试更小的倍数
-                        maxMultiplier = midMultiplier - 1;
-                    }
-                }
-
-                // 如果找到可行的批处理倍数（大于1），则应用批处理
-                if (bestMultiplier > 1) {
-                    RecipeBuilder<?> batchBuilder = new RecipeBuilder<>(originalRecipe, recipeMap)
-                            .batch(originalRecipe, bestMultiplier, baseDuration);
-                    recipe = batchBuilder.build().getResult();
-
-                }
-                // 否则保持原始配方不变
-            }
-            //提升到128运用批处理
-            ocResult.setDuration(128);
         }
 
         if (!hasEnoughPower(ocResult.eut(), ocResult.duration())) {
@@ -863,7 +821,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
             this.isOutputsFull = false;
             if (recipe.matches(true, importInventory, importFluids)) {
                 this.metaTileEntity.addNotifiedInput(importInventory);
-                this.batchRecipes = recipe;
                 return recipe;
             }
         }
@@ -901,7 +858,67 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
         return true;
     }
+    /**
+     * Batch process a recipe to increase output while keeping duration within 128 ticks.
+     *
+     * @param ocResult        the result of the overclock
+     * @param recipe          the recipe to batch process
+     * @param importInventory the input item inventory
+     * @param importFluids    the input fluid inventory
+     * @return the batch processed recipe if successful, otherwise the original recipe
+     */
+    protected @NotNull Recipe batchProcessing(@NotNull OCResult ocResult, @NotNull Recipe recipe,
+                                              @NotNull IItemHandlerModifiable importInventory,
+                                              @NotNull IMultipleTankHandler importFluids) {
+        RecipeMap<?> map = getRecipeMap();
+        if (map == null) {
+            return recipe;
+        }
 
+        // Only process recipes with duration <= 64 ticks for batching
+        if (ocResult.duration() > 64) {
+            return recipe;
+        }
+
+        int baseDuration = ocResult.duration();
+
+        // Calculate maximum possible batch multiplier (not exceeding 128 ticks)
+        int maxMultiplier = (int) Math.floor(128.0 / baseDuration);
+        int minMultiplier = 1;
+        int bestMultiplier = 1; // Default to original multiplier
+
+        // Find the maximum feasible batch multiplier using binary search
+        while (minMultiplier <= maxMultiplier) {
+            int midMultiplier = minMultiplier + (maxMultiplier - minMultiplier) / 2;
+            RecipeBuilder<?> batchBuilder = new RecipeBuilder<>(recipe, map)
+                    .batch(recipe, midMultiplier, baseDuration);
+            Recipe batchedRecipe = batchBuilder.build().getResult();
+
+            if (batchedRecipe != null && batchedRecipe.matches(false, importInventory, importFluids)) {
+                // Current multiplier is feasible, try larger multiplier
+                bestMultiplier = midMultiplier;
+                minMultiplier = midMultiplier + 1;
+            } else {
+                // Current multiplier is not feasible, try smaller multiplier
+                maxMultiplier = midMultiplier - 1;
+            }
+        }
+
+        // If a feasible batch multiplier is found (greater than 1), apply batch processing
+        if (bestMultiplier > 1) {
+            RecipeBuilder<?> batchBuilder = new RecipeBuilder<>(recipe, map)
+                    .batch(recipe, bestMultiplier, baseDuration);
+            Recipe resultRecipe = batchBuilder.build().getResult();
+
+            if (resultRecipe != null) {
+                // Modify OC result duration
+                ocResult.setDuration(ocResult.duration() * bestMultiplier);
+                return resultRecipe;
+            }
+        }
+
+        return recipe;
+    }
     /**
      * Overclock a recipe beyond a duration of 1 tick using parallelization.
      *
@@ -1183,6 +1200,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
     /**
      * sets the amount of ticks of running time to finish the recipe
+     * 所有附属设备禁止使用setMaxProgress修改配方时间（有批处理功能的情况下）！！！
+     * 请使用modifyOverclockPost方法代替！！！
      *
      * @param maxProgress the amount of ticks to set
      */
@@ -1347,7 +1366,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @MustBeInvokedByOverriders
     public void invalidate() {
         previousRecipe = null;
-        batchRecipes = null;
         progressTime = 0;
         maxProgressTime = 0;
         recipeEUt = 0;

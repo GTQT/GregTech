@@ -264,6 +264,7 @@ public class Textures {
     public static final OrientedOverlayRenderer MIXER_OVERLAY = new OrientedOverlayRenderer("machines/mixer");
     public static final OrientedOverlayRenderer ORE_WASHER_OVERLAY = new OrientedOverlayRenderer("machines/ore_washer");
     public static final OrientedOverlayRenderer PACKER_OVERLAY = new OrientedOverlayRenderer("machines/packer");
+    public static final OrientedOverlayRenderer UNPACKER_OVERLAY = new OrientedOverlayRenderer("machines/unpacker");
     public static final OrientedOverlayRenderer POLARIZER_OVERLAY = new OrientedOverlayRenderer("machines/polarizer");
     public static final OrientedOverlayRenderer LASER_ENGRAVER_OVERLAY = new OrientedOverlayRenderer(
             "machines/laser_engraver");
@@ -287,6 +288,15 @@ public class Textures {
             "machines/world_accelerator");
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_TE_OVERLAY = new OrientedOverlayRenderer(
             "machines/world_accelerator_te");
+
+    public static final OrientedOverlayRenderer LAMINATOR_OVERLAY = new OrientedOverlayRenderer("machines/laminator");
+    public static final OrientedOverlayRenderer POLISHER_OVERLAY = new OrientedOverlayRenderer("machines/polisher");
+    public static final OrientedOverlayRenderer POLYMERIZATION_TANK_OVERLAY = new OrientedOverlayRenderer("machines/polymerization_tank");
+    public static final OrientedOverlayRenderer TOOL_CASTER_OVERLAY = new OrientedOverlayRenderer("machines/tool_caster");
+    public static final OrientedOverlayRenderer BATH_CONDENSER_OVERLAY = new OrientedOverlayRenderer("machines/bath_condenser");
+    public static final OrientedOverlayRenderer DESULFURIZER_OVERLAY = new OrientedOverlayRenderer("machines/desulfurizer");
+    public static final OrientedOverlayRenderer BIO_REACTOR_OVERLAY = new OrientedOverlayRenderer("machines/bio_reactor");
+    public static final OrientedOverlayRenderer LOOM_OVERLAY = new OrientedOverlayRenderer("machines/loom");
     // Simple Overlay Renderers
     public static final SimpleOverlayRenderer SCREEN = new SimpleOverlayRenderer("overlay/machine/overlay_screen");
     public static final SimpleOverlayRenderer DISPLAY = new SimpleOverlayRenderer("cover/overlay_display");
@@ -350,6 +360,9 @@ public class Textures {
             "overlay/machine/overlay_dual_hatch_output");
     public static final SimpleOverlayRenderer DUAL_HATCH_INPUT_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_dual_hatch_input");
+    public static final SimpleOverlayRenderer COMPLEX_DUAL_HATCH = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_complex_dual_hatch");
+
 
     //样板总成
     public static final SimpleOverlayRenderer ME_BUFFER_HATCH_OVERLAY = new SimpleOverlayRenderer(

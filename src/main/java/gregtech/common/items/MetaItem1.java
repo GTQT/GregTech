@@ -622,7 +622,7 @@ public class MetaItem1 extends StandardMetaItem {
             lines.add(I18n.format("metaitem.fluid.regulator.tooltip"));
             lines.add(I18n.format("gregtech.universal.tooltip.fluid_transfer_rate", 1280 * 64 * 4 / 20));
         }));
-        FLUID_REGULATOR_LUV = addItem(252, "fluid.regulator.luv").addComponents(new TooltipBehavior(lines -> {
+        FLUID_REGULATOR_LuV = addItem(252, "fluid.regulator.luv").addComponents(new TooltipBehavior(lines -> {
             lines.add(I18n.format("metaitem.fluid.regulator.tooltip"));
             lines.add(I18n.format("gregtech.universal.tooltip.fluid_transfer_rate", 1280 * 64 * 16 / 20));
         }));
@@ -703,11 +703,11 @@ public class MetaItem1 extends StandardMetaItem {
         COVER_ACTIVITY_DETECTOR = addItem(302, "cover.activity.detector");
         COVER_ACTIVITY_DETECTOR_ADVANCED = addItem(303, "cover.activity.detector_advanced");
         COVER_FLUID_DETECTOR = addItem(304, "cover.fluid.detector");
-        COVER_FLUID_DETECTOR_ADVANCED = addItem(319, "cover.fluid.detector.advanced");
+
         COVER_ITEM_DETECTOR = addItem(305, "cover.item.detector");
-        COVER_ITEM_DETECTOR_ADVANCED = addItem(320, "cover.item.detector.advanced");
+
         COVER_ENERGY_DETECTOR = addItem(306, "cover.energy.detector");
-        COVER_ENERGY_DETECTOR_ADVANCED = addItem(318, "cover.energy.detector.advanced");
+
         COVER_SCREEN = addItem(307, "cover.screen");
         COVER_ENDER_ITEM_LINK = addItem(308, "cover.ender_item_link");
         COVER_SHUTTER = addItem(309, "cover.shutter");
@@ -722,9 +722,16 @@ public class MetaItem1 extends StandardMetaItem {
         COVER_FLUID_VOIDING_ADVANCED = addItem(315, "cover.fluid.voiding.advanced");
         COVER_ITEM_VOIDING = addItem(316, "cover.item.voiding");
         COVER_ITEM_VOIDING_ADVANCED = addItem(317, "cover.item.voiding.advanced");
-        COVER_STORAGE = addItem(321, "cover.storage");
-        COVER_MAINTENANCE_DETECTOR = addItem(322, "cover.maintenance.detector");
-        COVER_AIR_VENT = addItem(323, "cover.air_vent");
+        COVER_ENERGY_DETECTOR_ADVANCED = addItem(318, "cover.energy.detector.advanced");
+        COVER_FLUID_DETECTOR_ADVANCED = addItem(319, "cover.fluid.detector.advanced");
+        COVER_ITEM_DETECTOR_ADVANCED = addItem(320, "cover.item.detector.advanced");
+        COVER_MAINTENANCE_DETECTOR = addItem(321, "cover.maintenance.detector");
+        COVER_AIR_VENT = addItem(322, "cover.air_vent");
+        COVER_STORAGE = addItem(323, "cover.storage");
+        COVER_STORAGE_MEDIUM = addItem(324, "cover.storage_medium");
+        COVER_STORAGE_LARGE = addItem(325, "cover.storage_large");
+        COVER_STORAGE_HUGE = addItem(326, "cover.storage_huge");
+
         COVER_FACADE = addItem(330, "cover.facade").addComponents(new FacadeItem()).disableModelLoading();
 
         // Solar Panels: ID 331-346

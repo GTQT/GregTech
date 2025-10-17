@@ -2,7 +2,9 @@ package gtqt.common.metatileentities;
 
 import gregtech.api.GTValues;
 
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProviderProxy;
@@ -24,9 +26,11 @@ public class GTQTMetaTileEntities {
 
     public static final MetaTileEntityDualHatch[] DUAL_IMPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length - 2]; // All tiers but MAX
     public static final MetaTileEntityDualHatch[] DUAL_EXPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length - 2];
+    public static final MetaTileEntityComplexDualHatch[] COMPLEX_DUAL_HATCH = new MetaTileEntityComplexDualHatch[GTValues.V.length - 2];
 
     public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_IMPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.V.length - 2]; // All tiers but MAX
     public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.V.length - 2];
+    public static final MetaTileEntityHugeComplexDualHatch[] HUGE_COMPLEX_DUAL_HATCH = new MetaTileEntityHugeComplexDualHatch[GTValues.V.length - 2];
 
     public static final MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 2];
     public static final MetaTileEntityHugeMEPatternProvider[] HUGE_ME_PATTERN_PROVIDER = new MetaTileEntityHugeMEPatternProvider[GTValues.V.length - 2];
@@ -83,6 +87,7 @@ public class GTQTMetaTileEntities {
             HUGE_DUAL_EXPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(gregtechId("huge_dual_hatch.export." + voltageName), i+1, true);
             HUGE_ME_PATTERN_PROVIDER[i] = new MetaTileEntityHugeMEPatternProvider(gregtechId("huge_me_pattern_provider." + voltageName), i+1);
 
+
             registerMetaTileEntity(2500 + i, DUAL_IMPORT_HATCH[i]);
             registerMetaTileEntity(2515 + i, DUAL_EXPORT_HATCH[i]);
             registerMetaTileEntity(2530 + i, ME_PATTERN_PROVIDER[i]);
@@ -90,14 +95,15 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2560 + i, HUGE_DUAL_EXPORT_HATCH[i]);
             registerMetaTileEntity(2575 + i, HUGE_ME_PATTERN_PROVIDER[i]);
 
+            COMPLEX_DUAL_HATCH[i]=new MetaTileEntityComplexDualHatch(gregtechId("complex_dual_hatch." + voltageName), i+1);
+            HUGE_COMPLEX_DUAL_HATCH[i] = new MetaTileEntityHugeComplexDualHatch(gregtechId("huge_complex_dual_hatch." + voltageName), i+1);
+
+            registerMetaTileEntity(2600 + i, COMPLEX_DUAL_HATCH[i]);
+            registerMetaTileEntity(2615 + i, HUGE_COMPLEX_DUAL_HATCH[i]);
+
 
         }
-        //线程仓
-        for (int i = 0; i < THREAD_HATCH.length; i++) {
-            int tier = i+1;
-            THREAD_HATCH[i] = registerMetaTileEntity(2600 + i, new MetaTileEntityThreadHatch(
-                    gregtechId(String.format("thread_hatch.%s", GTValues.VN[tier])), tier));
-        }
+
 
         ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualHatch(gregtechId("me_dual_hatch.import"), false);
         ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualHatch(gregtechId("me_dual_hatch.export"), true);
@@ -121,6 +127,14 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2800 + i, HUGE_ITEM_IMPORT_BUS[i]);
             registerMetaTileEntity(2815 + i, HUGE_ITEM_EXPORT_BUS[i]);
         }
+
+        //线程仓
+        for (int i = 0; i < THREAD_HATCH.length; i++) {
+            int tier = i+1;
+            THREAD_HATCH[i] = registerMetaTileEntity(2860 + i, new MetaTileEntityThreadHatch(
+                    gregtechId(String.format("thread_hatch.%s", GTValues.VN[tier])), tier));
+        }
+
         //无线能源仓注册 ID 3000+
 
         for (int i = 0; i < 15; i++) {

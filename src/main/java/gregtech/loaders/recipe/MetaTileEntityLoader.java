@@ -37,8 +37,7 @@ import java.util.Arrays;
 
 import static gregtech.api.GTValues.L;
 import static gregtech.api.GTValues.VA;
-import static gregtech.api.unification.material.Materials.Polybenzimidazole;
-import static gregtech.api.unification.material.Materials.Polytetrafluoroethylene;
+import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.cableGtSingle;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
 import static gregtech.common.blocks.BlockBoilerCasing.BoilerCasingType.*;
@@ -53,6 +52,7 @@ import static gregtech.common.blocks.BlockWarningSign.SignType.*;
 import static gregtech.common.blocks.BlockWarningSign1.SignType.*;
 import static gregtech.common.blocks.BlockWireCoil.CoilType.CUPRONICKEL;
 import static gregtech.loaders.recipe.CraftingComponent.*;
+import static gtqt.common.items.GTQTMetaItems.CASTING_MOLD_EMPTY;
 
 public class MetaTileEntityLoader {
 
@@ -888,6 +888,8 @@ public class MetaTileEntityLoader {
                 CIRCUIT, 'W', CABLE, 'G', GLASS);
         registerMachineRecipe(MetaTileEntities.PACKER, "BCB", "RMV", "WCW", 'M', HULL, 'R', ROBOT_ARM, 'V', CONVEYOR,
                 'C', CIRCUIT, 'W', CABLE, 'B', OreDictNames.chestWood);
+        registerMachineRecipe(MetaTileEntities.UNPACKER, "BCB", "RMV", "WCW", 'M', HULL, 'R', CONVEYOR, 'V', ROBOT_ARM,
+                'C', CIRCUIT, 'W', CABLE, 'B', OreDictNames.chestWood);
         registerMachineRecipe(MetaTileEntities.CHEMICAL_REACTOR, "GRG", "WEW", "CMC", 'M', HULL, 'R', ROTOR, 'E', MOTOR,
                 'C', CIRCUIT, 'W', CABLE, 'G', PIPE_REACTOR);
         registerMachineRecipe(MetaTileEntities.BREWERY, "GPG", "WMW", "CBC", 'M', HULL, 'P', PUMP, 'B',
@@ -949,6 +951,37 @@ public class MetaTileEntityLoader {
                 SENSOR, 'I', FIELD_GENERATOR);
         registerMachineRecipe(MetaTileEntities.MINER, "MMM", "WHW", "CSC", 'M', MOTOR, 'W', CABLE, 'H', HULL, 'C',
                 CIRCUIT, 'S', SENSOR);
+
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.TOOL_CASTER,
+                "QXW", "GHP", "WMX", 'H',
+                CraftingComponent.HULL, 'M', CASTING_MOLD_EMPTY, 'X', CraftingComponent.CIRCUIT, 'G', CraftingComponent.GLASS,
+                'P', CraftingComponent.PUMP, 'Q', CraftingComponent.PISTON, 'W', CraftingComponent.CABLE);
+
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.BATH_CONDENSER,
+                "GXG", "PHF", "GWG", 'H',
+                CraftingComponent.HULL, 'G', CraftingComponent.GLASS, 'P', CraftingComponent.PUMP, 'W', CraftingComponent.CABLE,
+                'X', CraftingComponent.CIRCUIT, 'F', CraftingComponent.FLUID_REGULATOR);
+
+        registerMachineRecipe(true, MetaTileEntities.POLISHER, "GCf", "MHM", "WXW", 'H', HULL, 'M', MOTOR,
+                'C', CONVEYOR, 'G', GEAR, 'X', CIRCUIT, 'W', CABLE);
+        registerMachineRecipe(MetaTileEntities.LAMINATOR, "XGW", "PCS", "WHX", 'H', HULL, 'X', CIRCUIT, 'W', CABLE, 'P', PUMP,
+                'C', CONVEYOR, 'S', PISTON, 'G', GEAR);
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.POLYMERIZATION_TANK, "GXG", "GMG", "PHP", 'H',
+                HULL, 'P', PIPE_LARGE, 'G', GLASS, 'X', CIRCUIT, 'M', MOTOR);
+
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.DESULFURIZER, "QRQ", "PHC", "WXW", 'H',
+                CraftingComponent.HULL, 'X', CraftingComponent.CIRCUIT, 'W', CraftingComponent.CABLE, 'P', CraftingComponent.PISTON,
+                'Q', CraftingComponent.PUMP, 'C', CraftingComponent.CONVEYOR, 'R', CraftingComponent.PIPE_REACTOR);
+
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.BIO_REACTOR,
+                "PXX", "QHQ", "PMW", 'H',
+                CraftingComponent.HULL, 'P', CraftingComponent.PUMP, 'Q', CraftingComponent.PIPE_NORMAL, 'X', CraftingComponent.CIRCUIT,
+                'W', CraftingComponent.CABLE, 'M', CraftingComponent.MOTOR);
+
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.LOOM,
+                "xSM", "CSI", "WHW", 'H',
+                CraftingComponent.HULL, 'W', CraftingComponent.CABLE, 'S', CraftingComponent.STICK_DISTILLATION, 'C', CraftingComponent.CONVEYOR,
+                'M', CraftingComponent.MOTOR, 'I', MetaItems.ITEM_FILTER.getStackForm());
 
         registerMachineRecipe(MetaTileEntities.MUFFLER_HATCH, "HM", "PR", 'H', HULL, 'M', MOTOR, 'P', PIPE_NORMAL, 'R',
                 ROTOR);
