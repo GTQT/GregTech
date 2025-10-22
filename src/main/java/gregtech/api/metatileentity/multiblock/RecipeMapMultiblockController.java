@@ -490,4 +490,9 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     public void setBatchEnable(boolean enable) {
         recipeMapWorkable.setBatchEnable(enable);
     }
+
+    @Override
+    public boolean hasSideUI() {
+        return true;
+    }
 }

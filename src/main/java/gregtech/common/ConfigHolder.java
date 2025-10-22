@@ -73,27 +73,16 @@ public class ConfigHolder {
         @Config.Name("禁用方块随机更新")
         public boolean disableUpdateEnable = false;
     }
+    //难度模式
+    @Config.Comment("Config options for Difficulty Mode")
+    @Config.Name("Difficulty Mode")
+    public static DifficultyModeOptions difficultyMode = new DifficultyModeOptions();
 
-
-    //简单模式
-    @Config.Comment("Config options for Easy Mode")
-    @Config.Name("Easy Mode")
-    public static EasyModeOptions easyMode = new EasyModeOptions();
-
-    //专家模式
-    @Config.Comment("Config options for Expert Mode")
-    @Config.Name("Expert Mode")
-    public static ExpertModeOptions expertMode = new ExpertModeOptions();
-
-    public static class ExpertModeOptions {
-        @Config.Comment({"Whether or not to enable the Expert Mode", })
+    public static class DifficultyModeOptions {
+        @Config.Comment({"Whether or not to enable the Expert Mode",
+            "0:简单模式，1:标准模式，2:困难模式"})
         @Config.Name("Expert Mode Enable")
-        public boolean expertModeEnable = false;
-    }
-    public static class EasyModeOptions {
-        @Config.Comment("Whether or not to enable the easy mode, which will open up a way to adjust sensitive values to reduce the difficulty of the game")
-        @Config.Name("Enable Easy Mode")
-        public boolean easyModeEnable = false;
+        public int difficultyMode = 1;
     }
 
     public static class MachineOptions {

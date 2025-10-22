@@ -44,7 +44,7 @@ import java.util.*;
 import static gregtech.api.capability.GregtechDataCodes.IS_WORKING;
 import static gregtech.api.capability.GregtechDataCodes.STORE_TAPED;
 
-public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase implements IMaintenance {
+public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase implements IMaintenance,ISideUI {
 
     private static final String NBT_VOIDING_MODE = "VoidingMode";
     private static final String NBT_VOIDING_ITEMS = "VoidingItems";
@@ -697,5 +697,10 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     protected Widget getFlexButton(int x, int y, int width, int height) {
         return new ImageWidget(x, y, width, height, GuiTextures.BUTTON_NO_FLEX)
                 .setTooltip("gregtech.multiblock.universal.no_flex_button");
+    }
+
+    @Override
+    public boolean hasSideUI() {
+        return false;
     }
 }

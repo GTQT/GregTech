@@ -6,6 +6,7 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
+import gregtech.api.capability.ISideUI;
 import gregtech.api.metatileentity.multiblock.AdvanceMultiMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiMapMultiblockController;
@@ -305,7 +306,7 @@ public class MultiblockUIFactory {
                         .childIf(!disableButtons, () -> createButtons(panel, panelSyncManager, guiData))
                 )
 
-                .childIf(checkSideButton(mte), Flow.column()
+                .childIf(mte.hasSideUI(), Flow.column()
                         .debugName("side_row")
                         .size(18, 4 * 18 + 4)
                         .bottom(7)
@@ -314,10 +315,6 @@ public class MultiblockUIFactory {
                         .margin(4, 0)
                         .childIf(!disableButtons, () -> createSideButtons(panel, panelSyncManager, guiData))
                 );
-    }
-
-    public boolean checkSideButton(MultiblockWithDisplayBase mte) {
-        return !(mte instanceof RecipeMapPrimitiveMultiblockController);
     }
 
     /**

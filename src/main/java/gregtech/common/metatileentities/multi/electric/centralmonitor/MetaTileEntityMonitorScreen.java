@@ -812,6 +812,7 @@ public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
                 return handleHitResultWithScale(playerIn, hand, facing, true, hitResult);
             }
         }
+        super.onRightClick(playerIn, hand, facing, hitResult);
         return false;
     }
 
