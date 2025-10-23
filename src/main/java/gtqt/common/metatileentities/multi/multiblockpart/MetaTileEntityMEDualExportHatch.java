@@ -169,9 +169,9 @@ public class MetaTileEntityMEDualExportHatch extends MetaTileEntityMEControlBase
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (this.shouldRenderOverlay()) {
             if (isOnline) {
-                Textures.ME_OUTPUT_HATCH_ACTIVE.renderSided(getFrontFacing(), renderState, translation, pipeline);
+                Textures.ME_DUAL_OUTPUT_HATCH_ACTIVE.renderSided(getFrontFacing(), renderState, translation, pipeline);
             } else {
-                Textures.ME_OUTPUT_HATCH.renderSided(getFrontFacing(), renderState, translation, pipeline);
+                Textures.ME_DUAL_OUTPUT_HATCH.renderSided(getFrontFacing(), renderState, translation, pipeline);
             }
         }
     }

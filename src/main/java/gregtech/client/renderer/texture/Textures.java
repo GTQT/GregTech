@@ -555,6 +555,15 @@ public class Textures {
     public static final SimpleOverlayRenderer ME_INPUT_BUS = new SimpleOverlayRenderer("overlay/appeng/me_input_bus");
     public static final SimpleOverlayRenderer ME_INPUT_BUS_ACTIVE = new SimpleOverlayRenderer(
             "overlay/appeng/me_input_bus_active");
+
+    //ME DUAL INPUT HATCH
+    public static final SimpleOverlayRenderer ME_DUAL_INPUT_HATCH_ACTIVE = new SimpleOverlayRenderer("overlay/appeng/me_dual_input_hatch_active");
+    public static final SimpleOverlayRenderer ME_DUAL_INPUT_HATCH = new SimpleOverlayRenderer("overlay/appeng/me_dual_input_hatch");
+    //ME DUAL OUTPUT HATCH
+    public static final SimpleOverlayRenderer ME_DUAL_OUTPUT_HATCH_ACTIVE = new SimpleOverlayRenderer("overlay/appeng/me_dual_output_hatch_active");
+    public static final SimpleOverlayRenderer ME_DUAL_OUTPUT_HATCH = new SimpleOverlayRenderer("overlay/appeng/me_dual_output_hatch");
+
+
     public static final ResourceLocation ACE_CAPE_TEXTURE = gregtechId("textures/capes/acecape.png");
     public static final ResourceLocation AGENDER_CAPE_TEXTURE = gregtechId("textures/capes/agendercape.png");
     public static final ResourceLocation AROMANTIC_CAPE_TEXTURE = gregtechId("textures/capes/aromanticcape.png");

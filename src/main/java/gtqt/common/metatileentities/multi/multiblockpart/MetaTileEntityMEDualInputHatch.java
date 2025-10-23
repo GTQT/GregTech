@@ -373,9 +373,9 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (this.shouldRenderOverlay()) {
             if (isOnline) {
-                Textures.ME_INPUT_BUS_ACTIVE.renderSided(getFrontFacing(), renderState, translation, pipeline);
+                Textures.ME_DUAL_INPUT_HATCH_ACTIVE.renderSided(getFrontFacing(), renderState, translation, pipeline);
             } else {
-                Textures.ME_INPUT_BUS.renderSided(getFrontFacing(), renderState, translation, pipeline);
+                Textures.ME_DUAL_INPUT_HATCH.renderSided(getFrontFacing(), renderState, translation, pipeline);
             }
         }
     }
