@@ -200,7 +200,7 @@ public abstract class MetaTileEntityMEControlBase extends MetaTileEntityMultiblo
     }
 
     @Nullable
-    private AENetworkProxy createProxy() {
+    public AENetworkProxy createProxy() {
         if (this.getHolder() instanceof IGridProxyable holder) {
             AENetworkProxy proxy = new AENetworkProxy(holder, "mte_proxy", this.getStackForm(), true);
             proxy.setFlags(GridFlags.REQUIRE_CHANNEL);
