@@ -1,6 +1,5 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.GregTechMod;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.capability.GregtechCapabilities;
@@ -54,6 +53,7 @@ import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.Rotation;
+import lombok.Getter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
@@ -86,6 +86,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public BlockPattern structurePattern;
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
+    @Getter
     private boolean structureFormed;
 
     private int structureTier = 0;
@@ -472,8 +473,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Override if you are using the multiblock tiered system
-     * max tier of 0 means tiering is disabled
+     * Override if you are using the multiblock tiered system max tier of 0 means tiering is disabled
      */
     public int getMaxStructureTier() {
         return 0;
@@ -542,10 +542,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             return GregtechCapabilities.CAPABILITY_MULTIBLOCK_CONTROLLER.cast(this);
         }
         return null;
-    }
-
-    public boolean isStructureFormed() {
-        return structureFormed;
     }
 
     @Override

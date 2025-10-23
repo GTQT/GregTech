@@ -395,6 +395,7 @@ public class GTGuiTextures {
             "textures/gui/overlay/research_station_overlay.png", true);
 
     // BUTTONS
+    public static final UITexture PROXY_OVERLAY = fullImage("textures/gui/widget/proxy_overlay.png");
     public static final UITexture EXPORT_OVERLAY = fullImage("textures/gui/widget/pattern_export.png");
     public static final UITexture BUTTON_DUAL_OUTPUT = fullImage("textures/gui/widget/button_dual_output_overlay.png");
     public static final UITexture BUTTON_DUAL_COLLAPSE = fullImage("textures/gui/widget/button_dual_collapse_overlay.png");

@@ -129,7 +129,9 @@ public final class ModularUI implements ISizeProvider {
     public static Builder defaultBuilder(int yOffset) {
         return new Builder(GuiTextures.BACKGROUND, 176, 166 + yOffset);
     }
-
+    public static Builder defaultBuilder(int xOffset,int yOffset) {
+        return new Builder(GuiTextures.BACKGROUND, xOffset, yOffset);
+    }
     public static Builder borderedBuilder() {
         return new Builder(GuiTextures.BORDERED_BACKGROUND, 195, 136);
     }

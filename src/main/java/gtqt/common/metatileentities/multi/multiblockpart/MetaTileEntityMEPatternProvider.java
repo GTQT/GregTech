@@ -1,5 +1,14 @@
 package gtqt.common.metatileentities.multi.multiblockpart;
 
+import appeng.helpers.IInterfaceHost;
+import appeng.tile.grid.AENetworkPowerTile;
+import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
+
+import com.cleanroommc.modularui.widgets.TextWidget;
+import com.cleanroommc.modularui.widgets.layout.Column;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
@@ -29,12 +38,15 @@ import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.ConfigHolder;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
+
+import lombok.Getter;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
@@ -45,10 +57,12 @@ import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
@@ -133,13 +147,16 @@ import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
 public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<DualHandler>, IControllable, IGhostSlotConfigurable,
-                   ICraftingProvider, IAEFluidInventory, IGridProxyable, IPowerChannelState, IDataStickIntractable {
+                   ICraftingProvider, IAEFluidInventory, IGridProxyable, IPowerChannelState, IDataStickIntractable{
 
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
     //fluid
     private static final int BASE_TANK_SIZE = 8000;
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
+            .asIcon().size(16);
+
+    private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
     private final int numSlots;
     private final int tankSize;
@@ -154,6 +171,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
     boolean export;
     private IItemHandlerModifiable actualImportItems;
     private boolean workingEnabled;
+    @Getter
     private boolean autoCollapse;
     private AENetworkProxy networkProxy;
     private ItemStackHandler patternSlot;
@@ -523,6 +541,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
         data.setInteger("parallel", this.parallel);
         data.setInteger("lastParallel", this.lastParallel);
 
+        data.setBoolean("useProxy", this.useProxy);
+        data.setInteger("aeProxy_x", this.aeProxy_x);
+        data.setInteger("aeProxy_y", this.aeProxy_y);
+        data.setInteger("aeProxy_z", this.aeProxy_z);
+
         if (this.circuitInventory != null) {
             this.circuitInventory.write(data);
         }
@@ -544,6 +567,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
         this.advancedCircuit = data.getBoolean("advancedCircuit");
         this.parallel = data.getInteger("parallel");
         this.lastParallel = data.getInteger("lastParallel");
+
+        this.useProxy = data.getBoolean("useProxy");
+        this.aeProxy_x = data.getInteger("aeProxy_x");
+        this.aeProxy_y = data.getInteger("aeProxy_y");
+        this.aeProxy_z = data.getInteger("aeProxy_z");
 
         if (this.circuitInventory != null) {
             this.circuitInventory.read(data);
@@ -567,6 +595,16 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
 
     @Override
     public AENetworkProxy getProxy() {
+        if (useProxy) {
+            if (this.getWorld() != null) {
+                TileEntity tileEntity = this.getWorld().getTileEntity(new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
+                if (tileEntity instanceof AENetworkPowerTile proxy) {
+                    return proxy.getProxy();
+                }
+            }
+        }
+
+
         if (this.networkProxy == null) {
             return this.networkProxy = this.createProxy();
         }
@@ -658,6 +696,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
         return true;
     }
 
+    int aeProxy_x;
+    int aeProxy_y;
+    int aeProxy_z;
+    boolean useProxy;
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager) {
         int rowSize = getTier();
@@ -666,7 +708,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
         int backgroundWidth = Math.max(
                 9 * 18 + 18 + 14 + 5 + 18,   // Player Inv width
                 (rowSize + 1) * 18 + 14 + 18); // Bus Inv width
-        int backgroundHeight = 18 + 18 * rowSize + 94;
+        int backgroundHeight = 18 + 18 * Math.max(4, rowSize) + 94;
 
         List<List<IWidget>> widgetsItem = new ArrayList<>();
         for (int i = 0; i < rowSize; i++) {
@@ -718,6 +760,164 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
                             .background(GTGuiTextures.SLOT, GTGuiTextures.EXTRA_SLOT_OVERLAY)
                     );
         }
+        // 创建用于显示的值（带前缀）和用于存储的值（纯数字）
+        StringSyncValue displayXValue = new StringSyncValue(
+                () -> "X:" + aeProxy_x,  // 显示时带前缀
+                str -> {
+                    // 移除前缀并解析
+                    if (str.startsWith("X:")) {
+                        str = str.substring(2);
+                    } else if (str.startsWith("x:")) {
+                        str = str.substring(2);
+                    }
+                    try {
+                        aeProxy_x = Integer.parseInt(str.trim());
+                    } catch (NumberFormatException e) {
+                        // 解析失败时保持原值
+                        System.err.println("Invalid X coordinate: " + str);
+                    }
+                }
+        );
+
+        StringSyncValue displayYValue = new StringSyncValue(
+                () -> "Y:" + aeProxy_y,
+                str -> {
+                    if (str.startsWith("Y:")) {
+                        str = str.substring(2);
+                    } else if (str.startsWith("y:")) {
+                        str = str.substring(2);
+                    }
+                    try {
+                        aeProxy_y = Integer.parseInt(str.trim());
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid Y coordinate: " + str);
+                    }
+                }
+        );
+
+        StringSyncValue displayZValue = new StringSyncValue(
+                () -> "Z:" + aeProxy_z,
+                str -> {
+                    if (str.startsWith("Z:")) {
+                        str = str.substring(2);
+                    } else if (str.startsWith("z:")) {
+                        str = str.substring(2);
+                    }
+                    try {
+                        aeProxy_z = Integer.parseInt(str.trim());
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid Z coordinate: " + str);
+                    }
+                }
+        );
+
+        // 注册同步值
+        BooleanSyncValue useProxyStateValue = new BooleanSyncValue(() -> useProxy, val -> useProxy = val);
+        guiSyncManager.syncValue("useProxyStateValue", useProxyStateValue);
+
+        List<List<IWidget>> weightsPos = new ArrayList<>();
+        List<IWidget> row = new ArrayList<>();
+
+        // 添加开关按钮
+        row.add(new ToggleButton()
+                .width(20)
+                .height(20)
+                .value(new BoolValue.Dynamic(useProxyStateValue::getBoolValue,
+                        useProxyStateValue::setBoolValue))
+                .overlay(GTGuiTextures.PROXY_OVERLAY)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(IKey.lang("无线代理模式"))));
+
+        // 添加X坐标文本框
+        row.add((new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    // 确保字符串以X:开头
+                    if (!str.startsWith("X:") && !str.startsWith("x:")) {
+                        if (str.isEmpty()) {
+                            return "X:";
+                        }
+                        // 如果用户删除了前缀，自动添加回来
+                        return "X:" + str;
+                    }
+
+                    // 提取数字部分进行验证
+                    String numPart = str.substring(2);
+                    if (numPart.isEmpty()) {
+                        return str; // 允许空数字部分（用户正在输入）
+                    }
+
+                    try {
+                        // 验证数字部分
+                        Long.parseLong(numPart.trim());
+                        return str; // 验证通过
+                    } catch (NumberFormatException e) {
+                        // 验证失败，返回当前值
+                        return displayXValue.getValue();
+                    }
+                })
+                .value(displayXValue)
+                .background(GTGuiTextures.DISPLAY)));
+
+        // 添加Y坐标文本框
+        row.add((new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (!str.startsWith("Y:") && !str.startsWith("y:")) {
+                        if (str.isEmpty()) {
+                            return "Y:";
+                        }
+                        return "Y:" + str;
+                    }
+
+                    String numPart = str.substring(2);
+                    if (numPart.isEmpty()) {
+                        return str;
+                    }
+
+                    try {
+                        Long.parseLong(numPart.trim());
+                        return str;
+                    } catch (NumberFormatException e) {
+                        return displayYValue.getValue();
+                    }
+                })
+                .value(displayYValue)
+                .background(GTGuiTextures.DISPLAY)));
+
+        // 添加Z坐标文本框
+        row.add((new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (!str.startsWith("Z:") && !str.startsWith("z:")) {
+                        if (str.isEmpty()) {
+                            return "Z:";
+                        }
+                        return "Z:" + str;
+                    }
+
+                    String numPart = str.substring(2);
+                    if (numPart.isEmpty()) {
+                        return str;
+                    }
+
+                    try {
+                        Long.parseLong(numPart.trim());
+                        return str;
+                    } catch (NumberFormatException e) {
+                        return displayZValue.getValue();
+                    }
+                })
+                .value(displayZValue)
+                .background(GTGuiTextures.DISPLAY)));
+
+        weightsPos.add(row);
 
         BooleanSyncValue blockStateValue = new BooleanSyncValue(() -> isBlockedMode, val -> isBlockedMode = val);
         guiSyncManager.syncValue("block_state", blockStateValue);
@@ -754,7 +954,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
                         .child(new PageButton(1, controller)
                                 .tab(GuiTextures.TAB_TOP, 0)
                                 .addTooltipLine(IKey.lang("物品检索"))
-                                .overlay(CHEST)))
+                                .overlay(CHEST))
+                        .child(new PageButton(2, controller)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .addTooltipLine(IKey.lang("网络代理"))
+                                .overlay(PROXY))
+                )
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory().left(7).bottom(7))
                 .child(new PagedWidget<>()
@@ -779,7 +984,55 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
                                         .minColWidth(18)
                                         .minRowHeight(18)
                                         .leftRel(0.5f)
-                                        .matrix(widgetsItem)))
+                                        .matrix(widgetsItem))
+                        .addPage(// 代理模式页面
+                                Column.column() // 使用列布局
+                                        .top(0)
+                                        .widthRel(1f)
+                                        .leftRel(0.5f)
+                                        .child(
+                                                new Grid()
+                                                        .height(25)
+                                                        .minElementMargin(0, 0)
+                                                        .minColWidth((int) (0.24f * backgroundWidth))
+                                                        .minRowHeight(18)
+                                                        .matrix(weightsPos)
+                                        )
+                                        .childIf(useProxy, () -> Column.column() // 创建多行文本列
+                                                        .widthRel(1f)
+                                                        .top(30)
+                                                        .margin(5, 0)
+                                                        .child(new TextWidget(IKey.str("无线代理模式")))
+                                                        .childIf(useProxy, () -> {
+                                                            TileEntity tileEntity = this.getWorld().getTileEntity(new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
+                                                            if (tileEntity instanceof AENetworkPowerTile proxy) {
+                                                                return Column.column()
+                                                                        .widthRel(1f)
+                                                                        .child(new TextWidget(IKey.lang("连接至无线网络")))
+                                                                        .child(new TextWidget(IKey.dynamic(() ->
+                                                                                "位置:" + proxy.getLocation()
+                                                                        )))
+                                                                        .child(new TextWidget(IKey.dynamic(() ->
+                                                                                "名称:" + proxy.getBlockType().getLocalizedName()
+                                                                        )));
+                                                            } else {
+                                                                return Column.column()
+                                                                        .widthRel(1f)
+                                                                        .child(new TextWidget(IKey.lang("未找到无线网络代理")))
+                                                                        .child(new TextWidget(IKey.dynamic(() ->
+                                                                                "坐标:" + aeProxy_x + ", " + aeProxy_y + ", " + aeProxy_z
+                                                                        )));
+                                                            }
+                                                        })
+                                        )
+                                        .childIf(!useProxy, () -> Column.column() // 创建多行文本列
+                                                .widthRel(1f)
+                                                .top(30)
+                                                .margin(5, 0)
+                                                .child(new TextWidget(IKey.str("有线代理模式")))
+                                        )
+                        )
+                )
                 .child(Flow.column()
                         .pos(backgroundWidth - 7 - 36, backgroundHeight - 18 * 4 - 7 - 5)
                         .width(18).height(18 * 4 + 5)
@@ -866,10 +1119,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMultiblockNot
             }
         }
         return true;
-    }
-
-    public boolean isAutoCollapse() {
-        return autoCollapse;
     }
 
     public void setAutoCollapse(boolean inverted) {

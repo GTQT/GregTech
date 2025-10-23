@@ -8,7 +8,8 @@ import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeCompl
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProviderProxy;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEDualHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEDualInputHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEDualExportHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
@@ -38,8 +39,8 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
 
 
-    public static MetaTileEntityMEDualHatch ME_DUAL_IMPORT_HATCH;
-    public static MetaTileEntityMEDualHatch ME_DUAL_EXPORT_HATCH;
+    public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
+    public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
     public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityHugeMEPatternProviderProxy HUGE_ME_PATTERN_PROVIDER_PROXY;
 
@@ -105,8 +106,8 @@ public class GTQTMetaTileEntities {
         }
 
 
-        ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualHatch(gregtechId("me_dual_hatch.import"), false);
-        ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualHatch(gregtechId("me_dual_hatch.export"), true);
+        ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualInputHatch(gregtechId("me_dual_hatch.import"));
+        ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
         ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"));
         HUGE_ME_PATTERN_PROVIDER_PROXY = new MetaTileEntityHugeMEPatternProviderProxy(gregtechId("huge_me_pattern_provider_proxy"));
 

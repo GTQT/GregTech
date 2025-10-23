@@ -1,24 +1,17 @@
 package gregtech.api.metatileentity.multiblock.ui;
 
-import com.cleanroommc.modularui.utils.MouseData;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
-
 import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
-import gregtech.api.capability.ISideUI;
-import gregtech.api.metatileentity.multiblock.AdvanceMultiMapMultiblockController;
-import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
-import gregtech.api.metatileentity.multiblock.MultiMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
-import gregtech.api.metatileentity.multiblock.RecipeMapPrimitiveMultiblockController;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTLambdaUtils;
 import gregtech.api.util.KeyUtil;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
@@ -39,6 +32,7 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.CycleButtonWidget;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
@@ -527,12 +521,15 @@ public class MultiblockUIFactory {
     }
 
     protected IWidget createStructureCheckButton(@NotNull ModularPanel mainPanel,
-                                        @NotNull PanelSyncManager panelSyncManager) {
+                                                 @NotNull PanelSyncManager panelSyncManager) {
         return new ButtonWidget<>()
                 .debugName("structure_button")
                 .size(18)
                 .onMousePressed(mouseButton -> {
                     mte.checkStructurePattern();
+                    panelSyncManager.getPlayer().sendMessage(new TextComponentTranslation(
+                            "位于" + mte.getPos() + "的" + mte.getStackForm().getDisplayName() + "结构" +
+                                    (mte.isStructureFormed() ? "成型" : "不成型")));
                     return true;
                 })
                 .overlay(GTGuiTextures.BUTTON_STRUCTURE)

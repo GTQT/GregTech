@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.INotifiableHandler;
+import gregtech.api.capability.InaccessibleInfiniteTank;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -204,78 +205,6 @@ public class MetaTileEntityMEOutputHatch extends MetaTileEntityAEHostablePart<IA
         super.addToMultiBlock(controllerBase);
         if (controllerBase instanceof MultiblockWithDisplayBase) {
             ((MultiblockWithDisplayBase) controllerBase).enableFluidInfSink();
-        }
-    }
-
-    private static class InaccessibleInfiniteTank implements IFluidTank, INotifiableHandler {
-
-        private final IItemList<IAEFluidStack> internalBuffer;
-        private final List<MetaTileEntity> notifiableEntities = new ArrayList<>();
-        private final MetaTileEntity holder;
-
-        public InaccessibleInfiniteTank(MetaTileEntity holder, IItemList<IAEFluidStack> internalBuffer,
-                                        MetaTileEntity mte) {
-            this.holder = holder;
-            this.internalBuffer = internalBuffer;
-            this.notifiableEntities.add(mte);
-        }
-
-        @Nullable
-        @Override
-        public FluidStack getFluid() {
-            return null;
-        }
-
-        @Override
-        public int getFluidAmount() {
-            return 0;
-        }
-
-        @Override
-        public int getCapacity() {
-            return Integer.MAX_VALUE - 1;
-        }
-
-        @Override
-        public FluidTankInfo getInfo() {
-            return null;
-        }
-
-        @Override
-        public int fill(FluidStack resource, boolean doFill) {
-            if (resource == null) {
-                return 0;
-            }
-            if (doFill) {
-                this.internalBuffer.add(AEFluidStack.fromFluidStack(resource));
-                holder.markDirty();
-            }
-            this.trigger();
-            return resource.amount;
-        }
-
-        @Nullable
-        @Override
-        public FluidStack drain(int maxDrain, boolean doDrain) {
-            return null;
-        }
-
-        @Override
-        public void addNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
-            this.notifiableEntities.add(metaTileEntity);
-        }
-
-        @Override
-        public void removeNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
-            this.notifiableEntities.remove(metaTileEntity);
-        }
-
-        private void trigger() {
-            for (MetaTileEntity metaTileEntity : this.notifiableEntities) {
-                if (metaTileEntity != null && metaTileEntity.isValid()) {
-                    this.addToNotifiedList(metaTileEntity, this, true);
-                }
-            }
         }
     }
 }
