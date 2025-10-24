@@ -51,6 +51,7 @@ import gregtech.common.items.behaviors.RenderItemBehavior;
 import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
+import gregtech.common.items.behaviors.VajraBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -1007,6 +1008,12 @@ public class MetaItem1 extends StandardMetaItem {
         PROSPECTOR_UHV = addItem(488, "prospector.uhv")
                 .addComponents(ElectricStats.createElectricItem(1_000_000_000L, GTValues.UHV),
                         new ProspectorScannerBehavior(6, GTValues.UHV))
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        VAJRA = addItem(490, "vajra")
+                .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
+                        new VajraBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 

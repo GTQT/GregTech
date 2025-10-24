@@ -99,6 +99,7 @@ public class WorldgenModule extends BaseGregTechModule {
                 int y = world.getHeight(x, z);
                 pos.setPos(x, y, z);
 
+
                 if (random.nextBoolean()) {
                     WorldGenRubberTree.INSTANCE.setDecorationDefaults();
                     if (WorldGenRubberTree.INSTANCE.generate(world, random, pos)) {

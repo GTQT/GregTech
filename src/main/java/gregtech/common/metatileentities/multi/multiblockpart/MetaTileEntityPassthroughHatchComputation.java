@@ -92,9 +92,7 @@ public class MetaTileEntityPassthroughHatchComputation extends MetaTileEntityMul
         }
         return null;
     }
-    public void addInformation(ItemStack stack, World player, List<String> tooltip, boolean advanced) {
-        tooltip.add(I18n.format( "gregtech.machine.passthrough_hatch_computation.tooltip"));
-    }
+
     @Override
     public boolean isTransmitter() {
         return true;

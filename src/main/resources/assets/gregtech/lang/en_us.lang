@@ -1099,7 +1099,7 @@ gt.tool.class.knife=Knife
 gt.tool.class.butchery_knife=Butchery Knife
 gt.tool.class.grafter=Grafter
 gt.tool.class.plunger=Plunger
-
+gt.tool.class.flint_and_steel=Flint
 item.gt.tool.sword.name=%s Sword
 item.gt.tool.pickaxe.name=%s Pickaxe
 item.gt.tool.shovel.name=%s Shovel
@@ -2539,6 +2539,7 @@ recipemap.laminator.name=Laminator
 recipemap.polymerization_tank.name=Polymerization Tank
 recipemap.desulfurizer.name=Desulfurizer
 recipemap.bio_reactor.name=Bio Reactor
+recipemap.component_assembler.name=component Assembler
 recipemap.loom.name=Loom
 recipemap.primitive_blast_furnace.name=Primitive Blast Furnace
 recipemap.coke_oven.name=Coke Oven
@@ -2618,7 +2619,7 @@ metaitem.prospector.tooltip.ores=Scans Ores in a %s Chunk Radius
 metaitem.prospector.tooltip.fluids=Scans Ores and Fluids in a %s Chunk Radius
 behavior.prospector.not_enough_energy=Not Enough Energy!
 behavior.prospector.added_waypoint=Waypoint added!
-
+metaitem.vajra.name=Vajra
 metaitem.tricorder_scanner.name=Portable Scanner
 metaitem.tricorder_scanner.tooltip=Tricorder
 metaitem.debug_scanner.name=Debug Scanner
@@ -2961,6 +2962,7 @@ itemGroup.gregtech.decorations=Decorations (GT)
 # Drums
 gregtech.machine.drum.wood.name=Wooden Barrel
 gregtech.machine.drum.bronze.name=Bronze Drum
+gregtech.machine.drum.tin.name=Tin Drum
 gregtech.machine.drum.steel.name=Steel Drum
 gregtech.machine.drum.aluminium.name=Aluminium Drum
 gregtech.machine.drum.stainless_steel.name=Stainless Steel Drum
@@ -4866,6 +4868,34 @@ gregtech.machine.bio_reactor.uxv.tooltip=Gene Editor
 gregtech.machine.bio_reactor.opv.name=Legendary Bio Reactor
 gregtech.machine.bio_reactor.opv.tooltip=Gene Editor
 
+# Component Assembler
+gregtech.machine.component_assembler.lv.name=Basic Component Assembler
+gregtech.machine.component_assembler.lv.tooltip=Parts Factory
+gregtech.machine.component_assembler.mv.name=Advanced Component Assembler
+gregtech.machine.component_assembler.mv.tooltip=Parts Factory
+gregtech.machine.component_assembler.hv.name=Advanced Component Assembler II
+gregtech.machine.component_assembler.hv.tooltip=Parts Factory
+gregtech.machine.component_assembler.ev.name=Advanced Component Assembler III
+gregtech.machine.component_assembler.ev.tooltip=Precision Assembly Line
+gregtech.machine.component_assembler.iv.name=Elite Component Assembler
+gregtech.machine.component_assembler.iv.tooltip=Precision Assembly Line
+gregtech.machine.component_assembler.luv.name=Elite Component Assembler II
+gregtech.machine.component_assembler.luv.tooltip=Precision Assembly Line
+gregtech.machine.component_assembler.zpm.name=Elite Component Assembler III
+gregtech.machine.component_assembler.zpm.tooltip=Nano-scale Assembly Unit
+gregtech.machine.component_assembler.uv.name=Ultimate Component Assembler
+gregtech.machine.component_assembler.uv.tooltip=Nano-scale Assembly Unit
+gregtech.machine.component_assembler.uhv.name=Epic Component Assembler
+gregtech.machine.component_assembler.uhv.tooltip=Quantum Assembly System
+gregtech.machine.component_assembler.uev.name=Epic Component Assembler II
+gregtech.machine.component_assembler.uev.tooltip=Quantum Assembly System
+gregtech.machine.component_assembler.uiv.name=Epic Component Assembler III
+gregtech.machine.component_assembler.uiv.tooltip=Quantum Assembly System
+gregtech.machine.component_assembler.uxv.name=Epic Component Assembler IV
+gregtech.machine.component_assembler.uxv.tooltip=Quantum Assembly System
+gregtech.machine.component_assembler.opv.name=Legendary Component Assembler
+gregtech.machine.component_assembler.opv.tooltip=Quantum Assembly System
+
 # Loom
 gregtech.machine.loom.lv.name=Basic Loom
 gregtech.machine.loom.lv.tooltip=Cotton Spinner
@@ -4913,6 +4943,8 @@ gregtech.machine.fisher.speed=Catches something every %,d ticks
 gregtech.machine.fisher.requirement=Requires a %,dx%,d centered square of water directly below.
 
 # World Accelerator
+gregtech.machine.world_accelerator.ulv.name=Easy World Accelerator
+gregtech.machine.world_accelerator.ulv.tooltip=Tick accelerates Blocks
 gregtech.machine.world_accelerator.lv.name=Basic World Accelerator
 gregtech.machine.world_accelerator.lv.tooltip=Tick accelerates Blocks
 gregtech.machine.world_accelerator.mv.name=Advanced World Accelerator
@@ -5867,7 +5899,7 @@ gregtech.machine.passthrough_hatch_fluid.name=Fluid Passthrough Hatch
 gregtech.machine.passthrough_hatch_fluid.tooltip=Sends Fluids from one Side to the other
 gregtech.machine.passthrough_hatch_laser.name=Laser Passthrough Hatch
 gregtech.machine.passthrough_hatch_laser.tooltip=Sends Laser Power from one Side to the other
-gregtech.machine.passthrough_hatch_computer.name=Computation Passthrough Hatch
+gregtech.machine.passthrough_hatch_computation.name=Computation Passthrough Hatch
 gregtech.machine.passthrough_hatch_computation.tooltip=Sends Computation from one Side to the other
 
 gregtech.machine.reservoir_hatch.name=Reservoir Hatch

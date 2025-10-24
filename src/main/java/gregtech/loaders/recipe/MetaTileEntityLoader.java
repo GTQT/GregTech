@@ -973,6 +973,9 @@ public class MetaTileEntityLoader {
                 CraftingComponent.HULL, 'X', CraftingComponent.CIRCUIT, 'W', CraftingComponent.CABLE, 'P', CraftingComponent.PISTON,
                 'Q', CraftingComponent.PUMP, 'C', CraftingComponent.CONVEYOR, 'R', CraftingComponent.PIPE_REACTOR);
 
+        registerMachineRecipe(MetaTileEntities.COMPONENT_ASSEMBLER, "AVA", "CMC", "WVW", 'M', HULL, 'V', CONVEYOR, 'A', ROBOT_ARM,
+                'C', CIRCUIT, 'W', CABLE);
+
         MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.BIO_REACTOR,
                 "PXX", "QHQ", "PMW", 'H',
                 CraftingComponent.HULL, 'P', CraftingComponent.PUMP, 'Q', CraftingComponent.PIPE_NORMAL, 'X', CraftingComponent.CIRCUIT,

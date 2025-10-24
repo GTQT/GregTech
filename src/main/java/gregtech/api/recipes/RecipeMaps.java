@@ -1620,6 +1620,17 @@ public final class RecipeMaps {
             .sound(GTSoundEvents.CHEMICAL_REACTOR)
             .build();
 
+    public static final RecipeMap<SimpleRecipeBuilder> COMPONENT_ASSEMBLER_RECIPES = new RecipeMapBuilder<>("component_assembler",
+            new SimpleRecipeBuilder())
+            .itemInputs(9)
+            .itemOutputs(1)
+            .fluidInputs(1)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.CIRCUIT_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_CIRCUIT))
+            .sound(GTSoundEvents.ASSEMBLER)
+            .build();
+
     @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> LOOM_RECIPES = new RecipeMapBuilder<>("loom",
             new SimpleRecipeBuilder())

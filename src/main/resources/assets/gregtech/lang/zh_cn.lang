@@ -1098,7 +1098,7 @@ gt.tool.class.knife=刀
 gt.tool.class.butchery_knife=屠刀
 gt.tool.class.grafter=剪枝器
 gt.tool.class.plunger=搋子
-
+gt.tool.class.flint_and_steel=打火石
 item.gt.tool.sword.name=%s剑
 item.gt.tool.pickaxe.name=%s镐
 item.gt.tool.shovel.name=%s锹
@@ -2535,6 +2535,7 @@ recipemap.laminator.name=过胶器
 recipemap.polymerization_tank.name=聚合反应
 recipemap.desulfurizer.name=脱硫机
 recipemap.bio_reactor.name=生物反应
+recipemap.component_assembler.name=部件组装机
 recipemap.loom.name=纺线器
 recipemap.primitive_blast_furnace.name=土高炉
 recipemap.coke_oven.name=焦炉
@@ -2614,7 +2615,7 @@ metaitem.prospector.tooltip.ores=在半径为%s个区块的范围内扫描矿物
 metaitem.prospector.tooltip.fluids=在半径为%s个区块的范围内扫描矿物与流体
 behavior.prospector.not_enough_energy=能量不足！
 behavior.prospector.added_waypoint=路径点已添加！
-
+metaitem.vajra.name=金刚杵
 metaitem.tricorder_scanner.name=便携式扫描仪
 metaitem.tricorder_scanner.tooltip=三录仪
 metaitem.debug_scanner.name=调试扫描仪
@@ -2957,6 +2958,7 @@ itemGroup.gregtech.decorations=格雷科技 | 装饰
 # Drums
 gregtech.machine.drum.wood.name=木桶
 gregtech.machine.drum.bronze.name=青铜桶
+gregtech.machine.drum.tin.name=锡桶
 gregtech.machine.drum.steel.name=钢桶
 gregtech.machine.drum.aluminium.name=铝桶
 gregtech.machine.drum.stainless_steel.name=不锈钢桶
@@ -4863,6 +4865,34 @@ gregtech.machine.bio_reactor.uxv.tooltip=基因编辑器
 gregtech.machine.bio_reactor.opv.name=传奇生物反应室
 gregtech.machine.bio_reactor.opv.tooltip=基因编辑器
 
+# Component Assembler
+gregtech.machine.component_assembler.lv.name=基础部件组装机
+gregtech.machine.component_assembler.lv.tooltip=零部件工厂
+gregtech.machine.component_assembler.mv.name=进阶部件组装机
+gregtech.machine.component_assembler.mv.tooltip=零部件工厂
+gregtech.machine.component_assembler.hv.name=进阶部件组装机 II
+gregtech.machine.component_assembler.hv.tooltip=零部件工厂
+gregtech.machine.component_assembler.ev.name=进阶部件组装机 III
+gregtech.machine.component_assembler.ev.tooltip=精密部件装配线
+gregtech.machine.component_assembler.iv.name=精英部件组装机
+gregtech.machine.component_assembler.iv.tooltip=精密部件装配线
+gregtech.machine.component_assembler.luv.name=精英部件组装机 II
+gregtech.machine.component_assembler.luv.tooltip=精密部件装配线
+gregtech.machine.component_assembler.zpm.name=精英部件组装机 III
+gregtech.machine.component_assembler.zpm.tooltip=纳米级组装单元
+gregtech.machine.component_assembler.uv.name=终极部件组装机
+gregtech.machine.component_assembler.uv.tooltip=纳米级组装单元
+gregtech.machine.component_assembler.uhv.name=史诗部件组装机
+gregtech.machine.component_assembler.uhv.tooltip=量子组装系统
+gregtech.machine.component_assembler.uev.name=史诗部件组装机 II
+gregtech.machine.component_assembler.uev.tooltip=量子组装系统
+gregtech.machine.component_assembler.uiv.name=史诗部件组装机 III
+gregtech.machine.component_assembler.uiv.tooltip=量子组装系统
+gregtech.machine.component_assembler.uxv.name=史诗部件组装机 IV
+gregtech.machine.component_assembler.uxv.tooltip=量子组装系统
+gregtech.machine.component_assembler.opv.name=传说部件组装机
+gregtech.machine.component_assembler.opv.tooltip=量子组装系统
+
 # Loom
 gregtech.machine.loom.lv.name=基础纺线器
 gregtech.machine.loom.lv.tooltip=棉纺机
@@ -4910,6 +4940,8 @@ gregtech.machine.fisher.speed=每%d刻获得一条鱼（或者其它什么东西
 gregtech.machine.fisher.requirement=需要在正下方倾倒边长为%,d格的静止水。
 
 # World Accelerator
+gregtech.machine.world_accelerator.ulv.name=简易世界加速器
+gregtech.machine.world_accelerator.ulv.tooltip=游戏刻加速方块
 gregtech.machine.world_accelerator.lv.name=基础世界加速器
 gregtech.machine.world_accelerator.lv.tooltip=游戏刻加速方块
 gregtech.machine.world_accelerator.mv.name=进阶世界加速器
@@ -5864,7 +5896,7 @@ gregtech.machine.passthrough_hatch_fluid.name=流体通行仓
 gregtech.machine.passthrough_hatch_fluid.tooltip=将流体从一侧输送到另一侧
 gregtech.machine.passthrough_hatch_laser.name=激光通行仓
 gregtech.machine.passthrough_hatch_laser.tooltip=将激光从一侧输送到另一侧
-gregtech.machine.passthrough_hatch_computer.name=算力通行仓
+gregtech.machine.passthrough_hatch_computation.name=算力通行仓
 gregtech.machine.passthrough_hatch_computation.tooltip=将算力从一侧输送到另一侧
 
 
