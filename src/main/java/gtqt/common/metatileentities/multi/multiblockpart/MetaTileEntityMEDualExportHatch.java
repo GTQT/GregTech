@@ -53,7 +53,7 @@ public class MetaTileEntityMEDualExportHatch extends MetaTileEntityMEControlBase
     private SerializableFluidList internalFluidBuffer;
 
     public MetaTileEntityMEDualExportHatch(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, 5, false);
+        super(metaTileEntityId, 6, false);
     }
 
     @Override
@@ -180,12 +180,9 @@ public class MetaTileEntityMEDualExportHatch extends MetaTileEntityMEControlBase
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.machine.item_bus.export.tooltip"));
-        tooltip.add(I18n.format("gregtech.machine.fluid_hatch.export.tooltip"));
-        tooltip.add(I18n.format("gregtech.machine.me.item_export.tooltip"));
-        tooltip.add(I18n.format("gregtech.machine.me.fluid_export.tooltip"));
-        tooltip.add(I18n.format("gregtech.machine.me.item_export.tooltip.2"));
-        tooltip.add(I18n.format("gregtech.machine.me.fluid_export.tooltip.2"));
+        tooltip.add(I18n.format("gregtech.machine.dual_hatch.export.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.me.dual_export.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.me.dual_export.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.me.extra_connections.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }

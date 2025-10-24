@@ -1274,6 +1274,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getSlotByTier()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
+        tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
         tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
@@ -1300,7 +1301,22 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
 
     @Override
     public boolean onDataStickRightClick(EntityPlayer player, ItemStack dataStick) {
+        NBTTagCompound tag = dataStick.getTagCompound();
+        if (tag == null) return false;
+        if (tag.hasKey("CommonPos")) {
+            useProxy = false;
+            readLocationFromTag(tag.getCompoundTag("CommonPos"));
+            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
+            useProxy = true;
+            return true;
+        }
         return false;
+    }
+
+    private void readLocationFromTag(NBTTagCompound tag) {
+        this.aeProxy_x = tag.getInteger("MainX");
+        this.aeProxy_y = tag.getInteger("MainY");
+        this.aeProxy_z = tag.getInteger("MainZ");
     }
 
     @Override

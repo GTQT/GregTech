@@ -132,18 +132,18 @@ public class HatchHandlers {
         }
 
         ASSEMBLER_RECIPES.recipeBuilder()
-                .input(STOCKING_BUS_ME)
-                .input(STOCKING_HATCH_ME)
-                .input(DUAL_IMPORT_HATCH[IV])
-                .input(circuit, MarkerMaterial.create(GTValues.VN[IV].toLowerCase()), 4)
+                .input(ITEM_IMPORT_BUS_ME)
+                .input(FLUID_IMPORT_HATCH_ME)
+                .input(DUAL_IMPORT_HATCH[LuV])
+                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 4)
                 .output(ME_DUAL_IMPORT_HATCH)
                 .duration(100).EUt(VA[IV]).buildAndRegister();
 
         ASSEMBLER_RECIPES.recipeBuilder()
-                .input(STOCKING_BUS_ME)
-                .input(STOCKING_HATCH_ME)
-                .input(DUAL_EXPORT_HATCH[IV])
-                .input(circuit, MarkerMaterial.create(GTValues.VN[IV].toLowerCase()), 4)
+                .input(ITEM_EXPORT_BUS_ME)
+                .input(FLUID_EXPORT_HATCH_ME)
+                .input(DUAL_EXPORT_HATCH[LuV])
+                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 4)
                 .output(ME_DUAL_EXPORT_HATCH)
                 .duration(100).EUt(VA[IV]).buildAndRegister();
 

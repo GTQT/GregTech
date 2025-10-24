@@ -691,6 +691,14 @@ gregtech.machine.super_item_bus.tooltip=Single Tank Capacity: INT MAX
 gregtech.machine.dual_hatch.import.tooltip=Input items and fluids for a multiblock structure
 gregtech.machine.dual_hatch.export.tooltip=Output items and fluids for multiblock structures
 
+gregtech.machine.me.dual_import.tooltip=Draws specified items and fluids from the ME network
+gregtech.machine.me_import_dual_hatch.configs.tooltip=Can mark 16 items and 16 fluids
+
+gregtech.machine.me.dual_export.tooltip=Transfers items and fluids directly into the ME network
+gregtech.machine.me.dual_export.tooltip.2=Can cache unlimited quantities of items and fluids
+
+gregtech.machine.me.data_stick_proxy=Allows the use of a data stick to write directly to the saved wireless access point coordinates
+
 gregtech.machine.complex_dual_hatch.tooltip.1=Input items and fluids for multiblock structures and output items and fluids at the same time
 gregtech.machine.complex_dual_hatch.tooltip.2=If the IO function is enabled, the assembly pull will be performed at odd times, and the assembly push operation will be performed at even times
 

@@ -12,10 +12,22 @@ import gregtech.api.util.ItemStackHashStrategy;
 
 import gregtech.api.util.KeyUtil;
 
+import gregtech.common.items.MetaItems;
+
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
+
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -74,4 +86,31 @@ public class DataItemBehavior implements IItemBehaviour, IDataItem {
             }
         }
     }
+
+    @Override
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
+                                           float hitY, float hitZ, EnumHand hand) {
+
+        ItemStack dataStick = player.getHeldItemMainhand();
+        if (MetaItems.TOOL_DATA_STICK.isItemEqual(dataStick)) {
+            NBTTagCompound tag = new NBTTagCompound();
+
+            tag.setTag("CommonPos", writeLocationToTag(pos));
+            dataStick.setTagCompound(tag);
+            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已写入"), true);
+            return EnumActionResult.SUCCESS;
+        }
+        return EnumActionResult.PASS;
+    }
+
+    private NBTTagCompound writeLocationToTag(BlockPos pos) {
+        NBTTagCompound tag = new NBTTagCompound();
+
+        tag.setInteger("MainX", pos.getX());
+        tag.setInteger("MainY", pos.getY());
+        tag.setInteger("MainZ", pos.getZ());
+
+        return tag;
+    }
+
 }

@@ -1,13 +1,5 @@
 package gtqt.common.metatileentities.multi.multiblockpart;
 
-import appeng.api.implementations.IPowerChannelState;
-import appeng.api.networking.GridFlags;
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.crafting.ICraftingGrid;
-import appeng.api.util.AEPartLocation;
-import appeng.api.util.DimensionalCoord;
-import appeng.me.helpers.IGridProxyable;
-
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
@@ -71,6 +63,10 @@ import net.minecraftforge.items.ItemStackHandler;
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
+import appeng.api.implementations.IPowerChannelState;
+import appeng.api.networking.GridFlags;
+import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
@@ -79,10 +75,13 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.util.AEPartLocation;
+import appeng.api.util.DimensionalCoord;
 import appeng.fluids.util.IAEFluidInventory;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.AENetworkProxy;
+import appeng.me.helpers.IGridProxyable;
 import appeng.tile.grid.AENetworkPowerTile;
 import appeng.util.item.AEItemStack;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
@@ -139,14 +138,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
+    private static final int BASE_TANK_SIZE = 8000;
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
             .asIcon().size(16);
     private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
-
     private final int numSlots;
     private final int tankSize;
-    private static final int BASE_TANK_SIZE = 8000;
     // only holding this for convenience
     private final FluidTankList fluidTankList;
     private final List<ICraftingPatternDetails> patternDetails;
@@ -319,20 +317,21 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         }
     }
 
-    public void pushToGridCache(){
-        if(useProxy) {
+    public void pushToGridCache() {
+        if (useProxy) {
             try {
-                if(getProxy()!=null&&getProxy().getGrid()!=null)
+                if (getProxy() != null && getProxy().getGrid() != null)
                     getProxy().getGrid().getCache(ICraftingGrid.class).addNode(getProxy().getNode(), this);
             } catch (GridAccessException ignored) {
 
             }
         }
     }
-    public void removeFromGridCache(){
-        if(useProxy) {
+
+    public void removeFromGridCache() {
+        if (useProxy) {
             try {
-                if(getProxy()!=null&&getProxy().getGrid()!=null)
+                if (getProxy() != null && getProxy().getGrid() != null)
                     getProxy().getGrid().getCache(ICraftingGrid.class).removeNode(getProxy().getNode(), this);
             } catch (GridAccessException ignored) {
 
@@ -519,6 +518,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         }
         return super.getProxy();
     }
+
     @Override
     public AENetworkProxy createProxy() {
         AENetworkProxy proxy = new AENetworkProxy(this, "mte_proxy", this.getStackForm(), true);
@@ -559,7 +559,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     @Override
     public void onRemoval() {
-        if(useProxy) {
+        if (useProxy) {
             removeFromGridCache();
             useProxy = false;
             getProxy();
@@ -1106,7 +1106,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
                 if (aeStack != null) {
                     // 模拟注入网络，检查是否可返还
-                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE, getActionSource());
+                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE,
+                            getActionSource());
                     if (remaining != null && remaining.getStackSize() > 0) {
                         return false; // 网络无法完全接收物品
                     }
@@ -1180,7 +1181,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
                 ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
                 if (itemStack.isEmpty()) continue;
-                if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack))continue;
+                if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) continue;
 
                 // 处理流体假物品
                 if (FakeFluids.isFluidFakeItem(itemStack)) {
@@ -1251,6 +1252,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getSlotByTier()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
+        tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 
@@ -1276,7 +1278,22 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     @Override
     public boolean onDataStickRightClick(EntityPlayer player, ItemStack dataStick) {
+        NBTTagCompound tag = dataStick.getTagCompound();
+        if (tag == null) return false;
+        if (tag.hasKey("CommonPos")) {
+            useProxy = false;
+            readLocationFromTag(tag.getCompoundTag("CommonPos"));
+            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
+            useProxy = true;
+            return true;
+        }
         return false;
+    }
+
+    private void readLocationFromTag(NBTTagCompound tag) {
+        this.aeProxy_x = tag.getInteger("MainX");
+        this.aeProxy_y = tag.getInteger("MainY");
+        this.aeProxy_z = tag.getInteger("MainZ");
     }
 
     @Override
