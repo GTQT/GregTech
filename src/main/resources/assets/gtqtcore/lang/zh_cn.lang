@@ -310,6 +310,8 @@ gregtech.machine.me_dual_hatch.export.name=ME输出总成
 gregtech.machine.me_pattern_provider_proxy.name=ME代理样板总成
 gregtech.machine.huge_me_pattern_provider_proxy.name=巨型ME代理样板总成
 
+gregtech.machine.me_ore_dict_bus.name=ME矿辞输入总线
+
 gregtech.machine.wireless_energy_hatch.tooltip.1=将能量存储于无线能量网络中，上限为2^(2^31)EU。
 gregtech.machine.wireless_energy_hatch.tooltip.2=无需连接导线，此仓室可以自动与网络交互来抽取/存储能量。
 gregtech.machine.wireless_energy_hatch.tooltip.shift=请在UI内自行选择频道，各频道之间能量传输存储均相互独立
@@ -691,6 +693,8 @@ gregtech.machine.me_import_dual_hatch.configs.tooltip=可标记16种物品与16�
 
 gregtech.machine.me.dual_export.tooltip=将物品与流体直接存储到ME网络中
 gregtech.machine.me.dual_export.tooltip.2=可以缓存无限数量的物品与流体
+
+gregtech.machine.me_bus.ore_dict.tooltip=在文本框输入矿辞正则表达后可拉取指定矿辞的物品
 
 gregtech.machine.me.data_stick_proxy=允许使用数据棒直接写入保存的无线接入点坐标
 

@@ -8,10 +8,11 @@ import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeCompl
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProviderProxy;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEDualInputHatch;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEDualExportHatch;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEPatternProvider;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMEPatternProviderProxy;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityThreadHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
@@ -43,7 +44,7 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
     public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityHugeMEPatternProviderProxy HUGE_ME_PATTERN_PROVIDER_PROXY;
-
+    public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
 
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
@@ -110,12 +111,14 @@ public class GTQTMetaTileEntities {
         ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
         ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"));
         HUGE_ME_PATTERN_PROVIDER_PROXY = new MetaTileEntityHugeMEPatternProviderProxy(gregtechId("huge_me_pattern_provider_proxy"));
+        ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"));
 
         registerMetaTileEntity(2700, ME_DUAL_IMPORT_HATCH);
         registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
         registerMetaTileEntity(2702, ME_PATTERN_PROVIDER_PROXY);
         registerMetaTileEntity(2703, HUGE_ME_PATTERN_PROVIDER_PROXY);
 
+        registerMetaTileEntity(2704, ME_ORE_DICT_BUS);
 
         //巨型总线
         for (int i = 0; i < 14; i++) {

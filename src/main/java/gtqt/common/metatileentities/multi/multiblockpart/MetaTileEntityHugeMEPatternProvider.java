@@ -44,6 +44,7 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.items.MetaItems;
 import gregtech.common.mui.widget.GTFluidSlot;
 
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEControlBase;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.item.EntityItem;

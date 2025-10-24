@@ -10,10 +10,9 @@ import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemList;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemSlot;
+import gregtech.common.inventory.appeng.ExportOnlyAEStockingItemList;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedItemStack;
-
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEStockingItemSlot;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -40,9 +39,9 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_AUTO_PULL;
 
 public class MetaTileEntityMEStockingBus extends MetaTileEntityMEInputBus implements IRefreshBeforeConsumption {
 
-    private static final int CONFIG_SIZE = 16;
-    private boolean autoPull;
-    private Predicate<ItemStack> autoPullTest;
+    public static final int CONFIG_SIZE = 16;
+    public boolean autoPull;
+    public Predicate<ItemStack> autoPullTest;
 
     public MetaTileEntityMEStockingBus(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, GTValues.IV);
@@ -172,7 +171,7 @@ public class MetaTileEntityMEStockingBus extends MetaTileEntityMEInputBus implem
     /**
      * @return True if the passed stack is found as a configuration in any other stocking buses on the multiblock.
      */
-    private boolean testConfiguredInOtherBus(ItemStack stack) {
+    public boolean testConfiguredInOtherBus(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         MultiblockControllerBase controller = getController();
         if (controller == null) return false;
@@ -195,7 +194,7 @@ public class MetaTileEntityMEStockingBus extends MetaTileEntityMEInputBus implem
         return false;
     }
 
-    private void setAutoPull(boolean autoPull) {
+    protected void setAutoPull(boolean autoPull) {
         this.autoPull = autoPull;
         markDirty();
         if (!getWorld().isRemote) {
@@ -213,7 +212,7 @@ public class MetaTileEntityMEStockingBus extends MetaTileEntityMEInputBus implem
      * Refresh the configuration list in auto-pull mode. Sets the config to the first 16 valid items found in the
      * network.
      */
-    private void refreshList() {
+    protected void refreshList() {
         IMEMonitor<IAEItemStack> monitor = getMonitor();
         if (monitor == null) {
             clearInventory(0);
@@ -249,7 +248,7 @@ public class MetaTileEntityMEStockingBus extends MetaTileEntityMEInputBus implem
         clearInventory(index);
     }
 
-    private void clearInventory(int startIndex) {
+    public void clearInventory(int startIndex) {
         for (int i = startIndex; i < CONFIG_SIZE; i++) {
             var slot = this.getAEItemHandler().getInventory()[i];
             slot.setConfig(null);
@@ -351,115 +350,5 @@ public class MetaTileEntityMEStockingBus extends MetaTileEntityMEInputBus implem
         // set auto pull first to avoid issues with clearing the config after reading from the data stick
         this.setAutoPull(false);
         super.readConfigFromTag(tag);
-    }
-
-    private static class ExportOnlyAEStockingItemSlot extends ExportOnlyAEItemSlot {
-
-        private final MetaTileEntityMEStockingBus holder;
-
-        public ExportOnlyAEStockingItemSlot(IAEItemStack config, IAEItemStack stock,
-                                            MetaTileEntityMEStockingBus holder) {
-            super(config, stock);
-            this.holder = holder;
-        }
-
-        public ExportOnlyAEStockingItemSlot(MetaTileEntityMEStockingBus holder) {
-            super();
-            this.holder = holder;
-        }
-
-        @Override
-        public ExportOnlyAEStockingItemSlot copy() {
-            return new ExportOnlyAEStockingItemSlot(
-                    this.config == null ? null : this.config.copy(),
-                    this.stock == null ? null : this.stock.copy(),
-                    this.holder);
-        }
-
-        @Override
-        public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-            if (slot == 0 && this.stock != null) {
-                if (this.config != null) {
-                    // Extract the items from the real net to either validate (simulate)
-                    // or extract (modulate) when this is called
-                    IMEMonitor<IAEItemStack> monitor = holder.getMonitor();
-                    if (monitor == null) return ItemStack.EMPTY;
-
-                    Actionable action = simulate ? Actionable.SIMULATE : Actionable.MODULATE;
-                    IAEItemStack request;
-                    if (this.config instanceof WrappedItemStack wis) {
-                        request = wis.getAEStack();
-                    } else {
-                        request = this.config.copy();
-                    }
-                    request.setStackSize(amount);
-
-                    IAEItemStack result = monitor.extractItems(request, action, holder.getActionSource());
-                    if (result != null) {
-                        int extracted = (int) Math.min(result.getStackSize(), amount);
-                        this.stock.decStackSize(extracted); // may as well update the display here
-                        if (this.trigger != null) {
-                            this.trigger.accept(0);
-                        }
-                        if (extracted != 0) {
-                            ItemStack resultStack = this.config.createItemStack();
-                            resultStack.setCount(extracted);
-                            return resultStack;
-                        }
-                    }
-                }
-            }
-            return ItemStack.EMPTY;
-        }
-    }
-
-    private static class ExportOnlyAEStockingItemList extends ExportOnlyAEItemList {
-
-        private final MetaTileEntityMEStockingBus holder;
-
-        public ExportOnlyAEStockingItemList(MetaTileEntityMEStockingBus holder, int slots,
-                                            MetaTileEntity entityToNotify) {
-            super(holder, slots, entityToNotify);
-            this.holder = holder;
-        }
-
-        @Override
-        protected void createInventory(MetaTileEntity holder) {
-            if (!(holder instanceof MetaTileEntityMEStockingBus stocking)) {
-                throw new IllegalArgumentException("Cannot create Stocking Item List for nonstocking MetaTileEntity!");
-            }
-            this.inventory = new ExportOnlyAEStockingItemSlot[size];
-            for (int i = 0; i < size; i++) {
-                this.inventory[i] = new ExportOnlyAEStockingItemSlot(stocking);
-            }
-            for (ExportOnlyAEItemSlot slot : this.inventory) {
-                slot.setTrigger(this::onContentsChanged);
-            }
-        }
-
-        @Override
-        public ExportOnlyAEStockingItemSlot[] getInventory() {
-            return (ExportOnlyAEStockingItemSlot[]) super.getInventory();
-        }
-
-        @Override
-        public boolean isStocking() {
-            return true;
-        }
-
-        @Override
-        public boolean isAutoPull() {
-            return holder.autoPull;
-        }
-
-        @Override
-        public boolean hasStackInConfig(ItemStack stack, boolean checkExternal) {
-            boolean inThisBus = super.hasStackInConfig(stack, false);
-            if (inThisBus) return true;
-            if (checkExternal) {
-                return holder.testConfiguredInOtherBus(stack);
-            }
-            return false;
-        }
     }
 }

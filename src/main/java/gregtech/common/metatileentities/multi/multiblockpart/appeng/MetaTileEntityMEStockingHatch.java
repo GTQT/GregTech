@@ -9,10 +9,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidList;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidSlot;
+import gregtech.common.inventory.appeng.ExportOnlyAEStockingFluidList;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedFluidStack;
-
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEStockingFluidSlot;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -41,7 +40,7 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_AUTO_PULL;
 public class MetaTileEntityMEStockingHatch extends MetaTileEntityMEInputHatch implements IRefreshBeforeConsumption {
 
     private static final int CONFIG_SIZE = 16;
-    private boolean autoPull;
+    public boolean autoPull;
     private Predicate<FluidStack> autoPullTest;
 
     public MetaTileEntityMEStockingHatch(ResourceLocation metaTileEntityId) {
@@ -148,7 +147,7 @@ public class MetaTileEntityMEStockingHatch extends MetaTileEntityMEInputHatch im
         }
     }
 
-    private boolean testConfiguredInOtherHatch(FluidStack stack) {
+    public boolean testConfiguredInOtherHatch(FluidStack stack) {
         if (stack == null) return false;
         MultiblockControllerBase controller = getController();
         if (controller == null) return false;
@@ -314,111 +313,5 @@ public class MetaTileEntityMEStockingHatch extends MetaTileEntityMEInputHatch im
         // set auto pull first to avoid issues with clearing the config after reading from the data stick
         this.setAutoPull(false);
         super.readConfigFromTag(tag);
-    }
-
-    private static class ExportOnlyAEStockingFluidSlot extends ExportOnlyAEFluidSlot {
-
-        public ExportOnlyAEStockingFluidSlot(MetaTileEntityMEStockingHatch holder, IAEFluidStack config,
-                                             IAEFluidStack stock, MetaTileEntity entityToNotify) {
-            super(holder, config, stock, entityToNotify);
-        }
-
-        public ExportOnlyAEStockingFluidSlot(MetaTileEntityMEStockingHatch holder, MetaTileEntity entityToNotify) {
-            super(holder, entityToNotify);
-        }
-
-        @Override
-        protected MetaTileEntityMEStockingHatch getHolder() {
-            return (MetaTileEntityMEStockingHatch) super.getHolder();
-        }
-
-        @Override
-        public ExportOnlyAEFluidSlot copy() {
-            return new ExportOnlyAEStockingFluidSlot(
-                    this.getHolder(),
-                    this.config == null ? null : this.config.copy(),
-                    this.stock == null ? null : this.stock.copy(),
-                    null);
-        }
-
-        @Override
-        public @Nullable FluidStack drain(int maxDrain, boolean doDrain) {
-            if (this.stock == null) {
-                return null;
-            }
-            if (this.config != null) {
-                IMEMonitor<IAEFluidStack> monitor = getHolder().getMonitor();
-                if (monitor == null) return null;
-
-                Actionable action = doDrain ? Actionable.MODULATE : Actionable.SIMULATE;
-                IAEFluidStack request;
-                if (this.config instanceof WrappedFluidStack wfs) {
-                    request = wfs.getAEStack();
-                } else {
-                    request = this.config.copy();
-                }
-                request.setStackSize(maxDrain);
-
-                IAEFluidStack result = monitor.extractItems(request, action, getHolder().getActionSource());
-                if (result != null) {
-                    int extracted = (int) Math.min(result.getStackSize(), maxDrain);
-                    this.stock.decStackSize(extracted);
-                    trigger();
-                    if (extracted != 0) {
-                        FluidStack resultStack = this.config.getFluidStack();
-                        resultStack.amount = extracted;
-                        return resultStack;
-                    }
-                }
-            }
-            return null;
-        }
-    }
-
-    private static class ExportOnlyAEStockingFluidList extends ExportOnlyAEFluidList {
-
-        private final MetaTileEntityMEStockingHatch holder;
-
-        public ExportOnlyAEStockingFluidList(MetaTileEntityMEStockingHatch holder, int slots,
-                                             MetaTileEntity entityToNotify) {
-            super(holder, slots, entityToNotify);
-            this.holder = holder;
-        }
-
-        @Override
-        protected void createInventory(MetaTileEntity holder, MetaTileEntity entityToNotify) {
-            if (!(holder instanceof MetaTileEntityMEStockingHatch stocking)) {
-                throw new IllegalArgumentException("Cannot create Stocking Fluid List for nonstocking MetaTileEntity!");
-            }
-            this.inventory = new ExportOnlyAEStockingFluidSlot[size];
-            for (int i = 0; i < size; i++) {
-                this.inventory[i] = new ExportOnlyAEStockingFluidSlot(stocking, entityToNotify);
-            }
-        }
-
-        @Override
-        public ExportOnlyAEStockingFluidSlot[] getInventory() {
-            return (ExportOnlyAEStockingFluidSlot[]) super.getInventory();
-        }
-
-        @Override
-        public boolean isStocking() {
-            return true;
-        }
-
-        @Override
-        public boolean isAutoPull() {
-            return holder.autoPull;
-        }
-
-        @Override
-        public boolean hasStackInConfig(FluidStack stack, boolean checkExternal) {
-            boolean inThisHatch = super.hasStackInConfig(stack, false);
-            if (inThisHatch) return true;
-            if (checkExternal) {
-                return holder.testConfiguredInOtherHatch(stack);
-            }
-            return false;
-        }
     }
 }

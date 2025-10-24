@@ -1,7 +1,11 @@
-package gregtech.common.metatileentities.multi.multiblockpart.appeng.slot;
+package gregtech.common.inventory.appeng;
 
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
+
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemSlot;
+
+import lombok.Getter;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -12,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public class ExportOnlyAEItemList extends NotifiableItemStackHandler {
 
     protected final int size;
+    @Getter
     protected ExportOnlyAEItemSlot[] inventory;
 
     public ExportOnlyAEItemList(MetaTileEntity holder, int slots, MetaTileEntity entityToNotify) {
@@ -28,10 +33,6 @@ public class ExportOnlyAEItemList extends NotifiableItemStackHandler {
         for (ExportOnlyAEItemSlot slot : this.inventory) {
             slot.setTrigger(this::onContentsChanged);
         }
-    }
-
-    public ExportOnlyAEItemSlot[] getInventory() {
-        return inventory;
     }
 
     @Override

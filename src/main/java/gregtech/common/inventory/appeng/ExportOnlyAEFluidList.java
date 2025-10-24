@@ -1,6 +1,10 @@
-package gregtech.common.metatileentities.multi.multiblockpart.appeng.slot;
+package gregtech.common.inventory.appeng;
 
 import gregtech.api.metatileentity.MetaTileEntity;
+
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidSlot;
+
+import lombok.Getter;
 
 import net.minecraftforge.fluids.FluidStack;
 
@@ -9,6 +13,7 @@ import appeng.api.storage.data.IAEFluidStack;
 public class ExportOnlyAEFluidList {
 
     protected final int size;
+    @Getter
     protected ExportOnlyAEFluidSlot[] inventory;
 
     public ExportOnlyAEFluidList(MetaTileEntity holder, int slots, MetaTileEntity entityToNotify) {
@@ -21,10 +26,6 @@ public class ExportOnlyAEFluidList {
         for (int i = 0; i < size; i++) {
             this.inventory[i] = new ExportOnlyAEFluidSlot(holder, entityToNotify);
         }
-    }
-
-    public ExportOnlyAEFluidSlot[] getInventory() {
-        return inventory;
     }
 
     public void clearConfig() {
