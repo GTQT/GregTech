@@ -211,6 +211,7 @@ public class ToolRecipeHandler {
                     'I', ingot,
                     'P', plate);
 
+
         }
         if (material.hasFlag(GENERATE_ROD)) {
             UnificationEntry rod = new UnificationEntry(OrePrefix.stick, material);
@@ -219,6 +220,14 @@ public class ToolRecipeHandler {
                         "PPf", "PP ", "Sh ",
                         'P', plate,
                         'S', rod);
+
+                // Universal Tool
+                addToolRecipe(material, ToolItems.UNIVERSAL_TOOL, true,
+                        "hPI", "fPS", "IPS",
+                        'I', ingot,
+                        'P', plate,
+                        'S', rod
+                );
 
                 if (material.hasFlag(GENERATE_BOLT_SCREW)) {
                     addToolRecipe(material, ToolItems.WIRE_CUTTER, false,

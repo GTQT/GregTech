@@ -94,6 +94,9 @@ public final class ToolItems {
     public static IGTTool UNIVERSAL_SPADE;
     public static IGTTool FLINT_AND_STEEL;
 
+    //万能工具
+    public static IGTTool UNIVERSAL_TOOL;
+
     public static ItemGTToolbelt TOOLBELT;
 
     private ToolItems() {/**/}
@@ -476,6 +479,15 @@ public final class ToolItems {
                 .toolStats(b -> b.behaviors(FlintAndSteelToolBehavior.INSTANCE))
                 .oreDict(ToolOreDict.toolFlintAndSteel)
                 .toolClasses(ToolClasses.FLINT_AND_STEEL));
+
+        UNIVERSAL_TOOL = register(ItemGTTool.Builder.of(GTValues.MODID, "universal_tool")
+                .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
+                        .attackDamage(4.0F).attackSpeed(-2.0F)
+                        .behaviors(TreeFellingBehavior.INSTANCE)
+                        .behaviors(TorchPlaceBehavior.INSTANCE)
+                )
+                .sound(SoundEvents.BLOCK_ANVIL_LAND)
+                .toolClasses(ToolClasses.WIRE_CUTTER,ToolClasses.WRENCH,ToolClasses.PICKAXE, ToolClasses.AXE,ToolClasses.SWORD,ToolClasses.SHOVEL,ToolClasses.HOE));
 
     }
 
