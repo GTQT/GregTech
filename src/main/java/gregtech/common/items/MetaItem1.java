@@ -44,6 +44,7 @@ import gregtech.common.items.behaviors.GTBoatBehavior;
 import gregtech.common.items.behaviors.IntCircuitBehaviour;
 import gregtech.common.items.behaviors.ItemMagnetBehavior;
 import gregtech.common.items.behaviors.LighterBehaviour;
+import gregtech.common.items.behaviors.MiningLaserBehavior;
 import gregtech.common.items.behaviors.MultiblockBuilderBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
 import gregtech.common.items.behaviors.ProspectorScannerBehavior;
@@ -1008,6 +1009,12 @@ public class MetaItem1 extends StandardMetaItem {
         PROSPECTOR_UHV = addItem(488, "prospector.uhv")
                 .addComponents(ElectricStats.createElectricItem(1_000_000_000L, GTValues.UHV),
                         new ProspectorScannerBehavior(6, GTValues.UHV))
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        MINING_LASER = addItem(489, "mining_laser")
+                .addComponents(ElectricStats.createElectricItem(10_000_000L, GTValues.IV),
+                        new MiningLaserBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 

@@ -536,6 +536,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem PROSPECTOR_UV;
     public static MetaItem<?>.MetaValueItem PROSPECTOR_UHV;
 
+    public static MetaItem<?>.MetaValueItem MINING_LASER;
     public static MetaItem<?>.MetaValueItem VAJRA;
 
     public static MetaItem<?>.MetaValueItem TRICORDER_SCANNER;

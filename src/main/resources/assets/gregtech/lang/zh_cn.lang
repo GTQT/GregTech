@@ -2617,6 +2617,7 @@ metaitem.prospector.tooltip.ores=在半径为%s个区块的范围内扫描矿物
 metaitem.prospector.tooltip.fluids=在半径为%s个区块的范围内扫描矿物与流体
 behavior.prospector.not_enough_energy=能量不足！
 behavior.prospector.added_waypoint=路径点已添加！
+metaitem.mining_laser.name=采矿镭射枪
 metaitem.vajra.name=金刚杵
 metaitem.tricorder_scanner.name=便携式扫描仪
 metaitem.tricorder_scanner.tooltip=三录仪
