@@ -43,6 +43,7 @@ public class GTSoundEvents {
     public static SoundEvent WRENCH_TOOL;
     public static SoundEvent MORTAR_TOOL;
     public static SoundEvent SOFT_MALLET_TOOL;
+    public static SoundEvent TREE_TAP_TOOL;
 
     // Record Sounds
     public static SoundEvent SUS_RECORD;
@@ -85,6 +86,7 @@ public class GTSoundEvents {
 
         WRENCH_TOOL = soundManager.registerSound("use.wrench");
         SOFT_MALLET_TOOL = soundManager.registerSound("use.soft_hammer");
+        TREE_TAP_TOOL = soundManager.registerSound("use.tree_tap");
         DRILL_TOOL = soundManager.registerSound("use.drill");
         PLUNGER_TOOL = soundManager.registerSound("use.plunger");
         FILE_TOOL = soundManager.registerSound("use.file");

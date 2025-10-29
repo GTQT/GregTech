@@ -338,6 +338,16 @@
       }
     ]
   },
+  "use.tree_tap": {
+    "subtitle" : "gregtech.subtitle.use.tree_tap",
+    "category": "block",
+    "sounds": [
+      {
+        "name": "gregtech:tree_ta",
+        "stream": false
+      }
+    ]
+  },
   "record.sus": {
     "subtitle" : "gregtech.subtitle.record.sus",
     "category": "block",

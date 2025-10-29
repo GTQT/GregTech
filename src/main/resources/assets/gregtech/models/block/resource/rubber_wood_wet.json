@@ -1,0 +1,12 @@
+{
+	"parent": "block/cube",
+	"textures": {
+		"particle": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback",
+		"down": "gregtech:blocks/wood/rubber/rubber_wood_wet_bottomtop",
+		"up": "gregtech:blocks/wood/rubber/rubber_wood_wet_bottomtop",
+		"north": "gregtech:blocks/wood/rubber/rubber_wood_wet_front",
+		"east": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback",
+		"south": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback",
+		"west": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback"
+	}
+}

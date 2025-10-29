@@ -1,33 +1,26 @@
 {
   "forge_marker": 1,
   "defaults": {
-    "transform": "forge:default-block",
-    "model": "minecraft:cube_column",
-    "textures": {
-      "end": "gregtech:blocks/wood/rubber/log_rubber_top",
-      "side": "gregtech:blocks/wood/rubber/log_rubber_side"
-    }
+    "model": "gregtech:resource/rubber_wood",
+    "transform": "forge:default-block"
   },
   "variants": {
-    "axis": {
-      "none": {
-        "textures": {
-          "end": "#side"
-        }
-      },
-      "x": {
-        "x": 90,
-        "y": 90
-      },
-      "y": {},
-      "z": {
-        "x": 90
-      }
+    "state": {
+      "plain_y": { "model": "gregtech:resource/rubber_wood" },
+      "plain_x": { "model": "gregtech:resource/rubber_wood", "x": 90, "y": 90 },
+      "plain_z": { "model": "gregtech:resource/rubber_wood", "x": 90 },
+      "dry_north": { "model": "gregtech:resource/rubber_wood_dry" },
+      "dry_south": { "model": "gregtech:resource/rubber_wood_dry", "y": 180 },
+      "dry_west": { "model": "gregtech:resource/rubber_wood_dry", "y": 270 },
+      "dry_east": { "model": "gregtech:resource/rubber_wood_dry", "y": 90 },
+      "wet_north": { "model": "gregtech:resource/rubber_wood_wet" },
+      "wet_south": { "model": "gregtech:resource/rubber_wood_wet", "y": 180 },
+      "wet_west": { "model": "gregtech:resource/rubber_wood_wet", "y": 270 },
+      "wet_east": { "model": "gregtech:resource/rubber_wood_wet", "y": 90 }
     },
-    "natural": {
-      "true": {},
-      "false": {}
-    },
-    "inventory": [{}]
+    "inventory": {
+      "model": "gregtech:resource/rubber_wood",
+      "transform": "forge:default-item"
+    }
   }
 }

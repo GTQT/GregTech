@@ -471,7 +471,7 @@ public class MetaBlocks {
         registerItemModel(ASPHALT);
         for (StoneVariantBlock block : STONE_BLOCKS.values())
             registerItemModel(block);
-        registerItemModelWithOverride(RUBBER_LOG, ImmutableMap.of(BlockLog.LOG_AXIS, EnumAxis.Y));
+        registerItemModel(RUBBER_LOG);
         registerItemModel(RUBBER_LEAVES);
         registerItemModel(RUBBER_SAPLING);
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(RUBBER_SAPLING), 0,

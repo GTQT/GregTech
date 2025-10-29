@@ -69,6 +69,7 @@ public final class ToolItems {
     public static IGTTool SCYTHE;
     public static IGTTool KNIFE;
     public static IGTTool BUTCHERY_KNIFE;
+    public static IGTTool TREE_TAP;
     public static IGTTool DRILL_LV;
     public static IGTTool DRILL_MV;
     public static IGTTool DRILL_HV;
@@ -89,6 +90,7 @@ public final class ToolItems {
     public static IGTTool HARD_HAMMER_HV;
     public static IGTTool HARD_HAMMER_EV;
     public static IGTTool HARD_HAMMER_IV;
+    public static IGTTool TREE_TAP_LV;
 
     public static IGTTool COMBINATION_WRENCH;
     public static IGTTool UNIVERSAL_SPADE;
@@ -244,6 +246,13 @@ public final class ToolItems {
                 .oreDict(ToolOreDict.toolButcheryKnife)
                 .secondaryOreDicts("craftingToolButcheryKnife")
                 .toolClasses(ToolClasses.BUTCHERY_KNIFE));
+
+        TREE_TAP = register(ItemGTTool.Builder.of(GTValues.MODID, "tree_tap")
+                .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
+                        .attackDamage(1.0F).attackSpeed(-2.8F))
+                .sound(GTSoundEvents.TREE_TAP_TOOL)
+                .toolClasses(ToolClasses.TREE_TAP));
+
         DRILL_LV = register(ItemGTTool.Builder.of(GTValues.MODID, "drill_lv")
                 .toolStats(b -> b.blockBreaking().aoe(1, 1, 0)
                         .attackDamage(1.0F).attackSpeed(-3.2F).durabilityMultiplier(3.0F)
@@ -450,6 +459,13 @@ public final class ToolItems {
                 .oreDict(ToolOreDict.toolHammerDrill)
                 .electric(GTValues.IV)
                 .toolClasses(ToolClasses.PICKAXE, ToolClasses.HARD_HAMMER, ToolClasses.SHOVEL));
+
+        TREE_TAP_LV=register(ItemGTTool.Builder.of(GTValues.MODID, "tree_tap_lv")
+                .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(2)
+                        .attackDamage(1.0F).attackSpeed(3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                .sound(GTSoundEvents.TREE_TAP_TOOL)
+                .toolClasses(ToolClasses.TREE_TAP));
 
         // Combination wrench has many functions, consists of hard hammer and wrench, the original idea
         // of this tool is from GregTech 5 Unofficial.

@@ -85,47 +85,50 @@ public class WorldGenRubberTree extends WorldGenAbstractTree {
 
         soilBlock.onPlantGrow(soilState, world, mutable, pos);
 
-        // leaves
-        final int leavesOnTrunk = 4;
-        final int slimmingPoint = trunkHeight - 2;
-        int leafRadius = 2;
-        for (int yOffset = trunkHeight - leavesOnTrunk; yOffset < topLeafHeight; yOffset++) {
-            if (yOffset == slimmingPoint) {
-                leafRadius = 1;
-            } else if (yOffset == trunkHeight) {
-                leafRadius = 0;
+        // ======== 树脂孔生成逻辑（参考IC2） ========
+        int treeholechance = 25; // 初始25%几率生成树脂孔
+
+        // 生成树干（包含树脂孔）
+        for (int cHeight = 0; cHeight < trunkHeight; cHeight++) {
+            BlockPos cPos = pos.up(cHeight);
+
+            if (rand.nextInt(100) <= treeholechance) {
+                // 生成带树脂的橡胶木
+                treeholechance -= 10; // 每生成一个树脂孔，几率减少10%
+                EnumFacing resinFacing = EnumFacing.HORIZONTALS[rand.nextInt(4)];
+                IBlockState resinLogState = MetaBlocks.RUBBER_LOG.getDefaultState()
+                        .withProperty(BlockRubberLog.STATE, BlockRubberLog.RubberWoodState.getWetState(resinFacing));
+                setBlockAndNotifyAdequately(world, cPos, resinLogState);
+            } else {
+                // 生成普通橡胶木
+                IBlockState logState = MetaBlocks.RUBBER_LOG.getDefaultState()
+                        .withProperty(BlockRubberLog.STATE, BlockRubberLog.RubberWoodState.PLAIN_Y);
+                setBlockAndNotifyAdequately(world, cPos, logState);
             }
 
-            int y = posY + yOffset;
-            for (int xOffset = -leafRadius; xOffset <= leafRadius; xOffset++) {
-                int x = posX + xOffset;
-                for (int zOffset = -leafRadius; zOffset <= leafRadius; zOffset++) {
-                    int z = posZ + zOffset;
-                    if (y <= trunkHeight && xOffset == 0 && zOffset == 0) {
-                        // skip the trunk
-                        continue;
-                    }
-                    if (leafRadius == 0 || Math.abs(xOffset) < leafRadius || Math.abs(zOffset) < leafRadius ||
-                            (yOffset <= slimmingPoint && rand.nextBoolean())) {
-                        mutable.setPos(x, y, z);
-                        IBlockState existing = world.getBlockState(mutable);
-                        if (existing.getBlock().isAir(existing, world, mutable)) {
-                            setBlockAndNotifyAdequately(world, mutable, MetaBlocks.RUBBER_LEAVES.getDefaultState());
+            // 生成叶子（保持原有逻辑）
+            if (trunkHeight < 4 || trunkHeight < 7 && cHeight > 1 || cHeight > 2) {
+                for (int cx = posX - 2; cx <= posX + 2; cx++) {
+                    for (int cz = posZ - 2; cz <= posZ + 2; cz++) {
+                        int chance = Math.max(1, cHeight + 4 - trunkHeight);
+                        int dx = Math.abs(cx - posX);
+                        int dz = Math.abs(cz - posZ);
+                        if (dx <= 1 && dz <= 1 || dx <= 1 && rand.nextInt(chance) == 0 || dz <= 1 && rand.nextInt(chance) == 0) {
+                            mutable.setPos(cx, posY + cHeight, cz);
+                            if (world.isAirBlock(mutable)) {
+                                setBlockAndNotifyAdequately(world, new BlockPos(mutable), MetaBlocks.RUBBER_LEAVES.getDefaultState());
+                            }
                         }
                     }
                 }
             }
         }
 
-        // trunk
-        IBlockState logState = MetaBlocks.RUBBER_LOG.getDefaultState().withProperty(BlockRubberLog.NATURAL, true);
-        mutable.setPos(posX, posY, posZ);
-        for (int y = 0; y < trunkHeight; y++) {
-            mutable.setY(posY + y);
-            IBlockState existing = world.getBlockState(mutable);
-            if (existing.getBlock().isAir(existing, world, mutable) ||
-                    existing.getBlock().isLeaves(existing, world, mutable)) {
-                setBlockAndNotifyAdequately(world, mutable, logState);
+        // 生成顶部叶子
+        for (int i = 0; i <= trunkHeight / 4 + rand.nextInt(2); ++i) {
+            mutable.setPos(posX, posY + trunkHeight + i, posZ);
+            if (world.isAirBlock(mutable)) {
+                setBlockAndNotifyAdequately(world, new BlockPos(mutable), MetaBlocks.RUBBER_LEAVES.getDefaultState());
             }
         }
 
