@@ -91,7 +91,7 @@ public class ChemicalBathRecipes {
 
         MIXER_RECIPES.recipeBuilder()
                 .input(dust, Lapis,9)
-                .fluidInputs(Water.getFluid(1000))
+                .fluidInputs(DistilledWater.getFluid(1000))
                 .fluidOutputs(WaterCoolant.getFluid(1000))
                 .duration(200)
                 .EUt(VA[MV]).buildAndRegister();
@@ -105,12 +105,6 @@ public class ChemicalBathRecipes {
 
     public static void ChemicalBathCoolMaterial(Material material)
     {
-        BATH_CONDENSER_RECIPES.recipeBuilder()
-                .input(ingotHot, material)
-                .fluidInputs(DistilledWater.getFluid(400))
-                .output(OrePrefix.ingot, material)
-                .duration(1200).EUt(VA[MV]).buildAndRegister();
-
         BATH_CONDENSER_RECIPES.recipeBuilder()
                 .input(ingotHot, material)
                 .fluidInputs(WaterCoolant.getFluid(100))
