@@ -10,15 +10,12 @@ import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityUIFactory;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.custom.QuantumStorageRenderer;
 import gregtech.common.mui.widget.GTItemSlot;
-
-import lombok.Getter;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.I18n;
@@ -53,6 +50,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
+import lombok.Getter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -147,6 +145,9 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
         super.update();
         EnumFacing currentOutputFacing = getOutputFacing();
         if (!getWorld().isRemote) {
+            if (this.coolDown > 0) {
+                this.coolDown--;
+            }
             if (shouldTransferImport()) {
                 ItemStack inputStack = importItems.getStackInSlot(0);
                 ItemStack outputStack = exportItems.getStackInSlot(0);
@@ -191,7 +192,8 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_total", maxStoredItems));
 
@@ -530,14 +532,9 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
     public boolean onRightClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                 CuboidRayTraceResult hitResult) {
         if (facing == this.getFrontFacing()) {
-
             if (playerIn.isSneaking() && openGUIOnRightClick()) {
                 if (getWorld() != null && !getWorld().isRemote) {
-                    if (usesMui2()) {
-                        MetaTileEntityGuiFactory.open(playerIn, this);
-                    } else {
-                        MetaTileEntityUIFactory.INSTANCE.openUI(getHolder(), (EntityPlayerMP) playerIn);
-                    }
+                    MetaTileEntityUIFactory.INSTANCE.openUI(getHolder(), (EntityPlayerMP) playerIn);
                 }
                 return true;
             }
@@ -554,10 +551,11 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
                 //全部转移就是转移玩家背包
                 var playerInv = new PlayerMainInvWrapper(playerIn.inventory);
                 GTTransferUtils.moveInventoryItems(playerInv, qChestInv);
+
+                markDirty();
             } else {
                 refreshCoolDown();
 
-                //应该插入玩家手持物品
                 ItemStack sourceStack = playerIn.getHeldItem(hand);
 
                 ItemStack candidate = qChestInv.insertItem(1, sourceStack, true);
@@ -565,6 +563,8 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
 
                 ItemStack remining = qChestInv.insertItem(1, sourceStack, false);
                 sourceStack.setCount(remining.getCount());
+
+                markDirty();
             }
             return true;
         }
@@ -583,7 +583,7 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
             ItemStack stack = getOutputItemInventory().extractItem(0,
                     player.isSneaking() ? candidate.getMaxStackSize() : 1, false);
             giveItemToPlayer(player, stack, player.inventory.currentItem);
-
+            markDirty();
         }
 
         super.onLeftClick(player, facing, hitResult);
