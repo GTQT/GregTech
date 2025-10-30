@@ -51,6 +51,7 @@ import static gregtech.common.blocks.BlockTurbineCasing.TurbineCasingType.*;
 import static gregtech.common.blocks.BlockWarningSign.SignType.*;
 import static gregtech.common.blocks.BlockWarningSign1.SignType.*;
 import static gregtech.common.blocks.BlockWireCoil.CoilType.CUPRONICKEL;
+import static gregtech.common.metatileentities.MetaTileEntities.SEMI_FLUID_GENERATOR;
 import static gregtech.loaders.recipe.CraftingComponent.*;
 import static gtqt.common.items.GTQTMetaItems.CASTING_MOLD_EMPTY;
 
@@ -799,6 +800,27 @@ public class MetaTileEntityLoader {
                 new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV), 'W',
                 new UnificationEntry(OrePrefix.cableGtSingle, Materials.Gold), 'P',
                 new UnificationEntry(OrePrefix.pipeNormalFluid, Materials.StainlessSteel));
+
+        ModHandler.addShapedRecipe(true, "semi_fluid_generator_lv", SEMI_FLUID_GENERATOR[0].getStackForm(),
+                "PCP", "EME", "GWG", 'M', MetaTileEntities.HULL[GTValues.LV].getStackForm(), 'P',
+                MetaItems.ELECTRIC_PISTON_LV, 'E', MetaItems.ELECTRIC_PUMP_LV, 'C',
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.LV), 'W',
+                new UnificationEntry(OrePrefix.cableGtSingle, Materials.Tin), 'G',
+                new UnificationEntry(OrePrefix.gear, Materials.Steel));
+
+        ModHandler.addShapedRecipe(true, "semi_fluid_generator_mv", SEMI_FLUID_GENERATOR[1].getStackForm(),
+                "PCP", "EME", "GWG", 'M', MetaTileEntities.HULL[GTValues.MV].getStackForm(), 'P',
+                MetaItems.ELECTRIC_PISTON_MV, 'E', MetaItems.ELECTRIC_PUMP_MV, 'C',
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.MV), 'W',
+                new UnificationEntry(OrePrefix.cableGtSingle, Materials.Copper), 'G',
+                new UnificationEntry(OrePrefix.gear, Materials.Aluminium));
+
+        ModHandler.addShapedRecipe(true, "semi_fluid_generator_hv", SEMI_FLUID_GENERATOR[2].getStackForm(),
+                "PCP", "EME", "GWG", 'M', MetaTileEntities.HULL[GTValues.HV].getStackForm(), 'P',
+                MetaItems.ELECTRIC_PISTON_HV, 'E', MetaItems.ELECTRIC_PUMP_HV, 'C',
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV), 'W',
+                new UnificationEntry(OrePrefix.cableGtSingle, Materials.Gold), 'G',
+                new UnificationEntry(OrePrefix.gear, Materials.StainlessSteel));
 
         ModHandler.addShapedRecipe(true, "workbench_bronze", MetaTileEntities.WORKBENCH.getStackForm(), "CSC", "PWP",
                 "PsP", 'C', OreDictNames.chestWood, 'W', new ItemStack(Blocks.CRAFTING_TABLE), 'S',

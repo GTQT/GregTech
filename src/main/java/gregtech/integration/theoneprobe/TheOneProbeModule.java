@@ -41,6 +41,7 @@ public class TheOneProbeModule extends IntegrationSubmodule {
         oneProbe.registerProvider(new PrimitivePumpInfoProvider());
         oneProbe.registerProvider(new CoverInfoProvider());
         oneProbe.registerProvider(new BlockOreInfoProvider());
+        oneProbe.registerProvider(new RubberLogInfoProvider());
         oneProbe.registerProvider(new LampInfoProvider());
         oneProbe.registerProvider(new LDPipeProvider());
         oneProbe.registerProvider(new LaserContainerInfoProvider());

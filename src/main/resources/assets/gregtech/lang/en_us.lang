@@ -127,6 +127,10 @@ gregtech.top.unit.fluid_buckets=kL
 
 gregtech.top.block_drops=Drops
 
+gregtech.top.has_resin=Has Resin
+gregtech.top.resin_ready=Ready to Collect
+gregtech.top.regenerating=Resin Regenerating
+
 gregtech.top.ld_pipe_no_network=No Pipeline Found
 gregtech.top.ld_pipe_connected=Pipeline Connected
 gregtech.top.ld_pipe_incomplete=Incomplete Pipeline
@@ -3233,6 +3237,23 @@ gregtech.machine.gas_turbine.mv.name=Advanced Gas Turbine
 gregtech.machine.gas_turbine.hv.name=Turbo Gas Turbine
 gregtech.machine.gas_turbine.ev.name=Burst Gas Turbine
 gregtech.machine.gas_turbine.iv.name=Detonation Gas Turbine
+
+
+gregtech.machine.semi_fluid_generator.tooltip=Can even this sticky stuff burn?
+
+gregtech.machine.semi_fluid_generator.lv.name=Basic Semi-Fluid Generator
+gregtech.machine.semi_fluid_generator.mv.name=Advanced Semi-Fluid Generator
+gregtech.machine.semi_fluid_generator.hv.name=Turbine Semi-Fluid Generator
+gregtech.machine.semi_fluid_generator.ev.name=Blast Jet Semi-Fluid Generator
+gregtech.machine.semi_fluid_generator.iv.name=Detonation Semi-Fluid Generator
+
+gregtech.machine.plasma_generator.tooltip=Minature Sun
+
+gregtech.machine.plasma_generator.ev.name=Plasma Generator-MKI
+gregtech.machine.plasma_generator.iv.name=Plasma Generator-MKII
+gregtech.machine.plasma_generator.luv.name=Plasma Generator-MKIII
+gregtech.machine.plasma_generator.zpm.name=Plasma Generator-MKIV
+gregtech.machine.plasma_generator.uv.name=Plasma Generator-MKV
 
 gregtech.machine.magic_energy_absorber.name=Magic Energy Absorber
 gregtech.machine.magic_energy_absorber.tooltip=Max Voltage OUT: §a2048 §7(§5EV§7)/nCollects energy from end crystals on naturally generated obsidian pillars in the End within 64 blocks./nEach ender crystal adds 32 EU/t to output/nPlace Dragon Egg on top to amplify output/n/nWhen amplified:/nEach ender crystal adds 128 EU/t

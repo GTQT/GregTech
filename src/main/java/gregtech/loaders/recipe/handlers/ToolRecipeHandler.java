@@ -52,7 +52,9 @@ public class ToolRecipeHandler {
     public static void register() {
         OrePrefix.plate.addProcessingHandler(PropertyKey.TOOL, ToolRecipeHandler::processTool);
         OrePrefix.plate.addProcessingHandler(PropertyKey.TOOL, ToolRecipeHandler::processElectricTool);
+        OrePrefix.pipeSmallFluid.addProcessingHandler(PropertyKey.TOOL, ToolRecipeHandler::processTreeTap);
     }
+
 
     public static void initializeMetaItems() {
         motorItems.put(GTValues.LV, MetaItems.ELECTRIC_MOTOR_LV);
@@ -103,6 +105,7 @@ public class ToolRecipeHandler {
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadBuzzSaw, ToolItems.BUZZSAW);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_LV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.pipeSmallFluid, ToolItems.TREE_TAP_LV);
 
         ForgeRegistries.RECIPES
                 .register(new ToolHeadReplaceRecipe().setRegistryName(new ResourceLocation(MODID, "replacetoolhead")));
@@ -235,6 +238,13 @@ public class ToolRecipeHandler {
                             'P', plate,
                             'T', new UnificationEntry(OrePrefix.screw, material),
                             'S', rod);
+
+                    addToolRecipe(material, ToolItems.TREE_TAP, false,
+                            "STS", "HHH", "Pfh",
+                            'P', plate,
+                            'T', new UnificationEntry(OrePrefix.gearSmall, material),
+                            'H', new UnificationEntry(OrePrefix.pipeSmallFluid, Wood),
+                            'S', stick);
                 }
             }
 
@@ -278,6 +288,12 @@ public class ToolRecipeHandler {
                     'F', new ItemStack(Items.FLINT));
         }
     }
+    private static void processTreeTap(OrePrefix orePrefix, Material material, MaterialToolProperty property) {
+        // tree tap
+        OrePrefix toolPrefix = OrePrefix.pipeSmallFluid;
+        addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.TREE_TAP_LV });
+    }
+
 
     private static void processElectricTool(OrePrefix prefix, Material material, MaterialToolProperty property) {
         final long voltageMultiplier = material.getBlastTemperature() > 2800 ? VA[LV] : VA[ULV];
@@ -302,6 +318,7 @@ public class ToolRecipeHandler {
             addHammerDrillRecipe(toolPrefix, material,
                     new IGTTool[] { ToolItems.HARD_HAMMER_LV, ToolItems.HARD_HAMMER_MV, ToolItems.HARD_HAMMER_HV,
                             ToolItems.HARD_HAMMER_EV, ToolItems.HARD_HAMMER_IV });
+
             // chainsaw
             toolPrefix = OrePrefix.toolHeadChainsaw;
             ModHandler.addShapedRecipe(String.format("chainsaw_head_%s", material),
@@ -358,6 +375,7 @@ public class ToolRecipeHandler {
                     "fR", " h",
                     'R', new UnificationEntry(OrePrefix.stickLong, material));
         }
+
     }
 
     public static void addElectricToolRecipe(OrePrefix toolHead, Material material, IGTTool[] toolItems) {

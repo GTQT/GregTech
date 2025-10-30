@@ -284,6 +284,10 @@ public class Textures {
             "generators/gas_turbine");
     public static final OrientedOverlayRenderer STEAM_TURBINE_OVERLAY = new OrientedOverlayRenderer(
             "generators/steam_turbine");
+    public static final OrientedOverlayRenderer SEMI_FLUID_OVERLAY = new OrientedOverlayRenderer(
+            "generators/semi_fluid");
+    public static final OrientedOverlayRenderer PLASMA_TURBINE_OVERLAY = new OrientedOverlayRenderer(
+            "generators/plasma_turbine");
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_OVERLAY = new OrientedOverlayRenderer(
             "machines/world_accelerator");
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_TE_OVERLAY = new OrientedOverlayRenderer(

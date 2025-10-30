@@ -465,6 +465,7 @@ public final class ToolItems {
                         .attackDamage(1.0F).attackSpeed(3.2F)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
                 .sound(GTSoundEvents.TREE_TAP_TOOL)
+                .electric(GTValues.LV)
                 .toolClasses(ToolClasses.TREE_TAP));
 
         // Combination wrench has many functions, consists of hard hammer and wrench, the original idea

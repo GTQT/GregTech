@@ -256,6 +256,8 @@ public class MetaTileEntities {
     public static final SimpleGeneratorMetaTileEntity[] COMBUSTION_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] STEAM_TURBINE = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] GAS_TURBINE = new SimpleGeneratorMetaTileEntity[5];
+    public static final SimpleGeneratorMetaTileEntity[] SEMI_FLUID_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
+    public static final SimpleGeneratorMetaTileEntity[] PLASMA_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
 
     // MULTIBLOCK PARTS SECTION
     public static final MetaTileEntityItemBus[] ITEM_IMPORT_BUS = new MetaTileEntityItemBus[GTValues.V.length -
@@ -793,7 +795,7 @@ public class MetaTileEntities {
         BUFFER[4] = registerMetaTileEntity(934, new MetaTileEntityBuffer(gregtechId("buffer.iv"), 5));
 
         //单方块发电机
-        // Diesel Generator, IDs 935-949
+        // Diesel Generator, IDs 935-939
         COMBUSTION_GENERATOR[0] = registerMetaTileEntity(935,
                 new MetaTileEntitySingleCombustion(gregtechId("combustion_generator.lv"),
                         RecipeMaps.COMBUSTION_GENERATOR_FUELS, Textures.COMBUSTION_GENERATOR_OVERLAY, 1,
@@ -815,39 +817,63 @@ public class MetaTileEntities {
                         RecipeMaps.COMBUSTION_GENERATOR_FUELS, Textures.COMBUSTION_GENERATOR_OVERLAY, 5,
                         GTUtility.genericGeneratorTankSizeFunction));
 
-        // Steam Turbine, IDs 950-964
-        STEAM_TURBINE[0] = registerMetaTileEntity(950,
+        // Steam Turbine, IDs 940-944
+        STEAM_TURBINE[0] = registerMetaTileEntity(940,
                 new MetaTileEntitySingleTurbine(gregtechId("steam_turbine.lv"), RecipeMaps.STEAM_TURBINE_FUELS,
                         Textures.STEAM_TURBINE_OVERLAY, 1, GTUtility.steamGeneratorTankSizeFunction));
-        STEAM_TURBINE[1] = registerMetaTileEntity(951,
+        STEAM_TURBINE[1] = registerMetaTileEntity(941,
                 new MetaTileEntitySingleTurbine(gregtechId("steam_turbine.mv"), RecipeMaps.STEAM_TURBINE_FUELS,
                         Textures.STEAM_TURBINE_OVERLAY, 2, GTUtility.steamGeneratorTankSizeFunction));
-        STEAM_TURBINE[2] = registerMetaTileEntity(952,
+        STEAM_TURBINE[2] = registerMetaTileEntity(942,
                 new MetaTileEntitySingleTurbine(gregtechId("steam_turbine.hv"), RecipeMaps.STEAM_TURBINE_FUELS,
                         Textures.STEAM_TURBINE_OVERLAY, 3, GTUtility.steamGeneratorTankSizeFunction));
-        STEAM_TURBINE[3] = registerMetaTileEntity(953,
+        STEAM_TURBINE[3] = registerMetaTileEntity(943,
                 new MetaTileEntitySingleTurbine(gregtechId("steam_turbine.ev"), RecipeMaps.STEAM_TURBINE_FUELS,
                         Textures.STEAM_TURBINE_OVERLAY, 4, GTUtility.steamGeneratorTankSizeFunction));
-        STEAM_TURBINE[4] = registerMetaTileEntity(954,
+        STEAM_TURBINE[4] = registerMetaTileEntity(944,
                 new MetaTileEntitySingleTurbine(gregtechId("steam_turbine.iv"), RecipeMaps.STEAM_TURBINE_FUELS,
                         Textures.STEAM_TURBINE_OVERLAY, 5, GTUtility.steamGeneratorTankSizeFunction));
 
-        // Gas Turbine, IDs 965-979
-        GAS_TURBINE[0] = registerMetaTileEntity(965,
+        // Gas Turbine, IDs 945-949
+        GAS_TURBINE[0] = registerMetaTileEntity(945,
                 new MetaTileEntitySingleTurbine(gregtechId("gas_turbine.lv"), RecipeMaps.GAS_TURBINE_FUELS,
                         Textures.GAS_TURBINE_OVERLAY, 1, GTUtility.genericGeneratorTankSizeFunction));
-        GAS_TURBINE[1] = registerMetaTileEntity(966,
+        GAS_TURBINE[1] = registerMetaTileEntity(946,
                 new MetaTileEntitySingleTurbine(gregtechId("gas_turbine.mv"), RecipeMaps.GAS_TURBINE_FUELS,
                         Textures.GAS_TURBINE_OVERLAY, 2, GTUtility.genericGeneratorTankSizeFunction));
-        GAS_TURBINE[2] = registerMetaTileEntity(967,
+        GAS_TURBINE[2] = registerMetaTileEntity(947,
                 new MetaTileEntitySingleTurbine(gregtechId("gas_turbine.hv"), RecipeMaps.GAS_TURBINE_FUELS,
                         Textures.GAS_TURBINE_OVERLAY, 3, GTUtility.genericGeneratorTankSizeFunction));
-        GAS_TURBINE[3] = registerMetaTileEntity(968,
+        GAS_TURBINE[3] = registerMetaTileEntity(948,
                 new MetaTileEntitySingleTurbine(gregtechId("gas_turbine.ev"), RecipeMaps.GAS_TURBINE_FUELS,
                         Textures.GAS_TURBINE_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction));
-        GAS_TURBINE[4] = registerMetaTileEntity(969,
+        GAS_TURBINE[4] = registerMetaTileEntity(949,
                 new MetaTileEntitySingleTurbine(gregtechId("gas_turbine.iv"), RecipeMaps.GAS_TURBINE_FUELS,
                         Textures.GAS_TURBINE_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction));
+
+        // 半流质, IDs 950-954
+        SEMI_FLUID_GENERATOR[0] = registerMetaTileEntity(950,
+                new SimpleGeneratorMetaTileEntity(gregtechId("semi_fluid_generator.lv"), RecipeMaps.SEMI_FLUID_GENERATOR_FUELS, Textures.SEMI_FLUID_OVERLAY, 1, GTUtility.genericGeneratorTankSizeFunction));
+        SEMI_FLUID_GENERATOR[1] = registerMetaTileEntity(951,
+                new SimpleGeneratorMetaTileEntity(gregtechId("semi_fluid_generator.mv"), RecipeMaps.SEMI_FLUID_GENERATOR_FUELS, Textures.SEMI_FLUID_OVERLAY, 2, GTUtility.genericGeneratorTankSizeFunction));
+        SEMI_FLUID_GENERATOR[2] = registerMetaTileEntity(952,
+                new SimpleGeneratorMetaTileEntity(gregtechId("semi_fluid_generator.hv"), RecipeMaps.SEMI_FLUID_GENERATOR_FUELS, Textures.SEMI_FLUID_OVERLAY, 3, GTUtility.genericGeneratorTankSizeFunction));
+        SEMI_FLUID_GENERATOR[3] = registerMetaTileEntity(953,
+                new SimpleGeneratorMetaTileEntity(gregtechId("semi_fluid_generator.ev"), RecipeMaps.SEMI_FLUID_GENERATOR_FUELS, Textures.SEMI_FLUID_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction));
+        SEMI_FLUID_GENERATOR[4] = registerMetaTileEntity(954,
+                new SimpleGeneratorMetaTileEntity(gregtechId("semi_fluid_generator.iv"), RecipeMaps.SEMI_FLUID_GENERATOR_FUELS, Textures.SEMI_FLUID_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction));
+
+        // 等离子, IDs 955-959
+        PLASMA_GENERATOR[0] = registerMetaTileEntity(955,
+                new SimpleGeneratorMetaTileEntity(gregtechId("plasma_generator.ev"), RecipeMaps.PLASMA_GENERATOR_FUELS, Textures.PLASMA_TURBINE_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction));
+        PLASMA_GENERATOR[1] = registerMetaTileEntity(956,
+                new SimpleGeneratorMetaTileEntity(gregtechId("plasma_generator.iv"), RecipeMaps.PLASMA_GENERATOR_FUELS, Textures.PLASMA_TURBINE_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction));
+        PLASMA_GENERATOR[2] = registerMetaTileEntity(957,
+                new SimpleGeneratorMetaTileEntity(gregtechId("plasma_generator.luv"), RecipeMaps.PLASMA_GENERATOR_FUELS, Textures.PLASMA_TURBINE_OVERLAY, 6, GTUtility.genericGeneratorTankSizeFunction));
+        PLASMA_GENERATOR[3] = registerMetaTileEntity(958,
+                new SimpleGeneratorMetaTileEntity(gregtechId("plasma_generator.zpm"), RecipeMaps.PLASMA_GENERATOR_FUELS, Textures.PLASMA_TURBINE_OVERLAY, 7, GTUtility.genericGeneratorTankSizeFunction));
+        PLASMA_GENERATOR[4] = registerMetaTileEntity(959,
+                new SimpleGeneratorMetaTileEntity(gregtechId("plasma_generator.uv"), RecipeMaps.PLASMA_GENERATOR_FUELS, Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction));
 
         // Item Collector, IDs 980-983
         ITEM_COLLECTOR[0] = registerMetaTileEntity(980,

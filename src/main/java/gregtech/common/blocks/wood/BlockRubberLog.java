@@ -53,7 +53,7 @@ public class BlockRubberLog extends BlockLog {
         return state.getValue(STATE).ordinal();
     }
 
-    // 修复：重写放置方法，正确处理轴方向
+    // 正确处理轴方向
     @Override
     public @NotNull IBlockState getStateForPlacement(@NotNull World world, @NotNull BlockPos pos, EnumFacing facing,
                                                      float hitX, float hitY, float hitZ,
@@ -69,7 +69,7 @@ public class BlockRubberLog extends BlockLog {
         };
     }
 
-    // 修复：从原版BlockLog复制的方法，用于轴转换
+    // 从原版BlockLog复制的方法，用于轴转换
     public static EnumAxis fromFacingAxis(EnumFacing.Axis axis) {
         return switch (axis) {
             case X -> EnumAxis.X;

@@ -127,6 +127,10 @@ gregtech.top.unit.fluid_buckets=kL
 
 gregtech.top.block_drops=掉落
 
+gregtech.top.has_resin=含有可采集的树脂
+gregtech.top.resin_ready=可采集
+gregtech.top.regenerating=树脂再生中
+
 gregtech.top.ld_pipe_no_network=找不到管路
 gregtech.top.ld_pipe_connected=管路已连接
 gregtech.top.ld_pipe_incomplete=管路不完整
@@ -3229,6 +3233,22 @@ gregtech.machine.gas_turbine.mv.name=进阶燃气轮机
 gregtech.machine.gas_turbine.hv.name=涡轮燃气轮机
 gregtech.machine.gas_turbine.ev.name=爆喷燃气轮机
 gregtech.machine.gas_turbine.iv.name=爆震燃气轮机
+
+gregtech.machine.semi_fluid_generator.tooltip=黏糊糊的也能烧？
+
+gregtech.machine.semi_fluid_generator.lv.name=基础半流质发电机
+gregtech.machine.semi_fluid_generator.mv.name=进阶半流质发电机
+gregtech.machine.semi_fluid_generator.hv.name=涡轮半流质发电机
+gregtech.machine.semi_fluid_generator.ev.name=爆喷半流质发电机
+gregtech.machine.semi_fluid_generator.iv.name=爆震半流质发电机
+
+gregtech.machine.plasma_generator.tooltip=迷你小太阳
+
+gregtech.machine.plasma_generator.ev.name=等离子发电机-MKI
+gregtech.machine.plasma_generator.iv.name=等离子发电机-MKII
+gregtech.machine.plasma_generator.luv.name=等离子发电机-MKIII
+gregtech.machine.plasma_generator.zpm.name=等离子发电机-MKIV
+gregtech.machine.plasma_generator.uv.name=等离子发电机-MKV
 
 
 gregtech.machine.magic_energy_absorber.name=魔法能源吸收器
