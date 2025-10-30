@@ -18,6 +18,7 @@ public abstract class LangKeyMixin extends BaseKey {
 
     @Shadow
     private long time;
+
     @ModifyExpressionValue(method = "getFormatted",
                            at = @At(value = "INVOKE",
                                     target = "Lcom/cleanroommc/modularui/drawable/text/FontRenderHelper;formatArgs([Ljava/lang/Object;Lcom/cleanroommc/modularui/drawable/text/FormattingState;Ljava/lang/String;Z)Ljava/lang/String;"))

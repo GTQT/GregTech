@@ -312,28 +312,6 @@ public abstract class Widget {
     }
 
     @SideOnly(Side.CLIENT)
-    public static void drawItemStack(ItemStack itemStack, int x, int y, @Nullable String altTxt) {
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(0.0F, 0.0F, 32.0F);
-        GlStateManager.color(1F, 1F, 1F, 1F);
-        GlStateManager.enableDepth();
-        GlStateManager.enableRescaleNormal();
-        GlStateManager.enableLighting();
-        RenderHelper.enableGUIStandardItemLighting();
-        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0f, 240.0f);
-        Minecraft mc = Minecraft.getMinecraft();
-        RenderItem itemRender = mc.getRenderItem();
-        itemRender.renderItemAndEffectIntoGUI(itemStack, x, y);
-        itemRender.renderItemOverlayIntoGUI(mc.fontRenderer, itemStack, x, y, altTxt);
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.disableLighting();
-        GlStateManager.color(1F, 1F, 1F, 1F);
-        GlStateManager.popMatrix();
-        GlStateManager.enableBlend();
-        GlStateManager.disableDepth();
-    }
-
-    @SideOnly(Side.CLIENT)
     public static List<String> getItemToolTip(ItemStack itemStack) {
         Minecraft mc = Minecraft.getMinecraft();
         ITooltipFlag flag = mc.gameSettings.advancedItemTooltips ? ITooltipFlag.TooltipFlags.ADVANCED :
