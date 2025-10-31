@@ -54,7 +54,7 @@ public class MetaTileEntityFisher extends TieredMetaTileEntity {
     public MetaTileEntityFisher(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
         this.inventorySize = (tier + 1) * (tier + 1);
-        this.fishingTicks = 1000 - tier * 200L;
+        this.fishingTicks = 1000 - tier * 100L;
         this.energyAmountPerFish = GTValues.V[tier];
         initializeInventory();
     }

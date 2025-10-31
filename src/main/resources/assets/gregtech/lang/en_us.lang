@@ -6187,6 +6187,7 @@ gregtech.universal.tooltip.voltage_out=§aVoltage OUT: §f%,d EU/t (%s§f)
 gregtech.universal.tooltip.max_voltage_out=§aMax Voltage OUT: §f%,d (%s§f)
 gregtech.universal.tooltip.voltage_in_out=§aVoltage IN/OUT: §f%,d EU/t (%s§f)
 gregtech.universal.tooltip.max_voltage_in_out=§aMax Voltage IN/OUT: §f%,d EU/t (%s§f)
+gregtech.universal.tooltip.generation_efficiency=§eGeneration Efficiency: §f%.1f%%
 gregtech.universal.tooltip.amperage_in=§eAmperage IN: §f%,dA
 gregtech.universal.tooltip.amperage_in_till=§eAmperage IN up to: §f%,dA
 gregtech.universal.tooltip.amperage_out=§eAmperage OUT: §f%,dA

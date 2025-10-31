@@ -95,6 +95,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean invalidInputsForRecipes;
     protected boolean hasPerfectOC;
     private double euDiscount = -1;
+    private double euEfficiency = 1;
     private double speedBonus = -1;
     private boolean allowOverclocking = true;
     @Setter @Getter
@@ -206,6 +207,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return true if the energy can/was drained, otherwise false
      */
     protected boolean drawEnergy(long recipeEUt, boolean simulate) {
+        recipeEUt = appendEfficiency(recipeEUt);
         // this should be the ONLY time eut is negative!
         if (consumesEnergy()) recipeEUt = -recipeEUt;
         long resultEnergy = getEnergyStored() + recipeEUt;
@@ -692,6 +694,31 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     public double getEUtDiscount() {
         return euDiscount;
+    }
+
+    /**
+     * 设置能源效率值
+     * @param efficiency 能源效率值，用于调整能耗计算
+     */
+    public void setEnergyEfficiency(double efficiency) {
+        euEfficiency = efficiency;
+    }
+
+    /**
+     * 获取当前设置的能源效率值
+     * @return 当前能源效率值
+     */
+    public double getEnergyEfficiency() {
+        return euEfficiency;
+    }
+
+    /**
+     * 根据能源效率值调整配方的EU能耗
+     * @param recipeEUt 原始配方EU能耗值
+     * @return 应用能源效率调整后的EU能耗值
+     */
+    public long appendEfficiency(long recipeEUt) {
+        return (long) (recipeEUt * getEnergyEfficiency());
     }
 
     /**

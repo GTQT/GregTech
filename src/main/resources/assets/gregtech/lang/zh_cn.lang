@@ -6184,6 +6184,7 @@ gregtech.universal.tooltip.voltage_out=§a输出电压：§f%,d EU/t（%s§f）
 gregtech.universal.tooltip.max_voltage_out=§a最大输出电压：§f%,d（%s§f）
 gregtech.universal.tooltip.voltage_in_out=§a输入/输出电压：§f%,d EU/t（%s§f）
 gregtech.universal.tooltip.max_voltage_in_out=§a最大输入/输出电压：§f%,d EU/t（%s§f）
+gregtech.universal.tooltip.generation_efficiency=§e发电效率：§f%.1f%%
 gregtech.universal.tooltip.amperage_in=§e输入电流：§f%,dA
 gregtech.universal.tooltip.amperage_in_till=§e输入电流上限：§f%,dA
 gregtech.universal.tooltip.amperage_out=§e输出电流：§f%,dA

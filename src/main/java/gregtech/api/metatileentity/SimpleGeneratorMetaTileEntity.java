@@ -17,6 +17,8 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.PipelineUtil;
 
+import lombok.Getter;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -44,24 +46,38 @@ import java.util.function.Function;
 
 public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity implements IActiveOutputSide {
 
+    //发电效率表
+    //0 100%
+    //1 95%
+    //2 90%
+    //3 85%
+    //4 80%
+    //5 60%
+    public static final double[] efficiency = { 1, 0.95, 0.9, 0.85, 0.8, 0.6 };
     private static final int FONT_HEIGHT = 9; // Minecraft's FontRenderer FONT_HEIGHT value
+    @Getter
+    boolean enableGenerationEfficiency;
 
     public SimpleGeneratorMetaTileEntity(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
                                          ICubeRenderer renderer, int tier,
-                                         Function<Integer, Integer> tankScalingFunction) {
-        this(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, false);
+                                         Function<Integer, Integer> tankScalingFunction,
+                                         boolean enableGenerationEfficiency) {
+        this(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, false, enableGenerationEfficiency);
     }
 
     public SimpleGeneratorMetaTileEntity(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
                                          ICubeRenderer renderer, int tier,
-                                         Function<Integer, Integer> tankScalingFunction, boolean handlesRecipeOutputs) {
+                                         Function<Integer, Integer> tankScalingFunction, boolean handlesRecipeOutputs,
+                                         boolean enableGenerationEfficiency) {
         super(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, handlesRecipeOutputs);
+        this.enableGenerationEfficiency = enableGenerationEfficiency;
+        if (this.enableGenerationEfficiency) workable.setEnergyEfficiency(efficiency[tier]);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new SimpleGeneratorMetaTileEntity(metaTileEntityId, workable.getRecipeMap(), renderer, getTier(),
-                getTankScalingFunction(), handlesRecipeOutputs);
+                getTankScalingFunction(), handlesRecipeOutputs, enableGenerationEfficiency);
     }
 
     @Override
@@ -80,11 +96,6 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     protected void reinitializeEnergyContainer() {
         super.reinitializeEnergyContainer();
         ((EnergyContainerHandler) this.energyContainer).setSideOutputCondition(side -> side == getFrontFacing());
-    }
-
-    @Override
-    public boolean hasFrontFacing() {
-        return true;
     }
 
     @Override
@@ -188,6 +199,10 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
         if (recipeMap.getMaxFluidInputs() > 0 || recipeMap.getMaxFluidOutputs() > 0)
             tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity",
                     this.getTankScalingFunction().apply(getTier())));
+        if (enableGenerationEfficiency)
+            tooltip.add(I18n.format("gregtech.universal.tooltip.generation_efficiency", efficiency[getTier()]*100));
+        else
+            tooltip.add(I18n.format("gregtech.universal.tooltip.generation_efficiency",100.0));
     }
 
     @Override
