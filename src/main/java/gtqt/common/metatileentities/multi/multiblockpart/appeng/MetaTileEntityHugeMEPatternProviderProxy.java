@@ -1,4 +1,4 @@
-package gtqt.common.metatileentities.multi.multiblockpart;
+package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechTileCapabilities;

@@ -34,7 +34,7 @@ import gtqt.common.items.behaviors.ProgrammableCircuit;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 
 import java.util.Collections;

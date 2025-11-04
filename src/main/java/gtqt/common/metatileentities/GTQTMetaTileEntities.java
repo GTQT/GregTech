@@ -6,8 +6,8 @@ import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDu
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProvider;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeMEPatternProviderProxy;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
@@ -176,9 +176,8 @@ public class GTQTMetaTileEntities {
                         new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_262144a." + tier),
                                 i, 262144, false));
                 WIRELESS_INPUT_ENERGY_HATCH_1048576A[i] = registerMetaTileEntity(3000 + 150 + i,
-                        new MetaTileEntityWirelessEnergyHatch(
-                                gregtechId("wireless_energy_hatch.input_1048576a." + tier), i, 1048576, false));
-
+                        new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_1048576a." + tier),
+                                i, 1048576, false));
                 WIRELESS_OUTPUT_ENERGY_HATCH[i] = registerMetaTileEntity(3000 + 165 + i,
                         new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output." + tier), i, 2,
                                 true));

@@ -138,13 +138,14 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
-    private static final int BASE_TANK_SIZE = 8000;
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
             .asIcon().size(16);
     private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
+
     private final int numSlots;
     private final int tankSize;
+    private static final int BASE_TANK_SIZE = 8000;
     // only holding this for convenience
     private final FluidTankList fluidTankList;
     private final List<ICraftingPatternDetails> patternDetails;
@@ -553,8 +554,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
             }
         }
-        removeFromGridCache();
-        pushToGridCache();
+        if (useProxy) {
+            removeFromGridCache();
+            pushToGridCache();
+        }
     }
 
     @Override
