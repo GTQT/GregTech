@@ -518,11 +518,6 @@ public class MetaTileEntityMaintenanceHatch extends MetaTileEntityMultiblockPart
     }
 
     @Override
-    public boolean canPartShare() {
-        return false;
-    }
-
-    @Override
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
         if (ConfigHolder.machines.enableMaintenance) {
             super.getSubItems(creativeTab, subItems);
@@ -533,7 +528,6 @@ public class MetaTileEntityMaintenanceHatch extends MetaTileEntityMultiblockPart
     public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.universal.disabled"));
         if (isConfigurable) {
             tooltip.add(I18n.format("gregtech.maintenance.configurable.tooltip_basic"));
             if (!TooltipHelper.isShiftDown()) {

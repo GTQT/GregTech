@@ -47,12 +47,6 @@ public class MetaTileEntityAutoMaintenanceHatch extends MetaTileEntityMultiblock
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
-        super.addInformation(stack, world, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.universal.disabled"));
-    }
-
-    @Override
     public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
         tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
         tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
@@ -108,11 +102,6 @@ public class MetaTileEntityAutoMaintenanceHatch extends MetaTileEntityMultiblock
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         abilityInstances.add(this);
-    }
-
-    @Override
-    public boolean canPartShare() {
-        return false;
     }
 
     @Override
