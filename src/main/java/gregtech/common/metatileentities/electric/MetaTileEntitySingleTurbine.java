@@ -20,23 +20,23 @@ public class MetaTileEntitySingleTurbine extends SimpleGeneratorMetaTileEntity {
     public MetaTileEntitySingleTurbine(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
                                        ICubeRenderer renderer, int tier,
                                        Function<Integer, Integer> tankScalingFunction,
-                                       boolean enableGenerationEfficiency) {
-        this(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, false, enableGenerationEfficiency);
+                                       double efficiency) {
+        this(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, false, efficiency);
     }
 
     public MetaTileEntitySingleTurbine(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
                                        ICubeRenderer renderer, int tier,
                                        Function<Integer, Integer> tankScalingFunction,
-                                       boolean handlesRecipeOutputs, boolean enableGenerationEfficiency) {
+                                       boolean handlesRecipeOutputs, double efficiency) {
         super(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, handlesRecipeOutputs,
-                enableGenerationEfficiency);
+                efficiency);
 
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntitySingleTurbine(metaTileEntityId, recipeMap, renderer, getTier(),
-                getTankScalingFunction(),false, isEnableGenerationEfficiency());
+                getTankScalingFunction(),false, getEfficiency());
     }
 
     @Override

@@ -651,6 +651,66 @@ public class GTUtility {
 
     public static final Function<Integer, Integer> genericGeneratorTankSizeFunction = tier -> Math
             .min(4000 * (1 << (tier - 1)), 16000);
+    /**
+     * 通用发电机效率函数，根据发电机等级返回对应的效率值
+     * 发电效率表：
+     * 0级：100%
+     * 1级：95%
+     * 2级：90%
+     * 3级：85%
+     * 4级：80%
+     * 5级：60%
+     * 其他级别：100%
+     *
+     * @param tier 发电机等级
+     * @return 对应的效率值（0.0-1.0之间）
+     */
+    public static final Function<Integer, Double> genericGeneratorEfficiencyFunction = tier -> {
+        //发电效率表
+        //0 100%
+        //1 95%
+        //2 90%
+        //3 85%
+        //4 80%
+        //5 60%
+
+        return switch (tier) {
+            case 0 -> 1.00;
+            case 1 -> 0.95;
+            case 2 -> 0.90;
+            case 3 -> 0.85;
+            case 4 -> 0.80;
+            case 5 -> 0.60;
+            default -> 1.0;
+        };
+    };
+
+    /**
+     * 带偏移量的通用发电机效率函数工厂方法
+     * 创建一个效率函数，该函数会将输入的等级减去指定偏移量后再计算效率
+     * 例如：offset=5时，输入tier=5会对应效率表中的0级（100%效率）
+     *
+     * @param offset 偏移量，用于调整输入等级与效率表的对应关系
+     * @return 返回一个新的效率计算函数
+     */
+    //Function<Integer, Double> efficiencyFromTier5 = genericGeneratorEfficiencyFunctionWithOffset(5);
+    public static Function<Integer, Double> genericGeneratorEfficiencyFunctionWithOffset(int offset) {
+        return tier -> {
+            // 调整等级，减去偏移量
+            int adjustedTier = tier - offset;
+
+            return switch (adjustedTier) {
+                case 0 -> 1.00;
+                case 1 -> 0.95;
+                case 2 -> 0.90;
+                case 3 -> 0.85;
+                case 4 -> 0.80;
+                case 5 -> 0.60;
+                default -> 1.0;
+
+            };
+        };
+    }
 
     public static ItemStack toItem(IBlockState state) {
         return toItem(state, 1);
