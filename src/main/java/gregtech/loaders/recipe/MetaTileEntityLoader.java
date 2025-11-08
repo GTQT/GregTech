@@ -1008,8 +1008,14 @@ public class MetaTileEntityLoader {
                 CraftingComponent.HULL, 'W', CraftingComponent.CABLE, 'S', CraftingComponent.STICK_DISTILLATION, 'C', CraftingComponent.CONVEYOR,
                 'M', CraftingComponent.MOTOR, 'I', MetaItems.ITEM_FILTER.getStackForm());
 
-        registerMachineRecipe(MetaTileEntities.MUFFLER_HATCH, "HM", "PR", 'H', HULL, 'M', MOTOR, 'P', PIPE_NORMAL, 'R',
-                ROTOR);
+        MetaTileEntityLoader.registerMachineRecipe(true,MetaTileEntities.MUFFLER_HATCH,
+                "AMA", "PHP","ARA",
+                'H', CraftingComponent.HULL,
+                'A', CraftingComponent.PLATE,
+                'M', CraftingComponent.MOTOR,
+                'P', CraftingComponent.PIPE_NORMAL,
+                'R', CraftingComponent.ROTOR
+        );
 
         registerMachineRecipe(ArrayUtils.subarray(MetaTileEntities.DIODES, GTValues.ULV, GTValues.HV), "CDC", "DHD",
                 "PDP", 'H', HULL, 'D', new UnificationEntry(OrePrefix.component, MarkerMaterials.Component.Diode), 'P',

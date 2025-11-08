@@ -2,6 +2,9 @@ package gtqt.common.metatileentities;
 
 import gregtech.api.GTValues;
 
+import gregtech.api.GregTechAPI;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMufflerHatch;
+
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
@@ -10,6 +13,7 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHu
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEMufflerHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
@@ -38,7 +42,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityHugeMEPatternProvider[] HUGE_ME_PATTERN_PROVIDER = new MetaTileEntityHugeMEPatternProvider[GTValues.V.length - 2];
 
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
-
+    public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
 
     public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
@@ -137,6 +141,13 @@ public class GTQTMetaTileEntities {
             int tier = i+1;
             THREAD_HATCH[i] = registerMetaTileEntity(2860 + i, new MetaTileEntityThreadHatch(
                     gregtechId(String.format("thread_hatch.%s", GTValues.VN[tier])), tier));
+        }
+        // ME Muffler Hatches, IDs 2875-2890
+        for (int i = 0; i < ME_MUFFLER_HATCH.length - 1; i++) {
+            int tier = i+1;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            ME_MUFFLER_HATCH[i] = new MetaTileEntityMEMufflerHatch(gregtechId("me_muffler_hatch." + voltageName), tier);
+            registerMetaTileEntity(2875 + i, ME_MUFFLER_HATCH[i]);
         }
 
         //无线能源仓注册 ID 3000+

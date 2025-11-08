@@ -12,6 +12,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeBuilder;
@@ -1153,6 +1154,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
         int recipeTier = GTUtility.getTierByVoltage(recipe.getEUt());
         int machineTier = getOverclockForTier(getMaximumOverclockVoltage());
+
+        if(metaTileEntity instanceof MultiblockWithDisplayBase multiblockWithDisplayBase){
+            multiblockWithDisplayBase.setRecoveryItems(recipe.getMufflerDustList());
+        }
 
         RecipeMap<?> map = getRecipeMap();
         if (map != null) {

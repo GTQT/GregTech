@@ -11,6 +11,9 @@ import gregtech.api.recipes.ingredients.GTRecipeInput;
 import gregtech.api.recipes.properties.RecipeProperty;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.RecipePropertyStorageImpl;
+import gregtech.api.unification.OreDictUnifier;
+import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.ItemStackHashStrategy;
 import gregtech.integration.groovy.GroovyScriptModule;
@@ -71,6 +74,7 @@ public class Recipe {
 
     private final List<GTRecipeInput> inputs;
     private final List<ItemStack> outputs;
+    private final List<ItemStack> mufflerDustList;
 
     /**
      * A chance of 10000 equals 100%
@@ -109,6 +113,7 @@ public class Recipe {
                   List<GTRecipeInput> fluidInputs,
                   List<FluidStack> fluidOutputs,
                   @NotNull ChancedOutputList<FluidStack, ChancedFluidOutput> chancedFluidOutputs,
+                  List<ItemStack> mufflerDustList,
                   int duration,
                   long EUt,
                   boolean hidden,
@@ -122,6 +127,11 @@ public class Recipe {
         } else {
             this.outputs = new ArrayList<>(outputs);
         }
+        if(mufflerDustList.isEmpty()){
+            this.mufflerDustList= new ArrayList<>(
+                    Collections.singleton(OreDictUnifier.get(OrePrefix.dustTiny, Materials.Ash)));
+        } else this.mufflerDustList = new ArrayList<>(mufflerDustList);
+
         this.chancedOutputs = chancedOutputs;
         this.chancedFluidOutputs = chancedFluidOutputs;
         this.fluidInputs = GTRecipeInputCache.deduplicateInputs(fluidInputs);
@@ -138,7 +148,7 @@ public class Recipe {
     @NotNull
     public Recipe copy() {
         return new Recipe(this.inputs, this.outputs, this.chancedOutputs, this.fluidInputs,
-                this.fluidOutputs, this.chancedFluidOutputs, this.duration,
+                this.fluidOutputs, this.chancedFluidOutputs, this.mufflerDustList,this.duration,
                 this.EUt, this.hidden, this.isCTRecipe, this.recipePropertyStorage, this.recipeCategory);
     }
 
@@ -437,6 +447,7 @@ public class Recipe {
                 .append("chancedOutputs", chancedOutputs)
                 .append("fluidInputs", fluidInputs)
                 .append("fluidOutputs", fluidOutputs)
+                .append("mufflerDustList", mufflerDustList)
                 .append("duration", duration)
                 .append("EUt", EUt)
                 .append("hidden", hidden)
@@ -693,7 +704,9 @@ public class Recipe {
 
         return outputs;
     }
-
+    public List<ItemStack> getMufflerDustList() {
+        return mufflerDustList;
+    }
     public int getDuration() {
         return duration;
     }

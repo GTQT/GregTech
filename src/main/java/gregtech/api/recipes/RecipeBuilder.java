@@ -79,6 +79,8 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
     protected final List<FluidStack> fluidOutputs;
     protected final List<ChancedFluidOutput> chancedFluidOutputs;
 
+    protected final List<ItemStack> mufflerDustList;
+
     protected ChancedOutputLogic chancedOutputLogic = ChancedOutputLogic.OR;
     protected ChancedOutputLogic chancedFluidOutputLogic = ChancedOutputLogic.OR;
 
@@ -105,6 +107,7 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         this.fluidInputs = new ArrayList<>();
         this.fluidOutputs = new ArrayList<>();
         this.chancedFluidOutputs = new ArrayList<>();
+        this.mufflerDustList = new ArrayList<>();
     }
 
     public RecipeBuilder(Recipe recipe, RecipeMap<R> recipeMap) {
@@ -115,6 +118,7 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         this.fluidInputs = new ArrayList<>(recipe.getFluidInputs());
         this.fluidOutputs = GTUtility.copyFluidList(recipe.getFluidOutputs());
         this.chancedFluidOutputs = new ArrayList<>(recipe.getChancedFluidOutputs().getChancedEntries());
+        this.mufflerDustList = new ArrayList<>(recipe.getMufflerDustList());
         this.duration = recipe.getDuration();
         this.EUt = recipe.getEUt();
         this.hidden = recipe.isHidden();
@@ -131,6 +135,7 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         this.fluidInputs = new ArrayList<>(recipeBuilder.getFluidInputs());
         this.fluidOutputs = GTUtility.copyFluidList(recipeBuilder.getFluidOutputs());
         this.chancedFluidOutputs = new ArrayList<>(recipeBuilder.chancedFluidOutputs);
+        this.mufflerDustList = new ArrayList<>(recipeBuilder.getMuffererDustList());
         this.chancedOutputLogic = recipeBuilder.chancedOutputLogic;
         this.chancedFluidOutputLogic = recipeBuilder.chancedFluidOutputLogic;
         this.duration = recipeBuilder.duration;
@@ -594,6 +599,35 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         this.outputs.clear();
         return (R) this;
     }
+    public R mufflerDust(Material material) {
+        return mufflerDust(OreDictUnifier.get(OrePrefix.dustTiny, material, 1));
+    }
+    public R mufflerDust(Material material, int count) {
+        return mufflerDust(OreDictUnifier.get(OrePrefix.dustTiny, material, count));
+    }
+    public R mufflerDust(OrePrefix orePrefix, Material material) {
+        return mufflerDust(OreDictUnifier.get(orePrefix, material, 1));
+    }
+
+    public R mufflerDust(OrePrefix orePrefix, Material material, int count) {
+        return mufflerDust(OreDictUnifier.get(orePrefix, material, count));
+    }
+
+    public R mufflerDust(ItemStack dustStack) {
+        if (dustStack != null && !dustStack.isEmpty()) {
+            this.mufflerDustList.add(dustStack);
+        }
+        return (R) this;
+    }
+    public R mufflerDust(ItemStack... outputs) {
+        return mufflerDust(Arrays.asList(outputs));
+    }
+    public R mufflerDust(Collection<ItemStack> outputs) {
+        outputs = new ArrayList<>(outputs);
+        outputs.removeIf(stack -> stack == null || stack.isEmpty());
+        this.mufflerDustList.addAll(outputs);
+        return (R) this;
+    }
 
     public R fluidInput(@NotNull Fluid fluid) {
         return fluidInputs(new GTRecipeFluidInput(fluid, 1));
@@ -1039,7 +1073,7 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         return ValidationResult.newResult(result, new Recipe(inputs, outputs,
                 new ChancedOutputList<>(this.chancedOutputLogic, chancedOutputs),
                 fluidInputs, fluidOutputs,
-                new ChancedOutputList<>(this.chancedFluidOutputLogic, chancedFluidOutputs),
+                new ChancedOutputList<>(this.chancedFluidOutputLogic, chancedFluidOutputs),mufflerDustList,
                 duration, EUt, hidden, isCTRecipe, recipePropertyStorage, category));
     }
 
@@ -1215,6 +1249,10 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         return fluidOutputs;
     }
 
+    public List<ItemStack> getMuffererDustList() {
+        return mufflerDustList;
+    }
+
     public long getEUt() {
         return EUt;
     }
@@ -1258,6 +1296,7 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
                 .append("chancedFluidOutputs", chancedFluidOutputs)
                 .append("fluidInputs", fluidInputs)
                 .append("fluidOutputs", fluidOutputs)
+                .append("mufflerDustList", mufflerDustList)
                 .append("duration", duration)
                 .append("EUt", EUt)
                 .append("hidden", hidden)

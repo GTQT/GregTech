@@ -303,6 +303,22 @@ gregtech.machine.thread_hatch.max.name=Thread Hatch(Max)
 gregtech.machine.thread_hatch.tooltip=Can simultaneously process tasks for §b%s§7 cores at maximum.
 gregtech.machine.thread_hatch.display=Adjust independent core count for multiblocks.
 
+gregtech.machine.me_muffler_hatch.ulv.name=ULV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.lv.name=LV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.mv.name=MV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.hv.name=HV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.ev.name=EV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.iv.name=IV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.luv.name=LuV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.zpm.name=ZPM ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.uv.name=UV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.uhv.name=UHV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.uev.name=UEV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.uiv.name=UIV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.uxv.name=UXV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.opv.name=OpV ME Muffler Hatch
+gregtech.machine.me_muffler_hatch.max.name=MAX ME Muffler Hatch
+
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
 gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy

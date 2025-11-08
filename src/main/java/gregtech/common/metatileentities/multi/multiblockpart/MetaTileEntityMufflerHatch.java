@@ -1,18 +1,15 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import com.cleanroommc.modularui.value.BoolValue;
-import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
-import com.cleanroommc.modularui.widgets.ToggleButton;
-
-import com.cleanroommc.modularui.widgets.layout.Flow;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.*;
+import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTTransferUtils;
@@ -36,10 +33,14 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.BoolValue;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ItemSlot;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,17 +49,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart implements
-                                        IMultiblockAbilityPart<IMufflerHatch>, ITieredMetaTileEntity, IMufflerHatch {
+                                                                             IMultiblockAbilityPart<IMufflerHatch>,
+                                                                             ITieredMetaTileEntity, IMufflerHatch {
 
     private final int recoveryChance;
     private final GTItemStackHandler inventory;
 
     private boolean frontFaceFree;
-    private boolean outputItem;
+    private boolean mufflerDust;
 
     public MetaTileEntityMufflerHatch(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
-        this.recoveryChance = (int) Math.ceil((tier - 1.0f) / 8 * 100);
+        this.recoveryChance = Math.min((tier-1) * 10, 100);
         this.inventory = new GTItemStackHandler(this, (int) Math.pow(tier + 1, 2));
         this.frontFaceFree = false;
     }
@@ -88,10 +90,12 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         clearInventory(itemBuffer, inventory);
     }
 
-    public void recoverItemsTable(List<ItemStack> recoveryItems) {
-        for (ItemStack recoveryItem : recoveryItems) {
-            if (calculateChance()) {
-                GTTransferUtils.insertItem(inventory, recoveryItem.copy(), false);
+    public void recoverItemsTable(List<ItemStack> recoveryItems, int parallel) {
+        if (calculateChance()) {
+            for (ItemStack recoveryItem : recoveryItems) {
+                ItemStack itemstack = recoveryItem.copy();
+                itemstack.setCount(itemstack.getCount() * parallel);
+                GTTransferUtils.insertItem(inventory, itemstack, false);
             }
         }
     }
@@ -108,8 +112,17 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     }
 
     @Override
-    public boolean outputItem() {
-        return outputItem;
+    public boolean isMufflerFull() {
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            if (inventory.getStackInSlot(slot).isEmpty())
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean mufflerDust() {
+        return mufflerDust;
     }
 
     private boolean checkFrontFaceFree() {
@@ -182,11 +195,11 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
                         .accessibility(false, true)));
             }
         }
-        BooleanSyncValue outputStateValue = new BooleanSyncValue(() -> outputItem, val -> outputItem = val);
+        BooleanSyncValue outputStateValue = new BooleanSyncValue(() -> mufflerDust, val -> mufflerDust = val);
         guiSyncManager.syncValue("output_state", outputStateValue);
 
-        int backgroundWidth=176 + xOffset * 2 +18 +5;
-        int backgroundHeight=18 + 18 * rowSize + 94;
+        int backgroundWidth = 176 + xOffset * 2 + 18 + 5;
+        int backgroundHeight = 18 + 18 * rowSize + 94;
         // TODO: Change the position of the name when it's standardized.
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
@@ -204,14 +217,14 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
                         .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 5))
 
                         .child(new ToggleButton()
-                        .top(0)
-                        .value(new BoolValue.Dynamic(outputStateValue::getBoolValue,
-                                outputStateValue::setBoolValue))
-                        .overlay(GTGuiTextures.OUT_SLOT_OVERLAY)
-                        .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                .addLine(outputStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.output_item.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.output_item.tooltip.disabled"))))
+                                .top(0)
+                                .value(new BoolValue.Dynamic(outputStateValue::getBoolValue,
+                                        outputStateValue::setBoolValue))
+                                .overlay(GTGuiTextures.OUT_SLOT_OVERLAY)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(outputStateValue.getBoolValue() ?
+                                                IKey.lang("gregtech.gui.output_item.tooltip.enabled") :
+                                                IKey.lang("gregtech.gui.output_item.tooltip.disabled"))))
                 );
     }
 
@@ -219,7 +232,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setTag("RecoveryInventory", inventory.serializeNBT());
-        data.setBoolean("outputItem", outputItem);
+        data.setBoolean("outputItem", mufflerDust);
         return data;
     }
 
@@ -227,6 +240,6 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         this.inventory.deserializeNBT(data.getCompoundTag("RecoveryInventory"));
-        outputItem= data.getBoolean("outputItem");
+        mufflerDust = data.getBoolean("outputItem");
     }
 }

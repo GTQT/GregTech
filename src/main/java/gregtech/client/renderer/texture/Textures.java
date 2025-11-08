@@ -471,6 +471,8 @@ public class Textures {
             "overlay/machine/overlay_maintenance_cleaning");
     public static final SimpleOverlayRenderer MUFFLER_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_muffler");
+    public static final SimpleOverlayRenderer ME_MUFFLER_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_me_muffler");
     public static final SimpleOverlayRenderer STEAM_MINER_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_steam_miner");
     public static final SimpleOverlayRenderer CHUNK_MINER_OVERLAY = new SimpleOverlayRenderer(

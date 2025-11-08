@@ -273,9 +273,14 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      *
      * @param recoveryItems is the items to set
      */
-    protected void setRecoveryItems(ItemStack... recoveryItems) {
+    public void setRecoveryItems(ItemStack... recoveryItems) {
         this.recoveryItems.clear();
         this.recoveryItems.addAll(Arrays.asList(recoveryItems));
+    }
+
+    public void setRecoveryItems(List<ItemStack> recoveryItems) {
+        this.recoveryItems.clear();
+        this.recoveryItems.addAll(recoveryItems);
     }
 
     /**
@@ -403,15 +408,6 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
         return this.uiFactory.buildUI(guiData, panelSyncManager);
     }
 
-    /**
-     * Outputs the recovery items into the muffler hatch
-     */
-    public void outputRecoveryItems() {
-        IMufflerHatch muffler = getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0);
-        if(!muffler.outputItem())return;
-        muffler.recoverItemsTable(recoveryItems);
-    }
-
     protected ModularUI createUI(EntityPlayer entityPlayer) {
         return createUITemplate(entityPlayer).build(getHolder(), entityPlayer);
     }
@@ -523,11 +519,11 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
 
     public void outputRecoveryItems(int parallel) {
         IMufflerHatch muffler = getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0);
-        if(!muffler.outputItem())return;
-        for (int i = 0; i < parallel; i++) {
-            muffler.recoverItemsTable(recoveryItems);
+        if(muffler.mufflerDust()) {
+            muffler.recoverItemsTable(recoveryItems,parallel);
         }
     }
+
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);

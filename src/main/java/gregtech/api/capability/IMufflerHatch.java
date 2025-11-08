@@ -6,12 +6,14 @@ import java.util.List;
 
 public interface IMufflerHatch {
 
-    void recoverItemsTable(List<ItemStack> recoveryItems);
+    void recoverItemsTable(List<ItemStack> recoveryItems,int parallel);
 
     /**
      * @return true if front face is free and contains only air blocks in 1x1 area
      */
     boolean isFrontFaceFree();
 
-    boolean outputItem();
+    boolean isMufflerFull();
+
+    boolean mufflerDust();
 }

@@ -282,8 +282,7 @@ public class MetaTileEntities {
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_INPUT_HATCH = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_OUTPUT_HATCH = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityRotorHolder[] ROTOR_HOLDER = new MetaTileEntityRotorHolder[12]; // HV, EV, IV, LuV, ZPM, UV, UHV, UEV, UIV, UXV, OPV,MAX
-    public static final MetaTileEntityMufflerHatch[] MUFFLER_HATCH = new MetaTileEntityMufflerHatch[GTValues.UHV +
-            1]; // LV-UHV
+    public static final MetaTileEntityMufflerHatch[] MUFFLER_HATCH = new MetaTileEntityMufflerHatch[GTValues.UHV + 1]; // LV-UHV
     public static final MetaTileEntityFusionReactor[] FUSION_REACTOR = new MetaTileEntityFusionReactor[3];
     public static final MetaTileEntityQuantumChest[] QUANTUM_CHEST = new MetaTileEntityQuantumChest[10];
     public static final MetaTileEntityQuantumTank[] QUANTUM_TANK = new MetaTileEntityQuantumTank[10];
@@ -788,10 +787,12 @@ public class MetaTileEntities {
         MINER[2] = registerMetaTileEntity(922, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
 
         // Buffers, IDs 1510-1514
-        for (int i = 0; i < BUFFER.length; i++){
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
-            BUFFER[i] = registerMetaTileEntity(1510 + i, new MetaTileEntityBuffer(gregtechId("buffer." + voltageName), i + 1));
-        }
+        BUFFER[0] = registerMetaTileEntity(930, new MetaTileEntityBuffer(gregtechId("buffer.lv"), 1));
+        BUFFER[1] = registerMetaTileEntity(931, new MetaTileEntityBuffer(gregtechId("buffer.mv"), 2));
+        BUFFER[2] = registerMetaTileEntity(932, new MetaTileEntityBuffer(gregtechId("buffer.hv"), 3));
+        BUFFER[3] = registerMetaTileEntity(933, new MetaTileEntityBuffer(gregtechId("buffer.ev"), 4));
+        BUFFER[4] = registerMetaTileEntity(934, new MetaTileEntityBuffer(gregtechId("buffer.iv"), 5));
+
 
         //单方块发电机
         // Diesel Generator, IDs 935-939
@@ -1150,12 +1151,10 @@ public class MetaTileEntities {
 
         // Muffler Hatches, IDs 1775-1789
         for (int i = 0; i < MUFFLER_HATCH.length - 1; i++) {
-            int tier = i + 1;
-            if (!GregTechAPI.isHighTier() && tier == GTValues.UHV) continue; // requires UHV motor to craft, so skip
+            int tier = i+1;
             String voltageName = GTValues.VN[tier].toLowerCase();
-            MUFFLER_HATCH[tier] = new MetaTileEntityMufflerHatch(gregtechId("muffler_hatch." + voltageName), tier);
-
-            registerMetaTileEntity(1775 + i, MUFFLER_HATCH[tier]);
+            MUFFLER_HATCH[i] = new MetaTileEntityMufflerHatch(gregtechId("muffler_hatch." + voltageName), tier);
+            registerMetaTileEntity(1775 + i, MUFFLER_HATCH[i]);
         }
 
         // Energy Converter, IDs 1790-1849
