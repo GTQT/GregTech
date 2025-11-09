@@ -84,6 +84,13 @@ public abstract class RecipeProperty<T> {
         return false;
     }
 
+    /**
+     * Whether to hide the Muffler Dust tooltip for the recipe in JEI.
+     */
+    public boolean hideMufflerDust() {
+        return false;
+    }
+
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

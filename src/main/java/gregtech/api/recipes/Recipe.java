@@ -74,6 +74,7 @@ public class Recipe {
 
     private final List<GTRecipeInput> inputs;
     private final List<ItemStack> outputs;
+    private final boolean hasSpecialMufflerDust;
     private final List<ItemStack> mufflerDustList;
 
     /**
@@ -127,10 +128,15 @@ public class Recipe {
         } else {
             this.outputs = new ArrayList<>(outputs);
         }
-        if(mufflerDustList.isEmpty()){
-            this.mufflerDustList= new ArrayList<>(
+        if (mufflerDustList.isEmpty()) {
+            this.mufflerDustList = new ArrayList<>(
                     Collections.singleton(OreDictUnifier.get(OrePrefix.dustTiny, Materials.Ash)));
-        } else this.mufflerDustList = new ArrayList<>(mufflerDustList);
+            hasSpecialMufflerDust = false;
+        } else
+        {
+            this.mufflerDustList = new ArrayList<>(mufflerDustList);
+            hasSpecialMufflerDust = true;
+        }
 
         this.chancedOutputs = chancedOutputs;
         this.chancedFluidOutputs = chancedFluidOutputs;
@@ -707,6 +713,18 @@ public class Recipe {
     public List<ItemStack> getMufflerDustList() {
         return mufflerDustList;
     }
+
+    public String getMufflerDustName() {
+        StringBuilder mufflerDustName = new StringBuilder();
+        for (ItemStack mufflerDust : mufflerDustList)
+            mufflerDustName.append(mufflerDust.getDisplayName());
+        return mufflerDustName.toString();
+    }
+
+    public boolean isHasSpecialMufflerDust() {
+        return hasSpecialMufflerDust;
+    }
+
     public int getDuration() {
         return duration;
     }

@@ -6228,6 +6228,7 @@ gregtech.recipe.max_eu=Max. EU: %,d EU
 gregtech.recipe.eu=Usage: %,d EU/t (%s§r)
 gregtech.recipe.eu_inverted=Generation: %,d EU/t
 gregtech.recipe.duration=Duration: %s secs
+gregtech.recipe.muffler_dust=Muffler Dust: %s
 gregtech.recipe.amperage=Amperage: %,d
 gregtech.recipe.not_consumed=Does not get consumed in the process
 gregtech.recipe.chance=Chance: %s%% +%s%%/tier

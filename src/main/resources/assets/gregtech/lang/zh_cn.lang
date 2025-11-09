@@ -6225,6 +6225,7 @@ gregtech.recipe.max_eu=最大EU：%,d EU
 gregtech.recipe.eu=功耗：%,d EU/t（%s§r）
 gregtech.recipe.eu_inverted=产能功率：%,d EU/t
 gregtech.recipe.duration=耗时：%s 秒
+gregtech.recipe.muffler_dust=灰烬产出：%s
 gregtech.recipe.amperage=电流：%,d
 gregtech.recipe.not_consumed=不在加工中消耗
 gregtech.recipe.chance=出产概率：%s%% + %s%%/电压等级

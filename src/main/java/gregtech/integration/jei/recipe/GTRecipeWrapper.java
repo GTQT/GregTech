@@ -244,11 +244,13 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         boolean drawTotalEU = properties.isEmpty() || properties.stream().noneMatch(RecipeProperty::hideTotalEU);
         boolean drawEUt = properties.isEmpty() || properties.stream().noneMatch(RecipeProperty::hideEUt);
         boolean drawDuration = properties.isEmpty() || properties.stream().noneMatch(RecipeProperty::hideDuration);
+        boolean drawMufflerDust = properties.isEmpty() || recipe.isHasSpecialMufflerDust();
 
         int defaultLines = 0;
         if (drawTotalEU) defaultLines++;
         if (drawEUt) defaultLines++;
         if (drawDuration) defaultLines++;
+        if (drawMufflerDust) defaultLines++;
 
         int unhiddenCount = (int) storage.entrySet().stream()
                 .filter((property) -> !property.getKey().isHidden())
@@ -281,6 +283,12 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                     I18n.format("gregtech.recipe.duration",
                             TextFormattingUtil.formatNumbers(recipe.getDuration() / 20.0)),
                     0, yPosition += LINE_HEIGHT, 0x111111);
+        }
+        if (drawMufflerDust) {
+            minecraft.fontRenderer.drawString(
+                    I18n.format("gregtech.recipe.muffler_dust"
+                    ,recipe.getMufflerDustName()), 0,
+                    yPosition += LINE_HEIGHT, 0x111111);
         }
 
         // Property custom entries
