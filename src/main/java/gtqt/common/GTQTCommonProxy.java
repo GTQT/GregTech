@@ -12,7 +12,6 @@ import net.minecraft.world.gen.structure.MapGenStructureIO;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 
-import gtqt.api.util.ChunkAwareHook;
 import gtqt.api.util.wireless.WirelessWorldEventHandler;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.covers.GTQTCoverBehavior;
@@ -41,7 +40,6 @@ public class GTQTCommonProxy {
 
     public static void init() {
         MinecraftForge.EVENT_BUS.register(new WirelessWorldEventHandler());
-        MinecraftForge.EVENT_BUS.register(ChunkAwareHook.class);
         MapGenStructureIO.registerStructureComponent(VillageEngineersHouse.class, "gtqt:village_engineers_house");
         VillagerRegistry.instance().registerVillageCreationHandler(new VillageEngineersHouse.VillageManager());
     }
