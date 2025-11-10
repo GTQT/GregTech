@@ -32,7 +32,7 @@ public class ForestryWoodRecipe {
 
         int plankId = -1, logId = -1, slabId = -1;
         List<String> woodNames = Arrays.stream(EnumForestryWoodType.values()).map(Enum::name)
-                .toList();
+                .collect(Collectors.toList());
         for (int i = 0; i < woodNames.size(); i++) {
             String woodName = woodNames.get(i).toLowerCase();
             int plankMeta = i % 16;
@@ -50,7 +50,7 @@ public class ForestryWoodRecipe {
         logId = -1;
         slabId = -1;
         List<String> vanillaWoodNames = Arrays.stream(EnumVanillaWoodType.values()).map(Enum::name)
-                .toList();
+                .collect(Collectors.toList());
         for (int i = 0; i < vanillaWoodNames.size(); i++) {
             int plankMeta = i % 16;
             int logMeta = i % 4;
