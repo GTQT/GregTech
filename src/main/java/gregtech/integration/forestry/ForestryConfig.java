@@ -19,7 +19,7 @@ public class ForestryConfig {
 
     //开启林业木材加工
     @Comment({
-            "Enable GregTech Wooden Crafting Table.",
+            "Enable GregTech Forestry Wooden Crafting.",
             "Requirements: Forestry Crafting module",
             "Default: true"
     })

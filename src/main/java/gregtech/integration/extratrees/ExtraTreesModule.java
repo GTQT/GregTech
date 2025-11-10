@@ -1,23 +1,21 @@
-package gregtech.integration.binnies.extratrees;
+package gregtech.integration.extratrees;
 
 import gregtech.api.GTValues;
 import gregtech.api.modules.GregTechModule;
 import gregtech.api.util.Mods;
 import gregtech.integration.IntegrationSubmodule;
-import gregtech.integration.binnies.extratrees.recipes.ExtraTreesWoodRecipe;
-import gregtech.integration.forestry.ForestryConfig;
-import gregtech.integration.forestry.recipes.CombRecipes;
-import gregtech.integration.forestry.recipes.ForestryElectrodeRecipes;
-import gregtech.integration.forestry.recipes.ForestryExtractorRecipes;
-import gregtech.integration.forestry.recipes.ForestryFrameRecipes;
-import gregtech.integration.forestry.recipes.ForestryMiscRecipes;
-import gregtech.integration.forestry.recipes.ForestryToolRecipes;
-import gregtech.integration.forestry.recipes.ForestryWoodRecipe;
+import gregtech.integration.extratrees.recipes.ExtraTreesWoodRecipe;
+import gregtech.integration.forestry.ForestryModule;
 import gregtech.modules.GregTechModules;
 
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Collections;
+import java.util.List;
 
 @GregTechModule(
         moduleID = GregTechModules.MODULE_EXTREES,
@@ -26,11 +24,15 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
         name = "GregTech Extra Trees(Binnie's Mods) Integration",
         description = "Extra Trees(Binnie's Mods) Integration Module")
 public class ExtraTreesModule extends IntegrationSubmodule {
+    @NotNull
+    @Override
+    public List<Class<?>> getEventBusSubscribers() {
+        return Collections.singletonList(ExtraTreesModule.class);
+    }
 
     @SubscribeEvent
     public static void registerRecipes(RegistryEvent.Register<IRecipe> event) {
-
-        if(ExtraTreesConfig.enableGTWoodenCraftingTable){
+        if (ExtraTreesConfig.enableGTWoodenCraftingTable) {
             ExtraTreesWoodRecipe.init();
         }
     }

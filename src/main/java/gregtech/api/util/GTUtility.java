@@ -1226,4 +1226,15 @@ public class GTUtility {
     public static double calculateDurabilityFromRemaining(int remainingDurability, int maxDurability) {
         return (double) (maxDurability - remainingDurability) / maxDurability;
     }
+
+    public static String generateRandomString(int length) {
+        Random random = new Random();
+        StringBuilder stringBuilder = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            stringBuilder.append(random.nextInt(10));
+        }
+
+        return stringBuilder.toString();
+    }
 }

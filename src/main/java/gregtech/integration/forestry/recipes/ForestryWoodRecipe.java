@@ -88,7 +88,7 @@ public class ForestryWoodRecipe {
             // only for normal woods
             ModHandler.removeRecipeByName(Mods.Forestry.getResource("doors_" + entry.woodName));
 
-            registerWoodTypeRecipe(entry);
+            registerWoodTypeRecipe(true,entry);
             registerWoodUnificationInfo(entry);
         }
 
@@ -97,7 +97,7 @@ public class ForestryWoodRecipe {
                 ModHandler.removeRecipeByName(Mods.Forestry.getResource("fireproof_" + type + entry.woodName));
             }
 
-            registerWoodTypeRecipe(entry);
+            registerWoodTypeRecipe(true,entry);
             registerWoodUnificationInfo(entry);
         }
 

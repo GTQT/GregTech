@@ -1,4 +1,4 @@
-package gregtech.integration.binnies.extratrees.recipes;
+package gregtech.integration.extratrees.recipes;
 
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.util.Mods;
@@ -67,12 +67,12 @@ public class ExtraTreesWoodRecipe {
     private static WoodTypeEntry getFireProofEntryByName(String woodName, int plankId, int logId, int slabId,
                                                          int plankMeta, int logMeta, int slabMeta) {
         return new WoodTypeEntry.Builder(mcModId, woodName)
-                .log(Mods.ExtraTrees.getItem("logs.fireproof." + logId, 1, logMeta)).removeCharcoalRecipe()
-                .planks(Mods.ExtraTrees.getItem("planks.fireproof." + plankId, 1, plankMeta),
+                .log(Mods.ExtraTrees.getItem("logs.fireproof." + logId, logMeta, 1)).removeCharcoalRecipe()
+                .planks(Mods.ExtraTrees.getItem("planks.fireproof." + plankId, plankMeta, 1),
                         "fireproof_planks_" + woodName)
-                .slab(Mods.ExtraTrees.getItem("slabs.fireproof." + slabId, 1, slabMeta),
+                .slab(Mods.ExtraTrees.getItem("slabs.fireproof." + slabId, slabMeta, 1),
                         "fireproof_slab_" + woodName)
-                .fence(Mods.ExtraTrees.getItem("fences.fireproof." + plankId, 1, plankMeta),
+                .fence(Mods.ExtraTrees.getItem("fences.fireproof." + plankId, plankMeta, 1),
                         "fireproof_fence_" + woodName)
                 .fenceGate(Mods.ExtraTrees.getItem("fence.gates.fireproof." + woodName),
                         "fireproof_fence_gate_" + woodName)
@@ -93,7 +93,7 @@ public class ExtraTreesWoodRecipe {
             // only for normal woods
             ModHandler.removeRecipeByName(Mods.ExtraTrees.getResource(entry.woodName + "_doors"));
 
-            registerWoodTypeRecipe(entry);
+            registerWoodTypeRecipe(true,entry);
             registerWoodUnificationInfo(entry);
         }
 
@@ -102,7 +102,7 @@ public class ExtraTreesWoodRecipe {
                 ModHandler.removeRecipeByName(Mods.ExtraTrees.getResource(entry.woodName + "_fireproof" + type));
             }
 
-            registerWoodTypeRecipe(entry);
+            registerWoodTypeRecipe(true,entry);
             registerWoodUnificationInfo(entry);
 
             ModHandler.removeRecipeByName(new ResourceLocation(MODID, entry.woodName + "_saw"));

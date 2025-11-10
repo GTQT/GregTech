@@ -1,4 +1,4 @@
-package gregtech.integration.binnies.extratrees;
+package gregtech.integration.extratrees;
 
 import gregtech.api.GTValues;
 
@@ -10,7 +10,7 @@ public class ExtraTreesConfig {
 
     //开启林业木材加工
     @Config.Comment({
-            "Enable GregTech Wooden Crafting Table.",
+            "Enable GregTech Extra Trees Wooden Crafting.",
             "Requirements: Extra Trees module",
             "Default: true"
     })
