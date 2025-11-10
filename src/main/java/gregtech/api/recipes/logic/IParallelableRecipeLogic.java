@@ -83,6 +83,63 @@ public interface IParallelableRecipeLogic {
                 voidable);
     }
 
+    /**
+     * Method which finds multiple recipes from fluids only, then appends them to the builder
+     * up to the parallelization factor, considering all constraints including inputs, outputs, and energy.
+     *
+     * @param recipeMap     the recipe map
+     * @param fluidInputs   input fluid handler
+     * @param fluidOutputs  output fluid handler
+     * @param parallelLimit the maximum number of parallel recipes to be performed
+     * @param maxVoltage    the voltage limit on the number of parallel recipes to be performed
+     * @param voidable      the voidable performing the parallel recipe
+     * @return the recipe builder with the parallelized recipes. returns null if no recipes can fit
+     */
+    default RecipeBuilder<?> findAppendedParallelFluidRecipe(@NotNull RecipeMap<?> recipeMap,
+                                                             @NotNull IMultipleTankHandler fluidInputs,
+                                                             @NotNull IMultipleTankHandler fluidOutputs,
+                                                             int parallelLimit,
+                                                             long maxVoltage, @NotNull IVoidable voidable) {
+        return ParallelLogic.appendFluidRecipes(
+                recipeMap,
+                fluidInputs,
+                fluidOutputs,
+                parallelLimit,
+                maxVoltage,
+                voidable);
+    }
+
+    /**
+     * Method which finds multiple recipes from both items and fluids, then appends them to the builder
+     * up to the parallelization factor, considering all constraints including inputs, outputs, and energy.
+     *
+     * @param recipeMap     the recipe map
+     * @param inputs        input item handler
+     * @param fluidInputs   input fluid handler
+     * @param outputs       output item handler
+     * @param fluidOutputs  output fluid handler
+     * @param parallelLimit the maximum number of parallel recipes to be performed
+     * @param maxVoltage    the voltage limit on the number of parallel recipes to be performed
+     * @param voidable      the voidable performing the parallel recipe
+     * @return the recipe builder with the parallelized recipes. returns null if no recipes can fit
+     */
+    default RecipeBuilder<?> findAppendedParallelRecipe(@NotNull RecipeMap<?> recipeMap,
+                                                        @NotNull IItemHandlerModifiable inputs,
+                                                        @NotNull IMultipleTankHandler fluidInputs,
+                                                        @NotNull IItemHandlerModifiable outputs,
+                                                        @NotNull IMultipleTankHandler fluidOutputs, int parallelLimit,
+                                                        long maxVoltage, @NotNull IVoidable voidable) {
+        return ParallelLogic.appendParallelRecipes(
+                recipeMap,
+                inputs,
+                fluidInputs,
+                outputs,
+                fluidOutputs,
+                parallelLimit,
+                maxVoltage,
+                voidable);
+    }
+
     // Recipes passed in here should be already trimmed, if desired
     default Recipe findParallelRecipe(@NotNull Recipe currentRecipe, @NotNull IItemHandlerModifiable inputs,
                                       @NotNull IMultipleTankHandler fluidInputs,
@@ -94,6 +151,10 @@ public interface IParallelableRecipeLogic {
                         outputs, fluidOutputs, parallelLimit, maxVoltage, getMetaTileEntity());
                 case APPEND_ITEMS -> findAppendedParallelItemRecipe(getRecipeMap(), inputs, outputs, parallelLimit,
                         maxVoltage, getMetaTileEntity());
+                case APPEND_FLUIDS -> findAppendedParallelFluidRecipe(getRecipeMap(), fluidInputs, fluidOutputs,
+                        parallelLimit, maxVoltage, getMetaTileEntity());
+                case APPEND_ALL -> findAppendedParallelRecipe(getRecipeMap(), inputs, fluidInputs, outputs, fluidOutputs,
+                        parallelLimit, maxVoltage, getMetaTileEntity());
             };
 
             // if the builder returned is null, no recipe was found.

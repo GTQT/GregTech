@@ -62,6 +62,7 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
                                          Function<Integer, Integer> tankScalingFunction, boolean handlesRecipeOutputs,
                                          double efficiency) {
         super(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, handlesRecipeOutputs);
+        this.efficiency = efficiency;
         workable.setEnergyEfficiency(efficiency);
     }
 
