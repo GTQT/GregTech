@@ -76,6 +76,8 @@ public final class ToolItems {
     public static IGTTool DRILL_EV;
     public static IGTTool DRILL_IV;
     public static IGTTool CHAINSAW_LV;
+    public static IGTTool CHAINSAW_MV;
+    public static IGTTool CHAINSAW_HV;
     public static IGTTool WRENCH_LV;
     public static IGTTool WRENCH_HV;
     public static IGTTool WRENCH_IV;
@@ -315,6 +317,30 @@ public final class ToolItems {
                 .sound(GTSoundEvents.CHAINSAW_TOOL, true)
                 .toolClasses(ToolClasses.AXE)
                 .electric(GTValues.LV));
+        CHAINSAW_MV = ToolItems.register(ItemGTTool.Builder.of(GTValues.MODID, "chainsaw_mv")
+                .toolStats(b -> b.blockBreaking()
+                        .efficiencyMultiplier(3.0F)
+                        .attackDamage(5.0F).attackSpeed(-3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV)
+                        .behaviors(HarvestIceBehavior.INSTANCE, DisableShieldBehavior.INSTANCE,
+                                TreeFellingBehavior.INSTANCE))
+                .oreDict(ToolOreDict.toolAxe)
+                .secondaryOreDicts(ToolOreDict.toolChainsaw)
+                .sound(GTSoundEvents.CHAINSAW_TOOL, true)
+                .toolClasses(ToolClasses.AXE)
+                .electric(GTValues.HV));
+        CHAINSAW_HV = ToolItems.register(ItemGTTool.Builder.of(GTValues.MODID, "chainsaw_hv")
+                .toolStats(b -> b.blockBreaking()
+                        .efficiencyMultiplier(4.0F)
+                        .attackDamage(5.0F).attackSpeed(-3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV)
+                        .behaviors(HarvestIceBehavior.INSTANCE, DisableShieldBehavior.INSTANCE,
+                                TreeFellingBehavior.INSTANCE))
+                .oreDict(ToolOreDict.toolAxe)
+                .secondaryOreDicts(ToolOreDict.toolChainsaw)
+                .sound(GTSoundEvents.CHAINSAW_TOOL, true)
+                .toolClasses(ToolClasses.AXE)
+                .electric(GTValues.IV));
         WRENCH_LV = register(ItemGTTool.Builder.of(GTValues.MODID, "wrench_lv")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .efficiencyMultiplier(2.0F)

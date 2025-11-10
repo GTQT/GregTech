@@ -286,6 +286,10 @@ public class ForestryModule extends IntegrationSubmodule {
             ForestryToolRecipes.registerHandlers();
         }
 
+        if(ForestryConfig.enableGTWoodenCraftingTable){
+            ForestryWoodRecipe.init();
+        }
+
         // Random other recipes
         ForestryMiscRecipes.init();
         ForestryExtractorRecipes.init();

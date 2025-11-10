@@ -313,6 +313,10 @@ public final class MetaItems {
 
     public static final Map<MarkerMaterial, MetaValueItem> GLASS_LENSES = new HashMap<>();
 
+    public static MetaItem<?>.MetaValueItem SCRAP;
+    public static MetaItem<?>.MetaValueItem SCRAP_BOX;
+    public static MetaItem<?>.MetaValueItem UU_MATER;
+
     public static MetaItem<?>.MetaValueItem SILICON_BOULE;
     public static MetaItem<?>.MetaValueItem PHOSPHORUS_BOULE;
     public static MetaItem<?>.MetaValueItem NAQUADAH_BOULE;

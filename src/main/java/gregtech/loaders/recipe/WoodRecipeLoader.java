@@ -3,6 +3,7 @@ package gregtech.loaders.recipe;
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.recipes.ModHandler;
+import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
@@ -14,7 +15,6 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.wood.BlockGregPlanks;
 import gregtech.common.items.MetaItems;
-import gregtech.loaders.WoodTypeEntry;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -147,6 +147,7 @@ public class WoodRecipeLoader {
         registerGTWoodRecipes();
         registerWoodRecipes();
         registerPyrolyseOvenRecipes();
+        registerWoodStickRecipes();
     }
 
     /**
@@ -471,6 +472,24 @@ public class WoodRecipeLoader {
                     .circuitMeta(15)
                     .duration(100).EUt(4).buildAndRegister();
         }
+
+        // log -> planks cutting
+        if (entry.log.isEmpty()) return;
+        RecipeMaps.SAWMILL_RECIPES.recipeBuilder()
+                .inputs(GTUtility.copy(1, entry.log))
+                .outputs(GTUtility.copy(8, entry.planks))
+                .output(dust, Materials.Wood, 2)
+                .duration(100).EUt(VA[LV])
+                .buildAndRegister();
+
+        // planks -> slab cutting
+        if (entry.slab.isEmpty()) return;
+        RecipeMaps.SAWMILL_RECIPES.recipeBuilder()
+                .inputs(GTUtility.copy(1, entry.log))
+                .outputs(GTUtility.copy(4, entry.slab))
+                .output(dust, Materials.Wood, 2)
+                .duration(100).EUt(VA[LV])
+                .buildAndRegister();
     }
 
     /**
@@ -492,6 +511,21 @@ public class WoodRecipeLoader {
                     "s", "L", "L",
                     'L', MetaBlocks.PLANKS.getItemVariant(BlockGregPlanks.BlockType.TREATED_PLANK));
         }
+    }
+
+    private static void registerWoodStickRecipes() {
+        SAWMILL_RECIPES.recipeBuilder()
+                .input(plank, Wood)
+                .output(plate, Wood, 1)
+                .duration(100).EUt(VA[ULV])
+                .buildAndRegister();
+
+        // 所有木板（使用矿辞）到木棍配方
+        SAWMILL_RECIPES.recipeBuilder()
+                .input(plank, Wood)
+                .output(stick, Wood, 2)
+                .duration(100).EUt(VA[ULV])
+                .buildAndRegister();
     }
 
     /**

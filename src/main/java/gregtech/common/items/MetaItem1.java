@@ -49,6 +49,7 @@ import gregtech.common.items.behaviors.MultiblockBuilderBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
 import gregtech.common.items.behaviors.ProspectorScannerBehavior;
 import gregtech.common.items.behaviors.RenderItemBehavior;
+import gregtech.common.items.behaviors.ScrapBoxBehavior;
 import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
@@ -1354,6 +1355,11 @@ public class MetaItem1 extends StandardMetaItem {
                 GLASS_LENSES.put(color, addItem(820 + i, String.format("glass_lens.%s", color.toString())));
             }
         }
+
+        //UU: 850
+        SCRAP = addItem(850, "scrap");
+        SCRAP_BOX = addItem(851, "scrap_box").addComponents(new ScrapBoxBehavior());
+        UU_MATER = addItem(852, "uu_matter");
 
         // Misc 1000+
         NAN_CERTIFICATE = addItem(1000, "nan.certificate").setRarity(EnumRarity.EPIC);

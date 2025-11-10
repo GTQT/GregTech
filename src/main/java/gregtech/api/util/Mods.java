@@ -3,6 +3,7 @@ package gregtech.api.util;
 import gregtech.api.GTValues;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -49,6 +50,7 @@ public enum Mods {
     Forestry(Names.FORESTRY),
     ForestryApiculture(Names.FORESTRY, forestryModule(Names.FORESTRY_APICULTURE)),
     ForestryArboriculture(Names.FORESTRY, forestryModule(Names.FORESTRY_ARBORICULTURE)),
+    ForestryCharcoal(Names.FORESTRY, forestryModule(Names.FORESTRY_CHARCOAL)),
     ForestryLepidopterology(Names.FORESTRY, forestryModule(Names.FORESTRY_LEPIDOPTEROLOGY)),
     FTB_LIB(Names.FTB_LIB),
     // FTB Utilities hard deps on ftb lib so you don't have to check if both are loaded
@@ -130,6 +132,7 @@ public enum Mods {
         public static final String FORESTRY = "forestry";
         public static final String FORESTRY_APICULTURE = "apiculture";
         public static final String FORESTRY_ARBORICULTURE = "arboriculture";
+        public static final String FORESTRY_CHARCOAL = "charcoal";
         public static final String FORESTRY_LEPIDOPTEROLOGY = "lepidopterology";
         public static final String FTB_LIB = "ftblib";
         public static final String FTB_UTILITIES = "ftbutilities";
@@ -277,5 +280,10 @@ public enum Mods {
         } else {
             return $ -> false;
         }
+    }
+
+    @NotNull
+    public ResourceLocation getResource(@NotNull String path) {
+        return new ResourceLocation(ID, path);
     }
 }

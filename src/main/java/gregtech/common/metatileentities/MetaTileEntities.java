@@ -48,6 +48,7 @@ import gregtech.common.metatileentities.multi.MetaTileEntityMultiblockTank;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnace;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
+import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAssemblyLine;
@@ -251,6 +252,10 @@ public class MetaTileEntities {
     public static final SimpleMachineMetaTileEntity[] BIO_REACTOR = new SimpleMachineMetaTileEntity[GTValues.V.length -1];
     public static final SimpleMachineMetaTileEntity[] COMPONENT_ASSEMBLER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] LOOM = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] ROASTER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] CHEMICAL_DEHYDRATOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] LIGHTNING_PROCESSOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] RECYCLER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
 
     // GENERATORS SECTION
     public static final SimpleGeneratorMetaTileEntity[] COMBUSTION_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
@@ -390,6 +395,7 @@ public class MetaTileEntities {
     public static MetaTileEntityCrackingUnit CRACKER;
     public static MetaTileEntityMultiSmelter MULTI_FURNACE;
     public static MetaTileEntityMultiAlloyFurnace MULTI_ALLOY_FURNACE;
+    public static MetaTileEntitySawMill SAW_MILL;
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeTurbine LARGE_STEAM_TURBINE;
@@ -772,14 +778,25 @@ public class MetaTileEntities {
         registerSimpleMetaTileEntity(DESULFURIZER, 785, "desulfurizer", RecipeMaps.DESULFURIZATION_RECIPES, Textures.DESULFURIZER_OVERLAY, true);
 
         //生物反应 IDs 800-815
-        registerSimpleMetaTileEntity(BIO_REACTOR, 800, "bio_reactor", RecipeMaps.BIO_REACTOR_RECIPES, Textures.BIO_REACTOR_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+        registerSimpleMetaTileEntity(BIO_REACTOR, 800, "bio_reactor", RecipeMaps.BIO_REACTOR_RECIPES, Textures.BIO_REACTOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
         //部件组装 IDs 815-830
         registerSimpleMetaTileEntity(COMPONENT_ASSEMBLER, 815, "component_assembler", RecipeMaps.COMPONENT_ASSEMBLER_RECIPES, Textures.ASSEMBLER_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
 
         //纺线器 IDs 830-845 LOOM
-        registerSimpleMetaTileEntity(LOOM, 830, "loom", RecipeMaps.LOOM_RECIPES, Textures.LOOM_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+        registerSimpleMetaTileEntity(LOOM, 830, "loom", RecipeMaps.LOOM_RECIPES, Textures.LOOM_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
+        //干燥 IDs 845-860 ROASTER
+        registerSimpleMetaTileEntity(ROASTER, 845, "roaster", RecipeMaps.ROASTER_RECIPES, Textures.ROASTER_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+
+        //化学脱水 IDs 860-875 CHEMICAL_DEHYDRATOR
+        registerSimpleMetaTileEntity(CHEMICAL_DEHYDRATOR, 860, "chemical_dehydrator", RecipeMaps.CHEMICAL_DEHYDRATOR_RECIPES, Textures.CHEMICAL_DEHYDRATOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+
+        //闪电处理 IDs 875-890 LIGHTNING_PROCESSOR_RECIPES
+        registerSimpleMetaTileEntity(LIGHTNING_PROCESSOR, 875, "lightning_processor", RecipeMaps.LIGHTNING_PROCESSOR_RECIPES, Textures.LIGHTNING_PROCESSOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+
+        //回收机 IDs 890-905 RECYCLER
+        registerSimpleMetaTileEntity(RECYCLER, 890, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY, true);
 
         // Chunk Miner, IDs 920-934
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
@@ -944,6 +961,8 @@ public class MetaTileEntities {
                 new MetaTileEntityActiveTransformer(gregtechId("active_transformer")));
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
+
+        SAW_MILL = registerMetaTileEntity(1060, new MetaTileEntitySawMill(gregtechId("saw_mill")));
         //IO注册
         // Import/Export Buses/Hatches, IDs 1150-1300
         endPos = GregTechAPI.isHighTier() ? ITEM_IMPORT_BUS.length : GTValues.UHV + 1;

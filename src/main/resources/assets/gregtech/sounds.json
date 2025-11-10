@@ -89,6 +89,16 @@
       }
     ]
   },
+  "tick.recycle": {
+    "subtitle" : "gregtech.subtitle.tick.recycle",
+    "category": "block",
+    "sounds": [
+      {
+        "name": "gregtech:recycle",
+        "stream": false
+      }
+    ]
+  },
   "tick.arc": {
     "subtitle" : "gregtech.subtitle.tick.arc",
     "category": "block",

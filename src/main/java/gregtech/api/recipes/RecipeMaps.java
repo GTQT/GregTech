@@ -637,10 +637,6 @@ public final class RecipeMaps {
                                     Math.min(250, duration * eut / 1280)))))
                             .duration(Math.max(1, duration))
                             .buildAndRegister();
-
-                    // Don't call buildAndRegister as we are mutating the original recipe and already in the
-                    // middle of a buildAndRegister call.
-                    // Adding a second call will result in duplicate recipe generation attempts
                     recipeBuilder
                             .fluidInputs(Materials.MolybdeniteLubricant
                                     .getFluid(GTUtility.safeCastLongToInt(Math.max(1,
@@ -1643,6 +1639,183 @@ public final class RecipeMaps {
                     .fluidSlotOverlay(GTGuiTextures.STRING_SLOT_OVERLAY_2, false)
                     .progressBar(GTGuiTextures.PROGRESS_BAR_MAGNET))
             .sound(GTSoundEvents.COMPRESSOR)
+            .build();
+
+    //燃烧反应器温度通常不太高，使用燃烧室作为升级部件，与EBF区分开，与间接加热区分开
+    //适用场景：温和燃烧过程、部分氧化反应、催化燃烧、废气处理
+    @ZenProperty
+    public static final RecipeMap<BlastRecipeBuilder> BURNER_REACTOR_RECIPES = new RecipeMapBuilder<>("burner_reactor",
+            new BlastRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(3)
+            .fluidInputs(3)
+            .fluidOutputs(3)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_1, false, false)
+                    .itemSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_2, false, true)
+                    .itemSlotOverlay(GTGuiTextures.VIAL_OVERLAY_1, true)
+                    .fluidSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_2, false)
+                    .fluidSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_2, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARC_FURNACE)
+            )
+            .sound(GTSoundEvents.ARC)
+            .build();
+
+    //干燥 焙烧
+    //适用场景：热风干燥、喷雾干燥、流化床干燥、物料焙烧
+    //典型应用：矿物焙烧(如硫化矿焙烧)、催化剂干燥活化、食品干燥、陶瓷坯体干燥
+    //特征：通过热空气或直接加热去除物料表面及内部水分，或引发热分解反应
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> ROASTER_RECIPES = new RecipeMapBuilder<>("roaster",
+            new SimpleRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(3)
+            .fluidInputs(3)
+            .fluidOutputs(3)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_1, false)
+                    .itemSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_1, true)
+                    .fluidSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_2, false)
+                    .fluidSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_2, true)
+            )
+            .sound(GTSoundEvents.FURNACE)
+            .build();
+
+    //化学脱水 通常是溶液到溶液的反应
+    //适用场景：化学脱水剂反应、溶剂脱水、共沸蒸馏脱水
+    //典型应用：使用浓硫酸、分子筛等脱水剂的化学反应、乙醇脱水制无水乙醇
+    //特征：通过化学反应而非蒸发去除水分，适合热敏性物料或需要深度脱水的场景
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> CHEMICAL_DEHYDRATOR_RECIPES = new RecipeMapBuilder<>("chemical_dehydrator",
+            new SimpleRecipeBuilder())
+            .itemInputs(2)
+            .itemOutputs(3)
+            .fluidInputs(2)
+            .fluidOutputs(3)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_1, false)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
+                    .fluidSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_2, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_SIFT)
+            )
+            .sound(GTSoundEvents.FURNACE)
+            .build();
+
+    //冷冻反应 温度通常不太低，使用磁致冷线圈作为升级部件
+    //适用场景：低温催化反应、低温合成、生物酶反应、气体液化分离
+    //典型应用：低温有机合成、酶催化反应、特殊气体分离、热敏性物料处理
+    //特征：在受控低温环境下进行反应，抑制副反应，保护热敏组分，提高反应选择性
+    @ZenProperty
+    public static final RecipeMap<BlastRecipeBuilder> CRYOGENIC_REACTOR_RECIPES = new RecipeMapBuilder<>("cryogenic_reactor",
+            new BlastRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(3)
+            .fluidInputs(3)
+            .fluidOutputs(3)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_1, false, false)
+                    .itemSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_2, false, true)
+                    .itemSlotOverlay(GTGuiTextures.VIAL_OVERLAY_1, true, false)
+                    .itemSlotOverlay(GTGuiTextures.VIAL_OVERLAY_2, true, true)
+            )
+            .sound(GTSoundEvents.COOLING)
+            .build();
+
+    //超声震荡器 - 利用高频声波产生空化效应，实现物理破碎、乳化分散或引发声化学反应
+    //适用场景：细胞破碎、纳米材料分散、乳液制备、加速化学反应、污染物降解
+    //特征：通过空化效应产生局部高温高压，既能实现物理粉碎又能促进化学反应
+    public static final RecipeMap<SimpleRecipeBuilder> SONICATION_RECIPES = new RecipeMapBuilder<>("sonicator",
+            new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(1)
+            .fluidInputs(2)
+            .fluidOutputs(2)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.INT_CIRCUIT_OVERLAY, false, false)
+                    .itemSlotOverlay(GTGuiTextures.FOIL_OVERLAY, true, true) //输出纳米材料或薄膜
+                    .fluidSlotOverlay(GTGuiTextures.BREWER_OVERLAY, false, false)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_3, false, true)
+                    .fluidSlotOverlay(GTGuiTextures.MOLECULAR_OVERLAY_4, true, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_EXTRACT) //提取/分离进度
+            )
+            .sound(GTSoundEvents.CENTRIFUGE)
+            .build();
+
+    //闪电处理器 - 利用高压电弧产生等离子体和极端条件，实现材料转化和反应
+    //适用场景：稀有元素合成、材料改性、等离子体化学、高温分解
+    //特征：通过高压放电产生瞬时高温和等离子体，实现常规方法难以进行的反应
+    public static final RecipeMap<SimpleRecipeBuilder> LIGHTNING_PROCESSOR_RECIPES = new RecipeMapBuilder<>("lightning_processor",
+            new SimpleRecipeBuilder())
+            .itemInputs(2)
+            .itemOutputs(2)
+            .fluidInputs(2)
+            .fluidOutputs(2)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.LIGHTNING_OVERLAY_1, false, false)
+                    .itemSlotOverlay(GTGuiTextures.CANISTER_OVERLAY, false, true)
+                    .fluidSlotOverlay(GTGuiTextures.LIGHTNING_OVERLAY_2, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARC_FURNACE)
+            )
+            .sound(GTSoundEvents.ARC)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> RECYCLER_RECIPES = new RecipeMapBuilder<>("recycle",
+            new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(1)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.CRUSHED_ORE_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_MACERATE))
+            .sound(GTSoundEvents.RECYCLE)
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> SAWMILL_RECIPES = new RecipeMapBuilder<>("saw_mill",
+            new SimpleRecipeBuilder())
+            .itemInputs(2)
+            .itemOutputs(2)
+            .fluidInputs(1)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.SAWBLADE_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.CUTTER_OVERLAY, true, false)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_SLICE))
+            .sound(GTSoundEvents.CHAINSAW_TOOL)
+            .onBuild(gregtechId("saw_mill_fluid"), recipeBuilder -> {
+                if (recipeBuilder.getFluidInputs().isEmpty()) {
+                    int duration = recipeBuilder.getDuration();
+                    long eut = recipeBuilder.getEUt();
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(Materials.Water.getFluid(GTUtility.safeCastLongToInt(Math.max(4,
+                                    Math.min(1000, duration * eut / 320)))))
+                            .duration(duration * 2)
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(
+                                    Materials.DistilledWater.getFluid(GTUtility.safeCastLongToInt(Math.max(3,
+                                            Math.min(750, duration * eut / 426)))))
+                            .duration((int) (duration * 1.5))
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(Materials.Lubricant.getFluid(GTUtility.safeCastLongToInt(Math.max(1,
+                                    Math.min(250, duration * eut / 1280)))))
+                            .duration(Math.max(1, duration))
+                            .buildAndRegister();
+                    recipeBuilder
+                            .fluidInputs(Materials.MolybdeniteLubricant
+                                    .getFluid(GTUtility.safeCastLongToInt(Math.max(1,
+                                            Math.min(125, duration * eut / 2560)))))
+                            .duration(Math.max(1, (int) (duration * 0.8)));
+
+                }
+            })
             .build();
 
     /**

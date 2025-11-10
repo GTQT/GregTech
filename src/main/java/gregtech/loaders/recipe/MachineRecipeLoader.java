@@ -107,6 +107,7 @@ public class MachineRecipeLoader {
         if (!Loader.isModLoaded(GTQT_CORE))
             AssemblyLineLoader.init();
         FusionLoader.init();
+        UURecipes.init();
         AssemblerRecipeLoader.init();
         ComponentRecipes.register();
         MiscRecipeLoader.init();

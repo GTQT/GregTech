@@ -277,6 +277,7 @@ public class Textures {
     public static final OrientedOverlayRenderer MASS_FABRICATOR_OVERLAY = new OrientedOverlayRenderer(
             "machines/mass_fabricator");
     public static final OrientedOverlayRenderer REPLICATOR_OVERLAY = new OrientedOverlayRenderer("machines/replicator");
+    public static final OrientedOverlayRenderer RECYCLER_OVERLAY = new OrientedOverlayRenderer("machines/recycler");
     public static final OrientedOverlayRenderer SCANNER_OVERLAY = new OrientedOverlayRenderer("machines/scanner");
     public static final OrientedOverlayRenderer COMBUSTION_GENERATOR_OVERLAY = new OrientedOverlayRenderer(
             "generators/combustion");
@@ -301,6 +302,9 @@ public class Textures {
     public static final OrientedOverlayRenderer DESULFURIZER_OVERLAY = new OrientedOverlayRenderer("machines/desulfurizer");
     public static final OrientedOverlayRenderer BIO_REACTOR_OVERLAY = new OrientedOverlayRenderer("machines/bio_reactor");
     public static final OrientedOverlayRenderer LOOM_OVERLAY = new OrientedOverlayRenderer("machines/loom");
+    public static final OrientedOverlayRenderer ROASTER_OVERLAY = new OrientedOverlayRenderer("machines/roaster");
+    public static final OrientedOverlayRenderer CHEMICAL_DEHYDRATOR_OVERLAY = new OrientedOverlayRenderer("machines/chemical_dehydrator");
+    public static final OrientedOverlayRenderer LIGHTNING_PROCESSOR_OVERLAY = new OrientedOverlayRenderer("machines/lightning_processor");
     // Simple Overlay Renderers
     public static final SimpleOverlayRenderer SCREEN = new SimpleOverlayRenderer("overlay/machine/overlay_screen");
     public static final SimpleOverlayRenderer DISPLAY = new SimpleOverlayRenderer("cover/overlay_display");

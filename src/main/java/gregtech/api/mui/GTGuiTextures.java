@@ -356,6 +356,7 @@ public class GTGuiTextures {
     public static final UITexture IN_SLOT_OVERLAY_STEEL = fullImage("textures/gui/overlay/in_slot_overlay_steel.png");
     public static final UITexture INGOT_OVERLAY = fullImage("textures/gui/overlay/ingot_overlay.png", true);
     public static final UITexture INT_CIRCUIT_OVERLAY = fullImage("textures/gui/overlay/int_circuit_overlay.png", true);
+    public static final UITexture FOIL_OVERLAY = fullImage("textures/gui/overlay/foil_overlay.png", true);
     public static final UITexture LENS_OVERLAY = fullImage("textures/gui/overlay/lens_overlay.png", true);
     public static final UITexture LIGHTNING_OVERLAY_1 = fullImage("textures/gui/overlay/lightning_overlay_1.png", true);
     public static final UITexture LIGHTNING_OVERLAY_2 = fullImage("textures/gui/overlay/lightning_overlay_2.png", true);

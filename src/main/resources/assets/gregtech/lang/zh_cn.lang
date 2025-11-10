@@ -40,6 +40,8 @@ death.attack.universal_spade=%2$s的万用铲一把铲走了%1$s
 death.attack.flint_and_steel=%2$s的打火石点燃了%1$s
 death.attack.universal_tool=%2$s的万能工具变形了%1$s
 death.attack.chainsaw_lv=%2$s的链锯切碎了%1$s
+death.attack.chainsaw_mv=%2$s的链锯切碎了%1$s
+death.attack.chainsaw_hv=%2$s的链锯切碎了%1$s
 death.attack.wrench_lv=%s的血管被%s拧松了
 death.attack.wrench_hv=%s的血管被%s狠狠拧松了
 death.attack.wrench_iv=%2$s一扳手下去，扳倒了%1$s的美好人生
@@ -1327,6 +1329,10 @@ metaarmor.energy_share.disable=能量供给：装置充能已禁用
 metaarmor.energy_share.tooltip=供能模式：%s
 metaarmor.energy_share.tooltip.guide=持握物品并潜行右击以更换模式
 
+metaitem.scrap.name=废料
+metaitem.scrap_box.name=废料盒
+metaitem.uu_matter.name=UU物质
+
 metaitem.record.sus.name=音乐唱片
 metaitem.record.sus.tooltip=§7Leonz - Among Us Drip
 
@@ -2546,9 +2552,17 @@ recipemap.desulfurizer.name=脱硫机
 recipemap.bio_reactor.name=生物反应
 recipemap.component_assembler.name=部件组装机
 recipemap.loom.name=纺线器
+recipemap.burner_reactor.name=燃烧反应器
+recipemap.roaster.name=焙烧炉
+recipemap.chemical_dehydrator.name=化学脱水器
+recipemap.cryogenic_reactor.name=冷冻反应器
+recipemap.sonicator.name=超声震荡器
+recipemap.lightning_processor.name=闪电处理器
+recipemap.recycle.name=回收机
 recipemap.primitive_blast_furnace.name=土高炉
 recipemap.coke_oven.name=焦炉
 recipemap.research_station.name=研究站
+recipemap.saw_mill.name=锯木机
 
 gregtech.recipe.category.arc_furnace_recycling=电弧炉回收
 gregtech.recipe.category.macerator_recycling=研磨机回收
@@ -4947,6 +4961,118 @@ gregtech.machine.loom.uxv.tooltip=纳米纺织机
 gregtech.machine.loom.opv.name=传奇纺线器
 gregtech.machine.loom.opv.tooltip=纳米纺织机
 
+# Roaster
+gregtech.machine.roaster.lv.name=基础焙烧炉
+gregtech.machine.roaster.lv.tooltip=物料干燥设备
+gregtech.machine.roaster.mv.name=进阶焙烧炉
+gregtech.machine.roaster.mv.tooltip=物料干燥设备
+gregtech.machine.roaster.hv.name=进阶焙烧炉 II
+gregtech.machine.roaster.hv.tooltip=物料干燥设备
+gregtech.machine.roaster.ev.name=进阶焙烧炉 III
+gregtech.machine.roaster.ev.tooltip=矿物焙烧装置
+gregtech.machine.roaster.iv.name=精英焙烧炉
+gregtech.machine.roaster.iv.tooltip=矿物焙烧装置
+gregtech.machine.roaster.luv.name=精英焙烧炉 II
+gregtech.machine.roaster.luv.tooltip=矿物焙烧装置
+gregtech.machine.roaster.zpm.name=精英焙烧炉 III
+gregtech.machine.roaster.zpm.tooltip=催化剂活化器
+gregtech.machine.roaster.uv.name=终极焙烧炉
+gregtech.machine.roaster.uv.tooltip=催化剂活化器
+gregtech.machine.roaster.uhv.name=史诗焙烧炉
+gregtech.machine.roaster.uhv.tooltip=陶瓷烧结炉
+gregtech.machine.roaster.uev.name=史诗焙烧炉 II
+gregtech.machine.roaster.uev.tooltip=陶瓷烧结炉
+gregtech.machine.roaster.uiv.name=史诗焙烧炉 III
+gregtech.machine.roaster.uiv.tooltip=陶瓷烧结炉
+gregtech.machine.roaster.uxv.name=史诗焙烧炉 IV
+gregtech.machine.roaster.uxv.tooltip=陶瓷烧结炉
+gregtech.machine.roaster.opv.name=传奇焙烧炉
+gregtech.machine.roaster.opv.tooltip=陶瓷烧结炉
+
+# Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.lv.name=基础化学脱水器
+gregtech.machine.chemical_dehydrator.lv.tooltip=溶剂脱水装置
+gregtech.machine.chemical_dehydrator.mv.name=进阶化学脱水器
+gregtech.machine.chemical_dehydrator.mv.tooltip=溶剂脱水装置
+gregtech.machine.chemical_dehydrator.hv.name=进阶化学脱水器 II
+gregtech.machine.chemical_dehydrator.hv.tooltip=溶剂脱水装置
+gregtech.machine.chemical_dehydrator.ev.name=进阶化学脱水器 III
+gregtech.machine.chemical_dehydrator.ev.tooltip=分子筛脱水系统
+gregtech.machine.chemical_dehydrator.iv.name=精英化学脱水器
+gregtech.machine.chemical_dehydrator.iv.tooltip=分子筛脱水系统
+gregtech.machine.chemical_dehydrator.luv.name=精英化学脱水器 II
+gregtech.machine.chemical_dehydrator.luv.tooltip=分子筛脱水系统
+gregtech.machine.chemical_dehydrator.zpm.name=精英化学脱水器 III
+gregtech.machine.chemical_dehydrator.zpm.tooltip=共沸蒸馏塔
+gregtech.machine.chemical_dehydrator.uv.name=终极化学脱水器
+gregtech.machine.chemical_dehydrator.uv.tooltip=共沸蒸馏塔
+gregtech.machine.chemical_dehydrator.uhv.name=史诗化学脱水器
+gregtech.machine.chemical_dehydrator.uhv.tooltip=深度脱水反应器
+gregtech.machine.chemical_dehydrator.uev.name=史诗化学脱水器 II
+gregtech.machine.chemical_dehydrator.uev.tooltip=深度脱水反应器
+gregtech.machine.chemical_dehydrator.uiv.name=史诗化学脱水器 III
+gregtech.machine.chemical_dehydrator.uiv.tooltip=深度脱水反应器
+gregtech.machine.chemical_dehydrator.uxv.name=史诗化学脱水器 IV
+gregtech.machine.chemical_dehydrator.uxv.tooltip=深度脱水反应器
+gregtech.machine.chemical_dehydrator.opv.name=传奇化学脱水器
+gregtech.machine.chemical_dehydrator.opv.tooltip=深度脱水反应器
+
+# Lighting Processor
+gregtech.machine.lightning_processor.lv.name=基础闪电处理器
+gregtech.machine.lightning_processor.lv.tooltip=电弧反应装置
+gregtech.machine.lightning_processor.mv.name=进阶闪电处理器
+gregtech.machine.lightning_processor.mv.tooltip=电弧反应装置
+gregtech.machine.lightning_processor.hv.name=进阶闪电处理器 II
+gregtech.machine.lightning_processor.hv.tooltip=电弧反应装置
+gregtech.machine.lightning_processor.ev.name=进阶闪电处理器 III
+gregtech.machine.lightning_processor.ev.tooltip=等离子体发生器
+gregtech.machine.lightning_processor.iv.name=精英闪电处理器
+gregtech.machine.lightning_processor.iv.tooltip=等离子体发生器
+gregtech.machine.lightning_processor.luv.name=精英闪电处理器 II
+gregtech.machine.lightning_processor.luv.tooltip=等离子体发生器
+gregtech.machine.lightning_processor.zpm.name=精英闪电处理器 III
+gregtech.machine.lightning_processor.zpm.tooltip=高压放电反应器
+gregtech.machine.lightning_processor.uv.name=终极闪电处理器
+gregtech.machine.lightning_processor.uv.tooltip=高压放电反应器
+gregtech.machine.lightning_processor.uhv.name=史诗闪电处理器
+gregtech.machine.lightning_processor.uhv.tooltip=闪电合成装置
+gregtech.machine.lightning_processor.uev.name=史诗闪电处理器 II
+gregtech.machine.lightning_processor.uev.tooltip=闪电合成装置
+gregtech.machine.lightning_processor.uiv.name=史诗闪电处理器 III
+gregtech.machine.lightning_processor.uiv.tooltip=闪电合成装置
+gregtech.machine.lightning_processor.uxv.name=史诗闪电处理器 IV
+gregtech.machine.lightning_processor.uxv.tooltip=闪电合成装置
+gregtech.machine.lightning_processor.opv.name=传奇闪电处理器
+gregtech.machine.lightning_processor.opv.tooltip=闪电合成装置
+
+# Recycler
+gregtech.machine.recycler.lv.name=基础回收机
+gregtech.machine.recycler.lv.tooltip=废物处理装置
+gregtech.machine.recycler.mv.name=进阶回收机
+gregtech.machine.recycler.mv.tooltip=废物处理装置
+gregtech.machine.recycler.hv.name=进阶回收机 II
+gregtech.machine.recycler.hv.tooltip=废物处理装置
+gregtech.machine.recycler.ev.name=进阶回收机 III
+gregtech.machine.recycler.ev.tooltip=材料回收系统
+gregtech.machine.recycler.iv.name=精英回收机
+gregtech.machine.recycler.iv.tooltip=材料回收系统
+gregtech.machine.recycler.luv.name=精英回收机 II
+gregtech.machine.recycler.luv.tooltip=材料回收系统
+gregtech.machine.recycler.zpm.name=精英回收机 III
+gregtech.machine.recycler.zpm.tooltip=高效资源回收器
+gregtech.machine.recycler.uv.name=终极回收机
+gregtech.machine.recycler.uv.tooltip=高效资源回收器
+gregtech.machine.recycler.uhv.name=史诗回收机
+gregtech.machine.recycler.uhv.tooltip=分子级分解装置
+gregtech.machine.recycler.uev.name=史诗回收机 II
+gregtech.machine.recycler.uev.tooltip=分子级分解装置
+gregtech.machine.recycler.uiv.name=史诗回收机 III
+gregtech.machine.recycler.uiv.tooltip=分子级分解装置
+gregtech.machine.recycler.uxv.name=史诗回收机 IV
+gregtech.machine.recycler.uxv.tooltip=分子级分解装置
+gregtech.machine.recycler.opv.name=传奇回收机
+gregtech.machine.recycler.opv.tooltip=分子级分解装置
+
 # Fisher
 gregtech.machine.fisher.lv.name=基础捕鱼机
 gregtech.machine.fisher.mv.name=进阶捕鱼机
@@ -5292,6 +5418,7 @@ behaviour.prospecting=适用于探矿
 
 # Multiblock machine controllers
 gregtech.machine.primitive_water_pump.name=原始水泵
+gregtech.machine.saw_mill.name=锯木机
 gregtech.machine.primitive_blast_furnace.bronze.name=土高炉
 gregtech.machine.electric_blast_furnace.name=电力高炉
 gregtech.machine.electric_blast_furnace.tooltip.1=每超过配方温度§f900K§7，耗能均将乘以§f95%%§7（不计超频）。

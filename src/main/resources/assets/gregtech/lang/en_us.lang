@@ -40,6 +40,8 @@ death.attack.universal_spade=%s shovel took %s
 death.attack.flint_and_steel=%s flint ignited %s
 death.attack.universal_tool=%s universal tool %s
 death.attack.chainsaw_lv=%s was massacred by %s
+death.attack.chainsaw_mv=%s was massacred by %s
+death.attack.chainsaw_hv=%s was massacred by %s
 death.attack.wrench_lv=%s's pipes were loosened by %s
 death.attack.wrench_hv=%s's pipes were loosened by %s
 death.attack.wrench_iv=%s had a Monkey Wrench thrown into their plans by %s
@@ -1328,6 +1330,10 @@ metaarmor.energy_share.disable=Energy Supply: Gadgets charging disabled
 metaarmor.energy_share.tooltip=Supply mode: %s
 metaarmor.energy_share.tooltip.guide=To change mode shift-right click when holding item
 
+metaitem.scrap.name=Scrap
+metaitem.scrap_box.name=Scrap Box
+metaitem.uu_matter.name=UU Matter
+
 metaitem.record.sus.name=Music Disc
 metaitem.record.sus.tooltip=§7Leonz - Among Us Drip
 
@@ -2550,9 +2556,17 @@ recipemap.desulfurizer.name=Desulfurizer
 recipemap.bio_reactor.name=Bio Reactor
 recipemap.component_assembler.name=component Assembler
 recipemap.loom.name=Loom
+recipemap.burner_reactor.name=Burner Reactor
+recipemap.roaster.name=Roaster
+recipemap.chemical_dehydrator.name=Chemical Dehydrator
+recipemap.cryogenic_reactor.name=Cryogenic Reactor
+recipemap.sonicator.name=Sonicator
+recipemap.lightning_processor.name=Lightning Processor
+recipemap.recycle.name=Recycler
 recipemap.primitive_blast_furnace.name=Primitive Blast Furnace
 recipemap.coke_oven.name=Coke Oven
 recipemap.research_station.name=Research Station
+recipemap.saw_mill.name=Saw Mill
 
 gregtech.recipe.category.arc_furnace_recycling=Arc Furnace Recycling
 gregtech.recipe.category.macerator_recycling=Macerator Recycling
@@ -4951,6 +4965,118 @@ gregtech.machine.loom.uxv.tooltip=Nano-Weaver
 gregtech.machine.loom.opv.name=Legendary Loom
 gregtech.machine.loom.opv.tooltip=Nano-Weaver
 
+# Roaster
+gregtech.machine.roaster.lv.name=Basic Roaster
+gregtech.machine.roaster.lv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.mv.name=Advanced Roaster
+gregtech.machine.roaster.mv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.hv.name=Advanced Roaster II
+gregtech.machine.roaster.hv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.ev.name=Advanced Roaster III
+gregtech.machine.roaster.ev.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.iv.name=Elite Roaster
+gregtech.machine.roaster.iv.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.luv.name=Elite Roaster II
+gregtech.machine.roaster.luv.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.zpm.name=Elite Roaster III
+gregtech.machine.roaster.zpm.tooltip=Catalyst Activator
+gregtech.machine.roaster.uv.name=Ultimate Roaster
+gregtech.machine.roaster.uv.tooltip=Catalyst Activator
+gregtech.machine.roaster.uhv.name=Epic Roaster
+gregtech.machine.roaster.uhv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uev.name=Epic Roaster II
+gregtech.machine.roaster.uev.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uiv.name=Epic Roaster III
+gregtech.machine.roaster.uiv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uxv.name=Epic Roaster IV
+gregtech.machine.roaster.uxv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.opv.name=Legendary Roaster
+gregtech.machine.roaster.opv.tooltip=Ceramic Sintering Furnace
+
+# Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.lv.name=Basic Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.lv.tooltip=Solvent Dehydration Device
+gregtech.machine.chemical_dehydrator.mv.name=Advanced Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.mv.tooltip=Solvent Dehydration Device
+gregtech.machine.chemical_dehydrator.hv.name=Advanced Chemical Dehydrator II
+gregtech.machine.chemical_dehydrator.hv.tooltip=Solvent Dehydration Device
+gregtech.machine.chemical_dehydrator.ev.name=Advanced Chemical Dehydrator III
+gregtech.machine.chemical_dehydrator.ev.tooltip=Molecular Sieve Dehydration System
+gregtech.machine.chemical_dehydrator.iv.name=Elite Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.iv.tooltip=Molecular Sieve Dehydration System
+gregtech.machine.chemical_dehydrator.luv.name=Elite Chemical Dehydrator II
+gregtech.machine.chemical_dehydrator.luv.tooltip=Molecular Sieve Dehydration System
+gregtech.machine.chemical_dehydrator.zpm.name=Elite Chemical Dehydrator III
+gregtech.machine.chemical_dehydrator.zpm.tooltip=Azeotropic Distillation Column
+gregtech.machine.chemical_dehydrator.uv.name=Ultimate Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.uv.tooltip=Azeotropic Distillation Column
+gregtech.machine.chemical_dehydrator.uhv.name=Epic Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.uhv.tooltip=Deep Dehydration Reactor
+gregtech.machine.chemical_dehydrator.uev.name=Epic Chemical Dehydrator II
+gregtech.machine.chemical_dehydrator.uev.tooltip=Deep Dehydration Reactor
+gregtech.machine.chemical_dehydrator.uiv.name=Epic Chemical Dehydrator III
+gregtech.machine.chemical_dehydrator.uiv.tooltip=Deep Dehydration Reactor
+gregtech.machine.chemical_dehydrator.uxv.name=Epic Chemical Dehydrator IV
+gregtech.machine.chemical_dehydrator.uxv.tooltip=Deep Dehydration Reactor
+gregtech.machine.chemical_dehydrator.opv.name=Legendary Chemical Dehydrator
+gregtech.machine.chemical_dehydrator.opv.tooltip=Deep Dehydration Reactor
+
+# Lightning Processor
+gregtech.machine.lightning_processor.lv.name=Basic Lightning Processor
+gregtech.machine.lightning_processor.lv.tooltip=Arc Reaction Device
+gregtech.machine.lightning_processor.mv.name=Advanced Lightning Processor
+gregtech.machine.lightning_processor.mv.tooltip=Arc Reaction Device
+gregtech.machine.lightning_processor.hv.name=Advanced Lightning Processor II
+gregtech.machine.lightning_processor.hv.tooltip=Arc Reaction Device
+gregtech.machine.lightning_processor.ev.name=Advanced Lightning Processor III
+gregtech.machine.lightning_processor.ev.tooltip=Plasma Generator
+gregtech.machine.lightning_processor.iv.name=Elite Lightning Processor
+gregtech.machine.lightning_processor.iv.tooltip=Plasma Generator
+gregtech.machine.lightning_processor.luv.name=Elite Lightning Processor II
+gregtech.machine.lightning_processor.luv.tooltip=Plasma Generator
+gregtech.machine.lightning_processor.zpm.name=Elite Lightning Processor III
+gregtech.machine.lightning_processor.zpm.tooltip=High Voltage Discharge Reactor
+gregtech.machine.lightning_processor.uv.name=Ultimate Lightning Processor
+gregtech.machine.lightning_processor.uv.tooltip=High Voltage Discharge Reactor
+gregtech.machine.lightning_processor.uhv.name=Epic Lightning Processor
+gregtech.machine.lightning_processor.uhv.tooltip=Lightning Synthesis Device
+gregtech.machine.lightning_processor.uev.name=Epic Lightning Processor II
+gregtech.machine.lightning_processor.uev.tooltip=Lightning Synthesis Device
+gregtech.machine.lightning_processor.uiv.name=Epic Lightning Processor III
+gregtech.machine.lightning_processor.uiv.tooltip=Lightning Synthesis Device
+gregtech.machine.lightning_processor.uxv.name=Epic Lightning Processor IV
+gregtech.machine.lightning_processor.uxv.tooltip=Lightning Synthesis Device
+gregtech.machine.lightning_processor.opv.name=Legendary Lightning Processor
+gregtech.machine.lightning_processor.opv.tooltip=Lightning Synthesis Device
+
+# Recycler
+gregtech.machine.recycler.lv.name=Basic Recycler
+gregtech.machine.recycler.lv.tooltip=Waste Processing Device
+gregtech.machine.recycler.mv.name=Advanced Recycler
+gregtech.machine.recycler.mv.tooltip=Waste Processing Device
+gregtech.machine.recycler.hv.name=Advanced Recycler II
+gregtech.machine.recycler.hv.tooltip=Waste Processing Device
+gregtech.machine.recycler.ev.name=Advanced Recycler III
+gregtech.machine.recycler.ev.tooltip=Material Recycling System
+gregtech.machine.recycler.iv.name=Elite Recycler
+gregtech.machine.recycler.iv.tooltip=Material Recycling System
+gregtech.machine.recycler.luv.name=Elite Recycler II
+gregtech.machine.recycler.luv.tooltip=Material Recycling System
+gregtech.machine.recycler.zpm.name=Elite Recycler III
+gregtech.machine.recycler.zpm.tooltip=Efficient Resource Recycler
+gregtech.machine.recycler.uv.name=Ultimate Recycler
+gregtech.machine.recycler.uv.tooltip=Efficient Resource Recycler
+gregtech.machine.recycler.uhv.name=Epic Recycler
+gregtech.machine.recycler.uhv.tooltip=Molecular Decomposition Device
+gregtech.machine.recycler.uev.name=Epic Recycler II
+gregtech.machine.recycler.uev.tooltip=Molecular Decomposition Device
+gregtech.machine.recycler.uiv.name=Epic Recycler III
+gregtech.machine.recycler.uiv.tooltip=Molecular Decomposition Device
+gregtech.machine.recycler.uxv.name=Epic Recycler IV
+gregtech.machine.recycler.uxv.tooltip=Molecular Decomposition Device
+gregtech.machine.recycler.opv.name=Legendary Recycler
+gregtech.machine.recycler.opv.tooltip=Molecular Decomposition Device
+
 # Fisher
 gregtech.machine.fisher.lv.name=Basic Fisher
 gregtech.machine.fisher.mv.name=Advanced Fisher
@@ -5296,6 +5422,7 @@ behaviour.prospecting=Usable for Prospecting
 
 # Multiblock machine controllers
 gregtech.machine.primitive_water_pump.name=Primitive Water Pump
+gregtech.machine.saw_mill.name=Saw Mill
 gregtech.machine.primitive_blast_furnace.bronze.name=Primitive Blast Furnace
 gregtech.machine.electric_blast_furnace.name=Electric Blast Furnace
 gregtech.machine.electric_blast_furnace.tooltip.1=For every §f900K§7 above the recipe temperature, a multiplicative §f95%%§7 energy multiplier is applied pre-overclocking.

@@ -25,6 +25,7 @@ public class GTSoundEvents {
     public static SoundEvent ASSEMBLER;
     public static SoundEvent COMPRESSOR;
     public static SoundEvent REPLICATOR;
+    public static SoundEvent RECYCLE;
     public static SoundEvent CUT;
     public static SoundEvent COOLING;
     public static SoundEvent MINER;
@@ -70,6 +71,7 @@ public class GTSoundEvents {
         ELECTROLYZER = soundManager.registerSound("tick.electrolyzer");
         MIXER = soundManager.registerSound("tick.mixer");
         REPLICATOR = soundManager.registerSound("tick.replicator");
+        RECYCLE = soundManager.registerSound("tick.recycle");
         ARC = soundManager.registerSound("tick.arc");
         BOILER = soundManager.registerSound("tick.boiler");
         FURNACE = soundManager.registerSound("tick.furnace");

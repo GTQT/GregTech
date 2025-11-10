@@ -17,6 +17,15 @@ public class ForestryConfig {
     @RequiresMcRestart
     public static boolean enableGTScoop = true;
 
+    //开启林业木材加工
+    @Comment({
+            "Enable GregTech Wooden Crafting Table.",
+            "Requirements: Forestry Crafting module",
+            "Default: true"
+    })
+    @RequiresMcRestart
+    public static boolean enableGTWoodenCraftingTable = true;
+
     @Comment({
             "Enable GregTech Bees.",
             "Requirements: Forestry Apiculture module",

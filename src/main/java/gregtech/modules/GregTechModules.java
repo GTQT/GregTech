@@ -21,6 +21,7 @@ public final class GregTechModules implements IModuleContainer {
     public static final String MODULE_FR = "fr_integration";
     public static final String MODULE_CHISEL = "chisel_integration";
     public static final String MODULE_VINTAGEFIX = "vintagefix_integration";
+    public static final String MODULE_EXTREES = "extratrees_integration";
 
     @Override
     public String getID() {

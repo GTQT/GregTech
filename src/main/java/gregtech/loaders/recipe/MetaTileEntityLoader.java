@@ -38,7 +38,7 @@ import java.util.Arrays;
 import static gregtech.api.GTValues.L;
 import static gregtech.api.GTValues.VA;
 import static gregtech.api.unification.material.Materials.*;
-import static gregtech.api.unification.ore.OrePrefix.cableGtSingle;
+import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
 import static gregtech.common.blocks.BlockBoilerCasing.BoilerCasingType.*;
 import static gregtech.common.blocks.BlockFireboxCasing.FireboxCasingType.*;
@@ -51,7 +51,6 @@ import static gregtech.common.blocks.BlockTurbineCasing.TurbineCasingType.*;
 import static gregtech.common.blocks.BlockWarningSign.SignType.*;
 import static gregtech.common.blocks.BlockWarningSign1.SignType.*;
 import static gregtech.common.blocks.BlockWireCoil.CoilType.CUPRONICKEL;
-import static gregtech.common.metatileentities.MetaTileEntities.SEMI_FLUID_GENERATOR;
 import static gregtech.loaders.recipe.CraftingComponent.*;
 import static gtqt.common.items.GTQTMetaItems.CASTING_MOLD_EMPTY;
 
@@ -801,21 +800,21 @@ public class MetaTileEntityLoader {
                 new UnificationEntry(OrePrefix.cableGtSingle, Materials.Gold), 'P',
                 new UnificationEntry(OrePrefix.pipeNormalFluid, Materials.StainlessSteel));
 
-        ModHandler.addShapedRecipe(true, "semi_fluid_generator_lv", SEMI_FLUID_GENERATOR[0].getStackForm(),
+        ModHandler.addShapedRecipe(true, "semi_fluid_generator_lv", MetaTileEntities.SEMI_FLUID_GENERATOR[0].getStackForm(),
                 "PCP", "EME", "GWG", 'M', MetaTileEntities.HULL[GTValues.LV].getStackForm(), 'P',
                 MetaItems.ELECTRIC_PISTON_LV, 'E', MetaItems.ELECTRIC_PUMP_LV, 'C',
                 new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.LV), 'W',
                 new UnificationEntry(OrePrefix.cableGtSingle, Materials.Tin), 'G',
                 new UnificationEntry(OrePrefix.gear, Materials.Steel));
 
-        ModHandler.addShapedRecipe(true, "semi_fluid_generator_mv", SEMI_FLUID_GENERATOR[1].getStackForm(),
+        ModHandler.addShapedRecipe(true, "semi_fluid_generator_mv", MetaTileEntities.SEMI_FLUID_GENERATOR[1].getStackForm(),
                 "PCP", "EME", "GWG", 'M', MetaTileEntities.HULL[GTValues.MV].getStackForm(), 'P',
                 MetaItems.ELECTRIC_PISTON_MV, 'E', MetaItems.ELECTRIC_PUMP_MV, 'C',
                 new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.MV), 'W',
                 new UnificationEntry(OrePrefix.cableGtSingle, Materials.Copper), 'G',
                 new UnificationEntry(OrePrefix.gear, Materials.Aluminium));
 
-        ModHandler.addShapedRecipe(true, "semi_fluid_generator_hv", SEMI_FLUID_GENERATOR[2].getStackForm(),
+        ModHandler.addShapedRecipe(true, "semi_fluid_generator_hv", MetaTileEntities.SEMI_FLUID_GENERATOR[2].getStackForm(),
                 "PCP", "EME", "GWG", 'M', MetaTileEntities.HULL[GTValues.HV].getStackForm(), 'P',
                 MetaItems.ELECTRIC_PISTON_HV, 'E', MetaItems.ELECTRIC_PUMP_HV, 'C',
                 new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV), 'W',
@@ -830,6 +829,12 @@ public class MetaTileEntityLoader {
         ModHandler.addShapedRecipe(true, "magic_energy_absorber", MetaTileEntities.MAGIC_ENERGY_ABSORBER.getStackForm(),
                 "PCP", "PMP", "PCP", 'M', MetaTileEntities.HULL[GTValues.EV].getStackForm(), 'P', MetaItems.SENSOR_EV,
                 'C', new UnificationEntry(OrePrefix.circuit, Tier.EV));
+
+        ModHandler.addShapedRecipe(true, "saw_mill", MetaTileEntities.SAW_MILL.getStackForm(),
+                "BPB", "PCP", "BPB",
+                'C', new UnificationEntry(circuit, MarkerMaterials.Tier.ULV),
+                'P', new UnificationEntry(plate, Wood),
+                'B', new UnificationEntry(frameGt, Bronze));
 
         ModHandler.addShapedRecipe(true, "primitive_pump", MetaTileEntities.PRIMITIVE_WATER_PUMP.getStackForm(), "RGS",
                 "OWd", "CLC", 'R', new UnificationEntry(OrePrefix.ring, Materials.Iron), 'G',
@@ -1007,6 +1012,40 @@ public class MetaTileEntityLoader {
                 "xSM", "CSI", "WHW", 'H',
                 CraftingComponent.HULL, 'W', CraftingComponent.CABLE, 'S', CraftingComponent.STICK_DISTILLATION, 'C', CraftingComponent.CONVEYOR,
                 'M', CraftingComponent.MOTOR, 'I', MetaItems.ITEM_FILTER.getStackForm());
+
+        // Roaster
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.ROASTER,
+                "SRS", "CHC", "KMK",
+                'K', CraftingComponent.CABLE,
+                'S', CraftingComponent.SPRING,
+                'C', CraftingComponent.CIRCUIT,
+                'H', CraftingComponent.HULL,
+                'R', CraftingComponent.ROTOR,
+                'M', CraftingComponent.MOTOR);
+
+        // Chemical Dehydrator
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.CHEMICAL_DEHYDRATOR,
+                "WCW", "SHS", "WCW",
+                'W', CraftingComponent.CABLE,
+                'C', CraftingComponent.CIRCUIT,
+                'S', CraftingComponent.SPRING,
+                'H', CraftingComponent.HULL);
+
+        // Lightning Processor
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.LIGHTNING_PROCESSOR,
+                "WWW", "XHX", "EFE",
+                'E', CraftingComponent.EMITTER,
+                'F', CraftingComponent.PLATE,
+                'H', CraftingComponent.HULL,
+                'X', CraftingComponent.CIRCUIT,
+                'W', CraftingComponent.CABLE_QUAD);
+
+        // Recycler
+        MetaTileEntityLoader.registerMachineRecipe(true, MetaTileEntities.RECYCLER, "CGC", "FMF", "CGC",
+                'M', HULL,
+                'F', CABLE_HEX,
+                'C', CIRCUIT,
+                'G', MOTOR);
 
         MetaTileEntityLoader.registerMachineRecipe(true,MetaTileEntities.MUFFLER_HATCH,
                 "AMA", "PHP","ARA",

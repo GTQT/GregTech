@@ -100,6 +100,8 @@ public class ToolRecipeHandler {
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadDrill, ToolItems.HARD_HAMMER_EV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadDrill, ToolItems.HARD_HAMMER_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_LV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_MV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_HV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_LV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_HV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_IV);
@@ -328,7 +330,7 @@ public class ToolRecipeHandler {
                     'S', steelPlate,
                     'R', steelRing);
 
-            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.CHAINSAW_LV });
+            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.CHAINSAW_LV, ToolItems.CHAINSAW_MV,ToolItems.CHAINSAW_HV });
 
             // wrench
             toolPrefix = OrePrefix.toolHeadWrench;
