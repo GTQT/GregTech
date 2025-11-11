@@ -5129,6 +5129,36 @@ gregtech.machine.world_accelerator.working_area_random=  随机刻模式：§f%d
 gregtech.machine.world_accelerator.mode_tile=方块实体模式
 gregtech.machine.world_accelerator.mode_entity=随机刻模式
 
+# Teleporter
+gregtech.machine.teleporter.ulv.name=简易传送器
+gregtech.machine.teleporter.ulv.tooltip=短距离传送设备
+gregtech.machine.teleporter.lv.name=基础传送器
+gregtech.machine.teleporter.lv.tooltip=短距离传送设备
+gregtech.machine.teleporter.mv.name=进阶传送器
+gregtech.machine.teleporter.mv.tooltip=中距离传送设备
+gregtech.machine.teleporter.hv.name=进阶传送器 II
+gregtech.machine.teleporter.hv.tooltip=中距离传送设备
+gregtech.machine.teleporter.ev.name=进阶传送器 III
+gregtech.machine.teleporter.ev.tooltip=长距离传送设备
+gregtech.machine.teleporter.iv.name=精英传送器
+gregtech.machine.teleporter.iv.tooltip=跨维度传送设备
+gregtech.machine.teleporter.luv.name=精英传送器 II
+gregtech.machine.teleporter.luv.tooltip=跨维度传送设备
+gregtech.machine.teleporter.zpm.name=精英传送器 III
+gregtech.machine.teleporter.zpm.tooltip=跨维度传送设备
+gregtech.machine.teleporter.uv.name=终极传送器
+gregtech.machine.teleporter.uv.tooltip=空间折跃装置
+gregtech.machine.teleporter.uhv.name=史诗传送器
+gregtech.machine.teleporter.uhv.tooltip=空间折跃装置
+gregtech.machine.teleporter.uev.name=史诗传送器 II
+gregtech.machine.teleporter.uev.tooltip=空间折跃装置
+gregtech.machine.teleporter.uiv.name=史诗传送器 III
+gregtech.machine.teleporter.uiv.tooltip=空间折跃装置
+gregtech.machine.teleporter.uxv.name=史诗传送器 IV
+gregtech.machine.teleporter.uxv.tooltip=空间折跃装置
+gregtech.machine.teleporter.opv.name=传奇传送器
+gregtech.machine.teleporter.opv.tooltip=空间折跃装置
+
 # HPCA Components
 gregtech.machine.hpca.empty_component.name=空HPCA组件
 gregtech.machine.hpca.empty_component.tooltip=只是为了填充空间

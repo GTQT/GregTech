@@ -726,6 +726,19 @@ gregtech.machine.budget_crib.data_stick_use=坐标数据已写入闪存
 gregtech.machine.budget_crib.data_stick_name=总成位置信息
 gregtech.machine.budget_crib_proxy.data_stick_use=已连接位于 X: %s, Y: %s, Z: %s 的总成
 
+gregtech.machine.teleporter.data_stick_use=坐标数据已写入闪存
+gregtech.machine.teleporter.data_stick_name=传送器位置信息
+gregtech.machine.teleporter_link.data_stick_loaded=已连接位于 X: %s, Y: %s, Z: %s 的传送器
+gregtech.machine.teleporter.teleport_success=已传送至位于 X: %s, Y: %s, Z: %s 的传送器
+gregtech.machine.teleporter.data_stick_saved=坐标数据已保存
+gregtech.machine.teleporter.working_enabled=传送器正在运行
+gregtech.machine.teleporter.working_disabled=传送器停止运行
+
+gregtech.machine.teleporter.tooltip.desc=将实体传送到连接的传送器
+gregtech.machine.teleporter.tooltip.range=传送最大距离：%s 格
+gregtech.machine.teleporter.tooltip.energy_consumption=每16格消耗能量：%s EU
+gregtech.machine.teleporter.tooltip.data_stick=使用数据棒保存/加载坐标
+gregtech.machine.teleporter.tooltip.screwdriver=使用螺丝刀右键切换工作状态
 # 代理仓工具提示
 gtqt.machine.me_pattern_proxy.tooltip.function=为多方块结构提供远程物品和流体输入代理
 gtqt.machine.me_pattern_proxy.tooltip.features=与主仓共享物品和流体库存，支持一对多代理连接，可直接访问主仓控制界面

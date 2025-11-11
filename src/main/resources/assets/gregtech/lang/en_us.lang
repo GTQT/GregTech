@@ -5133,6 +5133,36 @@ gregtech.machine.world_accelerator.working_area_random=  Random Tick Mode:§f %d
 gregtech.machine.world_accelerator.mode_tile=Tile Entity Mode
 gregtech.machine.world_accelerator.mode_entity=Random Tick Mode
 
+# Teleporter
+gregtech.machine.teleporter.ulv.name=Basic Teleporter
+gregtech.machine.teleporter.ulv.tooltip=Short-range teleportation device
+gregtech.machine.teleporter.lv.name=Basic Teleporter II
+gregtech.machine.teleporter.lv.tooltip=Short-range teleportation device
+gregtech.machine.teleporter.mv.name=Advanced Teleporter
+gregtech.machine.teleporter.mv.tooltip=Medium-range teleportation device
+gregtech.machine.teleporter.hv.name=Advanced Teleporter II
+gregtech.machine.teleporter.hv.tooltip=Medium-range teleportation device
+gregtech.machine.teleporter.ev.name=Advanced Teleporter III
+gregtech.machine.teleporter.ev.tooltip=Long-range teleportation device
+gregtech.machine.teleporter.iv.name=Elite Teleporter
+gregtech.machine.teleporter.iv.tooltip=Cross-dimensional teleportation device
+gregtech.machine.teleporter.luv.name=Elite Teleporter II
+gregtech.machine.teleporter.luv.tooltip=Cross-dimensional teleportation device
+gregtech.machine.teleporter.zpm.name=Elite Teleporter III
+gregtech.machine.teleporter.zpm.tooltip=Cross-dimensional teleportation device
+gregtech.machine.teleporter.uv.name=Ultimate Teleporter
+gregtech.machine.teleporter.uv.tooltip=Spatial Warp Drive
+gregtech.machine.teleporter.uhv.name=Epic Teleporter
+gregtech.machine.teleporter.uhv.tooltip=Spatial Warp Drive
+gregtech.machine.teleporter.uev.name=Epic Teleporter II
+gregtech.machine.teleporter.uev.tooltip=Spatial Warp Drive
+gregtech.machine.teleporter.uiv.name=Epic Teleporter III
+gregtech.machine.teleporter.uiv.tooltip=Spatial Warp Drive
+gregtech.machine.teleporter.uxv.name=Epic Teleporter IV
+gregtech.machine.teleporter.uxv.tooltip=Spatial Warp Drive
+gregtech.machine.teleporter.opv.name=Legendary Teleporter
+gregtech.machine.teleporter.opv.tooltip=Spatial Warp Drive
+
 # HPCA Components
 gregtech.machine.hpca.empty_component.name=Empty HPCA Component
 gregtech.machine.hpca.empty_component.tooltip=Just for filling space

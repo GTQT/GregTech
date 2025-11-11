@@ -293,6 +293,8 @@ public class Textures {
             "machines/world_accelerator");
     public static final OrientedOverlayRenderer WORLD_ACCELERATOR_TE_OVERLAY = new OrientedOverlayRenderer(
             "machines/world_accelerator_te");
+    //teleporter
+    public static final OrientedOverlayRenderer TELEPORTER_OVERLAY = new OrientedOverlayRenderer("machines/teleporter");
 
     public static final OrientedOverlayRenderer LAMINATOR_OVERLAY = new OrientedOverlayRenderer("machines/laminator");
     public static final OrientedOverlayRenderer POLISHER_OVERLAY = new OrientedOverlayRenderer("machines/polisher");

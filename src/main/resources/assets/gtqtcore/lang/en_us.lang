@@ -731,6 +731,19 @@ gregtech.machine.budget_crib.data_stick_use=Wrote location to data stick
 gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data
 gregtech.machine.budget_crib_proxy.data_stick_use=Linked to Budget CRIB at X: %s, Y: %s, Z: %s
 
+gregtech.machine.teleporter.data_stick_use=Wrote location to data stick
+gregtech.machine.teleporter.data_stick_name=Teleporter Location Data
+gregtech.machine.teleporter_link.data_stick_loaded=Linked to Teleporter at X: %s, Y: %s, Z: %s
+gregtech.machine.teleporter.teleport_success=Teleported to a teleporter located at X: %s, Y: %s, Z: %s
+gregtech.machine.teleporter.data_stick_saved=The coordinate data is saved
+gregtech.machine.teleporter.working_enabled=Teleporter is working
+gregtech.machine.teleporter.working_disabled=Teleporter is not working
+
+gregtech.machine.teleporter.tooltip.desc=Teleports entities to linked teleporter
+gregtech.machine.teleporter.tooltip.range=Max Transmission Range: %s blocks
+gregtech.machine.teleporter.tooltip.energy_consumption=Energy consumption: %s EU per 32 blocks
+gregtech.machine.teleporter.tooltip.data_stick=Use Data Stick to save/load coordinates
+gregtech.machine.teleporter.tooltip.screwdriver=Use Screwdriver to toggle working state
 # ME Pattern Provider Proxy Tooltips
 gtqt.machine.me_pattern_proxy.tooltip.function=Provides remote item and fluid input proxy for multiblock structures
 gtqt.machine.me_pattern_proxy.tooltip.features=Shares inventory with the main bus, supports one-to-many proxy connections, and direct access to the main bus GUI

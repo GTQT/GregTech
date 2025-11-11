@@ -37,6 +37,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntityPump;
 import gregtech.common.metatileentities.electric.MetaTileEntityRockBreaker;
 import gregtech.common.metatileentities.electric.MetaTileEntitySingleCombustion;
 import gregtech.common.metatileentities.electric.MetaTileEntitySingleTurbine;
+import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
 import gregtech.common.metatileentities.electric.SimpleMachineMetaTileEntityResizable;
@@ -298,6 +299,7 @@ public class MetaTileEntities {
     public static final MetaTileEntityItemCollector[] ITEM_COLLECTOR = new MetaTileEntityItemCollector[4];
     public static final MetaTileEntityFisher[] FISHER = new MetaTileEntityFisher[4];
     public static final MetaTileEntityWorldAccelerator[] WORLD_ACCELERATOR = new MetaTileEntityWorldAccelerator[GTValues.V.length-1];
+    public static final MetaTileEntityTeleporter[] TELEPORTER = new MetaTileEntityTeleporter[GTValues.V.length-1];
     // Used for addons if they wish to disable certain tiers of machines
     private static final Map<String, Boolean> MID_TIER = new HashMap<>();
     private static final Map<String, Boolean> HIGH_TIER = new HashMap<>();
@@ -709,23 +711,30 @@ public class MetaTileEntities {
         registerSimpleMetaTileEntity(WIREMILL, 620, "wiremill", RecipeMaps.WIREMILL_RECIPES, Textures.WIREMILL_OVERLAY,
                 true);
 
-        // Circuit Assembler, IDs 650-664
+        // Circuit Assembler, IDs 635-664
         registerSimpleMetaTileEntity(CIRCUIT_ASSEMBLER, 635, "circuit_assembler", RecipeMaps.CIRCUIT_ASSEMBLER_RECIPES,
                 Textures.CIRCUIT_ASSEMBLER_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
 
-        // Rock Breaker, IDs 665-679
-        registerMetaTileEntities(ROCK_BREAKER, 665, "rock_breaker",
+        // Rock Breaker, IDs 650-664
+        registerMetaTileEntities(ROCK_BREAKER, 650, "rock_breaker",
                 (tier, voltageName) -> new MetaTileEntityRockBreaker(
                         gregtechId(String.format("%s.%s", "rock_breaker", voltageName)),
                         RecipeMaps.ROCK_BREAKER_RECIPES, Textures.ROCK_BREAKER_OVERLAY, tier));
 
-        // World Accelerators, IDs 680-694
+        // World Accelerators, IDs 665-679
         if (ConfigHolder.machines.enableWorldAccelerators) {
             for (int i = 0; i < WORLD_ACCELERATOR.length; i++) {
-                WORLD_ACCELERATOR[i] = registerMetaTileEntity(680 + i,
+                WORLD_ACCELERATOR[i] = registerMetaTileEntity(665 + i,
                         new MetaTileEntityWorldAccelerator(
                                 gregtechId("world_accelerator." + GTValues.VN[i].toLowerCase()), i + 1));
             }
+        }
+
+        // Teleporter IDs 680-694
+        for (int i = 0; i < TELEPORTER.length; i++){
+            TELEPORTER[i] = registerMetaTileEntity(680 + i,
+                    new MetaTileEntityTeleporter(
+                            gregtechId("teleporter." + GTValues.VN[i].toLowerCase()), i + 1));
         }
 
         //695-709

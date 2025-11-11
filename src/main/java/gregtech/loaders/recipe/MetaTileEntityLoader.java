@@ -976,6 +976,8 @@ public class MetaTileEntityLoader {
                 'W', CABLE, 'S', OreDictNames.chestWood, 'G', GRINDER);
         registerMachineRecipe(MetaTileEntities.WORLD_ACCELERATOR, "IGI", "FHF", "IGI", 'H', HULL, 'F', EMITTER, 'G',
                 SENSOR, 'I', FIELD_GENERATOR);
+        registerMachineRecipe(MetaTileEntities.TELEPORTER, "IGI", "FHF", "IGI", 'H', HULL, 'F', SENSOR, 'G',
+                EMITTER, 'I', FIELD_GENERATOR);
         registerMachineRecipe(MetaTileEntities.MINER, "MMM", "WHW", "CSC", 'M', MOTOR, 'W', CABLE, 'H', HULL, 'C',
                 CIRCUIT, 'S', SENSOR);
 
