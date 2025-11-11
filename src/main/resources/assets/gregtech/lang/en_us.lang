@@ -2642,8 +2642,6 @@ metaitem.prospector.tooltip.ores=Scans Ores in a %s Chunk Radius
 metaitem.prospector.tooltip.fluids=Scans Ores and Fluids in a %s Chunk Radius
 behavior.prospector.not_enough_energy=Not Enough Energy!
 behavior.prospector.added_waypoint=Waypoint added!
-metaitem.mining_laser.name=Mining Laser
-metaitem.vajra.name=Vajra
 metaitem.tricorder_scanner.name=Portable Scanner
 metaitem.tricorder_scanner.tooltip=Tricorder
 metaitem.debug_scanner.name=Debug Scanner
@@ -2689,6 +2687,87 @@ behavior.tricorder.quantum_controller.usage=Using %s EU/t (%s)
 behavior.tricorder.quantum_controller.connected_items=Connected item storages: %s
 behavior.tricorder.quantum_controller.connected_fluids=Connected fluid storages: %s
 behavior.tricorder.quantum_storage.usage=Contributing %s EU/t to Quantum Controller
+
+metaitem.mining_laser.name=Mining Laser
+# Mining Laser Behavior Messages
+behavior.mining_laser.mode_switched=Mining Laser mode: %s (%s EU/use)
+behavior.mining_laser.insufficient_energy=Insufficient energy! Requires %s EU
+behavior.mining_laser.steep_angle=Mining laser aiming angle too steep
+
+# Mining Laser Mode Names
+behavior.mining_laser.mode.mining=Mining Mode
+behavior.mining_laser.mode.low_focus=Low Focus Mode
+behavior.mining_laser.mode.long_range=Long Range Mode
+behavior.mining_laser.mode.horizontal=Horizontal Mode
+behavior.mining_laser.mode.super_heat=Super Heat Mode
+behavior.mining_laser.mode.scatter=Scatter Mode
+behavior.mining_laser.mode.explosive=Explosive Mode
+behavior.mining_laser.mode.3x3=3×3 Mode
+behavior.mining_laser.mode.unknown=Unknown Mode
+
+# Mining Laser Mode Descriptions
+behavior.mining_laser.mode.mining.description=Fire laser to mine blocks in a straight line
+behavior.mining_laser.mode.low_focus.description=Short-range low energy mode, may ignite blocks
+behavior.mining_laser.mode.long_range.description=Long-range high damage mode
+behavior.mining_laser.mode.horizontal.description=Long-range mode that can only be fired horizontally
+behavior.mining_laser.mode.super_heat.description=Smelt ores into finished products
+behavior.mining_laser.mode.scatter.description=5×5 scatter fire in 3×3 range
+behavior.mining_laser.mode.explosive.description=Creates explosion with armor-piercing effect
+behavior.mining_laser.mode.3x3.description=Forward mining with 3×3 cross-section
+
+# Mining Laser Tooltips
+behavior.mining_laser.tooltip.current_mode=Current Mode: %s
+behavior.mining_laser.tooltip.energy_cost=Mode Energy Cost: %s EU/use
+behavior.mining_laser.tooltip.mode_switch=Shift+Right-click to switch mode
+behavior.mining_laser.tooltip.energy=Energy: %s / %s EU (%s%%)
+behavior.mining_laser.tooltip.available_uses=Available Uses: %s times
+behavior.mining_laser.tooltip.all_modes=--- All Modes ---
+
+metaitem.vajra.name=Vajra
+# Vajra Behavior Messages
+behavior.vajra.mode.normal=Normal Mode
+behavior.vajra.mode.silk_touch=Silk Touch Mode
+behavior.vajra.mode_switched=Vajra mode switched to: %s (%s EU/use)
+behavior.vajra.insufficient_energy=Insufficient energy! Requires %s EU
+
+# Vajra Tooltips
+behavior.vajra.tooltip.mode_switch=Shift+Right-click to switch mode
+behavior.vajra.tooltip.current_mode=Tool Mode: %s
+behavior.vajra.tooltip.current_energy_cost=Current Energy Cost: %s EU/use
+behavior.vajra.tooltip.other_energy_cost=%s Energy Cost: %s EU/use
+behavior.vajra.tooltip.energy=Energy: %s / %s EU (%s%%)
+behavior.vajra.tooltip.available_uses=Available Uses: %s times
+
+metaitem.wind_meter.name=Wind Meter
+# Wind Meter Messages
+behavior.wind_meter.mode.simple=Simple Mode
+behavior.wind_meter.mode.detailed=Detailed Mode
+behavior.wind_meter.mode_switched=Wind meter mode switched to: %s (%s EU/use)
+behavior.wind_meter.insufficient_energy=Insufficient energy! Requires %s EU
+
+behavior.wind_meter.header.simple=§b=== Wind Measurement Results ===
+behavior.wind_meter.header.detailed=§b=== Detailed Wind Analysis ===
+behavior.wind_meter.total_efficiency=§aTotal Wind Efficiency: §e%s%%
+behavior.wind_meter.height_efficiency=§aHeight Efficiency: §f%s%%§7 (Y:%s)
+behavior.wind_meter.weather_efficiency=§aWeather Efficiency: §f%s%%
+behavior.wind_meter.biome_efficiency=§aBiome Efficiency: §f%s%%
+behavior.wind_meter.position=§aPosition: §fX:%s Y:%s Z:%s
+behavior.wind_meter.position_detailed=§7Position: X:%s Y:%s Z:%s
+
+behavior.wind_meter.rating.excellent=§6★ Excellent wind power location!
+behavior.wind_meter.rating.good=§a✓ Good wind power location
+behavior.wind_meter.rating.average=§e○ Average wind power location
+behavior.wind_meter.rating.poor=§c✗ Poor wind power location
+# Wind Meter Tooltips
+behavior.wind_meter.tooltip.use1=§bRight-click to measure wind at current position
+behavior.wind_meter.tooltip.use2=§bRight-click block to measure wind at that position
+behavior.wind_meter.tooltip.use3=§bShift+Right-click to switch mode
+behavior.wind_meter.tooltip.current_mode=§6Current Mode: §e%s
+behavior.wind_meter.tooltip.current_energy_cost=§aCurrent Energy Cost: §f%s EU/use
+behavior.wind_meter.tooltip.other_mode=§7Other Mode: §8%s (%s EU/use)
+behavior.wind_meter.tooltip.purpose=§aUsed to find optimal locations for wind generators
+behavior.wind_meter.tooltip.energy=§bEnergy: %s§7 / §b%s EU §7(%s%%)
+behavior.wind_meter.tooltip.available_uses=§dAvailable Uses: §f%s times
 
 metaitem.item_magnet.lv.name=Low Voltage Item Magnet
 metaitem.item_magnet.hv.name=High Voltage Item Magnet
@@ -3269,9 +3348,28 @@ gregtech.machine.plasma_generator.luv.name=Plasma Generator-MKIII
 gregtech.machine.plasma_generator.zpm.name=Plasma Generator-MKIV
 gregtech.machine.plasma_generator.uv.name=Plasma Generator-MKV
 
-gregtech.machine.magic_energy_absorber.name=Magic Energy Absorber
-gregtech.machine.magic_energy_absorber.tooltip=Max Voltage OUT: §a2048 §7(§5EV§7)/nCollects energy from end crystals on naturally generated obsidian pillars in the End within 64 blocks./nEach ender crystal adds 32 EU/t to output/nPlace Dragon Egg on top to amplify output/n/nWhen amplified:/nEach ender crystal adds 128 EU/t
 
+gregtech.machine.wind_generator.lv.name=Basic Wind Generator
+gregtech.machine.wind_generator.mv.name=Advanced Wind Generator
+gregtech.machine.wind_generator.hv.name=Turbine Wind Generator
+gregtech.machine.wind_generator.ev.name=Turbine Wind Generator II
+gregtech.machine.wind_generator.iv.name=Turbine Wind Generator III
+tooltip.wind_generator.tooltip1=Base Output: V[rotor tier] (scales with rotor tier)
+tooltip.wind_generator.tooltip2=Efficiency increases with height: +10% per 50 blocks
+tooltip.wind_generator.tooltip3=Weather effects: Rain +15%/Thunderstorm +30% efficiency, but increases rotor wear
+tooltip.wind_generator.tooltip4=Biome effects: Open terrain +10%, dense forests -10% efficiency
+tooltip.wind_generator.tooltip5=Requires installation of appropriate tier rotor
+
+gregtech.machine.magic_energy_absorber.lv.name=Magic Energy Absorber-MKI
+gregtech.machine.magic_energy_absorber.mv.name=Magic Energy Absorber-MKII
+gregtech.machine.magic_energy_absorber.hv.name=Magic Energy Absorber-MKIII
+gregtech.machine.magic_energy_absorber.ev.name=Magic Energy Absorber-MKIV
+gregtech.machine.magic_energy_absorber.iv.name=Magic Energy Absorber-MKV
+tooltip.ender_power_generator.voltage=Maximum Output Voltage: §a%s §7(%s)
+tooltip.ender_power_generator.range=Collects energy from Ender Crystals naturally generated on End Obsidian Pillars within %s blocks.
+tooltip.ender_power_generator.crystal_output=Each Ender Crystal adds 32 EU/t output
+tooltip.ender_power_generator.dragon_egg=Placing a Dragon Egg on top amplifies the output
+tooltip.ender_power_generator.current_output=Current: Each Ender Crystal adds %s EU/t
 # Machines
 
 # Block Breaker
@@ -4675,6 +4773,7 @@ gregtech.machine.item_collector.lv.name=Basic Item Collector
 gregtech.machine.item_collector.mv.name=Advanced Item Collector
 gregtech.machine.item_collector.hv.name=Advanced Item Collector II
 gregtech.machine.item_collector.ev.name=Advanced Item Collector III
+gregtech.machine.item_collector.iv.name=Elite Item Collector
 
 gregtech.machine.item_collector.gui.collect_range=Collect in %s blocks
 gregtech.machine.item_collector.tooltip=Collects Items around itself when given a Redstone signal

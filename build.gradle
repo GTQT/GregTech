@@ -416,6 +416,10 @@ repositories {
             name 'GTCEu Maven'
             url 'https://maven.gtceu.com'
         }
+        maven {
+            name = 'GeckoLib'
+            url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        }
     }
     if (usesMixins.toBoolean() || forceEnableMixins.toBoolean()) {
         // need to add this here even if we did not above
@@ -462,6 +466,9 @@ configurations {
 }
 
 dependencies {
+    if (usesGeckolib.toBoolean()) {
+        implementation 'software.bernie.geckolib:forge-1.12.2-geckolib:3.0.21'
+    }
     if (usesMixins.toBoolean()) {
         annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
         // should use 24.1.1 but 30.0+ has a vulnerability fix

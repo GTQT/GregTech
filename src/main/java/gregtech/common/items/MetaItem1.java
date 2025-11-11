@@ -54,6 +54,7 @@ import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
+import gregtech.common.items.behaviors.WindMeterBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -1013,18 +1014,6 @@ public class MetaItem1 extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        MINING_LASER = addItem(489, "mining_laser")
-                .addComponents(ElectricStats.createElectricItem(10_000_000L, GTValues.IV),
-                        new MiningLaserBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        VAJRA = addItem(490, "vajra")
-                .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
-                        new VajraBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
         // Misc Crafting Items: ID 491-515
         ENERGIUM_DUST = addItem(491, "energium_dust");
         ENGRAVED_LAPOTRON_CHIP = addItem(492, "engraved.lapotron_chip");
@@ -1038,6 +1027,26 @@ public class MetaItem1 extends StandardMetaItem {
         WIRELESS = addItem(503, "wireless");
         CAMERA = addItem(504, "camera");
         BASIC_TAPE = addItem(505, "basic_tape");
+
+        // Tool
+        MINING_LASER = addItem(510, "mining_laser")
+                .addComponents(ElectricStats.createElectricItem(10_000_000L, GTValues.IV),
+                        new MiningLaserBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        VAJRA = addItem(511, "vajra")
+                .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
+                        new VajraBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        //风力计
+        WIND_METER = addItem(512, "wind_meter")
+                .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
+                        new WindMeterBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // Circuit Components: ID 516-565
         VACUUM_TUBE = addItem(516, "circuit.vacuum_tube").setUnificationData(OrePrefix.circuit, Tier.ULV);

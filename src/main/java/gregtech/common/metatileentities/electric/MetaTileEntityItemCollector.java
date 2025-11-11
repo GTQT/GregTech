@@ -46,7 +46,7 @@ import static gregtech.api.capability.GregtechDataCodes.IS_WORKING;
 
 public class MetaTileEntityItemCollector extends TieredMetaTileEntity {
 
-    private static final int[] INVENTORY_SIZES = { 4, 9, 16, 25, 25 };
+    private static final int[] INVENTORY_SIZES = { 4, 9, 16, 25, 36 };
     private static final double MOTION_MULTIPLIER = 0.04;
     private static final int BASE_EU_CONSUMPTION = 6;
 

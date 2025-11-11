@@ -826,9 +826,21 @@ public class MetaTileEntityLoader {
                 new UnificationEntry(OrePrefix.slab, Materials.Wood), 'P',
                 new UnificationEntry(OrePrefix.plank, Materials.Wood));
 
-        ModHandler.addShapedRecipe(true, "magic_energy_absorber", MetaTileEntities.MAGIC_ENERGY_ABSORBER.getStackForm(),
+        ModHandler.addShapedRecipe(true, "magic_energy_absorber.lv", MetaTileEntities.MAGIC_ENERGY_ABSORBER[0].getStackForm(),
+                "PCP", "PMP", "PCP", 'M', MetaTileEntities.HULL[GTValues.LV].getStackForm(), 'P', MetaItems.SENSOR_LV,
+                'C', new UnificationEntry(OrePrefix.circuit, Tier.LV));
+        ModHandler.addShapedRecipe(true, "magic_energy_absorber.mv", MetaTileEntities.MAGIC_ENERGY_ABSORBER[1].getStackForm(),
+                "PCP", "PMP", "PCP", 'M', MetaTileEntities.HULL[GTValues.MV].getStackForm(), 'P', MetaItems.SENSOR_MV,
+                'C', new UnificationEntry(OrePrefix.circuit, Tier.MV));
+        ModHandler.addShapedRecipe(true, "magic_energy_absorber.hv", MetaTileEntities.MAGIC_ENERGY_ABSORBER[2].getStackForm(),
+                "PCP", "PMP", "PCP", 'M', MetaTileEntities.HULL[GTValues.HV].getStackForm(), 'P', MetaItems.SENSOR_HV,
+                'C', new UnificationEntry(OrePrefix.circuit, Tier.HV));
+        ModHandler.addShapedRecipe(true, "magic_energy_absorber.ev", MetaTileEntities.MAGIC_ENERGY_ABSORBER[3].getStackForm(),
                 "PCP", "PMP", "PCP", 'M', MetaTileEntities.HULL[GTValues.EV].getStackForm(), 'P', MetaItems.SENSOR_EV,
                 'C', new UnificationEntry(OrePrefix.circuit, Tier.EV));
+        ModHandler.addShapedRecipe(true, "magic_energy_absorber.iv", MetaTileEntities.MAGIC_ENERGY_ABSORBER[4].getStackForm(),
+                "PCP", "PMP", "PCP", 'M', MetaTileEntities.HULL[GTValues.IV].getStackForm(), 'P', MetaItems.SENSOR_IV,
+                'C', new UnificationEntry(OrePrefix.circuit, Tier.IV));
 
         ModHandler.addShapedRecipe(true, "saw_mill", MetaTileEntities.SAW_MILL.getStackForm(),
                 "BPB", "PCP", "BPB",

@@ -10,6 +10,7 @@ import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -26,6 +27,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
@@ -127,10 +129,9 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         if (!player.world.isRemote) {
             String modeName = getModeName(newMode);
             long energyCost = getEnergyCostForMode(newMode);
-            player.sendMessage(new TextComponentString(
-                    TextFormatting.GREEN + "金刚杵模式已切换至: " + TextFormatting.YELLOW + modeName +
-                            TextFormatting.GREEN + " (" + TextFormatting.RED + energyCost + " EU/次" +
-                            TextFormatting.GREEN + ")"
+            player.sendMessage(new TextComponentTranslation(
+                    "behavior.vajra.mode_switched",
+                    modeName, energyCost
             ));
         }
     }
@@ -144,8 +145,9 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
             drainEnergy(stack, energyCost, false);
         } else {
             if (!world.isRemote) {
-                player.sendMessage(new TextComponentString(
-                        TextFormatting.RED + "能量不足! 需要 " + energyCost + " EU"
+                player.sendMessage(new TextComponentTranslation(
+                        "behavior.vajra.insufficient_energy",
+                        energyCost
                 ));
             }
             return false;
@@ -248,36 +250,31 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         long otherEnergyCost = getEnergyCostForMode((mode + 1) % 2);
         String otherModeName = getModeName((mode + 1) % 2);
 
-        // 显示当前模式
-        lines.add(TextFormatting.AQUA + "Shift+右键切换模式");
-        lines.add(TextFormatting.GOLD + "工具模式: " + TextFormatting.YELLOW + modeName);
-
-        // 显示当前模式耗电量
-        lines.add(TextFormatting.GREEN + "当前耗电: " + TextFormatting.WHITE + currentEnergyCost + " EU/次");
-
-        // 显示其他模式耗电量作为对比
-        lines.add(
-                TextFormatting.GRAY + otherModeName + "耗电: " + TextFormatting.DARK_GRAY + otherEnergyCost + " EU/次");
-
-        // 显示能量信息
         IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
         if (electricItem != null) {
             long charge = electricItem.getCharge();
             long maxCharge = electricItem.getMaxCharge();
             double percentage = (double) charge / maxCharge * 100;
 
+            lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.mode_switch"));
+            lines.add(TextFormatting.GOLD + I18n.format("behavior.vajra.tooltip.current_mode", modeName));
+            lines.add(TextFormatting.GREEN + I18n.format("behavior.vajra.tooltip.current_energy_cost", currentEnergyCost));
+            lines.add(TextFormatting.GRAY + I18n.format("behavior.vajra.tooltip.other_energy_cost", otherModeName, otherEnergyCost));
+
             TextFormatting chargeColor;
             if (percentage > 75) chargeColor = TextFormatting.GREEN;
             else if (percentage > 25) chargeColor = TextFormatting.YELLOW;
             else chargeColor = TextFormatting.RED;
 
-            lines.add(TextFormatting.BLUE + "能量: " + chargeColor + charge + TextFormatting.GRAY + " / " +
-                    TextFormatting.BLUE + maxCharge + " EU " + TextFormatting.GRAY + "(" +
-                    String.format("%.1f", percentage) + "%)");
+            lines.add(TextFormatting.BLUE + I18n.format("behavior.vajra.tooltip.energy",
+                    chargeColor + String.valueOf(charge),
+                    String.valueOf(maxCharge),
+                    String.format("%.1f", percentage)));
 
             // 计算可用次数
             int availableUses = (int) (charge / currentEnergyCost);
-            lines.add(TextFormatting.LIGHT_PURPLE + "可用次数: " + TextFormatting.WHITE + availableUses + " 次");
+
+            lines.add(TextFormatting.LIGHT_PURPLE + I18n.format("behavior.vajra.tooltip.available_uses", availableUses));
         }
     }
 }

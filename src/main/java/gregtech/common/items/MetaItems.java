@@ -542,6 +542,7 @@ public final class MetaItems {
 
     public static MetaItem<?>.MetaValueItem MINING_LASER;
     public static MetaItem<?>.MetaValueItem VAJRA;
+    public static MetaItem<?>.MetaValueItem WIND_METER;
 
     public static MetaItem<?>.MetaValueItem TRICORDER_SCANNER;
     public static MetaItem<?>.MetaValueItem DEBUG_SCANNER;

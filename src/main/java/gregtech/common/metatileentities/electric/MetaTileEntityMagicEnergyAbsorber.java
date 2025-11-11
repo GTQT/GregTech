@@ -39,12 +39,14 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static gregtech.api.GTValues.*;
 import static gregtech.api.capability.GregtechDataCodes.IS_WORKING;
 
 public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
@@ -53,13 +55,13 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
     private boolean hasDragonEggAmplifier = false;
     private boolean isActive = false;
 
-    public MetaTileEntityMagicEnergyAbsorber(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, GTValues.EV);
+    public MetaTileEntityMagicEnergyAbsorber(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, tier);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMagicEnergyAbsorber(metaTileEntityId);
+        return new MetaTileEntityMagicEnergyAbsorber(metaTileEntityId, getTier());
     }
 
     @SideOnly(Side.CLIENT)
@@ -102,7 +104,7 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
         for (int i = 0; i < connectedCrystalsIds.size(); i++) {
             // since we don't check quite often, check twice before outputting energy
             if (getWorld().getEntityByID(connectedCrystalsIds.get(i)) instanceof EntityEnderCrystal) {
-                totalEnergyGeneration += hasDragonEggAmplifier ? 128 : 32;
+                totalEnergyGeneration += hasDragonEggAmplifier ? 128 : (int) V[getTier() - 1];
             }
         }
         if (totalEnergyGeneration > 0) {
@@ -126,7 +128,7 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
     }
 
     @Override
-    public void receiveCustomData(int dataId, PacketBuffer buf) {
+    public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
         if (dataId == IS_WORKING) {
             this.isActive = buf.readBoolean();
@@ -134,13 +136,13 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
     }
 
     @Override
-    public void writeInitialSyncData(PacketBuffer buf) {
+    public void writeInitialSyncData(@NotNull PacketBuffer buf) {
         super.writeInitialSyncData(buf);
         buf.writeBoolean(isActive);
     }
 
     @Override
-    public void receiveInitialSyncData(PacketBuffer buf) {
+    public void receiveInitialSyncData(@NotNull PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
         this.isActive = buf.readBoolean();
     }
@@ -158,9 +160,13 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
         return true;
     }
 
+    public int calculateRange(){
+        return (int) (Math.pow(2,getTier()-1)*16);
+    }
+
     private void updateConnectedCrystals() {
         this.connectedCrystalsIds.clear();
-        final double maxDistance = 64 * 64;
+        final double maxDistance = calculateRange() * calculateRange();
         List<EntityEnderCrystal> enderCrystals = Arrays.stream(BiomeEndDecorator.getSpikesForWorld(getWorld()))
                 .flatMap(endSpike -> getWorld()
                         .getEntitiesWithinAABB(EntityEnderCrystal.class, endSpike.getTopBoundingBox()).stream())
@@ -234,6 +240,16 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
                         (GTValues.RNG.nextFloat() - 0.5F) * 0.5F);
             }
         }
+    }
+
+    @Override
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
+        tooltip.add(I18n.format("tooltip.ender_power_generator.voltage", V[getTier()], VOCNF[getTier()]));
+        tooltip.add(I18n.format("tooltip.ender_power_generator.range", calculateRange()));
+        tooltip.add(I18n.format("tooltip.ender_power_generator.crystal_output"));
+        tooltip.add(I18n.format("tooltip.ender_power_generator.dragon_egg"));
+        tooltip.add(I18n.format("tooltip.ender_power_generator.current_output", V[getTier()-1]));
     }
 
     @Override

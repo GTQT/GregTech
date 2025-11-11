@@ -2638,8 +2638,6 @@ metaitem.prospector.tooltip.ores=在半径为%s个区块的范围内扫描矿物
 metaitem.prospector.tooltip.fluids=在半径为%s个区块的范围内扫描矿物与流体
 behavior.prospector.not_enough_energy=能量不足！
 behavior.prospector.added_waypoint=路径点已添加！
-metaitem.mining_laser.name=采矿镭射枪
-metaitem.vajra.name=金刚杵
 metaitem.tricorder_scanner.name=便携式扫描仪
 metaitem.tricorder_scanner.tooltip=三录仪
 metaitem.debug_scanner.name=调试扫描仪
@@ -2685,6 +2683,87 @@ behavior.tricorder.quantum_controller.usage=使用：%s EU/t (%s)
 behavior.tricorder.quantum_controller.connected_items=已链接物品存储：%s
 behavior.tricorder.quantum_controller.connected_fluids=已链接流体存储：%s
 behavior.tricorder.quantum_storage.usage=为量子控制器提供%s EU/t
+
+metaitem.mining_laser.name=采矿镭射枪
+# Mining Laser Behavior Messages
+behavior.mining_laser.mode_switched=采矿镭射枪模式: %s (%s EU/次)
+behavior.mining_laser.insufficient_energy=能量不足! 需要 %s EU
+behavior.mining_laser.steep_angle=采矿激光枪瞄准角度过陡
+
+# Mining Laser Mode Names
+behavior.mining_laser.mode.mining=采矿模式
+behavior.mining_laser.mode.low_focus=低聚焦模式
+behavior.mining_laser.mode.long_range=远距模式
+behavior.mining_laser.mode.horizontal=水平模式
+behavior.mining_laser.mode.super_heat=超级热线模式
+behavior.mining_laser.mode.scatter=散射模式
+behavior.mining_laser.mode.explosive=爆破模式
+behavior.mining_laser.mode.3x3=3×3模式
+behavior.mining_laser.mode.unknown=未知模式
+
+# Mining Laser Mode Descriptions
+behavior.mining_laser.mode.mining.description=发射激光挖掘一条直线上的方块
+behavior.mining_laser.mode.low_focus.description=短距离低能耗模式，可能点燃方块
+behavior.mining_laser.mode.long_range.description=长距离高伤害模式
+behavior.mining_laser.mode.horizontal.description=只能水平发射的远距模式
+behavior.mining_laser.mode.super_heat.description=将矿石烧制成成品
+behavior.mining_laser.mode.scatter.description=3×3范围内5×5散射发射
+behavior.mining_laser.mode.explosive.description=产生爆炸，具有穿甲效果
+behavior.mining_laser.mode.3x3.description=3×3断面向前挖掘
+
+# Mining Laser Tooltips
+behavior.mining_laser.tooltip.current_mode=当前模式: %s
+behavior.mining_laser.tooltip.energy_cost=模式耗电: %s EU/次
+behavior.mining_laser.tooltip.mode_switch=Shift+右键切换模式
+behavior.mining_laser.tooltip.energy=能量: %s / %s EU (%s%%)
+behavior.mining_laser.tooltip.available_uses=可用次数: %s 次
+behavior.mining_laser.tooltip.all_modes=--- 所有模式 ---
+
+metaitem.vajra.name=金刚杵
+# Vajra Behavior Messages
+behavior.vajra.mode.normal=普通模式
+behavior.vajra.mode.silk_touch=精准采集模式
+behavior.vajra.mode_switched=金刚杵模式已切换至: %s (%s EU/次)
+behavior.vajra.insufficient_energy=能量不足! 需要 %s EU
+
+# Vajra Tooltips
+behavior.vajra.tooltip.mode_switch=Shift+右键切换模式
+behavior.vajra.tooltip.current_mode=工具模式: %s
+behavior.vajra.tooltip.current_energy_cost=当前耗电: %s EU/次
+behavior.vajra.tooltip.other_energy_cost=%s耗电: %s EU/次
+behavior.vajra.tooltip.energy=能量: %s / %s EU (%s%%)
+behavior.vajra.tooltip.available_uses=可用次数: %s 次
+
+metaitem.wind_meter.name=风力计
+# 风力计消息
+behavior.wind_meter.mode.simple=简单模式
+behavior.wind_meter.mode.detailed=详细模式
+behavior.wind_meter.mode_switched=风力计模式已切换至: %s (%s EU/次)
+behavior.wind_meter.insufficient_energy=能量不足! 需要 %s EU
+
+behavior.wind_meter.header.simple=§b=== 风力测量结果 ===
+behavior.wind_meter.header.detailed=§b=== 详细风力分析 ===
+behavior.wind_meter.total_efficiency=§a总风力效率: §e%s%%
+behavior.wind_meter.height_efficiency=§a高度效率: §f%s%%§7 (Y:%s)
+behavior.wind_meter.weather_efficiency=§a天气效率: §f%s%%
+behavior.wind_meter.biome_efficiency=§a生物群系效率: §f%s%%
+behavior.wind_meter.position=§a位置: §fX:%s Y:%s Z:%s
+behavior.wind_meter.position_detailed=§7位置: X:%s Y:%s Z:%s
+
+behavior.wind_meter.rating.excellent=§6★ 优秀的风力发电位置！
+behavior.wind_meter.rating.good=§a✓ 良好的风力发电位置
+behavior.wind_meter.rating.average=§e○ 一般的风力发电位置
+behavior.wind_meter.rating.poor=§c✗ 较差的风力发电位置
+# 风力计工具提示
+behavior.wind_meter.tooltip.use1=§b右键测量当前位置风力
+behavior.wind_meter.tooltip.use2=§b右键方块测量该位置风力
+behavior.wind_meter.tooltip.use3=§bShift+右键切换模式
+behavior.wind_meter.tooltip.current_mode=§6当前模式: §e%s
+behavior.wind_meter.tooltip.current_energy_cost=§a当前耗电: §f%s EU/次
+behavior.wind_meter.tooltip.other_mode=§7其他模式: §8%s (%s EU/次)
+behavior.wind_meter.tooltip.purpose=§a用于测量风力发电机的最佳位置
+behavior.wind_meter.tooltip.energy=§b能量: %s§7 / §b%s EU §7(%s%%)
+behavior.wind_meter.tooltip.available_uses=§d可用次数: §f%s 次
 
 metaitem.item_magnet.lv.name=低压物品磁铁
 metaitem.item_magnet.hv.name=高压物品磁铁
@@ -3265,8 +3344,27 @@ gregtech.machine.plasma_generator.zpm.name=等离子发电机-MKIV
 gregtech.machine.plasma_generator.uv.name=等离子发电机-MKV
 
 
-gregtech.machine.magic_energy_absorber.name=魔法能源吸收器
-gregtech.machine.magic_energy_absorber.tooltip=最大输出电压：§a2048 §7(§aEV§7)/n从 64 格内在末地黑曜石柱上自然生成的末影水晶中收集能量。/n每个末影水晶增加 32 EU/t 的输出/n将龙蛋放在上面放大输出/n此时：每个末影水晶增加 128 EU/t
+gregtech.machine.wind_generator.lv.name=基础风力发电机
+gregtech.machine.wind_generator.mv.name=进阶风力发电机
+gregtech.machine.wind_generator.hv.name=涡轮风力发电机
+gregtech.machine.wind_generator.ev.name=涡轮风力发电机II
+gregtech.machine.wind_generator.iv.name=涡轮风力发电机III
+tooltip.wind_generator.tooltip1=基础发电量：V[转子等级]（随转子等级提升）
+tooltip.wind_generator.tooltip2=发电效率随高度提升：每50格+10%效率
+tooltip.wind_generator.tooltip3=天气影响：雨天+15%/雷暴+30%效率，但会增加转子损耗
+tooltip.wind_generator.tooltip4=生物群系影响：开阔地形+10%效率，茂密森林-10%效率
+tooltip.wind_generator.tooltip5=需要安装对应等级的转子才能发电
+
+gregtech.machine.magic_energy_absorber.lv.name=魔法能源吸收器-MKI
+gregtech.machine.magic_energy_absorber.mv.name=魔法能源吸收器-MKII
+gregtech.machine.magic_energy_absorber.hv.name=魔法能源吸收器-MKIII
+gregtech.machine.magic_energy_absorber.ev.name=魔法能源吸收器-MKIV
+gregtech.machine.magic_energy_absorber.iv.name=魔法能源吸收器-MKV
+tooltip.ender_power_generator.voltage=最大输出电压：§a%s §7(%s)
+tooltip.ender_power_generator.range=从 %s 格内在末地黑曜石柱上自然生成的末影水晶中收集能量。
+tooltip.ender_power_generator.crystal_output=每个末影水晶增加 32 EU/t 的输出
+tooltip.ender_power_generator.dragon_egg=将龙蛋放在上面放大输出
+tooltip.ender_power_generator.current_output=此时：每个末影水晶增加 %s EU/t
 
 # Machines
 
@@ -4671,6 +4769,7 @@ gregtech.machine.item_collector.lv.name=基础物品收集器
 gregtech.machine.item_collector.mv.name=进阶物品收集器
 gregtech.machine.item_collector.hv.name=进阶物品收集器 II
 gregtech.machine.item_collector.ev.name=进阶物品收集器 III
+gregtech.machine.item_collector.iv.name=精英物品收集器
 
 gregtech.machine.item_collector.gui.collect_range=作用半径：%s格
 gregtech.machine.item_collector.tooltip=接收到红石信号时吸取设定范围内的掉落物

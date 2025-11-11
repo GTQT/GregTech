@@ -6,6 +6,7 @@ import gregtech.api.items.metaitem.stats.IItemBehaviour;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
@@ -25,6 +26,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
@@ -37,7 +39,6 @@ import static gregtech.api.GTValues.*;
 
 public class MiningLaserBehavior implements IItemBehaviour {
 
-    // 300k EU
     private static final String MODE_TAG = "MiningLaserMode";
 
     // 模式定义
@@ -62,24 +63,6 @@ public class MiningLaserBehavior implements IItemBehaviour {
             VA[LV] * 30L     // 3×3模式: 960 EU
     };
 
-    // 模式名称
-    private static final String[] MODE_NAMES = {
-            "采矿模式", "低聚焦模式", "远距模式", "水平模式",
-            "超级热线模式", "散射模式", "爆破模式", "3×3模式"
-    };
-
-    // 模式描述
-    private static final String[] MODE_DESCRIPTIONS = {
-            "发射激光挖掘一条直线上的方块",
-            "短距离低能耗模式，可能点燃方块",
-            "长距离高伤害模式",
-            "只能水平发射的远距模式",
-            "将矿石烧制成成品",
-            "3×3范围内5×5散射发射",
-            "产生爆炸，具有穿甲效果",
-            "3×3断面向前挖掘"
-    };
-
     private final Random random = new Random();
 
     public MiningLaserBehavior() {}
@@ -102,21 +85,50 @@ public class MiningLaserBehavior implements IItemBehaviour {
         }
         NBTTagCompound tag = stack.getTagCompound();
         if (tag != null) {
-            tag.setInteger(MODE_TAG, mode % MODE_NAMES.length);
+            tag.setInteger(MODE_TAG, mode % 8); // 8种模式
         }
     }
 
     private void nextMode(ItemStack stack, EntityPlayer player) {
         int currentMode = getMode(stack);
-        int newMode = (currentMode + 1) % MODE_NAMES.length;
+        int newMode = (currentMode + 1) % 8;
         setMode(stack, newMode);
 
         if (!player.world.isRemote) {
-            player.sendMessage(new TextComponentString(
-                    TextFormatting.GREEN + "采矿镭射枪模式: " + TextFormatting.YELLOW + MODE_NAMES[newMode] +
-                            TextFormatting.GRAY + " (" + ENERGY_COSTS[newMode] + " EU/次)"
+            player.sendMessage(new TextComponentTranslation(
+                    "behavior.mining_laser.mode_switched",
+                    getModeName(newMode),
+                    ENERGY_COSTS[newMode]
             ));
         }
+    }
+
+    private String getModeName(int mode) {
+        return switch (mode) {
+            case MODE_MINING -> I18n.format("behavior.mining_laser.mode.mining");
+            case MODE_LOW_FOCUS -> I18n.format("behavior.mining_laser.mode.low_focus");
+            case MODE_LONG_RANGE -> I18n.format("behavior.mining_laser.mode.long_range");
+            case MODE_HORIZONTAL -> I18n.format("behavior.mining_laser.mode.horizontal");
+            case MODE_SUPER_HEAT -> I18n.format("behavior.mining_laser.mode.super_heat");
+            case MODE_SCATTER -> I18n.format("behavior.mining_laser.mode.scatter");
+            case MODE_EXPLOSIVE -> I18n.format("behavior.mining_laser.mode.explosive");
+            case MODE_3X3 -> I18n.format("behavior.mining_laser.mode.3x3");
+            default -> I18n.format("behavior.mining_laser.mode.unknown");
+        };
+    }
+
+    private String getModeDescription(int mode) {
+        return switch (mode) {
+            case MODE_MINING -> I18n.format("behavior.mining_laser.mode.mining.description");
+            case MODE_LOW_FOCUS -> I18n.format("behavior.mining_laser.mode.low_focus.description");
+            case MODE_LONG_RANGE -> I18n.format("behavior.mining_laser.mode.long_range.description");
+            case MODE_HORIZONTAL -> I18n.format("behavior.mining_laser.mode.horizontal.description");
+            case MODE_SUPER_HEAT -> I18n.format("behavior.mining_laser.mode.super_heat.description");
+            case MODE_SCATTER -> I18n.format("behavior.mining_laser.mode.scatter.description");
+            case MODE_EXPLOSIVE -> I18n.format("behavior.mining_laser.mode.explosive.description");
+            case MODE_3X3 -> I18n.format("behavior.mining_laser.mode.3x3.description");
+            default -> "";
+        };
     }
 
     private boolean isUnbreakableBlock(World world, BlockPos pos) {
@@ -148,8 +160,9 @@ public class MiningLaserBehavior implements IItemBehaviour {
         // 检查能量
         if (!drainEnergy(stack, energyCost, true)) {
             if (!world.isRemote) {
-                player.sendMessage(new TextComponentString(
-                        TextFormatting.RED + "能量不足! 需要 " + energyCost + " EU"
+                player.sendMessage(new TextComponentTranslation(
+                        "behavior.mining_laser.insufficient_energy",
+                        energyCost
                 ));
             }
             return ActionResult.newResult(EnumActionResult.FAIL, stack);
@@ -299,8 +312,8 @@ public class MiningLaserBehavior implements IItemBehaviour {
         // 检查角度是否过陡
         if (Math.abs(player.rotationPitch) > 30) {
             if (!world.isRemote) {
-                player.sendMessage(new TextComponentString(
-                        TextFormatting.RED + "采矿激光枪瞄准角度过陡"
+                player.sendMessage(new TextComponentTranslation(
+                        "behavior.mining_laser.steep_angle"
                 ));
             }
             return false;
@@ -605,14 +618,15 @@ public class MiningLaserBehavior implements IItemBehaviour {
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         int mode = getMode(itemStack);
-        String modeName = MODE_NAMES[mode];
-        String modeDescription = MODE_DESCRIPTIONS[mode];
+        String modeName = getModeName(mode);
+        String modeDescription = getModeDescription(mode);
         long energyCost = ENERGY_COSTS[mode];
 
-        lines.add(TextFormatting.GOLD + "当前模式: " + TextFormatting.YELLOW + modeName);
+        // 显示当前模式信息
+        lines.add(TextFormatting.GOLD + I18n.format("behavior.mining_laser.tooltip.current_mode", modeName));
         lines.add(TextFormatting.GRAY + modeDescription);
-        lines.add(TextFormatting.GREEN + "模式耗电: " + TextFormatting.WHITE + energyCost + " EU/次");
-        lines.add(TextFormatting.AQUA + "Shift+右键切换模式");
+        lines.add(TextFormatting.GREEN + I18n.format("behavior.mining_laser.tooltip.energy_cost", energyCost));
+        lines.add(TextFormatting.AQUA + I18n.format("behavior.mining_laser.tooltip.mode_switch"));
 
         // 显示能量信息
         IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
@@ -626,20 +640,21 @@ public class MiningLaserBehavior implements IItemBehaviour {
             else if (percentage > 25) chargeColor = TextFormatting.YELLOW;
             else chargeColor = TextFormatting.RED;
 
-            lines.add(TextFormatting.BLUE + "能量: " + chargeColor + charge + TextFormatting.GRAY + " / " +
-                    TextFormatting.BLUE + maxCharge + " EU " + TextFormatting.GRAY + "(" +
-                    String.format("%.1f", percentage) + "%)");
+            lines.add(TextFormatting.BLUE + I18n.format("behavior.mining_laser.tooltip.energy",
+                    chargeColor + String.valueOf(charge),
+                    String.valueOf(maxCharge),
+                    String.format("%.1f", percentage)));
 
             // 计算可用次数
             int availableUses = (int) (charge / energyCost);
-            lines.add(TextFormatting.LIGHT_PURPLE + "可用次数: " + TextFormatting.WHITE + availableUses + " 次");
+            lines.add(TextFormatting.LIGHT_PURPLE + I18n.format("behavior.mining_laser.tooltip.available_uses", availableUses));
         }
 
         // 显示所有模式列表
-        lines.add(TextFormatting.DARK_GRAY + "--- 所有模式 ---");
-        for (int i = 0; i < MODE_NAMES.length; i++) {
+        lines.add(TextFormatting.DARK_GRAY + I18n.format("behavior.mining_laser.tooltip.all_modes"));
+        for (int i = 0; i < 8; i++) {
             String prefix = i == mode ? TextFormatting.GREEN + "▶ " : TextFormatting.GRAY + "  ";
-            lines.add(prefix + MODE_NAMES[i] + TextFormatting.DARK_GRAY + " (" + ENERGY_COSTS[i] + " EU)");
+            lines.add(prefix + getModeName(i) + TextFormatting.DARK_GRAY + " (" + ENERGY_COSTS[i] + " EU)");
         }
     }
 

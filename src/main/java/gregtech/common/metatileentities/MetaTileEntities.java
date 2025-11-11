@@ -147,6 +147,8 @@ import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndp
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
 import gregtech.integration.jei.multiblock.MultiblockInfoCategory;
 
+import gtqt.common.metatileentities.electric.MetaTileEntityWindGenerator;
+
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
@@ -295,8 +297,9 @@ public class MetaTileEntities {
     public static final MetaTileEntityBuffer[] BUFFER = new MetaTileEntityBuffer[5];
     public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[9];
     public static final MetaTileEntityBlockBreaker[] BLOCK_BREAKER = new MetaTileEntityBlockBreaker[4];
-
-    public static final MetaTileEntityItemCollector[] ITEM_COLLECTOR = new MetaTileEntityItemCollector[4];
+    public static final MetaTileEntityWindGenerator[] WIND_GENERATOR = new MetaTileEntityWindGenerator[5];
+    public static final MetaTileEntityMagicEnergyAbsorber[] MAGIC_ENERGY_ABSORBER = new MetaTileEntityMagicEnergyAbsorber[5];
+    public static final MetaTileEntityItemCollector[] ITEM_COLLECTOR = new MetaTileEntityItemCollector[5];
     public static final MetaTileEntityFisher[] FISHER = new MetaTileEntityFisher[4];
     public static final MetaTileEntityWorldAccelerator[] WORLD_ACCELERATOR = new MetaTileEntityWorldAccelerator[GTValues.V.length-1];
     public static final MetaTileEntityTeleporter[] TELEPORTER = new MetaTileEntityTeleporter[GTValues.V.length-1];
@@ -368,7 +371,6 @@ public class MetaTileEntities {
     public static SteamMiner STEAM_MINER;
     public static MetaTileEntityPumpHatch PUMP_OUTPUT_HATCH;
     public static MetaTileEntityPrimitiveWaterPump PRIMITIVE_WATER_PUMP;
-    public static MetaTileEntityMagicEnergyAbsorber MAGIC_ENERGY_ABSORBER;
     public static MetaTileEntityCokeOvenHatch COKE_OVEN_HATCH;
     public static MetaTileEntitySteamHatch STEAM_HATCH;
     public static MetaTileEntityHugeSteamHatch HUGE_STEAM_HATCH;
@@ -851,18 +853,27 @@ public class MetaTileEntities {
                 MetaTileEntitySingleTurbine.class, GTUtility.genericGeneratorTankSizeFunction,
                 tier -> 1.0);
 
-        // Item Collector, IDs 980-983
-        ITEM_COLLECTOR[0] = registerMetaTileEntity(980,
-                new MetaTileEntityItemCollector(gregtechId("item_collector.lv"), 1, 8));
-        ITEM_COLLECTOR[1] = registerMetaTileEntity(981,
-                new MetaTileEntityItemCollector(gregtechId("item_collector.mv"), 2, 16));
-        ITEM_COLLECTOR[2] = registerMetaTileEntity(982,
-                new MetaTileEntityItemCollector(gregtechId("item_collector.hv"), 3, 32));
-        ITEM_COLLECTOR[3] = registerMetaTileEntity(983,
-                new MetaTileEntityItemCollector(gregtechId("item_collector.ev"), 4, 64));
+        // 风机, IDs 970-974
+        for (int i = 0; i < WIND_GENERATOR.length; i++){
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            WIND_GENERATOR[i] = registerMetaTileEntity(970 + i,
+                    new MetaTileEntityWindGenerator(gregtechId("wind_generator." + voltageName), i + 1));
+        }
 
-        MAGIC_ENERGY_ABSORBER = registerMetaTileEntity(984,
-                new MetaTileEntityMagicEnergyAbsorber(gregtechId("magic_energy_absorber")));
+        // Magic Energy Absorber, IDs 975-979
+        for (int i = 0; i < MAGIC_ENERGY_ABSORBER.length; i++){
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            MAGIC_ENERGY_ABSORBER[i] = registerMetaTileEntity(975 + i,
+                    new MetaTileEntityMagicEnergyAbsorber(gregtechId("magic_energy_absorber." + voltageName),i + 1));
+        }
+
+        // Item Collector, IDs 980-984
+        for (int i = 0; i < ITEM_COLLECTOR.length; i++){
+            String  voltageName = GTValues.VN[i + 1].toLowerCase();
+            ITEM_COLLECTOR[i] = registerMetaTileEntity(980 + i,
+                    new MetaTileEntityItemCollector(gregtechId("item_collector." + voltageName),i + 1,
+                            (int) (Math.pow(2, i)*8)));
+        }
 
         // Hulls, IDs 985-999
         int endPos = GregTechAPI.isHighTier() ? HULL.length : Math.min(HULL.length - 1, GTValues.UV + 2);

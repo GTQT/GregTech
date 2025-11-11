@@ -2,8 +2,6 @@ package gtqt.common.items;
 
 import gregtech.api.items.metaitem.MetaItem;
 
-import net.minecraft.item.EnumDyeColor;
-
 public class GTQTMetaItems {
 
     public static MetaItem<?>.MetaValueItem COVER_PROGRAMMABLE_CIRCUIT;
@@ -63,20 +61,27 @@ public class GTQTMetaItems {
     public static MetaItem<?>.MetaValueItem FLUID_CELL_NAQUADAH_ALLOY;
     public static MetaItem<?>.MetaValueItem FLUID_CELL_NEUTRONIUM;
 
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_EMPTY;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_SAW;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_HARD_HAMMER;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_SOFT_MALLET;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_WRENCH;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_FILE;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_CROWBAR;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_SCREWDRIVER;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_MORTAR;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_WIRE_CUTTER;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_KNIFE;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_BUTCHERY_KNIFE;
-     public static MetaItem<?>.MetaValueItem  CASTING_MOLD_ROLLING_PIN;
-    
+    public static MetaItem<?>.MetaValueItem WIND_ROTOR_STEEL;
+    public static MetaItem<?>.MetaValueItem WIND_ROTOR_ALUMINIUM;
+    public static MetaItem<?>.MetaValueItem WIND_ROTOR_STAINLESSSTEEL;
+    public static MetaItem<?>.MetaValueItem WIND_ROTOR_TITANIUM;
+    public static MetaItem<?>.MetaValueItem WIND_ROTOR_TUNGSTENSTEEL;
+    public static MetaItem<?>.MetaValueItem WIND_ROTOR_RHODIUMPLATEDPALLADIUM;
+
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_EMPTY;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_SAW;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_HARD_HAMMER;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_SOFT_MALLET;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_WRENCH;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_FILE;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_CROWBAR;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_SCREWDRIVER;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_MORTAR;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_WIRE_CUTTER;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_KNIFE;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_BUTCHERY_KNIFE;
+    public static MetaItem<?>.MetaValueItem CASTING_MOLD_ROLLING_PIN;
+
     public static MetaItem<?>.MetaValueItem DISPOSABLE_SAW;
     public static MetaItem<?>.MetaValueItem DISPOSABLE_HARD_HAMMER;
     public static MetaItem<?>.MetaValueItem DISPOSABLE_SOFT_MALLET;
