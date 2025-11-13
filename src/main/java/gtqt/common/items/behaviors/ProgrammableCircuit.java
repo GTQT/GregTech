@@ -1,29 +1,14 @@
 package gtqt.common.items.behaviors;
 
-import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.api.widget.Interactable;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
-import com.cleanroommc.modularui.factory.HandGuiData;
-import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.value.sync.InteractionSyncHandler;
-import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.layout.Grid;
-
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
-
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
-import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.util.GTUtility;
-
-import gtqt.common.items.GTQTMetaItems;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -34,6 +19,18 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.api.widget.Interactable;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.factory.HandGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.sync.InteractionSyncHandler;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.layout.Grid;
+import gtqt.common.items.GTQTMetaItems;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -122,8 +119,8 @@ public class ProgrammableCircuit implements ItemUIFactory, IItemBehaviour {
                         ItemStack item = new ItemStack(GTQTMetaItems.PROGRAMMABLE_CIRCUIT_0.getMetaItem(), 1, 20+finalI);
                         item.setCount(guiData.getUsedItemStack().getCount());
                         circuitPreview.setItem(item);
-                        guiData.getPlayer().setHeldItem(guiData.getHand(), item);
                         if (Interactable.hasShiftDown()) panel.animateClose();
+                        guiData.getPlayer().setHeldItem(guiData.getHand(), item);
                     }));
         }
 

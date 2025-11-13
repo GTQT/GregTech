@@ -1,7 +1,5 @@
 package gregtech.common.mui.widget.workbench;
 
-import com.cleanroommc.modularui.theme.WidgetSlotTheme;
-
 import gregtech.client.utils.RenderUtil;
 import gregtech.common.metatileentities.storage.CraftingRecipeLogic;
 import gregtech.common.metatileentities.storage.CraftingRecipeMemory;
@@ -76,9 +74,6 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
         ItemStack itemstack = this.syncHandler.getOutputStack();
         RenderUtil.drawItemStack(itemstack, 1, 1, true);
         RenderUtil.handleSlotOverlay(this, widgetTheme);
-        if (isHovering() && widgetTheme instanceof WidgetSlotTheme slotTheme) {
-            RenderUtil.drawSlotOverlay(this, slotTheme);
-        }
     }
 
     @Override
@@ -143,8 +138,8 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
                         if (data.shift) {
                             ItemStack finalStack = outputStack.copy();
                             while (quickTransfer(finalStack, true) &&
-                                    finalStack.getCount() < outputStack.getMaxStackSize()) {
-                                if (!recipeLogic.performRecipe()) break;
+                                    canStack(finalStack, outputStack) &&
+                                    recipeLogic.performRecipe()) {
                                 finalStack.setCount(finalStack.getCount() + outputStack.getCount());
                                 handleItemCraft(outputStack, player);
                             }
@@ -156,6 +151,11 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
                 }
                 ForgeHooks.setCraftingPlayer(null);
             }
+        }
+
+        private static boolean canStack(ItemStack a, ItemStack b) {
+            return ItemHandlerHelper.canItemStacksStackRelaxed(a, b) &&
+                    a.getCount() + b.getCount() < b.getMaxStackSize();
         }
 
         private boolean insertStack(ItemStack fromStack, ModularSlot toSlot, boolean simulate) {

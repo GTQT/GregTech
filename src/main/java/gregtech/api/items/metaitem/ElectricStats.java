@@ -5,7 +5,12 @@ import gregtech.api.capability.FeCompat;
 import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IElectricItem;
 import gregtech.api.capability.impl.ElectricItem;
-import gregtech.api.items.metaitem.stats.*;
+import gregtech.api.items.metaitem.stats.IItemBehaviour;
+import gregtech.api.items.metaitem.stats.IItemCapabilityProvider;
+import gregtech.api.items.metaitem.stats.IItemComponent;
+import gregtech.api.items.metaitem.stats.IItemMaxStackSizeProvider;
+import gregtech.api.items.metaitem.stats.IItemModelDispatcher;
+import gregtech.api.items.metaitem.stats.ISubItemHandler;
 import gregtech.api.util.Mods;
 import gregtech.common.ConfigHolder;
 import gregtech.integration.baubles.BaublesModule;
@@ -32,7 +37,7 @@ import java.time.Instant;
 import java.util.List;
 
 public class ElectricStats implements IItemComponent, IItemCapabilityProvider, IItemMaxStackSizeProvider,
-                           IItemBehaviour, ISubItemHandler {
+                                      IItemBehaviour, ISubItemHandler, IItemModelDispatcher {
 
     public static final ElectricStats EMPTY = new ElectricStats(0, 0, false, false);
 
@@ -216,5 +221,15 @@ public class ElectricStats implements IItemComponent, IItemCapabilityProvider, I
 
     public static ElectricStats createBattery(long maxCharge, int tier, boolean rechargeable) {
         return new ElectricStats(maxCharge, tier, rechargeable, true);
+    }
+
+    @Override
+    public int getModelIndex(ItemStack itemStack, int maxIndex) {
+        IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+        if (electricItem != null) {
+            return (int) Math.min(((electricItem.getCharge() / (electricItem.getMaxCharge() * 1.0)) * maxIndex),
+                    maxIndex);
+        }
+        return 0;
     }
 }

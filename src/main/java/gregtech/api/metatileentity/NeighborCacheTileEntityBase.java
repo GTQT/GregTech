@@ -16,8 +16,19 @@ import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.List;
 /*
- * INeighborCache implementation that uses weak references to cache tile entities.
- * from https://github.com/SymmetricDevs/Supercritical/commit/8615461f693d4cea09ba0d052c15fb6b2ca8deff
+ * This file contains code modified from the SussyPatches project,
+ * which is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
+ *
+ * Original source: https://github.com/MCTian-mi/SussyPatches
+ * Original file: src/main/java/dev/tianmi/sussypatches/api/core/mixin/extension/NeighborCacheExtension.java
+ * Commit: b0602c9ade30e89a253a85ac3de8817f7a00fa3f
+ *
+ * Modifications made: [描述您所做的任何修改，如果没有修改则写"None"]
+ *
+ * This file is also licensed under LGPL-3.0 to comply with the original license terms.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 public abstract class NeighborCacheTileEntityBase extends SyncedTileEntityBase
         implements INeighborCache, NeighborCacheExtension {

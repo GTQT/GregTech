@@ -19,21 +19,21 @@
     "MixinEntity",
     "MixinEntityAnimal",
     "MixinEntityBat",
+    "RecipeRepairItemMixin",
     "WorldEntitySpawnerMixin"
   ],
   "client": [
     "BlockFluidBaseMixin",
     "BlockMixin",
     "EntityRendererMixin",
+    "ItemMixin",
     "LayerArmorBaseMixin",
     "LayerCustomHeadMixin",
     "QuitMixin",
-    "RecipeRepairItemMixin",
     "RegionRenderCacheBuilderMixin",
     "RenderChunkMixin",
     "RenderGlobalMixin",
-    "RenderItemMixin",
-    "ItemMixin"
+    "RenderItemMixin"
   ],
   "server": []
 }

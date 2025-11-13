@@ -21,10 +21,11 @@ import gregtech.api.items.metaitem.stats.IItemComponent;
 import gregtech.api.items.metaitem.stats.IItemContainerItemProvider;
 import gregtech.api.items.metaitem.stats.IItemDurabilityManager;
 import gregtech.api.items.metaitem.stats.IItemMaxStackSizeProvider;
+import gregtech.api.items.metaitem.stats.IItemModelDispatcher;
 import gregtech.api.items.metaitem.stats.IItemNameProvider;
 import gregtech.api.items.metaitem.stats.IItemUseManager;
+import gregtech.api.items.metaitem.stats.IMouseEventHandler;
 import gregtech.api.items.metaitem.stats.ISubItemHandler;
-import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.ore.OrePrefix;
@@ -99,7 +100,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import gregtech.api.items.metaitem.stats.IMouseEventHandler;
 /**
  * MetaItem is item that can have up to Short.MAX_VALUE items inside one id. These items even can be edible, have custom
  * behaviours, be electric or act like fluid containers! They can also have different burn time, plus be handheld,
@@ -197,20 +197,19 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         return "metaitems/" + metaValueItem.unlocalizedName;
     }
 
-    protected int getModelIndex(ItemStack itemStack) {
+    public int getModelIndex(ItemStack itemStack) {
         T metaValueItem = getItem(itemStack);
+        Objects.requireNonNull(metaValueItem);
 
-        // Electric Items
-        IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-        if (electricItem != null) {
-            return (int) Math.min(((electricItem.getCharge() / (electricItem.getMaxCharge() * 1.0)) * 7), 7);
-        }
+        var modelDispatcher = metaValueItem.getItemModelDispatcher();
+        if (modelDispatcher == null) return 0;
 
-        // Integrated (Config) Circuit
-        if (metaValueItem != null) {
-            return IntCircuitIngredient.getCircuitConfiguration(itemStack);
-        }
-        return 0;
+        int maxIndex = metaValueItem.getModelAmount() - 1;
+        int index = modelDispatcher.getModelIndex(itemStack, maxIndex);
+        Validate.inclusiveBetween(0, maxIndex, index,
+                "Model index should be in range from 0 to %d (inclusive), where %d is supplied", maxIndex, index);
+
+        return index;
     }
 
     @SideOnly(Side.CLIENT)
@@ -795,6 +794,7 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         private IItemColorProvider colorProvider;
         private IItemDurabilityManager durabilityManager;
         private IEnchantabilityHelper enchantabilityHelper;
+        private IItemModelDispatcher itemModelDispatcher;
         private IMouseEventHandler mouseEventHandler;
         private EnumRarity rarity;
 
@@ -936,12 +936,20 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
                 if (itemComponent instanceof IEnchantabilityHelper iEnchantabilityHelper) {
                     this.enchantabilityHelper = iEnchantabilityHelper;
                 }
+                if (itemComponent instanceof IItemModelDispatcher iItemModelDispatcher) {
+                    this.itemModelDispatcher = iItemModelDispatcher;
+                }
                 // noinspection PatternVariableHidesField
                 if (itemComponent instanceof IMouseEventHandler mouseEventHandler) {
                     this.mouseEventHandler = mouseEventHandler;
                 }
                 this.allStats.add(itemComponent);
             }
+        }
+
+        @Nullable
+        public IItemModelDispatcher getItemModelDispatcher() {
+            return itemModelDispatcher;
         }
 
         public int getMetaValue() {
