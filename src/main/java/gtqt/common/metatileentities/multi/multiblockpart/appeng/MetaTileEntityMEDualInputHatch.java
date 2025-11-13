@@ -26,8 +26,8 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.common.gui.widget.appeng.AEFluidConfigWidget;
 import gregtech.common.gui.widget.appeng.AEItemConfigWidget;
 import gregtech.common.inventory.appeng.ExportOnlyAEFluidList;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidSlot;
 import gregtech.common.inventory.appeng.ExportOnlyAEItemList;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidSlot;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemSlot;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedFluidStack;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedItemStack;
@@ -417,7 +417,13 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
             markDirty();
         }
     }
-
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
     @Override
     public final void onDataStickLeftClick(EntityPlayer player, ItemStack dataStick) {
         NBTTagCompound tag = new NBTTagCompound();

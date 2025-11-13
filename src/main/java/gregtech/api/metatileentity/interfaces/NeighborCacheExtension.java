@@ -7,10 +7,14 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
-
+/*
+ * INeighborCache implementation that uses weak references to cache tile entities.
+ * from https://github.com/SymmetricDevs/Supercritical/commit/8615461f693d4cea09ba0d052c15fb6b2ca8deff
+ */
 public interface NeighborCacheExtension {
 
     WeakReference<TileEntity> NULL_REFERENCE = new WeakReference<>(null);

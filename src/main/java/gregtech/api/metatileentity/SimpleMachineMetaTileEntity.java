@@ -1,7 +1,5 @@
 package gregtech.api.metatileentity;
 
-import com.cleanroommc.modularui.factory.SidedPosGuiData;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IActiveOutputSide;
@@ -378,6 +376,13 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         if (!getWorld().isRemote) {
             markDirty();
         }
+    }
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
     }
 
     @Override

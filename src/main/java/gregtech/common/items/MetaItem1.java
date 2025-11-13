@@ -1043,7 +1043,7 @@ public class MetaItem1 extends StandardMetaItem {
 
         //风力计
         WIND_METER = addItem(512, "wind_meter")
-                .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
+                .addComponents(ElectricStats.createElectricItem(400000L, GTValues.MV),
                         new WindMeterBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);

@@ -19,7 +19,6 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.common.creativetab.GTCreativeTabs;
-import gregtech.common.items.MetaItems;
 import gregtech.common.items.behaviors.spray.AbstractSprayBehavior;
 import gregtech.integration.ctm.IFacadeWrapper;
 
@@ -66,7 +65,6 @@ import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.raytracer.IndexedCuboid6;
 import codechicken.lib.raytracer.RayTracer;
 import codechicken.lib.vec.Cuboid6;
-import gtqt.common.items.GTQTMetaItems;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -39,6 +39,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntitySingleCombustion;
 import gregtech.common.metatileentities.electric.MetaTileEntitySingleTurbine;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
+import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
 import gregtech.common.metatileentities.electric.SimpleMachineMetaTileEntityResizable;
 import gregtech.common.metatileentities.multi.BoilerType;
@@ -146,8 +147,6 @@ import gregtech.common.metatileentities.storage.MetaTileEntityWorkbench;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
 import gregtech.integration.jei.multiblock.MultiblockInfoCategory;
-
-import gtqt.common.metatileentities.electric.MetaTileEntityWindGenerator;
 
 import net.minecraft.util.ResourceLocation;
 

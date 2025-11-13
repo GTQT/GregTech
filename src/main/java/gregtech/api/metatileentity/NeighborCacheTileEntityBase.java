@@ -2,10 +2,12 @@ package gregtech.api.metatileentity;
 
 import gregtech.api.metatileentity.interfaces.INeighborCache;
 import gregtech.api.metatileentity.interfaces.NeighborCacheExtension;
+
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,7 +15,10 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.List;
-
+/*
+ * INeighborCache implementation that uses weak references to cache tile entities.
+ * from https://github.com/SymmetricDevs/Supercritical/commit/8615461f693d4cea09ba0d052c15fb6b2ca8deff
+ */
 public abstract class NeighborCacheTileEntityBase extends SyncedTileEntityBase
         implements INeighborCache, NeighborCacheExtension {
 

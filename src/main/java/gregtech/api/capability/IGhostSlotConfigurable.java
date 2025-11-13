@@ -16,4 +16,6 @@ public interface IGhostSlotConfigurable {
      * @param config New config value
      */
     void setGhostCircuitConfig(int config);
+
+    int getGhostCircuitConfig();
 }

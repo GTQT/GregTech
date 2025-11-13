@@ -1,4 +1,4 @@
-package gtqt.common.metatileentities.electric;
+package gregtech.common.metatileentities.electric;
 
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.damagesources.DamageSources;

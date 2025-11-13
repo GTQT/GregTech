@@ -109,7 +109,13 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
             markDirty();
         }
     }
-
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityFluidHatch(metaTileEntityId, getTier(), isExportHatch);

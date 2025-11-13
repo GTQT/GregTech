@@ -478,7 +478,13 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
             markDirty();
         }
     }
-
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {

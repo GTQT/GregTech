@@ -350,7 +350,13 @@ public class MetaTileEntityMEInputBus extends MetaTileEntityAEHostablePart<IAEIt
             markDirty();
         }
     }
-
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
     @Override
     public final void onDataStickLeftClick(EntityPlayer player, ItemStack dataStick) {
         NBTTagCompound tag = new NBTTagCompound();

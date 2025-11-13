@@ -227,7 +227,13 @@ public class MetaTileEntityReservoirHatch extends MetaTileEntityMultiblockNotifi
             markDirty();
         }
     }
-
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         this.circuitInventory.write(data);
