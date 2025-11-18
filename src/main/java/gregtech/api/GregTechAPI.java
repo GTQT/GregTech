@@ -3,12 +3,12 @@ package gregtech.api;
 import gregtech.api.advancement.IAdvancementManager;
 import gregtech.api.block.ICleanroomFilter;
 import gregtech.api.block.IHeatingCoilBlockStats;
+import gregtech.api.block.coil.CoilManager;
 import gregtech.api.command.ICommandManager;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.event.HighTierEvent;
 import gregtech.api.gui.UIFactory;
 import gregtech.api.metatileentity.multiblock.IBatteryData;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.metatileentity.registry.MTEManager;
 import gregtech.api.modules.IModuleManager;
@@ -25,8 +25,6 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.IBlockOre;
 import gregtech.common.ConfigHolder;
 import gregtech.datafix.migration.lib.MigrationAPI;
-
-import gregtech.integration.jei.multiblock.MultiblockInfoRecipeWrapper;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
@@ -61,6 +59,8 @@ public class GregTechAPI {
     public static MarkerMaterialRegistry markerMaterialRegistry;
     /** Will be available at the Pre-Initialization stage */
     public static MTEManager mteManager;
+    /** Will be available at the Pre-Initialization stage */
+    public static CoilManager coilManager;
     /** GT's data migrations API */
     public static final MigrationAPI MIGRATIONS = new MigrationAPI();
     public static final RecipePropertyRegistry RECIPE_PROPERTIES = new RecipePropertyRegistry();

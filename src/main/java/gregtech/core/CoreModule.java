@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.GregTechAPIInternal;
 import gregtech.api.block.IHeatingCoilBlockStats;
+import gregtech.api.block.coil.CoilManager;
 import gregtech.api.capability.SimpleCapabilityManager;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.cover.CoverUIFactory;
@@ -60,7 +61,6 @@ import gregtech.core.network.packets.PacketClipboard;
 import gregtech.core.network.packets.PacketClipboardNBTUpdate;
 import gregtech.core.network.packets.PacketClipboardUIWidgetUpdate;
 import gregtech.core.network.packets.PacketFluidVeinList;
-import gregtech.core.network.packets.PacketItemMouseEvent;
 import gregtech.core.network.packets.PacketKeysPressed;
 import gregtech.core.network.packets.PacketNotifyCapeChange;
 import gregtech.core.network.packets.PacketPluginSynced;
@@ -103,11 +103,11 @@ import java.util.Map;
 import static gregtech.api.GregTechAPI.*;
 
 @GregTechModule(
-                moduleID = GregTechModules.MODULE_CORE,
-                containerID = GTValues.MODID,
-                name = "GregTech Core",
-                description = "Core GregTech content. Disabling this disables the entire mod and all its addons.",
-                coreModule = true)
+        moduleID = GregTechModules.MODULE_CORE,
+        containerID = GTValues.MODID,
+        name = "GregTech Core",
+        description = "Core GregTech content. Disabling this disables the entire mod and all its addons.",
+        coreModule = true)
 public class CoreModule implements IGregTechModule {
 
     public static final Logger logger = LogManager.getLogger("GregTech Core");
@@ -133,7 +133,7 @@ public class CoreModule implements IGregTechModule {
     }
 
     @Override
-    public void preInit(@NotNull FMLPreInitializationEvent event) {
+    public void preInit(FMLPreInitializationEvent event) {
         GregTechAPIInternal.preInit();
         GregTechAPI.advancementManager = AdvancementManager.getInstance();
         AdvancementTriggers.register();
@@ -194,12 +194,16 @@ public class CoreModule implements IGregTechModule {
         // need to do this before MetaBlocks runs, to make sure all addons get their own BlockMachine
         /* Start MTE Registry Addition */
         GregTechAPI.mteManager = MTEManager.getInstance();
+        GregTechAPI.coilManager = CoilManager.getInstance();
         MinecraftForge.EVENT_BUS.post(new MTEManager.MTERegistryEvent());
         /* End MTE Registry Addition */
 
         OreDictUnifier.init();
 
         MetaBlocks.init();
+        logger.info("Registering Coils");
+        MinecraftForge.EVENT_BUS.post(new CoilManager.CoilRegistryEvent());
+
         MetaItems.init();
         ToolItems.init();
         GTFluidRegistration.INSTANCE.register();
@@ -216,7 +220,7 @@ public class CoreModule implements IGregTechModule {
         MetaEntities.init();
 
         /* Start API Block Registration */
-        for (BlockWireCoil.CoilType type : BlockWireCoil.CoilType.values()) {
+        for (BlockWireCoil.CoilType type : BlockWireCoil.getCoilTypes()) {
             HEATING_COILS.put(MetaBlocks.WIRE_COIL.getState(type), type);
         }
         for (BlockBatteryPart.BatteryPartType type : BlockBatteryPart.BatteryPartType.values()) {
@@ -246,11 +250,11 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.networkHandler.registerPacket(PacketReloadShaders.class);
         GregTechAPI.networkHandler.registerPacket(PacketClipboardNBTUpdate.class);
         GregTechAPI.networkHandler.registerPacket(PacketToolbeltSelectionChange.Server.class);
-        GregTechAPI.networkHandler.registerPacket(PacketItemMouseEvent.class);
+        GregTechAPI.networkHandler.registerPacket(PacketToolbeltSelectionChange.Client.class);
     }
 
     @Override
-    public void init(@NotNull FMLInitializationEvent event) {
+    public void init(FMLInitializationEvent event) {
         // freeze once addon preInit is finished
         for (MTERegistry registry : mteManager.getRegistries()) {
             registry.freeze();
@@ -259,7 +263,7 @@ public class CoreModule implements IGregTechModule {
         if (RecipeMap.isFoundInvalidRecipe()) {
             logger.fatal("Seems like invalid recipe was found.");
             // crash if config setting is set to false, or we are in deobfuscated environment
-            if (!ConfigHolder.misc.ignoreErrorOrInvalidRecipes) {
+            if (!ConfigHolder.misc.ignoreErrorOrInvalidRecipes || !FMLForgePlugin.RUNTIME_DEOBF) {
                 logger.fatal(
                         "Loading cannot continue. Either fix or report invalid recipes, or enable ignoreErrorOrInvalidRecipes in the config as a temporary solution");
                 throw new LoaderException(
@@ -289,7 +293,7 @@ public class CoreModule implements IGregTechModule {
     }
 
     @Override
-    public void postInit(@NotNull FMLPostInitializationEvent event) {
+    public void postInit(FMLPostInitializationEvent event) {
         proxy.onPostLoad();
         BedrockFluidVeinHandler.recalculateChances(true);
         // registers coil types for the BlastTemperatureProperty used in Blast Furnace Recipes
@@ -307,7 +311,7 @@ public class CoreModule implements IGregTechModule {
     }
 
     @Override
-    public void loadComplete(@NotNull FMLLoadCompleteEvent event) {
+    public void loadComplete(FMLLoadCompleteEvent event) {
         proxy.onLoadComplete();
     }
 
@@ -330,7 +334,7 @@ public class CoreModule implements IGregTechModule {
     }
 
     @Override
-    public void serverStarted(@NotNull FMLServerStartedEvent event) {
+    public void serverStarted(FMLServerStartedEvent event) {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
             World world = FMLCommonHandler.instance().getMinecraftServerInstance().getEntityWorld();
             if (!world.isRemote) {
@@ -348,7 +352,7 @@ public class CoreModule implements IGregTechModule {
     }
 
     @Override
-    public void serverStopped(@NotNull FMLServerStoppedEvent event) {
+    public void serverStopped(FMLServerStoppedEvent event) {
         VirtualEnderRegistry.clearMaps();
         CapesRegistry.clearMaps();
     }

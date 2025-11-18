@@ -9,9 +9,6 @@ import gregtech.common.ConfigHolder;
 import gregtech.modules.GregTechModules;
 import gregtech.modules.ModuleManager;
 
-import gtqt.common.Difficulty;
-import gtqt.common.GTQTCommonProxy;
-
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -30,6 +27,7 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 
+import gtqt.common.Difficulty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,7 +38,7 @@ import static gtqt.common.Difficulty.fromLevel;
      acceptedMinecraftVersions = "[1.12.2,1.13)",
      version = GTInternalTags.VERSION,
      dependencies = "required:forge@[14.23.5.2847,);" + "required-after:codechickenlib@[3.2.3,);" +
-             "required-after:modularui@[2.5.0-rc,);" + "required-after:mixinbooter@[8.0,);" +
+             "required-after:modularui@[3.0.4,);" + "required-after:mixinbooter@[8.0,);" +
              "after:appliedenergistics2;" +
              "after:forestry;" + "after:extrabees;" + "after:extratrees;" + "after:genetics;" + "after:magicbees;" +
              "after:jei@[4.15.0,);" + "after:crafttweaker@[4.1.20,);" + "after:groovyscript@[1.2.0,);" +

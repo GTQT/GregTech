@@ -1,5 +1,7 @@
 package gtqt.common.items.behaviors;
 
+import com.cleanroommc.modularui.screen.UISettings;
+
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.MetaItem;
@@ -109,7 +111,7 @@ public class ProgrammableCircuit implements ItemUIFactory, IItemBehaviour {
     }
 
     @Override
-    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager) {
+    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         var panel = GTGuis.createPanel(guiData.getUsedItemStack(), 176, 120);
         ItemDrawable circuitPreview = new ItemDrawable(guiData.getUsedItemStack());
         for (int i = 0; i <= 32; i++) {

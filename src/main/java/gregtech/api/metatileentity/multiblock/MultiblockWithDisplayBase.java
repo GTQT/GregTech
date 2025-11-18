@@ -1,5 +1,7 @@
 package gregtech.api.metatileentity.multiblock;
 
+import com.cleanroommc.modularui.screen.UISettings;
+
 import gregtech.api.GTValues;
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.capability.*;
@@ -403,7 +405,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     @Override
-    public final ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager) {
+    public final ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         if (uiFactory == null) uiFactory = createUIFactory();
         return this.uiFactory.buildUI(guiData, panelSyncManager);
     }

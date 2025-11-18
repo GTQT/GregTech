@@ -1,7 +1,5 @@
 package gregtech.common.covers;
 
-import com.cleanroommc.modularui.api.drawable.IKey;
-
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
@@ -45,9 +43,12 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.MouseData;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
@@ -73,15 +74,15 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
 
     public final int tier;
     public final int maxItemTransferRate;
-    protected final ItemFilterContainer itemFilterContainer;
+    private int transferRate;
     protected ConveyorMode conveyorMode;
     protected DistributionMode distributionMode;
     protected ManualImportExportMode manualImportExportMode = ManualImportExportMode.DISABLED;
+    protected final ItemFilterContainer itemFilterContainer;
     protected int itemsLeftToTransferLastSecond;
-    protected boolean isWorkingAllowed = true;
-    private int transferRate;
     private int updateTime = 5;
     private CoverableItemHandlerWrapper itemHandlerWrapper;
+    protected boolean isWorkingAllowed = true;
 
     public CoverConveyor(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
                          @NotNull EnumFacing attachedSide, int tier, int itemsPerSecond) {
@@ -93,67 +94,6 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
         this.conveyorMode = ConveyorMode.EXPORT;
         this.distributionMode = DistributionMode.INSERT_FIRST;
         this.itemFilterContainer = new ItemFilterContainer(this);
-    }
-
-    protected static boolean moveInventoryItemsExact(IItemHandler sourceInventory, IItemHandler targetInventory,
-                                                     TypeItemInfo itemInfo) {
-        // first, compute how much can we extract in reality from the machine,
-        // because totalCount is based on what getStackInSlot returns, which may differ from what
-        // extractItem() will return
-        ItemStack resultStack = itemInfo.itemStack.copy();
-        int totalExtractedCount = 0;
-        int itemsLeftToExtract = itemInfo.totalCount;
-
-        for (int i = 0; i < itemInfo.slots.size(); i++) {
-            int slotIndex = itemInfo.slots.get(i);
-            ItemStack extractedStack = sourceInventory.extractItem(slotIndex, itemsLeftToExtract, true);
-            if (!extractedStack.isEmpty() &&
-                    ItemStack.areItemsEqual(resultStack, extractedStack) &&
-                    ItemStack.areItemStackTagsEqual(resultStack, extractedStack)) {
-                totalExtractedCount += extractedStack.getCount();
-                itemsLeftToExtract -= extractedStack.getCount();
-            }
-            if (itemsLeftToExtract == 0) {
-                break;
-            }
-        }
-        // if amount of items extracted is not equal to the amount of items we
-        // wanted to extract, abort item extraction
-        if (totalExtractedCount != itemInfo.totalCount) {
-            return false;
-        }
-        // adjust size of the result stack accordingly
-        resultStack.setCount(totalExtractedCount);
-
-        // now, see how much we can insert into destination inventory
-        // if we can't insert as much as itemInfo requires, and remainder is empty, abort, abort
-        ItemStack remainder = GTTransferUtils.insertItem(targetInventory, resultStack, true);
-        if (!remainder.isEmpty()) {
-            return false;
-        }
-
-        // otherwise, perform real insertion and then remove items from the source inventory
-        GTTransferUtils.insertItem(targetInventory, resultStack, false);
-
-        // perform real extraction of the items from the source inventory now
-        itemsLeftToExtract = itemInfo.totalCount;
-        for (int i = 0; i < itemInfo.slots.size(); i++) {
-            int slotIndex = itemInfo.slots.get(i);
-            ItemStack extractedStack = sourceInventory.extractItem(slotIndex, itemsLeftToExtract, false);
-            if (!extractedStack.isEmpty() &&
-                    ItemStack.areItemsEqual(resultStack, extractedStack) &&
-                    ItemStack.areItemStackTagsEqual(resultStack, extractedStack)) {
-                itemsLeftToExtract -= extractedStack.getCount();
-            }
-            if (itemsLeftToExtract == 0) {
-                break;
-            }
-        }
-        return true;
-    }
-
-    public int getTransferRate() {
-        return transferRate;
     }
 
     public void setTransferRate(int transferRate) {
@@ -175,18 +115,22 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
         }
     }
 
-    protected void adjustTransferRate(int amount) {
-        setTransferRate(MathHelper.clamp(transferRate + amount, 1, maxItemTransferRate));
+    public int getTransferRate() {
+        return transferRate;
     }
 
-    public ConveyorMode getConveyorMode() {
-        return conveyorMode;
+    protected void adjustTransferRate(int amount) {
+        setTransferRate(MathHelper.clamp(transferRate + amount, 1, maxItemTransferRate));
     }
 
     public void setConveyorMode(ConveyorMode conveyorMode) {
         this.conveyorMode = conveyorMode;
         writeCustomData(GregtechDataCodes.UPDATE_COVER_MODE, buf -> buf.writeEnumValue(conveyorMode));
         markDirty();
+    }
+
+    public ConveyorMode getConveyorMode() {
+        return conveyorMode;
     }
 
     public DistributionMode getDistributionMode() {
@@ -284,6 +228,63 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
         return false;
     }
 
+    protected static boolean moveInventoryItemsExact(IItemHandler sourceInventory, IItemHandler targetInventory,
+                                                     TypeItemInfo itemInfo) {
+        // first, compute how much can we extract in reality from the machine,
+        // because totalCount is based on what getStackInSlot returns, which may differ from what
+        // extractItem() will return
+        ItemStack resultStack = itemInfo.itemStack.copy();
+        int totalExtractedCount = 0;
+        int itemsLeftToExtract = itemInfo.totalCount;
+
+        for (int i = 0; i < itemInfo.slots.size(); i++) {
+            int slotIndex = itemInfo.slots.get(i);
+            ItemStack extractedStack = sourceInventory.extractItem(slotIndex, itemsLeftToExtract, true);
+            if (!extractedStack.isEmpty() &&
+                    ItemStack.areItemsEqual(resultStack, extractedStack) &&
+                    ItemStack.areItemStackTagsEqual(resultStack, extractedStack)) {
+                totalExtractedCount += extractedStack.getCount();
+                itemsLeftToExtract -= extractedStack.getCount();
+            }
+            if (itemsLeftToExtract == 0) {
+                break;
+            }
+        }
+        // if amount of items extracted is not equal to the amount of items we
+        // wanted to extract, abort item extraction
+        if (totalExtractedCount != itemInfo.totalCount) {
+            return false;
+        }
+        // adjust size of the result stack accordingly
+        resultStack.setCount(totalExtractedCount);
+
+        // now, see how much we can insert into destination inventory
+        // if we can't insert as much as itemInfo requires, and remainder is empty, abort, abort
+        ItemStack remainder = GTTransferUtils.insertItem(targetInventory, resultStack, true);
+        if (!remainder.isEmpty()) {
+            return false;
+        }
+
+        // otherwise, perform real insertion and then remove items from the source inventory
+        GTTransferUtils.insertItem(targetInventory, resultStack, false);
+
+        // perform real extraction of the items from the source inventory now
+        itemsLeftToExtract = itemInfo.totalCount;
+        for (int i = 0; i < itemInfo.slots.size(); i++) {
+            int slotIndex = itemInfo.slots.get(i);
+            ItemStack extractedStack = sourceInventory.extractItem(slotIndex, itemsLeftToExtract, false);
+            if (!extractedStack.isEmpty() &&
+                    ItemStack.areItemsEqual(resultStack, extractedStack) &&
+                    ItemStack.areItemStackTagsEqual(resultStack, extractedStack)) {
+                itemsLeftToExtract -= extractedStack.getCount();
+            }
+            if (itemsLeftToExtract == 0) {
+                break;
+            }
+        }
+        return true;
+    }
+
     protected int moveInventoryItems(IItemHandler sourceInventory, IItemHandler targetInventory,
                                      Map<Integer, GroupItemInfo> itemInfos, int maxTransferAmount) {
         int itemsLeftToTransfer = maxTransferAmount;
@@ -359,6 +360,34 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
             }
         }
         return maxTransferAmount - itemsLeftToTransfer;
+    }
+
+    protected static class TypeItemInfo {
+
+        public final ItemStack itemStack;
+        public final int filterSlot;
+        public final IntList slots;
+        public int totalCount;
+
+        public TypeItemInfo(ItemStack itemStack, int filterSlot, IntList slots, int totalCount) {
+            this.itemStack = itemStack;
+            this.filterSlot = filterSlot;
+            this.slots = slots;
+            this.totalCount = totalCount;
+        }
+    }
+
+    protected static class GroupItemInfo {
+
+        public final int filterSlot;
+        public final Set<ItemStack> itemStackTypes;
+        public int totalCount;
+
+        public GroupItemInfo(int filterSlot, Set<ItemStack> itemStackTypes, int totalCount) {
+            this.filterSlot = filterSlot;
+            this.itemStackTypes = itemStackTypes;
+            this.totalCount = totalCount;
+        }
     }
 
     @NotNull
@@ -477,17 +506,17 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
     }
 
     @Override
-    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager) {
+    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         var panel = GTGuis.createPanel(this, 176, 210 + 36);
 
         getItemFilterContainer().setMaxTransferSize(getMaxStackSize());
 
         return panel.child(CoverWithUI.createTitleRow(getPickItem()))
-                .child(createUI(panel, guiSyncManager))
+                .child(createUI(guiData, guiSyncManager))
                 .bindPlayerInventory();
     }
 
-    protected ParentWidget<Flow> createUI(ModularPanel panel, PanelSyncManager guiSyncManager) {
+    protected ParentWidget<Flow> createUI(GuiData data, PanelSyncManager guiSyncManager) {
         var column = Flow.column().top(24).margin(7, 0)
                 .widthRel(1f).coverChildrenHeight();
 
@@ -580,7 +609,7 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
             );
 
         if (createFilterRow())
-            column.child(getItemFilterContainer().initUI(panel, guiSyncManager));
+            column.child(getItemFilterContainer().initUI(data, guiSyncManager));
 
         if (createManualIOModeRow())
             column.child(new EnumRowBuilder<>(ManualImportExportMode.class)
@@ -746,34 +775,6 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
         @Override
         public boolean isImport() {
             return this == IMPORT;
-        }
-    }
-
-    protected static class TypeItemInfo {
-
-        public final ItemStack itemStack;
-        public final int filterSlot;
-        public final IntList slots;
-        public int totalCount;
-
-        public TypeItemInfo(ItemStack itemStack, int filterSlot, IntList slots, int totalCount) {
-            this.itemStack = itemStack;
-            this.filterSlot = filterSlot;
-            this.slots = slots;
-            this.totalCount = totalCount;
-        }
-    }
-
-    protected static class GroupItemInfo {
-
-        public final int filterSlot;
-        public final Set<ItemStack> itemStackTypes;
-        public int totalCount;
-
-        public GroupItemInfo(int filterSlot, Set<ItemStack> itemStackTypes, int totalCount) {
-            this.filterSlot = filterSlot;
-            this.itemStackTypes = itemStackTypes;
-            this.totalCount = totalCount;
         }
     }
 

@@ -20,8 +20,10 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -45,36 +47,6 @@ public class CoverFluidRegulator extends CoverPump {
                                @NotNull EnumFacing attachedSide, int tier, int mbPerTick) {
         super(definition, coverableView, attachedSide, tier, mbPerTick);
         this.fluidFilterContainer = new FluidFilterContainer(this);
-    }
-
-    /**
-     * Copies a FluidStack and sets its amount to the specified value.
-     *
-     * @param fs     the original fluid stack to copy
-     * @param amount the amount to set the copied FluidStack to
-     * @return the copied FluidStack with the specified amount
-     */
-    private static FluidStack copyFluidStackWithAmount(FluidStack fs, int amount) {
-        FluidStack fs2 = fs.copy();
-        fs2.amount = amount;
-        return fs2;
-    }
-
-    private static Map<FluidStack, Integer> collectDistinctFluids(IFluidHandler handler,
-                                                                  Predicate<IFluidTankProperties> tankTypeFilter,
-                                                                  Predicate<FluidStack> fluidTypeFilter) {
-        final Map<FluidStack, Integer> summedFluids = new Object2IntOpenHashMap<>();
-        Arrays.stream(handler.getTankProperties())
-                .filter(tankTypeFilter)
-                .map(IFluidTankProperties::getContents)
-                .filter(Objects::nonNull)
-                .filter(fluidTypeFilter)
-                .forEach(fs -> {
-                    summedFluids.putIfAbsent(fs, 0);
-                    summedFluids.computeIfPresent(fs, (k, v) -> v + fs.amount);
-                });
-
-        return summedFluids;
     }
 
     @Override
@@ -226,8 +198,34 @@ public class CoverFluidRegulator extends CoverPump {
         return transferred;
     }
 
-    public TransferMode getTransferMode() {
-        return transferMode;
+    /**
+     * Copies a FluidStack and sets its amount to the specified value.
+     *
+     * @param fs     the original fluid stack to copy
+     * @param amount the amount to set the copied FluidStack to
+     * @return the copied FluidStack with the specified amount
+     */
+    private static FluidStack copyFluidStackWithAmount(FluidStack fs, int amount) {
+        FluidStack fs2 = fs.copy();
+        fs2.amount = amount;
+        return fs2;
+    }
+
+    private static Map<FluidStack, Integer> collectDistinctFluids(IFluidHandler handler,
+                                                                  Predicate<IFluidTankProperties> tankTypeFilter,
+                                                                  Predicate<FluidStack> fluidTypeFilter) {
+        final Map<FluidStack, Integer> summedFluids = new Object2IntOpenHashMap<>();
+        Arrays.stream(handler.getTankProperties())
+                .filter(tankTypeFilter)
+                .map(IFluidTankProperties::getContents)
+                .filter(Objects::nonNull)
+                .filter(fluidTypeFilter)
+                .forEach(fs -> {
+                    summedFluids.putIfAbsent(fs, 0);
+                    summedFluids.computeIfPresent(fs, (k, v) -> v + fs.amount);
+                });
+
+        return summedFluids;
     }
 
     public void setTransferMode(TransferMode transferMode) {
@@ -238,6 +236,10 @@ public class CoverFluidRegulator extends CoverPump {
         }
     }
 
+    public TransferMode getTransferMode() {
+        return transferMode;
+    }
+
     private boolean shouldDisplayAmountSlider() {
         if (transferMode == TransferMode.TRANSFER_ANY) {
             return false;
@@ -246,12 +248,12 @@ public class CoverFluidRegulator extends CoverPump {
     }
 
     @Override
-    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager) {
-        return super.buildUI(guiData, guiSyncManager).height(210 + 54);
+    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return super.buildUI(guiData, guiSyncManager, settings).height(210 + 36);
     }
 
     @Override
-    protected ParentWidget<?> createUI(ModularPanel panel, PanelSyncManager syncManager) {
+    protected ParentWidget<?> createUI(GuiData data, PanelSyncManager syncManager) {
         var transferMode = new EnumSyncValue<>(TransferMode.class, this::getTransferMode, this::setTransferMode);
         transferMode.updateCacheFromSource(true);
         syncManager.syncValue("transfer_mode", transferMode);
@@ -263,7 +265,7 @@ public class CoverFluidRegulator extends CoverPump {
         var filterTransferSize = new StringSyncValue(this::getStringTransferRate, this::setStringTransferRate);
         filterTransferSize.updateCacheFromSource(true);
 
-        return super.createUI(panel, syncManager)
+        return super.createUI(data, syncManager)
                 .child(new EnumRowBuilder<>(TransferMode.class)
                         .value(transferMode)
                         .lang("cover.generic.transfer_mode")

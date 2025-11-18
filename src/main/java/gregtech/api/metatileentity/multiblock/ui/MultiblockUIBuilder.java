@@ -77,7 +77,6 @@ public class MultiblockUIBuilder {
     private IKey idlingKey = IKey.lang("gregtech.multiblock.idling").style(TextFormatting.GRAY);
     private IKey pausedKey = IKey.lang("gregtech.multiblock.work_paused").style(TextFormatting.GOLD);
     private IKey runningKey = IKey.lang("gregtech.multiblock.running").style(TextFormatting.GREEN);
-    private boolean dirty;
     private Runnable onRebuild;
 
     @NotNull
@@ -108,11 +107,11 @@ public class MultiblockUIBuilder {
     }
 
     public MultiblockUIBuilder title(String lang) {
-        addKey(KeyUtil.lang(TextFormatting.WHITE, lang));
+        addOperation(Operation.addLine(KeyUtil.lang(TextFormatting.WHITE, lang)).spaceLine(2));
         return this;
     }
 
-    public int syncsInteger(int  value){
+    public int syncsInteger(int value){
         return this.getSyncer().syncInt(value);
     }
 
@@ -360,16 +359,14 @@ public class MultiblockUIBuilder {
 
         if (maxProgress <= 20) {
             addKey(KeyUtil.lang(TextFormatting.GRAY, "gregtech.multiblock.recipe_progress.ticks",
-                    progress,
-                    maxProgress,
-
+                    // %02d is not supported by lang
+                    String.format("%02d", progress), String.format("%02d", maxProgress),
                     (float) progress / maxProgress * 100f));
         } else {
             addKey(KeyUtil.lang(TextFormatting.GRAY, "gregtech.multiblock.recipe_progress.seconds",
-                    progress / 20f,
-                    maxProgress / 20f,
-                    (float) progress / maxProgress * 100f));
+                    progress / 20f, maxProgress / 20f, (float) progress / maxProgress * 100f));
         }
+
         return this;
     }
 
@@ -605,7 +602,7 @@ public class MultiblockUIBuilder {
      */
     public MultiblockUIBuilder addRecipeOutputLine(AbstractRecipeLogic arl, int maxLines) {
         // todo recipe is null on first load, fix in the future
-        Recipe recipe = arl.getShowRecipes();
+        Recipe recipe = arl.getPreviousRecipe();
 
         if (getSyncer().syncBoolean(recipe == null)) return this;
         RecipeMap<?> map = arl.getRecipeMap();
@@ -616,6 +613,9 @@ public class MultiblockUIBuilder {
             MetaTileEntity mte = arl.getMetaTileEntity();
             trimmed = Recipe.trimRecipeOutputs(recipe, map, mte.getItemOutputLimit(), mte.getFluidOutputLimit());
         }
+
+        int p = getSyncer().syncInt(arl.getParallelRecipesPerformed());
+        if (p == 0) p = 1;
 
         long eut = getSyncer().syncLong(trimmed == null ? 0 : trimmed.getEUt());
         long maxVoltage = getSyncer().syncLong(arl.getMaximumOverclockVoltage());
@@ -651,14 +651,14 @@ public class MultiblockUIBuilder {
         Object2IntMap<ItemStack> itemMap = GTHashMaps.fromItemStackCollection(itemOutputs);
 
         for (var stack : itemMap.keySet()) {
-            addItemOutputLine(stack, (long) itemMap.getInt(stack), maxProgress);
+            addItemOutputLine(stack, (long) itemMap.getInt(stack) * p, maxProgress);
         }
 
         for (var chancedItemOutput : chancedItemOutputs) {
             // noinspection DataFlowIssue
             int chance = getSyncer()
                     .syncInt(() -> map.chanceFunction.getBoostedChance(chancedItemOutput, recipeTier, machineTier));
-            int count = chancedItemOutput.getIngredient().getCount();
+            int count = chancedItemOutput.getIngredient().getCount() * p;
             addChancedItemOutputLine(chancedItemOutput, count, chance, maxProgress);
         }
 
@@ -674,7 +674,7 @@ public class MultiblockUIBuilder {
             // noinspection DataFlowIssue
             int chance = getSyncer()
                     .syncInt(() -> map.chanceFunction.getBoostedChance(chancedFluidOutput, recipeTier, machineTier));
-            int count = chancedFluidOutput.getIngredient().amount;
+            int count = chancedFluidOutput.getIngredient().amount * p;
             addChancedFluidOutputLine(chancedFluidOutput, count, chance, maxProgress);
         }
         return this;
@@ -800,18 +800,11 @@ public class MultiblockUIBuilder {
     }
 
     /**
-     * Builds the passed in rich text with operations and drawables. <br />
-     * Will clear and rebuild if this builder is marked dirty
+     * Builds the passed in rich text with operations and drawables.
      *
      * @param richText the rich text to add drawables to
      */
     public void build(IRichTextBuilder<?> richText) {
-        if (dirty) {
-            clear();
-            onRebuild();
-            runAction();
-            dirty = false;
-        }
         for (Operation op : operations) {
             op.accept(richText);
         }
@@ -821,13 +814,6 @@ public class MultiblockUIBuilder {
         if (this.onRebuild != null) {
             this.onRebuild.run();
         }
-    }
-
-    /**
-     * Mark this builder as dirty. Will be rebuilt during {@link #build(IRichTextBuilder) build()}
-     */
-    public void markDirty() {
-        dirty = true;
     }
 
     /*
@@ -859,7 +845,6 @@ public class MultiblockUIBuilder {
     }
 
     private void addHoverableKey(IKey key, IDrawable... hover) {
-        if (isServer()) return;
         addKey(KeyUtil.setHover(key, hover));
     }
 

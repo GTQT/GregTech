@@ -17,8 +17,10 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -88,12 +90,12 @@ public class CoverItemVoidingAdvanced extends CoverItemVoiding {
     }
 
     @Override
-    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager) {
-        return super.buildUI(guiData, guiSyncManager).height(210 + 18);
+    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return super.buildUI(guiData, guiSyncManager, settings).height(210 + 18);
     }
 
     @Override
-    protected ParentWidget<Flow> createUI(ModularPanel panel, PanelSyncManager guiSyncManager) {
+    protected ParentWidget<Flow> createUI(GuiData data, PanelSyncManager guiSyncManager) {
         var voidingMode = new EnumSyncValue<>(VoidingMode.class, this::getVoidingMode, this::setVoidingMode);
         guiSyncManager.syncValue("voiding_mode", voidingMode);
 
@@ -105,7 +107,7 @@ public class CoverItemVoidingAdvanced extends CoverItemVoiding {
         transferTextField.setEnabled(this.itemFilterContainer.showGlobalTransferLimitSlider() &&
                 this.voidingMode == VoidingMode.VOID_OVERFLOW);
 
-        return super.createUI(panel, guiSyncManager)
+        return super.createUI(data, guiSyncManager)
                 .child(new EnumRowBuilder<>(VoidingMode.class)
                         .value(voidingMode)
                         .lang("cover.voiding.voiding_mode")
@@ -131,14 +133,14 @@ public class CoverItemVoidingAdvanced extends CoverItemVoiding {
         Textures.ITEM_VOIDING_ADVANCED.renderSided(getAttachedSide(), plateBox, renderState, pipeline, translation);
     }
 
-    public VoidingMode getVoidingMode() {
-        return voidingMode;
-    }
-
     public void setVoidingMode(VoidingMode voidingMode) {
         this.voidingMode = voidingMode;
         this.itemFilterContainer.setMaxTransferSize(getMaxStackSize());
         this.getCoverableView().markDirty();
+    }
+
+    public VoidingMode getVoidingMode() {
+        return voidingMode;
     }
 
     @Override

@@ -15,8 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import static gregtech.common.items.MetaItems.ITEM_FILTER;
-
 public class ItemFilterContainer extends BaseFilterContainer {
 
     public ItemFilterContainer(IDirtyNotifiable dirtyNotifiable) {
@@ -56,7 +54,7 @@ public class ItemFilterContainer extends BaseFilterContainer {
     @Override
     protected boolean isItemValid(ItemStack stack) {
         var filter = BaseFilter.getFilterFromStack(stack);
-        return filter != null && filter.getType() == IFilter.FilterType.ITEM;
+        return filter != BaseFilter.ERROR_FILTER && filter.getType() == IFilter.FilterType.ITEM;
     }
 
     @Override

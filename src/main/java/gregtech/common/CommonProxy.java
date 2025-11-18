@@ -3,6 +3,8 @@ package gregtech.common;
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.VariantItemBlock;
+import gregtech.api.block.coil.CoilRegistry;
+import gregtech.api.block.coil.CustomCoilBlock;
 import gregtech.api.block.machines.MachineItemBlock;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.items.metaitem.MetaItem;
@@ -22,7 +24,6 @@ import gregtech.api.unification.ore.StoneType;
 import gregtech.api.unification.stack.RecyclingData;
 import gregtech.api.util.AssemblyLineManager;
 import gregtech.api.util.GTLog;
-import gregtech.api.util.GTUtility;
 import gregtech.common.blocks.BlockCompressed;
 import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.BlockLamp;
@@ -85,7 +86,6 @@ import java.util.function.Function;
 import static gregtech.api.color.ColoredBlockContainer.registerCEuContainers;
 import static gregtech.common.blocks.MetaBlocks.*;
 import static net.minecraft.init.Blocks.DIAMOND_BLOCK;
-import static net.minecraft.util.text.TextFormatting.AQUA;
 
 @Mod.EventBusSubscriber(modid = GTValues.MODID)
 public class CommonProxy {
@@ -98,6 +98,12 @@ public class CommonProxy {
         for (MTERegistry r : GregTechAPI.mteManager.getRegistries()) {
             if (!registry.getKeys().isEmpty()) {
                 registry.register(r.getBlock());
+            }
+        }
+
+        for (CoilRegistry r : GregTechAPI.coilManager.getRegistries()) {
+            for (CustomCoilBlock block : r) {
+                registry.register(block);
             }
         }
 
@@ -131,6 +137,7 @@ public class CommonProxy {
                     }
                 }
             }
+
             for (BlockCable cable : CABLES.get(materialRegistry.getModid())) {
                 if (!cable.getEnabledMaterials().isEmpty()) {
                     registry.register(cable);
@@ -305,6 +312,13 @@ public class CommonProxy {
         registry.register(createItemBlock(STEAM_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(MULTIBLOCK_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(TRANSPARENT_CASING, VariantItemBlock::new));
+
+        for (CoilRegistry coilRegistry : GregTechAPI.coilManager.getRegistries()) {
+            for (CustomCoilBlock block : coilRegistry) {
+                registry.register(createItemBlock(block, VariantItemBlock::new));
+            }
+        }
+
         registry.register(createItemBlock(WIRE_COIL, VariantItemBlock::new));
         registry.register(createItemBlock(FUSION_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(WARNING_SIGN, VariantItemBlock::new));

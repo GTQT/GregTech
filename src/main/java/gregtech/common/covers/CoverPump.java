@@ -42,8 +42,10 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.MouseData;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
@@ -66,11 +68,11 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
     protected ManualImportExportMode manualImportExportMode = ManualImportExportMode.DISABLED;
     protected DistributionMode distributionMode = DistributionMode.INSERT_FIRST;
     protected int fluidLeftToTransferLastSecond;
+    private CoverableFluidHandlerWrapper fluidHandlerWrapper;
     protected boolean isWorkingAllowed = true;
     protected FluidFilterContainer fluidFilterContainer;
     protected BucketMode bucketMode = BucketMode.MILLI_BUCKET;
     private int updateTime = 5;
-    private CoverableFluidHandlerWrapper fluidHandlerWrapper;
 
     public CoverPump(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
                      @NotNull EnumFacing attachedSide, int tier, int mbPerTick) {
@@ -82,12 +84,6 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
         this.fluidFilterContainer = new FluidFilterContainer(this);
     }
 
-    public String getStringTransferRate() {
-        return String.valueOf(getBucketMode() == BucketMode.MILLI_BUCKET ?
-                this.fluidFilterContainer.getTransferSize() :
-                this.fluidFilterContainer.getTransferSize() / 1000);
-    }
-
     public void setStringTransferRate(String s) {
         this.fluidFilterContainer.setTransferSize(
                 getBucketMode() == BucketMode.MILLI_BUCKET ?
@@ -95,8 +91,10 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
                         Integer.parseInt(s) * 1000);
     }
 
-    public int getTransferRate() {
-        return bucketMode == BucketMode.BUCKET ? transferRate / 1000 : transferRate;
+    public String getStringTransferRate() {
+        return String.valueOf(getBucketMode() == BucketMode.MILLI_BUCKET ?
+                this.fluidFilterContainer.getTransferSize() :
+                this.fluidFilterContainer.getTransferSize() / 1000);
     }
 
     public void setTransferRate(int transferRate) {
@@ -105,18 +103,29 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
         markDirty();
     }
 
+    public int getTransferRate() {
+        return bucketMode == BucketMode.BUCKET ? transferRate / 1000 : transferRate;
+    }
+
     protected void adjustTransferRate(int amount) {
         amount *= this.bucketMode == BucketMode.BUCKET ? 1000 : 1;
         setTransferRate(this.transferRate + amount);
+    }
+
+    public void setPumpMode(PumpMode pumpMode) {
+        this.pumpMode = pumpMode;
+        writeCustomData(GregtechDataCodes.UPDATE_COVER_MODE, buf -> buf.writeEnumValue(pumpMode));
+        markDirty();
     }
 
     public PumpMode getPumpMode() {
         return pumpMode;
     }
 
-    public void setPumpMode(PumpMode pumpMode) {
-        this.pumpMode = pumpMode;
-        writeCustomData(GregtechDataCodes.UPDATE_COVER_MODE, buf -> buf.writeEnumValue(pumpMode));
+    public void setBucketMode(BucketMode bucketMode) {
+        this.bucketMode = bucketMode;
+        if (this.bucketMode == BucketMode.BUCKET)
+            setTransferRate(transferRate / 1000 * 1000);
         markDirty();
     }
 
@@ -132,12 +141,6 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
         return bucketMode;
     }
 
-    public void setBucketMode(BucketMode bucketMode) {
-        this.bucketMode = bucketMode;
-        if (this.bucketMode == BucketMode.BUCKET)
-            setTransferRate(transferRate / 1000 * 1000);
-        markDirty();
-    }
 
     public ManualImportExportMode getManualImportExportMode() {
         return manualImportExportMode;
@@ -158,7 +161,7 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
         if (isWorkingAllowed && fluidLeftToTransferLastSecond > 0) {
             this.fluidLeftToTransferLastSecond -= doTransferFluids(fluidLeftToTransferLastSecond);
         }
-        if (timer % updateTime == 0) {
+        if (timer % 20 == 0) {
             this.fluidLeftToTransferLastSecond = transferRate;
         }
     }
@@ -197,17 +200,17 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
     }
 
     @Override
-    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager) {
+    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         var panel = GTGuis.createPanel(this, 176, 210 + 18);
 
         getFluidFilterContainer().setMaxTransferSize(getMaxTransferRate());
 
         return panel.child(CoverWithUI.createTitleRow(getPickItem()))
-                .child(createUI(panel, guiSyncManager))
+                .child(createUI(guiData, guiSyncManager))
                 .bindPlayerInventory();
     }
 
-    protected ParentWidget<?> createUI(ModularPanel panel, PanelSyncManager syncManager) {
+    protected ParentWidget<?> createUI(GuiData data, PanelSyncManager syncManager) {
         var manualIOmode = new EnumSyncValue<>(ManualImportExportMode.class,
                 this::getManualImportExportMode, this::setManualImportExportMode);
 
@@ -285,7 +288,7 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
                             .onUpdateListener(w -> w.overlay(createAdjustOverlay(true)))));
 
         if (createFilterRow())
-            column.child(getFluidFilterContainer().initUI(panel, syncManager));
+            column.child(getFluidFilterContainer().initUI(data, syncManager));
 
         if (createManualIOModeRow())
             column.child(new EnumRowBuilder<>(ManualImportExportMode.class)
@@ -304,7 +307,7 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
         if (createPumpModeRow())
             column.child(new EnumRowBuilder<>(PumpMode.class)
                     .value(pumpMode)
-                    .lang("cover.generic.io")
+                    .lang("cover.pump.mode")
                     .overlay(GTGuiTextures.CONVEYOR_MODE_OVERLAY) // todo pump mode overlays
                     .build());
 

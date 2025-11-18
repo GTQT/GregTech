@@ -1,7 +1,5 @@
-
 package gregtech.common.blocks;
 
-import gregtech.api.block.IStateSpawnControl;
 import gregtech.api.block.VariantBlock;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.unification.material.Material;
@@ -11,8 +9,6 @@ import gregtech.common.creativetab.GTCreativeTabs;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
-import net.minecraft.block.properties.PropertyEnum;
-import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.item.Item;
@@ -26,9 +22,6 @@ import java.util.Random;
 
 @SuppressWarnings("deprecation")
 public class StoneVariantBlock extends VariantBlock<StoneVariantBlock.StoneType> {
-
-    // shared property instance
-    private static final PropertyEnum<StoneType> PROPERTY = PropertyEnum.create("variant", StoneType.class);
 
     private final StoneVariant stoneVariant;
 
@@ -45,12 +38,10 @@ public class StoneVariantBlock extends VariantBlock<StoneVariantBlock.StoneType>
         setCreativeTab(GTCreativeTabs.TAB_GREGTECH_DECORATIONS);
     }
 
-    @NotNull
     @Override
-    protected BlockStateContainer createBlockState() {
-        this.VARIANT = PROPERTY;
-        this.VALUES = StoneType.values();
-        return new BlockStateContainer(this, VARIANT);
+    public boolean canCreatureSpawn(@NotNull IBlockState state, @NotNull IBlockAccess world, @NotNull BlockPos pos,
+                                    @NotNull EntityLiving.SpawnPlacementType type) {
+        return false;
     }
 
     @Override
@@ -65,27 +56,21 @@ public class StoneVariantBlock extends VariantBlock<StoneVariantBlock.StoneType>
                 MetaBlocks.STONE_BLOCKS.get(StoneVariant.COBBLE) : this);
     }
 
-    public enum StoneType implements IStringSerializable, IStateSpawnControl {
+    public enum StoneType implements IStringSerializable {
 
         BLACK_GRANITE("black_granite", MapColor.BLACK),
         RED_GRANITE("red_granite", MapColor.RED),
         MARBLE("marble", MapColor.QUARTZ),
         BASALT("basalt", MapColor.BLACK_STAINED_HARDENED_CLAY),
-        CONCRETE_LIGHT("concrete_light", MapColor.STONE, false),
-        CONCRETE_DARK("concrete_dark", MapColor.STONE, false);
+        CONCRETE_LIGHT("concrete_light", MapColor.STONE),
+        CONCRETE_DARK("concrete_dark", MapColor.STONE);
 
         private final String name;
-        private final boolean allowSpawn;
         public final MapColor mapColor;
 
         StoneType(@NotNull String name, @NotNull MapColor mapColor) {
-            this(name, mapColor, true);
-        }
-
-        StoneType(@NotNull String name, @NotNull MapColor mapColor, boolean allowSpawn) {
             this.name = name;
             this.mapColor = mapColor;
-            this.allowSpawn = allowSpawn;
         }
 
         @NotNull
@@ -109,12 +94,6 @@ public class StoneVariantBlock extends VariantBlock<StoneVariantBlock.StoneType>
                 case BASALT -> Materials.Basalt;
                 case CONCRETE_LIGHT, CONCRETE_DARK -> Materials.Concrete;
             };
-        }
-
-        @Override
-        public boolean canCreatureSpawn(@NotNull IBlockState state, @NotNull IBlockAccess world, @NotNull BlockPos pos,
-                                        @NotNull EntityLiving.SpawnPlacementType type) {
-            return this.allowSpawn;
         }
     }
 

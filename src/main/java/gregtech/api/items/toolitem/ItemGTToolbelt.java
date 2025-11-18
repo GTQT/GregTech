@@ -1,3 +1,4 @@
+
 package gregtech.api.items.toolitem;
 
 import gregtech.api.GregTechAPI;
@@ -13,24 +14,17 @@ import gregtech.api.unification.material.properties.ToolProperty;
 import gregtech.api.util.LocalizationUtils;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.utils.TooltipHelper;
-import gregtech.common.ConfigHolder;
-import gregtech.api.items.metaitem.stats.IMouseEventHandler;
 import gregtech.common.items.behaviors.spray.AbstractSprayBehavior;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMaintenanceHatch;
 import gregtech.core.network.packets.PacketToolbeltSelectionChange;
 
-import gregtech.core.sound.GTSoundEvents;
-
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -40,12 +34,10 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.INBTSerializable;
@@ -60,10 +52,11 @@ import net.minecraftforge.oredict.OreIngredient;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.HandGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widgets.ItemSlot;
 import com.cleanroommc.modularui.widgets.layout.Grid;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -82,8 +75,8 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import static gregtech.api.items.toolitem.ToolHelper.MATERIAL_KEY;
-import net.minecraft.network.PacketBuffer;
-public class ItemGTToolbelt extends ItemGTTool implements IDyeableItem, IMouseEventHandler {
+
+public class ItemGTToolbelt extends ItemGTTool implements IDyeableItem {
 
     private static final ThreadLocal<Integer> lastSlot = ThreadLocal.withInitial(() -> -999);
     private static final ThreadLocal<EntityPlayerMP> lastPlayer = ThreadLocal.withInitial(() -> null);
@@ -115,12 +108,12 @@ public class ItemGTToolbelt extends ItemGTTool implements IDyeableItem, IMouseEv
     }
 
     @Override
-    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager) {
+    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         final var usedStack = guiData.getUsedItemStack();
         final var handler = getHandler(usedStack);
         final var selected = handler.getSelectedStack();
         if (!selected.isEmpty() && selected.getItem() instanceof ItemUIFactory factory) {
-            return factory.buildUI(guiData, guiSyncManager);
+            return factory.buildUI(guiData, guiSyncManager, settings);
         }
 
         int heightBonus = (handler.getSlots() / 9) * 18;
@@ -431,37 +424,11 @@ public class ItemGTToolbelt extends ItemGTTool implements IDyeableItem, IMouseEv
     }
 
     @SideOnly(Side.CLIENT)
-    public void handleMouseEventClient(@NotNull MouseEvent event, @NotNull EntityPlayerSP playerClient,
-                                       @NotNull EnumHand hand, @NotNull ItemStack stack) {
-        if (!ConfigHolder.client.toolbeltConfig.enableToolbeltScrollingCapture || hand != EnumHand.MAIN_HAND) return;
-        if (event.getDwheel() != 0 && playerClient.isSneaking()) {
-            // vanilla code in GuiIngame line 1235 does not copy the stack before storing it in the highlighting
-            // item stack, so unless we copy the stack the tool highlight will not refresh.
-            ItemStack copy = stack.copy();
-            ToolStackHandler handler = getHandler(copy);
-            if (event.getDwheel() < 0) {
-                handler.incrementSelectedSlot();
-            } else {
-                handler.decrementSelectedSlot();
-            }
-
-            sendToServer(hand, buf -> buf.writeInt(handler.selectedSlot));
-            InventoryPlayer inv = Minecraft.getMinecraft().player.inventory;
-            inv.mainInventory.set(inv.currentItem, stack);
-            event.setCanceled(true);
-        }
-    }
-
-    @Override
-    public void handleMouseEventServer(@NotNull PacketBuffer buf, @NotNull EntityPlayerMP playerServer,
-                                       @NotNull EnumHand hand, @NotNull ItemStack stack) {
-        // Should never happen, but just in case.
-        if (hand != EnumHand.MAIN_HAND) return;
-        if (stack.getItem() instanceof ItemGTToolbelt toolbelt) {
-            playerServer.getServerWorld().playSound(null, playerServer.posX, playerServer.posY, playerServer.posZ,
-                    GTSoundEvents.CLICK, SoundCategory.PLAYERS, 2F, 1F);
-            toolbelt.setSelectedTool(buf.readInt(), stack);
-        }
+    public void changeSelectedToolMousewheel(int direction, ItemStack stack) {
+        ToolStackHandler handler = getHandler(stack);
+        if (direction < 0) handler.incrementSelectedSlot();
+        else handler.decrementSelectedSlot();
+        PacketToolbeltSelectionChange.toServer(handler.selectedSlot);
     }
 
     @SideOnly(Side.CLIENT)

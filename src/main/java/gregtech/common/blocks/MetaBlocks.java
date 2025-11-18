@@ -1,6 +1,8 @@
 package gregtech.common.blocks;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.block.coil.CoilRegistry;
+import gregtech.api.block.coil.CustomCoilBlock;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.registry.MTERegistry;
@@ -63,8 +65,6 @@ import gregtech.common.pipelike.optical.tile.TileEntityOpticalPipe;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFence;
 import net.minecraft.block.BlockFenceGate;
-import net.minecraft.block.BlockLog;
-import net.minecraft.block.BlockLog.EnumAxis;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockSlab.EnumBlockHalf;
 import net.minecraft.block.BlockStairs;
@@ -113,12 +113,12 @@ import static gregtech.api.util.GTUtility.gregtechId;
 public class MetaBlocks {
 
     private MetaBlocks() {}
-    public static BlockMachine MACHINE;
+
     public static final Map<String, BlockCable[]> CABLES = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockFluidPipe[]> FLUID_PIPES = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockItemPipe[]> ITEM_PIPES = new Object2ObjectOpenHashMap<>();
     public static final BlockOpticalPipe[] OPTICAL_PIPES = new BlockOpticalPipe[OpticalPipeType.values().length];
-    public static final BlockLaserPipe[] LASER_PIPES = new BlockLaserPipe[LaserPipeType.values().length];
+    public static final BlockLaserPipe[] LASER_PIPES = new BlockLaserPipe[OpticalPipeType.values().length];
     public static BlockLongDistancePipe LD_ITEM_PIPE;
     public static BlockLongDistancePipe LD_FLUID_PIPE;
 
@@ -188,9 +188,9 @@ public class MetaBlocks {
 
     public static void init() {
         for (MTERegistry registry : GregTechAPI.mteManager.getRegistries()) {
-            MACHINE = new BlockMachine();
-            MACHINE.setRegistryName(registry.getModid(), "mte");
-            registry.setBlock(MACHINE);
+            BlockMachine machine = new BlockMachine();
+            machine.setRegistryName(registry.getModid(), "mte");
+            registry.setBlock(machine);
         }
 
         for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
@@ -508,6 +508,12 @@ public class MetaBlocks {
         MULTIBLOCK_CASING.onModelRegister();
         TRANSPARENT_CASING.onModelRegister();
 
+        for (CoilRegistry r : GregTechAPI.coilManager.getRegistries()) {
+            for (CustomCoilBlock block : r) {
+                block.onModelRegister();
+            }
+        }
+
         for (BlockLamp lamp : LAMPS.values()) lamp.onModelRegister();
         for (BlockLamp lamp : BORDERLESS_LAMPS.values()) lamp.onModelRegister();
 
@@ -644,6 +650,14 @@ public class MetaBlocks {
         blockColors.registerBlockColorHandler((s, w, p, i) -> ConfigHolder.client.defaultPaintingColor,
                 HERMETIC_CASING);
         itemColors.registerItemColorHandler((s, i) -> ConfigHolder.client.defaultPaintingColor, HERMETIC_CASING);
+
+        WIRE_COIL.onColorRegister(blockColors, itemColors);
+
+        for (CoilRegistry r : GregTechAPI.coilManager.getRegistries()) {
+            for (CustomCoilBlock block : r) {
+                block.onColorRegister(blockColors, itemColors);
+            }
+        }
     }
 
     public static void registerWalkingSpeedBonus() {

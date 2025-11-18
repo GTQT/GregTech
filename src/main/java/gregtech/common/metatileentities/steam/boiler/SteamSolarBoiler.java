@@ -1,5 +1,7 @@
 package gregtech.common.metatileentities.steam.boiler;
 
+import com.cleanroommc.modularui.screen.UISettings;
+
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
@@ -50,8 +52,8 @@ public class SteamSolarBoiler extends SteamBoiler {
     }
 
     @Override
-    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager) {
-        return super.buildUI(guiData, guiSyncManager)
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return super.buildUI(guiData, guiSyncManager,settings)
                 .child(new ProgressWidget()
                         .value(new DoubleSyncValue(() -> GTUtility.canSeeSunClearly(getWorld(), getPos()) ? 1.0 : 0.0))
                         .pos(114, 44)

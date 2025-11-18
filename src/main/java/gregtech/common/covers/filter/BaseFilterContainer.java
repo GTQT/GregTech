@@ -14,24 +14,24 @@ import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.network.NetworkUtils;
-import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.ItemSlot;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class BaseFilterContainer extends ItemStackHandler {
 
-    private final IDirtyNotifiable dirtyNotifiable;
     private int maxTransferSize = 1;
     private int transferSize;
     private @Nullable BaseFilter currentFilter;
     private @Nullable Runnable onFilterInstanceChange;
+    private final IDirtyNotifiable dirtyNotifiable;
 
     protected BaseFilterContainer(IDirtyNotifiable dirtyNotifiable) {
         super();
@@ -76,10 +76,6 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
         return this.getStackInSlot(0);
     }
 
-    public final void setFilterStack(ItemStack stack) {
-        setStackInSlot(0, stack);
-    }
-
     @Override
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         if (ItemStack.areItemStacksEqual(stack, getFilterStack()))
@@ -120,6 +116,10 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
         return extracted;
     }
 
+    public final void setFilterStack(ItemStack stack) {
+        setStackInSlot(0, stack);
+    }
+
     public int getMaxTransferSize() {
         return !showGlobalTransferLimitSlider() && hasFilter() ? currentFilter.getMaxTransferSize() :
                 this.maxTransferSize;
@@ -154,13 +154,13 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
         return this.maxTransferSize > 0 && (!hasFilter() || getFilter().showGlobalTransferLimitSlider());
     }
 
-    public final boolean isBlacklistFilter() {
-        return hasFilter() && getFilter().isBlacklistFilter();
-    }
-
     public void setBlacklistFilter(boolean blacklistFilter) {
         if (hasFilter()) getFilter().setBlacklistFilter(blacklistFilter);
         onFilterInstanceChange();
+    }
+
+    public final boolean isBlacklistFilter() {
+        return hasFilter() && getFilter().isBlacklistFilter();
     }
 
     public int getTransferSize() {
@@ -170,16 +170,16 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
         return this.transferSize;
     }
 
-    public void setTransferSize(int transferSize) {
-        this.transferSize = MathHelper.clamp(transferSize, 1, getMaxTransferSize());
-        onFilterInstanceChange();
-    }
-
     public int getTransferLimit(int slotIndex) {
         if (isBlacklistFilter() || !hasFilter()) {
             return getTransferSize();
         }
         return this.currentFilter.getTransferLimit(slotIndex, getTransferSize());
+    }
+
+    public void setTransferSize(int transferSize) {
+        this.transferSize = MathHelper.clamp(transferSize, 1, getMaxTransferSize());
+        onFilterInstanceChange();
     }
 
     @Override
@@ -211,11 +211,12 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
     }
 
     /** Uses Cleanroom MUI */
-    public IWidget initUI(ModularPanel mainPanel, PanelSyncManager manager) {
-        IPanelHandler filterPanel = manager.panel("filter_panel", (syncManager, syncHandler) -> {
-            var filter = hasFilter() ? getFilter() : BaseFilter.ERROR_FILTER;
-            filter.setMaxTransferSize(getMaxTransferSize());
-            return filter.createPopupPanel(syncManager);
+    public IWidget initUI(GuiData data, PanelSyncManager manager) {
+        IPanelHandler panel = manager.panel("filter_panel", (syncManager, syncHandler) -> {
+            if (hasFilter()) {
+                return getFilter().createPopupPanel(syncManager);
+            }
+            return BaseFilter.ERROR_FILTER.createPopupPanel(syncManager);
         }, true);
 
         return Flow.row().coverChildrenHeight()
@@ -225,8 +226,8 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
                                 .filter(this::isItemValid)
                                 .singletonSlotGroup(101)
                                 .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                                    if (!isItemValid(newItem) && filterPanel.isPanelOpen()) {
-                                        filterPanel.closePanel();
+                                    if (!isItemValid(newItem) || (newItem.isEmpty() && panel.isPanelOpen())) {
+                                        panel.closePanel();
                                     }
                                 }))
                         .size(18).marginRight(2)
@@ -237,10 +238,11 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
                                 GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
                         .setEnabledIf(w -> hasFilter())
                         .onMousePressed(i -> {
-                            if (!filterPanel.isPanelOpen()) {
-                                filterPanel.openPanel();
+                            if (!panel.isPanelOpen()) {
+                                setMaxTransferSize(getMaxTransferSize());
+                                panel.openPanel();
                             } else {
-                                filterPanel.closePanel();
+                                panel.closePanel();
                             }
                             return true;
                         }))

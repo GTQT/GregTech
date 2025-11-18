@@ -11,9 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import static gregtech.common.items.MetaItems.FLUID_FILTER;
-import static gregtech.common.items.MetaItems.ITEM_FILTER;
-
 public class FluidFilterContainer extends BaseFilterContainer {
 
     public FluidFilterContainer(IDirtyNotifiable dirtyNotifiable) {
@@ -56,7 +53,7 @@ public class FluidFilterContainer extends BaseFilterContainer {
     @Override
     protected boolean isItemValid(ItemStack stack) {
         var filter = BaseFilter.getFilterFromStack(stack);
-        return filter != null && filter.getType() == IFilter.FilterType.FLUID;
+        return filter != BaseFilter.ERROR_FILTER && filter.getType() == IFilter.FilterType.FLUID;
     }
 
     @Override

@@ -19,8 +19,10 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -179,10 +181,6 @@ public class CoverRoboticArm extends CoverConveyor {
         itemsTransferBuffered = 0;
     }
 
-    public TransferMode getTransferMode() {
-        return transferMode;
-    }
-
     public void setTransferMode(TransferMode transferMode) {
         if (this.transferMode != transferMode) {
             this.transferMode = transferMode;
@@ -193,6 +191,10 @@ public class CoverRoboticArm extends CoverConveyor {
         }
     }
 
+    public TransferMode getTransferMode() {
+        return transferMode;
+    }
+
     private boolean shouldDisplayAmountSlider() {
         if (transferMode == TransferMode.TRANSFER_ANY) {
             return false;
@@ -201,12 +203,12 @@ public class CoverRoboticArm extends CoverConveyor {
     }
 
     @Override
-    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager) {
-        return super.buildUI(guiData, guiSyncManager).height(192 + 54 + 36 + 2);
+    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return super.buildUI(guiData, guiSyncManager, settings).height(192 + 36 + 18 + 2);
     }
 
     @Override
-    protected ParentWidget<Flow> createUI(ModularPanel panel, PanelSyncManager guiSyncManager) {
+    protected ParentWidget<Flow> createUI(GuiData data, PanelSyncManager guiSyncManager) {
         EnumSyncValue<TransferMode> transferMode = new EnumSyncValue<>(TransferMode.class, this::getTransferMode,
                 this::setTransferMode);
         guiSyncManager.syncValue("transfer_mode", transferMode);
@@ -216,7 +218,7 @@ public class CoverRoboticArm extends CoverConveyor {
                 s -> this.itemFilterContainer.setTransferSize(Integer.parseInt(s)));
         filterTransferSize.updateCacheFromSource(true);
 
-        return super.createUI(panel, guiSyncManager)
+        return super.createUI(data, guiSyncManager)
                 .child(new EnumRowBuilder<>(TransferMode.class)
                         .value(transferMode)
                         .lang("cover.generic.transfer_mode")

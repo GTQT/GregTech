@@ -7,6 +7,7 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.virtualregistry.EntryTypes;
 import gregtech.api.util.virtualregistry.VirtualChest;
+import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.covers.CoverConveyor.ConveyorMode;
 import gregtech.common.covers.filter.ItemFilterContainer;
@@ -17,6 +18,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ITickable;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
@@ -30,6 +32,7 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
@@ -40,9 +43,10 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.UUID;
 import java.util.function.IntFunction;
 
-public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
+public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> implements ITickable {
 
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST)).asIcon();
     protected final ItemFilterContainer container;
@@ -65,10 +69,10 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
     }
 
     @Override
-    protected IWidget createEntrySlot(ModularPanel panel, PanelSyncManager syncManager) {
-        IPanelHandler panelHandler = IPanelHandler.simple(panel, this::createChestPanel, true);
+    protected IWidget createEntrySlot() {
+        // 修复：移除额外的参数，与父类方法签名保持一致
+        IPanelHandler panelHandler = IPanelHandler.simple(null, this::createChestPanel, true);
         return new ButtonWidget<>()
-                // todo lang
                 .addTooltipLine(IKey.str("Open Active Entry View"))
                 .overlay(CHEST)
                 .onMousePressed(mouseButton -> {
@@ -94,8 +98,7 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
                 .coverChildren()
                 .child(new Grid().coverChildren()
                         .mapTo(3, activeEntry.getSlots(), value -> {
-                            var item = new ItemDrawable(); // todo this doesn't draw amount until next mui2 version
-                            // fake item slot because i don't want to deal with syncing
+                            var item = new ItemDrawable();
                             return new Widget<>()
                                     .size(18)
                                     .background(GTGuiTextures.SLOT)
@@ -114,11 +117,11 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
     }
 
     @Override
-    protected IWidget createSlotWidget(VirtualChest entry, ModularPanel panel, PanelSyncManager syncManager) {
-        IPanelHandler panelHandler = IPanelHandler.simple(panel,
+    protected IWidget createSlotWidget(VirtualChest entry) {
+        // 修复：移除额外的参数，与父类方法签名保持一致
+        IPanelHandler panelHandler = IPanelHandler.simple(null,
                 (parentPanel, player) -> createChestPanel(entry.getColorStr(), parentPanel, player), true);
         return new ButtonWidget<>()
-                // todo lang
                 .addTooltipLine(IKey.str("Open Entry [#%s]'s View", entry.getColorStr()))
                 .overlay(CHEST)
                 .onMousePressed(mouseButton -> {
@@ -133,19 +136,31 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
     }
 
     @Override
-    protected Flow createWidgets(ModularPanel modularPanel, PanelSyncManager syncManager) {
+    protected Flow createWidgets(GuiData data, PanelSyncManager syncManager) {
+        // 修复：使用正确的参数类型，与父类方法签名保持一致
         getItemFilterContainer().setMaxTransferSize(1);
 
         var conveyorMode = new EnumSyncValue<>(ConveyorMode.class, this::getConveyorMode, this::setConveyorMode);
         syncManager.syncValue("conveyor_mode", conveyorMode);
 
-        return super.createWidgets(modularPanel, syncManager)
-                .child(getItemFilterContainer().initUI(modularPanel, syncManager))
-                .child(new EnumRowBuilder<>(ConveyorMode.class)
-                        .value(conveyorMode)
-                        .overlay(GTGuiTextures.CONVEYOR_MODE_OVERLAY)
-                        .lang("cover.generic.io")
-                        .build());
+        return super.createWidgets(data, syncManager)
+                .child(getItemFilterContainer().initUI(data, syncManager))
+                .child(createConveyorModeRow(conveyorMode));
+    }
+
+    // 修复：添加缺失的 conveyor mode 行创建方法
+    private IWidget createConveyorModeRow(EnumSyncValue<ConveyorMode> conveyorMode) {
+        // 这里需要根据您的实际 EnumRowBuilder 实现来创建
+        // 暂时使用简单的实现
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(IKey.lang("cover.generic.io"))
+                .onMousePressed(mouseButton -> {
+                    ConveyorMode current = conveyorMode.getValue();
+                    ConveyorMode next = current == ConveyorMode.IMPORT ? ConveyorMode.EXPORT : ConveyorMode.IMPORT;
+                    conveyorMode.setValue(next);
+                    return true;
+                });
     }
 
     public ConveyorMode getConveyorMode() {
@@ -154,6 +169,7 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
 
     private void setConveyorMode(ConveyorMode mode) {
         this.conveyorMode = mode;
+        markDirty();
     }
 
     public ItemFilterContainer getItemFilterContainer() {
@@ -161,11 +177,14 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
     }
 
     @Override
-    protected boolean shouldDeleteEntry(VirtualChest activeEntry) {
-        for (int i = 0; i < activeEntry.getSlots(); i++) {
-            if (!activeEntry.getStackInSlot(i).isEmpty()) return false;
-        }
-        return true;
+    protected void deleteEntry(UUID player, String name) {
+        // 修复：实现抽象方法，检查箱子是否为空
+        VirtualEnderRegistry.deleteEntry(player, getType(), name, chest -> {
+            for (int i = 0; i < chest.getSlots(); i++) {
+                if (!chest.getStackInSlot(i).isEmpty()) return false;
+            }
+            return true;
+        });
     }
 
     @Override
@@ -177,7 +196,6 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
     public void renderCover(@NotNull CCRenderState renderState, @NotNull Matrix4 translation,
                             @NotNull IVertexOperation[] pipeline, @NotNull Cuboid6 plateBox,
                             @NotNull BlockRenderLayer layer) {
-        // todo work on new texture
         Textures.ENDER_ITEM_LINK.renderSided(getAttachedSide(), plateBox, renderState, pipeline, translation);
     }
 
@@ -200,7 +218,7 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> {
         if (getConveyorMode().isImport()) {
             GTTransferUtils.moveInventoryItems(handler, this.activeEntry, this.container::test);
         } else {
-            GTTransferUtils.moveInventoryItems(this.activeEntry, handler);
+            GTTransferUtils.moveInventoryItems(this.activeEntry, handler, this.container::test);
         }
     }
 

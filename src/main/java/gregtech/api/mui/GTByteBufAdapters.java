@@ -7,11 +7,13 @@ import gregtech.api.util.NetworkUtil;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fluids.Fluid;
 
-import com.cleanroommc.modularui.utils.serialization.*;
+import com.cleanroommc.modularui.utils.serialization.IByteBufAdapter;
+import com.cleanroommc.modularui.utils.serialization.IByteBufDeserializer;
+import com.cleanroommc.modularui.utils.serialization.IByteBufSerializer;
+import com.cleanroommc.modularui.utils.serialization.IEquals;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.Objects;
 
 public class GTByteBufAdapters {
@@ -21,10 +23,6 @@ public class GTByteBufAdapters {
 
     public static final IByteBufAdapter<ChancedFluidOutput> CHANCED_FLUID_OUTPUT = makeAdapter(
             ChancedFluidOutput::fromBuffer, ChancedFluidOutput::toBuffer);
-
-    public static final IByteBufAdapter<BigInteger> BIG_INT = makeAdapter(
-            buffer -> new BigInteger(buffer.readByteArray()),
-            (buffer, value) -> buffer.writeByteArray(value.toByteArray()));
 
     public static final IByteBufAdapter<Fluid> FLUID = makeAdapter(NetworkUtil::readFluid, NetworkUtil::writeFluid);
 

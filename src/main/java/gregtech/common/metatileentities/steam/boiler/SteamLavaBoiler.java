@@ -1,5 +1,7 @@
 package gregtech.common.metatileentities.steam.boiler;
 
+import com.cleanroommc.modularui.screen.UISettings;
+
 import gregtech.api.GTValues;
 import gregtech.api.capability.IFilter;
 import gregtech.api.capability.impl.CommonFluidFilters;
@@ -122,8 +124,8 @@ public class SteamLavaBoiler extends SteamBoiler {
     }
 
     @Override
-    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager) {
-        return super.buildUI(guiData, guiSyncManager)
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return super.buildUI(guiData, guiSyncManager,settings)
                 .child(new GTFluidSlot()
                         .syncHandler(GTFluidSlot.sync(fuelFluidTank)
                                 .showAmountOnSlot(false))
