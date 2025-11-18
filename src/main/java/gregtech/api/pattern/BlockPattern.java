@@ -7,9 +7,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.GTLog;
 import gregtech.api.util.RelativeDirection;
-
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.state.IBlockState;
@@ -29,16 +27,11 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -52,6 +45,19 @@ public class BlockPattern {
     protected final int fingerLength; // z size
     protected final int thumbLength; // y size
     protected final int palmLength; // x size
+
+    public int getStructureXSize() {
+        return palmLength;
+    }
+
+    public final int getStructureYSize() {
+        return thumbLength;
+    }
+
+    public final int getStructureZSize() {
+        return fingerLength;
+    }
+
     protected final BlockWorldState worldState = new BlockWorldState();
     protected final PatternMatchContext matchContext = new PatternMatchContext();
     protected final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;

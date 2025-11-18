@@ -19,6 +19,7 @@ import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.api.util.world.DummyWorld;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
@@ -566,6 +567,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
     }
 
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
+                               boolean advanced) {
+        super.addInformation(stack, world, tooltip, advanced);
+        TooltipBuilder.createDefault().build(this, tooltip);
+    }
+
     @Override
     public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
         if (this instanceof IMultipleRecipeMaps) {
@@ -672,6 +680,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             ((MetaTileEntity) part).doExplosion(explosionPower);
         }
         doExplosion(explosionPower);
+    }
+
+    public String recipeMapsToString() {
+        return "";
     }
 
     /**

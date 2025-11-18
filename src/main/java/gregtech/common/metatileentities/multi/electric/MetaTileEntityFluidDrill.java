@@ -11,7 +11,11 @@ import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.*;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
@@ -24,6 +28,8 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
+import gregtech.api.util.tooltips.AbstractTooltipComponent;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -216,18 +222,32 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
-        tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.description"));
-        tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.depletion",
-                TextFormattingUtil.formatNumbers(100.0 / getDepletionChance())));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.energy_tier_range", GTValues.VNF[this.tier],
-                GTValues.VNF[this.tier + 1]));
-        tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.production", getRigMultiplier(),
-                TextFormattingUtil.formatNumbers(getRigMultiplier() * 1.5)));
-        if (tier > GTValues.MV) {
-            tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.shows_depletion"));
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
+        super.addInformation(stack, player, tooltip, advanced);
+        TooltipBuilder.create().add(new DrillInformation(tier)).build(this, tooltip);
+    }
+
+    public class DrillInformation extends AbstractTooltipComponent {
+        private final int tier;
+
+        public DrillInformation(int tier) {this.tier = tier;}
+
+        @Override
+        public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+            tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.description"));
+            tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.depletion",
+                    TextFormattingUtil.formatNumbers(100.0 / getDepletionChance())));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.energy_tier_range", GTValues.VNF[this.tier],
+                    GTValues.VNF[this.tier + 1]));
+            tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.production", getRigMultiplier(),
+                    TextFormattingUtil.formatNumbers(getRigMultiplier() * 1.5)));
+            if (tier > GTValues.MV) {
+                tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.shows_depletion"));
+            }
         }
     }
+
 
     @Override
     public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {

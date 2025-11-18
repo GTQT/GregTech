@@ -23,6 +23,7 @@ import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
@@ -33,7 +34,6 @@ import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
@@ -138,13 +138,11 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
         return Textures.HEAT_PROOF_CASING;
     }
 
-    @Override
+    @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.machine.electric_blast_furnace.tooltip.1"));
-        tooltip.add(I18n.format("gregtech.machine.electric_blast_furnace.tooltip.2"));
-        tooltip.add(I18n.format("gregtech.machine.electric_blast_furnace.tooltip.3"));
+        TooltipBuilder.create().addBlast().build(this, tooltip);
     }
 
     @Override

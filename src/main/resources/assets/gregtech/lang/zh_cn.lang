@@ -187,7 +187,6 @@ gregtech.multiblock.fusion_reactor.zpm.description=核聚变反应堆MK-II是台
 gregtech.multiblock.fusion_reactor.uv.description=核聚变反应堆MK-III是台大型多方块结构，用于融合元素形成更重的元素。它仅可使用UV等级的能源仓。每个能源仓可增加40MEU的能量缓存，最大能量缓存为640MEU。
 gregtech.multiblock.fusion_reactor.heat=热量：%s
 gregtech.multiblock.large_chemical_reactor.description=大型化学反应釜能够以100%%的能效进行化学反应。每次超频将使处理速度与能耗均提升4倍。该多方块结构需要在中心位置的聚四氟乙烯管道外壳旁放置一个白铜线圈方块。
-gregtech.multiblock.large_chemical_reactor.description.0=执行所有 §eChemical Reactor§7 和 §eLarge Chemical Reactor§7 配方
 gregtech.multiblock.primitive_water_pump.description=原始水泵是台前蒸汽时代的多方块结构。它每秒收集一次水资源，基础收集量取决于其所处的生物群系。水泵输出仓以及ULV和LV的输出仓都可以使用，输出仓的等级越高，水资源收集量也会越多。收集量的公式为：生物群系系数*输出仓倍数。
 gregtech.multiblock.primitive_water_pump.extra1=生物群系系数：/n  海洋（Ocean）、河流（River）：1000 L/s/n  沼泽（Swamp）：800 L/s/n  丛林（Jungle）：350 L/s/n  积雪的（Snowy）：300 L/s/n  平原（Plains）、森林（Forest）：250 L/s/n  针叶林（Taiga）：175 L/s/n  沙滩（Beach）：170 L/s/n  其他：100 L/s
 gregtech.multiblock.primitive_water_pump.extra2=输出仓倍数：/n水泵输出仓：1x/nULV输出仓：2x/nLV输出仓：4x
@@ -5303,6 +5302,7 @@ gregtech.machine.basic.input_from_output_side.allow=允许输出端输入
 gregtech.machine.basic.input_from_output_side.disallow=禁止输出端输入
 gregtech.machine.muffle.on=静音：已启用
 gregtech.machine.muffle.off=静音：已禁用
+gregtech.tooltip.perfect_oc_available=-无损超频支持：
 gregtech.machine.perfect_oc=超频不会损失能效。
 gregtech.machine.parallel_limit=可同时处理至多§b%d§7个配方。
 
@@ -6107,12 +6107,17 @@ gregtech.machine.rotor_holder.opv.name=§9OpV§r转子支架
 gregtech.machine.rotor_holder.max.name=§c§lMAX§r转子支架
 
 # 批处理系统相关说明
-gregtech.tooltip.batch_avaliable=-批处理支持：
+gregtech.tooltip.batch_available=-批处理支持：
 gregtech.tooltip.ctrl=按住CTRL以显示详细批处理工作逻辑
 
 gregtech.machine.batch_process.tooltips.1=本多方块可将耗时短于128tick的配方倍乘到不超过128tick最大数
 gregtech.machine.batch_process.tooltips.2=批处理在配方计算完超频，并行后单独计算，因此耗能不变且无视并行
 gregtech.machine.batch_process.tooltips.3=有关修改耗时的特殊配方逻辑均在批处理后计算，可能会导致配方实际不满128tick
+
+gregtech.tooltip.laser_available=-激光仓支持:
+gregtech.tooltip.laser_hatch.tooltips=本设备支持使用激光仓代替能源仓/动力仓
+
+gregtech.tooltip.heat_available=-温度增幅效果:
 
 gregtech.machine.maintenance_hatch.name=维护仓
 gregtech.machine.maintenance_hatch.tooltip=用于维护多方块结构
@@ -6754,6 +6759,8 @@ gregtech.multiblock.multiple_recipemaps.tooltip=手持螺丝刀右击控制器�
 gregtech.multiblock.multiple_recipemaps_recipes.tooltip=机器模式：§e%s§r
 gregtech.multiblock.multiple_recipemaps.switch_message=机器必须关闭才能切换模式！
 gregtech.multiblock.energy_stored=§7能量: §e%,d / %,d EU
+gregtech.multiblock.structure_size.tooltip=§7结构大小:§eX:%s ,Y: %s ,Z: %s
+gregtech.multiblock.structure_tier.tooltip=§7结构总等级:§e %s
 
 gregtech.multiblock.preview.zoom=使用鼠标滚轮或右键拖拽以缩放
 gregtech.multiblock.preview.rotate=左键拖拽以旋转
@@ -6823,6 +6830,7 @@ gregtech.multiblock.large_boiler.throttle.title=锅炉节流
 gregtech.multiblock.large_boiler.throttle.tooltip=锅炉可以节流，以减少燃料消耗与蒸汽产出，并且不损失效率，不影响加热时间。
 gregtech.multiblock.large_boiler.throttle_increment=节流阀§a+5%%§r/n§7减少燃料消耗与蒸汽产出，并且不损失效率，不影响加热时间。
 gregtech.multiblock.large_boiler.throttle_decrement=节流阀§c-5%%§r/n§7减少燃料消耗与蒸汽产出，并且不损失效率，不影响加热时间。
+gregtech.multiblock.large_boiler.available=-锅炉系统：
 gregtech.multiblock.large_boiler.rate_tooltip=§7每块§1煤炭§7可以生产§f%dL§7的蒸汽
 gregtech.multiblock.large_boiler.heat_time_tooltip=§7需要§f%d秒§7预热
 gregtech.multiblock.large_boiler.explosion_tooltip=无水时提供燃料将爆炸

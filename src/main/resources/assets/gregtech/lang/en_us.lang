@@ -187,7 +187,6 @@ gregtech.multiblock.fusion_reactor.zpm.description=The Fusion Reactor Mark 2 is 
 gregtech.multiblock.fusion_reactor.uv.description=The Fusion Reactor Mark 3 is a large multiblock structure used for fusing elements into heavier ones. It can only use UV Energy Hatches. For every Hatch it has, its buffer increases by 40M EU, and has a maximum of 640M.
 gregtech.multiblock.fusion_reactor.heat=Heat: %s
 gregtech.multiblock.large_chemical_reactor.description=The Large Chemical Reactor performs chemical reactions at 100%% energy efficiency. Overclocks multiply both speed and energy by 4. The multiblock requires exactly 1 Cupronickel Coil Block, which must be placed adjacent to the PTFE Pipe casing located in the center.
-gregtech.multiblock.large_chemical_reactor.description.0=Performs all §eChemical Reactor§7 and §eLarge Chemical Reactor§7 recipes
 gregtech.multiblock.primitive_water_pump.description=The Primitive Water Pump is a pre-Steam Era multiblock that collects water once per second, depending on the Biome it is in. It can use a Pump, ULV, or LV Output Hatch, increasing the amount of water per tier. Follows the formula: Biome Coefficient * Hatch Multiplier.
 gregtech.multiblock.primitive_water_pump.extra1=Biome Coefficient:/n  Ocean, River: 1000 L/s/n  Swamp: 800 L/s/n  Jungle: 350 L/s/n  Snowy: 300 L/s/n  Plains, Forest: 250 L/s/n  Taiga: 175 L/s/n  Beach: 170 L/s/n  Other: 100 L/s
 gregtech.multiblock.primitive_water_pump.extra2=Hatch Multipliers:/n  Pump Hatch: 1x/n  ULV Output Hatch: 2x/n  LV Output Hatch: 4x/n/nWhile raining in the Pump's Biome, the total water production will be increased by 50%%.
@@ -5307,6 +5306,7 @@ gregtech.machine.basic.input_from_output_side.allow=Allow Input from Output Side
 gregtech.machine.basic.input_from_output_side.disallow=Disallow Input from Output Side
 gregtech.machine.muffle.on=Sound Muffling: Enabled
 gregtech.machine.muffle.off=Sound Muffling: Disabled
+gregtech.tooltip.perfect_oc_available=-Perfect OC support：
 gregtech.machine.perfect_oc=Does not lose energy efficiency when overclocked.
 gregtech.machine.parallel_limit=Can run up to §b%d§r§7 Recipes at once.
 
@@ -6111,12 +6111,17 @@ gregtech.machine.rotor_holder.opv.name=OpV Rotor Holder
 gregtech.machine.rotor_holder.max.name=MAX Rotor Holder
 
 # 批处理系统相关说明
-gregtech.tooltip.batch_avaliable=-Batch support:
+gregtech.tooltip.batch_available=-Batch support:
 gregtech.tooltip.ctrl=Press and hold CTRL to display the detailed batch work logic
 
 gregtech.machine.batch_process.tooltips.1=This multi-block multiplies recipes that take less than 128 ticks to a maximum of 128 ticks
 gregtech.machine.batch_process.tooltips.2=Batch processing is calculated separately after the recipe is overclocked and parallelized, so the energy consumption remains the same and the parallelism is ignored
 gregtech.machine.batch_process.tooltips.3=The special recipe logic that takes time to modify is calculated after the batch process, which may cause the recipe to actually be less than 128 ticks
+
+gregtech.tooltip.laser_available=-Laser support:
+gregtech.tooltip.laser_hatch.tooltips=This equipment supports the use of laser hatch instead of energy input/output hatch
+
+gregtech.tooltip.heat_available=-Temperature amplification effect:
 
 gregtech.machine.maintenance_hatch.name=Maintenance Hatch
 gregtech.machine.maintenance_hatch.tooltip=For maintaining Multiblocks
@@ -6758,6 +6763,8 @@ gregtech.multiblock.multiple_recipemaps.tooltip=Screwdriver the controller to ch
 gregtech.multiblock.multiple_recipemaps_recipes.tooltip=Machine Modes: §e%s§r
 gregtech.multiblock.multiple_recipemaps.switch_message=The machine must be off to switch modes!
 gregtech.multiblock.energy_stored=§7Energy: §e%,d / %,d EU
+gregtech.multiblock.structure_size.tooltip=§7Structure Size:§eX:%s ,Y: %s ,Z: %s
+gregtech.multiblock.structure_tier.tooltip=§7Total Tier:§e %s
 
 gregtech.multiblock.preview.zoom=Use mousewheel or right-click + drag to zoom
 gregtech.multiblock.preview.rotate=Click and drag to rotate
@@ -6827,6 +6834,7 @@ gregtech.multiblock.large_boiler.throttle.title=Boiler Throttle
 gregtech.multiblock.large_boiler.throttle.tooltip=Boiler can output less Steam and consume less fuel (efficiency is not lost, does not affect heat-up time)
 gregtech.multiblock.large_boiler.throttle_increment=Increase throttle by §a+5%%§r/n§7Boiler can output less Steam and consume less fuel (efficiency is not lost, does not affect heat-up time)
 gregtech.multiblock.large_boiler.throttle_decrement=Decrease throttle by §c-5%%§r/n§7Boiler can output less Steam and consume less fuel (efficiency is not lost, does not affect heat-up time)
+gregtech.multiblock.large_boiler.available=-Boiler System:
 gregtech.multiblock.large_boiler.rate_tooltip=§7Produces §f%d L §7of Steam with §f1 Coal
 gregtech.multiblock.large_boiler.heat_time_tooltip=§7Takes §f%,d seconds §7to heat up
 gregtech.multiblock.large_boiler.explosion_tooltip=Will explode if provided Fuel with no Water

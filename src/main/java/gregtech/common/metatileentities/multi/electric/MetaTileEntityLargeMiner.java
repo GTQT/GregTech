@@ -1,7 +1,11 @@
 package gregtech.common.metatileentities.multi.electric;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.*;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IMiner;
+import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -12,6 +16,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
@@ -25,6 +30,8 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
+import gregtech.api.util.tooltips.AbstractTooltipComponent;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
@@ -42,7 +49,9 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
-import net.minecraft.util.text.*;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
@@ -207,20 +216,35 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     public String[] getDescription() {
         return new String[] { I18n.format("gregtech.machine.miner.multi.description") };
     }
-
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
-        int workingAreaChunks = this.minerLogic.getCurrentRadius() * 2 / CHUNK_LENGTH;
-        tooltip.add(I18n.format("gregtech.machine.miner.multi.modes"));
-        tooltip.add(I18n.format("gregtech.machine.miner.multi.production"));
-        tooltip.add(I18n.format("gregtech.machine.miner.fluid_usage", getDrillingFluidConsumePerTick(),
-                DrillingFluid.getLocalizedName()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.working_area_chunks_max", workingAreaChunks,
-                workingAreaChunks));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.energy_tier_range", GTValues.VNF[this.tier],
-                GTValues.VNF[this.tier + 1]));
+        super.addInformation(stack, player, tooltip, advanced);
+        TooltipBuilder.create().add(new DrillInformation(tier,this.minerLogic.getCurrentRadius() * 2 / CHUNK_LENGTH)).build(this, tooltip);
     }
+
+    public class DrillInformation extends AbstractTooltipComponent {
+        private final int tier;
+        private final int workingAreaChunks;
+
+        public DrillInformation(int tier, int workingAreaChunks) {
+            this.tier = tier;
+            this.workingAreaChunks = workingAreaChunks;
+        }
+
+        @Override
+        public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+            tooltip.add(I18n.format("gregtech.machine.miner.multi.modes"));
+            tooltip.add(I18n.format("gregtech.machine.miner.multi.production"));
+            tooltip.add(I18n.format("gregtech.machine.miner.fluid_usage", getDrillingFluidConsumePerTick(),
+                    DrillingFluid.getLocalizedName()));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.working_area_chunks_max", workingAreaChunks,
+                    workingAreaChunks));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.energy_tier_range", GTValues.VNF[this.tier],
+                    GTValues.VNF[this.tier + 1]));
+        }
+    }
+
 
     @Override
     public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {

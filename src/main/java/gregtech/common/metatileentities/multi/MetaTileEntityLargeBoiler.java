@@ -8,7 +8,11 @@ import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.*;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
@@ -22,6 +26,8 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
+import gregtech.api.util.tooltips.AbstractTooltipComponent;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.core.sound.GTSoundEvents;
@@ -307,13 +313,22 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
-                TextFormattingUtil
-                        .formatNumbers((int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));
-        tooltip.add(
-                I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip", boilerType.getTicksToBoiling() / 20));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", boilerType.steamPerTick()));
-        tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.multiblock.large_boiler.explosion_tooltip"));
+        TooltipBuilder.create().add(new BoilerInformation()).build(this, tooltip);
+    }
+
+    public class BoilerInformation extends AbstractTooltipComponent {
+
+        @Override
+        public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+            tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.multiblock.large_boiler.available"));
+            tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
+                    TextFormattingUtil
+                            .formatNumbers((int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));
+            tooltip.add(
+                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip", boilerType.getTicksToBoiling() / 20));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", boilerType.steamPerTick()));
+            tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.multiblock.large_boiler.explosion_tooltip"));
+        }
     }
 
     @Override

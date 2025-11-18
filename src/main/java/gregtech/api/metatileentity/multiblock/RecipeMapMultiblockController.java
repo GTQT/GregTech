@@ -20,10 +20,9 @@ import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
-import gregtech.client.utils.TooltipHelper;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.common.ConfigHolder;
 
-import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -35,6 +34,8 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -443,22 +444,18 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         }
     }
 
-    @Override
-    public void addInformation(ItemStack stack,
-                               World player,
-                               List<String> tooltip,
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
                                boolean advanced) {
-        super.addInformation(stack, player, tooltip, advanced);
-        if (isBatchAllowed()) {
-            tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.batch_avaliable"));
-            if (TooltipHelper.isCtrlDown()) {
-                tooltip.add(TextFormatting.GRAY + I18n.format("gregtech.machine.batch_process.tooltips.1"));
-                tooltip.add(TextFormatting.GRAY + I18n.format("gregtech.machine.batch_process.tooltips.2"));
-                tooltip.add(TextFormatting.GRAY + I18n.format("gregtech.machine.batch_process.tooltips.3"));
-            } else {
-                tooltip.add(I18n.format("gregtech.tooltip.ctrl"));
-            }
-        }
+        super.addInformation(stack, world, tooltip, advanced);
+        TooltipBuilder.create().addBatch().build(this, tooltip);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public String recipeMapsToString() {
+        if (recipeMap== null)return "";
+        return recipeMap.getLocalizedName();
     }
 
     @Override

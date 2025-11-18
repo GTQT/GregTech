@@ -187,7 +187,7 @@ public abstract class MultiMapMultiblockController extends RecipeMapMultiblockCo
             tooltip.add(I18n.format("gregtech.multiblock.multiple_recipemaps_recipes.tooltip", this.recipeMapsToString()));
         super.addInformation(stack, player, tooltip, advanced);
     }
-
+    @Override
     @SideOnly(Side.CLIENT)
     public String recipeMapsToString() {
         StringBuilder recipeMapsString = new StringBuilder();
