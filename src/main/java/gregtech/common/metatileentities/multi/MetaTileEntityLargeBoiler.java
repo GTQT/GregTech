@@ -320,7 +320,6 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
         @Override
         public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
-            tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.multiblock.large_boiler.available"));
             tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
                     TextFormattingUtil
                             .formatNumbers((int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));

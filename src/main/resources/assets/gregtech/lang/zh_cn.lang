@@ -6830,7 +6830,6 @@ gregtech.multiblock.large_boiler.throttle.title=锅炉节流
 gregtech.multiblock.large_boiler.throttle.tooltip=锅炉可以节流，以减少燃料消耗与蒸汽产出，并且不损失效率，不影响加热时间。
 gregtech.multiblock.large_boiler.throttle_increment=节流阀§a+5%%§r/n§7减少燃料消耗与蒸汽产出，并且不损失效率，不影响加热时间。
 gregtech.multiblock.large_boiler.throttle_decrement=节流阀§c-5%%§r/n§7减少燃料消耗与蒸汽产出，并且不损失效率，不影响加热时间。
-gregtech.multiblock.large_boiler.available=-锅炉系统：
 gregtech.multiblock.large_boiler.rate_tooltip=§7每块§1煤炭§7可以生产§f%dL§7的蒸汽
 gregtech.multiblock.large_boiler.heat_time_tooltip=§7需要§f%d秒§7预热
 gregtech.multiblock.large_boiler.explosion_tooltip=无水时提供燃料将爆炸
