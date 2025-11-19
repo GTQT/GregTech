@@ -1485,6 +1485,7 @@ cover.robotic_arm.exact=§7物品
 cover.robotic_arm.transfer_mode.transfer_any=任意传输
 cover.robotic_arm.transfer_mode.transfer_exact=精确补给
 cover.robotic_arm.transfer_mode.keep_exact=保持补给
+cover.robotic_arm.transfer_mode.retain_exact=保持精确
 cover.robotic_arm.transfer_mode.description=§e任意传输§r-在此模式下，覆盖板将尽可能传输一切符合过滤设置的物品。/n§e精确补给§r-在此模式下，覆盖板每次都会输入在物品过滤器的过滤槽中指定（或者在矿典过滤器按钮里指定）数量的物品。若物品的数量小于指定数量，则不会被输入。/n§e保持补给§r-在此模式下，覆盖板将保持目标容器中指定物品的数量，需要物品时则供应相应量的物品。/n§7小提示：左/右击过滤槽可以调整物品数量，同时按住Shift可以更快地调整。
 
 cover.pump.title=泵覆盖板设置（%s）

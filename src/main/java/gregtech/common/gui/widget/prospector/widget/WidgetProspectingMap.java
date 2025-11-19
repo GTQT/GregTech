@@ -6,7 +6,12 @@ import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.ore.StoneType;
 import gregtech.api.unification.stack.MaterialStack;
-import gregtech.api.util.*;
+import gregtech.api.util.FileUtility;
+import gregtech.api.util.GTUtility;
+import gregtech.api.util.Mods;
+import gregtech.api.util.Position;
+import gregtech.api.util.Size;
+import gregtech.api.util.TextFormattingUtil;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.config.WorldGenRegistry;
@@ -40,9 +45,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
@@ -284,19 +294,30 @@ public class WidgetProspectingMap extends Widget {
                         }
                     }
                 }
-                oreHeight.forEach((name, height) -> {
-                    hoveredOreHeight += height;
+                // 计算总高度和平均值
+                int totalHeight = 0;
+                Map<String, Integer> avgHeights = new HashMap<>();
+
+                for (Map.Entry<String, Integer> entry : oreHeight.entrySet()) {
+                    String name = entry.getKey();
+                    int height = entry.getValue();
                     int count = oreInfo.getOrDefault(name, 0);
+
+                    totalHeight += height;
+
+                    // 计算每个矿物的平均高度
                     int avgHeight = count != 0 ? height / count : 0;
-                    oreHeight.put(name, avgHeight);
-                });
-                int totalCount = oreInfo.values().stream().reduce(0, Integer::sum);
-                if (totalCount != 0) {
-                    hoveredOreHeight /= totalCount;
+                    avgHeights.put(name, avgHeight);
                 }
+
+                // 计算总体平均高度
+                int totalCount = oreInfo.values().stream().mapToInt(Integer::intValue).sum();
+                hoveredOreHeight = totalCount != 0 ? totalHeight / totalCount : 0;
+
+                // 生成显示信息
                 oreInfo.forEach((name, count) -> {
-                    int height = oreHeight.getOrDefault(name, 0);
-                    tooltips.add(name + " --- §e" + count + "§r, §cy" + height + "§r");
+                    int avgHeight = avgHeights.getOrDefault(name, 0)%255;
+                    tooltips.add(name + " --- §e" + count + "§r, §cy" + avgHeight + "§r");
                     hoveredNames.add(name);
                 });
             } else if (this.mode == ProspectorMode.FLUID) {

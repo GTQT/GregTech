@@ -51,6 +51,7 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST)).asIcon();
     protected final ItemFilterContainer container;
     private ConveyorMode conveyorMode = ConveyorMode.IMPORT;
+    private IPanelHandler activeChestPanelHandler;
 
     public CoverEnderItemLink(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
                               @NotNull EnumFacing attachedSide) {
@@ -70,17 +71,18 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
 
     @Override
     protected IWidget createEntrySlot() {
-        // 修复：移除额外的参数，与父类方法签名保持一致
-        IPanelHandler panelHandler = IPanelHandler.simple(null, this::createChestPanel, true);
+        // 修复：延迟创建 panel handler，在 buildUI 时设置
         return new ButtonWidget<>()
                 .addTooltipLine(IKey.str("Open Active Entry View"))
                 .overlay(CHEST)
                 .onMousePressed(mouseButton -> {
-                    if (panelHandler.isPanelOpen()) {
-                        panelHandler.deleteCachedPanel();
-                        panelHandler.closePanel();
-                    } else {
-                        panelHandler.openPanel();
+                    if (activeChestPanelHandler != null) {
+                        if (activeChestPanelHandler.isPanelOpen()) {
+                            activeChestPanelHandler.deleteCachedPanel();
+                            activeChestPanelHandler.closePanel();
+                        } else {
+                            activeChestPanelHandler.openPanel();
+                        }
                     }
                     return true;
                 });
@@ -91,6 +93,11 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
     }
 
     private ModularPanel createChestPanel(String color, ModularPanel parentPanel, EntityPlayer player) {
+        if (activeEntry == null) {
+            return GTGuis.createPanel(this, 100, 100)
+                    .child(IKey.str("No active entry").asWidget());
+        }
+
         IntFunction<ItemStack> getStack = activeEntry::getStackInSlot;
         return GTGuis.createPopupPanel("chest_panel#" + color, 100, 100)
                 .padding(4)
@@ -118,9 +125,10 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
 
     @Override
     protected IWidget createSlotWidget(VirtualChest entry) {
-        // 修复：移除额外的参数，与父类方法签名保持一致
+        // 修复：为每个条目创建独立的 panel handler
         IPanelHandler panelHandler = IPanelHandler.simple(null,
-                (parentPanel, player) -> createChestPanel(entry.getColorStr(), parentPanel, player), true);
+                (parentPanel, player) -> createEntryChestPanel(entry, parentPanel, player), true);
+
         return new ButtonWidget<>()
                 .addTooltipLine(IKey.str("Open Entry [#%s]'s View", entry.getColorStr()))
                 .overlay(CHEST)
@@ -135,9 +143,37 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
                 });
     }
 
+    private ModularPanel createEntryChestPanel(VirtualChest entry, ModularPanel parentPanel, EntityPlayer player) {
+        IntFunction<ItemStack> getStack = entry::getStackInSlot;
+        return GTGuis.createPopupPanel("chest_panel#" + entry.getColorStr(), 100, 100)
+                .padding(4)
+                .paddingRight(16)
+                .coverChildren()
+                .child(new Grid().coverChildren()
+                        .mapTo(3, entry.getSlots(), value -> {
+                            var item = new ItemDrawable();
+                            return new Widget<>()
+                                    .size(18)
+                                    .background(GTGuiTextures.SLOT)
+                                    .tooltipAutoUpdate(true)
+                                    .tooltipBuilder(tooltip -> {
+                                        ItemStack stack = getStack.apply(value);
+                                        if (stack.isEmpty()) return;
+                                        tooltip.addFromItem(stack);
+                                        tooltip.add(IKey.lang("gregtech.item_list.item_stored", stack.getCount()));
+                                    })
+                                    .overlay(new DynamicDrawable(() -> item.setItem(getStack.apply(value)))
+                                            .asIcon()
+                                            .alignment(Alignment.Center)
+                                            .size(16));
+                        }));
+    }
+
     @Override
     protected Flow createWidgets(GuiData data, PanelSyncManager syncManager) {
-        // 修复：使用正确的参数类型，与父类方法签名保持一致
+        // 修复：在创建 widgets 时设置 activeChestPanelHandler
+        activeChestPanelHandler = IPanelHandler.simple(null, this::createChestPanel, true);
+
         getItemFilterContainer().setMaxTransferSize(1);
 
         var conveyorMode = new EnumSyncValue<>(ConveyorMode.class, this::getConveyorMode, this::setConveyorMode);
@@ -148,17 +184,20 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
                 .child(createConveyorModeRow(conveyorMode));
     }
 
-    // 修复：添加缺失的 conveyor mode 行创建方法
+    // 修复：添加更完整的 conveyor mode 行
     private IWidget createConveyorModeRow(EnumSyncValue<ConveyorMode> conveyorMode) {
-        // 这里需要根据您的实际 EnumRowBuilder 实现来创建
-        // 暂时使用简单的实现
         return new ButtonWidget<>()
                 .size(18, 18)
-                .overlay(IKey.lang("cover.generic.io"))
+                .background(GTGuiTextures.MC_BUTTON)
+                .overlay(new DynamicDrawable(() ->
+                        IKey.lang(getConveyorMode() == ConveyorMode.IMPORT ?
+                                "cover.conveyor.mode.import" : "cover.conveyor.mode.export")
+                ))
                 .onMousePressed(mouseButton -> {
                     ConveyorMode current = conveyorMode.getValue();
                     ConveyorMode next = current == ConveyorMode.IMPORT ? ConveyorMode.EXPORT : ConveyorMode.IMPORT;
                     conveyorMode.setValue(next);
+                    setConveyorMode(next);
                     return true;
                 });
     }
@@ -178,7 +217,6 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
 
     @Override
     protected void deleteEntry(UUID player, String name) {
-        // 修复：实现抽象方法，检查箱子是否为空
         VirtualEnderRegistry.deleteEntry(player, getType(), name, chest -> {
             for (int i = 0; i < chest.getSlots(); i++) {
                 if (!chest.getStackInSlot(i).isEmpty()) return false;
@@ -215,7 +253,7 @@ public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> imp
         IItemHandler handler = getCoverableView().getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY,
                 getAttachedSide());
         if (handler == null) return;
-        if (getConveyorMode().isImport()) {
+        if (getConveyorMode() == ConveyorMode.IMPORT) {
             GTTransferUtils.moveInventoryItems(handler, this.activeEntry, this.container::test);
         } else {
             GTTransferUtils.moveInventoryItems(this.activeEntry, handler, this.container::test);
