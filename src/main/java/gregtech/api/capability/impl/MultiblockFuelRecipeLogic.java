@@ -22,13 +22,16 @@ import java.util.List;
 
 public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
+    ParallelLogicType type;
     protected long totalContinuousRunningTime;
     private int previousDuration = 0;
 
     public MultiblockFuelRecipeLogic(RecipeMapMultiblockController tileEntity) {
+        this(tileEntity,ParallelLogicType.MULTIPLY);
+    }
+    public MultiblockFuelRecipeLogic(RecipeMapMultiblockController tileEntity,ParallelLogicType type) {
         super(tileEntity);
     }
-
     @Override
     protected void modifyOverclockPre(@NotNull OCParams ocParams, @NotNull RecipePropertyStorage storage) {
         // apply maintenance bonuses
@@ -54,7 +57,7 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     @NotNull
     @Override
     public ParallelLogicType getParallelLogicType() {
-        return ParallelLogicType.APPEND_FLUIDS;
+        return type;
     }
 
     @Override
