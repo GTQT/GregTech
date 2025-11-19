@@ -160,7 +160,6 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
         return 16 * heatingCoilLevel;
     }
 
-
     protected class MultiSmelterWorkable extends MultiblockRecipeLogic {
 
         public MultiSmelterWorkable(RecipeMapMultiblockController tileEntity) {

@@ -5318,6 +5318,12 @@ gregtech.tooltip.perfect_oc_available=-无损超频支持：
 gregtech.machine.perfect_oc=超频不会损失能效。
 gregtech.machine.parallel_limit=可同时处理至多§b%d§7个配方。
 
+gregtech.multiblock.parallel_mode=-多方块并行模式:
+gregtech.multiblock.parallel_mode.multiply=单配方并行 - 将单个配方按倍数扩展，同时处理多个相同配方
+gregtech.multiblock.parallel_mode.append_items=物品多配方并行 - 允许同时运行多个不同配方，仅从物品输入中发现配方
+gregtech.multiblock.parallel_mode.append_fluids=流体多配方并行 - 允许同时运行多个不同配方，仅从流体输入中发现配方
+gregtech.multiblock.parallel_mode.append_all=混合多配方并行 - 允许同时运行多个不同配方，综合考虑物品和流体输入
+
 gregtech.machine.ld_item_endpoint.name=长距离物品管道接口
 gregtech.machine.ld_fluid_endpoint.name=长距离流体管道接口
 gregtech.machine.endpoint.tooltip.min_length=§b最低接口间距：§f%d格方块
@@ -6130,6 +6136,8 @@ gregtech.tooltip.laser_available=-激光仓支持:
 gregtech.tooltip.laser_hatch.tooltips=本设备支持使用激光仓代替能源仓/动力仓
 
 gregtech.tooltip.heat_available=-温度增幅效果:
+gregtech.tooltip.coil_available=-线圈增幅效果:
+gregtech.tooltip.special_available=-特殊配方逻辑:
 
 gregtech.machine.maintenance_hatch.name=维护仓
 gregtech.machine.maintenance_hatch.tooltip=用于维护多方块结构

@@ -16,9 +16,9 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.KeyUtil;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.common.ConfigHolder;
 
-import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
@@ -58,6 +58,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
                                               double conversionRate, ParallelLogicType type) {
         super(metaTileEntityId);
         this.recipeMap = recipeMap;
+        this.type = type;
         this.recipeMapWorkable = new SteamMultiWorkable(this, conversionRate, type);
         resetTileAbilities();
     }
@@ -94,10 +95,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        if (type == ParallelLogicType.APPEND_ITEMS)
-            tooltip.add(I18n.format("多方块并行模式：配方并发（允许同时运行多个配方，但是输入物品仅限一个）"));
-        if (type == ParallelLogicType.MULTIPLY)
-            tooltip.add(I18n.format("多方块并行模式：单配方并行（只允许同时运行一个配方）"));
+        TooltipBuilder.create().addParallelLogicType(type).build(this, tooltip);
     }
 
     public IItemHandlerModifiable getInputInventory() {

@@ -1,6 +1,7 @@
 package gregtech.api.util.tooltips;
 
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.recipes.RecipeMap;
 
 import java.util.ArrayList;
@@ -10,6 +11,11 @@ public class TooltipBuilder {
     private final List<ITooltipComponent> components = new ArrayList<>();
 
     // 添加预定义的组件
+    public TooltipBuilder addTooltips(String key) {
+        components.add(new TooltipsComponent(key));
+        return this;
+    }
+
     public TooltipBuilder addStructure() {
         components.add(new StructureComponent());
         return this;
@@ -49,9 +55,23 @@ public class TooltipBuilder {
         components.add(new BlastComponent());
         return this;
     }
+    public TooltipBuilder addCoilLogic() {
+        components.add(new CoilLogicComponent());
+        return this;
+    }
+
+    public TooltipBuilder addSpecialLogic() {
+        components.add(new SpecialLogicComponent());
+        return this;
+    }
 
     public TooltipBuilder addPerfectOC() {
         components.add(new PerfectOCTooltipComponent());
+        return this;
+    }
+
+    public TooltipBuilder addParallelLogicType(ParallelLogicType type) {
+        components.add(new ParallelLogicTypeComponent(type));
         return this;
     }
 

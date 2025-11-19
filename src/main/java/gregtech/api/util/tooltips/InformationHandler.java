@@ -9,17 +9,17 @@ import java.util.List;
 
 public class InformationHandler {
 
-    public void defaultInformation(MultiblockWithDisplayBase metaTileEntity,
+    public static void defaultInformation(MultiblockWithDisplayBase metaTileEntity,
                                    List<String> tooltip) {
         TooltipBuilder.createDefault().build(metaTileEntity, tooltip);
     }
 
-    public void emptyInformation(MultiblockWithDisplayBase metaTileEntity,
+    public static void emptyInformation(MultiblockWithDisplayBase metaTileEntity,
                                  List<String> tooltip) {
         TooltipBuilder.create().build(metaTileEntity, tooltip);
     }
 
-    public void topTooltips(String key, List<String> tooltip) {
+    public static void topTooltips(String key, List<String> tooltip) {
         tooltip.add(TooltipHelper.RAINBOW_SLOW + I18n.format(key));
     }
 }
