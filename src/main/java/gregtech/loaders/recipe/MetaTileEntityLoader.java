@@ -1349,11 +1349,19 @@ public class MetaTileEntityLoader {
         ModHandler.addShapedRecipe(true, "buffer_mv", MetaTileEntities.BUFFER[1].getStackForm(), "HP", "CV", 'H',
                 MetaTileEntities.HULL[GTValues.MV].getStackForm(), 'P', MetaItems.ELECTRIC_PUMP_MV.getStackForm(), 'V',
                 MetaItems.CONVEYOR_MODULE_MV.getStackForm(), 'C',
-                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.LV));
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.MV));
         ModHandler.addShapedRecipe(true, "buffer_hv", MetaTileEntities.BUFFER[2].getStackForm(), "HP", "CV", 'H',
                 MetaTileEntities.HULL[GTValues.HV].getStackForm(), 'P', MetaItems.ELECTRIC_PUMP_HV.getStackForm(), 'V',
                 MetaItems.CONVEYOR_MODULE_HV.getStackForm(), 'C',
-                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.LV));
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV));
+        ModHandler.addShapedRecipe(true, "buffer_ev", MetaTileEntities.BUFFER[3].getStackForm(), "HP", "CV", 'H',
+                MetaTileEntities.HULL[GTValues.EV].getStackForm(), 'P', MetaItems.ELECTRIC_PUMP_EV.getStackForm(), 'V',
+                MetaItems.CONVEYOR_MODULE_EV.getStackForm(), 'C',
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.EV));
+        ModHandler.addShapedRecipe(true, "buffer_iv", MetaTileEntities.BUFFER[4].getStackForm(), "HP", "CV", 'H',
+                MetaTileEntities.HULL[GTValues.IV].getStackForm(), 'P', MetaItems.ELECTRIC_PUMP_IV.getStackForm(), 'V',
+                MetaItems.CONVEYOR_MODULE_IV.getStackForm(), 'C',
+                new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.IV));
 
         if (ConfigHolder.recipes.harderEBFControllerRecipe) {
             ModHandler.addShapedRecipe(true, "electric_blast_furnace",

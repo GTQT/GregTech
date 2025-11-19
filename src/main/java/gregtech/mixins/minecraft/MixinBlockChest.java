@@ -1,7 +1,5 @@
 package gregtech.mixins.minecraft;
 
-import gtqt.api.util.alculateFacing;
-
 import net.minecraft.block.BlockChest;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockHorizontal;
@@ -9,17 +7,15 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
-
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
+import gtqt.api.util.calculateFacing;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -40,10 +36,10 @@ public abstract class MixinBlockChest extends BlockContainer {
     public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack)
     {
         // 获取标准化后的yaw角度（0~360）
-        float normalizedYaw = alculateFacing.gregTech$normalizeYaw(placer.rotationYaw);
+        float normalizedYaw = calculateFacing.gregTech$normalizeYaw(placer.rotationYaw);
 
         // 使用精确计算替代索引计算
-        EnumFacing enumfacing = alculateFacing.gregTech$calculateFacingFromYaw(normalizedYaw).getOpposite();
+        EnumFacing enumfacing = calculateFacing.gregTech$calculateFacingFromYaw(normalizedYaw).getOpposite();
 
         state = state.withProperty(FACING, enumfacing);
         BlockPos blockpos = pos.north();

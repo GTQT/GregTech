@@ -11,6 +11,7 @@ import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.common.ConfigHolder;
+import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.init.Blocks;
@@ -979,6 +980,7 @@ public class VanillaStandardRecipes {
                 .outputs(new ItemStack(Blocks.ANVIL)).duration(1680).EUt(16).buildAndRegister();
 
         ModHandler.addSmeltingRecipe(new ItemStack(Items.SLIME_BALL), STICKY_RESIN.getStackForm(), 0.3f);
+        ModHandler.addSmeltingRecipe(new ItemStack(MetaBlocks.RUBBER_LOG), STICKY_RESIN.getStackForm(), 0.3f);
 
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(cobblestone.name(), 1)

@@ -2,7 +2,7 @@ package gtqt.api.util;
 
 import net.minecraft.util.EnumFacing;
 
-public class alculateFacing {
+public class calculateFacing {
 
     public static float gregTech$normalizeYaw(float yaw) {
         float normalized = yaw % 360.0F;

@@ -100,14 +100,18 @@ public class ToolRecipeHandler {
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadDrill, ToolItems.HARD_HAMMER_EV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadDrill, ToolItems.HARD_HAMMER_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_LV);
-        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_MV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_HV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadChainsaw, ToolItems.CHAINSAW_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_LV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_HV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadBuzzSaw, ToolItems.BUZZSAW);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_LV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_HV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.pipeSmallFluid, ToolItems.TREE_TAP_LV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.pipeSmallFluid, ToolItems.TREE_TAP_HV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.pipeSmallFluid, ToolItems.TREE_TAP_IV);
 
         ForgeRegistries.RECIPES
                 .register(new ToolHeadReplaceRecipe().setRegistryName(new ResourceLocation(MODID, "replacetoolhead")));
@@ -293,7 +297,7 @@ public class ToolRecipeHandler {
     private static void processTreeTap(OrePrefix orePrefix, Material material, MaterialToolProperty property) {
         // tree tap
         OrePrefix toolPrefix = OrePrefix.pipeSmallFluid;
-        addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.TREE_TAP_LV });
+        addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.TREE_TAP_LV, ToolItems.TREE_TAP_HV, ToolItems.TREE_TAP_IV });
     }
 
 
@@ -330,7 +334,7 @@ public class ToolRecipeHandler {
                     'S', steelPlate,
                     'R', steelRing);
 
-            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.CHAINSAW_LV, ToolItems.CHAINSAW_MV,ToolItems.CHAINSAW_HV });
+            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.CHAINSAW_LV, ToolItems.CHAINSAW_HV,ToolItems.CHAINSAW_IV });
 
             // wrench
             toolPrefix = OrePrefix.toolHeadWrench;
@@ -365,12 +369,16 @@ public class ToolRecipeHandler {
             // wirecutter
             addElectricWirecutterRecipe(material,
                     new IGTTool[] { ToolItems.WIRECUTTER_LV, ToolItems.WIRECUTTER_HV, ToolItems.WIRECUTTER_IV });
+
+
+            addElectricMotorizedPestleRecipe(material,
+                    new IGTTool[] { ToolItems.MOTORIZED_PESTLE_LV, ToolItems.MOTORIZED_PESTLE_HV, ToolItems.MOTORIZED_PESTLE_IV });
         }
 
         // screwdriver
         if (material.hasFlag(GENERATE_LONG_ROD)) {
             toolPrefix = OrePrefix.toolHeadScrewdriver;
-            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.SCREWDRIVER_LV });
+            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.SCREWDRIVER_LV, ToolItems.SCREWDRIVER_HV, ToolItems.SCREWDRIVER_IV });
 
             ModHandler.addShapedRecipe(String.format("screwdriver_tip_%s", material),
                     OreDictUnifier.get(toolPrefix, material),
@@ -409,7 +417,20 @@ public class ToolRecipeHandler {
                     'R', new UnificationEntry(OrePrefix.stick, material));
         }
     }
-
+    public static void addElectricMotorizedPestleRecipe(Material material, IGTTool[] toolItems) {
+        for (IGTTool toolItem : toolItems) {
+            int tier = toolItem.getElectricTier();
+            ItemStack powerUnitStack = powerUnitItems.get(tier).getStackForm();
+            IElectricItem powerUnit = powerUnitStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+            ItemStack tool = toolItem.get(material, 0, powerUnit.getMaxCharge());
+            ModHandler.addShapedEnergyTransferRecipe(String.format("%s_%s", toolItem.getToolId(), material), tool,
+                    Ingredient.fromStacks(powerUnitStack), true, true,
+                    "PdP", "RPR", "fUh",
+                    'P', new UnificationEntry(OrePrefix.stick, material),
+                    'U', powerUnitStack,
+                    'R', new UnificationEntry(OrePrefix.plate, material));
+        }
+    }
     public static void addHammerDrillRecipe(OrePrefix toolHead, Material material, IGTTool[] toolItems) {
         for (IGTTool toolItem : toolItems) {
             int tier = toolItem.getElectricTier();

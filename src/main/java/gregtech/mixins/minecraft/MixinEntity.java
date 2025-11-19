@@ -1,12 +1,12 @@
 package gregtech.mixins.minecraft;
-import gtqt.api.util.alculateFacing;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 
+import gtqt.api.util.calculateFacing;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -22,10 +22,10 @@ public abstract class MixinEntity {
     public EnumFacing getHorizontalFacing()
     {
         // 获取标准化后的yaw角度（0~360）
-        float normalizedYaw = alculateFacing.gregTech$normalizeYaw(this.rotationYaw);
+        float normalizedYaw = calculateFacing.gregTech$normalizeYaw(this.rotationYaw);
 
         // 使用精确计算替代索引计算
-        return alculateFacing.gregTech$calculateFacingFromYaw(normalizedYaw);
+        return calculateFacing.gregTech$calculateFacingFromYaw(normalizedYaw);
     }
 
 }
