@@ -68,6 +68,7 @@ public final class ToolItems {
     public static IGTTool WIRE_CUTTER;
     public static IGTTool SCYTHE;
     public static IGTTool KNIFE;
+    public static IGTTool SHEARS;
     public static IGTTool BUTCHERY_KNIFE;
     public static IGTTool TREE_TAP;
 
@@ -110,6 +111,11 @@ public final class ToolItems {
     public static IGTTool TREE_TAP_LV;
     public static IGTTool TREE_TAP_HV;
     public static IGTTool TREE_TAP_IV;
+
+    public static IGTTool TRIMMER_LV;
+    public static IGTTool TRIMMER_HV;
+    public static IGTTool TRIMMER_IV;
+
 
     public static IGTTool COMBINATION_WRENCH;
     public static IGTTool UNIVERSAL_SPADE;
@@ -276,6 +282,14 @@ public final class ToolItems {
                 .secondaryOreDicts("craftingToolKnife")
                 .symbol('k')
                 .toolClasses(ToolClasses.KNIFE, ToolClasses.SWORD));
+
+        SHEARS = register(ItemGTTool.Builder.of(GTValues.MODID, "shears")
+                .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
+                        .attackDamage(2.0F).attackSpeed(-2.4F))
+                .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
+                .oreDict(ToolOreDict.toolShears)
+                .secondaryOreDicts("craftingToolShears")
+                .toolClasses(ToolClasses.SHEARS));
 
         BUTCHERY_KNIFE = register(ItemGTSword.Builder.of(GTValues.MODID, "butchery_knife")
                 .toolStats(b -> b.attacking()
@@ -598,7 +612,7 @@ public final class ToolItems {
                 .toolClasses(ToolClasses.PICKAXE, ToolClasses.HARD_HAMMER));
 
         TREE_TAP_LV = register(ItemGTTool.Builder.of(GTValues.MODID, "tree_tap_lv")
-                .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(2)
+                .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(2.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
@@ -607,7 +621,7 @@ public final class ToolItems {
                 .toolClasses(ToolClasses.TREE_TAP));
 
         TREE_TAP_HV = register(ItemGTTool.Builder.of(GTValues.MODID, "tree_tap_hv")
-                .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(2)
+                .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
@@ -616,13 +630,46 @@ public final class ToolItems {
                 .toolClasses(ToolClasses.TREE_TAP));
 
         TREE_TAP_IV = register(ItemGTTool.Builder.of(GTValues.MODID, "tree_tap_iv")
-                .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(2)
+                .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
                 .sound(GTSoundEvents.TREE_TAP_TOOL)
                 .electric(GTValues.IV)
                 .toolClasses(ToolClasses.TREE_TAP));
+
+        TRIMMER_LV = register(ItemGTTool.Builder.of(GTValues.MODID, "trimmer_lv")
+                .toolStats(b -> b.blockBreaking().crafting()
+                        .efficiencyMultiplier(2.0F)
+                        .attackDamage(1.0F).attackSpeed(3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
+                .electric(GTValues.LV)
+                .oreDict(ToolOreDict.toolShears)
+                .secondaryOreDicts("craftingToolShears")
+                .toolClasses(ToolClasses.SHEARS));
+
+        TRIMMER_HV = register(ItemGTTool.Builder.of(GTValues.MODID, "trimmer_hv")
+                .toolStats(b -> b.blockBreaking().crafting()
+                        .efficiencyMultiplier(3.0F)
+                        .attackDamage(1.0F).attackSpeed(3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
+                .electric(GTValues.HV)
+                .oreDict(ToolOreDict.toolShears)
+                .secondaryOreDicts("craftingToolShears")
+                .toolClasses(ToolClasses.SHEARS));
+
+        TRIMMER_IV = register(ItemGTTool.Builder.of(GTValues.MODID, "trimmer_iv")
+                .toolStats(b -> b.blockBreaking().crafting()
+                        .efficiencyMultiplier(4.0F)
+                        .attackDamage(1.0F).attackSpeed(3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
+                .electric(GTValues.IV)
+                .oreDict(ToolOreDict.toolShears)
+                .secondaryOreDicts("craftingToolShears")
+                .toolClasses(ToolClasses.SHEARS));
 
         // Combination wrench has many functions, consists of hard hammer and wrench, the original idea
         // of this tool is from GregTech 5 Unofficial.

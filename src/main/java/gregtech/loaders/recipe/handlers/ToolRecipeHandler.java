@@ -245,6 +245,13 @@ public class ToolRecipeHandler {
                             'T', new UnificationEntry(OrePrefix.screw, material),
                             'S', rod);
 
+                    addToolRecipe(material, ToolItems.SHEARS, false,
+                            "PfP", "hGd", "STS",
+                            'P', plate,
+                            'G', new UnificationEntry(OrePrefix.gearSmall, material),
+                            'T', new UnificationEntry(OrePrefix.screw, material),
+                            'S', rod);
+
                     addToolRecipe(material, ToolItems.TREE_TAP, false,
                             "STS", "HHH", "Pfh",
                             'P', plate,
@@ -369,6 +376,8 @@ public class ToolRecipeHandler {
             // wirecutter
             addElectricWirecutterRecipe(material,
                     new IGTTool[] { ToolItems.WIRECUTTER_LV, ToolItems.WIRECUTTER_HV, ToolItems.WIRECUTTER_IV });
+            addTrimmerRecipe(material,
+                    new IGTTool[] { ToolItems.TRIMMER_LV, ToolItems.TRIMMER_HV, ToolItems.TRIMMER_IV });
 
 
             addElectricMotorizedPestleRecipe(material,
@@ -417,6 +426,23 @@ public class ToolRecipeHandler {
                     'R', new UnificationEntry(OrePrefix.stick, material));
         }
     }
+
+    public static void addTrimmerRecipe(Material material, IGTTool[] toolItems) {
+        for (IGTTool toolItem : toolItems) {
+            int tier = toolItem.getElectricTier();
+            ItemStack powerUnitStack = powerUnitItems.get(tier).getStackForm();
+            IElectricItem powerUnit = powerUnitStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+            ItemStack tool = toolItem.get(material, 0, powerUnit.getMaxCharge());
+            ModHandler.addShapedEnergyTransferRecipe(String.format("%s_%s", toolItem.getToolId(), material), tool,
+                    Ingredient.fromStacks(powerUnitStack), true, true,
+                    "PfP", "hGd", "RUR",
+                    'P', new UnificationEntry(OrePrefix.plate, material),
+                    'G', new UnificationEntry(OrePrefix.gearSmall, material),
+                    'U', powerUnitStack,
+                    'R', new UnificationEntry(OrePrefix.stick, material));
+        }
+    }
+
     public static void addElectricMotorizedPestleRecipe(Material material, IGTTool[] toolItems) {
         for (IGTTool toolItem : toolItems) {
             int tier = toolItem.getElectricTier();
