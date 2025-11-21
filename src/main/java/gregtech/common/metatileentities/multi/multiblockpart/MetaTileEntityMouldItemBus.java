@@ -77,6 +77,8 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         super(metaTileEntityId, tier, false);
         this.workingEnabled = true;
         initializeInventory();
+
+
     }
 
     private static void collapseInventorySlotContents(IItemHandlerModifiable inventory) {
