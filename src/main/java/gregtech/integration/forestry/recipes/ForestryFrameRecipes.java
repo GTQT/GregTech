@@ -21,6 +21,10 @@ import static gregtech.api.unification.ore.OrePrefix.*;
 public class ForestryFrameRecipes {
 
     public static void init() {
+
+        //FarmRegistry.getInstance().registerFarmables("farmArboreal", new IFarmable[]{new FarmableSapling(new ItemStack(MetaBlocks.RUBBER_SAPLING), new ItemStack[0])});
+
+
         registerRecipe( // Accelerated Frame
                 new UnificationEntry(stickLong, Electrum),
                 new UnificationEntry(stick, Electrum),

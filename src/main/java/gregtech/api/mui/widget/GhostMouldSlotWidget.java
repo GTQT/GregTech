@@ -1,5 +1,15 @@
 package gregtech.api.mui.widget;
 
+import gregtech.api.capability.impl.GhostMouldItemStackHandler;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.client.utils.TooltipHelper;
+import gregtech.common.items.MetaItems;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.items.IItemHandlerModifiable;
+
 import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -13,20 +23,6 @@ import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
-
-import gregtech.api.capability.impl.GhostMouldItemStackHandler;
-import gregtech.api.capability.impl.GhostMouldItemStackHandler;
-import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.recipes.ingredients.IntCircuitIngredient;
-import gregtech.client.utils.TooltipHelper;
-
-import gregtech.common.items.MetaItems;
-
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.items.IItemHandlerModifiable;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -124,7 +120,7 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
                                 .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
                         .child(new Grid()
                                 .left(7).right(7).top(41).height(4 * 18)
-                                .mapTo(9, 33, value -> new ButtonWidget<>()
+                                .mapTo(9, MetaItems.SHAPE_MOLDS.length, value -> new ButtonWidget<>()
                                         .size(18)
                                         .background(GTGuiTextures.SLOT, new ItemDrawable(
                                                 MetaItems.SHAPE_MOLDS[value].getStackForm()).asIcon())

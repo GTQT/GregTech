@@ -1,5 +1,42 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
+import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.capability.IGhostSlotConfigurable;
+import gregtech.api.capability.INotifiableHandler;
+import gregtech.api.capability.impl.GhostMouldItemStackHandler;
+import gregtech.api.capability.impl.ItemHandlerList;
+import gregtech.api.capability.impl.NotifiableItemStackHandler;
+import gregtech.api.items.itemhandlers.GTItemStackHandler;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.mui.widget.GhostMouldSlotWidget;
+import gregtech.api.util.GTHashMaps;
+import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+
+import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
+
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -17,44 +54,7 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-
-import gregtech.api.GTValues;
-import gregtech.api.capability.*;
-import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
-import gregtech.api.capability.impl.GhostMouldItemStackHandler;
-import gregtech.api.capability.impl.ItemHandlerList;
-import gregtech.api.capability.impl.NotifiableItemStackHandler;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.AbilityInstances;
-import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.mui.widget.GhostCircuitSlotWidget;
-import gregtech.api.mui.widget.GhostMouldSlotWidget;
-import gregtech.api.util.GTHashMaps;
-import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,8 +73,8 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
     private boolean workingEnabled;
     private boolean autoCollapse;
 
-    public MetaTileEntityMouldItemBus(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
-        super(metaTileEntityId, tier, isExportHatch);
+    public MetaTileEntityMouldItemBus(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, tier, false);
         this.workingEnabled = true;
         initializeInventory();
     }
@@ -119,7 +119,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMouldItemBus(metaTileEntityId, getTier(), isExportHatch);
+        return new MetaTileEntityMouldItemBus(metaTileEntityId, getTier());
     }
 
     @Override
@@ -146,7 +146,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
             for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
                 if (handler instanceof INotifiableHandler notifiable) {
                     notifiable.addNotifiableMetaTileEntity(controllerBase);
-                    notifiable.addToNotifiedList(this, handler, isExportHatch);
+                    notifiable.addToNotifiedList(this, handler, false);
                 }
             }
         }
@@ -169,19 +169,14 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         super.update();
         if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
             if (workingEnabled) {
-                if (isExportHatch) {
-                    pushItemsIntoNearbyHandlers(getFrontFacing());
-                } else {
-                    pullItemsFromNearbyHandlers(getFrontFacing());
-                }
+                pullItemsFromNearbyHandlers(getFrontFacing());
             }
             // Only attempt to auto collapse the inventory contents once the bus has been notified
             if (isAutoCollapse()) {
                 // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
                 // from the slot
-                IItemHandlerModifiable inventory = (isExportHatch ? this.getExportItems() : super.getImportItems());
-                if (!isAttachedToMultiBlock() || (isExportHatch ? this.getNotifiedItemOutputList().contains(inventory) :
-                        this.getNotifiedItemInputList().contains(inventory))) {
+                IItemHandlerModifiable inventory = (super.getImportItems());
+                if (!isAttachedToMultiBlock() || (this.getNotifiedItemInputList().contains(inventory))) {
                     collapseInventorySlotContents(inventory);
                 }
             }
@@ -214,10 +209,9 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
-            SimpleOverlayRenderer renderer = isExportHatch ? Textures.PIPE_OUT_OVERLAY : Textures.PIPE_IN_OVERLAY;
+            SimpleOverlayRenderer renderer = Textures.PIPE_IN_OVERLAY;
             renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
-            SimpleOverlayRenderer overlay = isExportHatch ? Textures.ITEM_HATCH_OUTPUT_OVERLAY :
-                    Textures.ITEM_HATCH_INPUT_OVERLAY;
+            SimpleOverlayRenderer overlay = Textures.ITEM_HATCH_INPUT_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
@@ -229,19 +223,17 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
 
     @Override
     protected IItemHandlerModifiable createExportItemHandler() {
-        return isExportHatch ? new NotifiableItemStackHandler(this, getInventorySize(), getController(), true) :
-                new GTItemStackHandler(this, 0);
+        return new GTItemStackHandler(this, 0);
     }
 
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
-        return isExportHatch ? new GTItemStackHandler(this, 0) :
-                new NotifiableItemStackHandler(this, getInventorySize(), getController(), false);
+        return new NotifiableItemStackHandler(this, getInventorySize(), getController(), false);
     }
 
     @Override
     public MultiblockAbility<IItemHandlerModifiable> getAbility() {
-        return isExportHatch ? MultiblockAbility.EXPORT_ITEMS : MultiblockAbility.IMPORT_ITEMS;
+        return MultiblockAbility.IMPORT_ITEMS;
     }
 
     @Override
@@ -263,7 +255,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         super.writeToNBT(data);
         data.setBoolean("workingEnabled", workingEnabled);
         data.setBoolean("autoCollapse", autoCollapse);
-        if (this.circuitInventory != null && !this.isExportHatch) {
+        if (this.circuitInventory != null) {
             this.circuitInventory.write(data);
         }
         return data;
@@ -278,7 +270,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         if (data.hasKey("autoCollapse")) {
             this.autoCollapse = data.getBoolean("autoCollapse");
         }
-        if (this.circuitInventory != null && !this.isExportHatch) {
+        if (this.circuitInventory != null) {
             this.circuitInventory.read(data);
         }
     }
@@ -296,9 +288,9 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(isExportHatch ? this.exportItems : this.actualImportItems);
+            abilityInstances.add(this.actualImportItems);
         } else {
-            abilityInstances.add(isExportHatch ? this.exportItems : this.importItems);
+            abilityInstances.add(this.importItems);
         }
     }
 
@@ -320,7 +312,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         BooleanSyncValue workingStateValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
 
-        IItemHandlerModifiable handler = isExportHatch ? exportItems : importItems;
+        IItemHandlerModifiable handler = importItems;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
@@ -340,7 +332,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
-                                        .accessibility(!isExportHatch, true))))
+                                        .accessibility(!false, true))))
                 .child(Flow.column()
                         .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
                         .width(18).height(18 * 4 + 5)
@@ -350,13 +342,9 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
                                 .value(workingStateValue)
                                 .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
                                 .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine(isExportHatch ?
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.item_auto_output.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.item_auto_output.tooltip.disabled")) :
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))))
+                                .tooltipBuilder(t -> t.addLine((workingStateValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))))
                         .child(new ToggleButton()
                                 .top(18)
                                 .value(collapseStateValue)
@@ -376,7 +364,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
 
     @Override
     public boolean hasGhostCircuitInventory() {
-        return !this.isExportHatch;
+        return true;
     }
 
     @Override
@@ -402,11 +390,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
             if (autoCollapse) {
-                if (isExportHatch) {
-                    addNotifiedOutput(this.getExportItems());
-                } else {
-                    addNotifiedInput(super.getImportItems());
-                }
+                addNotifiedInput(super.getImportItems());
             }
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
                     packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
@@ -435,10 +419,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
-        if (this.isExportHatch)
-            tooltip.add(I18n.format("gregtech.machine.item_bus.export.tooltip"));
-        else
-            tooltip.add(I18n.format("gregtech.machine.item_bus.import.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.item_bus.import.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getInventorySize()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
