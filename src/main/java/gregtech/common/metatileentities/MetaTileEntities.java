@@ -847,10 +847,22 @@ public class MetaTileEntities {
                 GTUtility.genericGeneratorEfficiencyFunction);
 
         // 等离子发电机, IDs 955-959
-        registerSimpleGeneratorMetaTileEntity(PLASMA_GENERATOR, 955, "plasma_generator",
-                RecipeMaps.PLASMA_GENERATOR_FUELS, Textures.PLASMA_TURBINE_OVERLAY,
-                MetaTileEntitySingleTurbine.class, GTUtility.genericGeneratorTankSizeFunction,
-                tier -> 1.0);
+        PLASMA_GENERATOR[0] = registerMetaTileEntity(955,
+                new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.ev"), RecipeMaps.PLASMA_GENERATOR_FUELS,
+                        Textures.PLASMA_TURBINE_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction,1));
+        PLASMA_GENERATOR[1] = registerMetaTileEntity(956,
+                new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.iv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
+                        Textures.PLASMA_TURBINE_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction,1));
+        PLASMA_GENERATOR[2] = registerMetaTileEntity(957,
+                new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.luv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
+                        Textures.PLASMA_TURBINE_OVERLAY, 6, GTUtility.genericGeneratorTankSizeFunction,1));
+        PLASMA_GENERATOR[3] = registerMetaTileEntity(958,
+                new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.zpm"), RecipeMaps.PLASMA_GENERATOR_FUELS,
+                        Textures.PLASMA_TURBINE_OVERLAY, 7, GTUtility.genericGeneratorTankSizeFunction,1));
+        PLASMA_GENERATOR[4] = registerMetaTileEntity(959,
+                new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.uv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
+                        Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction,1));
+
 
         // 风机, IDs 970-974
         for (int i = 0; i < WIND_GENERATOR.length; i++){
