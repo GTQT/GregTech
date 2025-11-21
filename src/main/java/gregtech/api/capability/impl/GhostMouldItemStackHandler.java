@@ -95,7 +95,7 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
         {
             if(stack.getItem()==MetaItems.SHAPE_MOLDS[0].getStackForm().getItem() &&
                     stack.getMetadata() >= MetaItems.SHAPE_MOLDS[0].getMetaValue() &&
-                    stack.getMetadata() <= MetaItems.SHAPE_MOLDS[MetaItems.SHAPE_MOLDS.length].getMetaValue()
+                    stack.getMetadata() <= MetaItems.SHAPE_MOLDS[MetaItems.SHAPE_MOLDS.length-1].getMetaValue()
             )
             {
                 for (int i = 0; i < MetaItems.SHAPE_MOLDS.length; i++) {
