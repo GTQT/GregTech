@@ -167,6 +167,12 @@ public class ToolRecipeHandler {
                     'I', ingot,
                     'S', stick);
 
+            addToolRecipe(material, ToolItems.DOUBLE_AXE, false,
+                    "PIP", "PSP", "fSh",
+                    'P', plate,
+                    'I', ingot,
+                    'S', stick);
+
             addToolRecipe(material, ToolItems.HOE, false,
                     "PIh", "fS ", " S ",
                     'P', plate,
@@ -517,6 +523,11 @@ public class ToolRecipeHandler {
 
         addToolRecipe(Materials.Flint, ToolItems.AXE, true,
                 "II", "IS", " S",
+                'I', flint,
+                'S', stick);
+
+        addToolRecipe(Materials.Flint, ToolItems.DOUBLE_AXE, true,
+                "III", "ISI", " S ",
                 'I', flint,
                 'S', stick);
 

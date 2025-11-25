@@ -24,7 +24,12 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.google.common.base.CaseFormat;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class MetaItems {
 
@@ -56,7 +61,7 @@ public final class MetaItems {
 
     public static MetaItem<?>.MetaValueItem SHAPE_EMPTY;
 
-    public static final MetaItem<?>.MetaValueItem[] SHAPE_MOLDS = new MetaValueItem[21];
+    public static final MetaItem<?>.MetaValueItem[] SHAPE_MOLDS = new MetaValueItem[26];
     public static MetaItem<?>.MetaValueItem SHAPE_MOLD_PLATE;
     public static MetaItem<?>.MetaValueItem SHAPE_MOLD_GEAR;
     public static MetaItem<?>.MetaValueItem SHAPE_MOLD_CREDIT;
@@ -78,8 +83,13 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem SHAPE_MOLD_ROD_LONG;
     public static MetaItem<?>.MetaValueItem SHAPE_MOLD_TURBINE_BLADE;
     public static MetaItem<?>.MetaValueItem SHAPE_MOLD_DRILL_HEAD;
+    public static MetaItem<?>.MetaValueItem SHAPE_MOLD_PIPE_TINY;
+    public static MetaItem<?>.MetaValueItem SHAPE_MOLD_PIPE_SMALL;
+    public static MetaItem<?>.MetaValueItem SHAPE_MOLD_PIPE_NORMAL;
+    public static MetaItem<?>.MetaValueItem SHAPE_MOLD_PIPE_LARGE;
+    public static MetaItem<?>.MetaValueItem SHAPE_MOLD_PIPE_HUGE;
 
-    public static final MetaItem<?>.MetaValueItem[] SHAPE_EXTRUDERS = new MetaValueItem[29 ];
+    public static final MetaItem<?>.MetaValueItem[] SHAPE_EXTRUDERS = new MetaValueItem[29];
     public static MetaItem<?>.MetaValueItem SHAPE_EXTRUDER_PLATE;
     public static MetaItem<?>.MetaValueItem SHAPE_EXTRUDER_ROD;
     public static MetaItem<?>.MetaValueItem SHAPE_EXTRUDER_BOLT;

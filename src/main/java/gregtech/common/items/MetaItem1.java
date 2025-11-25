@@ -181,79 +181,74 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Steel, M * 4)));
         SHAPE_MOLDS[20] =SHAPE_MOLD_DRILL_HEAD = this.addItem(32, "shape.mold.drill_head")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Steel, M * 4)));
+        SHAPE_MOLDS[21] = SHAPE_MOLD_PIPE_TINY = addItem(33, "shape.mold.pipe.tiny")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
+        SHAPE_MOLDS[22] = SHAPE_MOLD_PIPE_SMALL = addItem(34, "shape.mold.pipe.small")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
+        SHAPE_MOLDS[23] = SHAPE_MOLD_PIPE_NORMAL = addItem(35, "shape.mold.pipe.normal")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
+        SHAPE_MOLDS[24] = SHAPE_MOLD_PIPE_LARGE = addItem(36, "shape.mold.pipe.large")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
+        SHAPE_MOLDS[25] = SHAPE_MOLD_PIPE_HUGE = addItem(37, "shape.mold.pipe.huge")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
 
-        // Extruder Shapes: ID 31-59
-        SHAPE_EXTRUDERS[0] = SHAPE_EXTRUDER_PLATE = addItem(33, "shape.extruder.plate")
+        // Extruder Shapes: ID 40-66
+        SHAPE_EXTRUDERS[0] = SHAPE_EXTRUDER_PLATE = addItem(40, "shape.extruder.plate")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[1] = SHAPE_EXTRUDER_ROD = addItem(34, "shape.extruder.rod")
+        SHAPE_EXTRUDERS[1] = SHAPE_EXTRUDER_ROD = addItem(41, "shape.extruder.rod")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[2] = SHAPE_EXTRUDER_BOLT = addItem(35, "shape.extruder.bolt")
+        SHAPE_EXTRUDERS[2] = SHAPE_EXTRUDER_BOLT = addItem(42, "shape.extruder.bolt")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[3] = SHAPE_EXTRUDER_RING = addItem(36, "shape.extruder.ring")
+        SHAPE_EXTRUDERS[3] = SHAPE_EXTRUDER_RING = addItem(43, "shape.extruder.ring")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[4] = SHAPE_EXTRUDER_CELL = addItem(37, "shape.extruder.cell")
+        SHAPE_EXTRUDERS[4] = SHAPE_EXTRUDER_CELL = addItem(44, "shape.extruder.cell")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[5] = SHAPE_EXTRUDER_INGOT = addItem(38, "shape.extruder.ingot")
+        SHAPE_EXTRUDERS[5] = SHAPE_EXTRUDER_INGOT = addItem(45, "shape.extruder.ingot")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[6] = SHAPE_EXTRUDER_WIRE = addItem(39, "shape.extruder.wire")
+        SHAPE_EXTRUDERS[6] = SHAPE_EXTRUDER_WIRE = addItem(46, "shape.extruder.wire")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[7] = SHAPE_EXTRUDER_PIPE_TINY = addItem(40, "shape.extruder.pipe.tiny")
+        SHAPE_EXTRUDERS[7] = SHAPE_EXTRUDER_PIPE_TINY = addItem(47, "shape.extruder.pipe.tiny")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[8] = SHAPE_EXTRUDER_PIPE_SMALL = addItem(41, "shape.extruder.pipe.small")
+        SHAPE_EXTRUDERS[8] = SHAPE_EXTRUDER_PIPE_SMALL = addItem(48, "shape.extruder.pipe.small")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[9] = SHAPE_EXTRUDER_PIPE_NORMAL = addItem(42, "shape.extruder.pipe.normal")
+        SHAPE_EXTRUDERS[9] = SHAPE_EXTRUDER_PIPE_NORMAL = addItem(49, "shape.extruder.pipe.normal")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[10] = SHAPE_EXTRUDER_PIPE_LARGE = addItem(43, "shape.extruder.pipe.large")
+        SHAPE_EXTRUDERS[10] = SHAPE_EXTRUDER_PIPE_LARGE = addItem(50, "shape.extruder.pipe.large")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[11] = SHAPE_EXTRUDER_PIPE_HUGE = addItem(44, "shape.extruder.pipe.huge")
+        SHAPE_EXTRUDERS[11] = SHAPE_EXTRUDER_PIPE_HUGE = addItem(51, "shape.extruder.pipe.huge")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[12] = SHAPE_EXTRUDER_BLOCK = addItem(45, "shape.extruder.block")
+        SHAPE_EXTRUDERS[12] = SHAPE_EXTRUDER_BLOCK = addItem(52, "shape.extruder.block")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        // Extruder Shapes index 13-20 (inclusive), id 44-51 (inclusive) are unused
-        SHAPE_EXTRUDERS[21] = SHAPE_EXTRUDER_GEAR = addItem(52, "shape.extruder.gear")
+        // Extruder Shapes index 13-20 (inclusive), id 53-58 (inclusive) are unused
+        SHAPE_EXTRUDERS[21] = SHAPE_EXTRUDER_GEAR = addItem(59, "shape.extruder.gear")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[22] = SHAPE_EXTRUDER_BOTTLE = addItem(53, "shape.extruder.bottle")
+        SHAPE_EXTRUDERS[22] = SHAPE_EXTRUDER_BOTTLE = addItem(60, "shape.extruder.bottle")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[23] = SHAPE_EXTRUDER_FOIL = addItem(54, "shape.extruder.foil")
+        SHAPE_EXTRUDERS[23] = SHAPE_EXTRUDER_FOIL = addItem(61, "shape.extruder.foil")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[24] = SHAPE_EXTRUDER_GEAR_SMALL = addItem(55, "shape.extruder.gear_small")
+        SHAPE_EXTRUDERS[24] = SHAPE_EXTRUDER_GEAR_SMALL = addItem(62, "shape.extruder.gear_small")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[25] = SHAPE_EXTRUDER_ROD_LONG = addItem(56, "shape.extruder.rod_long")
+        SHAPE_EXTRUDERS[25] = SHAPE_EXTRUDER_ROD_LONG = addItem(63, "shape.extruder.rod_long")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[26] = SHAPE_EXTRUDER_ROTOR = addItem(57, "shape.extruder.rotor")
+        SHAPE_EXTRUDERS[26] = SHAPE_EXTRUDER_ROTOR = addItem(64, "shape.extruder.rotor")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4)));
-        SHAPE_EXTRUDERS[27] =SHAPE_EXTRUDER_TURBINE_BLADE = this.addItem(58, "shape.extruder.turbine_blade")
+        SHAPE_EXTRUDERS[27] =SHAPE_EXTRUDER_TURBINE_BLADE = this.addItem(65, "shape.extruder.turbine_blade")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Steel, M * 4)));
-        SHAPE_EXTRUDERS[28] =SHAPE_EXTRUDER_DRILL_HEAD = this.addItem(59, "shape.extruder.drill_head")
+        SHAPE_EXTRUDERS[28] =SHAPE_EXTRUDER_DRILL_HEAD = this.addItem(66, "shape.extruder.drill_head")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Steel, M * 4)));
-
-        // Spray Cans: ID 60-77
-        SPRAY_EMPTY = addItem(61, "spray.empty");
-
-        // out of registry order so it can reference the Empty Spray Can
-        SPRAY_SOLVENT = addItem(60, "spray.solvent").setMaxStackSize(1)
-                .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 1024, null))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        for (EnumDyeColor color : EnumDyeColor.values()) {
-            SPRAY_CAN_DYES.put(color, addItem(62 + color.ordinal(), "spray.can.dyes." + color.getName())
-                    .setMaxStackSize(1)
-                    .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 512, color))
-                    .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS));
-        }
 
         // Fluid Cells: ID 78-88
-        FLUID_CELL = addItem(78, "fluid_cell")
+        FLUID_CELL = addItem(75, "fluid_cell")
                 .addComponents(new FilteredFluidStats(1000, 1800, true, false, false, false, false),
                         new ItemFluidContainer(true))
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        FLUID_CELL_UNIVERSAL = addItem(79, "fluid_cell.universal")
+        FLUID_CELL_UNIVERSAL = addItem(76, "fluid_cell.universal")
                 .addComponents(new FilteredFluidStats(1000, 1800, true, false, false, false, true),
                         new ItemFluidContainer(true))
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        FLUID_CELL_LARGE_STEEL = addItem(80, "large_fluid_cell.steel")
+        FLUID_CELL_LARGE_STEEL = addItem(77, "large_fluid_cell.steel")
                 .addComponents(new FilteredFluidStats(8000,
                         Materials.Steel.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, false,
                         false, false, true),
@@ -261,7 +256,7 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Steel, M * 4))) // ingot * 4
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        FLUID_CELL_LARGE_ALUMINIUM = addItem(81, "large_fluid_cell.aluminium")
+        FLUID_CELL_LARGE_ALUMINIUM = addItem(78, "large_fluid_cell.aluminium")
                 .addComponents(new FilteredFluidStats(32000,
                         Materials.Aluminium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, false,
                         false, false, true),
@@ -269,7 +264,7 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Aluminium, M * 4))) // ingot * 4
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        FLUID_CELL_LARGE_STAINLESS_STEEL = addItem(82, "large_fluid_cell.stainless_steel")
+        FLUID_CELL_LARGE_STAINLESS_STEEL = addItem(79, "large_fluid_cell.stainless_steel")
                 .addComponents(new FilteredFluidStats(64000,
                         Materials.StainlessSteel.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true,
                         true, true, false, true),
@@ -277,7 +272,7 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.StainlessSteel, M * 6))) // ingot * 6
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        FLUID_CELL_LARGE_TITANIUM = addItem(83, "large_fluid_cell.titanium")
+        FLUID_CELL_LARGE_TITANIUM = addItem(80, "large_fluid_cell.titanium")
                 .addComponents(new FilteredFluidStats(128000,
                         Materials.Titanium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, true,
                         false, false, true),
@@ -285,7 +280,7 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Titanium, M * 6))) // ingot * 6
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        FLUID_CELL_LARGE_TUNGSTEN_STEEL = addItem(84, "large_fluid_cell.tungstensteel")
+        FLUID_CELL_LARGE_TUNGSTEN_STEEL = addItem(82, "large_fluid_cell.tungstensteel")
                 .addComponents(new FilteredFluidStats(512000,
                         Materials.TungstenSteel.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true,
                         true, false, false, true),
@@ -300,58 +295,52 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Glass, M / 4))) // small dust
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        SPRAY_CREATIVE = addItem(88, "spray.creative")
+        // Spray Cans: ID 90-110
+        SPRAY_EMPTY = addItem(91, "spray.empty");
+
+        // out of registry order so it can reference the Empty Spray Can
+        SPRAY_SOLVENT = addItem(90, "spray.solvent").setMaxStackSize(1)
+                .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 1024, null))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        for (EnumDyeColor color : EnumDyeColor.values()) {
+            SPRAY_CAN_DYES.put(color, addItem(92 + color.ordinal(), "spray.can.dyes." + color.getName())
+                    .setMaxStackSize(1)
+                    .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 512, color))
+                    .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS));
+        }
+
+        SPRAY_CREATIVE = addItem(110, "spray.creative")
                 .addComponents(new CreativeSprayBehavior());
-        // Limited-Use Items: ID 89-95
-
-        TOOL_MATCHES = addItem(89, "tool.matches")
-                .addComponents(new LighterBehaviour(false, false, false))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        TOOL_MATCHBOX = addItem(90, "tool.matchbox")
-                .addComponents(new LighterBehaviour(false, true, false, Items.PAPER, 16))
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        TOOL_LIGHTER_INVAR = addItem(91, "tool.lighter.invar")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Invar, M * 2)))
-                .addComponents(new LighterBehaviour(GTUtility.gregtechId("lighter_open"), true, true, true))
-                .addComponents(new FilteredFluidStats(100, true, CommonFluidFilters.LIGHTER_FUEL))
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        TOOL_LIGHTER_PLATINUM = addItem(92, "tool.lighter.platinum")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Platinum, M * 2)))
-                .addComponents(new LighterBehaviour(GTUtility.gregtechId("lighter_open"), true, true, true))
-                .addComponents(new FilteredFluidStats(1000, true, CommonFluidFilters.LIGHTER_FUEL))
-                .setMaxStackSize(1)
-                .setRarity(EnumRarity.UNCOMMON)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        BOTTLE_PURPLE_DRINK = addItem(93, "bottle.purple.drink").addComponents(new FoodStats(8, 0.2F, true, true,
-                new ItemStack(Items.GLASS_BOTTLE), new RandomPotionEffect(MobEffects.HASTE, 800, 1, 90)));
 
         // Voltage Coils: ID 96-110
-        VOLTAGE_COIL_ULV = addItem(96, "voltage_coil.ulv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_ULV = addItem(111, "voltage_coil.ulv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Lead, M * 2), new MaterialStack(Materials.IronMagnetic, M / 2)));
-        VOLTAGE_COIL_LV = addItem(97, "voltage_coil.lv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_LV = addItem(112, "voltage_coil.lv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Steel, M * 2), new MaterialStack(Materials.IronMagnetic, M / 2)));
-        VOLTAGE_COIL_MV = addItem(98, "voltage_coil.mv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_MV = addItem(113, "voltage_coil.mv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Aluminium, M * 2), new MaterialStack(Materials.SteelMagnetic, M / 2)));
-        VOLTAGE_COIL_HV = addItem(99, "voltage_coil.hv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_HV = addItem(114, "voltage_coil.hv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.BlackSteel, M * 2), new MaterialStack(Materials.SteelMagnetic, M / 2)));
-        VOLTAGE_COIL_EV = addItem(100, "voltage_coil.ev")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Platinum, M * 2),
-                        new MaterialStack(Materials.NeodymiumMagnetic, M / 2)));
-        VOLTAGE_COIL_IV = addItem(101, "voltage_coil.iv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_EV = addItem(115, "voltage_coil.ev").setRecyclingData(new RecyclingData(
+                new MaterialStack(Materials.Platinum, M * 2), new MaterialStack(Materials.NeodymiumMagnetic, M / 2)));
+        VOLTAGE_COIL_IV = addItem(116, "voltage_coil.iv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Iridium, M * 2), new MaterialStack(Materials.NeodymiumMagnetic, M / 2)));
-        VOLTAGE_COIL_LuV = addItem(102, "voltage_coil.luv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_LuV = addItem(117, "voltage_coil.luv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Osmiridium, M * 2), new MaterialStack(Materials.SamariumMagnetic, M / 2)));
-        VOLTAGE_COIL_ZPM = addItem(103, "voltage_coil.zpm").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_ZPM = addItem(118, "voltage_coil.zpm").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Europium, M * 2), new MaterialStack(Materials.SamariumMagnetic, M / 2)));
-        VOLTAGE_COIL_UV = addItem(104, "voltage_coil.uv").setRecyclingData(new RecyclingData(
+        VOLTAGE_COIL_UV = addItem(119, "voltage_coil.uv").setRecyclingData(new RecyclingData(
                 new MaterialStack(Materials.Tritanium, M * 2), new MaterialStack(Materials.SamariumMagnetic, M / 2)));
 
-        // ???: ID 111-125
+        //120 UHV
+        //121 UEV
+        //122 UIV
+        //123 UXV
+        //124 OpV
+        //125 MAX
 
-        // Motors: ID 126-140
+        // Motors: ID 127-140
         ELECTRIC_MOTOR_LV = addItem(127, "electric.motor.lv");
         ELECTRIC_MOTOR_MV = addItem(128, "electric.motor.mv");
         ELECTRIC_MOTOR_HV = addItem(129, "electric.motor.hv");
@@ -915,7 +904,31 @@ public class MetaItem1 extends StandardMetaItem {
         POWER_UNIT_IV = addItem(450, "power_unit.iv")
                 .addComponents(ElectricStats.createElectricItem(25600000L, GTValues.IV)).setMaxStackSize(8);
 
-        // Usable Items: ID 460-490
+        // Usable Items: ID 455-490
+        TOOL_MATCHES = addItem(455, "tool.matches")
+                .addComponents(new LighterBehaviour(false, false, false))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        TOOL_MATCHBOX = addItem(456, "tool.matchbox")
+                .addComponents(new LighterBehaviour(false, true, false, Items.PAPER, 16))
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        TOOL_LIGHTER_INVAR = addItem(457, "tool.lighter.invar")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Invar, M * 2)))
+                .addComponents(new LighterBehaviour(GTUtility.gregtechId("lighter_open"), true, true, true))
+                .addComponents(new FilteredFluidStats(100, true, CommonFluidFilters.LIGHTER_FUEL))
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        TOOL_LIGHTER_PLATINUM = addItem(458, "tool.lighter.platinum")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Platinum, M * 2)))
+                .addComponents(new LighterBehaviour(GTUtility.gregtechId("lighter_open"), true, true, true))
+                .addComponents(new FilteredFluidStats(1000, true, CommonFluidFilters.LIGHTER_FUEL))
+                .setMaxStackSize(1)
+                .setRarity(EnumRarity.UNCOMMON)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        BOTTLE_PURPLE_DRINK = addItem(459, "bottle.purple.drink").addComponents(new FoodStats(8, 0.2F, true, true,
+                new ItemStack(Items.GLASS_BOTTLE), new RandomPotionEffect(MobEffects.HASTE, 800, 1, 90)));
+
         DYNAMITE = addItem(460, "dynamite")
                 .addComponents(new DynamiteBehaviour())
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);

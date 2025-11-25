@@ -230,94 +230,108 @@ public class CraftingRecipeLoader {
                 SHAPE_EMPTY.getStackForm());
         ModHandler.addShapedRecipe("shape_extruder_rotor", SHAPE_EXTRUDER_ROTOR.getStackForm(), "   ", " S ", "x  ",
                 'S', SHAPE_EMPTY.getStackForm());
+        ModHandler.addShapedRecipe(true, "shape_extruder.turbine_blade", SHAPE_EXTRUDER_TURBINE_BLADE.getStackForm(),
+                "   ", " M ", "  x",
+                'M', SHAPE_EXTRUDER_PLATE);
+        ModHandler.addShapedRecipe(true, "shape_extruder.drill_head", SHAPE_EXTRUDER_DRILL_HEAD.getStackForm(),
+                "   ", " M ", " x ",
+                'M', SHAPE_EXTRUDER_INGOT);
 
         ModHandler.addShapedRecipe(true, "shape_mold.plate", SHAPE_MOLD_PLATE.getStackForm(),
                 " hf", " M ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true,"shape_mold.gear", SHAPE_MOLD_GEAR.getStackForm(),
-                " h ", " M ", "  f",
+                "h f", " M ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.bottle", SHAPE_MOLD_BOTTLE.getStackForm(),
-                " h ", " M ", " f ",
+                "h  ", "fM ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.ingot", SHAPE_MOLD_INGOT.getStackForm(),
-                " h ", " M ", "f  ",
+                "h  ", " Mf", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.ball", SHAPE_MOLD_BALL.getStackForm(),
-                " h ", "fM ", "   ",
+                "h  ", " M ", "f  ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.block", SHAPE_MOLD_BLOCK.getStackForm(),
-                "fh ", " M ", "   ",
+                "h  ", " M ", " f ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.nugget", SHAPE_MOLD_NUGGET.getStackForm(),
-                "  h", " Mf", "   ",
+                "h  ", " M ", "  f",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.cylinder", SHAPE_MOLD_CYLINDER.getStackForm(),
-                "  h", "fM ", "   ",
+                "fh ", " M ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.anvil", SHAPE_MOLD_ANVIL.getStackForm(),
-                "f h", " M ", "   ",
+                " h ", "fM ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.name", SHAPE_MOLD_NAME.getStackForm(),
-                " fh", " M ", "   ",
+                " h ", " Mf", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.gear_small", SHAPE_MOLD_GEAR_SMALL.getStackForm(),
-                "   ", " Mh", " f ",
+                " h ", " M ", "f  ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.rotor", SHAPE_MOLD_ROTOR.getStackForm(),
-                "   ", " M ", "f h",
+                " h ", " M ", " f ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.rod", SHAPE_MOLD_ROD.getStackForm(),
-                "   ", " Mh", "f  ",
+                " h ", " M ", "  f",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.bolt", SHAPE_MOLD_BOLT.getStackForm(),
-                "   ", "fMh", "   ",
+                "f h", " M ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.round", SHAPE_MOLD_ROUND.getStackForm(),
-                "f  ", " Mh", "   ",
+                " fh", " M ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.screw", SHAPE_MOLD_SCREW.getStackForm(),
-                " f ", " Mh", "   ",
+                "  h", "fM ", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.ring", SHAPE_MOLD_RING.getStackForm(),
-                "  f", " Mh", "   ",
+                "  h", " Mf", "   ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.rod_long", SHAPE_MOLD_ROD_LONG.getStackForm(),
-                "   ", " M ", " fh",
+                "  h", " M ", "f  ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.turbine_blade", SHAPE_MOLD_TURBINE_BLADE.getStackForm(),
-                "   ", "fM ", "  h",
+                "  h", " M ", " f ",
                 'M', SHAPE_EMPTY);
 
         ModHandler.addShapedRecipe(true, "shape_mold.drill_head", SHAPE_MOLD_DRILL_HEAD.getStackForm(),
-                "   ", " M ", " hf",
+                "  h", " M ", "  f",
                 'M', SHAPE_EMPTY);
 
-        ModHandler.addShapedRecipe(true, "shape_extruder.turbine_blade", SHAPE_EXTRUDER_TURBINE_BLADE.getStackForm(),
-                "   ", " M ", "  x",
-                'M', SHAPE_EXTRUDER_PLATE);
-
-        ModHandler.addShapedRecipe(true, "shape_extruder.drill_head", SHAPE_EXTRUDER_DRILL_HEAD.getStackForm(),
-                "   ", " M ", " x ",
-                'M', SHAPE_EXTRUDER_INGOT);
+        ModHandler.addShapedRecipe("shape_mold_pipe_tiny", SHAPE_MOLD_PIPE_TINY.getStackForm(),
+                "f  ", "hM ", "   ",
+                'M', SHAPE_EMPTY);
+        ModHandler.addShapedRecipe("shape_mold_pipe_small", SHAPE_MOLD_PIPE_SMALL.getStackForm(),
+                " f ", "hM ", "   ",
+                'M', SHAPE_EMPTY);
+        ModHandler.addShapedRecipe("shape_mold_pipe_normal", SHAPE_MOLD_PIPE_NORMAL.getStackForm(),
+                "  f", "hM ", "   ",
+                'M', SHAPE_EMPTY);
+        ModHandler.addShapedRecipe("shape_mold_pipe_large", SHAPE_MOLD_PIPE_LARGE.getStackForm(),
+                "   ", "hMf", "   ",
+                'M', SHAPE_EMPTY);
+        ModHandler.addShapedRecipe("shape_mold_pipe_huge", SHAPE_MOLD_PIPE_HUGE.getStackForm(),
+                "   ", "hM ", "f  ",
+                'M', SHAPE_EMPTY);
 
         ///////////////////////////////////////////////////
         // Credits //
