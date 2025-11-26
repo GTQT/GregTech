@@ -59,13 +59,10 @@ import java.util.function.Supplier;
 @SuppressWarnings({ "UnusedReturnValue", "unused" })
 public class MultiblockUIBuilder {
 
-    private final List<Operation> operations = new ArrayList<>();
-
-    private Consumer<MultiblockUIBuilder> action;
-    private final InternalSyncHandler syncHandler = new InternalSyncHandler();
-
     private static final int DEFAULT_MAX_RECIPE_LINES = 25;
-
+    private final List<Operation> operations = new ArrayList<>();
+    private final InternalSyncHandler syncHandler = new InternalSyncHandler();
+    private Consumer<MultiblockUIBuilder> action;
     @Nullable
     private InternalSyncer syncer;
 
@@ -78,6 +75,23 @@ public class MultiblockUIBuilder {
     private IKey pausedKey = IKey.lang("gregtech.multiblock.work_paused").style(TextFormatting.GOLD);
     private IKey runningKey = IKey.lang("gregtech.multiblock.running").style(TextFormatting.GREEN);
     private Runnable onRebuild;
+
+    private static String formatRecipeRate(int recipeLength, long amount) {
+        float perSecond = ((float) amount / recipeLength) * 20f;
+
+        String rate;
+        if (perSecond > 1) {
+            rate = "(" + String.format("%,.2f", perSecond).replaceAll("\\.?0+$", "") + "/s)";
+        } else {
+            rate = "(" + String.format("%,.2f", 1 / (perSecond)).replaceAll("\\.?0+$", "") + "s/ea)";
+        }
+
+        return rate;
+    }
+
+    private static IKey formatRecipeData(IKey name, IKey amount, IKey rate) {
+        return IKey.comp(name, KeyUtil.string(TextFormatting.WHITE, " x "), amount, IKey.SPACE, rate);
+    }
 
     @NotNull
     InternalSyncer getSyncer() {
@@ -111,7 +125,7 @@ public class MultiblockUIBuilder {
         return this;
     }
 
-    public int syncsInteger(int value){
+    public int syncsInteger(int value) {
         return this.getSyncer().syncInt(value);
     }
 
@@ -463,8 +477,7 @@ public class MultiblockUIBuilder {
     /**
      * Adds warning line(s) when the machine has maintenance problems.
      * <br>
-     * Added if there are any maintenance problems, one line per problem as well as a header. <br>
-     * Will check the config
+     * Added if there are any maintenance problems, one line per problem as well as a header. <br> Will check the config
      * setting for if maintenance is enabled automatically.
      */
     public MultiblockUIBuilder addMaintenanceProblemLines(byte maintenanceProblems, boolean warning) {
@@ -602,7 +615,9 @@ public class MultiblockUIBuilder {
      */
     public MultiblockUIBuilder addRecipeOutputLine(AbstractRecipeLogic arl, int maxLines) {
         // todo recipe is null on first load, fix in the future
-        Recipe recipe = arl.getPreviousRecipe();
+        Recipe recipe;
+        if (arl.isBatchEnable()) recipe = arl.getShowRecipes();
+        else recipe = arl.getPreviousRecipe();
 
         if (getSyncer().syncBoolean(recipe == null)) return this;
         RecipeMap<?> map = arl.getRecipeMap();
@@ -613,8 +628,9 @@ public class MultiblockUIBuilder {
             MetaTileEntity mte = arl.getMetaTileEntity();
             trimmed = Recipe.trimRecipeOutputs(recipe, map, mte.getItemOutputLimit(), mte.getFluidOutputLimit());
         }
-
-        int p = getSyncer().syncInt(arl.getParallelRecipesPerformed());
+        int p;
+        if (arl.isBatchEnable()) p = 1;
+        else p = getSyncer().syncInt(arl.getParallelRecipesPerformed());
         if (p == 0) p = 1;
 
         long eut = getSyncer().syncLong(trimmed == null ? 0 : trimmed.getEUt());
@@ -751,23 +767,6 @@ public class MultiblockUIBuilder {
                 .asIcon()
                 .asHoverable()
                 .addTooltipLine(formatRecipeData(name, amount, rate)), Operation::add);
-    }
-
-    private static String formatRecipeRate(int recipeLength, long amount) {
-        float perSecond = ((float) amount / recipeLength) * 20f;
-
-        String rate;
-        if (perSecond > 1) {
-            rate = "(" + String.format("%,.2f", perSecond).replaceAll("\\.?0+$", "") + "/s)";
-        } else {
-            rate = "(" + String.format("%,.2f", 1 / (perSecond)).replaceAll("\\.?0+$", "") + "s/ea)";
-        }
-
-        return rate;
-    }
-
-    private static IKey formatRecipeData(IKey name, IKey amount, IKey rate) {
-        return IKey.comp(name, KeyUtil.string(TextFormatting.WHITE, " x "), amount, IKey.SPACE, rate);
     }
 
     /** Insert an empty line into the text list. */

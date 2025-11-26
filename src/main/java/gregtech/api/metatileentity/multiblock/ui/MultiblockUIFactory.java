@@ -56,7 +56,8 @@ public class MultiblockUIFactory {
     protected Consumer<MultiblockUIBuilder> displayText, warningText, errorText;
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton = (guiData, syncManager) -> null;
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> gcymButton = (guiData, syncManager) -> null;
-
+    protected BiFunction<PosGuiData, PanelSyncManager, IWidget> parallelButton = (guiData, syncManager) -> null;
+    protected BiFunction<PosGuiData, PanelSyncManager, IWidget>  threadButton = (guiData, syncManager) -> null;
     private int width = 198, height = 202+18;
     private int screenHeight = 109;
     private ScreenFunction screenFunction;
@@ -242,6 +243,16 @@ public class MultiblockUIFactory {
 
     public MultiblockUIFactory createGcymButton(BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton) {
         this.gcymButton = flexButton;
+        return this;
+    }
+
+    public MultiblockUIFactory createParallelButton(BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton) {
+        this.parallelButton = flexButton;
+        return this;
+    }
+
+    public MultiblockUIFactory createThreadButton(BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton) {
+        this.threadButton = flexButton;
         return this;
     }
 
@@ -487,13 +498,37 @@ public class MultiblockUIFactory {
                     .addTooltipLine(IKey.lang("gregtech.multiblock.universal.no_multi_recipemap"));
         }
 
+        //parallelButton
+        IWidget parallelButton = this.parallelButton.apply(guiData, panelSyncManager);
+        if (parallelButton == null) {
+            parallelButton = new ToggleButton()
+                    .name("parallel_none")
+                    .value(ALWAYS_ON)
+                    .size(18)
+                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
+                    .addTooltipLine(IKey.lang("无并行可调"));
+        }
+
+        //threadButton
+        IWidget threadButton = this.threadButton.apply(guiData, panelSyncManager);
+        if (threadButton == null) {
+            threadButton = new ToggleButton()
+                    .name("thread_none")
+                    .value(ALWAYS_ON)
+                    .size(18)
+                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
+                    .addTooltipLine(IKey.lang("无线程可调"));
+        }
+
         return Flow.row()
                 .name("side_col")
                 .coverChildren()
                 .align(Alignment.CenterLeft)
+                .child(createStructureCheckButton(mainPanel, panelSyncManager))
                 .child(createBatchButton(mainPanel, panelSyncManager))
                 .child(gcymButton)
-                .child(createStructureCheckButton(mainPanel, panelSyncManager));
+                .child(parallelButton)
+                .child(threadButton);
     }
 
 
