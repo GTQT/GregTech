@@ -1965,6 +1965,14 @@ public final class RecipeMaps {
             .generator()
             .disableJeiOverclockButton()
             .build();
-
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> COMBS_PRODUCT = new RecipeMapBuilder<>("combs_product",
+            new SimpleRecipeBuilder())
+            .itemInputs(3)
+            .itemOutputs(9)
+            .fluidInputs(2)
+            .fluidOutputs(3)
+            .sound(GTSoundEvents.MOTOR)
+            .build();
     private RecipeMaps() {}
 }
