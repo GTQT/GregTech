@@ -144,6 +144,7 @@ public class GTQTMetaTileEntities {
             THREAD_HATCH[i] = registerMetaTileEntity(2860 + i, new MetaTileEntityThreadHatch(
                     gregtechId(String.format("thread_hatch.%s", GTValues.VN[tier])), tier));
         }
+
         // ME Muffler Hatches, IDs 2875-2890
         for (int i = 0; i < ME_MUFFLER_HATCH.length - 1; i++) {
             int tier = i+1;

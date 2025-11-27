@@ -1,276 +1,402 @@
 package gregtech.common.covers.ender;
 
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTTransferUtils;
-import gregtech.api.util.virtualregistry.EntryTypes;
-import gregtech.api.util.virtualregistry.VirtualChest;
-import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
+import gregtech.api.util.ItemContainerSwitchShim;
+import gregtech.api.util.virtualregistry.VirtualContainerRegistry;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.covers.CoverConveyor.ConveyorMode;
+import gregtech.common.covers.CoverConveyor;
 import gregtech.common.covers.filter.ItemFilterContainer;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.ITickable;
+import net.minecraft.util.NonNullList;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
+import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.IPanelHandler;
-import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.drawable.Rectangle;
 import com.cleanroommc.modularui.factory.GuiData;
+import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.utils.Alignment;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.Widget;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import com.cleanroommc.modularui.value.sync.SyncHandlers;
+import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Grid;
+import com.cleanroommc.modularui.widgets.layout.Row;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
-import java.util.function.IntFunction;
+import java.util.regex.Pattern;
 
-public class CoverEnderItemLink extends CoverAbstractEnderLink<VirtualChest> implements ITickable {
+//TODO: get itemslots to sync properly so that itemslots can be used with mui
+//TODO: implement integration with terminal?
+//From:https://github.com/Synthitic/GCYL-CEu/pull/30
+public class CoverEnderItemLink extends CoverBase implements CoverWithUI, ITickable, IControllable {
 
-    private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST)).asIcon();
-    protected final ItemFilterContainer container;
-    private ConveyorMode conveyorMode = ConveyorMode.IMPORT;
-    private IPanelHandler activeChestPanelHandler;
+    public static final int TRANSFER_RATE = 1000;
+
+    private static final Pattern COLOR_INPUT_PATTERN = Pattern.compile("[0-9a-fA-F]*");
+    protected final ItemFilterContainer itemFilter;
+    private final ItemContainerSwitchShim linkedShim;
+    protected CoverConveyor.ConveyorMode conveyorMode = CoverConveyor.ConveyorMode.IMPORT;
+    protected int itemsLeftToTransferLastSecond;
+    private int color = 0xFFFFFFFF;
+    private UUID playerUUID = null;
+    private boolean isPrivate = false;
+    private boolean workingEnabled = true;
+    private boolean ioEnabled = false;
+    private String tempColorStr;
+    private boolean isColorTemp;
 
     public CoverEnderItemLink(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
-                              @NotNull EnumFacing attachedSide) {
+                                 @NotNull EnumFacing attachedSide) {
         super(definition, coverableView, attachedSide);
-        container = new ItemFilterContainer(this);
+        this.linkedShim = new ItemContainerSwitchShim(
+                VirtualContainerRegistry.getContainerCreate(makeChestName(), null));
+        itemFilter = new ItemFilterContainer(this);
     }
 
-    @Override
-    protected EntryTypes<VirtualChest> getType() {
-        return EntryTypes.ENDER_ITEM;
+    private String makeChestName() {
+        return "EILink#" + Integer.toHexString(this.color).toUpperCase();
     }
 
-    @Override
-    protected String identifier() {
-        return "EILink#";
-    }
+    private UUID getChestUUID() {return isPrivate ? playerUUID : null;}
 
-    @Override
-    protected IWidget createEntrySlot() {
-        // 修复：延迟创建 panel handler，在 buildUI 时设置
-        return new ButtonWidget<>()
-                .addTooltipLine(IKey.str("Open Active Entry View"))
-                .overlay(CHEST)
-                .onMousePressed(mouseButton -> {
-                    if (activeChestPanelHandler != null) {
-                        if (activeChestPanelHandler.isPanelOpen()) {
-                            activeChestPanelHandler.deleteCachedPanel();
-                            activeChestPanelHandler.closePanel();
-                        } else {
-                            activeChestPanelHandler.openPanel();
-                        }
-                    }
-                    return true;
-                });
-    }
+    public ItemFilterContainer getItemFilterContainer() {return this.itemFilter;}
 
-    private ModularPanel createChestPanel(ModularPanel parentPanel, EntityPlayer player) {
-        return createChestPanel("active", parentPanel, player);
-    }
-
-    private ModularPanel createChestPanel(String color, ModularPanel parentPanel, EntityPlayer player) {
-        if (activeEntry == null) {
-            return GTGuis.createPanel(this, 100, 100)
-                    .child(IKey.str("No active entry").asWidget());
-        }
-
-        IntFunction<ItemStack> getStack = activeEntry::getStackInSlot;
-        return GTGuis.createPopupPanel("chest_panel#" + color, 100, 100)
-                .padding(4)
-                .paddingRight(16)
-                .coverChildren()
-                .child(new Grid().coverChildren()
-                        .mapTo(3, activeEntry.getSlots(), value -> {
-                            var item = new ItemDrawable();
-                            return new Widget<>()
-                                    .size(18)
-                                    .background(GTGuiTextures.SLOT)
-                                    .tooltipAutoUpdate(true)
-                                    .tooltipBuilder(tooltip -> {
-                                        ItemStack stack = getStack.apply(value);
-                                        if (stack.isEmpty()) return;
-                                        tooltip.addFromItem(stack);
-                                        tooltip.add(IKey.lang("gregtech.item_list.item_stored", stack.getCount()));
-                                    })
-                                    .overlay(new DynamicDrawable(() -> item.setItem(getStack.apply(value)))
-                                            .asIcon()
-                                            .alignment(Alignment.Center)
-                                            .size(16));
-                        }));
-    }
-
-    @Override
-    protected IWidget createSlotWidget(VirtualChest entry) {
-        // 修复：为每个条目创建独立的 panel handler
-        IPanelHandler panelHandler = IPanelHandler.simple(null,
-                (parentPanel, player) -> createEntryChestPanel(entry, parentPanel, player), true);
-
-        return new ButtonWidget<>()
-                .addTooltipLine(IKey.str("Open Entry [#%s]'s View", entry.getColorStr()))
-                .overlay(CHEST)
-                .onMousePressed(mouseButton -> {
-                    if (panelHandler.isPanelOpen()) {
-                        panelHandler.deleteCachedPanel();
-                        panelHandler.closePanel();
-                    } else {
-                        panelHandler.openPanel();
-                    }
-                    return true;
-                });
-    }
-
-    private ModularPanel createEntryChestPanel(VirtualChest entry, ModularPanel parentPanel, EntityPlayer player) {
-        IntFunction<ItemStack> getStack = entry::getStackInSlot;
-        return GTGuis.createPopupPanel("chest_panel#" + entry.getColorStr(), 100, 100)
-                .padding(4)
-                .paddingRight(16)
-                .coverChildren()
-                .child(new Grid().coverChildren()
-                        .mapTo(3, entry.getSlots(), value -> {
-                            var item = new ItemDrawable();
-                            return new Widget<>()
-                                    .size(18)
-                                    .background(GTGuiTextures.SLOT)
-                                    .tooltipAutoUpdate(true)
-                                    .tooltipBuilder(tooltip -> {
-                                        ItemStack stack = getStack.apply(value);
-                                        if (stack.isEmpty()) return;
-                                        tooltip.addFromItem(stack);
-                                        tooltip.add(IKey.lang("gregtech.item_list.item_stored", stack.getCount()));
-                                    })
-                                    .overlay(new DynamicDrawable(() -> item.setItem(getStack.apply(value)))
-                                            .asIcon()
-                                            .alignment(Alignment.Center)
-                                            .size(16));
-                        }));
-    }
-
-    @Override
-    protected Flow createWidgets(GuiData data, PanelSyncManager syncManager) {
-        // 修复：在创建 widgets 时设置 activeChestPanelHandler
-        activeChestPanelHandler = IPanelHandler.simple(null, this::createChestPanel, true);
-
-        getItemFilterContainer().setMaxTransferSize(1);
-
-        var conveyorMode = new EnumSyncValue<>(ConveyorMode.class, this::getConveyorMode, this::setConveyorMode);
-        syncManager.syncValue("conveyor_mode", conveyorMode);
-
-        return super.createWidgets(data, syncManager)
-                .child(getItemFilterContainer().initUI(data, syncManager))
-                .child(createConveyorModeRow(conveyorMode));
-    }
-
-    // 修复：添加更完整的 conveyor mode 行
-    private IWidget createConveyorModeRow(EnumSyncValue<ConveyorMode> conveyorMode) {
-        return new ButtonWidget<>()
-                .size(18, 18)
-                .background(GTGuiTextures.MC_BUTTON)
-                .overlay(new DynamicDrawable(() ->
-                        IKey.lang(getConveyorMode() == ConveyorMode.IMPORT ?
-                                "cover.conveyor.mode.import" : "cover.conveyor.mode.export")
-                ))
-                .onMousePressed(mouseButton -> {
-                    ConveyorMode current = conveyorMode.getValue();
-                    ConveyorMode next = current == ConveyorMode.IMPORT ? ConveyorMode.EXPORT : ConveyorMode.IMPORT;
-                    conveyorMode.setValue(next);
-                    setConveyorMode(next);
-                    return true;
-                });
-    }
-
-    public ConveyorMode getConveyorMode() {
-        return conveyorMode;
-    }
-
-    private void setConveyorMode(ConveyorMode mode) {
-        this.conveyorMode = mode;
-        markDirty();
-    }
-
-    public ItemFilterContainer getItemFilterContainer() {
-        return container;
-    }
-
-    @Override
-    protected void deleteEntry(UUID player, String name) {
-        VirtualEnderRegistry.deleteEntry(player, getType(), name, chest -> {
-            for (int i = 0; i < chest.getSlots(); i++) {
-                if (!chest.getStackInSlot(i).isEmpty()) return false;
-            }
-            return true;
-        });
-    }
+    public boolean isIOEnabled() {return this.ioEnabled;}
 
     @Override
     public boolean canAttach(@NotNull CoverableView coverable, @NotNull EnumFacing side) {
         return coverable.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side);
     }
 
+    //TODO: change to item link texture
     @Override
     public void renderCover(@NotNull CCRenderState renderState, @NotNull Matrix4 translation,
-                            @NotNull IVertexOperation[] pipeline, @NotNull Cuboid6 plateBox,
-                            @NotNull BlockRenderLayer layer) {
+                            IVertexOperation[] pipeline, @NotNull Cuboid6 plateBox, @NotNull BlockRenderLayer layer) {
         Textures.ENDER_ITEM_LINK.renderSided(getAttachedSide(), plateBox, renderState, pipeline, translation);
     }
 
     @Override
+    public @NotNull EnumActionResult onScrewdriverClick(@NotNull EntityPlayer playerIn, @NotNull EnumHand hand,
+                                                        @NotNull CuboidRayTraceResult hitResult) {
+        if (!getWorld().isRemote) {
+            openUI((EntityPlayerMP) playerIn);
+        }
+        return EnumActionResult.SUCCESS;
+    }
+
+    @Override
+    public void onAttachment(@NotNull CoverableView coverableView, @NotNull EnumFacing side,
+                             @Nullable EntityPlayer player, @NotNull ItemStack itemStack) {
+        super.onAttachment(coverableView, side, player, itemStack);
+        if (player != null) {
+            this.playerUUID = player.getUniqueID();
+        }
+    }
+
+    @Override
     public void onRemoval() {
-        dropInventoryContents(this.container);
+        NonNullList<ItemStack> drops = NonNullList.create();
+        MetaTileEntity.clearInventory(drops, itemFilter);
+        for (ItemStack itemStack : drops) {
+            Block.spawnAsEntity(this.getWorld(), this.getPos(), itemStack);
+        }
     }
 
     @Override
     public void update() {
-        if (isWorkingEnabled() && isIoEnabled()) {
-            transferItems();
-        }
-    }
-
-    private void transferItems() {
-        IItemHandler handler = getCoverableView().getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY,
+        long timer = this.getOffsetTimer();
+        IItemHandler targetInventory = getCoverableView().getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY,
                 getAttachedSide());
-        if (handler == null) return;
-        if (getConveyorMode() == ConveyorMode.IMPORT) {
-            GTTransferUtils.moveInventoryItems(handler, this.activeEntry, this.container::test);
-        } else {
-            GTTransferUtils.moveInventoryItems(this.activeEntry, handler, this.container::test);
+        if (workingEnabled && ioEnabled && itemsLeftToTransferLastSecond > 0 && timer % 5 == 0) {
+            int totalTransferred = doTransferItemsAny(targetInventory, linkedShim, itemsLeftToTransferLastSecond);
+            this.itemsLeftToTransferLastSecond -= totalTransferred;
+        }
+
+        if (timer % 20 == 0) {
+            this.itemsLeftToTransferLastSecond = TRANSFER_RATE;
         }
     }
 
-    @Override
-    public void writeToNBT(@NotNull NBTTagCompound nbt) {
-        super.writeToNBT(nbt);
-        nbt.setInteger("ConveyorMode", this.conveyorMode.ordinal());
-        nbt.setTag("Filter", this.container.serializeNBT());
+    protected int doTransferItemsAny(IItemHandler otherHandler, IItemHandler enderHandler, int maxTransferAmount) {
+        if (conveyorMode == CoverConveyor.ConveyorMode.IMPORT) {
+            return moveInventoryItems(otherHandler, enderHandler, maxTransferAmount);
+        } else if (conveyorMode == CoverConveyor.ConveyorMode.EXPORT) {
+            return moveInventoryItems(enderHandler, otherHandler, maxTransferAmount);
+        }
+        return 0;
+    }
+
+    protected int moveInventoryItems(IItemHandler sourceInventory, IItemHandler targetInventory,
+                                     int maxTransferAmount) {
+        int itemsLeftToTransfer = maxTransferAmount;
+        for (int srcIndex = 0; srcIndex < sourceInventory.getSlots(); srcIndex++) {
+            ItemStack sourceStack = sourceInventory.extractItem(srcIndex, itemsLeftToTransfer, true);
+            if (sourceStack.isEmpty()) {
+                continue;
+            }
+            if (!itemFilter.test(sourceStack)) {
+                continue;
+            }
+            ItemStack remainder = GTTransferUtils.insertItem(targetInventory, sourceStack, true);
+            int amountToInsert = sourceStack.getCount() - remainder.getCount();
+
+            if (amountToInsert > 0) {
+                sourceStack = sourceInventory.extractItem(srcIndex, amountToInsert, false);
+                if (!sourceStack.isEmpty()) {
+                    GTTransferUtils.insertItem(targetInventory, sourceStack, false);
+                    itemsLeftToTransfer -= sourceStack.getCount();
+
+                    if (itemsLeftToTransfer == 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        return maxTransferAmount - itemsLeftToTransfer;
+    }
+
+    public CoverConveyor.ConveyorMode getConveyorMode() {
+        return conveyorMode;
+    }
+
+    public void setConveyorMode(CoverConveyor.ConveyorMode mode) {
+        conveyorMode = mode;
+        this.markDirty();
     }
 
     @Override
-    public void readFromNBT(@NotNull NBTTagCompound nbt) {
-        super.readFromNBT(nbt);
-        this.conveyorMode = ConveyorMode.VALUES[nbt.getInteger("ConveyorMode")];
-        this.container.deserializeNBT(nbt.getCompoundTag("Filter"));
+    public void writeInitialSyncData(PacketBuffer packetBuffer) {
+        packetBuffer.writeInt(this.color);
+        packetBuffer.writeString(this.playerUUID == null ? "null" : this.playerUUID.toString());
+    }
+
+    @Override
+    public void readInitialSyncData(PacketBuffer packetBuffer) {
+        this.color = packetBuffer.readInt();
+        String uuidStr = packetBuffer.readString(36);
+        this.playerUUID = uuidStr.equals("null") ? null : UUID.fromString(uuidStr);
+    }
+
+    @Override
+    public void writeToNBT(NBTTagCompound tagCompound) {
+        super.writeToNBT(tagCompound);
+        tagCompound.setInteger("ConveyorMode", conveyorMode.ordinal());
+        tagCompound.setTag("Filter", itemFilter.serializeNBT());
+        tagCompound.setBoolean("WorkingAllowed", workingEnabled);
+        tagCompound.setBoolean("IOAllowed", ioEnabled);
+        tagCompound.setBoolean("Private", isPrivate);
+        tagCompound.setString("PlacedUUID", playerUUID.toString());
+        tagCompound.setInteger("Frequency", color);
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound tagCompound) {
+        super.readFromNBT(tagCompound);
+        this.conveyorMode = CoverConveyor.ConveyorMode.values()[tagCompound.getInteger("ConveyorMode")];
+        this.itemFilter.deserializeNBT(tagCompound.getCompoundTag("Filter"));
+        this.workingEnabled = tagCompound.getBoolean("WorkingAllowed");
+        this.ioEnabled = tagCompound.getBoolean("IOAllowed");
+        this.isPrivate = tagCompound.getBoolean("Private");
+        this.playerUUID = UUID.fromString(tagCompound.getString("PlacedUUID"));
+        this.color = tagCompound.getInteger("Frequency");
+        updateChestLink();
+    }
+
+    protected void updateChestLink() {
+        this.linkedShim.changeInventory(VirtualContainerRegistry.getContainerCreate(makeChestName(), getChestUUID()));
+        this.markDirty();
+    }
+
+    public <T> T getCapability(Capability<T> capability, T defaultValue) {
+        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(linkedShim);
+        }
+        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
+        }
+        return defaultValue;
+    }
+
+    private boolean isPrivate() {
+        return isPrivate;
+    }
+
+    private void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+        updateChestLink();
+    }
+
+    private void setIoEnabled(boolean ioEnabled) {
+        this.ioEnabled = ioEnabled;
+    }
+
+    @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @Override
+    public void setWorkingEnabled(boolean isActivationAllowed) {
+        this.workingEnabled = isActivationAllowed;
+    }
+
+    @Override
+    public void openUI(EntityPlayerMP player) {
+        CoverWithUI.super.openUI(player);
+        isColorTemp = false;
+    }
+
+    @Override
+    public boolean usesMui2() {
+        return true;
+    }
+
+    @Override
+    public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        var panel = GTGuis.createPanel(this, 176, 208);
+
+        getItemFilterContainer().setMaxTransferSize(1);
+
+        return panel.child(CoverWithUI.createTitleRow(getPickItem()))
+                .bindPlayerInventory()
+                .child(createWidgets(guiData, guiSyncManager));
+    }
+
+    protected Column createWidgets(GuiData guiData, PanelSyncManager syncManager) {
+        var isPrivate = new BooleanSyncValue(this::isPrivate, this::setPrivate);
+        isPrivate.updateCacheFromSource(true);
+
+        var color = new StringSyncValue(this::getColorStr, this::updateColor);
+        color.updateCacheFromSource(true);
+
+        var conveyorMode = new EnumSyncValue<>(CoverConveyor.ConveyorMode.class, this::getConveyorMode,
+                this::setConveyorMode);
+        syncManager.syncValue("conveyor_mode", conveyorMode);
+        conveyorMode.updateCacheFromSource(true);
+
+        var ioEnabled = new BooleanSyncValue(this::isIOEnabled, this::setIoEnabled);
+
+        syncManager.registerSlotGroup("item_inv", this.linkedShim.getSlots());
+
+        int rowSize = this.linkedShim.getSlots();
+        List<IWidget> itemSlots = new ArrayList<>();
+        for (int i = 0; i < rowSize; i++) {
+            itemSlots.add(new ItemSlot().slot(SyncHandlers.itemSlot(this.linkedShim, i).accessibility(false, false)));
+        }
+
+        return (Column) new Column().coverChildrenHeight().top(24)
+                .margin(7, 0).widthRel(1f)
+                .child(new Row().marginBottom(2)
+                        .coverChildrenHeight()
+                        .child(new ToggleButton()
+                                .tooltip(tooltip -> tooltip.setAutoUpdate(true))
+                                .background(GTGuiTextures.PRIVATE_MODE_BUTTON[0])
+                                .hoverBackground(GTGuiTextures.PRIVATE_MODE_BUTTON[0])
+                                .selectedBackground(GTGuiTextures.PRIVATE_MODE_BUTTON[1])
+                                .selectedHoverBackground(GTGuiTextures.PRIVATE_MODE_BUTTON[1])
+                                .tooltipBuilder(tooltip -> tooltip.addLine(IKey.lang(this.isPrivate ?
+                                        "cover.ender_fluid_link.private.tooltip.enabled" :
+                                        "cover.ender_fluid_link.private.tooltip.disabled")))
+                                .marginRight(2)
+                                .value(isPrivate))
+                        .child(new DynamicDrawable(() -> new Rectangle()
+                                .setColor(this.color)
+                                .asIcon().size(16))
+                                .asWidget()
+                                .background(GTGuiTextures.SLOT)
+                                .size(18).marginRight(2))
+                        .child(new TextFieldWidget().height(18)
+                                .value(color)
+                                .setValidator(s -> {
+                                    if (s.length() != 8) {
+                                        return color.getStringValue();
+                                    }
+                                    return s;
+                                })
+                                .setPattern(COLOR_INPUT_PATTERN)
+                                .widthRel(0.5f).marginRight(2)))
+                .child(new Row().marginBottom(2)
+                        .coverChildrenHeight()
+                        .child(new Grid()
+                                .height(18)
+                                .minElementMargin(0, 0)
+                                .minColWidth(18).minRowHeight(18)
+                                .row(itemSlots)))
+                .child(new Row().marginBottom(2)
+                        .coverChildrenHeight()
+                        .child(new ToggleButton()
+                                .value(ioEnabled)
+                                .overlay(IKey.dynamic(() -> IKey.lang(this.ioEnabled ?
+                                                "behaviour.soft_hammer.enabled" :
+                                                "behaviour.soft_hammer.disabled").get())
+                                        .color(Color.WHITE.darker(1)))
+                                .widthRel(0.6f)
+                                .left(0)))
+                // TODO UI AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+                .child(getItemFilterContainer().initUI(guiData, syncManager))
+                .child(new EnumRowBuilder<>(CoverConveyor.ConveyorMode.class)
+                        .value(conveyorMode)
+                        .overlay(GTGuiTextures.CONVEYOR_MODE_OVERLAY)
+                        .lang("cover.pump.mode")
+                        .build());
+    }
+
+    public String getColorStr() {
+        return isColorTemp ? tempColorStr : Integer.toHexString(this.color).toUpperCase();
+    }
+
+    public void updateColor(String str) {
+        if (str.length() == 8) {
+            isColorTemp = false;
+            long tmp = Long.parseLong(str, 16);
+            if (tmp > 0x7FFFFFFF) {
+                tmp -= 0x100000000L;
+            }
+            this.color = (int) tmp;
+            updateChestLink();
+        } else {
+            tempColorStr = str;
+            isColorTemp = true;
+        }
     }
 }

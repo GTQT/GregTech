@@ -12,6 +12,7 @@ import gregtech.api.util.BlockUtility;
 import gregtech.api.util.CapesRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
+import gregtech.api.util.virtualregistry.VirtualContainerRegistry;
 import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinSaveData;
 import gregtech.common.entities.EntityGTExplosive;
@@ -318,6 +319,7 @@ public class EventHandlers {
     @SubscribeEvent
     public static void onWorldLoadEvent(WorldEvent.Load event) {
         VirtualEnderRegistry.initializeStorage(event.getWorld());
+        VirtualContainerRegistry.initializeStorage(event.getWorld());
         CapesRegistry.checkAdvancements(event.getWorld());
     }
 
