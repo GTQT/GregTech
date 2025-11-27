@@ -3,6 +3,7 @@ package gregtech.api.metatileentity.multiblock.ui;
 import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
+import gregtech.api.capability.IRecipeLock;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.mui.GTGuiTextures;
@@ -526,6 +527,7 @@ public class MultiblockUIFactory {
                 .align(Alignment.CenterLeft)
                 .child(createStructureCheckButton(mainPanel, panelSyncManager))
                 .child(createBatchButton(mainPanel, panelSyncManager))
+                .child(lockRecipesButton(mainPanel, panelSyncManager))
                 .child(gcymButton)
                 .child(parallelButton)
                 .child(threadButton);
@@ -552,6 +554,28 @@ public class MultiblockUIFactory {
                 .overlay(false, GTGuiTextures.OVERLAY_BATCH[0])
                 .addTooltip(true, IKey.lang("gregtech.multiblock.universal.batch_enabled"))
                 .addTooltip(false, IKey.lang("gregtech.multiblock.universal.batch_disabled"));
+    }
+
+    //lockRecipesButton
+    protected IWidget lockRecipesButton(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager) {
+        if (!(mte instanceof IRecipeLock controllable) || !controllable.isRecipeLockAllowed()) {
+            return new ToggleButton()
+                    .name("lock_none")
+                    .size(18)
+                    .value(ALWAYS_ON)
+                    .overlay(GTGuiTextures.OVERLAY_RECIPE_LOCK[0])
+                    .addTooltipLine(IKey.lang("gregtech.gui.multiblock_lock_not_supported"));
+        }
+
+        return new ToggleButton()
+                .name("lock_button")
+                .size(18)
+                .value(new BooleanSyncValue(controllable::isRecipeLocked, controllable::setRecipeLocked))
+                .disableHoverBackground()
+                .overlay(true, GTGuiTextures.OVERLAY_RECIPE_LOCK[1])
+                .overlay(false, GTGuiTextures.OVERLAY_RECIPE_LOCK[0])
+                .addTooltip(true, IKey.lang("gregtech.multiblock.universal.lock_enabled"))
+                .addTooltip(false, IKey.lang("gregtech.multiblock.universal.lock_disabled"));
     }
 
     protected IWidget createStructureCheckButton(@NotNull ModularPanel mainPanel,

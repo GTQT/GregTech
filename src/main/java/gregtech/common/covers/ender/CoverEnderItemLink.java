@@ -108,7 +108,6 @@ public class CoverEnderItemLink extends CoverBase implements CoverWithUI, ITicka
         return coverable.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side);
     }
 
-    //TODO: change to item link texture
     @Override
     public void renderCover(@NotNull CCRenderState renderState, @NotNull Matrix4 translation,
                             IVertexOperation[] pipeline, @NotNull Cuboid6 plateBox, @NotNull BlockRenderLayer layer) {

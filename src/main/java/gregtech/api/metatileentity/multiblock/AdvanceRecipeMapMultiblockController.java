@@ -611,6 +611,21 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
             recipeMapWorkable.setBatchEnable(enable);
     }
 
+    @Override
+    public boolean isRecipeLocked() {
+        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
+            if (recipeMapWorkable.isRecipeLockEnable())
+                return true;
+        return false;
+    }
+
+    @Override
+    public void setRecipeLocked(boolean enable) {
+        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
+            recipeMapWorkable.setRecipeLockEnable(enable);
+    }
+
+
     /// /////////////////////////////////////////////////////////////////
     @Override
     public void doStructureCheck() {

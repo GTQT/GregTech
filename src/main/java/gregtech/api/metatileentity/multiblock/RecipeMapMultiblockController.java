@@ -6,6 +6,7 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IRecipeLock;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -53,7 +54,8 @@ import java.util.List;
 public abstract class RecipeMapMultiblockController extends MultiblockWithDisplayBase implements IDataInfoProvider,
                                                                                                  ICleanroomReceiver,
                                                                                                  IDistinctBusController,
-                                                                                                 IControllable, IBatch {
+                                                                                                 IControllable, IBatch,
+                                                                                                 IRecipeLock {
 
     public final RecipeMap<?> recipeMap;
     protected MultiblockRecipeLogic recipeMapWorkable;
@@ -486,6 +488,21 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     @Override
     public void setBatchEnable(boolean enable) {
         recipeMapWorkable.setBatchEnable(enable);
+    }
+
+    @Override
+    public boolean isRecipeLockAllowed() {
+        return true;
+    }
+
+    @Override
+    public boolean isRecipeLocked() {
+        return recipeMapWorkable.isRecipeLockEnable();
+    }
+
+    @Override
+    public void setRecipeLocked(boolean enable) {
+        recipeMapWorkable.setRecipeLockEnable(enable);
     }
 
     @Override

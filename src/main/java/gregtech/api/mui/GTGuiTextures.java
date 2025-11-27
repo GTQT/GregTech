@@ -586,6 +586,8 @@ public class GTGuiTextures {
 
     public static final UITexture[] OVERLAY_BATCH = slice("textures/gui/widget/button_batch.png",
             18, 36, 18, 18);
+    public static final UITexture[] OVERLAY_RECIPE_LOCK = slice("textures/gui/widget/button_recipe_lock.png",
+            18, 36, 18, 18);
 
     public static final UITexture BUTTON_STRUCTURE = fullImage("textures/gui/widget/button_structure.png",  ColorType.DEFAULT);
 

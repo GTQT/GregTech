@@ -32,10 +32,6 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
-import lombok.Getter;
-
-import lombok.Setter;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -47,11 +43,12 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import stanhebben.zenscript.annotations.ZenGetter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -103,6 +100,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private long overclockVoltage;
 
     private boolean enableBatch = false;
+    private boolean lockRecipe = false;
     /**
      * DO NOT use the parallelLimit field directly, EVER use {@link AbstractRecipeLogic#setParallelLimit(int)} instead
      */
@@ -486,27 +484,36 @@ public abstract class AbstractRecipeLogic extends MTETrait
         IItemHandlerModifiable importInventory = getInputInventory();
         IMultipleTankHandler importFluids = getInputTank();
 
-        // see if the last recipe we used still works
-        if (checkPreviousRecipe()) {
-            currentRecipe = this.previousRecipe;
-            // If there is no active recipe, then we need to find one.
+        // 如果锁定配方且存在上一个配方，则只检查这一个配方
+        if (lockRecipe && previousRecipe != null) {
+            if (previousRecipe.getEUt() <= maxVoltage && previousRecipe.matches(false, importInventory, importFluids)) {
+                currentRecipe = previousRecipe;
+            }
         }
-        // 若无效则遍历历史记录寻找其他有效配方
+        // 未锁定配方时，按原逻辑搜索配方
         else {
-            for (int i = latestRecipes.size() - 2; i >= 0; i--) { // 从倒数第二个开始
-                Recipe recipe = latestRecipes.get(i);
-                if (recipe == null) continue;
-                if (recipe.getEUt() <= maxVoltage && recipe.matches(false, importInventory, importFluids)) {
-                    currentRecipe = recipe;
-                    break;
+            // 首先检查上一个配方是否仍然有效
+            if (checkPreviousRecipe()) {
+                currentRecipe = this.previousRecipe;
+            }
+            // 若无效则遍历历史记录寻找其他有效配方
+            else {
+                for (int i = latestRecipes.size() - 2; i >= 0; i--) { // 从倒数第二个开始
+                    Recipe recipe = latestRecipes.get(i);
+                    if (recipe == null) continue;
+                    if (recipe.getEUt() <= maxVoltage && recipe.matches(false, importInventory, importFluids)) {
+                        currentRecipe = recipe;
+                        break;
+                    }
                 }
+            }
+
+            // 若历史配方均无效则搜索新配方
+            if (currentRecipe == null) {
+                currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
             }
         }
 
-        // 若历史配方均无效则搜索新配方
-        if (currentRecipe == null) {
-            currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
-        }
         // If a recipe was found, then inputs were valid. Cache found recipe.
         if (currentRecipe != null) {
             //最临近配方
@@ -1288,6 +1295,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public boolean isBatchEnable() {
         return enableBatch;
     }
+    public boolean isRecipeLockEnable() {
+        return lockRecipe;
+    }
 
     public void setBatchEnable(boolean enable) {
         enableBatch = enable;
@@ -1296,6 +1306,16 @@ public abstract class AbstractRecipeLogic extends MTETrait
         World world = metaTileEntity.getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_BATCH, buf -> buf.writeBoolean(enableBatch));
+        }
+    }
+
+    public void setRecipeLockEnable(boolean enable) {
+        lockRecipe = enable;
+        metaTileEntity.markDirty();
+        invalidate();
+        World world = metaTileEntity.getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.WORKING_RECIPE_LOCK, buf -> buf.writeBoolean(lockRecipe));
         }
     }
 
@@ -1420,6 +1440,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
             getMetaTileEntity().scheduleRenderUpdate();
         } else if (dataId == GregtechDataCodes.WORKING_BATCH) {
             this.enableBatch = buf.readBoolean();
+            getMetaTileEntity().scheduleRenderUpdate();
+        }  else if (dataId == GregtechDataCodes.WORKING_RECIPE_LOCK) {
+            this.lockRecipe = buf.readBoolean();
             getMetaTileEntity().scheduleRenderUpdate();
         }
     }
