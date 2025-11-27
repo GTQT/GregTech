@@ -47,6 +47,7 @@ import java.util.function.Supplier;
 
 import static forestry.api.apiculture.EnumBeeChromosome.*;
 import static gregtech.api.unification.material.Materials.*;
+import static gregtech.api.util.Mods.ExtraBees;
 import static gregtech.common.blocks.MetaBlocks.RUBBER_LOG;
 
 public enum GTBeeDefinition implements IBeeDefinition {
@@ -1171,6 +1172,396 @@ public enum GTBeeDefinition implements IBeeDefinition {
             dis -> {
                 IBeeMutationBuilder mutation = dis.registerMutation(NITROGEN, HYDROGEN, 15);
                 mutation.restrictTemperature(EnumTemperature.ICY);
+            }),
+    // Organic
+    BORAX(GTBranchDefinition.GT_METAL, "borax", true, 0xC8C8DA, 0x0000FF,
+            beeSpecies -> {
+                beeSpecies.addProduct(getForestryComb(EnumHoneyComb.HONEY), 0.30f);
+                beeSpecies.addProduct(getGTComb(GTCombType.BORAX), 0.1f);
+                beeSpecies.setHumidity(EnumHumidity.ARID);
+                beeSpecies.setTemperature(EnumTemperature.HOT);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.GOURD);
+            },
+            dis -> {
+                IBeeMutationBuilder mutation =  dis.registerMutation(GTBeeDefinition.SALTY, GTBeeDefinition.LITHIUM, 10);
+                mutation.addMutationCondition(new MaterialMutationCondition(Borax));
+            }
+    ),
+    WITHER(GTBranchDefinition.GT_METAL, "wither", true, 0x040102, 0x144F5B,
+            beeSpecies -> {
+                beeSpecies.addProduct(getForestryComb(EnumHoneyComb.SIMMERING), 0.50f);
+                beeSpecies.addProduct(getGTComb(GTCombType.WITHER), 0.30f);
+                beeSpecies.setHumidity(EnumHumidity.ARID);
+                beeSpecies.setTemperature(EnumTemperature.HELLISH);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.NETHER);
+            },
+            dis -> {
+                IBeeMutationBuilder mutation= dis.registerMutation(BeeDefinition.DEMONIC, GTBeeDefinition.ASH, 10);
+                mutation.restrictBiomeType(BiomeDictionary.Type.NETHER);
+            }
+    ),
+    BRIGHT(GTBranchDefinition.GT_RAREMETAL, "bright", true, 0x7A007A, 0xFFFFFF,
+            beeSpecies -> {
+                beeSpecies.addProduct(getForestryComb(EnumHoneyComb.SIMMERING), 0.50f);
+                beeSpecies.addProduct(getGTComb(GTCombType.BRIGHT), 0.30f);
+                beeSpecies.addProduct(getGTComb(GTCombType.WITHER), 0.10f);
+                beeSpecies.setHumidity(EnumHumidity.ARID);
+                beeSpecies.setTemperature(EnumTemperature.HELLISH);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.NETHER);
+            },
+            dis -> {
+                IBeeMutationBuilder mutation = dis.registerMutation(WITHER, GTBeeDefinition.ASH, 5);
+                mutation.restrictTemperature(EnumTemperature.HOT);
+                mutation.addMutationCondition(new MaterialMutationCondition(NetherStar));
+            }
+    ),
+    MUTAGENIC_AGENT(GTBranchDefinition.GT_RAREMETAL, "mutagenic_agent", true, 0xa39f00, 0x1fff5b,
+            beeSpecies -> {
+                beeSpecies.addProduct(getForestryComb(EnumHoneyComb.HONEY), 0.30f);
+                beeSpecies.addProduct(getGTComb(GTCombType.MUTAGENIC_AGENT), 0.15f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.HOT);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.END);
+            },
+            dis -> {
+                dis.registerMutation(GTBeeDefinition.PLUTONIUM, GTBeeDefinition.URANIUM, 5);
+            }
+    ), PRIMITIVE_STRAIN_A(GTBranchDefinition.GT_NOBLEGAS, "primitive_strain_a", false, 0xB106B1, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.PRIMITIVE_STRAIN_A), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    PRIMITIVE_STRAIN_B(GTBranchDefinition.GT_NOBLEGAS, "primitive_strain_b", false, 0x9B2B2B, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.PRIMITIVE_STRAIN_B), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    PRIMITIVE_STRAIN_C(GTBranchDefinition.GT_NOBLEGAS, "primitive_strain_c", false, 0x85294C, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.PRIMITIVE_STRAIN_C), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    PRIMITIVE_STRAIN_D(GTBranchDefinition.GT_NOBLEGAS, "primitive_strain_d", false, 0x89B289, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.PRIMITIVE_STRAIN_D), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    PRIMITIVE_STRAIN_E(GTBranchDefinition.GT_NOBLEGAS, "primitive_strain_e", false, 0x8F8A54, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.PRIMITIVE_STRAIN_E), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    COMMON_MINE_STRAIN(GTBranchDefinition.GT_NOBLEGAS, "common_mine_strain", false, 0x04B5BD, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.COMMON_MINE_STRAIN), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    DIRECTED_PLATINUM_STRAIN(GTBranchDefinition.GT_NOBLEGAS, "directed_platinum_strain", false, 0x43BE7A, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.DIRECTED_PLATINUM_STRAIN), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    UNIVERSAL_DEMON_STRAIN(GTBranchDefinition.GT_NOBLEGAS, "universal_demon_strain", false, 0x546D20, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.UNIVERSAL_DEMON_STRAIN), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    UNIVERSAL_BYPRODUCT_STRAINS(GTBranchDefinition.GT_NOBLEGAS, "universal_byproduct_strains", false, 0x5AB007, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.UNIVERSAL_BYPRODUCT_STRAINS), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    INDUSTRIAL_SYNTHETIC_STRAINS(GTBranchDefinition.GT_NOBLEGAS, "industrial_synthetic_strains", false, 0x7A4127, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.INDUSTRIAL_SYNTHETIC_STRAINS), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    INDUSTRIAL_REDUCTION_CULTURE(GTBranchDefinition.GT_NOBLEGAS, "industrial_reduction_culture", false, 0x742A9A, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.INDUSTRIAL_REDUCTION_CULTURE), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    INDUSTRIAL_OXIDIZING_BACTERIA(GTBranchDefinition.GT_NOBLEGAS, "industrial_oxidizing_bacteria", false, 0x6E8E6E, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.INDUSTRIAL_OXIDIZING_BACTERIA), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    INDUSTRIAL_CATALYTIC_STRAINS(GTBranchDefinition.GT_NOBLEGAS, "industrial_catalytic_strains", false, 0x6B6060, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.INDUSTRIAL_CATALYTIC_STRAINS), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+
+    DIRECTED_LANTHANIDE_STRAINS(GTBranchDefinition.GT_NOBLEGAS, "directed_lanthanide_strains", false, 0x41BA77, 0xffffff,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.DIRECTED_LANTHANIDE_STRAINS), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.WARM);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.BOTH_1);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.MUSHROOMS);
+            },
+            dis -> {
+
+            }
+    ),
+    FUEL(GTBranchDefinition.GT_ORGANIC, "fuel", true,  0x9C6F40,0xDBA800,
+            beeSpecies -> {
+                beeSpecies.addProduct(getExtraBeesComb(3), 0.35f);
+                beeSpecies.addSpecialty(getGTComb(GTCombType.FUEL), 0.25f);
+                beeSpecies.setHumidity(EnumHumidity.NORMAL);
+                beeSpecies.setTemperature(EnumTemperature.NORMAL);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.NONE);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.VANILLA);
+            },
+            dis -> {
+                dis.registerMutation(ForestryUtil.getSpecies(ExtraBees,"distilled"),GTBeeDefinition.OIL,8);
+            }
+    ),
+    HIGH_CETANE_DIESEL(GTBranchDefinition.GT_ORGANIC, "high_cetane_diesel", false,  0x9C6F40,0xB5C806,
+            beeSpecies -> {
+                beeSpecies.addProduct(getExtraBeesComb(3), 0.35f);
+                beeSpecies.addSpecialty(getGTComb(GTCombType.HIGH_CETANE_DIESEL), 0.15f);
+                beeSpecies.setHumidity(EnumHumidity.NORMAL);
+                beeSpecies.setTemperature(EnumTemperature.NORMAL);
+                beeSpecies.setHasEffect();
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.NONE);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.VANILLA);
+            },
+            dis -> {
+                dis.registerMutation(FUEL,GTBeeDefinition.OIL,3);
+            }
+    ),
+    GASOLINE(GTBranchDefinition.GT_ORGANIC, "gasoline", true,  0xBE4E07,0xBD7F06,
+            beeSpecies -> {
+                beeSpecies.addProduct(getExtraBeesComb(3), 0.35f);
+                beeSpecies.addSpecialty(getGTComb(GTCombType.GASOLINE), 0.25f);
+                beeSpecies.setHumidity(EnumHumidity.NORMAL);
+                beeSpecies.setTemperature(EnumTemperature.NORMAL);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.NONE);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.VANILLA);
+            },
+            dis -> {
+                dis.registerMutation(ForestryUtil.getSpecies(ExtraBees,"distilled"),GTBeeDefinition.OIL,8);
+            }
+    ),ETHYLENE(GTBranchDefinition.GT_NOBLEGAS, "ethylene", true,  0x9AA4A5, 0x9AA4A5,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.ETHYLENE), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.NORMAL);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.NONE);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.VANILLA);
+            },
+            dis -> {
+                dis.registerMutation(GTBeeDefinition.HYDROGEN,GTBeeDefinition.OIL,12);
+            }
+    ),TETRAFLUOROETHYLENE(GTBranchDefinition.GT_NOBLEGAS, "tetrafluoroethylene", true,  0x585858, 0x585858,
+            beeSpecies -> {
+                beeSpecies.addSpecialty(getGTComb(GTCombType.TETRAFLUOROETHYLENE), 0.15f);
+                beeSpecies.addProduct(getGTComb(GTCombType.ETHYLENE), 0.35f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.NORMAL);
+            },
+            template -> {
+                AlleleHelper.getInstance().set(template, FLOWERING, EnumAllele.Flowering.AVERAGE);
+                AlleleHelper.getInstance().set(template, HUMIDITY_TOLERANCE, EnumAllele.Tolerance.NONE);
+                AlleleHelper.getInstance().set(template, FLOWER_PROVIDER, EnumAllele.Flowers.VANILLA);
+            },
+            dis -> {
+                dis.registerMutation(ETHYLENE,GTBeeDefinition.FLUORINE,12);
+            }
+    ) ,
+    CRYOLITE(GTBranchDefinition.GT_GEM, "cryolite", false, 0x6ac6d4, 0xaedfe8,
+            beeSpecies -> {
+                beeSpecies.addProduct(getGTComb(GTCombType.STONE), 0.30f);
+                beeSpecies.addProduct(getGTComb(GTCombType.CRYOLITE), 0.25f);
+                beeSpecies.setHumidity(EnumHumidity.DAMP);
+                beeSpecies.setTemperature(EnumTemperature.HOT);
+            },
+            template -> AlleleHelper.getInstance().set(template, SPEED, EnumAllele.Speed.SLOWER),
+            dis -> {
+                IBeeMutationBuilder mutation = dis.registerMutation(GTBeeDefinition.ALUMINIUM, GTBeeDefinition.SALTY, 10);
+                //mutation.addMutationCondition(new MaterialMutationCondition( GTQTMaterials.Cryolite));
             });
 
     private final GTBranchDefinition branch;
