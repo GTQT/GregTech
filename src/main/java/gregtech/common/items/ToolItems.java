@@ -30,6 +30,7 @@ import gregtech.common.items.tool.TreeFellingBehavior;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.enchantment.EnumEnchantmentType;
 import net.minecraft.entity.monster.EntityGolem;
@@ -54,6 +55,7 @@ public final class ToolItems {
     public static IGTTool PICKAXE;
     public static IGTTool SHOVEL;
     public static IGTTool AXE;
+    public static IGTTool DOUBLE_AXE;
     public static IGTTool HOE;
     public static IGTTool SAW;
     public static IGTTool HARD_HAMMER;
@@ -157,6 +159,14 @@ public final class ToolItems {
         AXE = register(ItemGTAxe.Builder.of(GTValues.MODID, "axe")
                 .toolStats(b -> b.blockBreaking()
                         .attackDamage(5.0F).attackSpeed(-3.2F).baseEfficiency(2.0F)
+                        .behaviors(DisableShieldBehavior.INSTANCE, TreeFellingBehavior.INSTANCE))
+                .toolClasses(ToolClasses.AXE)
+                .oreDict(ToolOreDict.toolAxe));
+
+        DOUBLE_AXE = register(ItemGTAxe.Builder.of(GTValues.MODID, "double_axe")
+                .toolStats(b -> b.blockBreaking()
+                        .attackDamage(12.0F).attackSpeed(-3.6F).baseEfficiency(2.0F)
+                        .aoe(1, 1, 1)
                         .behaviors(DisableShieldBehavior.INSTANCE, TreeFellingBehavior.INSTANCE))
                 .toolClasses(ToolClasses.AXE)
                 .oreDict(ToolOreDict.toolAxe));
@@ -462,7 +472,7 @@ public final class ToolItems {
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(-1.0F).attackSpeed(3.0F)
                         .behaviors(new EntityDamageBehavior(4.0F, EntitySpider.class))
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
                 .sound(GTSoundEvents.SCREWDRIVER_TOOL)
                 .oreDict(ToolOreDict.toolScrewdriver)
                 .secondaryOreDicts("craftingToolScrewdriver")
@@ -474,7 +484,7 @@ public final class ToolItems {
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(-1.0F).attackSpeed(3.0F)
                         .behaviors(new EntityDamageBehavior(5.0F, EntitySpider.class))
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
                 .sound(GTSoundEvents.SCREWDRIVER_TOOL)
                 .oreDict(ToolOreDict.toolScrewdriver)
                 .secondaryOreDicts("craftingToolScrewdriver")
@@ -504,7 +514,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(4)
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(-1.0F).attackSpeed(-2.4F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolWireCutter)
                 .secondaryOreDicts("craftingToolWireCutter")
@@ -515,7 +525,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(4)
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(-1.0F).attackSpeed(-2.4F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolWireCutter)
                 .secondaryOreDicts("craftingToolWireCutter")
@@ -624,7 +634,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
                 .sound(GTSoundEvents.TREE_TAP_TOOL)
                 .electric(GTValues.HV)
                 .toolClasses(ToolClasses.TREE_TAP));
@@ -633,7 +643,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
                 .sound(GTSoundEvents.TREE_TAP_TOOL)
                 .electric(GTValues.IV)
                 .toolClasses(ToolClasses.TREE_TAP));
@@ -653,7 +663,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .electric(GTValues.HV)
                 .oreDict(ToolOreDict.toolShears)
@@ -664,7 +674,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting()
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(1.0F).attackSpeed(3.2F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .electric(GTValues.IV)
                 .oreDict(ToolOreDict.toolShears)
@@ -722,7 +732,14 @@ public final class ToolItems {
     }
 
     public static void registerModels() {
-        TOOLS.forEach(tool -> ModelLoader.setCustomModelResourceLocation(tool.get(), 0, tool.getModelLocation()));
+        for (IGTTool tool : TOOLS) {
+            if (tool == TOOLBELT) {
+                ModelLoader.setCustomMeshDefinition(tool.get(), s -> tool.getModelLocation());
+                ModelBakery.registerItemVariants(tool.get(), tool.getModelLocation());
+            } else {
+                ModelLoader.setCustomModelResourceLocation(tool.get(), 0, tool.getModelLocation());
+            }
+        }
     }
 
     @SideOnly(Side.CLIENT)

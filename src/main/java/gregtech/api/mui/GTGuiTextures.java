@@ -368,6 +368,11 @@ public class GTGuiTextures {
             ColorType.DEFAULT);
     public static final UITexture FILTER_SETTINGS_OVERLAY = fullImage(
             "textures/gui/overlay/filter_settings_overlay.png");
+    public static final UITexture OVERLAY_THREAD = fullImage(
+            "textures/gui/overlay/thread_overlay.png");
+    public static final UITexture OVERLAY_PARALLEL = fullImage(
+            "textures/gui/overlay/parallel_overlay.png");
+
     public static final UITexture FURNACE_OVERLAY_1 = fullImage("textures/gui/overlay/furnace_overlay_1.png",
             ColorType.DEFAULT);
     public static final UITexture FURNACE_OVERLAY_2 = fullImage("textures/gui/overlay/furnace_overlay_2.png",
@@ -581,6 +586,7 @@ public class GTGuiTextures {
 
     public static final UITexture[] OVERLAY_BATCH = slice("textures/gui/widget/button_batch.png",
             18, 36, 18, 18);
+
     public static final UITexture BUTTON_STRUCTURE = fullImage("textures/gui/widget/button_structure.png",  ColorType.DEFAULT);
 
     public static final UITexture OVERLAY_NO_FLEX = fullImage("textures/gui/widget/button_no_flex.png");

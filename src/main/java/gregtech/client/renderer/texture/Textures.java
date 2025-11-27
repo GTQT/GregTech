@@ -373,7 +373,11 @@ public class Textures {
     public static final SimpleOverlayRenderer COMPLEX_DUAL_HATCH = new SimpleOverlayRenderer(
             "overlay/machine/overlay_complex_dual_hatch");
 
-
+    //线程仓
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK1_OVERLAY = new OrientedOverlayRenderer("overlay/machine/thread_hatch_mk1");
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK2_OVERLAY = new OrientedOverlayRenderer("overlay/machine/thread_hatch_mk2");
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK3_OVERLAY = new OrientedOverlayRenderer("overlay/machine/thread_hatch_mk3");
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK4_OVERLAY = new OrientedOverlayRenderer("overlay/machine/thread_hatch_mk4");
     //样板总成
     public static final SimpleOverlayRenderer ME_BUFFER_HATCH_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/me_buffer_hatch");

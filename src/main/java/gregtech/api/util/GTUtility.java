@@ -20,10 +20,7 @@ import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.ore.OrePrefix;
-
 import gregtech.api.unification.stack.ItemAndMetadata;
-
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 import net.minecraft.block.BlockRedstoneWire;
 import net.minecraft.block.BlockSnow;
@@ -61,7 +58,11 @@ import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.utils.MouseData;
 import com.google.common.util.concurrent.AtomicDouble;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1237,4 +1238,30 @@ public class GTUtility {
 
         return stringBuilder.toString();
     }
+
+    public static int getIncrementValue(MouseData data) {
+        int adjust = 1;
+        if (data.shift) adjust *= 4;
+        if (data.ctrl) adjust *= 16;
+        if (data.alt) adjust *= 64;
+        return adjust;
+    }
+    public static IKey createAdjustOverlay(boolean increment) {
+        final StringBuilder builder = new StringBuilder();
+        builder.append(increment ? '+' : '-');
+        builder.append(getIncrementValue(MouseData.create(-1)));
+
+        float scale = 1f;
+        if (builder.length() == 3) {
+            scale = 0.9f;
+        } else if (builder.length() == 4) {
+            scale = 0.8f;
+        } else if (builder.length() > 4) {
+            scale = 0.7f;
+        }
+        return IKey.str(builder.toString())
+                .color(Color.WHITE.main)
+                .scale(scale);
+    }
+
 }

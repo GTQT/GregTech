@@ -1,10 +1,10 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IThreadController;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -14,7 +14,10 @@ import gregtech.api.metatileentity.IDataInfoProvider;
 import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
@@ -28,17 +31,26 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.utils.MouseData;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.collect.Lists;
 import gtqt.api.util.GTQTUtility;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +62,8 @@ import java.util.List;
 public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMultiblockController
         implements IDataInfoProvider,
                    ICleanroomReceiver,
-                   IDistinctBusController {
+                   IDistinctBusController,
+                   IThreadController {
 
     public final RecipeMap<?> recipeMap;
     protected ArrayList<MultiblockRecipeLogic> recipeMapWorkable = new ArrayList<>();
@@ -115,7 +128,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
      * Performs extra checks for validity of given recipe before multiblock will start it's processing.
      */
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
-        return true;
+        return super.checkRecipe(recipe, consumeIfSuccess);
     }
 
     @Override
@@ -125,7 +138,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         refreshThread(getThread());
     }
 
-
+    @Override
     public void refreshThread(int currentThread) {
         if (currentThread == 0) return;
         if (!isActive()) {
@@ -136,11 +149,102 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         }
     }
 
+    @Override
+    protected MultiblockUIFactory createUIFactory() {
+        return super.createUIFactory()
+                .createThreadButton((guiData, syncManager) -> {
+                    var throttlePanel = syncManager.panel("thread_panel", this::createThreadThrottlePanel, true);
+                    // 配置按钮 - 打开线程调整UI
+                    return new ButtonWidget<>()
+                            .size(18)
+                            .overlay(GTGuiTextures.OVERLAY_THREAD.asIcon().size(16))
+                            .addTooltipLine(IKey.lang("设备线程调整"))
+                            .onMousePressed(mouseButton -> {
+                                if (throttlePanel.isPanelOpen()) {
+                                    throttlePanel.closePanel();
+                                } else {
+                                    throttlePanel.openPanel();
+                                }
+                                return true;
+                            });
+                });
+    }
 
+    // 线程节流面板
+    protected ModularPanel createThreadThrottlePanel(PanelSyncManager syncManager, IPanelHandler syncHandler) {
+        IntSyncValue currentThreadValue = new IntSyncValue(this::getThread, this::setThread);
+        syncManager.syncValue("currentThreadValue", currentThreadValue);
+
+        IntSyncValue maxThreadValue = new IntSyncValue(
+                this::getMaxThread,
+                value -> {}
+        );
+        syncManager.syncValue("maxThreadValue", maxThreadValue);
+
+        return GTGuis.createPopupPanel("thread_throttle", 200, 60)
+                .child(Flow.row()
+                        .pos(4, 4)
+                        .height(16)
+                        .coverChildrenWidth()
+                        .child(new ItemDrawable(getStackForm())
+                                .asWidget()
+                                .size(16)
+                                .marginRight(4))
+                        .child(IKey.lang("机器线程设置")
+                                .asWidget()
+                                .heightRel(1.0f)))
+
+                .child(Flow.row()
+                        .top(24)
+                        .height(20)
+                        .child(new ButtonWidget<>()
+                                .left(10).widthRel(0.4f)
+                                .height(20)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("减小线程数量")))
+                                .onMousePressed(mouseButton -> {
+                                    currentThreadValue.setValue(MathHelper.clamp(
+                                            currentThreadValue.getValue() -
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)), 1,
+                                            maxThreadValue.getValue()));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(false)))
+                        )
+                        .child(new ButtonWidget<>()
+                                .left(110).widthRel(0.4f)
+                                .height(20)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("增大线程数量")))
+                                .onMousePressed(mouseButton -> {
+                                    currentThreadValue.setValue(MathHelper.clamp(
+                                            currentThreadValue.getValue() +
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)), 1,
+                                            maxThreadValue.getValue()));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(true))))
+                );
+    }
+
+    @Override
     public int getThread() {
         thread = this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty() ? 1 :
                 this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).getCurrentThread();
         return thread;
+    }
+
+    @Override
+    public void setThread(int thread) {
+        if(!this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty()){
+            this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).setCurrentThread(thread);
+        }
+    }
+
+    @Override
+    public int getMaxThread() {
+        return this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty() ? 1 :
+                this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).getMaxThread();
     }
 
     @Override
@@ -252,10 +356,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                                 recipeMapWorkable.get(i).getMaxProgress())
                         .addEmptyLine();
             }
-            if(syncsParallel != recipeMapWorkable.size()){
-                if(!isActive())refreshThread(syncsParallel);
-                builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.RED, "线程服务器同步失败，但不会影响实际使用！")));
-                builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.RED, "将会在下次待机刷新线程！")));
+            if (syncsParallel != recipeMapWorkable.size()) {
+                if (!isActive()) refreshThread(syncsParallel);
+                builder.addCustom((list, syncer) -> list.add(
+                        KeyUtil.lang(TextFormatting.RED, "线程服务器同步失败，但不会影响实际使用！")));
+                builder.addCustom(
+                        (list, syncer) -> list.add(KeyUtil.lang(TextFormatting.RED, "将会在下次待机刷新线程！")));
             }
 
         }
