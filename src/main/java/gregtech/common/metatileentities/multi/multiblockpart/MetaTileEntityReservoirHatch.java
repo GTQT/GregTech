@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.FilteredItemHandler;
@@ -44,13 +42,14 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.RichTextWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,11 +61,12 @@ public class MetaTileEntityReservoirHatch extends MetaTileEntityMultiblockNotifi
                    IGhostSlotConfigurable {
 
     private static final int FLUID_AMOUNT = 2_000_000_000;
+    static FluidStack waterStack = new FluidStack(FluidRegistry.WATER, FLUID_AMOUNT);
     private final InfiniteWaterTank fluidTank;
     private GhostCircuitItemStackHandler circuitInventory;
 
     public MetaTileEntityReservoirHatch(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, GTValues.EV, false);
+        super(metaTileEntityId, GTValues.LuV, false);
         this.fluidTank = new InfiniteWaterTank(getInventorySize(), this);
         initializeInventory();
     }
@@ -220,6 +220,14 @@ public class MetaTileEntityReservoirHatch extends MetaTileEntityMultiblockNotifi
     }
 
     @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
     public void setGhostCircuitConfig(int config) {
         if (this.circuitInventory.getCircuitValue() == config) {
             return;
@@ -229,13 +237,7 @@ public class MetaTileEntityReservoirHatch extends MetaTileEntityMultiblockNotifi
             markDirty();
         }
     }
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
-    }
+
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         this.circuitInventory.write(data);
@@ -277,16 +279,15 @@ public class MetaTileEntityReservoirHatch extends MetaTileEntityMultiblockNotifi
         public InfiniteWaterTank(int capacity, MetaTileEntity entityToNotify) {
             super(capacity, entityToNotify, false);
             // start with the full amount
-            setFluid(new FluidStack(FluidRegistry.WATER, FLUID_AMOUNT));
+            setFluid(waterStack);
             // don't allow external callers to fill this tank
             setCanFill(false);
         }
 
         private void refillWater() {
-            int fillAmount = Math.max(0, FLUID_AMOUNT - getFluidAmount());
-            if (fillAmount > 0) {
+            if (getFluidAmount() < FLUID_AMOUNT) {
                 // call super since our overrides don't allow any kind of filling
-                super.fillInternal(new FluidStack(FluidRegistry.WATER, fillAmount), true);
+                super.fillInternal(waterStack, true);
             }
         }
 

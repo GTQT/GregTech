@@ -967,7 +967,7 @@ metaitem.smart_item_filter.tooltip=作§f覆盖板§7时以§f机器的配方§7
 behaviour.filter_ui_manager=§f右键点击§7以配置，§fShift+右键§7清除配置
 
 metaitem.cover.controller.name=机器控制覆盖板
-metaitem.cover.controller.tooltip=作§f覆盖板§7时可以§f开/关§7机器。
+metaitem.cover.controller.tooltip=作§f覆盖板§7时可以通过红石§f开/关§7机器。
 metaitem.cover.activity.detector.name=活跃探测覆盖板
 metaitem.cover.activity.detector.tooltip=作§f覆盖板§7时依照§f机器活跃状态§7发出红石信号。
 metaitem.cover.activity.detector_advanced.name=进阶活跃探测覆盖板
@@ -1033,8 +1033,12 @@ metaitem.cover.solar.panel.max.name=上限压太阳能板（§c§lMAX§r）
 metaitem.cover.solar.panel.tooltip.1=愿太阳与你同在。
 metaitem.cover.solar.panel.tooltip.2=作§f覆盖板§7时利用§e太阳§7生产§f能量§7。
 
-metaitem.cover.infinite_water.name=无限水覆盖板
+metaitem.cover.infinite_water.lv.name=无限水覆盖板（§7LV§r）
+metaitem.cover.infinite_water.mv.name=无限水覆盖板（§bMV§r）
+metaitem.cover.infinite_water.hv.name=无限水覆盖板（§6HV§r）
+metaitem.cover.infinite_water.ev.name=无限水覆盖板（§5EV§r）
 metaitem.cover.infinite_water.tooltip.1=作§f覆盖板§7时为所附着的容器供§9水§7。
+
 metaitem.cover.ender_fluid_link.name=末影流体连接覆盖板
 metaitem.cover.ender_item_link.name=末影物品连接覆盖板
 metaitem.cover.ender_fluid_link.tooltip=作§f覆盖板§7时利用§f无线§7§d末影§f连接§7传输§f流体§7。

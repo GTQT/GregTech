@@ -482,9 +482,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem COVER_ENERGY_DETECTOR;
     public static MetaItem<?>.MetaValueItem COVER_ENERGY_DETECTOR_ADVANCED;
     public static MetaItem<?>.MetaValueItem COVER_MAINTENANCE_DETECTOR;
-
     public static MetaItem<?>.MetaValueItem COVER_SCREEN;
-    public static MetaItem<?>.MetaValueItem COVER_INFINITE_WATER;
     public static MetaItem<?>.MetaValueItem COVER_AIR_VENT;
     public static MetaItem<?>.MetaValueItem COVER_ENDER_FLUID_LINK;
     public static MetaItem<?>.MetaValueItem COVER_ENDER_ITEM_LINK;
@@ -498,6 +496,10 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem COVER_STORAGE_MEDIUM;
     public static MetaItem<?>.MetaValueItem COVER_STORAGE_LARGE;
     public static MetaItem<?>.MetaValueItem COVER_STORAGE_HUGE;
+    public static MetaItem<?>.MetaValueItem COVER_INFINITE_WATER_LV;
+    public static MetaItem<?>.MetaValueItem COVER_INFINITE_WATER_MV;
+    public static MetaItem<?>.MetaValueItem COVER_INFINITE_WATER_HV;
+    public static MetaItem<?>.MetaValueItem COVER_INFINITE_WATER_EV;
 
     public static MetaItem<?>.MetaValueItem COVER_SOLAR_PANEL;
     public static MetaItem<?>.MetaValueItem COVER_SOLAR_PANEL_ULV;

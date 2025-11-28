@@ -59,7 +59,6 @@ import static gregtech.common.blocks.BlockMetalCasing.MetalCasingType.BRONZE_BRI
 import static gregtech.common.blocks.MetaBlocks.METAL_CASING;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
-import static gregtech.common.metatileentities.MetaTileEntities.HUGE_STEAM_IMPORT_HATCH;
 import static gtqt.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_EXPORT_BUS;
 import static gtqt.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_IMPORT_BUS;
 
@@ -601,8 +600,32 @@ public class MachineRecipeLoader {
                 .input(ELECTRIC_PUMP_HV, 2)
                 .inputs(new ItemStack(Items.CAULDRON))
                 .input(circuit, MarkerMaterials.Tier.HV)
-                .output(COVER_INFINITE_WATER)
+                .output(COVER_INFINITE_WATER_LV)
                 .EUt(VA[HV]).duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(ELECTRIC_PUMP_EV, 2)
+                .inputs(new ItemStack(Items.CAULDRON))
+                .input(circuit, MarkerMaterials.Tier.EV)
+                .output(COVER_INFINITE_WATER_MV)
+                .EUt(VA[EV]).duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(ELECTRIC_PUMP_IV, 2)
+                .inputs(new ItemStack(Items.CAULDRON))
+                .input(circuit, MarkerMaterials.Tier.IV)
+                .output(COVER_INFINITE_WATER_HV)
+                .EUt(VA[IV]).duration(100)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(ELECTRIC_PUMP_LuV, 2)
+                .inputs(new ItemStack(Items.CAULDRON))
+                .input(circuit, MarkerMaterials.Tier.LuV)
+                .output(COVER_INFINITE_WATER_EV)
+                .EUt(VA[LuV]).duration(100)
                 .buildAndRegister();
 
         // Air Vent

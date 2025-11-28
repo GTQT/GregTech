@@ -137,12 +137,13 @@ public final class CoverBehaviors {
                 CoverDetectorActivityAdvanced::new);
         registerBehavior(gregtechId("maintenance_detector"), MetaItems.COVER_MAINTENANCE_DETECTOR,
                 CoverDetectorMaintenance::new);
-        registerBehavior(gregtechId("infinite_water"), MetaItems.COVER_INFINITE_WATER, CoverInfiniteWater::new);
+
+        registerBehavior(gregtechId("infinite_water.lv"), MetaItems.COVER_INFINITE_WATER_LV,(def, tile, side) -> new CoverInfiniteWater(def, tile, side, 250));
+        registerBehavior(gregtechId("infinite_water.mv"), MetaItems.COVER_INFINITE_WATER_MV,(def, tile, side) -> new CoverInfiniteWater(def, tile, side, 1000));
+        registerBehavior(gregtechId("infinite_water.hv"), MetaItems.COVER_INFINITE_WATER_HV,(def, tile, side) -> new CoverInfiniteWater(def, tile, side, 4000));
+        registerBehavior(gregtechId("infinite_water.ev"), MetaItems.COVER_INFINITE_WATER_EV,(def, tile, side) -> new CoverInfiniteWater(def, tile, side, 16000));
 
         registerBehavior(gregtechId("air_vent"), MetaItems.COVER_AIR_VENT, (def, tile, side) -> new CoverAirVent(def, tile, side, 100));
-
-
-
         registerBehavior(gregtechId("ender_fluid_link"), MetaItems.COVER_ENDER_FLUID_LINK, CoverEnderFluidLink::new);
         registerBehavior(gregtechId("ender_item_link"), MetaItems.COVER_ENDER_ITEM_LINK, CoverEnderItemLink::new);
         registerBehavior(gregtechId("cover.digital"), MetaItems.COVER_DIGITAL_INTERFACE, CoverDigitalInterface::new);

@@ -7,7 +7,6 @@ import gregtech.api.recipes.ModHandler;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
 import gregtech.api.recipes.ingredients.GTRecipeItemInput;
 import gregtech.api.recipes.ingredients.GTRecipeOreInput;
-import gregtech.api.unification.material.MarkerMaterial;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
@@ -28,8 +27,6 @@ import static gregtech.common.blocks.MetaBlocks.*;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 import static gtqt.api.util.MaterialHelper.*;
-import static gtqt.common.metatileentities.GTQTMetaTileEntities.DUAL_IMPORT_HATCH;
-import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class MetaTileEntityMachineRecipeLoader {
 
@@ -98,11 +95,11 @@ public class MetaTileEntityMachineRecipeLoader {
 
         // Reservoir Hatch
         ASSEMBLER_RECIPES.recipeBuilder()
-                .input(COVER_INFINITE_WATER)
-                .input(FLUID_IMPORT_HATCH[EV])
-                .input(ELECTRIC_PUMP_EV)
+                .input(COVER_INFINITE_WATER_EV)
+                .input(FLUID_IMPORT_HATCH[LuV])
+                .input(ELECTRIC_PUMP_LuV)
                 .output(RESERVOIR_HATCH)
-                .duration(300).EUt(VA[EV]).buildAndRegister();
+                .duration(300).EUt(VA[LuV]).buildAndRegister();
 
         // Item Buses
         registerHatchBusRecipe(ULV, ITEM_IMPORT_BUS[ULV], ITEM_EXPORT_BUS[ULV], OreDictNames.chestWood.toString());

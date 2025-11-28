@@ -691,7 +691,7 @@ public class MetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Zinc, M * 3 / 2)))
                 .addComponents(new SmartFilterUIManager(), IFilter.factory(SmartItemFilter::new));
 
-        // Functional Covers: ID 301-330
+        // Functional Covers: ID 295-330
         COVER_MACHINE_CONTROLLER = addItem(301, "cover.controller");
         COVER_ACTIVITY_DETECTOR = addItem(302, "cover.activity.detector");
         COVER_ACTIVITY_DETECTOR_ADVANCED = addItem(303, "cover.activity.detector_advanced");
@@ -703,12 +703,9 @@ public class MetaItem1 extends StandardMetaItem {
 
         COVER_SCREEN = addItem(307, "cover.screen");
         COVER_ENDER_ITEM_LINK = addItem(308, "cover.ender_item_link");
-        COVER_SHUTTER = addItem(309, "cover.shutter");
-        COVER_INFINITE_WATER = addItem(310, "cover.infinite_water").addComponents(new TooltipBehavior(lines -> {
-            lines.add(I18n.format("metaitem.cover.infinite_water.tooltip.1"));
-            lines.add(I18n.format("gregtech.universal.tooltip.produces_fluid", 16_000 / 20));
-        }));
-        COVER_ENDER_FLUID_LINK = addItem(311, "cover.ender_fluid_link");
+        COVER_ENDER_FLUID_LINK = addItem(309, "cover.ender_fluid_link");
+        COVER_SHUTTER = addItem(310, "cover.shutter");
+        COVER_AIR_VENT = addItem(311, "cover.air_vent");
         COVER_DIGITAL_INTERFACE = addItem(312, "cover.digital");
         COVER_DIGITAL_INTERFACE_WIRELESS = addItem(313, "cover.digital.wireless");
         COVER_FLUID_VOIDING = addItem(314, "cover.fluid.voiding");
@@ -719,11 +716,28 @@ public class MetaItem1 extends StandardMetaItem {
         COVER_FLUID_DETECTOR_ADVANCED = addItem(319, "cover.fluid.detector.advanced");
         COVER_ITEM_DETECTOR_ADVANCED = addItem(320, "cover.item.detector.advanced");
         COVER_MAINTENANCE_DETECTOR = addItem(321, "cover.maintenance.detector");
-        COVER_AIR_VENT = addItem(322, "cover.air_vent");
-        COVER_STORAGE = addItem(323, "cover.storage");
-        COVER_STORAGE_MEDIUM = addItem(324, "cover.storage_medium");
-        COVER_STORAGE_LARGE = addItem(325, "cover.storage_large");
-        COVER_STORAGE_HUGE = addItem(326, "cover.storage_huge");
+
+        COVER_STORAGE = addItem(322, "cover.storage");
+        COVER_STORAGE_MEDIUM = addItem(323, "cover.storage_medium");
+        COVER_STORAGE_LARGE = addItem(324, "cover.storage_large");
+        COVER_STORAGE_HUGE = addItem(325, "cover.storage_huge");
+
+        COVER_INFINITE_WATER_LV = addItem(326, "cover.infinite_water.lv").addComponents(new TooltipBehavior(lines -> {
+            lines.add(I18n.format("metaitem.cover.infinite_water.tooltip.1"));
+            lines.add(I18n.format("gregtech.universal.tooltip.produces_fluid", 250 / 20));
+        }));
+        COVER_INFINITE_WATER_MV = addItem(327, "cover.infinite_water.mv").addComponents(new TooltipBehavior(lines -> {
+            lines.add(I18n.format("metaitem.cover.infinite_water.tooltip.1"));
+            lines.add(I18n.format("gregtech.universal.tooltip.produces_fluid", 1000 / 20));
+        }));
+        COVER_INFINITE_WATER_HV = addItem(328, "cover.infinite_water.hv").addComponents(new TooltipBehavior(lines -> {
+            lines.add(I18n.format("metaitem.cover.infinite_water.tooltip.1"));
+            lines.add(I18n.format("gregtech.universal.tooltip.produces_fluid", 4000 / 20));
+        }));
+        COVER_INFINITE_WATER_EV = addItem(329, "cover.infinite_water.ev").addComponents(new TooltipBehavior(lines -> {
+            lines.add(I18n.format("metaitem.cover.infinite_water.tooltip.1"));
+            lines.add(I18n.format("gregtech.universal.tooltip.produces_fluid", 16000 / 20));
+        }));
 
         COVER_FACADE = addItem(330, "cover.facade").addComponents(new FacadeItem()).disableModelLoading();
 

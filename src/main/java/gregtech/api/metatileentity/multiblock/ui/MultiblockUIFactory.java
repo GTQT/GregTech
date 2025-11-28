@@ -59,7 +59,7 @@ public class MultiblockUIFactory {
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> gcymButton = (guiData, syncManager) -> null;
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> parallelButton = (guiData, syncManager) -> null;
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget>  threadButton = (guiData, syncManager) -> null;
-    private int width = 198, height = 202+18;
+    private int width = 198, height = 202;
     private int screenHeight = 109;
     private ScreenFunction screenFunction;
     private boolean disableDisplay = false;
@@ -69,6 +69,7 @@ public class MultiblockUIFactory {
     public MultiblockUIFactory(@NotNull MultiblockWithDisplayBase mte) {
         this.mte = mte;
         configureDisplayText(builder -> builder.title(mte.getMetaFullName()).structureFormed(mte.isStructureFormed()));
+        if(mte.hasSideUI())height += 18;
     }
 
     private static int calculateRows(int count) {

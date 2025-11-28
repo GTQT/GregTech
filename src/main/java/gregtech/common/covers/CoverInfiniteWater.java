@@ -21,9 +21,12 @@ import org.jetbrains.annotations.NotNull;
 
 public class CoverInfiniteWater extends CoverBase implements ITickable {
 
+    int amount;
+
     public CoverInfiniteWater(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
-                              @NotNull EnumFacing attachedSide) {
+                              @NotNull EnumFacing attachedSide,int amount) {
         super(definition, coverableView, attachedSide);
+        this.amount = amount;
     }
 
     @Override
@@ -44,7 +47,7 @@ public class CoverInfiniteWater extends CoverBase implements ITickable {
             IFluidHandler fluidHandler = getCoverableView()
                     .getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, getAttachedSide());
             if (fluidHandler != null) {
-                fluidHandler.fill(new FluidStack(FluidRegistry.WATER, 16000), true);
+                fluidHandler.fill(new FluidStack(FluidRegistry.WATER, amount), true);
             }
         }
     }
