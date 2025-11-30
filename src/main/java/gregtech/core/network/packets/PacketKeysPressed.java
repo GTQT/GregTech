@@ -1,4 +1,3 @@
-
 package gregtech.core.network.packets;
 
 import gregtech.api.network.IPacket;

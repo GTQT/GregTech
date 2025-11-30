@@ -1474,6 +1474,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         //compound.setInteger("parallelRecipesPerformed",this.parallelRecipesPerformed);
         //compound.setInteger("parallelLimit",this.parallelLimit);
         compound.setBoolean("Batch", enableBatch);
+        compound.setBoolean("LockRecipe", lockRecipe);
         compound.setBoolean("WorkEnabled", workingEnabled);
         compound.setBoolean("CanRecipeProgress", canRecipeProgress);
         compound.setBoolean(ALLOW_OVERCLOCKING, allowOverclocking);
@@ -1509,6 +1510,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         //this.parallelRecipesPerformed = compound.getInteger("parallelRecipesPerformed");
         //this.parallelLimit = compound.getInteger("parallelLimit");
         this.enableBatch = compound.getBoolean("Batch");
+        this.lockRecipe = compound.getBoolean("LockRecipe");
         this.workingEnabled = compound.getBoolean("WorkEnabled");
         this.canRecipeProgress = compound.getBoolean("CanRecipeProgress");
         this.progressTime = compound.getInteger("Progress");

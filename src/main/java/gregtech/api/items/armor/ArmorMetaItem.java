@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ArmorMetaItem<T extends ArmorMetaItem<?>.ArmorMetaValueItem> extends MetaItem<T>
-                          implements IArmorItem, ISpecialArmor, IEnchantabilityHelper {
+        implements IArmorItem, ISpecialArmor, IEnchantabilityHelper {
 
     public ArmorMetaItem() {
         super((short) 0);
