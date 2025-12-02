@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
@@ -294,30 +293,19 @@ public class WidgetProspectingMap extends Widget {
                         }
                     }
                 }
-                // 计算总高度和平均值
-                int totalHeight = 0;
-                Map<String, Integer> avgHeights = new HashMap<>();
-
-                for (Map.Entry<String, Integer> entry : oreHeight.entrySet()) {
-                    String name = entry.getKey();
-                    int height = entry.getValue();
+                oreHeight.forEach((name, height) -> {
+                    hoveredOreHeight += height;
                     int count = oreInfo.getOrDefault(name, 0);
-
-                    totalHeight += height;
-
-                    // 计算每个矿物的平均高度
                     int avgHeight = count != 0 ? height / count : 0;
-                    avgHeights.put(name, avgHeight);
+                    oreHeight.put(name, avgHeight);
+                });
+                int totalCount = oreInfo.values().stream().reduce(0, Integer::sum);
+                if (totalCount != 0) {
+                    hoveredOreHeight /= totalCount;
                 }
-
-                // 计算总体平均高度
-                int totalCount = oreInfo.values().stream().mapToInt(Integer::intValue).sum();
-                hoveredOreHeight = totalCount != 0 ? totalHeight / totalCount : 0;
-
-                // 生成显示信息
                 oreInfo.forEach((name, count) -> {
-                    int avgHeight = avgHeights.getOrDefault(name, 0)%255;
-                    tooltips.add(name + " --- §e" + count + "§r, §cy" + avgHeight + "§r");
+                    int height = oreHeight.getOrDefault(name, 0);
+                    tooltips.add(name + " --- §e" + count + "§r, §cy" + height + "§r");
                     hoveredNames.add(name);
                 });
             } else if (this.mode == ProspectorMode.FLUID) {
