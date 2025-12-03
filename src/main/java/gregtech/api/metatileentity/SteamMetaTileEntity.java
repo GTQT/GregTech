@@ -1,7 +1,7 @@
 package gregtech.api.metatileentity;
-import com.cleanroommc.modularui.screen.UISettings;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.ISteamMachine;
 import gregtech.api.capability.impl.CommonFluidFilters;
 import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.FluidTankList;
@@ -25,7 +25,12 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.*;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidTank;
@@ -40,6 +45,7 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import org.apache.commons.lang3.ArrayUtils;
@@ -49,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class SteamMetaTileEntity extends MetaTileEntity {
+public abstract class SteamMetaTileEntity extends MetaTileEntity implements ISteamMachine {
 
     // todo quick and dirty fix to not show input tank in ui, find better solution
     protected static final FluidTankList EMPTY = new FluidTankList(false);

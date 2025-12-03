@@ -2,16 +2,14 @@ package gregtech.integration.theoneprobe.provider;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.ISteamMachine;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.PrimitiveRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.SteamMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
-import gregtech.common.metatileentities.multi.MetaTileEntityLargeBoiler;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
@@ -48,11 +46,9 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
             long eut = capability.getInfoProviderEUt();
             String text = null;
 
-            if (tileEntity instanceof IGregTechTileEntity) {
-                IGregTechTileEntity gtTileEntity = (IGregTechTileEntity) tileEntity;
+            if (tileEntity instanceof IGregTechTileEntity gtTileEntity) {
                 MetaTileEntity mte = gtTileEntity.getMetaTileEntity();
-                if (mte instanceof SteamMetaTileEntity || mte instanceof MetaTileEntityLargeBoiler ||
-                        mte instanceof RecipeMapSteamMultiblockController) {
+                if (mte instanceof ISteamMachine) {
                     text = TextFormatting.AQUA + TextFormattingUtil.formatNumbers(eut) +
                             TextStyleClass.INFO + " L/t {*" +
                             Materials.Steam.getUnlocalizedName() + "*}";

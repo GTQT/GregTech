@@ -3,7 +3,6 @@ package gregtech.integration.jei.multiblock;
 import gregtech.api.GTValues;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-
 import gregtech.api.util.GTLog;
 
 import net.minecraft.client.resources.I18n;
@@ -25,11 +24,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
 public class MultiblockInfoCategory implements IRecipeCategory<MultiblockInfoRecipeWrapper> {
 
     public static final String UID = String.format("%s.multiblock_info", GTValues.MODID);
+    private static final int MAX_THREADS = Math.min(4, Runtime.getRuntime().availableProcessors());
 
     private final IDrawable background;
     private final IDrawable icon;
@@ -49,7 +49,40 @@ public class MultiblockInfoCategory implements IRecipeCategory<MultiblockInfoRec
     }
 
     public static void registerRecipes(IModRegistry registry) {
-        registry.addRecipes(REGISTER.stream().map(MultiblockInfoRecipeWrapper::new).collect(Collectors.toList()), UID);
+        if (REGISTER.isEmpty()) return;
+
+        ExecutorService executor = Executors.newFixedThreadPool(MAX_THREADS);
+        List<Future<MultiblockInfoRecipeWrapper>> futures = new ArrayList<>(REGISTER.size());
+
+        // 提交所有任务
+        for (MultiblockControllerBase controller : REGISTER) {
+            futures.add(executor.submit(() -> new MultiblockInfoRecipeWrapper(controller)));
+        }
+
+        // 收集结果
+        List<MultiblockInfoRecipeWrapper> recipes = new ArrayList<>(REGISTER.size());
+        for (Future<MultiblockInfoRecipeWrapper> future : futures) {
+            try {
+                recipes.add(future.get());
+            } catch (InterruptedException | ExecutionException e) {
+                GTLog.logger.error("Failed to create multiblock info wrapper", e);
+                Thread.currentThread().interrupt(); // 恢复中断状态
+            }
+        }
+
+        // 关闭线程池
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(999, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        // 主线程注册
+        registry.addRecipes(recipes, UID);
     }
 
     @NotNull
@@ -57,6 +90,7 @@ public class MultiblockInfoCategory implements IRecipeCategory<MultiblockInfoRec
     public String getUid() {
         return UID;
     }
+
     @NotNull
     @Override
     public String getTitle() {
