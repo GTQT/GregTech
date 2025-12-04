@@ -96,9 +96,9 @@ public class MetaItem1 extends StandardMetaItem {
         if (!isInCreativeTab(tab)) return;
         for (MetaItem<?>.MetaValueItem item : metaItems.values()) {
             if (!item.isInCreativeTab(tab)) continue;
+            item.getSubItemHandler().getSubItems(item.getStackForm(), tab, subItems);
         }
     }
-
 
     @Override
     public void registerSubItems() {

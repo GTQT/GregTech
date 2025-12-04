@@ -177,43 +177,35 @@ public class GTQTMetaItem1 extends StandardMetaItem {
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         //流体单元90
-        GTQTMetaItems.WOODEN_BUCKET = this.addItem(90, "wooden_bucket")
-                .addComponents(new FilteredFluidStats(1000, Wood.getProperty(PropertyKey.FLUID_PIPE)
-                                .getMaxFluidTemperature(), true, false, false, false, true),
-                        new ItemFluidContainer())
-                .setMaxStackSize(1)
+        GTQTMetaItems.WOODEN_BUCKET = this.addItem(90, "wooden_bucket").addComponents(
+                        new FilteredFluidStats(1000, Wood.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true,
+                                false, false, false, true), new ItemFluidContainer()).setMaxStackSize(1)
                 .setRecyclingData(new RecyclingData(new MaterialStack(Wood, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.FLUID_CELL_CHROME = this.addItem(91, "large_fluid_cell.chrome")
-                .addComponents(new FilteredFluidStats(2_048_000, Chrome.getProperty(PropertyKey.FLUID_PIPE)
-                                .getMaxFluidTemperature(), true, true, false, false, true),
-                        new ItemFluidContainer())
-                .setMaxStackSize(32)
+        GTQTMetaItems.FLUID_CELL_CHROME = this.addItem(91, "large_fluid_cell.chrome").addComponents(
+                        new FilteredFluidStats(2_048_000, Chrome.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                                true, true, false, false, true), new ItemFluidContainer()).setMaxStackSize(32)
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Chrome, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.FLUID_CELL_IRIDIUM = this.addItem(92, "large_fluid_cell.iridium")
-                .addComponents(new FilteredFluidStats(8_192_000, Iridium.getProperty(PropertyKey.FLUID_PIPE)
-                                .getMaxFluidTemperature(), true, true, true, false, true),
-                        new ItemFluidContainer())
-                .setMaxStackSize(32)
+        GTQTMetaItems.FLUID_CELL_IRIDIUM = this.addItem(92, "large_fluid_cell.iridium").addComponents(
+                        new FilteredFluidStats(8_192_000, Iridium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                                true, true, true, false, true), new ItemFluidContainer()).setMaxStackSize(32)
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Iridium, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.FLUID_CELL_NAQUADAH_ALLOY = this.addItem(93, "large_fluid_cell.naquadah_alloy")
-                .addComponents(new FilteredFluidStats(32_768_000, NaquadahAlloy.getProperty(PropertyKey.FLUID_PIPE)
-                                .getMaxFluidTemperature(), true, true, true, true, true),
-                        new ItemFluidContainer())
-                .setMaxStackSize(32)
+        GTQTMetaItems.FLUID_CELL_NAQUADAH_ALLOY = this.addItem(93, "large_fluid_cell.naquadah_alloy").addComponents(
+                        new FilteredFluidStats(32_768_000,
+                                NaquadahAlloy.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, true, true,
+                                true, true), new ItemFluidContainer()).setMaxStackSize(32)
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.NaquadahAlloy, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.FLUID_CELL_NEUTRONIUM = this.addItem(94, "large_fluid_cell.neutronium")
-                .addComponents(new FilteredFluidStats(131_072_000, Neutronium.getProperty(PropertyKey.FLUID_PIPE)
-                                .getMaxFluidTemperature(), true, true, true, true, true),
-                        new ItemFluidContainer())
-                .setMaxStackSize(32)
+        GTQTMetaItems.FLUID_CELL_NEUTRONIUM = this.addItem(94, "large_fluid_cell.neutronium").addComponents(
+                        new FilteredFluidStats(131_072_000,
+                                Neutronium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, true, true, true,
+                                true), new ItemFluidContainer()).setMaxStackSize(32)
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Neutronium, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
@@ -232,93 +224,96 @@ public class GTQTMetaItem1 extends StandardMetaItem {
                 .setMaxStackSize(1).addComponents(new WindRotorBehavior(76800000, 6, RhodiumPlatedPalladium));
 
         // 51-70: Vanadium Steel Molds & Extruders.
-        GTQTMetaItems.CASTING_MOLD_EMPTY = addItem(200, "shape.mold.vanadium_steel.empty")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_EMPTY = addItem(200, "shape.mold.vanadium_steel.empty").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_SAW = addItem(201, "shape.mold.vanadium_steel.saw")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_SAW = addItem(201, "shape.mold.vanadium_steel.saw").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_HARD_HAMMER = addItem(202, "shape.mold.vanadium_steel.hard_hammer")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_HARD_HAMMER = addItem(202, "shape.mold.vanadium_steel.hard_hammer").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_SOFT_MALLET = addItem(203, "shape.mold.vanadium_steel.soft_mallet")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_SOFT_MALLET = addItem(203, "shape.mold.vanadium_steel.soft_mallet").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_WRENCH = addItem(204, "shape.mold.vanadium_steel.wrench")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_WRENCH = addItem(204, "shape.mold.vanadium_steel.wrench").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_FILE = addItem(205, "shape.mold.vanadium_steel.file")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_FILE = addItem(205, "shape.mold.vanadium_steel.file").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_CROWBAR = addItem(206, "shape.mold.vanadium_steel.crowbar")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_CROWBAR = addItem(206, "shape.mold.vanadium_steel.crowbar").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_SCREWDRIVER = addItem(207, "shape.mold.vanadium_steel.screwdriver")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_SCREWDRIVER = addItem(207, "shape.mold.vanadium_steel.screwdriver").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_MORTAR = addItem(208, "shape.mold.vanadium_steel.mortar")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_MORTAR = addItem(208, "shape.mold.vanadium_steel.mortar").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_WIRE_CUTTER = addItem(209, "shape.mold.vanadium_steel.wire_cutter")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_WIRE_CUTTER = addItem(209, "shape.mold.vanadium_steel.wire_cutter").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_KNIFE = addItem(210, "shape.mold.vanadium_steel.knife")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_KNIFE = addItem(210, "shape.mold.vanadium_steel.knife").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_BUTCHERY_KNIFE = addItem(211, "shape.mold.vanadium_steel.butchery_knife")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_BUTCHERY_KNIFE = addItem(211,
+                "shape.mold.vanadium_steel.butchery_knife").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.CASTING_MOLD_ROLLING_PIN = addItem(212, "shape.mold.vanadium_steel.rolling_pin")
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)));
+        GTQTMetaItems.CASTING_MOLD_ROLLING_PIN = addItem(212, "shape.mold.vanadium_steel.rolling_pin").setRecyclingData(
+                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // 601-700: Tools.
-        GTQTMetaItems.DISPOSABLE_SAW = addItem(220, "tool.disposable.saw")
-                .addOreDict("toolSaw")
-                .addOreDict("craftingToolSaw");
+        GTQTMetaItems.DISPOSABLE_SAW = addItem(220, "tool.disposable.saw").addOreDict("toolSaw")
+                .addOreDict("craftingToolSaw").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_HARD_HAMMER = addItem(221, "tool.disposable.hard_hammer")
-                .addOreDict("toolHammer")
-                .addOreDict("craftingToolHardHammer");
+        GTQTMetaItems.DISPOSABLE_HARD_HAMMER = addItem(221, "tool.disposable.hard_hammer").addOreDict("toolHammer")
+                .addOreDict("craftingToolHardHammer").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_SOFT_MALLET = addItem(222, "tool.disposable.soft_mallet")
-                .addOreDict("toolMallet")
-                .addOreDict("craftingToolSoftHammer");
+        GTQTMetaItems.DISPOSABLE_SOFT_MALLET = addItem(222, "tool.disposable.soft_mallet").addOreDict("toolMallet")
+                .addOreDict("craftingToolSoftHammer").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_WRENCH = addItem(223, "tool.disposable.wrench")
-                .addOreDict("toolWrench")
-                .addOreDict("craftingToolWrench");
+        GTQTMetaItems.DISPOSABLE_WRENCH = addItem(223, "tool.disposable.wrench").addOreDict("toolWrench")
+                .addOreDict("craftingToolWrench").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_FILE = addItem(224, "tool.disposable.file")
-                .addOreDict("toolFile")
-                .addOreDict("craftingToolFile");
+        GTQTMetaItems.DISPOSABLE_FILE = addItem(224, "tool.disposable.file").addOreDict("toolFile")
+                .addOreDict("craftingToolFile").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_CROWBAR = addItem(225, "tool.disposable.crowbar")
-                .addOreDict("toolCrowbar")
-                .addOreDict("craftingToolCrowbar");
+        GTQTMetaItems.DISPOSABLE_CROWBAR = addItem(225, "tool.disposable.crowbar").addOreDict("toolCrowbar")
+                .addOreDict("craftingToolCrowbar").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_SCREWDRIVER = addItem(226, "tool.disposable.screwdriver")
-                .addOreDict("toolScrewdriver")
-                .addOreDict("craftingToolScrewdriver");
+        GTQTMetaItems.DISPOSABLE_SCREWDRIVER = addItem(226, "tool.disposable.screwdriver").addOreDict("toolScrewdriver")
+                .addOreDict("craftingToolScrewdriver").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_MORTAR = addItem(227, "tool.disposable.mortar")
-                .addOreDict("toolMortar")
-                .addOreDict("craftingToolMortar");
+        GTQTMetaItems.DISPOSABLE_MORTAR = addItem(227, "tool.disposable.mortar").addOreDict("toolMortar")
+                .addOreDict("craftingToolMortar").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_WIRE_CUTTER = addItem(228, "tool.disposable.wire_cutter")
-                .addOreDict("toolWireCutter")
-                .addOreDict("craftingToolWireCutter");
+        GTQTMetaItems.DISPOSABLE_WIRE_CUTTER = addItem(228, "tool.disposable.wire_cutter").addOreDict("toolWireCutter")
+                .addOreDict("craftingToolWireCutter").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_KNIFE = addItem(229, "tool.disposable.knife")
-                .addOreDict("toolKnife")
-                .addOreDict("craftingToolKnife");
+        GTQTMetaItems.DISPOSABLE_KNIFE = addItem(229, "tool.disposable.knife").addOreDict("toolKnife")
+                .addOreDict("craftingToolKnife").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_BUTCHERY_KNIFE = addItem(230, "tool.disposable.butchery_knife")
-                .addOreDict("toolButcheryKnife")
-                .addOreDict("craftingToolButcheryKnife");
+        GTQTMetaItems.DISPOSABLE_BUTCHERY_KNIFE = addItem(230, "tool.disposable.butchery_knife").addOreDict(
+                        "toolButcheryKnife").addOreDict("craftingToolButcheryKnife")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        GTQTMetaItems.DISPOSABLE_ROLLING_PIN = addItem(231, "tool.disposable.rolling_pin")
-                .addOreDict("toolRollingPin")
-                .addOreDict("craftingToolRollingPin");
+        GTQTMetaItems.DISPOSABLE_ROLLING_PIN = addItem(231, "tool.disposable.rolling_pin").addOreDict("toolRollingPin")
+                .addOreDict("craftingToolRollingPin").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
     }
 }

@@ -26,7 +26,6 @@
     "BlockFluidBaseMixin",
     "BlockMixin",
     "EntityRendererMixin",
-    "ItemMixin",
     "LayerArmorBaseMixin",
     "LayerCustomHeadMixin",
     "QuitMixin",
