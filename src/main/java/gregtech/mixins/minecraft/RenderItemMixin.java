@@ -8,18 +8,18 @@ import gregtech.api.util.Mods;
 import gregtech.client.renderer.handler.LampItemOverlayRenderer;
 import gregtech.client.utils.RenderUtil;
 import gregtech.client.utils.ToolChargeBarRenderer;
-
-import gregtech.common.MetaEntities;
-import gregtech.common.metatileentities.storage.MetaTileEntityCrate;
+import gregtech.common.metatileentities.storage.MetaTileEntityCreativeChest;
+import gregtech.common.metatileentities.storage.MetaTileEntityCreativeTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityDrum;
-
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
 
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderItem;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.init.Enchantments;
 import net.minecraft.item.ItemStack;
-
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
 
@@ -31,9 +31,78 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.awt.*;
+import java.text.DecimalFormat;
 
 @Mixin(RenderItem.class)
 public class RenderItemMixin {
+
+    @Unique
+    private static void gregTechCEu$renderDrumBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
+        if (stack.getCount() > 1) return; //忽视堆叠项目
+
+        MetaTileEntity mte = GTUtility.getMetaTileEntity(stack);
+        if (!(mte instanceof MetaTileEntityDrum drum)) return;
+
+        FluidStack fluid = FluidUtil.getFluidContained(stack);
+        if (fluid == null || fluid.amount <= 0) return;
+
+        int tankCapacity = drum.getTankSize();
+        double fillRate = fluid.amount / (double) tankCapacity;
+
+        Color color = new Color(GTUtility.convertRGBtoOpaqueRGBA_MC(RenderUtil.getFluidColor(fluid)));
+        ToolChargeBarRenderer.render(fillRate, xPosition, yPosition, 0, true, color, color, false);
+    }
+
+    @Unique
+    private static void gregTechCEu$renderQuantumTankBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
+        if (stack.getCount() > 1) return; //忽视堆叠项目
+
+        MetaTileEntity mte = GTUtility.getMetaTileEntity(stack);
+        if (!(mte instanceof MetaTileEntityQuantumTank tank)) return;
+        if (mte instanceof MetaTileEntityCreativeTank) return;
+
+        FluidStack fluid = FluidUtil.getFluidContained(stack);
+        if (fluid == null || fluid.amount <= 0) return;
+
+        int tankCapacity = tank.getTankSize();
+        double fillRate = fluid.amount / (double) tankCapacity;
+
+        Color color = new Color(GTUtility.convertRGBtoOpaqueRGBA_MC(RenderUtil.getFluidColor(fluid)));
+        ToolChargeBarRenderer.render(fillRate, xPosition, yPosition, 0, true, color, color, false);
+    }
+
+    @Unique
+    private static void gregTechCEu$renderQuantumChestBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
+        if (stack.getCount() > 1) return; //忽视堆叠项目
+
+        MetaTileEntity mte = GTUtility.getMetaTileEntity(stack);
+        if (!(mte instanceof MetaTileEntityQuantumChest chest)) return;
+        if (mte instanceof MetaTileEntityCreativeChest) return;
+
+        long itemCapacity = chest.getMaxStoredItems();
+        long itemStore = chest.getStoredItemCountFromNBT(stack) + chest.getExportItemCountFromNBT(stack);
+        double fillRate = itemStore / (double) itemCapacity;
+
+        Color color = Color.BLUE;
+        ToolChargeBarRenderer.render(fillRate, xPosition, yPosition, 0, true, color, color, false);
+    }
+
+    @Unique
+    private static void gregTechCEu$renderElectricBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
+        if (stack.getItem() instanceof IGTTool) {
+            ToolChargeBarRenderer.renderBarsTool((IGTTool) stack.getItem(), stack, xPosition, yPosition);
+        } else if (stack.getItem() instanceof MetaItem) {
+            ToolChargeBarRenderer.renderBarsItem((MetaItem<?>) stack.getItem(), stack, xPosition, yPosition);
+        }
+    }
+
+    @Unique
+    private static void gregTechCEu$renderLampOverlay(@NotNull ItemStack stack, int xPosition, int yPosition) {
+        LampItemOverlayRenderer.OverlayType overlayType = LampItemOverlayRenderer.getOverlayType(stack);
+        if (overlayType != LampItemOverlayRenderer.OverlayType.NONE) {
+            LampItemOverlayRenderer.renderOverlay(overlayType, xPosition, yPosition);
+        }
+    }
 
     // The easy part of translating the item render stuff
     @Inject(method = "renderItemOverlayIntoGUI", at = @At(value = "HEAD"))
@@ -59,74 +128,59 @@ public class RenderItemMixin {
         }
     }
 
-    /*
-     * 圣人说这是抄袭的他的，既然他是圣人那我只能服从圣人了
-     * 原链接：https://github.com/MCTian-mi/SussyPatches/commit/e13ea32afac6d7bfd07d3c107713098e9d73a03a
-     * 作者：MCTian-mi
-     */
-    @Unique
-    private static void gregTechCEu$renderDrumBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
-        if (stack.getCount() > 1) return; //忽视堆叠项目
-
-        MetaTileEntity mte = GTUtility.getMetaTileEntity(stack);
-        if (!(mte instanceof MetaTileEntityDrum drum)) return;
-
-        FluidStack fluid = FluidUtil.getFluidContained(stack);
-        if (fluid == null || fluid.amount <= 0) return;
-
-        int tankCapacity = drum.getTankSize();
-        double fillRate = fluid.amount / (double) tankCapacity;
-
-        Color color = new Color(GTUtility.convertRGBtoOpaqueRGBA_MC(RenderUtil.getFluidColor(fluid)));
-        ToolChargeBarRenderer.render(fillRate, xPosition, yPosition, 0, true, color, color, false);
+    @Inject(at = @At("RETURN"),
+            method = "renderItemOverlayIntoGUI(Lnet/minecraft/client/gui/FontRenderer;Lnet/minecraft/item/ItemStack;IILjava/lang/String;)V")
+    public void renderItemOverlayIntoGUI(FontRenderer fontRenderer, ItemStack itemStack, int x, int y, String count,
+                                         CallbackInfo ci) {
+        gregTech$renderDurabilityRender(fontRenderer, itemStack, x, y);
     }
 
     @Unique
-    private static void gregTechCEu$renderQuantumTankBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
-        if (stack.getCount() > 1) return; //忽视堆叠项目
+    public void gregTech$renderDurabilityRender(FontRenderer fr, ItemStack stack, int xPosition, int yPosition) {
+        if (!stack.isEmpty() && stack.isItemDamaged()) {
+            GlStateManager.disableLighting();
+            GlStateManager.disableDepth();
+            GlStateManager.disableAlpha();
+            GlStateManager.disableBlend();
+            GlStateManager.scale(0.5F, 0.5F, 0.5F);
 
-        MetaTileEntity mte = GTUtility.getMetaTileEntity(stack);
-        if (!(mte instanceof MetaTileEntityQuantumTank tank)) return;
+            // ItemStack information
+            int unbreaking = EnchantmentHelper.getEnchantmentLevel(Enchantments.UNBREAKING, stack);
+            int maxDamage = stack.getMaxDamage();
+            int damage = stack.getItemDamage();
 
-        FluidStack fluid = FluidUtil.getFluidContained(stack);
-        if (fluid == null || fluid.amount <= 0) return;
+            // Create string, position, and color
+            String string = format(((maxDamage - damage) * (unbreaking + 1)));
+            int stringWidth = fr.getStringWidth(string);
+            int x = ((xPosition + 8) * 2 + 1 + stringWidth / 2 - stringWidth);
 
-        int tankCapacity = tank.getTankSize();
-        double fillRate = fluid.amount / (double) tankCapacity;
+            // 检测是否为电动物品
+            boolean isElectricItem = stack.getItem() instanceof IGTTool tool && tool.isElectric();
 
-        Color color = new Color(GTUtility.convertRGBtoOpaqueRGBA_MC(RenderUtil.getFluidColor(fluid)));
-        ToolChargeBarRenderer.render(fillRate, xPosition, yPosition, 0, true, color, color, false);
-    }
+            int yBase = (yPosition * 2) + 18;
+            int y = isElectricItem ? (yBase - 4) : yBase;
 
-    @Unique
-    private static void gregTechCEu$renderQuantumChestBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
-        if (stack.getCount() > 1) return; //忽视堆叠项目
+            int color = stack.getItem().getRGBDurabilityForDisplay(stack);
 
-        MetaTileEntity mte = GTUtility.getMetaTileEntity(stack);
-        if (!(mte instanceof MetaTileEntityQuantumChest chest)) return;
+            // Draw string
+            fr.drawStringWithShadow(string, x, y, color);
 
-        long itemCapacity = chest.getMaxStoredItems();
-        long itemStore = chest.getStoredItemCountFromNBT( stack)+chest.getExportItemCountFromNBT(stack);
-        double fillRate = itemStore / (double) itemCapacity;
-
-        Color color = Color.BLUE;
-        ToolChargeBarRenderer.render(fillRate, xPosition, yPosition, 0, true, color, color, false);
-    }
-
-    @Unique
-    private static void gregTechCEu$renderElectricBar(@NotNull ItemStack stack, int xPosition, int yPosition) {
-        if (stack.getItem() instanceof IGTTool) {
-            ToolChargeBarRenderer.renderBarsTool((IGTTool) stack.getItem(), stack, xPosition, yPosition);
-        } else if (stack.getItem() instanceof MetaItem) {
-            ToolChargeBarRenderer.renderBarsItem((MetaItem<?>) stack.getItem(), stack, xPosition, yPosition);
+            GlStateManager.scale(2.0F, 2.0F, 2.0F);
+            GlStateManager.enableBlend();
+            GlStateManager.enableAlpha();
+            GlStateManager.enableLighting();
+            GlStateManager.enableDepth();
         }
     }
 
     @Unique
-    private static void gregTechCEu$renderLampOverlay(@NotNull ItemStack stack, int xPosition, int yPosition) {
-        LampItemOverlayRenderer.OverlayType overlayType = LampItemOverlayRenderer.getOverlayType(stack);
-        if (overlayType != LampItemOverlayRenderer.OverlayType.NONE) {
-            LampItemOverlayRenderer.renderOverlay(overlayType, xPosition, yPosition);
-        }
+    public String format(float number) {
+        DecimalFormat decimalFormat = new DecimalFormat("0.#");
+
+        if (number >= 1000000000) return decimalFormat.format(number / 1000000000) + "b";
+        if (number >= 1000000) return decimalFormat.format(number / 1000000) + "m";
+        if (number >= 1000) return decimalFormat.format(number / 1000) + "k";
+
+        return Float.toString(number).replaceAll("\\.?0*$", "");
     }
 }

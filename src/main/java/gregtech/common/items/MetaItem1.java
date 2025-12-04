@@ -96,19 +96,6 @@ public class MetaItem1 extends StandardMetaItem {
         if (!isInCreativeTab(tab)) return;
         for (MetaItem<?>.MetaValueItem item : metaItems.values()) {
             if (!item.isInCreativeTab(tab)) continue;
-
-            int itemMeta = item.getMetaValue();
-            // Skip extra molds, see below
-            if (itemMeta >= 1006 && itemMeta <= 1010) continue;
-            // Skip creative spray can, see below
-            if (itemMeta == 88) continue;
-
-            item.getSubItemHandler().getSubItems(item.getStackForm(), tab, subItems);
-
-            // Add the creative spray can after the last normal spray can
-            if (itemMeta == 77) {
-                subItems.add(SPRAY_CREATIVE.getStackForm());
-            }
         }
     }
 
