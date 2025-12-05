@@ -91,6 +91,11 @@ public class ConfigHolder {
                 "Default: false" })
         public boolean recipeProgressLowEnergy = false;
 
+        @Config.Comment({ "Whether power loss should reset machine recipe progress to zero.",
+                "If true, progress will reset on power loss.", "If false, progress will decrease to zero with 2x speed",
+                "Default: false" })
+        public boolean resetRecipeOnPowerLoss = false;
+
         @Config.Comment({
                 "Whether to require a Wrench, Wirecutter, or other GregTech tools to break machines, casings, wires, and more.",
                 "Default: false" })

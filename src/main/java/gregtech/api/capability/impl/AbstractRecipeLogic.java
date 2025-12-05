@@ -451,10 +451,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * Decrease the recipe progress time in the case that some state was not right, like available EU to drain.
      */
     protected void decreaseProgress() {
-        if (lackEnergyWarning && metaTileEntity.getOffsetTimer() % 200 == 0)
+        boolean shouldResetRecipe = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        boolean shouldNotify = lackEnergyWarning && (shouldResetRecipe || metaTileEntity.getOffsetTimer() % 200 == 0);
+
+        if (shouldNotify) {
             metaTileEntity.noticePlayer(
-                "[断电提醒]位于" + metaTileEntity.getPos() + "的" + metaTileEntity.getStackForm().getDisplayName() +
-                        "结构发生跳电！！！");
+                    "[断电提醒]位于" + metaTileEntity.getPos() + "的" + metaTileEntity.getStackForm().getDisplayName() +
+                            "结构发生跳电！！！");
+        }
+
+        if (shouldResetRecipe) {
+            invalidate();
+            return;
+        }
 
         // if current progress value is greater than 2, decrement it by 2
         if (progressTime >= 2) {
@@ -1311,7 +1320,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public void setBatchEnable(boolean enable) {
         enableBatch = enable;
         metaTileEntity.markDirty();
-        invalidate();
         World world = metaTileEntity.getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_BATCH, buf -> buf.writeBoolean(enableBatch));
@@ -1325,7 +1333,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public void setRecipeLockEnable(boolean enable) {
         lockRecipe = enable;
         metaTileEntity.markDirty();
-        invalidate();
         World world = metaTileEntity.getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_RECIPE_LOCK, buf -> buf.writeBoolean(lockRecipe));
@@ -1339,7 +1346,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public void setEnergyLackWarningEnable(boolean enable) {
         lackEnergyWarning = enable;
         metaTileEntity.markDirty();
-        invalidate();
         World world = metaTileEntity.getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.LACK_ENERGY_WARNING, buf -> buf.writeBoolean(lackEnergyWarning));

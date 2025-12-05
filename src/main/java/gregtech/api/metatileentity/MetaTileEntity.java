@@ -84,7 +84,9 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
+import appeng.client.render.BlockPosHighlighter;
 import appeng.me.helpers.AENetworkProxy;
+import appeng.util.BlockPosUtils;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.raytracer.IndexedCuboid6;
 import codechicken.lib.render.CCRenderState;
@@ -1712,6 +1714,16 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                 EntityPlayer player = world.getPlayerEntityByUUID(ownerGT);
                 if (player != null) {
                     player.sendMessage(new TextComponentTranslation(s));
+
+                    BlockPos blockPos = getPos();
+                    BlockPos blockPos2 = player.getPosition();
+                    int playerDim = player.world.provider.getDimension();
+
+                    long currentTime = System.currentTimeMillis();
+                    double distance = BlockPosUtils.getDistance(blockPos, blockPos2);
+                    long highlightTime = (long) (currentTime + 500 * distance);
+
+                    BlockPosHighlighter.hilightBlock(blockPos, highlightTime, playerDim);
                 }
             }
         }
