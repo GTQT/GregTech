@@ -91,8 +91,9 @@ public class ConfigHolder {
                 "Default: false" })
         public boolean recipeProgressLowEnergy = false;
 
-        @Config.Comment({ "Whether power loss should reset machine recipe progress to zero.",
-                "If true, progress will reset on power loss.", "If false, progress will decrease to zero with 2x speed",
+        @Config.Comment({ "Whether the machine should destroy the current recipe when power supply is interrupted.",
+                "If true, the current recipe will be immediately destroyed upon power loss.",
+                "If false, the recipe progress will be preserved when power is interrupted.",
                 "Default: false" })
         public boolean resetRecipeOnPowerLoss = false;
 
