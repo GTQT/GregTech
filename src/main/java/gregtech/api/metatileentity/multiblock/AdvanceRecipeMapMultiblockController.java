@@ -625,6 +625,19 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
             recipeMapWorkable.setRecipeLockEnable(enable);
     }
 
+    @Override
+    public boolean isEnergyLackWarningEnabled() {
+        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
+            if (recipeMapWorkable.isEnergyLackWarningEnable())
+                return true;
+        return false;
+    }
+
+    @Override
+    public void setEnergyLackWarningEnabled(boolean enable) {
+        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
+            recipeMapWorkable.setEnergyLackWarningEnable(enable);
+    }
 
     /// /////////////////////////////////////////////////////////////////
     @Override

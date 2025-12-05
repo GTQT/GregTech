@@ -529,6 +529,7 @@ public class MultiblockUIFactory {
                 .child(createStructureCheckButton(mainPanel, panelSyncManager))
                 .child(createBatchButton(mainPanel, panelSyncManager))
                 .child(lockRecipesButton(mainPanel, panelSyncManager))
+                .child(lackEnergyWarningButton(mainPanel, panelSyncManager))
                 .child(gcymButton)
                 .child(parallelButton)
                 .child(threadButton);
@@ -559,7 +560,7 @@ public class MultiblockUIFactory {
 
     //lockRecipesButton
     protected IWidget lockRecipesButton(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager) {
-        if (!(mte instanceof IRecipeLock controllable) || !controllable.isRecipeLockAllowed()) {
+        if (!(mte instanceof IRecipeLock controllable) || !controllable.enableExtendControl()) {
             return new ToggleButton()
                     .name("lock_none")
                     .size(18)
@@ -578,6 +579,28 @@ public class MultiblockUIFactory {
                 .addTooltip(true, IKey.lang("gregtech.multiblock.universal.lock_enabled"))
                 .addTooltip(false, IKey.lang("gregtech.multiblock.universal.lock_disabled"));
     }
+
+    protected IWidget lackEnergyWarningButton(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager) {
+        if (!(mte instanceof IRecipeLock controllable) || !controllable.enableExtendControl()) {
+            return new ToggleButton()
+                    .name("lack_energy_none")
+                    .size(18)
+                    .value(ALWAYS_ON)
+                    .overlay(GTGuiTextures.OVERLAY_LACK_ENERGY[0])
+                    .addTooltipLine(IKey.lang("gregtech.gui.multiblock_lack_not_supported"));
+        }
+
+        return new ToggleButton()
+                .name("lack_energy_none")
+                .size(18)
+                .value(new BooleanSyncValue(controllable::isEnergyLackWarningEnabled, controllable::setEnergyLackWarningEnabled))
+                .disableHoverBackground()
+                .overlay(true, GTGuiTextures.OVERLAY_LACK_ENERGY[1])
+                .overlay(false, GTGuiTextures.OVERLAY_LACK_ENERGY[0])
+                .addTooltip(true, IKey.lang("gregtech.multiblock.universal.lack_energy_enabled"))
+                .addTooltip(false, IKey.lang("gregtech.multiblock.universal.lack_energy_disabled"));
+    }
+
 
     protected IWidget createStructureCheckButton(@NotNull ModularPanel mainPanel,
                                                  @NotNull PanelSyncManager panelSyncManager) {

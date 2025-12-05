@@ -64,10 +64,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
     private static final String ALLOW_OVERCLOCKING = "AllowOverclocking";
     private static final String OVERCLOCK_VOLTAGE = "OverclockVoltage";
-
-    public RecipeMap<?> recipeMap;
     private final OCParams ocParams = new OCParams();
     private final OCResult ocResult = new OCResult();
+    public RecipeMap<?> recipeMap;
+    public int progressTime;
     protected Recipe previousRecipe;
     protected Recipe showRecipes;
     protected LinkedList<Recipe> latestRecipes = new LinkedList<>();
@@ -75,7 +75,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Getter
     @Setter
     protected boolean canRecipeProgress = true;
-    public int progressTime;
     protected int maxProgressTime;
     @Setter
     protected long recipeEUt;
@@ -96,11 +95,14 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private double euEfficiency = 1;
     private double speedBonus = -1;
     private boolean allowOverclocking = true;
-    @Setter @Getter
+    @Setter
+    @Getter
     private long overclockVoltage;
 
     private boolean enableBatch = false;
     private boolean lockRecipe = false;
+    private boolean lackEnergyWarning = false;
+
     /**
      * DO NOT use the parallelLimit field directly, EVER use {@link AbstractRecipeLogic#setParallelLimit(int)} instead
      */
@@ -320,6 +322,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         return this.recipeMap;
     }
 
+    public void setRecipeMap(RecipeMap<?> recipeMap) {this.recipeMap = recipeMap;}
+
     /**
      * Can be null if a recipe has not yet been run
      *
@@ -447,6 +451,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * Decrease the recipe progress time in the case that some state was not right, like available EU to drain.
      */
     protected void decreaseProgress() {
+        if (lackEnergyWarning && metaTileEntity.getOffsetTimer() % 200 == 0)
+            metaTileEntity.noticePlayer(
+                "[断电提醒]位于" + metaTileEntity.getPos() + "的" + metaTileEntity.getStackForm().getDisplayName() +
+                        "结构发生跳电！！！");
+
         // if current progress value is greater than 2, decrement it by 2
         if (progressTime >= 2) {
             if (ConfigHolder.machines.recipeProgressLowEnergy) {
@@ -529,7 +538,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
     }
 
-
     protected void addToPreviousRecipes(Recipe recipe) {
         // 移除已存在的旧记录
         latestRecipes.removeIf(r -> r.equals(recipe));
@@ -609,7 +617,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 metaTileEntity.getFluidOutputLimit());
 
         // apply EU/speed discount (if any) before parallel
-          if (euDiscount > 0 || speedBonus > 0) { // if-statement to avoid unnecessarily creating RecipeBuilder object
+        if (euDiscount > 0 || speedBonus > 0) { // if-statement to avoid unnecessarily creating RecipeBuilder object
             RecipeBuilder<?> builder = new RecipeBuilder<>(recipe, recipeMap);
             if (euDiscount > 0) {
                 long newEUt = Math.round(recipe.getEUt() * euDiscount);
@@ -705,15 +713,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
-     * 设置能源效率值
-     * @param efficiency 能源效率值，用于调整能耗计算
-     */
-    public void setEnergyEfficiency(double efficiency) {
-        euEfficiency = efficiency;
-    }
-
-    /**
      * 获取当前设置的能源效率值
+     *
      * @return 当前能源效率值
      */
     public double getEnergyEfficiency() {
@@ -721,7 +722,17 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
+     * 设置能源效率值
+     *
+     * @param efficiency 能源效率值，用于调整能耗计算
+     */
+    public void setEnergyEfficiency(double efficiency) {
+        euEfficiency = efficiency;
+    }
+
+    /**
      * 根据能源效率值调整配方的EU能耗
+     *
      * @param recipeEUt 原始配方EU能耗值
      * @return 应用能源效率调整后的EU能耗值
      */
@@ -893,6 +904,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
         return true;
     }
+
     /**
      * Batch process a recipe to increase output while keeping duration within 128 ticks.
      *
@@ -954,6 +966,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
         return recipe;
     }
+
     /**
      * Overclock a recipe beyond a duration of 1 tick using parallelization.
      *
@@ -1162,7 +1175,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         int recipeTier = GTUtility.getTierByVoltage(recipe.getEUt());
         int machineTier = getOverclockForTier(getMaximumOverclockVoltage());
 
-        if(metaTileEntity instanceof MultiblockWithDisplayBase multiblockWithDisplayBase){
+        if (metaTileEntity instanceof MultiblockWithDisplayBase multiblockWithDisplayBase) {
             multiblockWithDisplayBase.setRecoveryItems(recipe.getMufflerDustList());
         }
 
@@ -1238,8 +1251,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
-     * sets the amount of ticks of running time to finish the recipe
-     * 所有附属设备禁止使用setMaxProgress修改配方时间（有批处理功能的情况下）！！！
+     * sets the amount of ticks of running time to finish the recipe 所有附属设备禁止使用setMaxProgress修改配方时间（有批处理功能的情况下）！！！
      * 请使用modifyOverclockPost方法代替！！！
      *
      * @param maxProgress the amount of ticks to set
@@ -1295,9 +1307,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public boolean isBatchEnable() {
         return enableBatch;
     }
-    public boolean isRecipeLockEnable() {
-        return lockRecipe;
-    }
 
     public void setBatchEnable(boolean enable) {
         enableBatch = enable;
@@ -1309,6 +1318,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
     }
 
+    public boolean isRecipeLockEnable() {
+        return lockRecipe;
+    }
+
     public void setRecipeLockEnable(boolean enable) {
         lockRecipe = enable;
         metaTileEntity.markDirty();
@@ -1316,6 +1329,20 @@ public abstract class AbstractRecipeLogic extends MTETrait
         World world = metaTileEntity.getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_RECIPE_LOCK, buf -> buf.writeBoolean(lockRecipe));
+        }
+    }
+
+    public boolean isEnergyLackWarningEnable() {
+        return lackEnergyWarning;
+    }
+
+    public void setEnergyLackWarningEnable(boolean enable) {
+        lackEnergyWarning = enable;
+        metaTileEntity.markDirty();
+        invalidate();
+        World world = metaTileEntity.getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.LACK_ENERGY_WARNING, buf -> buf.writeBoolean(lackEnergyWarning));
         }
     }
 
@@ -1430,6 +1457,12 @@ public abstract class AbstractRecipeLogic extends MTETrait
         setActive(false); // this marks dirty for us
     }
 
+    /*
+      From <a href=
+      "https://github.com/Nomi-CEu/Nomi-Labs/blob/main/src/main/java/com/nomiceu/nomilabs/mixin/gregtech/AbstractRecipeLogicMixin.java">NomiLabs</a>.
+     */
+    //
+
     @Override
     public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
         if (dataId == GregtechDataCodes.WORKABLE_ACTIVE) {
@@ -1441,17 +1474,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
         } else if (dataId == GregtechDataCodes.WORKING_BATCH) {
             this.enableBatch = buf.readBoolean();
             getMetaTileEntity().scheduleRenderUpdate();
-        }  else if (dataId == GregtechDataCodes.WORKING_RECIPE_LOCK) {
+        } else if (dataId == GregtechDataCodes.WORKING_RECIPE_LOCK) {
             this.lockRecipe = buf.readBoolean();
             getMetaTileEntity().scheduleRenderUpdate();
         }
     }
-
-    /*
-      From <a href=
-      "https://github.com/Nomi-CEu/Nomi-Labs/blob/main/src/main/java/com/nomiceu/nomilabs/mixin/gregtech/AbstractRecipeLogicMixin.java">NomiLabs</a>.
-     */
-    //
 
     @Override
     public void writeInitialSyncData(@NotNull PacketBuffer buf) {
@@ -1475,6 +1502,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         //compound.setInteger("parallelLimit",this.parallelLimit);
         compound.setBoolean("Batch", enableBatch);
         compound.setBoolean("LockRecipe", lockRecipe);
+        compound.setBoolean("lackEnergyWarning", lackEnergyWarning);
         compound.setBoolean("WorkEnabled", workingEnabled);
         compound.setBoolean("CanRecipeProgress", canRecipeProgress);
         compound.setBoolean(ALLOW_OVERCLOCKING, allowOverclocking);
@@ -1511,6 +1539,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         //this.parallelLimit = compound.getInteger("parallelLimit");
         this.enableBatch = compound.getBoolean("Batch");
         this.lockRecipe = compound.getBoolean("LockRecipe");
+        this.lackEnergyWarning = compound.getBoolean("lackEnergyWarning");
         this.workingEnabled = compound.getBoolean("WorkEnabled");
         this.canRecipeProgress = compound.getBoolean("CanRecipeProgress");
         this.progressTime = compound.getInteger("Progress");
@@ -1615,8 +1644,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
         nbt.setTag(key, entries);
     }
-
-    public void setRecipeMap(RecipeMap<?> recipeMap) {this.recipeMap = recipeMap;}
 
     public void setProgressTime(int progressTime) {this.progressTime = progressTime;}
 }

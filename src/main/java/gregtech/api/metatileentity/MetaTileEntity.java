@@ -126,50 +126,41 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     public static final String TAG_KEY_PAINTING_COLOR = "PaintingColor";
     public static final String TAG_KEY_MUFFLED = "Muffled";
-
-    private final MTERegistry registry;
-
     public final ResourceLocation metaTileEntityId;
-    IGregTechTileEntity holder;
-
-    protected IItemHandlerModifiable importItems;
-    protected IItemHandlerModifiable exportItems;
-
-    protected IItemHandler itemInventory;
-
-    protected FluidTankList importFluids;
-    protected FluidTankList exportFluids;
-
-    protected IFluidHandler fluidInventory;
-
+    private final MTERegistry registry;
     private final Map<String, MTETrait> mteTraits = new Object2ObjectOpenHashMap<>();
     private final Int2ObjectMap<MTETrait> mteTraitByNetworkId = new Int2ObjectOpenHashMap<>();
-
-    protected EnumFacing frontFacing = EnumFacing.NORTH;
-    private int paintingColor = -1;
-
     private final int[] sidedRedstoneOutput = new int[6];
     private final int[] sidedRedstoneInput = new int[6];
-    private int cachedLightValue;
-
-    private boolean wasExploded = false;
-
     private final EnumMap<EnumFacing, Cover> covers = new EnumMap<>(EnumFacing.class);
-
+    private final Set<CreativeTabs> creativeTabs = new ObjectArraySet<>();
+    protected IItemHandlerModifiable importItems;
+    protected IItemHandlerModifiable exportItems;
+    protected IItemHandler itemInventory;
+    protected FluidTankList importFluids;
+    protected FluidTankList exportFluids;
+    protected IFluidHandler fluidInventory;
+    protected EnumFacing frontFacing = EnumFacing.NORTH;
     protected List<IItemHandlerModifiable> notifiedItemOutputList = new ArrayList<>();
     protected List<IItemHandlerModifiable> notifiedItemInputList = new ArrayList<>();
     protected List<IFluidHandler> notifiedFluidInputList = new ArrayList<>();
     protected List<IFluidHandler> notifiedFluidOutputList = new ArrayList<>();
-
     protected boolean muffled = false;
-
+    /**
+     * ItemStack currently being rendered by this meta tile entity Use this to obtain itemstack-specific data like
+     * contained fluid, painting color Generally useful in combination with
+     * {@link #writeItemStackData(net.minecraft.nbt.NBTTagCompound)}
+     */
+    @SideOnly(Side.CLIENT)
+    protected ItemStack renderContextStack;
+    IGregTechTileEntity holder;
+    private int paintingColor = -1;
+    private int cachedLightValue;
+    private boolean wasExploded = false;
     private int playSoundCooldown = 0;
     private int lastTick = 0;
-
     @Nullable
     private UUID owner = null;
-
-    private final Set<CreativeTabs> creativeTabs = new ObjectArraySet<>();
 
     {
         creativeTabs.add(CreativeTabs.SEARCH);
@@ -180,6 +171,17 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         this.metaTileEntityId = metaTileEntityId;
         this.registry = GregTechAPI.mteManager.getRegistry(metaTileEntityId.getNamespace());
         initializeInventory();
+    }
+
+    public static void clearInventory(@NotNull List<@NotNull ItemStack> itemBuffer,
+                                      @NotNull IItemHandlerModifiable inventory) {
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            ItemStack stackInSlot = inventory.getStackInSlot(i);
+            if (!stackInSlot.isEmpty()) {
+                inventory.setStackInSlot(i, ItemStack.EMPTY);
+                itemBuffer.add(stackInSlot);
+            }
+        }
     }
 
     protected void initializeInventory() {
@@ -251,20 +253,11 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Override this to add extended tool information to the "Hold SHIFT to show Tool Info" tooltip section.
-     * ALWAYS CALL SUPER LAST!
-     * Intended ordering:
-     * - Screwdriver
-     * - Wrench
-     * - Wire Cutter
-     * - Soft Hammer
-     * - Hammer
-     * - Crowbar
-     * - Others
+     * Override this to add extended tool information to the "Hold SHIFT to show Tool Info" tooltip section. ALWAYS CALL
+     * SUPER LAST! Intended ordering: - Screwdriver - Wrench - Wire Cutter - Soft Hammer - Hammer - Crowbar - Others
      * <br>
-     * The super method automatically handles Hammer muffling and Crowbar cover removal.
-     * If you have extended usages of these tools in your addon, let us know and we can amend
-     * this default appended tooltip information.
+     * The super method automatically handles Hammer muffling and Crowbar cover removal. If you have extended usages of
+     * these tools in your addon, let us know and we can amend this default appended tooltip information.
      */
     @SideOnly(Side.CLIENT)
     public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
@@ -286,23 +279,14 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return Pair.of(RenderUtil.getMissingSprite(), 0xFFFFFF);
     }
 
-    /**
-     * ItemStack currently being rendered by this meta tile entity
-     * Use this to obtain itemstack-specific data like contained fluid, painting color
-     * Generally useful in combination with {@link #writeItemStackData(net.minecraft.nbt.NBTTagCompound)}
-     */
-    @SideOnly(Side.CLIENT)
-    protected ItemStack renderContextStack;
-
     @SideOnly(Side.CLIENT)
     public void setRenderContextStack(ItemStack itemStack) {
         this.renderContextStack = itemStack;
     }
 
     /**
-     * Renders this meta tile entity
-     * Note that you shouldn't refer to world-related information in this method, because it
-     * will be called on ItemStacks too
+     * Renders this meta tile entity Note that you shouldn't refer to world-related information in this method, because
+     * it will be called on ItemStacks too
      *
      * @param renderState render state (either chunk batched or item)
      * @param pipeline    default set of pipeline transformations
@@ -339,8 +323,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Used to display things like particles on random display ticks
-     * This method is typically used by torches or nether portals, as an example use-case
+     * Used to display things like particles on random display ticks This method is typically used by torches or nether
+     * portals, as an example use-case
      */
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick() {}
@@ -353,8 +337,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     public void initFromItemStackData(NBTTagCompound itemStack) {}
 
     /**
-     * Called to write MTE specific data when it is destroyed to save it's state
-     * into itemblock, which can be placed later to get {@link #initFromItemStackData} called
+     * Called to write MTE specific data when it is destroyed to save it's state into itemblock, which can be placed
+     * later to get {@link #initFromItemStackData} called
      *
      * @param itemStack itemstack from which this MTE is being placed
      */
@@ -366,13 +350,14 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     /**
      * Check if this MTE belongs in certain creative tab. To add machines in custom creative tab, the creative tab
-     * should be registered via {@link gregtech.api.block.machines.MachineItemBlock#addCreativeTab(CreativeTabs)
+     * should be registered via
+     * {@link gregtech.api.block.machines.MachineItemBlock#addCreativeTab(CreativeTabs)
      * MachineItemBlock#addCreativeTab(CreativeTabs)} beforehand.
      *
      * @param creativeTab The creative tab to check
      * @return Whether this MTE belongs in the creative tab or not
      * @see gregtech.api.block.machines.MachineItemBlock#addCreativeTab(CreativeTabs)
-     *      MachineItemBlock#addCreativeTab(CreativeTabs)
+     * MachineItemBlock#addCreativeTab(CreativeTabs)
      */
     public boolean isInCreativeTab(CreativeTabs creativeTab) {
         return creativeTabs.contains(creativeTab);
@@ -422,9 +407,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Adds a trait to this meta tile entity.
-     * Traits are objects linked with meta tile entity and performing certain actions.
-     * Usually traits implement capabilities there can be only one trait for a given name
+     * Adds a trait to this meta tile entity. Traits are objects linked with meta tile entity and performing certain
+     * actions. Usually traits implement capabilities there can be only one trait for a given name
      *
      * @param trait trait object to add
      */
@@ -496,6 +480,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         return null;
     }
+
     public final void onCoverLeftClick(EntityPlayer playerIn, CuboidRayTraceResult result) {
         Cover cover = getCoverAtSide(result.sideHit);
         if (cover == null || !cover.onLeftClick(playerIn, result)) {
@@ -871,9 +856,9 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * @return Whether this machine is allowed to be tick accelerated by external means. This does NOT
-     *         apply to World Accelerators from GT, those will never work on machines. This refers to effects
-     *         like Time in a Bottle, or Torcherino, or similar.
+     * @return Whether this machine is allowed to be tick accelerated by external means. This does NOT apply to World
+     * Accelerators from GT, those will never work on machines. This refers to effects like Time in a Bottle, or
+     * Torcherino, or similar.
      */
     public boolean allowTickAcceleration() {
         return ConfigHolder.machines.allowTickAcceleration;
@@ -929,11 +914,11 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     public SoundType getSoundType() {
         return SoundType.METAL;
     }
+
     /**
-     * Add special drops which this meta tile entity contains here
-     * Meta tile entity item is ALREADY added into this list
-     * Do NOT add inventory contents in this list - it will be dropped automatically when breakBlock is called
-     * This will only be called if meta tile entity is broken with proper tool (i.e wrench)
+     * Add special drops which this meta tile entity contains here Meta tile entity item is ALREADY added into this list
+     * Do NOT add inventory contents in this list - it will be dropped automatically when breakBlock is called This will
+     * only be called if meta tile entity is broken with proper tool (i.e wrench)
      *
      * @param dropsList list of meta tile entity drops
      * @param harvester harvester of this meta tile entity, or null
@@ -976,8 +961,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Called to obtain list of AxisAlignedBB used for collision testing, highlight rendering
-     * and ray tracing this meta tile entity's block in world
+     * Called to obtain list of AxisAlignedBB used for collision testing, highlight rendering and ray tracing this meta
+     * tile entity's block in world
      */
     public void addCollisionBoundingBox(List<IndexedCuboid6> collisionList) {
         collisionList.add(FULL_CUBE_COLLISION);
@@ -1125,8 +1110,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
             return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(getFluidInventory());
         } else if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY &&
                 getItemInventory().getSlots() > 0) {
-                    return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(getItemInventory());
-                }
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(getItemInventory());
+        }
         T capabilityResult = null;
         for (MTETrait mteTrait : this.mteTraits.values()) {
             capabilityResult = mteTrait.getCapability(capability);
@@ -1134,8 +1119,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                 break;
             }
         }
-        if (side != null && capabilityResult instanceof IEnergyContainer) {
-            IEnergyContainer energyContainer = (IEnergyContainer) capabilityResult;
+        if (side != null && capabilityResult instanceof IEnergyContainer energyContainer) {
             if (!energyContainer.inputsEnergy(side) && !energyContainer.outputsEnergy(side)) {
                 return null; // do not provide energy container if it can't input or output energy at all
             }
@@ -1267,23 +1251,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         if (holder != null) holder.scheduleRenderUpdate();
     }
 
-    public void setFrontFacing(EnumFacing frontFacing) {
-        Preconditions.checkNotNull(frontFacing, "frontFacing");
-        this.frontFacing = frontFacing;
-        if (getWorld() != null && !getWorld().isRemote) {
-            notifyBlockUpdate();
-            markDirty();
-            writeCustomData(UPDATE_FRONT_FACING, buf -> buf.writeByte(frontFacing.getIndex()));
-            for (MTETrait mteTrait : this.mteTraits.values()) {
-                mteTrait.onFrontFacingSet(frontFacing);
-            }
-        }
-    }
-
-    public void setPaintingColor(int paintingColor) {
-        setPaintingColor(paintingColor, null);
-    }
-
     public void setPaintingColor(@Nullable EnumDyeColor color, @Nullable EnumFacing side) {
         setPaintingColor(color == null ? -1 : color.colorValue, side);
     }
@@ -1311,8 +1278,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * @return true if this meta tile entity should serialize it's export and import inventories
-     *         Useful when you use your own unified inventory and don't need these dummies to be saved
+     * @return true if this meta tile entity should serialize it's export and import inventories Useful when you use
+     * your own unified inventory and don't need these dummies to be saved
      */
     protected boolean shouldSerializeInventories() {
         return true;
@@ -1384,27 +1351,16 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         clearInventory(itemBuffer, exportItems);
     }
 
-    public static void clearInventory(@NotNull List<@NotNull ItemStack> itemBuffer,
-                                      @NotNull IItemHandlerModifiable inventory) {
-        for (int i = 0; i < inventory.getSlots(); i++) {
-            ItemStack stackInSlot = inventory.getStackInSlot(i);
-            if (!stackInSlot.isEmpty()) {
-                inventory.setStackInSlot(i, ItemStack.EMPTY);
-                itemBuffer.add(stackInSlot);
-            }
-        }
-    }
-
     public int getItemStackLimit(ItemStack stack) {
         return 64;
     }
 
     /**
-     * Called whenever a MetaTileEntity is placed in world by {@link Block#onBlockPlacedBy},
-     * gives the MetaTileEntity an Owner by UUID
+     * Called whenever a MetaTileEntity is placed in world by {@link Block#onBlockPlacedBy}, gives the MetaTileEntity an
+     * Owner by UUID
      * <p>
-     * If placing an MTE with methods such as {@link World#setBlockState(BlockPos, IBlockState)},
-     * this should be manually called immediately afterwards
+     * If placing an MTE with methods such as {@link World#setBlockState(BlockPos, IBlockState)}, this should be
+     * manually called immediately afterwards
      */
     public void onPlacement(@Nullable EntityLivingBase placer) {
         if (placer instanceof EntityPlayer player) {
@@ -1413,20 +1369,20 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Called whenever a MetaTileEntity is placed in world by {@link Block#onBlockPlacedBy},
-     * gives the MetaTileEntity an Owner of Null
+     * Called whenever a MetaTileEntity is placed in world by {@link Block#onBlockPlacedBy}, gives the MetaTileEntity an
+     * Owner of Null
      * <p>
-     * If placing an MTE with methods such as {@link World#setBlockState(BlockPos, IBlockState)},
-     * this should be manually called immediately afterwards
+     * If placing an MTE with methods such as {@link World#setBlockState(BlockPos, IBlockState)}, this should be
+     * manually called immediately afterwards
      */
     public final void onPlacement() {
         onPlacement(null);
     }
 
     /**
-     * Called from breakBlock right before meta tile entity destruction
-     * at this stage tile entity inventory is already dropped on ground, but drops aren't fetched yet
-     * tile entity will still get getDrops called after this, if player broke block
+     * Called from breakBlock right before meta tile entity destruction at this stage tile entity inventory is already
+     * dropped on ground, but drops aren't fetched yet tile entity will still get getDrops called after this, if player
+     * broke block
      */
     public void onRemoval() {}
 
@@ -1449,8 +1405,25 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return frontFacing;
     }
 
+    public void setFrontFacing(EnumFacing frontFacing) {
+        Preconditions.checkNotNull(frontFacing, "frontFacing");
+        this.frontFacing = frontFacing;
+        if (getWorld() != null && !getWorld().isRemote) {
+            notifyBlockUpdate();
+            markDirty();
+            writeCustomData(UPDATE_FRONT_FACING, buf -> buf.writeByte(frontFacing.getIndex()));
+            for (MTETrait mteTrait : this.mteTraits.values()) {
+                mteTrait.onFrontFacingSet(frontFacing);
+            }
+        }
+    }
+
     public int getPaintingColor() {
         return paintingColor;
+    }
+
+    public void setPaintingColor(int paintingColor) {
+        setPaintingColor(paintingColor, null);
     }
 
     public IItemHandler getItemInventory() {
@@ -1507,9 +1480,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Override this if the MTE will keep its Item inventory on-break.
-     * If this is overridden to return True, you MUST take care to handle
-     * the ItemStacks in the MTE's inventory otherwise they will be voided on break.
+     * Override this if the MTE will keep its Item inventory on-break. If this is overridden to return True, you MUST
+     * take care to handle the ItemStacks in the MTE's inventory otherwise they will be voided on break.
      *
      * @return True if MTE inventory is kept as an ItemStack, false otherwise
      */
@@ -1525,11 +1497,13 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     public UUID getOwnerGT() {
         return owner;
     }
+
     public boolean canBeModifiedBy(@NotNull Entity entity) {
         UUID owner = getOwnerGT();
         if (owner == null) return true;
         return owner.equals(entity.getUniqueID());
     }
+
     public final void toggleMuffled() {
         muffled = !muffled;
         if (!getWorld().isRemote) {
@@ -1728,5 +1702,18 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     public Set<CreativeTabs> getCreativeTabs() {
         return Collections.unmodifiableSet(creativeTabs);
+    }
+
+    public void noticePlayer(String s) {
+        UUID ownerGT = this.getOwnerGT();
+        if (ownerGT != null) {
+            World world = this.getWorld();
+            if (world != null) {
+                EntityPlayer player = world.getPlayerEntityByUUID(ownerGT);
+                if (player != null) {
+                    player.sendMessage(new TextComponentTranslation(s));
+                }
+            }
+        }
     }
 }

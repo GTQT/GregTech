@@ -491,7 +491,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     @Override
-    public boolean isRecipeLockAllowed() {
+    public boolean enableExtendControl() {
         return true;
     }
 
@@ -499,10 +499,17 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     public boolean isRecipeLocked() {
         return recipeMapWorkable.isRecipeLockEnable();
     }
-
     @Override
     public void setRecipeLocked(boolean enable) {
         recipeMapWorkable.setRecipeLockEnable(enable);
+    }
+    @Override
+    public boolean isEnergyLackWarningEnabled() {
+        return recipeMapWorkable.isEnergyLackWarningEnable();
+    }
+    @Override
+    public void setEnergyLackWarningEnabled(boolean enable) {
+        recipeMapWorkable.setEnergyLackWarningEnable(enable);
     }
 
     @Override
