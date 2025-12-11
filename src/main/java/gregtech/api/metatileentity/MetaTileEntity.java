@@ -1581,6 +1581,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public void doExplosion(float explosionPower) {
+        noticePlayer("[爆炸提醒]位于" + getPos() + "的" + getStackForm().getDisplayName() + "设备发生爆炸！！！");
         setExploded();
         getWorld().setBlockToAir(getPos());
         getWorld().createExplosion(null, getPos().getX() + 0.5, getPos().getY() + 0.5, getPos().getZ() + 0.5,

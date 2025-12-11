@@ -47,7 +47,6 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.resources.SimpleReloadableResourceManager;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.inventory.ContainerWorkbench;
@@ -59,6 +58,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.client.GuiIngameForge;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.MouseEvent;
@@ -88,42 +88,16 @@ import java.util.Optional;
 @Mod.EventBusSubscriber(Side.CLIENT)
 public class ClientProxy extends CommonProxy {
 
-    public void onPreLoad() {
-        super.onPreLoad();
-
-        SoundSystemConfig.setNumberNormalChannels(ConfigHolder.client.maxNumSounds);
-
-        if (!Mods.CTM.isModLoaded()) {
-            Minecraft.getMinecraft().metadataSerializer.registerMetadataSectionType(new MetadataSectionCTM.Serializer(),
-                    MetadataSectionCTM.class);
-            MinecraftForge.EVENT_BUS.register(CustomTextureModelHandler.INSTANCE);
-            ((SimpleReloadableResourceManager) Minecraft.getMinecraft().getResourceManager())
-                    .registerReloadListener(CustomTextureModelHandler.INSTANCE);
-        }
-
-        MetaTileEntityRenderer.preInit();
-        CableRenderer.INSTANCE.preInit();
-        FluidPipeRenderer.INSTANCE.preInit();
-        ItemPipeRenderer.INSTANCE.preInit();
-        OpticalPipeRenderer.INSTANCE.preInit();
-        LaserPipeRenderer.INSTANCE.preInit();
-        MetaEntities.initRenderers();
-
-        MinecraftForge.EVENT_BUS.register(KeyBind.class);
-    }
-
-    @Override
-    public void onLoad() {
-        super.onLoad();
-        registerColors();
-    }
-
-    @Override
-    public void onPostLoad() {
-        super.onPostLoad();
-        ItemRenderCompat.init();
-        FacadeRenderer.init();
-    }
+    private static final String[] clearRecipes = new String[] {
+            "quantum_tank",
+            "quantum_chest",
+            "super_chest",
+            "super_tank",
+            "drum.",
+            "_tank",
+            "fluid_cell"
+    };
+    public static boolean isGUIClosingPermanently = false;
 
     public static void registerColors() {
         MetaBlocks.registerColors();
@@ -182,8 +156,7 @@ public class ClientProxy extends CommonProxy {
         // Test for Items
         UnificationEntry unificationEntry = OreDictUnifier.getUnificationEntry(itemStack);
 
-        if (itemStack.getItem() instanceof MetaOreDictItem) { // Test for OreDictItems
-            MetaOreDictItem oreDictItem = (MetaOreDictItem) itemStack.getItem();
+        if (itemStack.getItem() instanceof MetaOreDictItem oreDictItem) { // Test for OreDictItems
             Optional<String> oreDictName = OreDictUnifier.getOreDictionaryNames(itemStack).stream().findFirst();
             if (oreDictName.isPresent() && oreDictItem.OREDICT_TO_FORMULA.containsKey(oreDictName.get()) &&
                     !oreDictItem.OREDICT_TO_FORMULA.get(oreDictName.get()).isEmpty()) {
@@ -214,7 +187,7 @@ public class ClientProxy extends CommonProxy {
                 }
             }
         } else if (itemStack.getItem().equals(Items.WATER_BUCKET)) { // Water and Lava buckets have a separate registry
-                                                                     // name from other buckets
+            // name from other buckets
             tooltips = FluidTooltipUtil.getFluidTooltip(Materials.Water.getFluid());
         } else if (itemStack.getItem().equals(Items.LAVA_BUCKET)) {
             tooltips = FluidTooltipUtil.getFluidTooltip(Materials.Lava.getFluid());
@@ -227,16 +200,6 @@ public class ClientProxy extends CommonProxy {
             }
         }
     }
-
-    private static final String[] clearRecipes = new String[] {
-            "quantum_tank",
-            "quantum_chest",
-            "super_chest",
-            "super_tank",
-            "drum.",
-            "_tank",
-            "fluid_cell"
-    };
 
     @SubscribeEvent
     public static void addNBTClearingTooltip(ItemTooltipEvent event) {
@@ -350,11 +313,6 @@ public class ClientProxy extends CommonProxy {
         return tooltip.contains(TextFormatting.DARK_GRAY + "" + TextFormatting.ITALIC + "Press CTRL for Advanced Info");
     }
 
-    @Override
-    public boolean isFancyGraphics() {
-        return Minecraft.getMinecraft().gameSettings.fancyGraphics;
-    }
-
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onMouseEvent(@NotNull MouseEvent event) {
         EntityPlayerSP player = Minecraft.getMinecraft().player;
@@ -433,5 +391,52 @@ public class ClientProxy extends CommonProxy {
             GlStateManager.disableRescaleNormal();
             GlStateManager.disableBlend();
         }
+    }
+
+    @SubscribeEvent
+    public static void onGuiChange(GuiOpenEvent event) {
+        isGUIClosingPermanently = (event.getGui() == null);
+    }
+
+    public void onPreLoad() {
+        super.onPreLoad();
+
+        SoundSystemConfig.setNumberNormalChannels(ConfigHolder.client.maxNumSounds);
+
+        if (!Mods.CTM.isModLoaded()) {
+            Minecraft.getMinecraft().metadataSerializer.registerMetadataSectionType(new MetadataSectionCTM.Serializer(),
+                    MetadataSectionCTM.class);
+            MinecraftForge.EVENT_BUS.register(CustomTextureModelHandler.INSTANCE);
+            ((SimpleReloadableResourceManager) Minecraft.getMinecraft().getResourceManager())
+                    .registerReloadListener(CustomTextureModelHandler.INSTANCE);
+        }
+
+        MetaTileEntityRenderer.preInit();
+        CableRenderer.INSTANCE.preInit();
+        FluidPipeRenderer.INSTANCE.preInit();
+        ItemPipeRenderer.INSTANCE.preInit();
+        OpticalPipeRenderer.INSTANCE.preInit();
+        LaserPipeRenderer.INSTANCE.preInit();
+        MetaEntities.initRenderers();
+
+        MinecraftForge.EVENT_BUS.register(KeyBind.class);
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        registerColors();
+    }
+
+    @Override
+    public void onPostLoad() {
+        super.onPostLoad();
+        ItemRenderCompat.init();
+        FacadeRenderer.init();
+    }
+
+    @Override
+    public boolean isFancyGraphics() {
+        return Minecraft.getMinecraft().gameSettings.fancyGraphics;
     }
 }

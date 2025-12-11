@@ -34,8 +34,8 @@ public abstract class BaseFilter implements IFilter {
         }
 
         @Override
-        public @NotNull ModularPanel createPopupPanel(PanelSyncManager syncManager) {
-            return GTGuis.createPopupPanel("error", 100, 100)
+        public @NotNull ModularPanel createPopupPanel(PanelSyncManager syncManager, String panelName) {
+            return GTGuis.createPopupPanel(panelName, 100, 100)
                     .child(createWidgets(syncManager));
         }
 
@@ -57,6 +57,12 @@ public abstract class BaseFilter implements IFilter {
     };
     protected IDirtyNotifiable dirtyNotifiable;
 
+    public abstract BaseFilterReader getFilterReader();
+
+    public final ItemStack getContainerStack() {
+        return this.getFilterReader().getContainer();
+    }
+
     public static @NotNull BaseFilter getFilterFromStack(ItemStack stack) {
         if (stack.getItem() instanceof MetaItem<?>metaItem) {
             var metaValueItem = metaItem.getItem(stack);
@@ -67,10 +73,9 @@ public abstract class BaseFilter implements IFilter {
         return ERROR_FILTER;
     }
 
-    public abstract BaseFilterReader getFilterReader();
-
-    public final ItemStack getContainerStack() {
-        return this.getFilterReader().getContainer();
+    public final void setBlacklistFilter(boolean blacklistFilter) {
+        this.getFilterReader().setBlacklistFilter(blacklistFilter);
+        markDirty();
     }
 
     @Override
@@ -130,11 +135,6 @@ public abstract class BaseFilter implements IFilter {
 
     public final boolean isBlacklistFilter() {
         return getFilterReader().isBlacklistFilter();
-    }
-
-    public final void setBlacklistFilter(boolean blacklistFilter) {
-        this.getFilterReader().setBlacklistFilter(blacklistFilter);
-        markDirty();
     }
 
     public IWidget createBlacklistUI() {

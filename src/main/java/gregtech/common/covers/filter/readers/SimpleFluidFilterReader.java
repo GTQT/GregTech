@@ -5,23 +5,21 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
+import net.minecraftforge.fluids.FluidTankInfo;
+import net.minecraftforge.fluids.IFluidTank;
 
 import org.jetbrains.annotations.Nullable;
 
 public class SimpleFluidFilterReader extends BaseFilterReader {
 
-    protected static final String CAPACITY = "Capacity";
-    protected static final String LEGACY_FLUIDFILTER_KEY = "FluidFilter";
     protected WritableFluidTank[] fluidTanks;
+    protected static final String CAPACITY = "Capacity";
+
+    protected static final String LEGACY_FLUIDFILTER_KEY = "FluidFilter";
 
     public SimpleFluidFilterReader(ItemStack container, int slots) {
         super(container, slots);
         fluidTanks = new WritableFluidTank[slots];
-        for (int i = 0; i < fluidTanks.length; i++) {
-            fluidTanks[i] = new WritableFluidTank(this, getInventoryNbt().getCompoundTagAt(i));
-        }
-        setCapacity(getStackTag().hasKey(CAPACITY) ? getCapacity() : 1000);
     }
 
     public final boolean shouldShowAmount() {
@@ -33,16 +31,21 @@ public class SimpleFluidFilterReader extends BaseFilterReader {
         return getFluidTank(i).getFluid();
     }
 
-    public int getCapacity() {
-        return getStackTag().getInteger(CAPACITY);
-    }
-
     public void setCapacity(int capacity) {
         getStackTag().setInteger(CAPACITY, capacity);
         markDirty();
     }
 
+    public int getCapacity() {
+        if (!getStackTag().hasKey(CAPACITY))
+            getStackTag().setInteger(CAPACITY, 1000);
+        return getStackTag().getInteger(CAPACITY);
+    }
+
     public WritableFluidTank getFluidTank(int i) {
+        if (fluidTanks[i] == null) {
+            fluidTanks[i] = new WritableFluidTank(i);
+        }
         return fluidTanks[i];
     }
 
@@ -77,22 +80,35 @@ public class SimpleFluidFilterReader extends BaseFilterReader {
         }
     }
 
-    public class WritableFluidTank extends FluidTank {
+    public class WritableFluidTank implements IFluidTank {
 
         protected static final String FLUID_AMOUNT = "Amount";
         protected static final String FLUID = "Fluid";
         protected static final String EMPTY = "Empty";
-        private final NBTTagCompound fluidTank;
-        private final SimpleFluidFilterReader filterReader;
 
-        protected WritableFluidTank(SimpleFluidFilterReader filterReader, NBTTagCompound fluidTank) {
-            super(0);
-            this.filterReader = filterReader;
-            this.fluidTank = fluidTank;
+        private final int index;
+
+        public WritableFluidTank(int index) {
+            this.index = index;
+        }
+
+        private NBTTagCompound getTank() {
+            return getInventoryNbt().getCompoundTagAt(this.index);
+        }
+
+        public void setFluidAmount(int amount) {
+            if (amount <= 0) {
+                setFluid(null);
+            } else if (this.getTank().hasKey(FLUID)) {
+                this.getTank()
+                        .getCompoundTag(FLUID)
+                        .setInteger(FLUID_AMOUNT, amount);
+                markDirty();
+            }
         }
 
         public boolean isEmpty() {
-            return !this.fluidTank.hasKey(FLUID);
+            return !this.getTank().hasKey(FLUID);
         }
 
         protected @Nullable NBTTagCompound getFluidTag() {
@@ -100,7 +116,7 @@ public class SimpleFluidFilterReader extends BaseFilterReader {
                 return null;
             }
 
-            return this.fluidTank.getCompoundTag(FLUID);
+            return this.getTank().getCompoundTag(FLUID);
         }
 
         @Override
@@ -109,51 +125,43 @@ public class SimpleFluidFilterReader extends BaseFilterReader {
         }
 
         @Override
+        public FluidTankInfo getInfo() {
+            return new FluidTankInfo(this);
+        }
+
+        // @Override
         public void setFluid(@Nullable FluidStack stack) {
             if (stack == null) {
-                this.fluidTank.removeTag(FLUID);
+                this.getTank().removeTag(FLUID);
             } else {
-                this.fluidTank.setTag(FLUID, stack.writeToNBT(new NBTTagCompound()));
+                this.getTank().setTag(FLUID, stack.writeToNBT(new NBTTagCompound()));
             }
             markDirty();
         }
 
-        public boolean showAmount() {
-            return this.filterReader.shouldShowAmount();
-        }
-
         @Override
         public int getFluidAmount() {
-            return this.fluidTank
+            return this.getTank()
                     .getCompoundTag(FLUID)
                     .getInteger(FLUID_AMOUNT);
         }
 
-        public void setFluidAmount(int amount) {
-            if (amount <= 0) {
-                setFluid(null);
-            } else if (this.fluidTank.hasKey(FLUID)) {
-                this.fluidTank
-                        .getCompoundTag(FLUID)
-                        .setInteger(FLUID_AMOUNT, amount);
-                markDirty();
-            }
-        }
-
         @Override
         public int getCapacity() {
-            return this.filterReader.getCapacity();
+            return SimpleFluidFilterReader.this.getCapacity();
         }
 
         // getFluid() is checked for nullability, suppress
         @SuppressWarnings("DataFlowIssue")
         @Override
         public int fill(FluidStack resource, boolean doFill) {
+            // todo this class and filter readers really should not be handling show amount
+            // in a future pr
             if (isEmpty() || !getFluid().isFluidEqual(resource)) {
                 setFluid(resource);
-                if (!showAmount()) setFluidAmount(1);
+                if (!shouldShowAmount()) setFluidAmount(1);
                 return resource.amount;
-            } else if (showAmount()) {
+            } else if (shouldShowAmount()) {
                 var fluid = getFluid();
                 int accepted = Math.min(resource.amount, getCapacity() - fluid.amount);
                 fluid.amount += accepted;

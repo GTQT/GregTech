@@ -15,6 +15,7 @@ import gregtech.api.util.ItemStackHashStrategy;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleSidedCubeRenderer;
 import gregtech.common.covers.filter.ItemFilterContainer;
+import gregtech.common.mui.widget.GTTextFieldWidget;
 import gregtech.common.pipelike.itempipe.tile.TileEntityItemPipe;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -55,7 +56,6 @@ import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
-import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
@@ -501,11 +501,6 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
     }
 
     @Override
-    public boolean usesMui2() {
-        return true;
-    }
-
-    @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         var panel = GTGuis.createPanel(this, 176, 210 + 36);
 
@@ -516,7 +511,7 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
                 .bindPlayerInventory();
     }
 
-    protected ParentWidget<Flow> createUI(GuiData data, PanelSyncManager guiSyncManager) {
+    protected Flow createUI(GuiData data, PanelSyncManager guiSyncManager) {
         var column = Flow.column().top(24).margin(7, 0)
                 .widthRel(1f).coverChildrenHeight();
 
@@ -528,9 +523,6 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
 
         IntSyncValue throughput = new IntSyncValue(this::getTransferRate, this::setTransferRate);
 
-        StringSyncValue formattedThroughput = new StringSyncValue(throughput::getStringValue,
-                throughput::setStringValue);
-
         EnumSyncValue<DistributionMode> distributionMode = new EnumSyncValue<>(DistributionMode.class,
                 this::getDistributionMode, this::setDistributionMode);
 
@@ -541,7 +533,6 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
         guiSyncManager.syncValue("manual_io", manualIOmode);
         guiSyncManager.syncValue("conveyor_mode", conveyorMode);
         guiSyncManager.syncValue("distribution_mode", distributionMode);
-        guiSyncManager.syncValue("throughput", throughput);
         guiSyncManager.syncValue("update_time", updateTime);
 
         if (createThroughputRow())
@@ -557,11 +548,12 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, 
                                 return true;
                             })
                             .onUpdateListener(w -> w.overlay(createAdjustOverlay(false))))
-                    .child(new TextFieldWidget()
+                    .child(new GTTextFieldWidget()
                             .left(18).right(18)
+                            .setPostFix(" items/s")
                             .setTextColor(Color.WHITE.darker(1))
                             .setNumbers(1, maxItemTransferRate)
-                            .value(formattedThroughput)
+                            .value(throughput)
                             .background(GTGuiTextures.DISPLAY))
                     .child(new ButtonWidget<>()
                             .right(0).width(18)

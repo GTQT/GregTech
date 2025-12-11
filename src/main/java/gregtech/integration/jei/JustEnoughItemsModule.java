@@ -12,7 +12,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SteamMetaTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.modules.GregTechModule;
-import gregtech.api.mui.GregTechGuiTransferHandler;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.category.GTRecipeCategory;
@@ -75,6 +74,7 @@ import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeCategory;
 import mezz.jei.api.recipe.IRecipeCategoryRegistration;
 import mezz.jei.api.recipe.VanillaRecipeCategoryUid;
+import mezz.jei.api.recipe.transfer.IRecipeTransferHandlerHelper;
 import mezz.jei.config.Constants;
 import mezz.jei.input.IShowsRecipeFocuses;
 import mezz.jei.input.InputHandler;
@@ -106,6 +106,80 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
     public static IIngredientRegistry ingredientRegistry;
     public static IJeiRuntime jeiRuntime;
     public static IGuiHelper guiHelper;
+    public static IRecipeTransferHandlerHelper transferHelper;
+
+    /**
+     * Comparator to sort certain GT categories to the front or back of the JEI category list.
+     *
+     * @return the comparator
+     */
+    @ApiStatus.Internal
+    public static @NotNull Comparator<IRecipeCategory<?>> getRecipeCategoryComparator() {
+        List<String> backIds = GTRecipeCategory.getCategories().stream()
+                .filter(GTRecipeCategory::shouldSortToBackJEI)
+                .map(GTRecipeCategory::getUniqueID)
+                .collect(Collectors.toCollection(ArrayList::new));
+        backIds.add(IntCircuitCategory.UID);
+        backIds.add(MultiblockInfoCategory.UID);
+        backIds.add(OreByProductCategory.UID);
+        backIds.add(GTOreCategory.UID);
+        backIds.add(GTFluidVeinCategory.UID);
+        List<String> frontIds;
+        if (ConfigHolder.client.preferMaterialTreeInJEI) {
+            frontIds = Collections.singletonList(MaterialTreeCategory.UID);
+        } else {
+            frontIds = Collections.emptyList();
+        }
+
+        return Comparator.<IRecipeCategory<?>>comparingInt(category -> {
+            int index = backIds.indexOf(category.getUid());
+            if (index >= 0) {
+                return index;
+            }
+            return Integer.MIN_VALUE;
+        }).thenComparingInt(category -> {
+            int index = frontIds.indexOf(category.getUid());
+            if (index >= 0) {
+                return index;
+            }
+            return Integer.MAX_VALUE;
+        });
+    }
+
+    /**
+     * Extracted {@link MetaTileEntity} from all {@link MTERegistry} and sorted them.
+     * <p>
+     * This method arrange {@link MetaTileEntity} from additional mods after the ones from GregTech.
+     *
+     * @return the sorted list of all {@link MetaTileEntity}.
+     */
+    @ApiStatus.Internal
+    public static @NotNull List<MetaTileEntity> getAllMetaTileEntities() {
+        List<MetaTileEntity> metaTileEntities = new ArrayList<>();
+        for (MTERegistry mteRegistry : GregTechAPI.mteManager.getRegistries()) {
+            for (ResourceLocation metaTileEntityId : mteRegistry.getKeys()) {
+                MetaTileEntity metaTileEntity = mteRegistry.getObject(metaTileEntityId);
+                if (metaTileEntity != null) {
+                    metaTileEntities.add(metaTileEntity);
+                }
+            }
+        }
+
+        metaTileEntities.sort((a, b) -> {
+            String namespaceA = a.metaTileEntityId.getNamespace();
+            String namespaceB = b.metaTileEntityId.getNamespace();
+
+            boolean isGregTechA = namespaceA.equals(GTValues.MODID);
+            boolean isGregTechB = namespaceB.equals(GTValues.MODID);
+
+            if (isGregTechA && !isGregTechB) return -1;
+            if (!isGregTechA && isGregTechB) return 1;
+
+            return namespaceA.compareTo(namespaceB);
+        });
+
+        return metaTileEntities;
+    }
 
     @Override
     public void loadComplete(FMLLoadCompleteEvent event) {
@@ -167,10 +241,6 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
                 VanillaRecipeCategoryUid.FUEL);
         registry.getRecipeTransferRegistry().addRecipeTransferHandler(modularUIGuiHandler,
                 Constants.UNIVERSAL_RECIPE_TRANSFER_UID);
-
-        // register transfer handler for crafting recipes
-        registry.getRecipeTransferRegistry().addRecipeTransferHandler(new GregTechGuiTransferHandler(
-                jeiHelpers.recipeTransferHandlerHelper()), VanillaRecipeCategoryUid.CRAFTING);
 
         registry.addAdvancedGuiHandlers(modularUIGuiHandler);
         registry.addGhostIngredientHandler(modularUIGuiHandler.getGuiContainerClass(), modularUIGuiHandler);
@@ -340,6 +410,8 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
 
         // Refresh Ore Ingredients Cache
         GTRecipeOreInput.refreshStackCache();
+
+        transferHelper = jeiHelpers.recipeTransferHandlerHelper();
     }
 
     private void setupInputHandler() {
@@ -391,79 +463,6 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
                 jeiCategory.setIcon(icon);
             }
         }
-    }
-
-    /**
-     * Comparator to sort certain GT categories to the front or back of the JEI category list.
-     *
-     * @return the comparator
-     */
-    @ApiStatus.Internal
-    public static @NotNull Comparator<IRecipeCategory<?>> getRecipeCategoryComparator() {
-        List<String> backIds = GTRecipeCategory.getCategories().stream()
-                .filter(GTRecipeCategory::shouldSortToBackJEI)
-                .map(GTRecipeCategory::getUniqueID)
-                .collect(Collectors.toCollection(ArrayList::new));
-        backIds.add(IntCircuitCategory.UID);
-        backIds.add(MultiblockInfoCategory.UID);
-        backIds.add(OreByProductCategory.UID);
-        backIds.add(GTOreCategory.UID);
-        backIds.add(GTFluidVeinCategory.UID);
-        List<String> frontIds;
-        if (ConfigHolder.client.preferMaterialTreeInJEI) {
-            frontIds = Collections.singletonList(MaterialTreeCategory.UID);
-        } else {
-            frontIds = Collections.emptyList();
-        }
-
-        return Comparator.<IRecipeCategory<?>>comparingInt(category -> {
-            int index = backIds.indexOf(category.getUid());
-            if (index >= 0) {
-                return index;
-            }
-            return Integer.MIN_VALUE;
-        }).thenComparingInt(category -> {
-            int index = frontIds.indexOf(category.getUid());
-            if (index >= 0) {
-                return index;
-            }
-            return Integer.MAX_VALUE;
-        });
-    }
-
-    /**
-     * Extracted {@link MetaTileEntity} from all {@link MTERegistry} and sorted them.
-     * <p>
-     * This method arrange {@link MetaTileEntity} from additional mods after the ones from GregTech.
-     *
-     * @return the sorted list of all {@link MetaTileEntity}.
-     */
-    @ApiStatus.Internal
-    public static @NotNull List<MetaTileEntity> getAllMetaTileEntities() {
-        List<MetaTileEntity> metaTileEntities = new ArrayList<>();
-        for (MTERegistry mteRegistry : GregTechAPI.mteManager.getRegistries()) {
-            for (ResourceLocation metaTileEntityId : mteRegistry.getKeys()) {
-                MetaTileEntity metaTileEntity = mteRegistry.getObject(metaTileEntityId);
-                if (metaTileEntity != null) {
-                    metaTileEntities.add(metaTileEntity);
-                }
-            }
-        }
-
-        metaTileEntities.sort((a, b) -> {
-            String namespaceA = a.metaTileEntityId.getNamespace();
-            String namespaceB = b.metaTileEntityId.getNamespace();
-
-            boolean isGregTechA = namespaceA.equals(GTValues.MODID);
-            boolean isGregTechB = namespaceB.equals(GTValues.MODID);
-
-            if (isGregTechA && !isGregTechB) return -1;
-            if (!isGregTechA && isGregTechB) return 1;
-
-            return namespaceA.compareTo(namespaceB);
-        });
-
-        return metaTileEntities;
     }
 
 }

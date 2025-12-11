@@ -2,28 +2,25 @@ package gtqt.common;
 
 import gregtech.common.items.MetaItems;
 
-import gtqt.common.VillagerHandler.VillageEngineersHouse;
-import gtqt.common.VillagerHandler.VillagerHandler;
-
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.world.gen.structure.MapGenStructureIO;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.registry.VillagerRegistry;
 
 import gtqt.api.util.wireless.WirelessWorldEventHandler;
+import gtqt.common.VillagerHandler.VillageEngineersHouse;
+import gtqt.common.VillagerHandler.VillagerHandler;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.covers.GTQTCoverBehavior;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import gtqt.loaders.recipe.RecipeManager;
 
-import net.minecraftforge.fml.common.registry.VillagerRegistry;
-
 public class GTQTCommonProxy {
 
     public static final CreativeTabs GTQTCore_PC = new CreativeTabs("gtqt_programmable") {
-
         @Override
         public ItemStack createIcon() {
             return MetaItems.INTEGRATED_CIRCUIT.getStackForm();
