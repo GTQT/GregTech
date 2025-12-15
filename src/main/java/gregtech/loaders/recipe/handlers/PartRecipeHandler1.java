@@ -1,6 +1,5 @@
 package gregtech.loaders.recipe.handlers;
 
-
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.DustProperty;
@@ -9,7 +8,6 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.GTValues.ULV;
 import static gregtech.common.items.MetaItems.*;
 
 public class PartRecipeHandler1 {
@@ -72,7 +70,7 @@ public class PartRecipeHandler1 {
         if (material.hasFluid()) {
             RecipeMaps.FLUID_SOLIDFICATION_RECIPES.recipeBuilder()
                     .notConsumable(SHAPE_MOLD_ROUND)
-                    .fluidInputs(material.getFluid(L / 8))
+                    .fluidInputs(material.getFluid(L / 9))
                     .output(OrePrefix.round, material)
                     .EUt(VA[LV])
                     .duration(2 * SECOND + 5 * TICK)
@@ -84,7 +82,7 @@ public class PartRecipeHandler1 {
         if (material.hasFluid()) {
             RecipeMaps.FLUID_SOLIDFICATION_RECIPES.recipeBuilder()
                     .notConsumable(SHAPE_MOLD_SCREW)
-                    .fluidInputs(material.getFluid(L / 8))
+                    .fluidInputs(material.getFluid(L / 9))
                     .output(OrePrefix.screw, material)
                     .EUt(Math.max(VA[MV], 4 * getVoltageMultiplier(material)))
                     .duration(2 * SECOND + 5 * TICK)
