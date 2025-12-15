@@ -92,6 +92,12 @@ gregtech.top.energy_consumption=Using
 gregtech.top.energy_production=Producing
 gregtech.top.energy_required=Requires
 
+gregtech.top.batch_enable=Batch Mode:On
+gregtech.top.batch_disable=Batch Mode:Off
+
+gregtech.top.lock_enable=Lock Mode:On
+gregtech.top.lock_disable=Lock Mode:Off
+
 gregtech.top.transform_up=Step Up
 gregtech.top.transform_down=Step Down
 gregtech.top.transform_input=Input:

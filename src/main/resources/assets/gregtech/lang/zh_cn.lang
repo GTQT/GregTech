@@ -92,6 +92,12 @@ gregtech.top.energy_consumption=耗能
 gregtech.top.energy_production=产能
 gregtech.top.energy_required=需要
 
+gregtech.top.batch_enable=批处理模式：§a已启用§r
+gregtech.top.batch_disable=批处理模式：§c已禁用§r
+
+gregtech.top.lock_enable=锁定模式：§a已启用§r
+gregtech.top.lock_disable=锁定模式：§c已禁用§r
+
 gregtech.top.transform_up=升压
 gregtech.top.transform_down=降压
 gregtech.top.transform_input=输入：

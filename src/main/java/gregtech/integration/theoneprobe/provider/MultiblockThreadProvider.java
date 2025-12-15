@@ -7,19 +7,25 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AdvanceRecipeMapMultiblockController;
 import gregtech.api.util.TextFormattingUtil;
 
-import mcjty.theoneprobe.api.*;
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
-public class MultiblockCoreProvider implements  IProbeInfoProvider {
+import mcjty.theoneprobe.api.ElementAlignment;
+import mcjty.theoneprobe.api.IProbeHitData;
+import mcjty.theoneprobe.api.IProbeInfo;
+import mcjty.theoneprobe.api.IProbeInfoProvider;
+import mcjty.theoneprobe.api.NumberFormat;
+import mcjty.theoneprobe.api.ProbeMode;
+import mcjty.theoneprobe.api.TextStyleClass;
+
+public class MultiblockThreadProvider implements  IProbeInfoProvider {
 
     @Override
     public String getID() {
-        return GTValues.MODID + ":multiblock_tread_provider";
+        return GTValues.MODID + ":multiblock_thread_provider";
     }
     private static IProbeInfo newVertical(final IProbeInfo probeInfo) {
         return probeInfo.vertical(probeInfo.defaultLayoutStyle().spacing(0));
