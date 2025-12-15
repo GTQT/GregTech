@@ -17,12 +17,8 @@ import mcjty.theoneprobe.api.IProbeInfoProvider;
 import mcjty.theoneprobe.api.ProbeMode;
 import mcjty.theoneprobe.api.TextStyleClass;
 
-public class MultiblockModeProvider implements  IProbeInfoProvider {
+public class MultiblockModeProvider implements IProbeInfoProvider {
 
-    @Override
-    public String getID() {
-        return GTValues.MODID + ":multiblock_mode_provider";
-    }
     private static IProbeInfo newVertical(final IProbeInfo probeInfo) {
         return probeInfo.vertical(probeInfo.defaultLayoutStyle().spacing(0));
     }
@@ -30,24 +26,29 @@ public class MultiblockModeProvider implements  IProbeInfoProvider {
     private static IProbeInfo newBox(final IProbeInfo info) {
         return info.horizontal(info.defaultLayoutStyle().borderColor(0x801E90FF));
     }
+
     @Override
-    public void addProbeInfo(ProbeMode probeMode, IProbeInfo iProbeInfo, EntityPlayer entityPlayer, World world, IBlockState iBlockState, IProbeHitData iProbeHitData) {
+    public String getID() {
+        return GTValues.MODID + ":multiblock_mode_provider";
+    }
+
+    @Override
+    public void addProbeInfo(ProbeMode probeMode, IProbeInfo iProbeInfo, EntityPlayer entityPlayer, World world,
+                             IBlockState iBlockState, IProbeHitData iProbeHitData) {
         if (iBlockState.getBlock().hasTileEntity(iBlockState)) {
             TileEntity te = world.getTileEntity(iProbeHitData.getPos());
             if (te instanceof IGregTechTileEntity igtte) {
                 MetaTileEntity mte = igtte.getMetaTileEntity();
 
                 if (mte instanceof IBatch iBatch) {
-                    if(!iBatch.isBatchAllowed())
-                        return;
-                    iProbeInfo.text(TextStyleClass.INFO + (iBatch.isBatchEnable() ? "{*gregtech.top.batch_enable*}" :
-                            "{*gregtech.top.batch_disable*}"));
+                    if (iBatch.isBatchAllowed()) iProbeInfo.text(
+                            TextStyleClass.INFO + (iBatch.isBatchEnable() ? "{*gregtech.top.batch_enable*}" :
+                                    "{*gregtech.top.batch_disable*}"));
                 }
                 if (mte instanceof IRecipeLock recipeLock) {
-                    if(!recipeLock.enableExtendControl())
-                        return;
-                    iProbeInfo.text(TextStyleClass.INFO + (recipeLock.isRecipeLocked() ? "{*gregtech.top.lock_enable*}" :
-                            "{*gregtech.top.lock_disable*}"));
+                    if (recipeLock.enableExtendControl()) iProbeInfo.text(
+                            TextStyleClass.INFO + (recipeLock.isRecipeLocked() ? "{*gregtech.top.lock_enable*}" :
+                                    "{*gregtech.top.lock_disable*}"));
                 }
             }
         }
