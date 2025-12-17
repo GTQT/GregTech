@@ -1,10 +1,14 @@
 package gregtech.api.metatileentity.multiblock;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.GTValues;
 import gregtech.api.block.VariantActiveBlock;
-import gregtech.api.capability.*;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.capability.IDistinctBusController;
+import gregtech.api.capability.IMaintenanceHatch;
+import gregtech.api.capability.IMufflerHatch;
+import gregtech.api.capability.ISideUI;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.Widget;
@@ -27,7 +31,11 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.*;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.common.capabilities.Capability;
@@ -38,10 +46,15 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.IS_WORKING;
 import static gregtech.api.capability.GregtechDataCodes.STORE_TAPED;
@@ -183,7 +196,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
 
     @Override
     public boolean isStructureObstructed() {
-        return hasMufflerMechanics() && !isMufflerFaceFree();
+        return hasMufflerMechanics() && !isMufflerReady();
     }
 
     @Override
@@ -257,12 +270,21 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     /**
      * @return whether the muffler hatch's front face is free
      */
-    public boolean isMufflerFaceFree() {
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+    public boolean shouldDoMufflerCheck(){
+        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).isEmpty())
             return false;
+        return isStructureFormed() && hasMufflerMechanics();
+    }
+    public boolean isMufflerFaceFree() {
+        return getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree();
+    }
 
-        return isStructureFormed() && hasMufflerMechanics() &&
-                getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree();
+    public boolean isMufflerEmpty(){
+        return getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
+    }
+
+    public boolean isMufflerReady(){
+        return shouldDoMufflerCheck() && isMufflerFaceFree() && isMufflerEmpty();
     }
 
     @SideOnly(Side.CLIENT)
@@ -386,8 +408,10 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
 
     protected void configureErrorText(MultiblockUIBuilder builder) {
         builder.structureFormed(isStructureFormed());
-        if (hasMufflerMechanics())
+        if (hasMufflerMechanics()&&shouldDoMufflerCheck()) {
             builder.addMufflerObstructedLine(!isMufflerFaceFree());
+            builder.addMufflerFullLine(!isMufflerEmpty());
+        }
         if (hasMaintenanceMechanics())
             builder.addMaintenanceProblemLines(getMaintenanceProblems(), false);
     }
@@ -672,8 +696,12 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      * Prioritized over any warnings provided by {@link MultiblockWithDisplayBase#addWarningText}.
      */
     protected void addErrorText(List<ITextComponent> textList) {
-        MultiblockDisplayText.builder(textList, isStructureFormed())
-                .addMufflerObstructedLine(hasMufflerMechanics() && !isMufflerFaceFree());
+        if (hasMufflerMechanics()&&shouldDoMufflerCheck()) {
+            MultiblockDisplayText.builder(textList, isStructureFormed())
+                    .addMufflerObstructedLine(!isMufflerFaceFree());
+            MultiblockDisplayText.builder(textList, isStructureFormed())
+                    .addMufflerFullLine(!isMufflerEmpty());
+        }
     }
 
     /**

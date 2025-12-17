@@ -568,6 +568,17 @@ public class MultiblockUIBuilder {
         return this;
     }
 
+    public MultiblockUIBuilder addMufflerFullLine(boolean isMufflerFull) {
+        if (!isStructureFormed) return this;
+        if (getSyncer().syncBoolean(isMufflerFull)) {
+            addKey(KeyUtil.lang(TextFormatting.RED,
+                    "gregtech.multiblock.universal.muffler_full"));
+            addKey(KeyUtil.lang(TextFormatting.GRAY,
+                    "gregtech.multiblock.universal.muffler_full_desc"));
+        }
+        return this;
+    }
+
     /**
      * Adds a fuel consumption line showing the fuel name and the number of ticks per recipe run.
      * <br>

@@ -1,160 +1,84 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NoEnergyMultiblockRecipeLogic;
-import gregtech.api.metatileentity.IDataInfoProvider;
-import gregtech.api.metatileentity.multiblock.ui.KeyManager;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.ConfigHolder;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvent;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.items.IItemHandler;
 
-import codechicken.lib.render.CCRenderState;
-import codechicken.lib.render.pipeline.IVertexOperation;
-import codechicken.lib.vec.Matrix4;
+import gtqt.api.util.GTQTUtility;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class NoEnergyMultiblockController extends MultiblockWithDisplayBase
-        implements IDataInfoProvider, IDistinctBusController {
-
-    public final RecipeMap<?> recipeMap;
-    protected NoEnergyMultiblockRecipeLogic recipeMapWorkable;
-    protected IItemHandlerModifiable inputInventory;
-    protected IItemHandlerModifiable outputInventory;
-    protected IMultipleTankHandler inputFluidInventory;
-    protected IMultipleTankHandler outputFluidInventory;
-    private boolean isDistinct = false;
-    private ICleanroomProvider cleanroom;
+public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockController{
 
     public NoEnergyMultiblockController(ResourceLocation metaTileEntityId,
                                         RecipeMap<?> recipeMap) {
-        super(metaTileEntityId);
-        this.recipeMap = recipeMap;
-        this.recipeMapWorkable = new NoEnergyMultiblockRecipeLogic(this, recipeMap);
-        resetTileAbilities();
+        super(metaTileEntityId,recipeMap);
+        this.recipeMapWorkable = new NoEnergyMultiblockRecipeLogic(this);
     }
 
-    public IItemHandlerModifiable getInputInventory() {
-        return inputInventory;
-    }
+    protected void initializeAbilities() {
+        List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
+        inputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
+        this.inputInventory = new ItemHandlerList(inputItems);
 
-    public IItemHandlerModifiable getOutputInventory() {
-        return outputInventory;
-    }
+        List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
+        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
+        inputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
+        this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
 
-    public IMultipleTankHandler getInputFluidInventory() {
-        return inputFluidInventory;
-    }
+        List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
+        outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
+        outputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
+        this.outputInventory = new ItemHandlerList(outputItems);
 
-    public IMultipleTankHandler getOutputFluidInventory() {
-        return outputFluidInventory;
-    }
-
-    public NoEnergyMultiblockRecipeLogic getRecipeMapWorkable() {
-        return recipeMapWorkable;
-    }
-
-    /**
-     * Performs extra checks for validity of given recipe before multiblock will start it's processing.
-     */
-    public boolean checkRecipe(Recipe recipe,
-                               boolean consumeIfSuccess) {
-        return true;
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        initializeAbilities();
-    }
-
-    @Override
-    public void invalidateStructure() {
-        super.invalidateStructure();
-        resetTileAbilities();
-        this.recipeMapWorkable.invalidate();
+        List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
+        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
+        outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
+        this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
     }
 
     @Override
     protected void updateFormedValid() {
-        if (!hasMufflerMechanics() || isMufflerFaceFree()) {
+        if (!hasMufflerMechanics() || isMufflerReady()) {
             this.recipeMapWorkable.updateWorkable();
         }
     }
 
-    @Override
-    public boolean isActive() {
-        return isStructureFormed() && recipeMapWorkable.isActive() && recipeMapWorkable.isWorkingEnabled();
-    }
-
-    protected void initializeAbilities() {
-        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        this.inputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
-                getAbilities(MultiblockAbility.IMPORT_FLUIDS));
-        this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        this.outputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
-                getAbilities(MultiblockAbility.EXPORT_FLUIDS));
-    }
-
-    private void resetTileAbilities() {
-        this.inputInventory = new ItemStackHandler(0);
-        this.inputFluidInventory = new FluidTankList(true);
-        this.outputInventory = new ItemStackHandler(0);
-        this.outputFluidInventory = new FluidTankList(true);
-    }
-
-    protected boolean allowSameFluidFillForOutputs() {
-        return true;
-    }
-
-    @Override
-    protected void configureDisplayText(MultiblockUIBuilder builder) {
-        builder.setWorkingStatus(recipeMapWorkable.isWorkingEnabled(), recipeMapWorkable.isActive())
-                .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.getMaxVoltage()))
-                .addCustom(this::addCustomCapacity)
-                .addParallelsLine(recipeMapWorkable.getParallelLimit())
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
-    }
-
-    public void addCustomCapacity(KeyManager keyManager, UISyncer syncer) {
-
-    }
-
-    @Override
-    public TraceabilityPredicate autoAbilities() {
-        return autoAbilities(true, true, true, true, true, true);
-    }
-
-    public TraceabilityPredicate autoAbilities(boolean checkMaintenance,
+    public TraceabilityPredicate autoAbilities(
+            boolean checkMaintenance,
                                                boolean checkItemIn,
                                                boolean checkItemOut,
                                                boolean checkFluidIn,
                                                boolean checkFluidOut,
                                                boolean checkMuffler) {
         TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
+
+        if (checkItemIn || checkFluidIn) {
+            if (recipeMap.getMaxInputs() > 0 || recipeMap.getMaxFluidInputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.DUAL_IMPORT).setPreviewCount(1));
+            }
+        }
+        if (checkItemOut || checkFluidOut) {
+            if (recipeMap.getMaxOutputs() > 0 || recipeMap.getMaxFluidOutputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
+            }
+        }
+
+        predicate = predicate.or(abilities(MultiblockAbility.COMPLEX_DUAL).setPreviewCount(1));
 
         if (checkItemIn) {
             if (recipeMap.getMaxInputs() > 0) {
@@ -177,68 +101,6 @@ public abstract class NoEnergyMultiblockController extends MultiblockWithDisplay
             }
         }
         return predicate;
-    }
-
-    @Override
-    public void renderMetaTileEntity(CCRenderState renderState,
-                                     Matrix4 translation,
-                                     IVertexOperation[] pipeline) {
-        super.renderMetaTileEntity(renderState, translation, pipeline);
-        this.getFrontOverlay()
-                .renderOrientedState(renderState, translation, pipeline, getFrontFacing(), recipeMapWorkable.isActive(),
-                        recipeMapWorkable.isWorkingEnabled());
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        super.writeToNBT(data);
-        data.setBoolean("isDistinct", isDistinct);
-        return data;
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound data) {
-        super.readFromNBT(data);
-        isDistinct = data.getBoolean("isDistinct");
-    }
-
-    @Override
-    public void writeInitialSyncData(PacketBuffer buf) {
-        super.writeInitialSyncData(buf);
-        buf.writeBoolean(isDistinct);
-    }
-
-    @Override
-    public void receiveInitialSyncData(PacketBuffer buf) {
-        super.receiveInitialSyncData(buf);
-        isDistinct = buf.readBoolean();
-    }
-
-    @Override
-    public boolean canBeDistinct() {
-        return false;
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return isDistinct;
-    }
-
-    @Override
-    public void setDistinct(boolean isDistinct) {
-        this.isDistinct = isDistinct;
-        recipeMapWorkable.onDistinctChanged();
-        //mark buses as changed on distinct toggle
-        if (this.isDistinct) {
-            this.notifiedItemInputList.addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        } else {
-            this.notifiedItemInputList.add(this.inputInventory);
-        }
-    }
-
-    @Override
-    public SoundEvent getSound() {
-        return recipeMap.getSound();
     }
 
     @Override

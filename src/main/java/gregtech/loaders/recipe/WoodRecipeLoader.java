@@ -30,7 +30,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.*;
+import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.PYROLYSE_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.common.items.MetaItems.BIO_CHAFF;
@@ -147,7 +148,6 @@ public class WoodRecipeLoader {
         registerGTWoodRecipes();
         registerWoodRecipes();
         registerPyrolyseOvenRecipes();
-        registerWoodStickRecipes();
     }
 
     /**
@@ -268,15 +268,6 @@ public class WoodRecipeLoader {
                     GTUtility.copy(ConfigHolder.recipes.nerfWoodCrafting ? 4 : 6, entry.planks),
                     "s", "L", 'L', entry.log.copy());
 
-            // log -> plank cutting
-            CUTTER_RECIPES.recipeBuilder()
-                    .inputs(entry.log.copy())
-                    .outputs(GTUtility.copy(6, entry.planks))
-                    .output(dust, Wood, 2)
-                    .duration(200)
-                    .EUt(VA[ULV])
-                    .buildAndRegister();
-
             // log -> charcoal furnace recipe removal, if enabled
             if (ConfigHolder.recipes.harderCharcoalRecipe) {
                 if (entry.removeCharcoalRecipe) {
@@ -362,13 +353,6 @@ public class WoodRecipeLoader {
             if (ConfigHolder.recipes.hardWoodRecipes && entry.slabRecipeName != null) {
                 ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.slabRecipeName));
             }
-
-            // plank -> slab cutting
-            CUTTER_RECIPES.recipeBuilder()
-                    .inputs(entry.planks.copy())
-                    .outputs(GTUtility.copy(2, entry.slab))
-                    .duration(200).EUt(VA[ULV])
-                    .buildAndRegister();
         }
 
         // fence
@@ -477,20 +461,18 @@ public class WoodRecipeLoader {
         if (entry.log.isEmpty()) return;
         RecipeMaps.SAWMILL_RECIPES.recipeBuilder()
                 .inputs(GTUtility.copy(1, entry.log))
-                .circuitMeta(1)
-                .outputs(GTUtility.copy(8, entry.planks))
-                .output(dust, Materials.Wood, 2)
-                .duration(100).EUt(VA[LV])
+                .outputs(GTUtility.copy(6, entry.planks))
+                .output(dust, Materials.Wood, 4)
+                .duration(100).EUt(VA[ULV])
                 .buildAndRegister();
 
         // planks -> slab cutting
         if (entry.slab.isEmpty()) return;
         RecipeMaps.SAWMILL_RECIPES.recipeBuilder()
-                .inputs(GTUtility.copy(1, entry.log))
-                .circuitMeta(2)
-                .outputs(GTUtility.copy(4, entry.slab))
-                .output(dust, Materials.Wood, 2)
-                .duration(100).EUt(VA[LV])
+                .inputs(GTUtility.copy(1, entry.planks))
+                .outputs(GTUtility.copy(2, entry.slab))
+                .output(dust, Materials.Wood, 1)
+                .duration(100).EUt(VA[ULV])
                 .buildAndRegister();
     }
     public static void registerWoodTypeRecipe(boolean randomRecipeID, @NotNull WoodTypeEntry entry) {
@@ -523,15 +505,6 @@ public class WoodRecipeLoader {
             ModHandler.addShapedRecipe(prefix + "_" + name + "_planks_saw",
                     GTUtility.copy(ConfigHolder.recipes.nerfWoodCrafting ? 4 : 6, entry.planks),
                     "s", "L", 'L', entry.log.copy());
-
-            // log -> plank cutting
-            CUTTER_RECIPES.recipeBuilder()
-                    .inputs(entry.log.copy())
-                    .outputs(GTUtility.copy(6, entry.planks))
-                    .output(dust, Wood, 2)
-                    .duration(200)
-                    .EUt(VA[ULV])
-                    .buildAndRegister();
 
             // log -> charcoal furnace recipe removal, if enabled
             if (ConfigHolder.recipes.harderCharcoalRecipe) {
@@ -618,13 +591,6 @@ public class WoodRecipeLoader {
             if (ConfigHolder.recipes.hardWoodRecipes && entry.slabRecipeName != null) {
                 ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.slabRecipeName));
             }
-
-            // plank -> slab cutting
-            RecipeMaps.CUTTER_RECIPES.recipeBuilder()
-                    .inputs(entry.planks.copy())
-                    .outputs(GTUtility.copy(2, entry.slab))
-                    .duration(200).EUt(VA[ULV])
-                    .buildAndRegister();
         }
 
         // fence
@@ -737,20 +703,18 @@ public class WoodRecipeLoader {
         if (entry.log.isEmpty()) return;
         RecipeMaps.SAWMILL_RECIPES.recipeBuilder()
                 .inputs(GTUtility.copy(1, entry.log))
-                .circuitMeta(1)
-                .outputs(GTUtility.copy(8, entry.planks))
-                .output(dust, Materials.Wood, 2)
-                .duration(100).EUt(VA[LV])
+                .outputs(GTUtility.copy(6, entry.planks))
+                .output(dust, Materials.Wood, 4)
+                .duration(100).EUt(VA[ULV])
                 .buildAndRegister();
 
         // planks -> slab cutting
         if (entry.slab.isEmpty()) return;
         RecipeMaps.SAWMILL_RECIPES.recipeBuilder()
-                .inputs(GTUtility.copy(1, entry.log))
-                .circuitMeta(2)
-                .outputs(GTUtility.copy(4, entry.slab))
-                .output(dust, Materials.Wood, 2)
-                .duration(100).EUt(VA[LV])
+                .inputs(GTUtility.copy(1, entry.planks))
+                .outputs(GTUtility.copy(2, entry.slab))
+                .output(dust, Materials.Wood, 1)
+                .duration(100).EUt(VA[ULV])
                 .buildAndRegister();
     }
 
@@ -773,21 +737,6 @@ public class WoodRecipeLoader {
                     "s", "L", "L",
                     'L', MetaBlocks.PLANKS.getItemVariant(BlockGregPlanks.BlockType.TREATED_PLANK));
         }
-    }
-
-    private static void registerWoodStickRecipes() {
-        SAWMILL_RECIPES.recipeBuilder()
-                .input(plank, Wood)
-                .output(plate, Wood, 1)
-                .duration(100).EUt(VA[ULV])
-                .buildAndRegister();
-
-        // 所有木板（使用矿辞）到木棍配方
-        SAWMILL_RECIPES.recipeBuilder()
-                .input(plank, Wood)
-                .output(stick, Wood, 2)
-                .duration(100).EUt(VA[ULV])
-                .buildAndRegister();
     }
 
     /**

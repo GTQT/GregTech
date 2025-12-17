@@ -7,7 +7,10 @@ import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.ConfigHolder;
 
-import net.minecraft.util.text.*;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -449,7 +452,16 @@ public class MultiblockDisplayText {
             }
             return this;
         }
-
+        public Builder addMufflerFullLine(boolean isMufflerFull) {
+            if (!isStructureFormed) return this;
+            if (isMufflerFull) {
+                textList.add(TextComponentUtil.translationWithColor(TextFormatting.RED,
+                        "gregtech.multiblock.universal.muffler_full"));
+                textList.add(TextComponentUtil.translationWithColor(TextFormatting.GRAY,
+                        "gregtech.multiblock.universal.muffler_full_desc"));
+            }
+            return this;
+        }
         /**
          * Adds a fuel consumption line showing the fuel name and the number of ticks per recipe run.
          * <br>

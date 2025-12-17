@@ -601,6 +601,61 @@ public final class RecipeMaps {
      */
 
     @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> SAWMILL_RECIPES = new RecipeMapBuilder<>("saw_mill",
+            new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(2)
+            .fluidInputs(1)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.SAWBLADE_OVERLAY, false)
+                    .itemSlotOverlay(GTGuiTextures.CUTTER_OVERLAY, true, false)
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_SLICE))
+            .sound(GTSoundEvents.CHAINSAW_TOOL)
+            .onBuild(gregtechId("saw_mill_fluid"), recipeBuilder -> {
+                if (recipeBuilder.getFluidInputs().isEmpty()) {
+                    int duration = recipeBuilder.getDuration();
+                    long eut = recipeBuilder.getEUt();
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(Materials.Water.getFluid(GTUtility.safeCastLongToInt(Math.max(4,
+                                    Math.min(1000, duration * eut / 320)))))
+                            .duration(duration * 2)
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(
+                                    Materials.DistilledWater.getFluid(GTUtility.safeCastLongToInt(Math.max(3,
+                                            Math.min(750, duration * eut / 426)))))
+                            .duration((int) (duration * 1.5))
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .copy()
+                            .fluidInputs(Materials.Lubricant.getFluid(GTUtility.safeCastLongToInt(Math.max(1,
+                                    Math.min(250, duration * eut / 1280)))))
+                            .duration(Math.max(1, duration))
+                            .buildAndRegister();
+
+                    recipeBuilder
+                            .fluidInputs(Materials.MolybdeniteLubricant
+                                    .getFluid(GTUtility.safeCastLongToInt(Math.max(1,
+                                            Math.min(125, duration * eut / 2560)))))
+                            .duration(Math.max(1, (int) (duration * 0.8)));
+
+                }
+            })
+            .onBuild(gregtechId("cutter_copy"), recipeBuilder -> RecipeMaps.CUTTER_RECIPES.recipeBuilder()
+                    .inputs(recipeBuilder.getInputs().toArray(new GTRecipeInput[0]))
+                    .fluidInputs(recipeBuilder.getFluidInputs())
+                    .outputs(recipeBuilder.getOutputs())
+                    .duration(recipeBuilder.getDuration())
+                    .EUt(recipeBuilder.getEUt())
+                    .buildAndRegister())
+            .build();
+
+    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> CUTTER_RECIPES = new RecipeMapBuilder<>("cutter",
             new SimpleRecipeBuilder())
             .itemInputs(1)
@@ -645,7 +700,7 @@ public final class RecipeMaps {
 
                 }
             })
-            .build();
+            .build().setSmallRecipeMap(SAWMILL_RECIPES);
 
     /**
      * Examples:
@@ -1771,52 +1826,6 @@ public final class RecipeMaps {
             .sound(GTSoundEvents.RECYCLE)
             .build();
 
-    @ZenProperty
-    public static final RecipeMap<SimpleRecipeBuilder> SAWMILL_RECIPES = new RecipeMapBuilder<>("saw_mill",
-            new SimpleRecipeBuilder())
-            .itemInputs(2)
-            .itemOutputs(2)
-            .fluidInputs(1)
-            .uiBuilder(b -> b
-                    .itemSlotOverlay(GTGuiTextures.SAWBLADE_OVERLAY, false)
-                    .itemSlotOverlay(GTGuiTextures.CUTTER_OVERLAY, true, false)
-                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true, true)
-                    .progressBar(GTGuiTextures.PROGRESS_BAR_SLICE))
-            .sound(GTSoundEvents.CHAINSAW_TOOL)
-            .onBuild(gregtechId("saw_mill_fluid"), recipeBuilder -> {
-                if (recipeBuilder.getFluidInputs().isEmpty()) {
-                    int duration = recipeBuilder.getDuration();
-                    long eut = recipeBuilder.getEUt();
-                    recipeBuilder
-                            .copy()
-                            .fluidInputs(Materials.Water.getFluid(GTUtility.safeCastLongToInt(Math.max(4,
-                                    Math.min(1000, duration * eut / 320)))))
-                            .duration(duration * 2)
-                            .buildAndRegister();
-
-                    recipeBuilder
-                            .copy()
-                            .fluidInputs(
-                                    Materials.DistilledWater.getFluid(GTUtility.safeCastLongToInt(Math.max(3,
-                                            Math.min(750, duration * eut / 426)))))
-                            .duration((int) (duration * 1.5))
-                            .buildAndRegister();
-
-                    recipeBuilder
-                            .copy()
-                            .fluidInputs(Materials.Lubricant.getFluid(GTUtility.safeCastLongToInt(Math.max(1,
-                                    Math.min(250, duration * eut / 1280)))))
-                            .duration(Math.max(1, duration))
-                            .buildAndRegister();
-                    recipeBuilder
-                            .fluidInputs(Materials.MolybdeniteLubricant
-                                    .getFluid(GTUtility.safeCastLongToInt(Math.max(1,
-                                            Math.min(125, duration * eut / 2560)))))
-                            .duration(Math.max(1, (int) (duration * 0.8)));
-
-                }
-            })
-            .build();
 
     /**
      * Example:

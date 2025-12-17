@@ -172,7 +172,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     protected void updateFormedValid() {
-        if (!hasMufflerMechanics() || isMufflerFaceFree()) {
+        if (!hasMufflerMechanics() || isMufflerReady()) {
             this.recipeMapWorkable.updateWorkable();
         }
     }

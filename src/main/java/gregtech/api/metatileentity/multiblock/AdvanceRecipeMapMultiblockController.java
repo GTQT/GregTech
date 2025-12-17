@@ -257,7 +257,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     protected void updateFormedValid() {
-        if (!hasMufflerMechanics() || isMufflerFaceFree()) {
+        if (!hasMufflerMechanics() || isMufflerReady()) {
             for (MultiblockRecipeLogic multiblockRecipeLogic : recipeMapWorkable)
                 multiblockRecipeLogic.updateWorkable();
         }

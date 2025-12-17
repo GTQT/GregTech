@@ -61,7 +61,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
 
     public MetaTileEntityMufflerHatch(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
-        this.recoveryChance = Math.min((tier-1) * 10, 100);
+        this.recoveryChance = Math.min((tier - 1) * 10, 100);
         this.inventory = new GTItemStackHandler(this, (int) Math.pow(tier + 1, 2));
         this.frontFaceFree = false;
     }
@@ -76,7 +76,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         super.update();
 
         if (!getWorld().isRemote) {
-            if (getOffsetTimer() % 10 == 0)
+            if (getOffsetTimer() % 20 == 0)
                 this.frontFaceFree = checkFrontFaceFree();
         }
 
@@ -114,7 +114,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
 
     @Override
     public boolean isMufflerFull() {
-        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+        if(mufflerDust) for (int slot = 0; slot < inventory.getSlots(); slot++) {
             if (inventory.getStackInSlot(slot).isEmpty())
                 return true;
         }
@@ -129,6 +129,11 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     private boolean checkFrontFaceFree() {
         BlockPos frontPos = getPos().offset(getFrontFacing());
         IBlockState blockState = getWorld().getBlockState(frontPos);
+
+        if (blockState.getBlock().isAir(blockState, getWorld(), frontPos)) {
+            return true;
+        }
+
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) getController();
 
         // break a snow layer if it exists, and if this machine is running
@@ -136,9 +141,9 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
             if (GTUtility.tryBreakSnow(getWorld(), frontPos, blockState, true)) {
                 return true;
             }
-            return blockState.getBlock().isAir(blockState, getWorld(), frontPos);
         }
-        return blockState.getBlock().isAir(blockState, getWorld(), frontPos) || GTUtility.isBlockSnow(blockState);
+
+        return GTUtility.isBlockSnow(blockState);
     }
 
     @Override
