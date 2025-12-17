@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.KeyUtil;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -26,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class MultiblockBuilderBehavior implements IItemBehaviour {
+public class MultiblockRemovalBehavior implements IItemBehaviour {
 
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
@@ -36,15 +37,23 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
         if (!(tileEntity instanceof IGregTechTileEntity)) return EnumActionResult.PASS;
         MetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
         if (!(mte instanceof MultiblockControllerBase multiblock)) return EnumActionResult.PASS;
-        if (!player.canPlayerEdit(pos, side, player.getHeldItem(hand))) return EnumActionResult.FAIL;
         if (world.isRemote) return EnumActionResult.SUCCESS;
 
         if (player.isSneaking()) {
             // If sneaking, try to build the multiblock.
             // Only try to auto-build if the structure is not already formed
-            if (!multiblock.isStructureFormed()) {
-                multiblock.structurePattern.autoBuild(player, multiblock);
+            if (multiblock.isStructureFormed()) {
+                multiblock.dismantleStructure(player);
+
+                // 显示结构名称
+                player.sendMessage(new TextComponentString(
+                        TextFormatting.GREEN + "拆除多方块: " +
+                                TextFormatting.WHITE + KeyUtil.lang(multiblock.getMetaFullName())));
                 return EnumActionResult.SUCCESS;
+            } else {
+                player.sendMessage(new TextComponentTranslation(
+                        "无法拆除多方块" + KeyUtil.lang(multiblock.getMetaFullName()))
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
             }
             return EnumActionResult.PASS;
         } else {
@@ -80,6 +89,6 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
-        lines.add(I18n.format("metaitem.tool.multiblock_builder.tooltip2"));
+        lines.add(I18n.format("metaitem.tool.multiblock_remover.tooltip2"));
     }
 }

@@ -320,6 +320,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem TOOL_DATA_MODULE;
 
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
+    public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
 
     public static final Map<MarkerMaterial, MetaValueItem> GLASS_LENSES = new HashMap<>();
 

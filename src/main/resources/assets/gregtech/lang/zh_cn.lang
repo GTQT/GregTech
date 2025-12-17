@@ -1314,6 +1314,10 @@ metaitem.tool.multiblock_builder.name=多方块构建器
 metaitem.tool.multiblock_builder.tooltip=检查与建造你的多方块结构！
 metaitem.tool.multiblock_builder.tooltip2=按住SHIFT键后右键单击多方块结构控制器以自动构建
 
+metaitem.tool.multiblock_remover.name=多方块拆除器
+metaitem.tool.multiblock_remover.tooltip=拆除你的多方块结构！
+metaitem.tool.multiblock_remover.tooltip2=按住SHIFT键后右键单击多方块结构控制器以自动拆除
+
 metaarmor.nms.nightvision.enabled=纳米肌体™套装：夜视已启用
 metaarmor.nms.nightvision.disabled=纳米肌体™套装：夜视已禁用
 metaarmor.nms.nightvision.error=纳米肌体™套装：§c能量不足！

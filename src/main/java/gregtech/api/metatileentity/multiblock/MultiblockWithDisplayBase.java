@@ -280,7 +280,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     public boolean isMufflerEmpty(){
-        return getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
+        return !getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
     }
 
     public boolean isMufflerReady(){

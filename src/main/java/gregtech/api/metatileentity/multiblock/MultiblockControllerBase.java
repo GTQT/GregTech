@@ -683,6 +683,57 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         doExplosion(explosionPower);
     }
 
+    public void dismantleStructure(EntityPlayer player) {
+        BlockPattern pattern = structurePattern; // 获取已初始化的BlockPattern
+
+        if (!structureFormed || pattern == null) {
+            return; // 如果结构未形成或没有结构模式，直接返回
+        }
+
+        // 首先解除结构，移除所有部件与控制器的关联
+        invalidateStructure();
+
+        World world = getWorld();
+
+        // 获取所有结构内的方块位置 - 使用新封装的方法
+        Map<BlockPos, BlockInfo> blocks = pattern.getAllStructureBlocks(
+                world, getPos(), getFrontFacing().getOpposite(), getUpwardsFacing(), isFlipped());
+
+        ArrayList<ItemStack> drops = new ArrayList<>();
+
+        // 将所有部件转为掉落物
+        for (Map.Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
+            BlockPos pos = entry.getKey();
+            TileEntity tileEntity = entry.getValue().getTileEntity();
+
+            world.setBlockToAir(pos); // 先清除方块
+
+            // 如果是MetaTileEntity，尝试获取其物品形式
+            if (tileEntity instanceof IGregTechTileEntity) {
+                MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+                ItemStack itemStack = metaTileEntity.getStackForm();
+                drops.add(itemStack);
+
+            } else {
+                // 普通方块掉落
+                IBlockState blockState = entry.getValue().getBlockState();
+                ItemStack stack = new ItemStack(blockState.getBlock(), 1,
+                        blockState.getBlock().getMetaFromState(blockState));
+                drops.add(stack);
+            }
+        }
+
+        ItemStack controllerStack = getStackForm();
+        drops.add(controllerStack);
+
+        GTUtility.spawnDropsAtPlayer(drops, player, world, player.getRNG());
+
+        // 最后拆除控制器自身
+        onRemoval();
+        invalidate();
+        getWorld().setBlockToAir(getPos());
+    }
+
     public String recipeMapsToString() {
         return "";
     }

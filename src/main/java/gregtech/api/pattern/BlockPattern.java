@@ -501,6 +501,48 @@ public class BlockPattern {
             }
         });
     }
+    /**
+     * 获取结构中所有方块的位置和信息
+     *
+     * @param world 世界对象
+     * @param centerPos 结构中心位置(控制器位置)
+     * @param frontFacing 朝向
+     * @param upwardsFacing 向上朝向
+     * @param isFlipped 是否翻转
+     * @return 包含所有结构方块位置和信息的映射
+     */
+    public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
+                                                          EnumFacing frontFacing, EnumFacing upwardsFacing,
+                                                          boolean isFlipped) {
+        Map<BlockPos, BlockInfo> blocks = new HashMap<>();
+        int minZ = -this.centerOffset[4];
+
+        // 遍历所有可能的结构位置
+        for (int c = 0, z = minZ, r; c < this.fingerLength; c++) {
+            for (r = 0; r < this.aisleRepetitions[c][0]; r++) {
+                for (int b = 0, y = -this.centerOffset[1]; b < this.thumbLength; b++, y++) {
+                    for (int a = 0, x = -this.centerOffset[0]; a < this.palmLength; a++, x++) {
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
+                                        x, y, z, frontFacing, upwardsFacing, isFlipped, this.structureDir)
+                                .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+
+                        if (pos.equals(centerPos)) continue; // 跳过排除的位置
+
+                        TileEntity tileEntity = world.getTileEntity(pos);
+                        IBlockState blockState = world.getBlockState(pos);
+
+                        // 记录所有非空气方块
+                        if (blockState.getBlock() != Blocks.AIR) {
+                            blocks.put(pos, new BlockInfo(blockState, tileEntity));
+                        }
+                    }
+                }
+                z++;
+            }
+        }
+
+        return blocks;
+    }
 
     public BlockInfo[][][] getPreview(int[] repetition) {
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();

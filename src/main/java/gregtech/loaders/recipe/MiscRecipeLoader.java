@@ -49,8 +49,15 @@ public class MiscRecipeLoader {
                 'S', new UnificationEntry(screw, StainlessSteel),
                 'R', new UnificationEntry(stick, StainlessSteel));
 
+        ModHandler.addShapedRecipe(true, "multiblock_remover", MULTIBLOCK_REMOVER.getStackForm(),
+                "CwE", "SRC", "RSd",
+                'C', new UnificationEntry(circuit, MarkerMaterials.Tier.HV),
+                'E', new UnificationEntry(gem, EnderEye),
+                'S', new UnificationEntry(screw, StainlessSteel),
+                'R', new UnificationEntry(stick, StainlessSteel));
+
         ModHandler.addShapedRecipe(true, "multiblock_preview", MULTIBLOCK_PREVIEW.getStackForm(),
-                "wCE", "SRC", "RSd",
+                "CEw", "SRC", "RSd",
                 'C', new UnificationEntry(circuit, MarkerMaterials.Tier.HV),
                 'E', new UnificationEntry(gem, Emerald),
                 'S', new UnificationEntry(screw, StainlessSteel),

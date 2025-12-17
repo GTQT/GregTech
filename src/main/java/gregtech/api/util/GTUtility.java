@@ -27,6 +27,8 @@ import net.minecraft.block.BlockSnow;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.Slot;
@@ -1257,4 +1259,25 @@ public class GTUtility {
                 .scale(scale);
     }
 
+    public static void spawnDropsAtPlayer(List<ItemStack> drops, EntityPlayer player, World world, Random random) {
+        BlockPos spawnPos = player.getPosition().up(); // 玩家脚上方1格
+
+        for (ItemStack drop : drops) {
+            if (drop.isEmpty()) continue;
+
+            // 分散生成避免卡顿
+            double offsetX = (random.nextDouble() - 0.5) * 0.8;
+            double offsetZ = (random.nextDouble() - 0.5) * 0.8;
+
+            EntityItem entity = new EntityItem(
+                    world,
+                    spawnPos.getX() + 0.5 + offsetX,
+                    spawnPos.getY() + 0.1, // 贴近地面
+                    spawnPos.getZ() + 0.5 + offsetZ,
+                    drop.copy()
+            );
+
+            world.spawnEntity(entity);
+        }
+    }
 }
