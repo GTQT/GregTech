@@ -51,13 +51,6 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
         this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
     }
 
-    @Override
-    protected void updateFormedValid() {
-        if (!hasMufflerMechanics() || isMufflerReady()) {
-            this.recipeMapWorkable.updateWorkable();
-        }
-    }
-
     public TraceabilityPredicate autoAbilities(
             boolean checkMaintenance,
                                                boolean checkItemIn,

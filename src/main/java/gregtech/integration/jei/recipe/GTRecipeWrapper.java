@@ -408,7 +408,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
     public long[] calculateJeiOverclock() {
         // simple case
-        if (!recipeMap.jeiOverclockButtonEnabled())
+        if (!recipeMap.jeiOverclockButtonEnabled() || jeiTexts.isEmpty())
             return new long[] { recipe.getEUt(), recipe.getDuration(), 0x111111 };
 
         // ULV doesn't overclock to LV, so treat ULV recipes as LV
@@ -431,6 +431,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
         return result;
     }
+
 
     public ChancedItemOutput getOutputChance(int slot) {
         if (slot >= recipe.getChancedOutputs().getChancedEntries().size() || slot < 0) return null;

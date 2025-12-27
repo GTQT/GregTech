@@ -270,21 +270,30 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     /**
      * @return whether the muffler hatch's front face is free
      */
-    public boolean shouldDoMufflerCheck(){
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).isEmpty())
-            return false;
-        return isStructureFormed() && hasMufflerMechanics();
-    }
-    public boolean isMufflerFaceFree() {
-        return getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree();
-    }
-
-    public boolean isMufflerEmpty(){
-        return !getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
-    }
-
     public boolean isMufflerReady(){
-        return shouldDoMufflerCheck() && isMufflerFaceFree() && isMufflerEmpty();
+        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+            return false;
+
+        return isStructureFormed() && hasMufflerMechanics() &&
+                getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree()
+                &&!getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
+
+    }
+
+    public boolean isMufflerFaceFree() {
+        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+            return false;
+
+        return isStructureFormed() && hasMufflerMechanics() &&
+                getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree();
+    }
+
+    public boolean isMufflerEmpty() {
+        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+            return false;
+
+        return isStructureFormed() && hasMufflerMechanics() &&
+                !getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
     }
 
     @SideOnly(Side.CLIENT)
@@ -408,7 +417,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
 
     protected void configureErrorText(MultiblockUIBuilder builder) {
         builder.structureFormed(isStructureFormed());
-        if (hasMufflerMechanics()&&shouldDoMufflerCheck()) {
+        if (hasMufflerMechanics()) {
             builder.addMufflerObstructedLine(!isMufflerFaceFree());
             builder.addMufflerFullLine(!isMufflerEmpty());
         }
@@ -696,12 +705,11 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      * Prioritized over any warnings provided by {@link MultiblockWithDisplayBase#addWarningText}.
      */
     protected void addErrorText(List<ITextComponent> textList) {
-        if (hasMufflerMechanics()&&shouldDoMufflerCheck()) {
-            MultiblockDisplayText.builder(textList, isStructureFormed())
-                    .addMufflerObstructedLine(!isMufflerFaceFree());
-            MultiblockDisplayText.builder(textList, isStructureFormed())
-                    .addMufflerFullLine(!isMufflerEmpty());
-        }
+        MultiblockDisplayText.builder(textList, isStructureFormed())
+                .addMufflerObstructedLine(hasMufflerMechanics() && !isMufflerFaceFree());
+        MultiblockDisplayText.builder(textList, isStructureFormed())
+                .addMufflerFullLine(hasMufflerMechanics() && !isMufflerEmpty());
+
     }
 
     /**
