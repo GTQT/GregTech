@@ -511,7 +511,6 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     public void setEnergyLackWarningEnabled(boolean enable) {
         recipeMapWorkable.setEnergyLackWarningEnable(enable);
     }
-
     @Override
     public boolean hasSideUI() {
         return true;
