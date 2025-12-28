@@ -2,16 +2,14 @@ package gregtech.integration.hwyla.provider;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.ISteamMachine;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.PrimitiveRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.SteamMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
-import gregtech.common.metatileentities.multi.MetaTileEntityLargeBoiler;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -71,8 +69,7 @@ public class RecipeLogicDataProvider extends CapabilityDataProvider<AbstractReci
 
                 if (accessor.getTileEntity() instanceof IGregTechTileEntity gtte) {
                     MetaTileEntity mte = gtte.getMetaTileEntity();
-                    if (mte instanceof SteamMetaTileEntity || mte instanceof MetaTileEntityLargeBoiler ||
-                            mte instanceof RecipeMapSteamMultiblockController) {
+                    if (mte instanceof ISteamMachine) {
                         endText = ": " + TextFormattingUtil.formatNumbers(eut) + TextFormatting.RESET + " L/t " +
                                 I18n.format(Materials.Steam.getUnlocalizedName());
                     }
