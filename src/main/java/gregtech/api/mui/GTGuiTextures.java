@@ -266,6 +266,7 @@ public class GTGuiTextures {
 
     public static final UITexture MENU_OVERLAY = fullImage("textures/gui/overlay/menu_overlay.png");
     public static final UITexture BUTTON_EXPORT_FACE = fullImage("textures/gui/overlay/button_export_face.png");
+    public static final UITexture BUTTON_OVERCLOCK = fullImage("textures/gui/widget/button_overclock.png");
     public static final UITexture RECIPE_LOCK = fullImage("textures/gui/widget/lock.png");
     public static final UITexture PRIMITIVE_FURNACE_OVERLAY = fullImage(
             "textures/gui/primitive/overlay_primitive_furnace.png");

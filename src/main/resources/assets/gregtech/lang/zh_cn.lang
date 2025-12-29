@@ -1567,6 +1567,7 @@ cover.ender_fluid_link.private.tooltip.disabled=切换至私有储罐模式/n私
 cover.ender_fluid_link.private.tooltip.enabled=切换至公共储罐模式
 cover.ender_fluid_link.incomplete_hex=输入的颜色不正确！/n输入正确的八位十六进制颜色码方可应用/n此时关闭界面将导致丢失编辑内容！
 cover.ender_fluid_link.transfer_unit=L/t
+cover.ender_item_link.transfer_unit=件/t
 
 cover.generic.ender.known_channels=已知频道
 cover.generic.ender.open_selector=打开条目选择器

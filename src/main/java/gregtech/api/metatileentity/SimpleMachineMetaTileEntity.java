@@ -1,7 +1,5 @@
 package gregtech.api.metatileentity;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IActiveOutputSide;
@@ -16,6 +14,7 @@ import gregtech.api.cover.Cover;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.resources.TextureArea;
+import gregtech.api.gui.widgets.CycleButtonWidget;
 import gregtech.api.gui.widgets.GhostCircuitSlotWidget;
 import gregtech.api.gui.widgets.ImageWidget;
 import gregtech.api.gui.widgets.LabelWidget;
@@ -32,6 +31,14 @@ import gregtech.client.particle.IMachineParticleEffect;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.RenderUtil;
+import gregtech.common.covers.CoverConveyor;
+import gregtech.common.covers.CoverFluidFilter;
+import gregtech.common.covers.CoverItemFilter;
+import gregtech.common.covers.CoverPump;
+import gregtech.common.covers.CoverStorage;
+import gregtech.common.covers.ender.CoverEnderFluidLink;
+import gregtech.common.covers.ender.CoverEnderItemLink;
+import gregtech.common.covers.filter.BaseFilterContainer;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.resources.I18n;
@@ -65,14 +72,15 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -370,6 +378,14 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     }
 
     @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
     public void setGhostCircuitConfig(int config) {
         if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
             return;
@@ -378,13 +394,6 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         if (!getWorld().isRemote) {
             markDirty();
         }
-    }
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
     }
 
     @Override
@@ -504,6 +513,23 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         return map != null && map.getRecipeMapUI().usesMui2();
     }
 
+    private BaseFilterContainer getFilterContainerFromCover(Cover cover) {
+        if (cover instanceof CoverConveyor conveyor) {
+            return conveyor.getItemFilterContainer();
+        } else if (cover instanceof CoverPump pump) {
+            return pump.getFluidFilterContainer();
+        } else if (cover instanceof CoverItemFilter itemFilter) {
+            return itemFilter.getFilterContainer();
+        } else if (cover instanceof CoverFluidFilter fluidFilter) {
+            return fluidFilter.getFilterContainer();
+        } else if (cover instanceof CoverEnderFluidLink enderFluidLink) {
+            return enderFluidLink.getFluidFilterContainer();
+        } else if (cover instanceof CoverEnderItemLink enderItemLink) {
+            return enderItemLink.getItemFilterContainer();
+        }
+        return null;
+    }
+
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         RecipeMap<?> workableRecipeMap = Objects.requireNonNull(workable.getRecipeMap(), "recipe map is null");
@@ -513,7 +539,28 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
             yOffset = FONT_HEIGHT;
         }
 
-        ModularPanel panel = GTGuis.createPanel(this, 176, 166 + yOffset);
+        // 创建一个Flow行容器
+        Flow flowRow = Flow.row();
+
+        int s = 0;
+        for (EnumFacing data : EnumFacing.VALUES) {
+            Cover cover = this.getCoverAtSide(data);
+            BaseFilterContainer filter = getFilterContainerFromCover(cover);
+
+            if (filter != null && filter.hasFilter()) {
+                flowRow.child(filter.initUILeisure(guiData, guiSyncManager));
+                s++;
+            }
+            else if(cover instanceof CoverStorage coverStorage)
+            {
+                flowRow.child(coverStorage.initUILeisure(guiData, guiSyncManager));
+                s++;
+            }
+        }
+
+        flowRow.size(s * 18, 18);
+
+        ModularPanel panel = GTGuis.createPanel(this, 176, 166 + yOffset + (s > 0 ? 18 : 0));
         Widget<?> widget = workableRecipeMap.getRecipeMapUI().buildWidget(workable::getProgressPercent, importItems,
                 exportItems, importFluids, exportFluids, yOffset, guiSyncManager);
 
@@ -589,6 +636,9 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                     return true;
                 })
         );
+
+        flowRow.pos(7, 80 + yOffset);
+        panel.child(flowRow);
 
         return panel;
     }
@@ -815,7 +865,8 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                                 .pos(60, 65)
                                 .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT_IMPORT[1])
                                 .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT_IMPORT[0])
-                                .value(new BooleanSyncValue(this::isAllowInputFromOutputSideItems, this::setAllowInputFromOutputSideItems))
+                                .value(new BooleanSyncValue(this::isAllowInputFromOutputSideItems,
+                                        this::setAllowInputFromOutputSideItems))
                                 .addTooltip(true, IKey.lang("允许从物品输出口输入物品"))
                                 .addTooltip(false, IKey.lang("禁止从物品输出口输入物品"))
                         )
@@ -824,7 +875,8 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                                 .pos(140, 65)
                                 .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT_IMPORT[1])
                                 .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT_IMPORT[0])
-                                .value(new BooleanSyncValue(this::isAllowInputFromOutputSideFluids, this::setAllowInputFromOutputSideFluids))
+                                .value(new BooleanSyncValue(this::isAllowInputFromOutputSideFluids,
+                                        this::setAllowInputFromOutputSideFluids))
                                 .addTooltip(true, IKey.lang("允许从流体输出口输入物品"))
                                 .addTooltip(false, IKey.lang("禁止从流体输出口输入物品"))
                         )
@@ -871,7 +923,13 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                     GuiTextures.BUTTON_FLUID_OUTPUT, this::isAutoOutputFluids, this::setAutoOutputFluids)
                     .setTooltipText("gregtech.gui.fluid_auto_output.tooltip")
                     .shouldUseBaseBackground());
+            leftButtonStartX += 18;
         }
+
+        builder.widget(new CycleButtonWidget(leftButtonStartX, 62 + yOffset, 18, 18,
+                workable.getAvailableOverclockingTiers(), workable::getOverclockTier, workable::setOverclockTier)
+                .setTooltipHoverString("gregtech.gui.overclock.description")
+                .setButtonTexture(GuiTextures.BUTTON_OVERCLOCK));
 
         if (exportItems.getSlots() + exportFluids.getTanks() <= 9) {
             ImageWidget logo = new ImageWidget(152, 63 + yOffset, 17, 17,
@@ -883,7 +941,6 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                 builder.widget(circuitSlot.setConsumer(this::getCircuitSlotTooltip)).widget(logo);
             }
         }
-
         return builder;
     }
 

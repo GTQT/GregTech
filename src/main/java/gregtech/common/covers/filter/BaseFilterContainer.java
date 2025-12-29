@@ -271,6 +271,38 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
                         .left(36).right(0).height(18));
     }
 
+    public IWidget initUILeisure(GuiData data, PanelSyncManager manager) {
+        AtomicReference<IPanelHandler> filterPanel = new AtomicReference<>();
+        AtomicInteger counter = new AtomicInteger();
+
+        if (hasFilter()) {
+            filterPanel.set(getFilter().createPanelHandler(manager, counter.getAndIncrement()));
+        }
+
+        manager.registerSyncedAction("update_filter_panel", packet -> {
+            if (hasFilter()) {
+                filterPanel.set(getFilter().createPanelHandler(manager, counter.getAndIncrement()));
+            }
+        });
+
+        return new ButtonWidget<>()
+                .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
+                .setEnabledIf(w -> hasFilter())
+                .addTooltipLine(getFilterKey())
+                .onMousePressed(i -> {
+                    IPanelHandler panel = filterPanel.get();
+                    if (panel == null) return false;
+
+                    if (!panel.isPanelOpen()) {
+                        setMaxTransferSize(getMaxTransferSize());
+                        panel.openPanel();
+                    } else {
+                        panel.closePanel();
+                    }
+                    return true;
+                });
+    }
+
     public void writeInitialSyncData(PacketBuffer packetBuffer) {
         NetworkUtils.writeItemStack(packetBuffer, this.getFilterStack());
         packetBuffer.writeInt(this.maxTransferSize);

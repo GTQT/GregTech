@@ -77,7 +77,6 @@ public interface CoverWithUI extends Cover, IGuiHolder<SidedPosGuiData>, gregtec
     default ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         return null;
     }
-
     @Override
     default boolean isValid() {
         return getCoverableView().isValid();

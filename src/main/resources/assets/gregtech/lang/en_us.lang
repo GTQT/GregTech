@@ -1569,6 +1569,7 @@ cover.ender_fluid_link.private.tooltip.disabled=Switch to private tank mode\nPri
 cover.ender_fluid_link.private.tooltip.enabled=Switch to public tank mode
 cover.ender_fluid_link.incomplete_hex=Inputted color is incomplete!/nIt will be applied once complete (all 8 hex digits)/nClosing the gui will lose edits!
 cover.ender_fluid_link.transfer_unit=L/t
+cover.ender_item_link.transfer_unit=S/t
 
 cover.generic.ender.known_channels=Known Channels
 cover.generic.ender.open_selector=Open Entry Selector

@@ -19,6 +19,7 @@ import gregtech.common.covers.IIOMode;
 import gregtech.common.covers.TransferMode;
 import gregtech.common.covers.VoidingMode;
 import gregtech.common.covers.ender.CoverEnderFluidLink;
+import gregtech.common.covers.ender.CoverEnderItemLink;
 import gregtech.common.covers.filter.BaseFilter;
 import gregtech.common.covers.filter.FluidFilterContainer;
 import gregtech.common.covers.filter.ItemFilterContainer;
@@ -181,6 +182,17 @@ public class CoverInfoProvider extends CapabilityInfoProvider<CoverHolder> {
         }
     }
 
+    private static void enderIItemLinkInfo(@NotNull IProbeInfo probeInfo, @NotNull CoverEnderItemLink enderItemLink) {
+        transferRateText(probeInfo, enderItemLink.getConveyorMode(), " " + lang("cover.ender_item_link.transfer_unit"),
+                enderItemLink.isIOEnabled() ? CoverEnderItemLink.TRANSFER_RATE : 0, 20);
+        itemFilterText(probeInfo, enderItemLink.getItemFilterContainer().getFilter());
+
+        if (!enderItemLink.getColorStr().isEmpty()) {
+            probeInfo.text(
+                    TextStyleClass.INFO + lang("gregtech.top.link_cover.color") + " " + enderItemLink.getColorStr());
+        }
+    }
+
     /**
      * Displays text for {@link IIOMode} covers
      *
@@ -298,6 +310,8 @@ public class CoverInfoProvider extends CapabilityInfoProvider<CoverHolder> {
             fluidFilterInfo(probeInfo, fluidFilter);
         } else if (cover instanceof CoverEnderFluidLink enderFluidLink) {
             enderFluidLinkInfo(probeInfo, enderFluidLink);
+        } else if (cover instanceof CoverEnderItemLink enderItemLink) {
+            enderIItemLinkInfo(probeInfo, enderItemLink);
         }
     }
 }
