@@ -6,9 +6,6 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
   ],
-  "client": [
-    "DualityFluidInterfaceMixin",
-    "DualityInterfaceMixin"
-  ],
+  "client": [],
   "server": []
 }
