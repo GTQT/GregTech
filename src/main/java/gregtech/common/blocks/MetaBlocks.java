@@ -23,6 +23,7 @@ import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityTESR;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
+import gregtech.client.renderer.pipe.HeatConductorRenderer;
 import gregtech.client.renderer.pipe.ItemPipeRenderer;
 import gregtech.client.renderer.pipe.LaserPipeRenderer;
 import gregtech.client.renderer.pipe.OpticalPipeRenderer;
@@ -50,6 +51,10 @@ import gregtech.common.pipelike.fluidpipe.FluidPipeType;
 import gregtech.common.pipelike.fluidpipe.longdistance.LDFluidPipeType;
 import gregtech.common.pipelike.fluidpipe.tile.TileEntityFluidPipe;
 import gregtech.common.pipelike.fluidpipe.tile.TileEntityFluidPipeTickable;
+import gregtech.common.pipelike.heat.BlockHeatConductor;
+import gregtech.common.pipelike.heat.HeatConductorType;
+import gregtech.common.pipelike.heat.tile.TileEntityHeatConductor;
+import gregtech.common.pipelike.heat.tile.TileEntityHeatConductorTickable;
 import gregtech.common.pipelike.itempipe.BlockItemPipe;
 import gregtech.common.pipelike.itempipe.ItemPipeType;
 import gregtech.common.pipelike.itempipe.longdistance.LDItemPipeType;
@@ -115,6 +120,7 @@ public class MetaBlocks {
     private MetaBlocks() {}
     public static BlockMachine MACHINE;
     public static final Map<String, BlockCable[]> CABLES = new Object2ObjectOpenHashMap<>();
+    public static final Map<String, BlockHeatConductor[]> HEAT_CONDUCTOR = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockFluidPipe[]> FLUID_PIPES = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockItemPipe[]> ITEM_PIPES = new Object2ObjectOpenHashMap<>();
     public static final BlockOpticalPipe[] OPTICAL_PIPES = new BlockOpticalPipe[OpticalPipeType.values().length];
@@ -201,6 +207,13 @@ public class MetaBlocks {
                 cables[ins.ordinal()].setRegistryName(modid, ins.getName());
             }
             CABLES.put(modid, cables);
+
+            BlockHeatConductor[] pipe = new BlockHeatConductor[HeatConductorType.VALUES.length];
+            for (HeatConductorType ins : HeatConductorType.VALUES) {
+                pipe[ins.ordinal()] = new BlockHeatConductor(ins, registry);
+                pipe[ins.ordinal()].setRegistryName(modid, ins.getName());
+            }
+            HEAT_CONDUCTOR.put(modid, pipe);
 
             BlockFluidPipe[] fluidPipes = new BlockFluidPipe[FluidPipeType.VALUES.length];
             for (FluidPipeType type : FluidPipeType.VALUES) {
@@ -430,6 +443,8 @@ public class MetaBlocks {
         GameRegistry.registerTileEntity(MetaTileEntityHolder.class, gregtechId("machine"));
         GameRegistry.registerTileEntity(TileEntityCable.class, gregtechId("cable"));
         GameRegistry.registerTileEntity(TileEntityCableTickable.class, gregtechId("cable_tickable"));
+        GameRegistry.registerTileEntity(TileEntityHeatConductor.class, gregtechId("heat_pipe"));
+        GameRegistry.registerTileEntity(TileEntityHeatConductorTickable.class, gregtechId("heat_pipe_tickable"));
         GameRegistry.registerTileEntity(TileEntityFluidPipe.class, gregtechId("fluid_pipe"));
         GameRegistry.registerTileEntity(TileEntityItemPipe.class, gregtechId("item_pipe"));
         GameRegistry.registerTileEntity(TileEntityOpticalPipe.class, gregtechId("optical_pipe"));
@@ -447,6 +462,7 @@ public class MetaBlocks {
 
         for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
             for (BlockCable cable : CABLES.get(registry.getModid())) cable.onModelRegister();
+            for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(registry.getModid())) pipe.onModelRegister();
             for (BlockFluidPipe pipe : FLUID_PIPES.get(registry.getModid())) pipe.onModelRegister();
             for (BlockItemPipe pipe : ITEM_PIPES.get(registry.getModid())) pipe.onModelRegister();
         }
@@ -557,6 +573,10 @@ public class MetaBlocks {
         for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
             normalStateMapper = new SimpleStateMapper(CableRenderer.INSTANCE.getModelLocation());
             for (BlockCable cable : CABLES.get(registry.getModid())) {
+                ModelLoader.setCustomStateMapper(cable, normalStateMapper);
+            }
+            normalStateMapper = new SimpleStateMapper(HeatConductorRenderer.INSTANCE.getModelLocation());
+            for (BlockHeatConductor cable : HEAT_CONDUCTOR.get(registry.getModid())) {
                 ModelLoader.setCustomStateMapper(cable, normalStateMapper);
             }
             normalStateMapper = new SimpleStateMapper(FluidPipeRenderer.INSTANCE.getModelLocation());
@@ -714,6 +734,12 @@ public class MetaBlocks {
                 for (Material pipeMaterial : cable.getEnabledMaterials()) {
                     ItemStack itemStack = cable.getItem(pipeMaterial);
                     OreDictUnifier.registerOre(itemStack, cable.getPrefix(), pipeMaterial);
+                }
+            }
+            for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(registry.getModid())) {
+                for (Material pipeMaterial : pipe.getEnabledMaterials()) {
+                    ItemStack itemStack = pipe.getItem(pipeMaterial);
+                    OreDictUnifier.registerOre(itemStack, pipe.getPrefix(), pipeMaterial);
                 }
             }
             for (BlockFluidPipe pipe : FLUID_PIPES.get(registry.getModid())) {

@@ -10,6 +10,7 @@ import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
+import gregtech.common.pipelike.heat.BlockHeatConductor;
 import gregtech.common.pipelike.itempipe.BlockItemPipe;
 import gregtech.integration.groovy.GroovyScriptModule;
 
@@ -82,6 +83,11 @@ public class MetaItemBracketHandler implements IBracketHandler {
             for (BlockCable cable : MetaBlocks.CABLES.get(modid)) {
                 for (Material material : cable.getEnabledMaterials()) {
                     map.put(cable.getPrefix().name + material.toCamelCaseString(), cable.getItem(material));
+                }
+            }
+            for (BlockHeatConductor pipe : MetaBlocks.HEAT_CONDUCTOR.get(modid)) {
+                for (Material material : pipe.getEnabledMaterials()) {
+                    map.put(pipe.getPrefix().name + material.toCamelCaseString(), pipe.getItem(material));
                 }
             }
             for (BlockItemPipe cable : MetaBlocks.ITEM_PIPES.get(modid)) {

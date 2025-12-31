@@ -40,6 +40,8 @@ import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.ItemBlockCable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
 import gregtech.common.pipelike.fluidpipe.ItemBlockFluidPipe;
+import gregtech.common.pipelike.heat.BlockHeatConductor;
+import gregtech.common.pipelike.heat.ItemBlockHeatConductor;
 import gregtech.common.pipelike.itempipe.BlockItemPipe;
 import gregtech.common.pipelike.itempipe.ItemBlockItemPipe;
 import gregtech.common.pipelike.laser.BlockLaserPipe;
@@ -122,6 +124,13 @@ public class CommonProxy {
                         }
                     }
                 }
+                if (material.hasProperty(PropertyKey.HEAT_CONDUCTOR)) {
+                    for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(materialRegistry.getModid())) {
+                        if (pipe.isValidPipeMaterial(material)) {
+                            pipe.addPipeMaterial(material, material.getProperty(PropertyKey.HEAT_CONDUCTOR));
+                        }
+                    }
+                }
                 if (material.hasProperty(PropertyKey.FLUID_PIPE)) {
                     for (BlockFluidPipe pipe : FLUID_PIPES.get(materialRegistry.getModid())) {
                         if (pipe.isValidPipeMaterial(material)) {
@@ -141,6 +150,11 @@ public class CommonProxy {
             for (BlockCable cable : CABLES.get(materialRegistry.getModid())) {
                 if (!cable.getEnabledMaterials().isEmpty()) {
                     registry.register(cable);
+                }
+            }
+            for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(materialRegistry.getModid())) {
+                if (!pipe.getEnabledMaterials().isEmpty()) {
+                    registry.register(pipe);
                 }
             }
             for (BlockFluidPipe pipe : FLUID_PIPES.get(materialRegistry.getModid())) {
@@ -282,6 +296,11 @@ public class CommonProxy {
             for (BlockCable cable : CABLES.get(materialRegistry.getModid())) {
                 if (!cable.getEnabledMaterials().isEmpty()) {
                     registry.register(createItemBlock(cable, ItemBlockCable::new));
+                }
+            }
+            for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(materialRegistry.getModid())) {
+                if (!pipe.getEnabledMaterials().isEmpty()) {
+                    registry.register(createItemBlock(pipe, ItemBlockHeatConductor::new));
                 }
             }
             for (BlockFluidPipe pipe : FLUID_PIPES.get(materialRegistry.getModid())) {

@@ -25,6 +25,7 @@ import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
+import gregtech.common.pipelike.heat.BlockHeatConductor;
 import gregtech.common.pipelike.itempipe.BlockItemPipe;
 import gregtech.integration.IntegrationSubmodule;
 import gregtech.modules.GregTechModules;
@@ -211,6 +212,13 @@ public class GroovyScriptModule extends IntegrationSubmodule implements GroovyPl
                 for (Material material : cable.getEnabledMaterials()) {
                     String name = cable.getPrefix().name + material.toCamelCaseString();
                     ItemStack stack = cable.getItem(material);
+                    map.put(name, stack);
+                }
+            }
+            for (BlockHeatConductor pipe : MetaBlocks.HEAT_CONDUCTOR.get(modid)) {
+                for (Material material : pipe.getEnabledMaterials()) {
+                    String name = pipe.getPrefix().name + material.toCamelCaseString();
+                    ItemStack stack = pipe.getItem(material);
                     map.put(name, stack);
                 }
             }

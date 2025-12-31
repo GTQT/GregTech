@@ -18,6 +18,7 @@ import gregtech.api.unification.material.properties.ExtraToolProperty;
 import gregtech.api.unification.material.properties.FluidPipeProperties;
 import gregtech.api.unification.material.properties.FluidProperty;
 import gregtech.api.unification.material.properties.GemProperty;
+import gregtech.api.unification.material.properties.HeatConductorProperties;
 import gregtech.api.unification.material.properties.IMaterialProperty;
 import gregtech.api.unification.material.properties.IngotProperty;
 import gregtech.api.unification.material.properties.ItemPipeProperties;
@@ -1163,6 +1164,12 @@ public class Material implements Comparable<Material> {
                                        int criticalTemperature) {
             properties.setProperty(PropertyKey.WIRE,
                     new WireProperties((int) voltage, amperage, loss, isSuperCon, criticalTemperature));
+            return this;
+        }
+
+        public Builder heatConductorProperties(int maxTemperature, int heatTransferRate, float heatLossPerBlock) {
+            properties.setProperty(PropertyKey.HEAT_CONDUCTOR,
+                    new HeatConductorProperties(maxTemperature, heatTransferRate, heatLossPerBlock));
             return this;
         }
 

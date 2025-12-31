@@ -152,6 +152,10 @@ gregtech.top.ld_pipe_output=Output
 gregtech.top.ld_pipe_input_endpoint=Input Endpoint:
 gregtech.top.ld_pipe_output_endpoint=Output Endpoint:
 
+gregtech.top.heat_pipe.temperature=Temperature:
+gregtech.top.heat_pipe.heat_transfer=Heat Transfer:
+gregtech.top.heat_pipe.heat_loss=Heat Loss per Block:
+
 option.gregtech.block_ore=Ore Blocks
 option.gregtech.controllable=Controllable Machines
 option.gregtech.converter=Energy Converters
@@ -1701,6 +1705,19 @@ item.material.oreprefix.cableGtOctal=8x %s Cable
 item.material.oreprefix.cableGtQuadruple=4x %s Cable
 item.material.oreprefix.cableGtDouble=2x %s Cable
 item.material.oreprefix.cableGtSingle=1x %s Cable
+
+item.material.oreprefix.pipeHeatConductorSingle=1x %s Heat Conductor
+item.material.oreprefix.pipeHeatConductorDouble=2x %s Heat Conductor
+item.material.oreprefix.pipeHeatConductorQuadruple=4x %s Heat Conductor
+item.material.oreprefix.pipeHeatConductorOctal=8x %s Heat Conductor
+item.material.oreprefix.pipeHeatConductorHex=16x %s Heat Conductor
+
+item.material.oreprefix.insulatedHeatConductorSingle=1x %s Insulated Heat Conductor
+item.material.oreprefix.insulatedHeatConductorDouble=2x %s Insulated Heat Conductor
+item.material.oreprefix.insulatedHeatConductorQuadruple=4x %s Insulated Heat Conductor
+item.material.oreprefix.insulatedHeatConductorOctal=8x %s Insulated Heat Conductor
+item.material.oreprefix.insulatedHeatConductorHex=16x %s Insulated Heat Conductor
+
 item.material.oreprefix.polymer.plate=%s Sheet
 item.material.oreprefix.polymer.foil=Thin %s Sheet
 item.material.oreprefix.polymer.nugget=%s Chip
@@ -2709,6 +2726,8 @@ behavior.tricorder.bedrock_fluid.amount_unknown=Fluid In Deposit: %s%%
 behavior.tricorder.bedrock_fluid.nothing=Fluid In Deposit: §6Nothing§r
 behavior.tricorder.eut_per_sec=Last Second %s EU/t
 behavior.tricorder.amp_per_sec=Last Second %s A
+behavior.tricorder.temperature=Temperature: %s
+behavior.tricorder.max_temperature=Max Temperature: %s
 behavior.tricorder.workable_progress=Progress: %s s / %s s
 behavior.tricorder.workable_stored_energy=Stored Energy: %s EU / %s EU
 behavior.tricorder.workable_consumption=Probably Uses: %s EU/t at %s A
@@ -6776,6 +6795,10 @@ gregtech.fluid_pipe.acid_proof=§6Can handle Acids
 gregtech.fluid_pipe.cryo_proof=§6Can handle Cryogenics
 gregtech.fluid_pipe.plasma_proof=§6Can handle all Plasmas
 gregtech.fluid_pipe.not_gas_proof=§4Gases may leak!
+
+gregtech.heat_conductor.max_temperature=§cMax Temperature: §f%,d K
+gregtech.heat_conductor.heat_transfer=§eHeat Transfer: §f%,d HU/t
+gregtech.heat_conductor.heat_loss=§cHeat Loss per Block: §f%.1f%%
 
 gregtech.item_pipe.priority=§9Priority: §f%,d
 

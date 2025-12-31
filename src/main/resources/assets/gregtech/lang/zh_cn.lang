@@ -152,6 +152,10 @@ gregtech.top.ld_pipe_output=输出
 gregtech.top.ld_pipe_input_endpoint=输入接口：
 gregtech.top.ld_pipe_output_endpoint=输出接口：
 
+gregtech.top.heat_pipe.temperature=温度：
+gregtech.top.heat_pipe.heat_transfer=热传导率：
+gregtech.top.heat_pipe.heat_loss=热损失/米：
+
 option.gregtech.block_ore=矿石
 option.gregtech.controllable=机器控制器
 option.gregtech.converter=能量转换器
@@ -1697,6 +1701,19 @@ item.material.oreprefix.cableGtOctal=8x%s线缆
 item.material.oreprefix.cableGtQuadruple=4x%s线缆
 item.material.oreprefix.cableGtDouble=2x%s线缆
 item.material.oreprefix.cableGtSingle=1x%s线缆
+
+item.material.oreprefix.pipeHeatConductorSingle=1x%s热导管道
+item.material.oreprefix.pipeHeatConductorDouble=2x%s热导管道
+item.material.oreprefix.pipeHeatConductorQuadruple=4x%s热导管道
+item.material.oreprefix.pipeHeatConductorOctal=8x%s热导管道
+item.material.oreprefix.pipeHeatConductorHex=16x%s热导管道
+
+item.material.oreprefix.insulatedHeatConductorSingle=1x%s隔热热导管道
+item.material.oreprefix.insulatedHeatConductorDouble=2x%s隔热热导管道
+item.material.oreprefix.insulatedHeatConductorQuadruple=4x%s隔热热导管道
+item.material.oreprefix.insulatedHeatConductorOctal=8x%s隔热热导管道
+item.material.oreprefix.insulatedHeatConductorHex=16x%s隔热热导管道
+
 item.material.oreprefix.polymer.plate=%s片
 item.material.oreprefix.polymer.foil=薄%s片
 item.material.oreprefix.polymer.nugget=%s颗粒
@@ -2705,6 +2722,8 @@ behavior.tricorder.bedrock_fluid.amount_unknown=流体储量：%s%%
 behavior.tricorder.bedrock_fluid.nothing=流体储量：§6无§r
 behavior.tricorder.eut_per_sec=最后一秒 %s EU/t
 behavior.tricorder.amp_per_sec=最后一秒 %s A
+behavior.tricorder.temperature=温度：%s
+behavior.tricorder.max_temperature=温度上限：%s
 behavior.tricorder.workable_progress=处理进度：%s s / %s s
 behavior.tricorder.workable_stored_energy=能量缓存：%s EU / %s EU
 behavior.tricorder.workable_consumption=预计耗能：%s EU/t，%s A
@@ -6772,6 +6791,10 @@ gregtech.fluid_pipe.acid_proof=§6可传输酸性物质
 gregtech.fluid_pipe.cryo_proof=§6可传输低温物质
 gregtech.fluid_pipe.plasma_proof=§6可传输所有等离子体
 gregtech.fluid_pipe.not_gas_proof=§4气体可能泄漏！
+
+gregtech.heat_conductor.max_temperature=§c温度上限：§f%,d K
+gregtech.heat_conductor.heat_transfer=§e热传导率：§f%,d HU/t
+gregtech.heat_conductor.heat_loss=§c热损失/米：§f%.1f%%
 
 gregtech.item_pipe.priority=§9优先级：§f%,d
 

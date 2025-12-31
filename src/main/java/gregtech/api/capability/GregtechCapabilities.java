@@ -17,6 +17,9 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 @Mod.EventBusSubscriber(modid = GTValues.MODID)
 public class GregtechCapabilities {
 
+    @CapabilityInject(IHeatable.class)
+    public static Capability<IHeatable> CAPABILITY_HEAT_CONTAINER = null;
+
     @CapabilityInject(IEnergyContainer.class)
     public static Capability<IEnergyContainer> CAPABILITY_ENERGY_CONTAINER = null;
 

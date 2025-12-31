@@ -323,6 +323,33 @@ public class OrePrefix {
     public static final OrePrefix cableGtSingle = new OrePrefix("cableGtSingle", M / 2, null, null, ENABLE_UNIFICATION,
             null);
 
+    public static final OrePrefix pipeHeatConductorSingle = new OrePrefix("pipeHeatConductorSingle", M, null, null, ENABLE_UNIFICATION,
+            null);
+    public static final OrePrefix pipeHeatConductorDouble = new OrePrefix("pipeHeatConductorDouble", M*2, null, null, ENABLE_UNIFICATION,
+            null);
+    public static final OrePrefix pipeHeatConductorQuadruple = new OrePrefix("pipeHeatConductorQuadruple", M*4, null, null, ENABLE_UNIFICATION,
+            null);
+    public static final OrePrefix pipeHeatConductorOctal = new OrePrefix("pipeHeatConductorOctal", M*8, null, null, ENABLE_UNIFICATION,
+            null);
+    public static final OrePrefix pipeHeatConductorHex = new OrePrefix("pipeHeatConductorHex", M*16, null, null, ENABLE_UNIFICATION,
+            null);
+
+    //insulatedHeatConductorSingle
+    public static final OrePrefix insulatedHeatConductorSingle = new OrePrefix("insulatedHeatConductorSingle", M, null, null, ENABLE_UNIFICATION,
+            null);
+    //insulatedHeatConductorDouble
+    public static final OrePrefix insulatedHeatConductorDouble = new OrePrefix("insulatedHeatConductorDouble", M*2, null, null, ENABLE_UNIFICATION,
+            null);
+    //insulatedHeatConductorQuadruple
+    public static final OrePrefix insulatedHeatConductorQuadruple = new OrePrefix("insulatedHeatConductorQuadruple", M*4, null, null, ENABLE_UNIFICATION,
+            null);
+    //insulatedHeatConductorOctal
+    public static final OrePrefix insulatedHeatConductorOctal = new OrePrefix("insulatedHeatConductorOctal", M*8, null, null, ENABLE_UNIFICATION,
+            null);
+    //insulatedHeatConductorHex
+    public static final OrePrefix insulatedHeatConductorHex = new OrePrefix("insulatedHeatConductorHex", M*16, null, null, ENABLE_UNIFICATION,
+            null);
+
     // Special Prefix used mainly for the Crafting Handler.
     public static final OrePrefix craftingLens = new OrePrefix("craftingLens", -1, null, null, 0, null);
     // Used for the 16 dyes. Introduced by Eloraam

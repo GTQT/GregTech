@@ -85,6 +85,7 @@ public class GregtechDataCodes {
     public static final int PIPE_OPTICAL_ACTIVE = assignId();
     public static final int PIPE_LASER_ACTIVE = assignId();
     public static final int CABLE_TEMPERATURE = assignId();
+    public static final int CONDUCTOR_TEMPERATURE = assignId();
 
     // Multiblock implementation update codes
     public static final int SYNC_CONTROLLER = assignId();

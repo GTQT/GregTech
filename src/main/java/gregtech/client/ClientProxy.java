@@ -20,6 +20,7 @@ import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
+import gregtech.client.renderer.pipe.HeatConductorRenderer;
 import gregtech.client.renderer.pipe.ItemPipeRenderer;
 import gregtech.client.renderer.pipe.LaserPipeRenderer;
 import gregtech.client.renderer.pipe.OpticalPipeRenderer;
@@ -112,6 +113,7 @@ public class ClientProxy extends CommonProxy {
         Textures.register(map);
         PipeRenderer.initializeRestrictor(map);
         CableRenderer.INSTANCE.registerIcons(map);
+        HeatConductorRenderer.INSTANCE.registerIcons(map);
         FluidPipeRenderer.INSTANCE.registerIcons(map);
         ItemPipeRenderer.INSTANCE.registerIcons(map);
         OpticalPipeRenderer.INSTANCE.registerIcons(map);
@@ -413,6 +415,7 @@ public class ClientProxy extends CommonProxy {
 
         MetaTileEntityRenderer.preInit();
         CableRenderer.INSTANCE.preInit();
+        HeatConductorRenderer.INSTANCE.preInit();
         FluidPipeRenderer.INSTANCE.preInit();
         ItemPipeRenderer.INSTANCE.preInit();
         OpticalPipeRenderer.INSTANCE.preInit();

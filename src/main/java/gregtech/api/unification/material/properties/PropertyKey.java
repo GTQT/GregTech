@@ -20,6 +20,7 @@ public class PropertyKey<T extends IMaterialProperty> {
             ExtraToolProperty.class);
     public static final PropertyKey<RotorProperty> ROTOR = new PropertyKey<>("rotor", RotorProperty.class);
     public static final PropertyKey<WireProperties> WIRE = new PropertyKey<>("wire", WireProperties.class);
+    public static final PropertyKey<HeatConductorProperties> HEAT_CONDUCTOR = new PropertyKey<>("heat", HeatConductorProperties.class);
     public static final PropertyKey<WoodProperty> WOOD = new PropertyKey<>("wood", WoodProperty.class);
 
     // Empty property used to allow property-less Materials without removing base type enforcement
