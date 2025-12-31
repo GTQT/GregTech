@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.electric;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.damagesources.DamageSources;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -32,10 +30,11 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import gtqt.common.items.behaviors.WindRotorBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -181,7 +180,6 @@ public class MetaTileEntityWindGenerator extends TieredMetaTileEntity {
         if (!inventory.getStackInSlot(0).isEmpty()) {
             getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
                     inventory.getStackInSlot(0)));
-            inventory.extractItem(0, 1, false);
         }
     }
 

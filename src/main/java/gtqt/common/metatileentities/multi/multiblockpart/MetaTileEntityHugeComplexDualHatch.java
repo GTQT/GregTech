@@ -23,6 +23,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
+import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -31,7 +32,6 @@ import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -536,13 +536,6 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
     @Override
     public void onRemoval() {
         super.onRemoval();
-        for (int i = 0; i < largeSlotItemStackHandler.getSlots(); i++) {
-            var pos = getPos();
-            if (!largeSlotItemStackHandler.getStackInSlot(i).isEmpty()) {
-                getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                        largeSlotItemStackHandler.getStackInSlot(i)));
-                largeSlotItemStackHandler.extractItem(i, 1, false);
-            }
-        }
+        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), largeSlotItemStackHandler);
     }
 }

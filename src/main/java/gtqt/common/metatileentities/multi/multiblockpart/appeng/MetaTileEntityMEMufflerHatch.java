@@ -15,8 +15,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.gui.widget.appeng.AEItemGridWidget;
 import gregtech.common.inventory.appeng.SerializableItemList;
-
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -220,7 +220,7 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip1"));
+        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.muffler.recovery_tooltip", recoveryChance));
         tooltip.add(I18n.format("gregtech.machine.me.item_export.tooltip"));
         tooltip.add(I18n.format("gregtech.machine.me.item_export.tooltip.2"));

@@ -27,6 +27,7 @@ import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.util.GTLog;
+import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
@@ -37,7 +38,6 @@ import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.InventoryCrafting;
@@ -569,22 +569,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             getProxy();
         }
         super.onRemoval();
-        for (int i = 0; i < patternSlot.getSlots(); i++) {
-            var pos = getPos();
-            if (!patternSlot.getStackInSlot(i).isEmpty()) {
-                getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                        patternSlot.getStackInSlot(i)));
-                patternSlot.extractItem(i, 1, false);
-            }
-        }
-        for (int i = 0; i < extraItem.getSlots(); i++) {
-            var pos = getPos();
-            if (!extraItem.getStackInSlot(i).isEmpty()) {
-                getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                        extraItem.getStackInSlot(i)));
-                extraItem.extractItem(i, 1, false);
-            }
-        }
+        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), patternSlot);
+        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), extraItem);
     }
 
     @Override

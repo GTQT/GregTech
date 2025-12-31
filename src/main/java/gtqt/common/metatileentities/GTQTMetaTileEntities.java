@@ -3,6 +3,7 @@ package gtqt.common.metatileentities;
 import gregtech.api.GTValues;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMouldItemBus;
 
+import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
@@ -43,6 +44,7 @@ public class GTQTMetaTileEntities {
 
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
     public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
+    public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[GTValues.V.length - 1];
 
     public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
@@ -153,8 +155,15 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2875 + i, ME_MUFFLER_HATCH[i]);
         }
 
-        //无线能源仓注册 ID 3000+
+        // Dust Collector, IDs 2890-2905
+        for (int i = 0; i < DUST_COLLECTOR.length - 1; i++) {
+            int tier = i+1;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), tier);
+            registerMetaTileEntity(2890 + i, DUST_COLLECTOR[i]);
+        }
 
+        //无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {
             String tier = VN[i].toLowerCase();
 

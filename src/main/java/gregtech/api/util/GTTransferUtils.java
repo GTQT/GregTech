@@ -2,7 +2,10 @@ package gregtech.api.util;
 
 import gregtech.api.capability.IMultipleTankHandler;
 
+import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
@@ -241,6 +244,15 @@ public class GTTransferUtils {
             FluidUtil.tryEmptyContainer(inputContainerStack, fluidHandler, Integer.MAX_VALUE, null, true);
             itemHandler.extractItem(inputSlot, 1, false);
             itemHandler.insertItem(outputSlot, remainingItem, false);
+        }
+    }
+
+    public static void dropInventoryItems(World world, BlockPos pos, IItemHandlerModifiable inventory) {
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            ItemStack stack = inventory.getStackInSlot(i);
+            if (!stack.isEmpty()) {
+                InventoryHelper.spawnItemStack(world, pos.getX(), pos.getY(), pos.getZ(), stack);
+            }
         }
     }
 }

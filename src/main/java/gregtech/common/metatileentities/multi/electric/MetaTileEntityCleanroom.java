@@ -47,8 +47,6 @@ import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
 import gregtech.core.sound.GTSoundEvents;
 
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
@@ -75,12 +73,11 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.core.AEConfig;
-import appeng.core.features.AEFeature;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -718,7 +715,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
             tooltip.add(I18n.format("gregtech.machine.cleanroom.tooltip.8"));
             tooltip.add(I18n.format("gregtech.machine.cleanroom.tooltip.9"));
             if (Mods.AppliedEnergistics2.isModLoaded()) {
-                tooltip.add(I18n.format(AEConfig.instance().isFeatureEnabled(AEFeature.CHANNELS) ?
+                tooltip.add(I18n.format(false ?
                         "gregtech.machine.cleanroom.tooltip.ae2.channels" :
                         "gregtech.machine.cleanroom.tooltip.ae2.no_channels"));
             }

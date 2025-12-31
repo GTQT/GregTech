@@ -372,6 +372,8 @@ public class Textures {
             "overlay/machine/overlay_dual_hatch_input");
     public static final SimpleOverlayRenderer COMPLEX_DUAL_HATCH = new SimpleOverlayRenderer(
             "overlay/machine/overlay_complex_dual_hatch");
+    public static final SimpleOverlayRenderer DUST_COLLECTOR_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_dust_collector");
 
     //线程仓
     public static final OrientedOverlayRenderer THREAD_HATCH_MK1_OVERLAY = new OrientedOverlayRenderer("overlay/machine/thread_hatch_mk1");

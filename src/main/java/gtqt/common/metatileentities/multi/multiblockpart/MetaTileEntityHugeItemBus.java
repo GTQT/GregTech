@@ -20,12 +20,12 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTHashMaps;
+import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -214,7 +214,8 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
             return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.largeSlotItemStackHandler);
-        } if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+        }
+        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
             return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
         }
         return super.getCapability(capability, side);
@@ -474,14 +475,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     @Override
     public void onRemoval() {
         super.onRemoval();
-        for (int i = 0; i < largeSlotItemStackHandler.getSlots(); i++) {
-            var pos = getPos();
-            if (!largeSlotItemStackHandler.getStackInSlot(i).isEmpty()) {
-                getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                        largeSlotItemStackHandler.getStackInSlot(i)));
-                largeSlotItemStackHandler.extractItem(i, 1, false);
-            }
-        }
+        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), largeSlotItemStackHandler);
     }
 
 }

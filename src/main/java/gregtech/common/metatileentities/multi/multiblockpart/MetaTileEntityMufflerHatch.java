@@ -22,9 +22,13 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.items.CapabilityItemHandler;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -43,6 +47,7 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,7 +67,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     public MetaTileEntityMufflerHatch(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
         this.recoveryChance = Math.min((tier - 1) * 10, 100);
-        this.inventory = new GTItemStackHandler(this, (int) Math.pow(tier + 1, 2));
+        this.inventory = new GTItemStackHandler(this, getInventorySize());
         this.frontFaceFree = false;
     }
 
@@ -71,13 +76,31 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         return new MetaTileEntityMufflerHatch(metaTileEntityId, getTier());
     }
 
+    public int getInventorySize() {
+        int sizeRoot = 1 + Math.min(GTValues.UHV, getTier());
+        return sizeRoot * sizeRoot;
+    }
     @Override
     public void update() {
         super.update();
 
         if (!getWorld().isRemote) {
-            if (getOffsetTimer() % 20 == 0)
-                this.frontFaceFree = checkFrontFaceFree();
+            if (getOffsetTimer() % 20 == 0) {
+                if (!mufflerDust) {
+                    this.frontFaceFree = checkFrontFaceFree();
+                } else {
+                    BlockPos up = this.getPos().offset(this.getFrontFacing());
+                    TileEntity te = getWorld().getTileEntity(up);
+                    if (te instanceof IGregTechTileEntity igtte) {
+                        MetaTileEntity mte = igtte.getMetaTileEntity();
+                        if (mte instanceof MetaTileEntityDustCollector) {
+                            pushItemsIntoNearbyHandlers(getFrontFacing());
+                            this.frontFaceFree = true;
+                        } else this.frontFaceFree = checkFrontFaceFree();
+                    }
+                    else this.frontFaceFree = checkFrontFaceFree();
+                }
+            }
         }
 
         if (getWorld().isRemote && getController() instanceof MultiblockWithDisplayBase controller &&
@@ -114,11 +137,13 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
 
     @Override
     public boolean isMufflerFull() {
-        if(mufflerDust) for (int slot = 0; slot < inventory.getSlots(); slot++) {
-            if (inventory.getStackInSlot(slot).isEmpty())
-                return true;
+        if (mufflerDust){
+            for (int slot = 0; slot < inventory.getSlots(); slot++) {
+                if (inventory.getStackInSlot(slot).isEmpty())
+                    return false;
+            }
         }
-        return false;
+        return true;
     }
 
     @Override
@@ -156,10 +181,14 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip1"));
+        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.3"));
+        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.4"));
+        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.5"));
+        tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.6"));
         tooltip.add(I18n.format("gregtech.muffler.recovery_tooltip", recoveryChance));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
-        tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.machine.muffler_hatch.tooltip2"));
+        tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.machine.muffler_hatch.tooltip.2"));
     }
 
     @Override
@@ -247,5 +276,13 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         super.readFromNBT(data);
         this.inventory.deserializeNBT(data.getCompoundTag("RecoveryInventory"));
         mufflerDust = data.getBoolean("outputItem");
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.inventory);
+        }
+        return super.getCapability(capability, side);
     }
 }

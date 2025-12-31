@@ -6202,8 +6202,12 @@ gregtech.maintenance.configurable.tooltip_more_info=Hold SHIFT for special inter
 gregtech.maintenance.configurable.tooltip_pss_header=§8Power Substation:
 gregtech.maintenance.configurable.tooltip_pss_info=  §fReduces passive EU drain
 
-gregtech.machine.muffler_hatch.tooltip1=Recovers waste from machines
-gregtech.machine.muffler_hatch.tooltip2=DO NOT OBSTRUCT THE OUTPUT!
+gregtech.machine.muffler_hatch.tooltip.1=Recovers waste from machines
+gregtech.machine.muffler_hatch.tooltip.2=DO NOT OBSTRUCT THE OUTPUT!
+gregtech.machine.muffler_hatch.tooltip.3=消声仓正面被阻挡时将阻止多方块运行
+gregtech.machine.muffler_hatch.tooltip.4=消声仓内部缓存填满后将阻止多方块运行
+gregtech.machine.muffler_hatch.tooltip.5=仅允许在消声仓正面放置除尘器收集内部灰烬，此时不影响阻挡检测
+gregtech.machine.muffler_hatch.tooltip.6=消声仓内可设置不产生灰烬
 
 gregtech.machine.muffler_hatch.ulv.name=ULV Muffler Hatch
 gregtech.machine.muffler_hatch.lv.name=LV Muffler Hatch

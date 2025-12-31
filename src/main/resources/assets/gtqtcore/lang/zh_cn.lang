@@ -321,6 +321,25 @@ gregtech.machine.me_muffler_hatch.uxv.name=§eUXV§r ME消声仓
 gregtech.machine.me_muffler_hatch.opv.name=§9OpV§r ME消声仓
 gregtech.machine.me_muffler_hatch.max.name=§c§lMAX§r ME消声仓
 
+gregtech.machine.dust_collector.ulv.name=§8ULV§r 除尘器
+gregtech.machine.dust_collector.lv.name=§7LV§r 除尘器
+gregtech.machine.dust_collector.mv.name=§bMV§r 除尘器
+gregtech.machine.dust_collector.hv.name=§6HV§r 除尘器
+gregtech.machine.dust_collector.ev.name=§5EV§r 除尘器
+gregtech.machine.dust_collector.iv.name=§1IV§r 除尘器
+gregtech.machine.dust_collector.luv.name=§dLuV§r 除尘器
+gregtech.machine.dust_collector.zpm.name=§cZPM§r 除尘器
+gregtech.machine.dust_collector.uv.name=§3UV§r 除尘器
+gregtech.machine.dust_collector.uhv.name=§4UHV§r 除尘器
+gregtech.machine.dust_collector.uev.name=§aUEV§r 除尘器
+gregtech.machine.dust_collector.uiv.name=§2UIV§r 除尘器
+gregtech.machine.dust_collector.uxv.name=§eUXV§r 除尘器
+gregtech.machine.dust_collector.opv.name=§9OpV§r 除尘器
+gregtech.machine.dust_collector.max.name=§c§lMAX§r 除尘器
+
+gregtech.machine.dust_collector.tooltip.1=从消声仓中收集灰烬
+gregtech.machine.dust_collector.tooltip.2=允许安装在消声仓前方，不影响消声仓检测
+
 gregtech.machine.me_dual_hatch.import.name=ME输入总成
 gregtech.machine.me_dual_hatch.export.name=ME输出总成
 gregtech.machine.me_pattern_provider_proxy.name=ME代理样板总成

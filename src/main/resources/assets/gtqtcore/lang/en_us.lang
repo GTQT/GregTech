@@ -319,6 +319,25 @@ gregtech.machine.me_muffler_hatch.uxv.name=UXV ME Muffler Hatch
 gregtech.machine.me_muffler_hatch.opv.name=OpV ME Muffler Hatch
 gregtech.machine.me_muffler_hatch.max.name=MAX ME Muffler Hatch
 
+gregtech.machine.dust_collector.ulv.name=ULV Dust Collector
+gregtech.machine.dust_collector.lv.name=LV Dust Collector
+gregtech.machine.dust_collector.mv.name=MV Dust Collector
+gregtech.machine.dust_collector.hv.name=HV Dust Collector
+gregtech.machine.dust_collector.ev.name=EV Dust Collector
+gregtech.machine.dust_collector.iv.name=IV Dust Collector
+gregtech.machine.dust_collector.luv.name=LuV Dust Collector
+gregtech.machine.dust_collector.zpm.name=ZPM Dust Collector
+gregtech.machine.dust_collector.uv.name=UV Dust Collector
+gregtech.machine.dust_collector.uhv.name=UHV Dust Collector
+gregtech.machine.dust_collector.uev.name=UEV Dust Collector
+gregtech.machine.dust_collector.uiv.name=UIV Dust Collector
+gregtech.machine.dust_collector.uxv.name=UXV Dust Collector
+gregtech.machine.dust_collector.opv.name=OpV Dust Collector
+gregtech.machine.dust_collector.max.name=MAX Dust Collector
+
+gregtech.machine.dust_collector.tooltip.1=Collect ashes from the Muffler Hatch
+gregtech.machine.dust_collector.tooltip.2=It is allowed to be installed in front of the anechoic chamber without affecting the detection of the Muffler Hatch
+
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
 gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy
