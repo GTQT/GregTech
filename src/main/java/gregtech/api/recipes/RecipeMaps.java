@@ -1983,5 +1983,6 @@ public final class RecipeMaps {
             .fluidOutputs(3)
             .sound(GTSoundEvents.MOTOR)
             .build();
+
     private RecipeMaps() {}
 }

@@ -1,0 +1,1596 @@
+package gtqt.common.metatileentities.multi.multiblockpart.appeng;
+
+import gregtech.api.GregTechAPI;
+import gregtech.api.capability.DualHandler;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IDataStickIntractable;
+import gregtech.api.capability.IGhostSlotConfigurable;
+import gregtech.api.capability.INotifiableHandler;
+import gregtech.api.capability.impl.FluidHandlerProxy;
+import gregtech.api.capability.impl.FluidTankList;
+import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
+import gregtech.api.capability.impl.ItemHandlerList;
+import gregtech.api.capability.impl.ItemHandlerProxy;
+import gregtech.api.capability.impl.NotifiableFluidTank;
+import gregtech.api.capability.impl.NotifiableItemStackHandler;
+import gregtech.api.items.itemhandlers.GTItemStackHandler;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.mui.sync.PagedWidgetSyncHandler;
+import gregtech.api.mui.widget.GhostCircuitSlotWidget;
+import gregtech.api.recipes.ingredients.IntCircuitIngredient;
+import gregtech.api.unification.OreDictUnifier;
+import gregtech.api.unification.material.Material;
+import gregtech.api.unification.ore.OrePrefix;
+import gregtech.api.util.GTLog;
+import gregtech.api.util.GTTransferUtils;
+import gregtech.api.util.GTUtility;
+import gregtech.api.util.Mods;
+import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.ConfigHolder;
+import gregtech.common.items.MetaItems;
+import gregtech.common.mui.widget.GTFluidSlot;
+
+import net.minecraft.client.resources.I18n;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTank;
+import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.items.ItemStackHandler;
+
+import appeng.api.AEApi;
+import appeng.api.config.Actionable;
+import appeng.api.implementations.ICraftingPatternItem;
+import appeng.api.implementations.IPowerChannelState;
+import appeng.api.networking.GridFlags;
+import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingGrid;
+import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.networking.crafting.ICraftingProviderHelper;
+import appeng.api.networking.events.MENetworkCraftingPatternChange;
+import appeng.api.storage.IMEMonitor;
+import appeng.api.storage.channels.IFluidStorageChannel;
+import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.api.util.AEPartLocation;
+import appeng.api.util.DimensionalCoord;
+import appeng.fluids.util.IAEFluidInventory;
+import appeng.fluids.util.IAEFluidTank;
+import appeng.me.GridAccessException;
+import appeng.me.helpers.AENetworkProxy;
+import appeng.me.helpers.IGridProxyable;
+import appeng.tile.grid.AENetworkPowerTile;
+import appeng.util.item.AEItemStack;
+import codechicken.lib.raytracer.CuboidRayTraceResult;
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.network.NetworkUtils;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.value.BoolValue;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import com.cleanroommc.modularui.value.sync.SyncHandlers;
+import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.PageButton;
+import com.cleanroommc.modularui.widgets.PagedWidget;
+import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
+import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.cleanroommc.modularui.widgets.layout.Column;
+import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.layout.Grid;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.glodblock.github.common.item.fake.FakeFluids;
+import com.glodblock.github.common.item.fake.FakeItemRegister;
+import gtqt.common.metatileentities.GTQTMetaTileEntities;
+import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
+import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
+import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
+import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
+
+public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMEControlBase
+        implements IMultiblockAbilityPart<DualHandler>, IGhostSlotConfigurable,
+                   ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
+                   IGridProxyable, IPowerChannelState {
+
+    private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
+            .asIcon().size(16);
+    private static final int BASE_TANK_SIZE = 8000;
+    private final IDrawable HATCH = new ItemDrawable(getStackForm())
+            .asIcon().size(16);
+    private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
+            .asIcon().size(16);
+    private final int numSlots;
+    private final int tankSize;
+    // only holding this for convenience
+    private final FluidTankList fluidTankList;
+    //item
+    @Nullable
+    protected GhostCircuitItemStackHandler circuitInventory;
+    //AE
+    boolean export;
+    int aeProxy_x;
+    int aeProxy_y;
+    int aeProxy_z;
+    boolean useProxy;
+    String input = "null";
+    String output = "null";
+    ArrayList<String> blackList = new ArrayList<>();
+    int inputNumber = 0;
+    int outputNumber = 0;
+    ItemStackHandler extraInput = new ItemStackHandler(8);
+    ItemStackHandler extraOutput = new ItemStackHandler(2);
+    private ArrayList<ICraftingPatternDetails> patternDetails = new ArrayList<>();
+    @Getter
+    private IItemHandlerModifiable actualImportItems;
+    @Getter
+    private boolean autoCollapse;
+    private boolean needPatternSync = true;
+    private ItemStackHandler extraItem;
+    // Controls blocking
+    private boolean isBlockedMode = true;
+    private boolean advancedCircuit = false;
+    private int parallel;
+    private int lastParallel;
+
+    public MetaTileEntityMEOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, tier, false);
+        this.numSlots = getTier();
+        this.tankSize = BASE_TANK_SIZE * (1 << tier) / (numSlots == 4 ? 4 : 8);
+        FluidTank[] fluidsHandlers = new FluidTank[numSlots];
+        for (int i = 0; i < fluidsHandlers.length; i++) {
+            fluidsHandlers[i] = new NotifiableFluidTank(tankSize, this, false);
+        }
+        this.fluidTankList = new FluidTankList(false, fluidsHandlers);
+
+        initializeInventory();
+    }
+
+    public int getSlotByTier() {
+        return getTier() * getTier();
+    }
+
+    @Override
+    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        return new MetaTileEntityMEOrePrefixPatternProvider(metaTileEntityId, getTier());
+    }
+
+    @Override
+    protected void initializeInventory() {
+        this.extraItem = new NotifiableItemStackHandler(this, getTier() + 1, null, false);
+
+        this.importItems = createImportItemHandler();
+        this.exportItems = createExportItemHandler();
+        this.itemInventory = new ItemHandlerProxy(importItems, exportItems);
+
+        if (this.hasGhostCircuitInventory()) {
+            this.circuitInventory = new GhostCircuitItemStackHandler(this);
+            this.circuitInventory.addNotifiableMetaTileEntity(this);
+            this.actualImportItems = new ItemHandlerList(
+                    Arrays.asList(super.getImportItems(), this.circuitInventory, extraItem));
+        } else {
+            this.actualImportItems = null;
+        }
+
+        if (this.fluidTankList == null) return;
+        this.importFluids = createImportFluidHandler();
+        this.exportFluids = createExportFluidHandler();
+        this.fluidInventory = new FluidHandlerProxy(importFluids, exportFluids);
+    }
+
+    @Override
+    public IItemHandlerModifiable getImportItems() {
+        return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
+    }
+
+    @Override
+    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
+        super.addToMultiBlock(controllerBase);
+        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
+            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
+                if (handler instanceof INotifiableHandler notifiable) {
+                    notifiable.addNotifiableMetaTileEntity(controllerBase);
+                    notifiable.addToNotifiedList(this, handler, false);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
+        super.removeFromMultiBlock(controllerBase);
+        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
+            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
+                if (handler instanceof INotifiableHandler notifiable) {
+                    notifiable.removeNotifiableMetaTileEntity(controllerBase);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void update() {
+        super.update();
+        //测试
+        if (getOffsetTimer() % 100 == 0) {
+
+        }
+        if (!getWorld().isRemote) {
+            updateMEStatus();
+
+            if (needPatternSync && getOffsetTimer() % 10 == 0) {
+                needPatternSync = MEPatternChange();
+            }
+        }
+
+        // Only attempt to auto collapse the inventory contents once the bus has been notified
+        if (isAutoCollapse()) {
+            // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
+            // from the slot
+            IItemHandlerModifiable inventory = (super.getImportItems());
+            if (!isAttachedToMultiBlock() || (this.getNotifiedItemInputList().contains(inventory))) {
+                GTUtility.collapseInventorySlotContents(inventory);
+            }
+
+            FluidTankList fluidInventory = (this.getImportFluids());
+            if (!isAttachedToMultiBlock()) {
+                GTUtility.collapseFluidTankContents(fluidInventory);
+            }
+        }
+        if (export) {
+            returnItems();
+            returnFluids();
+        }
+    }
+
+    public void pushToGridCache() {
+        if (useProxy) {
+            try {
+                if (getProxy() != null && getProxy().getGrid() != null)
+                    getProxy().getGrid().getCache(ICraftingGrid.class).addNode(getProxy().getNode(), this);
+            } catch (GridAccessException ignored) {
+
+            }
+        }
+    }
+
+    public void removeFromGridCache() {
+        if (useProxy) {
+            try {
+                if (getProxy() != null && getProxy().getGrid() != null)
+                    getProxy().getGrid().getCache(ICraftingGrid.class).removeNode(getProxy().getNode(), this);
+            } catch (GridAccessException ignored) {
+
+            }
+        }
+    }
+
+    private void returnFluids() {
+        if (checkIfFluidEmpty()) return;
+        IMEMonitor<IAEFluidStack> monitor = getFluidMonitor();
+        if (monitor == null) return;
+        for (int x = 0; x < this.fluidTankList.getTanks(); x++)
+            handleEmptyFluidTarget(monitor, fluidTankList.getTankAt(x));
+    }
+
+    private void handleEmptyFluidTarget(IMEMonitor<IAEFluidStack> monitor, IFluidTank exportTank) {
+        FluidStack exportFluid = exportTank.getFluid();
+        if (exportFluid != null) {
+            IAEFluidStack aeFluid = AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)
+                    .createStack(exportFluid);
+            if (aeFluid != null) {
+                IAEFluidStack remaining = monitor.injectItems(aeFluid, Actionable.MODULATE, getActionSource());
+                if (remaining != null) {
+                    exportTank.drain((int) (aeFluid.getStackSize() - remaining.getStackSize()), true);
+                } else {
+                    exportTank.drain(exportFluid.amount, true);
+                }
+            }
+        }
+    }
+
+    private void returnItems() {
+        if (checkIfEmpty()) return;
+
+        IMEMonitor<IAEItemStack> monitor = getItemMonitor();
+        if (monitor == null) return;
+
+        for (int x = 0; x < this.importItems.getSlots(); x++) {
+            ItemStack itemStack = this.importItems.getStackInSlot(x);
+            if (itemStack.isEmpty()) continue;
+
+            IAEItemStack iaeItemStack = AEItemStack.fromItemStack(itemStack);
+
+            IAEItemStack notInserted = monitor.injectItems(iaeItemStack, Actionable.MODULATE, getActionSource());
+            if (notInserted != null && notInserted.getStackSize() > 0) {
+                itemStack.setCount((int) notInserted.getStackSize());
+            } else {
+                this.importItems.setStackInSlot(x, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    private boolean MEPatternChange() {
+        // don't post until it's active
+        if (getProxy() == null || !getProxy().isActive()) return true;
+
+        try {
+            getProxy().getGrid().postEvent(new MENetworkCraftingPatternChange(this, getProxy().getNode()));
+        } catch (Exception ignored) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
+        }
+        return super.getCapability(capability, side);
+    }
+
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        if (shouldRenderOverlay()) {
+            SimpleOverlayRenderer overlay = Textures.ME_BUFFER_HATCH_OVERLAY;
+            overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
+        }
+    }
+
+    @Override
+    protected IItemHandlerModifiable createImportItemHandler() {
+        return new NotifiableItemStackHandler(this, getSlotByTier(), getController(), false);
+    }
+
+    @Override
+    protected FluidTankList createImportFluidHandler() {
+        return fluidTankList;
+    }
+
+    @Override
+    public MultiblockAbility<DualHandler> getAbility() {
+        return MultiblockAbility.DUAL_IMPORT;
+    }
+
+    @Override
+    public void writeInitialSyncData(PacketBuffer buf) {
+        super.writeInitialSyncData(buf);
+        for (var tank : fluidTankList.getFluidTanks()) {
+            NetworkUtils.writeFluidStack(buf, tank.getFluid());
+        }
+        buf.writeBoolean(this.isBlockedMode);
+        buf.writeBoolean(this.export);
+    }
+
+    @Override
+    public void receiveInitialSyncData(PacketBuffer buf) {
+        super.receiveInitialSyncData(buf);
+        for (var tank : fluidTankList.getFluidTanks()) {
+            var fluid = NetworkUtils.readFluidStack(buf);
+            tank.fill(fluid, true);
+        }
+        this.isBlockedMode = buf.readBoolean();
+        this.export = buf.readBoolean();
+    }
+
+    public void noticeBlackList(ArrayList<String> blackList)
+    {
+        if (blackList == null || blackList.isEmpty()) {
+            noticePlayer("黑名单列表为空");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("黑名单列表：");
+        for (int i = 0; i < blackList.size(); i++) {
+            sb.append(blackList.get(i));
+            if (i < blackList.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        noticePlayer(sb.toString());
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound data) {
+        super.writeToNBT(data);
+        data.setTag("ExtraItem", this.extraItem.serializeNBT());
+        data.setTag("ExtraInput", this.extraInput.serializeNBT());
+        data.setTag("ExtraOutput", this.extraOutput.serializeNBT());
+
+        data.setInteger("inputNumber", inputNumber);
+        data.setInteger("outputNumber", outputNumber);
+        data.setString("input", input);
+        data.setString("output", output);
+
+        data.setInteger("blackListSize", blackList.size());
+        for (int i = 0; i < blackList.size(); i++)
+        {
+            data.setString("blackList" + i, blackList.get(i));
+        }
+
+        data.setBoolean("BlockingEnabled", this.isBlockedMode);
+        data.setBoolean("Export", this.export);
+        data.setBoolean("advancedCircuit", this.advancedCircuit);
+        data.setInteger("parallel", this.parallel);
+        data.setInteger("lastParallel", this.lastParallel);
+
+        data.setBoolean("useProxy", this.useProxy);
+        data.setInteger("aeProxy_x", this.aeProxy_x);
+        data.setInteger("aeProxy_y", this.aeProxy_y);
+        data.setInteger("aeProxy_z", this.aeProxy_z);
+
+        if (this.circuitInventory != null) {
+            this.circuitInventory.write(data);
+        }
+        return data;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound data) {
+        super.readFromNBT(data);
+        this.extraItem.deserializeNBT(data.getCompoundTag("ExtraItem"));
+        this.extraInput.deserializeNBT(data.getCompoundTag("ExtraInput"));
+        this.extraOutput.deserializeNBT(data.getCompoundTag("ExtraOutput"));
+
+        this.inputNumber = data.getInteger("inputNumber");
+        this.outputNumber = data.getInteger("outputNumber");
+        this.input = data.getString("input");
+        this.output = data.getString("output");
+
+        int size = data.getInteger("blackListSize");
+        for (int i = 0; i < size; i++)
+        {
+            blackList.add(data.getString("blackList" + i));
+        }
+
+        this.isBlockedMode = data.getBoolean("BlockingEnabled");
+        this.export = data.getBoolean("Export");
+        this.advancedCircuit = data.getBoolean("advancedCircuit");
+        this.parallel = data.getInteger("parallel");
+        this.lastParallel = data.getInteger("lastParallel");
+
+        this.useProxy = data.getBoolean("useProxy");
+        this.aeProxy_x = data.getInteger("aeProxy_x");
+        this.aeProxy_y = data.getInteger("aeProxy_y");
+        this.aeProxy_z = data.getInteger("aeProxy_z");
+
+        if (this.circuitInventory != null) {
+            this.circuitInventory.read(data);
+        }
+    }
+
+    @Override
+    public void receiveCustomData(int dataId, PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == UPDATE_ACTIVE) {
+            this.isBlockedMode = buf.readBoolean();
+        }
+    }
+
+    @Override
+    public AENetworkProxy getProxy() {
+        if (useProxy) {
+            if (this.getWorld() != null) {
+                TileEntity tileEntity = this.getWorld().getTileEntity(new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
+                if (tileEntity instanceof AENetworkPowerTile proxy) {
+                    return proxy.getProxy();
+                }
+            }
+        }
+        return super.getProxy();
+    }
+
+    @Override
+    public AENetworkProxy createProxy() {
+        AENetworkProxy proxy = new AENetworkProxy(this, "mte_proxy", this.getStackForm(), true);
+        proxy.setFlags(GridFlags.REQUIRE_CHANNEL);
+        proxy.setIdlePowerUsage(ConfigHolder.compat.ae2.meHatchEnergyUsage);
+        proxy.setValidSides(EnumSet.of(this.getFrontFacing()));
+        return proxy;
+    }
+
+    @Override
+    public DimensionalCoord getLocation() {
+        return new DimensionalCoord(getWorld(), getPos());
+    }
+
+    @Override
+    public void provideCrafting(ICraftingProviderHelper iCraftingProviderHelper) {
+        setPatternDetails();
+        if (!isActive() || patternDetails == null) return;
+        for (ICraftingPatternDetails patternDetail : patternDetails) {
+            if (patternDetail != null) iCraftingProviderHelper.addCraftingOption(this, patternDetail);
+        }
+    }
+
+    private void setPatternDetails() {
+        patternDetails = new ArrayList<>();
+        List<ItemStack> patternSlot = createPatterns();
+        for (int i = 0; i < patternSlot.size(); i++) {
+            ItemStack pattern = patternSlot.get(i);
+            if (pattern.isEmpty()) {
+                patternDetails.add(i, null);
+                continue;
+            }
+
+            if (pattern.getItem() instanceof ICraftingPatternItem patternItem) {
+                patternDetails.add(i, patternItem.getPatternForItem(pattern, getWorld()));
+            }
+        }
+        if (useProxy) {
+            removeFromGridCache();
+            pushToGridCache();
+        }
+    }
+
+    public List<ItemStack> createPatterns() {
+        ArrayList<ItemStack> patterns = new ArrayList<>();
+
+        if (Objects.equals(input, "null") || Objects.equals(output, "null") || inputNumber == 0 || outputNumber == 0)
+            return patterns;
+
+        OrePrefix inputPrefix = OrePrefix.getPrefix(input);
+        OrePrefix outputPrefix = OrePrefix.getPrefix(output);
+
+        if (inputPrefix == null || outputPrefix == null)
+            return patterns;
+
+        for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+            ItemStack inputStack = OreDictUnifier.get(inputPrefix, material, inputNumber);
+            ItemStack outputStack = OreDictUnifier.get(outputPrefix, material, outputNumber);
+            if (inputStack == ItemStack.EMPTY || outputStack == ItemStack.EMPTY) continue;
+            patterns.add(virtualCraftingPattern(inputStack, outputStack, true));
+        }
+
+        return patterns;
+    }
+
+    private ItemStack virtualCraftingPattern(ItemStack input, ItemStack output, boolean substitute) {
+        // 1. 准备输入/输出数组 (AE2要求9输入槽+3输出槽)
+        ItemStack[] inputs = new ItemStack[9];
+        ItemStack[] outputs = new ItemStack[3];
+
+        // 主输入/输出 (槽位0)
+        inputs[0] = input.copy();   // 主输入
+        outputs[0] = output.copy(); // 主输出
+
+        // 填充额外输入 (槽位1-8)
+        for (int i = 0; i < 8 && i < extraInput.getSlots(); i++) {
+            inputs[i + 1] = extraInput.getStackInSlot(i).copy();
+        }
+
+        // 填充额外输出 (槽位1-2)
+        for (int i = 0; i < 2 && i < extraOutput.getSlots(); i++) {
+            outputs[i + 1] = extraOutput.getStackInSlot(i).copy();
+        }
+
+        NBTTagCompound tag = new NBTTagCompound();
+        NBTTagList inTag = new NBTTagList();
+        NBTTagList outTag = new NBTTagList();
+
+        for (final ItemStack i : inputs) {
+            inTag.appendTag(createItemTag(i));
+        }
+
+        for (final ItemStack i : outputs) {
+            outTag.appendTag(createItemTag(i));
+        }
+
+        tag.setTag("in", inTag);
+        tag.setTag("out", outTag);
+        tag.setBoolean("crafting", false);
+        tag.setBoolean("substitute", substitute);
+
+        Optional<ItemStack> maybePattern = AEApi.instance().definitions().items().encodedPattern().maybeStack(1);
+        output = maybePattern.get();
+
+        output.setTagCompound(tag);
+
+        return output;
+    }
+
+    NBTBase createItemTag(final ItemStack i) {
+        final NBTTagCompound c = new NBTTagCompound();
+
+        if (i == null) return c;
+        if (!i.isEmpty()) {
+            stackWriteToNBT(i, c);
+        }
+
+        return c;
+    }
+
+    @Override
+    public void onRemoval() {
+        if (useProxy) {
+            removeFromGridCache();
+            useProxy = false;
+            getProxy();
+        }
+        super.onRemoval();
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
+    }
+
+    @Override
+    public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
+        if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
+            abilityInstances.add(new DualHandler(this.actualImportItems,
+                    importFluids, true));
+
+        } else {
+            abilityInstances.add(new DualHandler(this.importItems,
+                    importFluids, false));
+        }
+    }
+
+    @Override
+    public boolean usesMui2() {
+        return true;
+    }
+
+    @Override
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        int rowSize = getTier();
+        guiSyncManager.registerSlotGroup("item_inv", rowSize);
+
+        int backgroundWidth = Math.max(
+                9 * 18 + 18 + 14 + 5 + 18,   // Player Inv width
+                (rowSize + 1) * 18 + 14 + 18); // Bus Inv width
+        int backgroundHeight = 18 + 18 * Math.max(4, rowSize + 1) + 94;
+
+        List<List<IWidget>> widgetsItem = new ArrayList<>();
+        for (int i = 0; i < rowSize; i++) {
+            widgetsItem.add(new ArrayList<>());
+            for (int j = 0; j < rowSize; j++) {
+                int index = i * rowSize + j;
+
+                IItemHandlerModifiable handler = importItems;
+                widgetsItem.get(i)
+                        .add(new ItemSlot()
+                                .slot(SyncHandlers.itemSlot(handler, index)
+                                        .slotGroup("item_inv")
+                                        .changeListener((newItem, onlyAmountChanged, client, init) -> {
+                                            if (onlyAmountChanged &&
+                                                    handler instanceof GTItemStackHandler gtHandler) {
+                                                gtHandler.onContentsChanged(index);
+                                            }
+                                        })
+                                        .accessibility(true, true)));
+            }
+            widgetsItem.get(i).add(new GTFluidSlot()
+                    .syncHandler(GTFluidSlot.sync(fluidTankList.getTankAt(i))
+                            .accessibility(true, true))
+            );
+        }
+        widgetsItem.add(new ArrayList<>());
+        for (int i = 0; i <= rowSize; i++) {
+            widgetsItem.get(rowSize)
+                    .add(new ItemSlot()
+                            .slot(SyncHandlers.itemSlot(extraItem, i)
+                                    .slotGroup("item_inv")
+                                    .accessibility(true, true)
+                            )
+                            .background(GTGuiTextures.SLOT, GTGuiTextures.EXTRA_SLOT_OVERLAY)
+                    );
+        }
+
+        List<List<IWidget>> widgetsPattern = new ArrayList<>();
+        widgetsPattern.add(new ArrayList<>());
+        for (int i = 0; i < extraInput.getSlots(); i++) {
+            widgetsPattern.get(0)
+                    .add(new ItemSlot()
+                            .slot(SyncHandlers.itemSlot(extraInput, i)
+                                    .slotGroup("item_inv")
+                                    .accessibility(true, true)
+                            )
+                            .background(GTGuiTextures.SLOT)
+                    );
+        }
+
+        widgetsPattern.add(new ArrayList<>());
+        for (int i = 0; i < extraOutput.getSlots(); i++) {
+            widgetsPattern.get(1)
+                    .add(new ItemSlot()
+                            .slot(SyncHandlers.itemSlot(extraOutput, i)
+                                    .slotGroup("item_inv")
+                                    .accessibility(true, true)
+                            )
+                            .background(GTGuiTextures.SLOT)
+                    );
+        }
+
+        // 1. 创建同步值 (绑定到字段)
+        StringSyncValue inputPrefixValue = new StringSyncValue(
+                () -> input, // getter
+                str -> {    // setter
+                    if (str != null && str.matches("[a-zA-Z0-9_]+")) { // 基础验证
+                        this.input = str;
+                    }
+                }
+        );
+
+        IntSyncValue inputNumberValue = new IntSyncValue(
+                () -> inputNumber,
+                num -> {
+                    if (num >= 1 && num <= 64) this.inputNumber = num; // 堆叠大小限制
+                }
+        );
+
+        StringSyncValue outputPrefixValue = new StringSyncValue(
+                () -> output,
+                str -> {
+                    if (str != null && str.matches("[a-zA-Z0-9_]+")) {
+                        this.output = str;
+                    }
+                }
+        );
+
+        IntSyncValue outputNumberValue = new IntSyncValue(
+                () -> outputNumber,
+                num -> {
+                    if (num >= 1 && num <= 64) this.outputNumber = num;
+                }
+        );
+
+        List<List<IWidget>> weightText = new ArrayList<>();
+
+        // ★ 输入部分：单行包含前缀框+乘号+数量框 ★
+        weightText.add(new ArrayList<>());
+
+        // 2.1 前缀文本框 (输入)
+        weightText.get(0).add(new TextFieldWidget()
+                .widthRel(0.5f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    // 保持OrePrefix格式
+                    if (str == null || str.isEmpty()) return "null";
+                    if (!str.matches("[a-zA-Z0-9_]+")) {
+                        return str.replaceAll("[^a-zA-Z0-9_]", "null"); // 移除非有效字符
+                    }
+                    return str;
+                })
+                .value(inputPrefixValue)
+                .background(GTGuiTextures.DISPLAY));
+
+        // 2.2 乘号分隔符
+        weightText.get(0).add(IKey.str(" x ").asWidget()
+                .widthRel(0.1f)
+                .height(20));
+
+        // 2.3 数量文本框 (输入)
+        weightText.get(0).add(new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (str.isEmpty()) return "1";
+                    try {
+                        int num = Integer.parseInt(str);
+                        return String.valueOf(Math.min(64, Math.max(1, num))); // 自动钳制范围
+                    } catch (NumberFormatException e) {
+                        return "0"; // 保持当前值
+                    }
+                })
+                .value(inputNumberValue) // 绑定到IntSyncValue
+                .background(GTGuiTextures.DISPLAY));
+
+        // ★ 输出部分：完全相同的结构 ★
+        weightText.add(new ArrayList<>());
+        // 3.1 前缀文本框 (输出)
+        weightText.get(1).add(new TextFieldWidget()
+                .widthRel(0.5f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (str == null || str.isEmpty()) return "null";
+                    if (!str.matches("[a-zA-Z0-9_]+")) {
+                        return str.replaceAll("[^a-zA-Z0-9_]", "null");
+                    }
+                    return str;
+                })
+                .value(outputPrefixValue)
+                .background(GTGuiTextures.DISPLAY));
+
+        // 3.2 乘号分隔符
+        weightText.get(1).add(IKey.str(" x ").asWidget()
+                .widthRel(0.1f)
+                .height(20));
+
+        // 3.3 数量文本框 (输出)
+        weightText.get(1).add(new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (str.isEmpty()) return "1";
+                    try {
+                        int num = Integer.parseInt(str);
+                        return String.valueOf(Math.min(64, Math.max(1, num)));
+                    } catch (NumberFormatException e) {
+                        return "0";
+                    }
+                })
+                .value(outputNumberValue)
+                .background(GTGuiTextures.DISPLAY));
+
+        // ★ 第三行：黑名单管理行 ★
+        weightText.add(new ArrayList<>());
+
+        // 创建文本框并保存引用
+        TextFieldWidget blackListTextField = new TextFieldWidget()
+                .widthRel(0.4f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .background(GTGuiTextures.DISPLAY);
+
+        weightText.get(2).add(blackListTextField);
+
+        // 添加到黑名单按钮
+        weightText.get(2).add(new ButtonWidget<>()
+                .widthRel(0.15f)
+                .height(20)
+                .onMousePressed(mouseButton -> {
+                    String value = blackListTextField.getText();
+                    if (!value.trim().isEmpty() && !blackList.contains(value)) {
+                        blackList.add(value.trim());
+                        blackListTextField.setText(""); // 清空文本框
+                    }
+                    return true;
+                })
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(IKey.lang("添加到黑名单"))));
+
+        // 从黑名单移除按钮
+        weightText.get(2).add(new ButtonWidget<>()
+                .widthRel(0.15f)
+                .height(20)
+                .onMousePressed(mouseButton -> {
+                    String value = blackListTextField.getText();
+                    if (!value.trim().isEmpty()) {
+                        blackList.remove(value.trim());
+                        blackListTextField.setText(""); // 清空文本框
+                    }
+                    return true;
+                })
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(IKey.lang("从黑名单移除"))));
+
+        // 显示当前黑名单按钮
+        weightText.get(2).add(new ButtonWidget<>()
+                .widthRel(0.15f)
+                .height(20)
+                .onMousePressed(mouseButton -> {
+                    noticeBlackList(blackList);
+                    return true;
+                })
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(IKey.lang("显示当前黑名单列表"))));
+
+        // 创建用于显示的值（带前缀）和用于存储的值（纯数字）
+        StringSyncValue displayXValue = new StringSyncValue(
+                () -> "X:" + aeProxy_x,  // 显示时带前缀
+                str -> {
+                    // 移除前缀并解析
+                    if (str.startsWith("X:")) {
+                        str = str.substring(2);
+                    } else if (str.startsWith("x:")) {
+                        str = str.substring(2);
+                    }
+                    try {
+                        aeProxy_x = Integer.parseInt(str.trim());
+                    } catch (NumberFormatException e) {
+                        // 解析失败时保持原值
+                        System.err.println("Invalid X coordinate: " + str);
+                    }
+                }
+        );
+
+        StringSyncValue displayYValue = new StringSyncValue(
+                () -> "Y:" + aeProxy_y,
+                str -> {
+                    if (str.startsWith("Y:")) {
+                        str = str.substring(2);
+                    } else if (str.startsWith("y:")) {
+                        str = str.substring(2);
+                    }
+                    try {
+                        aeProxy_y = Integer.parseInt(str.trim());
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid Y coordinate: " + str);
+                    }
+                }
+        );
+
+        StringSyncValue displayZValue = new StringSyncValue(
+                () -> "Z:" + aeProxy_z,
+                str -> {
+                    if (str.startsWith("Z:")) {
+                        str = str.substring(2);
+                    } else if (str.startsWith("z:")) {
+                        str = str.substring(2);
+                    }
+                    try {
+                        aeProxy_z = Integer.parseInt(str.trim());
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid Z coordinate: " + str);
+                    }
+                }
+        );
+
+        // 注册同步值
+        BooleanSyncValue useProxyStateValue = new BooleanSyncValue(() -> useProxy, val -> useProxy = val);
+        guiSyncManager.syncValue("useProxyStateValue", useProxyStateValue);
+
+        List<List<IWidget>> weightsPos = new ArrayList<>();
+        List<IWidget> row = new ArrayList<>();
+
+        // 添加开关按钮
+        row.add(new ToggleButton()
+                .width(20)
+                .height(20)
+                .value(new BoolValue.Dynamic(useProxyStateValue::getBoolValue,
+                        useProxyStateValue::setBoolValue))
+                .overlay(GTGuiTextures.PROXY_OVERLAY)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(IKey.lang("无线代理模式"))));
+
+        // 添加X坐标文本框
+        row.add((new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    // 确保字符串以X:开头
+                    if (!str.startsWith("X:") && !str.startsWith("x:")) {
+                        if (str.isEmpty()) {
+                            return "X:";
+                        }
+                        // 如果用户删除了前缀，自动添加回来
+                        return "X:" + str;
+                    }
+
+                    // 提取数字部分进行验证
+                    String numPart = str.substring(2);
+                    if (numPart.isEmpty()) {
+                        return str; // 允许空数字部分（用户正在输入）
+                    }
+
+                    try {
+                        // 验证数字部分
+                        Long.parseLong(numPart.trim());
+                        return str; // 验证通过
+                    } catch (NumberFormatException e) {
+                        // 验证失败，返回当前值
+                        return displayXValue.getValue();
+                    }
+                })
+                .value(displayXValue)
+                .background(GTGuiTextures.DISPLAY)));
+
+        // 添加Y坐标文本框
+        row.add((new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (!str.startsWith("Y:") && !str.startsWith("y:")) {
+                        if (str.isEmpty()) {
+                            return "Y:";
+                        }
+                        return "Y:" + str;
+                    }
+
+                    String numPart = str.substring(2);
+                    if (numPart.isEmpty()) {
+                        return str;
+                    }
+
+                    try {
+                        Long.parseLong(numPart.trim());
+                        return str;
+                    } catch (NumberFormatException e) {
+                        return displayYValue.getValue();
+                    }
+                })
+                .value(displayYValue)
+                .background(GTGuiTextures.DISPLAY)));
+
+        // 添加Z坐标文本框
+        row.add((new TextFieldWidget()
+                .widthRel(0.25f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (!str.startsWith("Z:") && !str.startsWith("z:")) {
+                        if (str.isEmpty()) {
+                            return "Z:";
+                        }
+                        return "Z:" + str;
+                    }
+
+                    String numPart = str.substring(2);
+                    if (numPart.isEmpty()) {
+                        return str;
+                    }
+
+                    try {
+                        Long.parseLong(numPart.trim());
+                        return str;
+                    } catch (NumberFormatException e) {
+                        return displayZValue.getValue();
+                    }
+                })
+                .value(displayZValue)
+                .background(GTGuiTextures.DISPLAY)));
+
+        weightsPos.add(row);
+
+        BooleanSyncValue blockStateValue = new BooleanSyncValue(() -> isBlockedMode, val -> isBlockedMode = val);
+        guiSyncManager.syncValue("block_state", blockStateValue);
+
+        BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
+        guiSyncManager.syncValue("collapse_state", collapseStateValue);
+        BooleanSyncValue exportStateValue = new BooleanSyncValue(() -> export, val -> export = val);
+        guiSyncManager.syncValue("export_state", exportStateValue);
+
+        BooleanSyncValue ghostCircuitStateValue = new BooleanSyncValue(() -> advancedCircuit,
+                val -> advancedCircuit = val);
+        guiSyncManager.syncValue("ghost_circuit_state", ghostCircuitStateValue);
+
+        BooleanSyncValue needPatternSyncStateValue = new BooleanSyncValue(() -> needPatternSync,
+                val -> needPatternSync = val);
+        guiSyncManager.syncValue("need_pattern_sync_state", needPatternSyncStateValue);
+
+        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
+
+        var controller = new PagedWidget.Controller();
+        guiSyncManager.syncValue("page_controller", new PagedWidgetSyncHandler(controller));
+
+        return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
+                .child(Flow.row()
+                        .debugName("tab row")
+                        .widthRel(1f)
+                        .leftRel(0.5f)
+                        .margin(3, 0)
+                        .coverChildrenHeight()
+                        .topRel(0f, 3, 1f)
+                        .child(new PageButton(0, controller)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .addTooltipLine(IKey.lang("样板模式"))
+                                .overlay(HATCH))
+                        .child(new PageButton(1, controller)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .addTooltipLine(IKey.lang("物品检索"))
+                                .overlay(CHEST))
+                        .child(new PageButton(2, controller)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .addTooltipLine(IKey.lang("网络代理"))
+                                .overlay(PROXY))
+                )
+                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
+                .child(new PagedWidget<>()
+                        .top(18) // 调整 PagedWidget 的顶部位置为 18
+                        .margin(0) // 移除 margin 避免偏移
+                        .widthRel(1f) // 宽度设为父容器的 100%
+                        .controller(controller)
+                        .addPage(// 样板模式页面
+                                Column.column() // 使用列布局
+                                        .top(0)
+                                        .widthRel(0.8f)
+                                        .leftRel(0.5f)
+                                        .child(
+                                                new Grid()
+                                                        .height(36)
+                                                        .leftRel(0.5f)
+                                                        .widthRel(1.0f)
+                                                        .matrix(widgetsPattern)
+                                        )
+                                        .child(
+                                                new Grid()
+                                                        .top(36)
+                                                        .leftRel(0.5f)
+                                                        .widthRel(1.0f)
+                                                        .matrix(weightText)
+                                        )
+
+                        )
+                        .addPage(// 物品模式页面
+                                new Grid()
+                                        .top(0)
+                                        .height((rowSize + 1) * 18)
+                                        .minElementMargin(0, 0)
+                                        .minColWidth(18)
+                                        .minRowHeight(18)
+                                        .leftRel(0.5f)
+                                        .matrix(widgetsItem))
+                        .addPage(// 代理模式页面
+                                Column.column() // 使用列布局
+                                        .top(0)
+                                        .widthRel(1f)
+                                        .leftRel(0.5f)
+                                        .child(
+                                                new Grid()
+                                                        .height(25)
+                                                        .minElementMargin(0, 0)
+                                                        .minColWidth((int) (0.24f * backgroundWidth))
+                                                        .minRowHeight(18)
+                                                        .matrix(weightsPos)
+                                        )
+                                        .childIf(useProxy, () -> Column.column() // 创建多行文本列
+                                                .widthRel(1f)
+                                                .top(30)
+                                                .margin(5, 0)
+                                                .child(new TextWidget(IKey.str("无线代理模式")))
+                                                .childIf(useProxy, () -> {
+                                                    TileEntity tileEntity = this.getWorld().getTileEntity(
+                                                            new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
+                                                    if (tileEntity instanceof AENetworkPowerTile proxy) {
+                                                        return Column.column()
+                                                                .widthRel(1f)
+                                                                .child(new TextWidget(IKey.lang("连接至无线网络")))
+                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                        "位置:" + proxy.getLocation()
+                                                                )))
+                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                        "名称:" +
+                                                                                proxy.getBlockType().getLocalizedName()
+                                                                )));
+                                                    } else {
+                                                        return Column.column()
+                                                                .widthRel(1f)
+                                                                .child(new TextWidget(IKey.lang("未找到无线网络代理")))
+                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                        "坐标:" + aeProxy_x + ", " + aeProxy_y + ", " +
+                                                                                aeProxy_z
+                                                                )));
+                                                    }
+                                                })
+                                        )
+                                        .childIf(!useProxy, () -> Column.column() // 创建多行文本列
+                                                .widthRel(1f)
+                                                .top(30)
+                                                .margin(5, 0)
+                                                .child(new TextWidget(IKey.str("有线代理模式")))
+                                        )
+                        )
+                )
+                .child(Flow.column()
+                        .pos(backgroundWidth - 7 - 36, backgroundHeight - 18 * 4 - 7 - 5)
+                        .width(18).height(18 * 4 + 5)
+
+                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget()
+                                .top(18 * 3 + 5)
+                                .size(17)
+                        )
+
+                        .child(new ToggleButton()
+                                .top(18 * 2)
+                                .value(new BoolValue.Dynamic(blockStateValue::getBoolValue,
+                                        blockStateValue::setBoolValue))
+                                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.lang("阻挡模式"))))
+                        .child(new ToggleButton()
+                                .top(18 * 2)
+                                .left(18)
+                                .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
+                                        exportStateValue::setBoolValue))
+                                .overlay(GTGuiTextures.EXPORT_OVERLAY)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.lang("返回模式"))))
+
+                        .child(new ToggleButton()
+                                .top(18)
+                                .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
+                                        collapseStateValue::setBoolValue))
+                                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.lang("自动整理"))))
+
+                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
+                                .top(18)
+                                .left(18)
+                                .slot(circuitInventory, 0)
+                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
+                        .childIf(!hasGhostCircuit, new Widget<>()
+                                .top(18)
+                                .left(18)
+                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
+                                .tooltip(t -> t.addLine(
+                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))
+                        )
+
+                        .child(new ButtonWidget<>()
+                                .top(0)
+                                .onMousePressed(mouseButton -> {
+                                    needPatternSyncStateValue.setBoolValue(true);
+                                    return true;
+                                })
+                                .overlay(GTGuiTextures.PATTERN_OVERLAY)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.lang("样板生成"))))
+
+                        .child(new ToggleButton()
+                                .top(0)
+                                .left(18)
+                                .value(new BoolValue.Dynamic(ghostCircuitStateValue::getBoolValue,
+                                        ghostCircuitStateValue::setBoolValue))
+                                .overlay(GTGuiTextures.CIRCUIT_OVERLAY)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.lang("高级样板电路"))))
+
+                );
+    }
+
+    @Override
+    public boolean hasGhostCircuitInventory() {
+        return true;
+    }
+
+    @Override
+    public boolean onScrewdriverClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
+                                      CuboidRayTraceResult hitResult) {
+        setAutoCollapse(!this.autoCollapse);
+
+        if (!getWorld().isRemote) {
+            if (this.autoCollapse) {
+                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_true"), true);
+            } else {
+                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_false"), true);
+            }
+        }
+        return true;
+    }
+
+    public void setAutoCollapse(boolean inverted) {
+        autoCollapse = inverted;
+        if (!getWorld().isRemote) {
+            if (autoCollapse) {
+                addNotifiedInput(super.getImportItems());
+                addNotifiedInput(this.getImportFluids());
+            }
+            writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
+                    packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
+            notifyBlockUpdate();
+            markDirty();
+        }
+    }
+
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
+    @Override
+    public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
+        tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
+        tooltip.add(I18n.format("gregtech.tool_action.screwdriver.auto_collapse"));
+        tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
+        super.addToolUsages(stack, world, tooltip, advanced);
+    }
+
+    @Override
+    public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
+        // override here is gross, but keeps things in order despite
+        // IDs being out of order, due to UEV+ being added later
+        if (this == GTQTMetaTileEntities.ME_ORE_PREFIX_PATTERN_PROVIDER[0]) {
+            for (var hatch : GTQTMetaTileEntities.ME_ORE_PREFIX_PATTERN_PROVIDER) {
+                if (hatch != null) subItems.add(hatch.getStackForm());
+            }
+        } else if (this.getClass() != MetaTileEntityMEOrePrefixPatternProvider.class) {
+            // let subclasses fall through this override
+            super.getSubItems(creativeTab, subItems);
+        }
+    }
+    @Override
+    public void gridChanged() {
+        needPatternSync = true;
+    }
+
+    @Override
+    public boolean isPowered() {
+        return getProxy() != null && getProxy().isPowered();
+    }
+
+    @Override
+    public boolean isActive() {
+        return getProxy() != null && getProxy().isActive();
+    }
+
+    public boolean addItemAndFluid(InventoryCrafting inventoryCrafting) throws GridAccessException {
+        // 第一阶段：模拟检查所有物品是否可插入
+        for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
+            ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
+            if (itemStack.isEmpty()) continue;
+
+            // 处理假流体/气体物品
+            if (FakeFluids.isFluidFakeItem(itemStack)) {
+                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+                if (fluid != null) {
+                    if (fluidTankList.fill(fluid, false) < fluid.amount) {
+                        return false;
+                    }
+                    continue;
+                }
+            }
+
+            // 处理集成电路 - 模拟阶段
+            if (advancedCircuit && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
+                IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
+                if (aeStack != null) {
+                    // 模拟注入网络，检查是否可返还
+                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE,
+                            getActionSource());
+                    if (remaining != null && remaining.getStackSize() > 0) {
+                        return false; // 网络无法完全接收物品
+                    }
+                }
+                continue; // 跳过容器插入检查
+            }
+
+            // 普通物品模拟插入检查
+            ItemStack simulated = itemStack.copy();
+            for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
+                ItemStack remaining = importItems.insertItem(slot, simulated, true);
+                if (remaining.getCount() < simulated.getCount()) {
+                    simulated.shrink(simulated.getCount() - remaining.getCount());
+                }
+            }
+            if (!simulated.isEmpty()) {
+                return false;
+            }
+        }
+
+        // 第二阶段：实际执行插入操作
+        for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
+            ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
+            if (itemStack.isEmpty()) continue;
+
+            // 处理假流体/气体物品
+            if (FakeFluids.isFluidFakeItem(itemStack)) {
+                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+                if (fluid != null) {
+                    fluidTankList.fill(fluid, true);
+                    continue;
+                }
+            }
+
+            // 处理集成电路 - 实际执行阶段
+            if (advancedCircuit && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
+                IMEMonitor<IAEItemStack> monitor = getItemMonitor();
+                IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
+                if (aeStack != null) {
+                    // 实际注入网络返还物品
+                    monitor.injectItems(aeStack, Actionable.MODULATE, getActionSource());
+                    // 设置机器电路配置
+                    this.setGhostCircuitConfig(IntCircuitIngredient.getCircuitConfiguration(itemStack));
+                }
+                continue; // 跳过容器插入
+            }
+
+            // 普通物品实际插入
+            ItemStack toInsert = itemStack.copy();
+            for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                toInsert = importItems.insertItem(slot, toInsert, false);
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean pushPattern(ICraftingPatternDetails iCraftingPatternDetails, InventoryCrafting inventoryCrafting) {
+        if (!isActive()) return false;
+
+        if (checkIfEmpty() && checkIfFluidEmpty()) {
+            try {
+                return addItemAndFluid(inventoryCrafting);
+            } catch (GridAccessException e) {
+                GTLog.logger.warn("Grid access failed", e);
+            }
+        }
+
+        if (isBlockedMode) {
+            for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
+                ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
+                if (itemStack.isEmpty()) continue;
+                if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) continue;
+
+                // 处理流体假物品
+                if (FakeFluids.isFluidFakeItem(itemStack)) {
+                    FluidStack fluid = FakeItemRegister.getStack(itemStack);
+                    if (fluid == null) return false;
+
+                    boolean fluidExists = false;
+                    for (IFluidTank tank : fluidTankList) {
+                        FluidStack tankFluid = tank.getFluid();
+                        if (tankFluid != null && tankFluid.isFluidEqual(fluid)) {
+                            fluidExists = true;
+                            break;
+                        }
+                    }
+                    if (!fluidExists) return false;
+                }
+                // 处理普通物品
+                else {
+                    boolean itemExists = false;
+                    for (int slot = 0; slot < importItems.getSlots(); slot++) {
+                        ItemStack slotStack = importItems.getStackInSlot(slot);
+                        if (!slotStack.isEmpty() && slotStack.isItemEqual(itemStack)) {
+                            itemExists = true;
+                            break;
+                        }
+                    }
+                    if (!itemExists) return false;
+                }
+            }
+        }
+
+        try {
+            return addItemAndFluid(inventoryCrafting);
+        } catch (GridAccessException e) {
+            GTLog.logger.warn("Grid access failed", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isBusy() {
+        return export;
+    }
+
+    /**
+     * @return false if items are in any slot, true if empty
+     */
+    private boolean checkIfEmpty() {
+        return isInventoryEmpty(importItems);
+    }
+
+    private boolean checkIfFluidEmpty() {
+        return isFluidTankListEmpty(fluidTankList);
+    }
+
+    @Override
+    public void onFluidInventoryChanged(IAEFluidTank iaeFluidTank, int i) {
+        markDirty();
+    }
+
+
+
+    @Override
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
+        tooltip.add(I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2"));
+        tooltip.add(I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.tooltip.3"));
+        tooltip.add(I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.tooltip.4"));
+        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.2"));
+        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.4"));
+        tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getSlotByTier()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
+        tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
+        tooltip.add(I18n.format("gregtech.universal.enabled"));
+    }
+
+    @Override
+    public void onDataStickLeftClick(EntityPlayer player, ItemStack dataStick) {
+        NBTTagCompound tag = new NBTTagCompound();
+
+        tag.setTag("BudgetCRIB", writeLocationToTag());
+        dataStick.setTagCompound(tag);
+        dataStick.setTranslatableName("gregtech.machine.budget_crib.data_stick_name");
+        player.sendStatusMessage(new TextComponentTranslation("gregtech.machine.budget_crib.data_stick_use"), true);
+    }
+
+    private NBTTagCompound writeLocationToTag() {
+        NBTTagCompound tag = new NBTTagCompound();
+
+        tag.setInteger("MainX", getPos().getX());
+        tag.setInteger("MainY", getPos().getY());
+        tag.setInteger("MainZ", getPos().getZ());
+
+        return tag;
+    }
+
+    @Override
+    public boolean onDataStickRightClick(EntityPlayer player, ItemStack dataStick) {
+        NBTTagCompound tag = dataStick.getTagCompound();
+        if (tag == null) return false;
+        if (tag.hasKey("CommonPos")) {
+            useProxy = false;
+            readLocationFromTag(tag.getCompoundTag("CommonPos"));
+            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
+            useProxy = true;
+            return true;
+        }
+        return false;
+    }
+
+    private void readLocationFromTag(NBTTagCompound tag) {
+        this.aeProxy_x = tag.getInteger("MainX");
+        this.aeProxy_y = tag.getInteger("MainY");
+        this.aeProxy_z = tag.getInteger("MainZ");
+    }
+
+    @Override
+    public IGridNode getGridNode(@NotNull AEPartLocation aePartLocation) {
+        return getProxy().getNode();
+    }
+
+    @Override
+    public void securityBreak() {
+
+    }
+}

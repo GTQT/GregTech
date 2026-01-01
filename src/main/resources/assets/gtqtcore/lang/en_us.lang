@@ -253,6 +253,22 @@ gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§rHuge Dual Pattern Ha
 gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§rHuge Dual Pattern Hatch
 gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§rHuge Dual Pattern Hatch
 
+gregtech.machine.me_ore_prefix_pattern_provider.ulv.name=§8ULV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.lv.name=§7LV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.mv.name=§bMV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.hv.name=§6HV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.ev.name=§5EV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.iv.name=§1IV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.luv.name=§dLuV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.zpm.name=§cZPM§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.uv.name=§3UV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.uhv.name=§4UHV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.uev.name=§aUEV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.uiv.name=§2UIV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.uxv.name=§eUXV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.opv.name=§9OpV§rDual Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider.max.name=§c§lMAX§rDual Ore Prefix Pattern Hatch
+
 gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§rComplex Dual Hatch
 gregtech.machine.complex_dual_hatch.lv.name=§7LV§rComplex Dual Hatch
 gregtech.machine.complex_dual_hatch.mv.name=§bMV§rComplex Dual Hatch
@@ -745,6 +761,11 @@ gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items
 gregtech.machine.me_pattern.tooltip.3=Pattern Optimization: Automatically multiplies patterns according to current thread count, adjusts dynamically with multiblock parallel changes
 gregtech.machine.me_pattern.tooltip.4=Advanced Template Circuit: In Template Reading, if a virtual circuit (without programmable circuits) is read, the value of the current virtual circuit is automatically set to the circuit in the template and the virtual circuit is sent back to the network
+
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=Uses standard Ore Dictionary notation to batch generate recipes (e.g. input:ingot x 1,output:plate x 1 will automatically register all material ingot-to-plate patterns)
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=Allows marking other constant inputs or outputs (not recommended to mark constant output items)
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.3=Features a blacklist system, allowing free addition and removal of operating materials
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.4=Note: Generated patterns may not necessarily match actual machine recipes, please verify carefully
 
 gregtech.machine.budget_crib.data_stick_use=Wrote location to data stick
 gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data

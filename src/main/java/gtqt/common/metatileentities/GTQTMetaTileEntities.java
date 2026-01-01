@@ -18,6 +18,7 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityME
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEMufflerHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOrePrefixPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
 
@@ -41,6 +42,7 @@ public class GTQTMetaTileEntities {
 
     public static final MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 2];
     public static final MetaTileEntityHugeMEPatternProvider[] HUGE_ME_PATTERN_PROVIDER = new MetaTileEntityHugeMEPatternProvider[GTValues.V.length - 2];
+    public static MetaTileEntityMEOrePrefixPatternProvider[] ME_ORE_PREFIX_PATTERN_PROVIDER = new MetaTileEntityMEOrePrefixPatternProvider[GTValues.V.length - 2];
 
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
     public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
@@ -95,7 +97,6 @@ public class GTQTMetaTileEntities {
             HUGE_DUAL_EXPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(gregtechId("huge_dual_hatch.export." + voltageName), i+1, true);
             HUGE_ME_PATTERN_PROVIDER[i] = new MetaTileEntityHugeMEPatternProvider(gregtechId("huge_me_pattern_provider." + voltageName), i+1);
 
-
             registerMetaTileEntity(2500 + i, DUAL_IMPORT_HATCH[i]);
             registerMetaTileEntity(2515 + i, DUAL_EXPORT_HATCH[i]);
             registerMetaTileEntity(2530 + i, ME_PATTERN_PROVIDER[i]);
@@ -103,17 +104,18 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2560 + i, HUGE_DUAL_EXPORT_HATCH[i]);
             registerMetaTileEntity(2575 + i, HUGE_ME_PATTERN_PROVIDER[i]);
 
+
             COMPLEX_DUAL_HATCH[i]=new MetaTileEntityComplexDualHatch(gregtechId("complex_dual_hatch." + voltageName), i+1);
             HUGE_COMPLEX_DUAL_HATCH[i] = new MetaTileEntityHugeComplexDualHatch(gregtechId("huge_complex_dual_hatch." + voltageName), i+1);
             MOULD_ITEM_BUS[i] = new MetaTileEntityMouldItemBus(gregtechId("mould_item_bus." + voltageName), i+1);
+            ME_ORE_PREFIX_PATTERN_PROVIDER[i] = new MetaTileEntityMEOrePrefixPatternProvider(gregtechId("me_ore_prefix_pattern_provider." + voltageName), i+1);
 
             registerMetaTileEntity(2600 + i, COMPLEX_DUAL_HATCH[i]);
             registerMetaTileEntity(2615 + i, HUGE_COMPLEX_DUAL_HATCH[i]);
             registerMetaTileEntity(2630 + i, MOULD_ITEM_BUS[i]);
-
+            registerMetaTileEntity(2645 + i, ME_ORE_PREFIX_PATTERN_PROVIDER[i]);
 
         }
-
 
         ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualInputHatch(gregtechId("me_dual_hatch.import"));
         ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
