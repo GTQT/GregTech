@@ -255,21 +255,37 @@ gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§r巨型样板总成
 gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§r巨型样板总成
 gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§r巨型样板总成
 
-gregtech.machine.me_ore_prefix_pattern_provider.ulv.name=§8ULV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.lv.name=§7LV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.mv.name=§bMV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.hv.name=§6HV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.ev.name=§5EV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.iv.name=§1IV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.luv.name=§dLuV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.zpm.name=§cZPM§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.uv.name=§3UV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.uhv.name=§4UHV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.uev.name=§aUEV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.uiv.name=§2UIV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.uxv.name=§eUXV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.opv.name=§9OpV§rore前缀样板总成
-gregtech.machine.me_ore_prefix_pattern_provider.max.name=§c§lMAX§rore前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.ulv.name=§8ULV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.lv.name=§7LV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.mv.name=§bMV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.hv.name=§6HV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.ev.name=§5EV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.iv.name=§1IV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.luv.name=§dLuV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.zpm.name=§cZPM§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.uv.name=§3UV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.uhv.name=§4UHV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.uev.name=§aUEV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.uiv.name=§2UIV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.uxv.name=§eUXV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.opv.name=§9OpV§r矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.max.name=§c§lMAX§r矿辞前缀样板总成
+
+gregtech.machine.me_ore_prefix_pattern_provider.huge.ulv.name=§8ULV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.lv.name=§7LV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.mv.name=§bMV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.hv.name=§6HV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.ev.name=§5EV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.iv.name=§1IV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.luv.name=§dLuV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.zpm.name=§cZPM§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.uv.name=§3UV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.uhv.name=§4UHV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.uev.name=§aUEV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.uiv.name=§2UIV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.uxv.name=§eUXV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.opv.name=§9OpV§r巨型矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider.huge.max.name=§c§lMAX§r巨型矿辞前缀样板总成
 
 gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r回环总成
 gregtech.machine.complex_dual_hatch.lv.name=§7LV§r回环总成
@@ -360,6 +376,7 @@ gregtech.machine.me_dual_hatch.import.name=ME输入总成
 gregtech.machine.me_dual_hatch.export.name=ME输出总成
 gregtech.machine.me_pattern_provider_proxy.name=ME代理样板总成
 gregtech.machine.huge_me_pattern_provider_proxy.name=巨型ME代理样板总成
+gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=巨型ME矿辞前缀样板总成
 
 gregtech.machine.me_ore_dict_bus.name=ME矿辞输入总线
 
@@ -759,8 +776,9 @@ gregtech.machine.me_pattern.tooltip.4=高级样板电路：在样板读取中如
 
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=使用标准矿辞写法模糊批量生成配方（例如input:ingot x 1,output:plate x 1将自动注册所有材料锭到板的样板）
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=允许标注其他不变输入物或者输出物品（不推荐标注不变输出物品）
-gregtech.machine.me_ore_prefix_pattern_provider.tooltip.3=拥有黑名单系统，可自由添加删除操作材料
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.3=拥有黑名单材料系统，可自由添加删除操作材料
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.4=注意：生成的样板并不一定是实际的机器配方，请注意辨别
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.5=支持MaterialFlag黑名单白名单过滤，详细名称可查询(gregtech.api.unification.material.info.MaterialFlags)目录下的注册文件
 
 gregtech.machine.budget_crib.data_stick_use=坐标数据已写入闪存
 gregtech.machine.budget_crib.data_stick_name=总成位置信息

@@ -12,6 +12,7 @@ import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.ItemHandlerProxy;
+import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -64,6 +65,7 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
@@ -124,6 +126,7 @@ import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.glodblock.github.common.item.fake.FakeFluids;
 import com.glodblock.github.common.item.fake.FakeItemRegister;
@@ -143,8 +146,9 @@ import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
 import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
+import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMEControlBase
+public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntityMEControlBase
         implements IMultiblockAbilityPart<DualHandler>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
@@ -181,6 +185,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
     ItemStackHandler extraInput = new ItemStackHandler(8);
     ItemStackHandler extraOutput = new ItemStackHandler(2);
     private ArrayList<ICraftingPatternDetails> patternDetails = new ArrayList<>();
+    private LargeSlotItemStackHandler largeSlotItemStackHandler;
     @Getter
     private IItemHandlerModifiable actualImportItems;
     @Getter
@@ -193,7 +198,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
     private int parallel;
     private int lastParallel;
 
-    public MetaTileEntityMEOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
+    public MetaTileEntityMEHugeOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
         this.numSlots = getTier();
         this.tankSize = BASE_TANK_SIZE * (1 << tier) / (numSlots == 4 ? 4 : 8);
@@ -212,25 +217,28 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMEOrePrefixPatternProvider(metaTileEntityId, getTier());
+        return new MetaTileEntityMEHugeOrePrefixPatternProvider(metaTileEntityId, getTier());
     }
 
     @Override
     protected void initializeInventory() {
         this.extraItem = new NotifiableItemStackHandler(this, getTier() + 1, null, false);
+        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getSlotByTier(), null, false,
+                () -> Integer.MAX_VALUE);
 
-        this.importItems = createImportItemHandler();
-        this.exportItems = createExportItemHandler();
-        this.itemInventory = new ItemHandlerProxy(importItems, exportItems);
 
         if (this.hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
             this.circuitInventory.addNotifiableMetaTileEntity(this);
             this.actualImportItems = new ItemHandlerList(
-                    Arrays.asList(super.getImportItems(), this.circuitInventory, extraItem));
+                    Arrays.asList(largeSlotItemStackHandler, this.circuitInventory, extraItem));
         } else {
             this.actualImportItems = null;
         }
+
+        this.importItems = createImportItemHandler();
+        this.exportItems = createExportItemHandler();
+        this.itemInventory = new ItemHandlerProxy(importItems, exportItems);
 
         if (this.fluidTankList == null) return;
         this.importFluids = createImportFluidHandler();
@@ -240,7 +248,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
 
     @Override
     public IItemHandlerModifiable getImportItems() {
-        return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
+        return this.actualImportItems == null ? largeSlotItemStackHandler : this.actualImportItems;
     }
 
     @Override
@@ -287,7 +295,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         if (isAutoCollapse()) {
             // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
             // from the slot
-            IItemHandlerModifiable inventory = (super.getImportItems());
+            IItemHandlerModifiable inventory = largeSlotItemStackHandler;
             if (!isAttachedToMultiBlock() || (this.getNotifiedItemInputList().contains(inventory))) {
                 GTUtility.collapseInventorySlotContents(inventory);
             }
@@ -385,6 +393,9 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
 
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.largeSlotItemStackHandler);
+        }
         if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
             return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
         }
@@ -402,7 +413,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
 
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
-        return new NotifiableItemStackHandler(this, getSlotByTier(), getController(), false);
+        return new LargeSlotItemStackHandler(this, getSlotByTier(), getController(), false);
     }
 
     @Override
@@ -464,6 +475,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
             data.setString("blackTagList" + i, blackTagList.get(i));
         }
 
+        data.setTag("largeSlotItemStackHandler", this.largeSlotItemStackHandler.serializeNBT());
         data.setBoolean("BlockingEnabled", this.isBlockedMode);
         data.setBoolean("Export", this.export);
         data.setBoolean("advancedCircuit", this.advancedCircuit);
@@ -509,6 +521,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
             blackTagList.add(data.getString("blackTagList" + i));
         }
 
+        this.largeSlotItemStackHandler.deserializeNBT(data.getCompoundTag("largeSlotItemStackHandler"));
         this.isBlockedMode = data.getBoolean("BlockingEnabled");
         this.export = data.getBoolean("Export");
         this.advancedCircuit = data.getBoolean("advancedCircuit");
@@ -680,6 +693,9 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         }
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), largeSlotItemStackHandler);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraInput);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraOutput);
     }
 
     @Override
@@ -752,10 +768,17 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
             for (int j = 0; j < rowSize; j++) {
                 int index = i * rowSize + j;
 
-                IItemHandlerModifiable handler = importItems;
+                IItemHandlerModifiable handler = largeSlotItemStackHandler;
                 widgetsItem.get(i)
                         .add(new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(handler, index)
+                                .slot(new ModularSlot(handler, index) {
+
+                                    @Override
+                                    public int getSlotStackLimit() {
+                                        return Integer.MAX_VALUE;
+                                    }
+                                }
+                                        .ignoreMaxStackSize(true)
                                         .slotGroup("item_inv")
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
                                             if (onlyAmountChanged &&
@@ -1554,7 +1577,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
             if (autoCollapse) {
-                addNotifiedInput(super.getImportItems());
+                addNotifiedInput(largeSlotItemStackHandler);
                 addNotifiedInput(this.getImportFluids());
             }
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
@@ -1595,11 +1618,11 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
         // override here is gross, but keeps things in order despite
         // IDs being out of order, due to UEV+ being added later
-        if (this == GTQTMetaTileEntities.ME_ORE_PREFIX_PATTERN_PROVIDER[0]) {
-            for (var hatch : GTQTMetaTileEntities.ME_ORE_PREFIX_PATTERN_PROVIDER) {
+        if (this == GTQTMetaTileEntities.HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER[0]) {
+            for (var hatch : GTQTMetaTileEntities.HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
-        } else if (this.getClass() != MetaTileEntityMEOrePrefixPatternProvider.class) {
+        } else if (this.getClass() != MetaTileEntityMEHugeOrePrefixPatternProvider.class) {
             // let subclasses fall through this override
             super.getSubItems(creativeTab, subItems);
         }
@@ -1794,6 +1817,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
+        tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
 
     @Override

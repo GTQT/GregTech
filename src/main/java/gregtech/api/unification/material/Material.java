@@ -227,6 +227,16 @@ public class Material implements Comparable<Material> {
         return Arrays.stream(flags).anyMatch(this::hasFlag);
     }
 
+    public boolean hasFlags(List<MaterialFlag> flags) {
+        return flags.stream().allMatch(this::hasFlag);
+    }
+
+    public boolean hasAnyOfFlags(List<MaterialFlag> flags) {
+        return flags.stream().anyMatch(this::hasFlag);
+    }
+
+
+
     protected void calculateDecompositionType() {
         if (!materialInfo.componentList.isEmpty() &&
                 !hasFlag(MaterialFlags.DECOMPOSITION_BY_CENTRIFUGING) &&

@@ -6,9 +6,11 @@ import gregtech.api.util.GTLog;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -52,6 +54,25 @@ public class MaterialFlag {
 
     public static MaterialFlag getByName(String name) {
         return FLAG_REGISTRY.stream().filter(f -> f.toString().equalsIgnoreCase(name)).findFirst().orElse(null);
+    }
+
+    public static List<MaterialFlag> getFlagListByName(ArrayList<String> names)
+    {
+        return names.stream().map(MaterialFlag::getByName).collect(Collectors.toList());
+    }
+
+    public static boolean checkMaterialHasFlag(Material material, List<MaterialFlag> whiteList,
+                                               List<MaterialFlag> blackList) {
+        // 如果黑名单不为空，并且材料有任何一个黑名单标志，则返回false
+        if (blackList != null && !blackList.isEmpty() && material.hasAnyOfFlags(blackList)) {
+            return false;
+        }
+        // 如果白名单不为空，则材料必须包含所有白名单标志，否则返回false
+        if (whiteList != null && !whiteList.isEmpty() && !material.hasFlags(whiteList)) {
+            return false;
+        }
+        // 两种情况都通过，返回true
+        return true;
     }
 
     @Override

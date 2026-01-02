@@ -16,9 +16,11 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHu
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEHugeOrePrefixPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEMufflerHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOrePrefixPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOrePrefixPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
 
@@ -43,6 +45,8 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 2];
     public static final MetaTileEntityHugeMEPatternProvider[] HUGE_ME_PATTERN_PROVIDER = new MetaTileEntityHugeMEPatternProvider[GTValues.V.length - 2];
     public static MetaTileEntityMEOrePrefixPatternProvider[] ME_ORE_PREFIX_PATTERN_PROVIDER = new MetaTileEntityMEOrePrefixPatternProvider[GTValues.V.length - 2];
+    public static MetaTileEntityMEHugeOrePrefixPatternProvider[] HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER = new MetaTileEntityMEHugeOrePrefixPatternProvider[GTValues.V.length - 2];
+
 
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
     public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
@@ -52,6 +56,7 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
     public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityHugeMEPatternProviderProxy HUGE_ME_PATTERN_PROVIDER_PROXY;
+    public static MetaTileEntityMEOrePrefixPatternProviderProxy HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
 
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
@@ -92,43 +97,43 @@ public class GTQTMetaTileEntities {
             DUAL_IMPORT_HATCH[i] = new MetaTileEntityDualHatch(gregtechId("dual_hatch.import." + voltageName), i+1, false);
             DUAL_EXPORT_HATCH[i] = new MetaTileEntityDualHatch(gregtechId("dual_hatch.export." + voltageName), i+1, true);
             ME_PATTERN_PROVIDER[i] = new MetaTileEntityMEPatternProvider(gregtechId("me_pattern_provider." + voltageName), i+1);
+            ME_ORE_PREFIX_PATTERN_PROVIDER[i] = new MetaTileEntityMEOrePrefixPatternProvider(gregtechId("me_ore_prefix_pattern_provider." + voltageName), i+1);
 
             HUGE_DUAL_IMPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(gregtechId("huge_dual_hatch.import." + voltageName), i+1, false);
             HUGE_DUAL_EXPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(gregtechId("huge_dual_hatch.export." + voltageName), i+1, true);
             HUGE_ME_PATTERN_PROVIDER[i] = new MetaTileEntityHugeMEPatternProvider(gregtechId("huge_me_pattern_provider." + voltageName), i+1);
+            HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER[i] = new MetaTileEntityMEHugeOrePrefixPatternProvider(gregtechId("huge_me_ore_prefix_pattern_provider." + voltageName), i+1);
+
+            COMPLEX_DUAL_HATCH[i]=new MetaTileEntityComplexDualHatch(gregtechId("complex_dual_hatch." + voltageName), i+1);
+            HUGE_COMPLEX_DUAL_HATCH[i] = new MetaTileEntityHugeComplexDualHatch(gregtechId("huge_complex_dual_hatch." + voltageName), i+1);
 
             registerMetaTileEntity(2500 + i, DUAL_IMPORT_HATCH[i]);
             registerMetaTileEntity(2515 + i, DUAL_EXPORT_HATCH[i]);
             registerMetaTileEntity(2530 + i, ME_PATTERN_PROVIDER[i]);
-            registerMetaTileEntity(2545 + i, HUGE_DUAL_IMPORT_HATCH[i]);
-            registerMetaTileEntity(2560 + i, HUGE_DUAL_EXPORT_HATCH[i]);
-            registerMetaTileEntity(2575 + i, HUGE_ME_PATTERN_PROVIDER[i]);
+            registerMetaTileEntity(2545 + i, ME_ORE_PREFIX_PATTERN_PROVIDER[i]);
+            registerMetaTileEntity(2560 + i, COMPLEX_DUAL_HATCH[i]);
 
-
-            COMPLEX_DUAL_HATCH[i]=new MetaTileEntityComplexDualHatch(gregtechId("complex_dual_hatch." + voltageName), i+1);
-            HUGE_COMPLEX_DUAL_HATCH[i] = new MetaTileEntityHugeComplexDualHatch(gregtechId("huge_complex_dual_hatch." + voltageName), i+1);
-            MOULD_ITEM_BUS[i] = new MetaTileEntityMouldItemBus(gregtechId("mould_item_bus." + voltageName), i+1);
-            ME_ORE_PREFIX_PATTERN_PROVIDER[i] = new MetaTileEntityMEOrePrefixPatternProvider(gregtechId("me_ore_prefix_pattern_provider." + voltageName), i+1);
-
-            registerMetaTileEntity(2600 + i, COMPLEX_DUAL_HATCH[i]);
-            registerMetaTileEntity(2615 + i, HUGE_COMPLEX_DUAL_HATCH[i]);
-            registerMetaTileEntity(2630 + i, MOULD_ITEM_BUS[i]);
-            registerMetaTileEntity(2645 + i, ME_ORE_PREFIX_PATTERN_PROVIDER[i]);
-
+            registerMetaTileEntity(2600 + i, HUGE_DUAL_IMPORT_HATCH[i]);
+            registerMetaTileEntity(2615 + i, HUGE_DUAL_EXPORT_HATCH[i]);
+            registerMetaTileEntity(2630 + i, HUGE_ME_PATTERN_PROVIDER[i]);
+            registerMetaTileEntity(2645 + i, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER[i]);
+            registerMetaTileEntity(2660 + i, HUGE_COMPLEX_DUAL_HATCH[i]);
         }
 
         ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualInputHatch(gregtechId("me_dual_hatch.import"));
         ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
         ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"));
         HUGE_ME_PATTERN_PROVIDER_PROXY = new MetaTileEntityHugeMEPatternProviderProxy(gregtechId("huge_me_pattern_provider_proxy"));
+        HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY = new MetaTileEntityMEOrePrefixPatternProviderProxy(gregtechId("huge_me_ore_prefix_pattern_provider_proxy"));
         ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"));
 
         registerMetaTileEntity(2700, ME_DUAL_IMPORT_HATCH);
         registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
         registerMetaTileEntity(2702, ME_PATTERN_PROVIDER_PROXY);
         registerMetaTileEntity(2703, HUGE_ME_PATTERN_PROVIDER_PROXY);
+        registerMetaTileEntity(2704, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
 
-        registerMetaTileEntity(2704, ME_ORE_DICT_BUS);
+        registerMetaTileEntity(2750, ME_ORE_DICT_BUS);
 
         //巨型总线
         for (int i = 0; i < 14; i++) {
@@ -137,9 +142,12 @@ public class GTQTMetaTileEntities {
                     gregtechId("huge_item_bus.import." + voltageName), i, false);
             HUGE_ITEM_EXPORT_BUS[i] = new MetaTileEntityHugeItemBus(
                     gregtechId("huge_item_bus.export." + voltageName), i, true);
+            MOULD_ITEM_BUS[i] = new MetaTileEntityMouldItemBus(gregtechId("mould_item_bus." + voltageName), i+1);
+
 
             registerMetaTileEntity(2800 + i, HUGE_ITEM_IMPORT_BUS[i]);
             registerMetaTileEntity(2815 + i, HUGE_ITEM_EXPORT_BUS[i]);
+            registerMetaTileEntity(2830 + i, MOULD_ITEM_BUS[i]);
         }
 
         //线程仓
