@@ -15,6 +15,7 @@ import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.utils.Alignment;
@@ -286,7 +287,7 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
         });
 
         return new ButtonWidget<>()
-                .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
+                .overlay(new ItemDrawable(this.getFilterStack()).asIcon().size(16))
                 .setEnabledIf(w -> hasFilter())
                 .addTooltipLine(getFilterKey())
                 .onMousePressed(i -> {

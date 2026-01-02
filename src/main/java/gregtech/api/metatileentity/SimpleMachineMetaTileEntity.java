@@ -612,13 +612,6 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                     .size(17)
                     .pos(152, 63 + yOffset)
                     .background(GTGuiTextures.getLogo(getUITheme())));
-
-            if (hasGhostCircuitInventory() && circuitInventory != null) {
-                panel.child(new gregtech.api.mui.widget.GhostCircuitSlotWidget()
-                        .pos(124, 62 + yOffset)
-                        .slot(circuitInventory, 0)
-                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY));
-            }
         }
         var throttle = guiSyncManager.panel("io_setting", this::makeThrottlePanel, true);
 
@@ -636,6 +629,15 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                     return true;
                 })
         );
+        leftButtonStartX += 18;
+
+        if (hasGhostCircuitInventory() && circuitInventory != null) {
+            panel.child(new gregtech.api.mui.widget.GhostCircuitSlotWidget()
+                    .pos(leftButtonStartX, 62 + yOffset)
+                    .slot(circuitInventory, 0)
+                    .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY));
+        }
+        leftButtonStartX += 18;
 
         flowRow.pos(7, 80 + yOffset);
         panel.child(flowRow);
