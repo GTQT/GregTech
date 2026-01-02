@@ -163,6 +163,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     private IItemHandlerModifiable actualImportItems;
     @Getter
     private boolean autoCollapse;
+    @Getter
     private ItemStackHandler patternSlot;
     private boolean needPatternSync = true;
     private ItemStackHandler extraItem;

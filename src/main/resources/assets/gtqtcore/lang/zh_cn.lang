@@ -379,6 +379,7 @@ gregtech.machine.huge_me_pattern_provider_proxy.name=巨型ME代理样板总成
 gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=巨型ME矿辞前缀样板总成
 
 gregtech.machine.me_ore_dict_bus.name=ME矿辞输入总线
+gregtech.machine.me_pattern_manager.name=ME样板管理器
 
 gregtech.machine.wireless_energy_hatch.tooltip.1=将能量存储于无线能量网络中，上限为2^(2^31)EU。
 gregtech.machine.wireless_energy_hatch.tooltip.2=无需连接导线，此仓室可以自动与网络交互来抽取/存储能量。

@@ -377,6 +377,7 @@ gregtech.machine.huge_me_pattern_provider_proxy.name=Huge ME Pattern Provider Pr
 gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=Huge Ore Prefix Pattern Hatch
 
 gregtech.machine.me_ore_dict_bus.name=ME OreDict Input Bus
+gregtech.machine.me_pattern_manager.name=ME Pattern Manager
 
 gregtech.machine.wireless_energy_hatch.tooltip.1=Stores energy in wireless network, capacity up to 2^(2^31) EU.
 gregtech.machine.wireless_energy_hatch.tooltip.2=No cables needed, automatically interacts with network to draw/store energy.

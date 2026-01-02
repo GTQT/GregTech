@@ -1708,25 +1708,39 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public void noticePlayer(String s) {
-        UUID ownerGT = this.getOwnerGT();
-        if (ownerGT != null) {
-            World world = this.getWorld();
-            if (world != null) {
-                EntityPlayer player = world.getPlayerEntityByUUID(ownerGT);
-                if (player != null) {
-                    player.sendMessage(new TextComponentTranslation(s));
-
-                    BlockPos blockPos = getPos();
-                    BlockPos blockPos2 = player.getPosition();
-                    int playerDim = player.world.provider.getDimension();
-
-                    long currentTime = System.currentTimeMillis();
-                    double distance = BlockPosUtils.getDistance(blockPos, blockPos2);
-                    long highlightTime = (long) (currentTime + 500 * distance);
-
-                    BlockPosHighlighter.hilightBlock(blockPos, highlightTime, playerDim);
-                }
-            }
+        EntityPlayer player = getOwnerPlayer();
+        if (player != null) {
+            noticePlayer(s, player);
         }
+    }
+
+    public void noticePlayer(String s, EntityPlayer player) {
+        if (player == null) return;
+
+        player.sendMessage(new TextComponentTranslation(s));
+        highlightBlockForPlayer(player);
+    }
+
+    // 私有辅助方法
+    private EntityPlayer getOwnerPlayer() {
+        UUID ownerGT = this.getOwnerGT();
+        if (ownerGT == null) return null;
+
+        World world = this.getWorld();
+        if (world == null) return null;
+
+        return world.getPlayerEntityByUUID(ownerGT);
+    }
+
+    private void highlightBlockForPlayer(EntityPlayer player) {
+        BlockPos blockPos = getPos();
+        BlockPos blockPos2 = player.getPosition();
+        int playerDim = player.world.provider.getDimension();
+
+        long currentTime = System.currentTimeMillis();
+        double distance = BlockPosUtils.getDistance(blockPos, blockPos2);
+        long highlightTime = (long) (currentTime + 500 * distance);
+
+        BlockPosHighlighter.hilightBlock(blockPos, highlightTime, playerDim);
     }
 }
