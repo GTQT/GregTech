@@ -41,6 +41,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -147,6 +148,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
             .asIcon().size(16);
     private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
+    private final IDrawable TERMINAL = new ItemDrawable(new ItemStack(Items.NAME_TAG))
+            .asIcon().size(16);
 
     private final int numSlots;
     private final int tankSize;
@@ -167,6 +170,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     private IItemHandlerModifiable actualImportItems;
     @Getter
     private boolean autoCollapse;
+    @Getter
     private ItemStackHandler patternSlot;
     private boolean needPatternSync = true;
     private IItemHandlerModifiable extraItem;
@@ -176,6 +180,11 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     private boolean advancedCircuit = false;
     private int parallel;
     private int lastParallel;
+    //样板管理
+    @Getter
+    private String showName = IKey.lang(this.getMetaFullName()).toString();
+    @Getter
+    private boolean hideInfo = true;
 
     public MetaTileEntityHugeMEPatternProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
@@ -479,6 +488,10 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         if (this.circuitInventory != null) {
             this.circuitInventory.write(data);
         }
+
+        data.setBoolean("hideInfo", this.hideInfo);
+        data.setString("showName", this.showName);
+
         return data;
     }
 
@@ -503,6 +516,9 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         if (this.circuitInventory != null) {
             this.circuitInventory.read(data);
         }
+
+        this.hideInfo = data.getBoolean("hideInfo");
+        this.showName = data.getString("showName");
     }
 
     @Override
@@ -821,20 +837,35 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
 
         weightsPos.add(row);
 
+        StringSyncValue nameValue = new StringSyncValue(
+                () -> showName,
+                str -> {
+                    if (str != null) {
+                        this.showName = str;
+                    } else {
+                        this.showName = IKey.lang(this.getMetaFullName()).toString();
+                    }
+                }
+        );
+        
         BooleanSyncValue blockStateValue = new BooleanSyncValue(() -> isBlockedMode, val -> isBlockedMode = val);
         guiSyncManager.syncValue("block_state", blockStateValue);
 
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
         guiSyncManager.syncValue("collapse_state", collapseStateValue);
+
         BooleanSyncValue exportStateValue = new BooleanSyncValue(() -> export, val -> export = val);
         guiSyncManager.syncValue("export_state", exportStateValue);
 
         BooleanSyncValue patternStateValue = new BooleanSyncValue(() -> patternDeal, val -> patternDeal = val);
         guiSyncManager.syncValue("pattern_state", patternStateValue);
 
-        BooleanSyncValue ghostCircuitStateValue = new BooleanSyncValue(() -> advancedCircuit,
-                val -> advancedCircuit = val);
+        BooleanSyncValue ghostCircuitStateValue = new BooleanSyncValue(() -> advancedCircuit, val -> advancedCircuit = val);
         guiSyncManager.syncValue("ghost_circuit_state", ghostCircuitStateValue);
+
+        BooleanSyncValue showInfoStateValue = new BooleanSyncValue(() -> hideInfo, val -> hideInfo = val);
+        guiSyncManager.syncValue("hide_info", showInfoStateValue);
+
 
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
@@ -861,6 +892,10 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                                 .tab(GuiTextures.TAB_TOP, 0)
                                 .addTooltipLine(IKey.lang("网络代理"))
                                 .overlay(PROXY))
+                        .child(new PageButton(3, controller)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .addTooltipLine(IKey.lang("终端显示"))
+                                .overlay(TERMINAL))
                 )
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
@@ -904,26 +939,26 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
-                                                .child(new TextWidget(IKey.str("无线代理模式")))
+                                                .child(new TextWidget<>(IKey.str("无线代理模式")))
                                                 .childIf(useProxy, () -> {
                                                     TileEntity tileEntity = this.getWorld().getTileEntity(
                                                             new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
                                                     if (tileEntity instanceof AENetworkPowerTile proxy) {
                                                         return Column.column()
                                                                 .widthRel(1f)
-                                                                .child(new TextWidget(IKey.lang("连接至无线网络")))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.str("连接至无线网络")))
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "位置:" + proxy.getLocation()
                                                                 )))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "名称:" +
                                                                                 proxy.getBlockType().getLocalizedName()
                                                                 )));
                                                     } else {
                                                         return Column.column()
                                                                 .widthRel(1f)
-                                                                .child(new TextWidget(IKey.lang("未找到无线网络代理")))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.str("未找到无线网络代理")))
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "坐标:" + aeProxy_x + ", " + aeProxy_y + ", " +
                                                                                 aeProxy_z
                                                                 )));
@@ -934,8 +969,32 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
-                                                .child(new TextWidget(IKey.str("有线代理模式")))
+                                                .child(new TextWidget<>(IKey.str("有线代理模式")))
                                         )
+                        )
+                        .addPage(// 终端设置
+                                Column.column()
+                                        .child(new TextWidget<>(IKey.str("终端设置")))
+                                        .child(new ToggleButton()
+                                                .size(18, 18)
+                                                .overlay(false, GTGuiTextures.BUTTON_POWER[1])
+                                                .overlay(true, GTGuiTextures.BUTTON_POWER[0])
+                                                .value(new BoolValue.Dynamic(showInfoStateValue::getBoolValue,
+                                                        showInfoStateValue::setBoolValue))
+                                                .addTooltipLine(IKey.str("设置是否在样板管理器内显示"))
+                                        )
+                                        .child(new TextFieldWidget()
+                                                .widthRel(0.5f)
+                                                .height(20)
+                                                .setTextColor(Color.WHITE.darker(1))
+                                                .setValidator(str ->
+                                                {
+                                                    if (str == null || str.isEmpty()) return IKey.lang(this.getMetaFullName()).toString();
+                                                    return str;
+                                                })
+                                                .value(nameValue)
+                                                .background(GTGuiTextures.DISPLAY))
+
                         )
                 )
                 .child(Flow.column()

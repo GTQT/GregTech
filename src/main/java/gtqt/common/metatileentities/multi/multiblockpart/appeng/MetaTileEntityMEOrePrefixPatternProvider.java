@@ -1428,26 +1428,26 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
-                                                .child(new TextWidget(IKey.str("无线代理模式")))
+                                                .child(new TextWidget<>(IKey.str("无线代理模式")))
                                                 .childIf(useProxy, () -> {
                                                     TileEntity tileEntity = this.getWorld().getTileEntity(
                                                             new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
                                                     if (tileEntity instanceof AENetworkPowerTile proxy) {
                                                         return Column.column()
                                                                 .widthRel(1f)
-                                                                .child(new TextWidget(IKey.lang("连接至无线网络")))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.lang("连接至无线网络")))
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "位置:" + proxy.getLocation()
                                                                 )))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "名称:" +
                                                                                 proxy.getBlockType().getLocalizedName()
                                                                 )));
                                                     } else {
                                                         return Column.column()
                                                                 .widthRel(1f)
-                                                                .child(new TextWidget(IKey.lang("未找到无线网络代理")))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.str("未找到无线网络代理")))
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "坐标:" + aeProxy_x + ", " + aeProxy_y + ", " +
                                                                                 aeProxy_z
                                                                 )));
@@ -1458,7 +1458,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
-                                                .child(new TextWidget(IKey.str("有线代理模式")))
+                                                .child(new TextWidget<>(IKey.str("有线代理模式")))
                                         )
                         )
                 )

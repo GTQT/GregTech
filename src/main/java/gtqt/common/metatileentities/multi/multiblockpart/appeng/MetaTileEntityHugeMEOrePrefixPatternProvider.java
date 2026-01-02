@@ -148,7 +148,7 @@ import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntityMEControlBase
+public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityMEControlBase
         implements IMultiblockAbilityPart<DualHandler>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
@@ -198,7 +198,7 @@ public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntity
     private int parallel;
     private int lastParallel;
 
-    public MetaTileEntityMEHugeOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
+    public MetaTileEntityHugeMEOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
         this.numSlots = getTier();
         this.tankSize = BASE_TANK_SIZE * (1 << tier) / (numSlots == 4 ? 4 : 8);
@@ -217,7 +217,7 @@ public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntity
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMEHugeOrePrefixPatternProvider(metaTileEntityId, getTier());
+        return new MetaTileEntityHugeMEOrePrefixPatternProvider(metaTileEntityId, getTier());
     }
 
     @Override
@@ -1451,26 +1451,26 @@ public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntity
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
-                                                .child(new TextWidget(IKey.str("无线代理模式")))
+                                                .child(new TextWidget<>(IKey.str("无线代理模式")))
                                                 .childIf(useProxy, () -> {
                                                     TileEntity tileEntity = this.getWorld().getTileEntity(
                                                             new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
                                                     if (tileEntity instanceof AENetworkPowerTile proxy) {
                                                         return Column.column()
                                                                 .widthRel(1f)
-                                                                .child(new TextWidget(IKey.lang("连接至无线网络")))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.lang("连接至无线网络")))
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "位置:" + proxy.getLocation()
                                                                 )))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "名称:" +
                                                                                 proxy.getBlockType().getLocalizedName()
                                                                 )));
                                                     } else {
                                                         return Column.column()
                                                                 .widthRel(1f)
-                                                                .child(new TextWidget(IKey.lang("未找到无线网络代理")))
-                                                                .child(new TextWidget(IKey.dynamic(() ->
+                                                                .child(new TextWidget<>(IKey.str("未找到无线网络代理")))
+                                                                .child(new TextWidget<>(IKey.dynamic(() ->
                                                                         "坐标:" + aeProxy_x + ", " + aeProxy_y + ", " +
                                                                                 aeProxy_z
                                                                 )));
@@ -1481,7 +1481,7 @@ public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntity
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
-                                                .child(new TextWidget(IKey.str("有线代理模式")))
+                                                .child(new TextWidget<>(IKey.str("有线代理模式")))
                                         )
                         )
                 )
@@ -1622,7 +1622,7 @@ public class MetaTileEntityMEHugeOrePrefixPatternProvider extends MetaTileEntity
             for (var hatch : GTQTMetaTileEntities.HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
-        } else if (this.getClass() != MetaTileEntityMEHugeOrePrefixPatternProvider.class) {
+        } else if (this.getClass() != MetaTileEntityHugeMEOrePrefixPatternProvider.class) {
             // let subclasses fall through this override
             super.getSubItems(creativeTab, subItems);
         }
