@@ -1,6 +1,9 @@
 package gtqt.common.metatileentities;
 
 import gregtech.api.GTValues;
+import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
+import gregtech.api.recipes.RecipeMaps;
+import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMouldItemBus;
 
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
@@ -87,6 +90,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_OUTPUT_ENERGY_HATCH_1048576A = new MetaTileEntityWirelessEnergyHatch[15];
 
     public static final MetaTileEntityWirelessController[] WIRELESS_CONTROLLERS = new MetaTileEntityWirelessController[15];
+    public static final SimpleMachineMetaTileEntity[] BEE_ATTRACTORS = new SimpleMachineMetaTileEntity[15];
     //从2500开始写 与gtceu本体共用一个注册表
     //任务：GTQT内不方便写的内容转移到这里来写
     //例如 高等级的能源仓 激光仓等等
@@ -251,6 +255,9 @@ public class GTQTMetaTileEntities {
 
             //管理单元
             WIRELESS_CONTROLLERS[i] = registerMetaTileEntity(3000+500 + i, new MetaTileEntityWirelessController(gregtechId("wireless_controller." + tier), i));
+            //引蜂器
+            BEE_ATTRACTORS[i] = registerMetaTileEntity(3000+515 + i, new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),RecipeMaps.ATTRACTOR_RECIPES,
+                    Textures.BEE_ATTRACTOR_OVERLAY,i,false));
         }
     }
 }

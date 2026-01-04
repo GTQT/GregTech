@@ -189,6 +189,7 @@ public class ForestryModule extends IntegrationSubmodule {
             getLogger().info("Copying Forestry Centrifuge recipes to GT Centrifuge");
             CombRecipes.initForestryCombs();
         }
+        BeeAttractorRecipeBuild.initAttactorRecipes();
     }
 
     @SubscribeEvent
