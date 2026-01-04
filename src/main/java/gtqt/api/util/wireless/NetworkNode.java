@@ -1,39 +1,40 @@
 package gtqt.api.util.wireless;
 
-import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
-
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class NetworkNode {
+
     private final UUID ownerUUID;
+    /// /////////////////////////////////////////////////////////////////////////////////////// 新的能源网络只存储 hatches
+    /// 在每次sort时同步刷新有效性与状态（电量 优先级）
+    /// ///////////////////////////////////////////////////////////////////////////////////////
+    List<MetaTileEntityWirelessController> hatches;
     //private final int networkID;
     private String networkName;
     private BigInteger energy;
     private boolean isOpen;
 
-    public NetworkNode(UUID owner,  String name) {
+    public NetworkNode(UUID owner, String name) {
         this.ownerUUID = owner;
         //this.networkID = id;
         this.networkName = name;
         this.energy = BigInteger.ZERO;
-        this.isOpen=true;
+        this.isOpen = true;
     }
+
+    //    public int getNetworkID() {
+    //        return networkID;
+    //    }
 
     public UUID getOwnerUUID() {
         return ownerUUID;
     }
-
-//    public int getNetworkID() {
-//        return networkID;
-//    }
 
     public String getNetworkName() {
         return networkName;
@@ -69,12 +70,6 @@ public class NetworkNode {
         this.energy = newValue;
         return delta;
     }
-
-    /// ///////////////////////////////////////////////////////////////////////////////////////
-    /// 新的能源网络只存储 hatches
-    /// 在每次sort时同步刷新有效性与状态（电量 优先级）
-    /// ///////////////////////////////////////////////////////////////////////////////////////
-    List<MetaTileEntityWirelessController> hatches;
 
     // 获取按优先级升序排序的hatch列表（优先级数值小的在前）
     // 移除无效仓室（内部方法）
@@ -131,7 +126,7 @@ public class NetworkNode {
     }
 
     public synchronized void addNewHatch(MetaTileEntityWirelessController metaTileEntityWirelessController) {
-        if (hatches.contains(metaTileEntityWirelessController))return;
+        if (hatches.contains(metaTileEntityWirelessController)) return;
         hatches.add(metaTileEntityWirelessController);
     }
 

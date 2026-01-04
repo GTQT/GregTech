@@ -1,12 +1,5 @@
 package gtqt.common.metatileentities.multi.multiblockpart;
 
-import betterquesting.api.api.QuestingAPI;
-
-import betterquesting.api.questing.party.IParty;
-import betterquesting.api2.storage.DBEntry;
-import betterquesting.questing.party.PartyManager;
-import betterquesting.storage.NameCache;
-
 import gregtech.api.capability.IWirelessController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -16,28 +9,22 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
-import gtqt.api.util.wireless.NetworkDatabase;
-import gtqt.api.util.wireless.NetworkManager;
-import gtqt.api.util.wireless.NetworkNode;
-
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
-
 import net.minecraft.world.World;
-
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
+import gtqt.api.util.wireless.NetworkDatabase;
+import gtqt.api.util.wireless.NetworkManager;
+import gtqt.api.util.wireless.NetworkNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -127,24 +114,6 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         return null;
     }
 
-    public UUID getBQUUID(EntityPlayerMP player){
-        return QuestingAPI.getQuestingUUID(player);
-    }
-
-    public List<EntityPlayer> getBQGroup(EntityPlayerMP player) {
-        UUID BQuuid = getBQUUID(player);
-        List<EntityPlayer> group = new ArrayList<>() ;
-        DBEntry<IParty> partyEntry = PartyManager.INSTANCE.getParty(BQuuid);
-        if (partyEntry != null && player.getServer() != null) {
-            for (UUID memID : partyEntry.getValue().getMembers()) {
-
-                EntityPlayerMP memPlayer = player.getServer().getPlayerList()
-                        .getPlayerByUsername(NameCache.INSTANCE.getName(memID));
-                group.add(memPlayer);
-            }
-        }
-        return group;
-    }
     //IO操作////////////////////////////////////////////////////////////////////////////
 
     //检查容量

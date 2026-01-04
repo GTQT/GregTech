@@ -1,19 +1,17 @@
 package gtqt.api.util.wireless;
 
 import gregtech.api.metatileentity.MetaTileEntity;
-
 import gregtech.api.util.GTUtility;
-
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagLong;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.WorldSavedData;
+
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 
 import java.math.BigInteger;
 import java.util.Collections;
