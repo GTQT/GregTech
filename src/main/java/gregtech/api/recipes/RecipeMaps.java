@@ -1983,6 +1983,11 @@ public final class RecipeMaps {
             .fluidOutputs(3)
             .sound(GTSoundEvents.MOTOR)
             .build();
-
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> ATTRACTOR_RECIPES = new RecipeMapBuilder<>("attractor",new SimpleRecipeBuilder())
+            .itemInputs(1)
+            .itemOutputs(9)
+            .fluidInputs(1)
+            .build();
     private RecipeMaps() {}
 }
