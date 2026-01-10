@@ -1,9 +1,8 @@
-package gtqt.common.VillagerHandler;
+package gtqt.common.villagerHandler;
 
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.ore.OrePrefix;
-
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.entity.IMerchant;

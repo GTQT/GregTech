@@ -1303,10 +1303,101 @@ public class MachineRecipeLoader {
                     .duration(100).EUt(16).buildAndRegister();
         }
 
-        FLUID_HEATER_RECIPES.recipeBuilder().duration(30).EUt(VA[LV]).fluidInputs(Water.getFluid(6)).circuitMeta(1)
-                .fluidOutputs(Steam.getFluid(960)).buildAndRegister();
-        FLUID_HEATER_RECIPES.recipeBuilder().duration(30).EUt(VA[LV]).fluidInputs(DistilledWater.getFluid(6))
-                .circuitMeta(1).fluidOutputs(Steam.getFluid(960)).buildAndRegister();
+        //蒸汽废气
+        BATH_CONDENSER_RECIPES.recipeBuilder()
+                .fluidInputs(SteamExhaust.getFluid(1200))
+                .fluidOutputs(Water.getFluid(6))
+                .duration(10)
+                .EUt(VA[ULV])
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[ULV])
+                .fluidInputs(Water.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(SteamExhaust.getFluid(1200))
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[ULV])
+                .fluidInputs(DistilledWater.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(SteamExhaust.getFluid(1200))
+                .buildAndRegister();
+
+        //蒸汽
+        BATH_CONDENSER_RECIPES.recipeBuilder()
+                .fluidInputs(Steam.getFluid(960))
+                .fluidOutputs(Water.getFluid(6))
+                .duration(10)
+                .EUt(VA[LV])
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[LV])
+                .fluidInputs(Water.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(Steam.getFluid(960))
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[LV])
+                .fluidInputs(DistilledWater.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(Steam.getFluid(960))
+                .buildAndRegister();
+
+        //高压蒸汽
+        BATH_CONDENSER_RECIPES.recipeBuilder()
+                .fluidInputs(HighPressureSteam.getFluid(480))
+                .fluidOutputs(Water.getFluid(6))
+                .duration(10)
+                .EUt(VA[MV])
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[EV])
+                .fluidInputs(Water.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(HighPressureSteam.getFluid(480))
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[EV])
+                .fluidInputs(DistilledWater.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(HighPressureSteam.getFluid(480))
+                .buildAndRegister();
+
+        //超临界蒸汽
+        BATH_CONDENSER_RECIPES.recipeBuilder()
+                .fluidInputs(SupercriticalSteam.getFluid(240))
+                .fluidOutputs(Water.getFluid(6))
+                .duration(10)
+                .EUt(VA[HV])
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[LuV])
+                .fluidInputs(Water.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(SupercriticalSteam.getFluid(240))
+                .buildAndRegister();
+
+        FLUID_HEATER_RECIPES.recipeBuilder()
+                .duration(30)
+                .EUt(VA[LuV])
+                .fluidInputs(DistilledWater.getFluid(6))
+                .circuitMeta(1)
+                .fluidOutputs(SupercriticalSteam.getFluid(240))
+                .buildAndRegister();
     }
 
     private static void registerSmoothRecipe(List<ItemStack> roughStack, List<ItemStack> smoothStack) {

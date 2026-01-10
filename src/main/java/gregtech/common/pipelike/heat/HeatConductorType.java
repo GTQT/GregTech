@@ -10,18 +10,18 @@ import org.jetbrains.annotations.NotNull;
 public enum HeatConductorType implements IMaterialPipeType<HeatConductorProperties> {
 
     // 普通热导管道系列（热损失较大）
-    HEAT_CONDUCTOR_1X("heat_conductor_1x", 0.125f, 1, 2, OrePrefix.pipeHeatConductorSingle, -1),
-    HEAT_CONDUCTOR_2X("heat_conductor_2x", 0.25f, 2, 2, OrePrefix.pipeHeatConductorDouble, -1),
-    HEAT_CONDUCTOR_4X("heat_conductor_4x", 0.375f, 4, 3, OrePrefix.pipeHeatConductorQuadruple, -1),
-    HEAT_CONDUCTOR_8X("heat_conductor_8x", 0.5f, 8, 3, OrePrefix.pipeHeatConductorOctal, -1),
-    HEAT_CONDUCTOR_16X("heat_conductor_16x", 0.75f, 16, 3, OrePrefix.pipeHeatConductorHex, -1),
+    HEAT_CONDUCTOR_SINGLE("heat_conductor_single", 0.125f, 1, 2, OrePrefix.pipeHeatConductorSingle, -1),
+    HEAT_CONDUCTOR_DOUBLE("heat_conductor_double", 0.25f, 2, 2, OrePrefix.pipeHeatConductorDouble, -1),
+    HEAT_CONDUCTOR_QUADRUPLE("heat_conductor_quadruple", 0.375f, 4, 3, OrePrefix.pipeHeatConductorQuadruple, -1),
+    HEAT_CONDUCTOR_OCTAL("heat_conductor_octal", 0.5f, 8, 3, OrePrefix.pipeHeatConductorOctal, -1),
+    HEAT_CONDUCTOR_HEX("heat_conductor_hex", 0.75f, 16, 3, OrePrefix.pipeHeatConductorHex, -1),
 
     // 隔热热导管道系列（热损失小，厚度更大）
-    INSULATED_HEAT_CONDUCTOR_1X("insulated_heat_conductor_1x", 0.25f, 1, 1, OrePrefix.insulatedHeatConductorSingle, 0),
-    INSULATED_HEAT_CONDUCTOR_2X("insulated_heat_conductor_2x", 0.375f, 2, 1, OrePrefix.insulatedHeatConductorDouble, 1),
-    INSULATED_HEAT_CONDUCTOR_4X("insulated_heat_conductor_4x", 0.5f, 4, 1, OrePrefix.insulatedHeatConductorQuadruple, 2),
-    INSULATED_HEAT_CONDUCTOR_8X("insulated_heat_conductor_8x", 0.75f, 8, 1, OrePrefix.insulatedHeatConductorOctal, 3),
-    INSULATED_HEAT_CONDUCTOR_16X("insulated_heat_conductor_16x", 1.0f, 16, 1, OrePrefix.insulatedHeatConductorHex, 4);
+    INSULATED_HEAT_CONDUCTOR_SINGLE("insulated_heat_conductor_single", 0.25f, 1, 1, OrePrefix.insulatedHeatConductorSingle, 0),
+    INSULATED_HEAT_CONDUCTOR_DOUBLE("insulated_heat_conductor_double", 0.375f, 2, 1, OrePrefix.insulatedHeatConductorDouble, 1),
+    INSULATED_HEAT_CONDUCTOR_QUADRUPLE("insulated_heat_conductor_quadruple", 0.5f, 4, 1, OrePrefix.insulatedHeatConductorQuadruple, 2),
+    INSULATED_HEAT_CONDUCTOR_OCTAL("insulated_heat_conductor_octal", 0.75f, 8, 1, OrePrefix.insulatedHeatConductorOctal, 3),
+    INSULATED_HEAT_CONDUCTOR_HEX("insulated_heat_conductor_hex", 1.0f, 16, 1, OrePrefix.insulatedHeatConductorHex, 4);
 
     public static final HeatConductorType[] VALUES = values();
 

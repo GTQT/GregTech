@@ -11,11 +11,11 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.registry.VillagerRegistry;
 
 import gtqt.api.util.wireless.WirelessWorldEventHandler;
-import gtqt.common.VillagerHandler.VillageEngineersHouse;
-import gtqt.common.VillagerHandler.VillagerHandler;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.covers.GTQTCoverBehavior;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
+import gtqt.common.villagerHandler.VillageEngineersHouse;
+import gtqt.common.villagerHandler.VillagerHandler;
 import gtqt.loaders.recipe.RecipeManager;
 
 public class GTQTCommonProxy {

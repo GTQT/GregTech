@@ -1948,6 +1948,35 @@ public final class RecipeMaps {
             .disableJeiOverclockButton()
             .build();
 
+
+    @ZenProperty
+    public static final RecipeMap<FuelRecipeBuilder> HIGH_PRESSURE_STEAM_TURBINE_FUELS = new RecipeMapBuilder<>("high_pressure_steam_turbine",
+            new FuelRecipeBuilder())
+            .fluidInputs(1)
+            .fluidOutputs(1)
+            .uiBuilder(b -> b
+                    .fluidSlotOverlay(GTGuiTextures.CENTRIFUGE_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
+            .sound(GTSoundEvents.TURBINE)
+            .allowEmptyOutputs()
+            .generator()
+            .disableJeiOverclockButton()
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<FuelRecipeBuilder> SUPERCRITICAL_STEAM_TURBINE_FUELS = new RecipeMapBuilder<>("supercritical_steam_turbine",
+            new FuelRecipeBuilder())
+            .fluidInputs(1)
+            .fluidOutputs(1)
+            .uiBuilder(b -> b
+                    .fluidSlotOverlay(GTGuiTextures.CENTRIFUGE_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
+            .sound(GTSoundEvents.TURBINE)
+            .allowEmptyOutputs()
+            .generator()
+            .disableJeiOverclockButton()
+            .build();
+
     @ZenProperty
     public static final RecipeMap<FuelRecipeBuilder> SEMI_FLUID_GENERATOR_FUELS = new RecipeMapBuilder<>(
             "semi_fluid_generator", new FuelRecipeBuilder())

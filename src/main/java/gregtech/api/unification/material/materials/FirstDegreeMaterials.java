@@ -1315,8 +1315,11 @@ public class FirstDegreeMaterials {
                 .components(Hydrogen, 1, Chlorine, 1)
                 .build();
 
+
+        //蒸汽 160:1
         Steam = Material.builder(420, gregtechId("steam"))
                 .gas(new FluidBuilder()
+                        .block()
                         .temperature(373)
                         .customStill())
                 .color(0xC4C4C4)
@@ -1621,6 +1624,37 @@ public class FirstDegreeMaterials {
                 .dust()
                 .color(0xA3A68E).iconSet(METALLIC)
                 .components(Antimony, 2, Tellurium, 3)
+                .build();
+
+        //蒸汽废气 200:1
+        SteamExhaust = Material.builder(456, gregtechId("steam_exhaust"))
+                .gas(new FluidBuilder()
+                        .block()
+                        .temperature(353)
+                        .customStill())
+                .color(0xC4C4C4)
+                .components(Hydrogen, 2, Oxygen, 1)
+                .build();
+
+        //高压蒸汽 80:1
+        HighPressureSteam = Material.builder(673, gregtechId("high_pressure_steam"))
+                .gas(new FluidBuilder()
+                        .block()
+                        .temperature(373)
+                        .customStill())
+                .color(0xC4C4C4)
+                .components(Hydrogen, 2, Oxygen, 1)
+                .build();
+
+
+        //超临界蒸汽 40:1
+        SupercriticalSteam = Material.builder(458, gregtechId("supercritical_steam"))
+                .gas(new FluidBuilder()
+                        .block()
+                        .temperature(873)
+                        .customStill())
+                .color(0xC4C4C4)
+                .components(Hydrogen, 2, Oxygen, 1)
                 .build();
     }
 }

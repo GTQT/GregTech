@@ -1,4 +1,4 @@
-package gtqt.common.VillagerHandler;
+package gtqt.common.villagerHandler;
 
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.BlockSlab;

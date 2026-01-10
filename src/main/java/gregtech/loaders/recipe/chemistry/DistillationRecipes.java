@@ -5,7 +5,8 @@ import gregtech.common.items.MetaItems;
 import net.minecraftforge.fml.common.Loader;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.*;
+import static gregtech.api.recipes.RecipeMaps.DISTILLATION_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.MIXER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
@@ -184,5 +185,41 @@ public class DistillationRecipes {
                 .chancedOutput(dust, EnderPearl, 1000, 0)
                 .disableDistilleryRecipes()
                 .duration(2000).EUt(VA[IV]).buildAndRegister();
+
+        DISTILLATION_RECIPES.recipeBuilder()
+                .fluidInputs(ExhaustGas.getFluid(10000))
+                .fluidOutputs(Nitrogen.getFluid(7700))
+                .fluidOutputs(CarbonDioxide.getFluid(1000))
+                .fluidOutputs(Oxygen.getFluid(900))
+                .fluidOutputs(Argon.getFluid(900))
+                .fluidOutputs(CarbonMonoxide.getFluid(100))
+                .fluidOutputs(NitricOxide.getFluid(100))
+                .fluidOutputs(NitrogenDioxide.getFluid(100))
+                .chancedOutput(dust, Ash, 4000, 0)
+                .disableDistilleryRecipes()
+                .duration(200).EUt(VA[MV]).buildAndRegister();
+
+        DISTILLATION_RECIPES.recipeBuilder()
+                .fluidInputs(HighPressureExhaustGas.getFluid(10000))
+                .fluidOutputs(Nitrogen.getFluid(7500))
+                .fluidOutputs(CarbonDioxide.getFluid(1200))
+                .fluidOutputs(Oxygen.getFluid(600))
+                .fluidOutputs(Argon.getFluid(900))
+                .fluidOutputs(Water.getFluid(800))
+                .chancedOutput(dust, Ash, 4000, 0)
+                .disableDistilleryRecipes()
+                .duration(180).EUt(VA[EV]).buildAndRegister();
+
+        DISTILLATION_RECIPES.recipeBuilder()
+                .fluidInputs(SupercriticalExhaustGas.getFluid(10000))
+                .fluidOutputs(Nitrogen.getFluid(6800))
+                .fluidOutputs(CarbonDioxide.getFluid(1800))
+                .fluidOutputs(Oxygen.getFluid(400))
+                .fluidOutputs(Argon.getFluid(900))
+                .fluidOutputs(Water.getFluid(1000))
+                .fluidOutputs(NitricOxide.getFluid(100))
+                .chancedOutput(dust, Ash, 4000, 0)
+                .disableDistilleryRecipes()
+                .duration(160).EUt(VA[IV]).buildAndRegister();
     }
 }

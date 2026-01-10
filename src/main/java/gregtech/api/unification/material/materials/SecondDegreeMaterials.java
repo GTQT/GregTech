@@ -416,8 +416,7 @@ public class SecondDegreeMaterials {
                 .liquid(new FluidBuilder().temperature(58))
                 .color(0x4C3434)
                 .flags(DISABLE_DECOMPOSITION)
-                .components(CarbonMonoxide, 144, CoalGas, 20, HydrogenSulfide, 15, SulfurDioxide, 15, Helium3, 5, Neon,
-                        1, Ash, 1)
+                .components(CarbonMonoxide, 144, CoalGas, 20, HydrogenSulfide, 15, SulfurDioxide, 15, Helium3, 5, Neon, 1, Ash, 1)
                 .build();
 
         EnderAir = Material.builder(2054, gregtechId("ender_air"))
@@ -515,6 +514,34 @@ public class SecondDegreeMaterials {
                 .dust().color(0x9C5fB5)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Chrome, 1, Molybdenite, 1)
+                .build();
+
+        //尾气
+        // Exhaust Gas 普通尾气
+        // 普通燃油 1tick 50mb
+        ExhaustGas = Material.builder(2067, gregtechId("exhaust_gas"))
+                .gas(new FluidBuilder().temperature(773).customStill())
+                .color(0x8A8A8A)
+                .flags(DISABLE_DECOMPOSITION)
+                .components(Nitrogen, 77, CarbonDioxide, 10, Oxygen, 9, Argon, 9, CarbonMonoxide, 1, NitricOxide, 1, NitrogenDioxide, 1)
+                .build();
+
+        // HighPressureExhaustGas 高压尾气
+        // 促燃机 1tick 50mb
+        HighPressureExhaustGas = Material.builder(2068, gregtechId("high_pressure_exhaust_gas"))
+                .gas(new FluidBuilder().temperature(973).customStill())
+                .color(0x8A8A8A)
+                .flags(DISABLE_DECOMPOSITION)
+                .components(Nitrogen, 75, CarbonDioxide, 12, Oxygen, 6, Argon, 9, Water, 8, NitricOxide, 0, NitrogenDioxide, 0)
+                .build();
+
+        // SupercriticalExhaustGas 超临界尾气
+        // 火箭发动机 1tick 50mb
+        SupercriticalExhaustGas = Material.builder(2069, gregtechId("supercritical_exhaust_gas"))
+                .plasma(new FluidBuilder().temperature(1473).customStill())
+                .color(0x8A8A8A)
+                .flags(DISABLE_DECOMPOSITION)
+                .components(Nitrogen, 68, CarbonDioxide, 18, Oxygen, 4, Argon, 9, Water, 10, NitricOxide, 1, NitrogenDioxide, 0)
                 .build();
     }
 }

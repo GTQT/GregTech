@@ -1,7 +1,14 @@
 package gregtech.api.unification.material;
 
 import gregtech.api.unification.material.info.MaterialFlag;
-import gregtech.api.unification.material.materials.*;
+import gregtech.api.unification.material.materials.ElementMaterials;
+import gregtech.api.unification.material.materials.FirstDegreeMaterials;
+import gregtech.api.unification.material.materials.HigherDegreeMaterials;
+import gregtech.api.unification.material.materials.MaterialFlagAddition;
+import gregtech.api.unification.material.materials.OrganicChemistryMaterials;
+import gregtech.api.unification.material.materials.SecondDegreeMaterials;
+import gregtech.api.unification.material.materials.SoftToolAddition;
+import gregtech.api.unification.material.materials.UnknownCompositionMaterials;
 import gregtech.api.unification.ore.OrePrefix;
 
 import java.util.ArrayList;
@@ -423,6 +430,9 @@ public class Materials {
     public static Material NeodymiumMagnetic;
     public static Material HydrochloricAcid;
     public static Material Steam;
+    public static Material SteamExhaust;
+    public static Material HighPressureSteam;
+    public static Material SupercriticalSteam;
     public static Material DistilledWater;
     public static Material SodiumPotassium;
     public static Material SamariumMagnetic;
@@ -744,6 +754,10 @@ public class Materials {
     public static Material Clay;
     public static Material Redstone;
     public static Material ChromiumDopedMolybdenite;
+
+    public static Material ExhaustGas;
+    public static Material HighPressureExhaustGas;
+    public static Material SupercriticalExhaustGas;
 
     /**
      * Third Degree Materials
