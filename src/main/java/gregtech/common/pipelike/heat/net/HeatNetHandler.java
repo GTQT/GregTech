@@ -7,10 +7,13 @@ import gregtech.common.pipelike.heat.tile.TileEntityHeatConductor;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 
+import lombok.Getter;
+
 import java.util.Objects;
 
 public class HeatNetHandler implements IHeatable {
 
+    @Getter
     private HeatNet net;
     private boolean transfer;
     private final TileEntityHeatConductor conductor;
@@ -26,12 +29,8 @@ public class HeatNetHandler implements IHeatable {
         this.net = net;
     }
 
-    public HeatNet getNet() {
-        return net;
-    }
-
     @Override
-    public long transferHeat(long heatToTransfer) {
+    public long transferHeat(long heatToTransfer, int sourceTemperature) {
         if (transfer) return 0;
         if (facing == null) return 0;
 
@@ -53,15 +52,15 @@ public class HeatNetHandler implements IHeatable {
             long heatAfterLoss = heatToTransfer - heatLoss;
             if (heatAfterLoss <= 0) continue;
 
-            // 传输热量
+            // 传输热量和温度
             transfer = true;
-            long acceptedHeat = target.transferHeat(heatAfterLoss);
+            long acceptedHeat = target.transferHeat(heatAfterLoss, sourceTemperature);
             transfer = false;
 
             if (acceptedHeat > 0) {
                 transferredHeat += acceptedHeat;
-                // 更新管道温度
-                updateConductorTemperature(path, acceptedHeat + heatLoss);
+                // 更新管道温度（设置网络温度）
+                updateConductorTemperature(path, sourceTemperature);
 
                 net.addHeatFluxPerSec(acceptedHeat);
             }
@@ -79,10 +78,10 @@ public class HeatNetHandler implements IHeatable {
         return totalLoss;
     }
 
-    private void updateConductorTemperature(HeatRoutePath path, long heat) {
+    private void updateConductorTemperature(HeatRoutePath path, int temperature) {
         for (TileEntityHeatConductor conductor : path.getPath()) {
             if (!conductor.isInvalid()) {
-                conductor.applyHeat((int) (heat / 1000)); // 简化的温度计算
+                conductor.setTemperature(temperature);
             }
         }
     }
@@ -99,12 +98,29 @@ public class HeatNetHandler implements IHeatable {
 
     @Override
     public int getTemperature() {
-        return conductor.getTemperature();
+        // 返回网络温度
+        return net != null ? net.getNetworkTemperature() : conductor.getTemperature();
+    }
+
+    @Override
+    public void setTemperature(int temperature) {
+        // 管道温度应该由网络管理
+        if (net != null) {
+            // 如果是热源连接，需要更新网络温度
+            // 这里简化处理：直接设置管道温度
+            conductor.setTemperature(temperature);
+        }
     }
 
     @Override
     public int getMaxTemperature() {
         return conductor.getNodeData().getMaxTemperature();
+    }
+
+    @Override
+    public void setMaxTemperature(int maxTemperature) {
+        // 管道最大温度由材料决定，不能被外部设置
+        GTLog.logger.warn("Do not use setMaxTemperature() on HeatNetHandler! Pipe max temperature is determined by its material.");
     }
 
     @Override
@@ -117,10 +133,19 @@ public class HeatNetHandler implements IHeatable {
         return true;
     }
 
-
     @Override
     public long changeHeat(long heatToAdd) {
         GTLog.logger.warn("Do not use changeHeat() for heat conductors directly! Use transferHeat() for heat transfer between blocks.");
         return 0;
+    }
+
+    @Override
+    public long getInputPerSec() {
+        return net != null ? net.getHeatFluxPerSec() : 0;
+    }
+
+    @Override
+    public long getOutputPerSec() {
+        return net != null ? net.getHeatFluxPerSec() : 0;
     }
 }

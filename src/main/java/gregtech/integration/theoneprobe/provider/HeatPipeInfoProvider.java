@@ -2,6 +2,7 @@ package gregtech.integration.theoneprobe.provider;
 
 import gregtech.api.unification.material.properties.HeatConductorProperties;
 import gregtech.common.pipelike.heat.tile.TileEntityHeatConductor;
+import gregtech.integration.theoneprobe.handler.TextColor;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
@@ -26,7 +27,8 @@ public class HeatPipeInfoProvider implements IProbeInfoProvider {
     }
 
     @Override
-    public void addProbeInfo(ProbeMode probeMode, IProbeInfo iProbeInfo, EntityPlayer entityPlayer, World world, IBlockState iBlockState, IProbeHitData iProbeHitData) {
+    public void addProbeInfo(ProbeMode probeMode, IProbeInfo iProbeInfo, EntityPlayer entityPlayer, World world,
+                             IBlockState iBlockState, IProbeHitData iProbeHitData) {
         if (world.getTileEntity(iProbeHitData.getPos()) instanceof TileEntityHeatConductor heatPipe) {
             // 获取热导属性
             HeatConductorProperties properties = heatPipe.getNodeData();
@@ -40,12 +42,13 @@ public class HeatPipeInfoProvider implements IProbeInfoProvider {
             float heatLossPercent = properties.getHeatLossPerBlock();
 
             // 创建水平面板显示基本信息
-            IProbeInfo horizontalPane = iProbeInfo.horizontal(iProbeInfo.defaultLayoutStyle().alignment(ElementAlignment.ALIGN_CENTER));
+            IProbeInfo horizontalPane = iProbeInfo.horizontal(
+                    iProbeInfo.defaultLayoutStyle().alignment(ElementAlignment.ALIGN_CENTER));
 
             // 温度显示
             horizontalPane.text(TextStyleClass.INFO + "{*gregtech.top.heat_pipe.temperature*}");
             horizontalPane.text(TextStyleClass.INFO + " " +
-                    getTemperatureColor(currentTemp, maxTemp) +
+                    TextColor.getTemperatureColor(currentTemp, maxTemp) +
                     currentTemp + " / " + maxTemp + " K");
 
             // 热传导率显示
@@ -62,7 +65,7 @@ public class HeatPipeInfoProvider implements IProbeInfoProvider {
                 progress = Math.min(progress, 100); // 确保不超过100%
 
                 // 根据温度比例设置进度条颜色
-                int color = getTemperatureProgressColor(currentTemp, maxTemp);
+                int color = TextColor.getTemperatureProgressColor(currentTemp, maxTemp);
 
                 iProbeInfo.progress(progress, 100,
                         new ProgressStyle()
@@ -77,45 +80,4 @@ public class HeatPipeInfoProvider implements IProbeInfoProvider {
         }
     }
 
-    /**
-     * 根据温度获取显示颜色
-     * @param currentTemp 当前温度
-     * @param maxTemp 最大温度
-     * @return 颜色代码
-     */
-    private String getTemperatureColor(int currentTemp, int maxTemp) {
-        if (maxTemp <= 0) return TextStyleClass.INFO.toString();
-
-        float ratio = currentTemp / (float) maxTemp;
-
-        if (ratio < 0.6) {
-            return TextStyleClass.OK.toString(); // 绿色 - 低温
-        } else if (ratio < 0.8) {
-            return TextStyleClass.WARNING.toString(); // 黄色 - 中等温度
-        } else {
-            return TextStyleClass.ERROR.toString(); // 红色 - 接近极限
-        }
-    }
-
-    /**
-     * 获取温度进度条颜色
-     * @param currentTemp 当前温度
-     * @param maxTemp 最大温度
-     * @return RGB颜色值
-     */
-    private int getTemperatureProgressColor(int currentTemp, int maxTemp) {
-        if (maxTemp <= 0) return 0xFF00FF00; // 默认绿色
-
-        float ratio = currentTemp / (float) maxTemp;
-
-        if (ratio < 0.3) {
-            return 0xFF00FF00; // 绿色
-        } else if (ratio < 0.6) {
-            return 0xFFFFFF00; // 黄色
-        } else if (ratio < 0.8) {
-            return 0xFFFFA500; // 橙色
-        } else {
-            return 0xFFFF0000; // 红色
-        }
-    }
 }

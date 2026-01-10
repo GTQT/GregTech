@@ -37,10 +37,10 @@ public class TileEntityHeatConductor extends TileEntityMaterialPipeBase<HeatCond
 
     private final EnumMap<EnumFacing, HeatNetHandler> handlers = new EnumMap<>(EnumFacing.class);
     private final AveragingPerTickCounter averageHeatCounter = new AveragingPerTickCounter();
-    private HeatNetHandler defaultHandler;
     private final IHeatable clientCapability = IHeatable.DEFAULT;
+    private HeatNetHandler defaultHandler;
     private WeakReference<HeatNet> currentHeatNet = new WeakReference<>(null);
-    private int temperature = getDefaultTemp();
+    private int temperature = 293; // 默认室温，将被网络温度覆盖
     private boolean isTicking = false;
 
     @Override
@@ -68,42 +68,56 @@ public class TileEntityHeatConductor extends TileEntityMaterialPipeBase<HeatCond
     public void onLoad() {
         super.onLoad();
         if (!world.isRemote) {
-            setTemperature(temperature);
+            // 连接到网络时，立即同步网络温度
+            syncNetworkTemperature();
             if (temperature > getDefaultTemp()) {
                 TaskScheduler.scheduleTask(world, this::update);
             }
         }
     }
 
+    /**
+     * 同步网络温度
+     */
+    private void syncNetworkTemperature() {
+        HeatNet net = getHeatNet();
+        if (net != null) {
+            int networkTemp = net.getNetworkTemperature();
+            if (networkTemp != temperature) {
+                setTemperature(networkTemp);
+            }
+        }
+    }
+
+    /**
+     * 不再通过热量计算温度，只用于外部强制设置（如热源连接时）
+     */
     public void applyHeat(int amount) {
+        // 管道本身不通过热量改变温度，温度由网络决定
+        // 这个方法现在只用于标记管道接收到了热量（用于统计等）
         if (world.isRemote) return;
 
-        int newTemp = temperature + amount;
-        if (newTemp > getNodeData().getMaxTemperature()) {
+        // 可以记录热量流量，但不改变温度
+        averageHeatCounter.increment(getWorld(), amount);
+    }
+
+    private boolean update() {
+        // 现在只检查温度是否过高（超过管道材料限制）
+        if (temperature > getNodeData().getMaxTemperature()) {
             // 超过最大温度，管道损坏
             world.createExplosion(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
                     2.0f, true);
             world.setBlockToAir(pos);
-            return;
-        }
-
-        setTemperature(newTemp);
-
-        if (!isTicking && newTemp > getDefaultTemp()) {
-            TaskScheduler.scheduleTask(world, this::update);
-            isTicking = true;
-        }
-    }
-
-    private boolean update() {
-        if (temperature <= getDefaultTemp()) {
-            isTicking = false;
             return false;
         }
 
-        // 自然冷却
-        int cooling = (int) Math.sqrt(temperature - getDefaultTemp());
-        setTemperature(temperature - cooling);
+        // 检查是否需要进行自然冷却（如果温度高于网络温度）
+        HeatNet net = getHeatNet();
+        if (net != null && temperature > net.getNetworkTemperature()) {
+            // 缓慢冷却到网络温度
+            int cooling = Math.min(temperature - net.getNetworkTemperature(), 10);
+            setTemperature(temperature - cooling);
+        }
 
         if (temperature <= getDefaultTemp()) {
             isTicking = false;
@@ -113,20 +127,33 @@ public class TileEntityHeatConductor extends TileEntityMaterialPipeBase<HeatCond
         return true;
     }
 
-    public void setTemperature(int temperature) {
-        this.temperature = temperature;
-        world.checkLight(pos);
-        if (!world.isRemote) {
-            writeCustomData(CONDUCTOR_TEMPERATURE, buf -> buf.writeVarInt(temperature));
-        }
-    }
-
     public int getDefaultTemp() {
         return 293; // 室温20°C
     }
 
     public int getTemperature() {
         return temperature;
+    }
+
+    /**
+     * 设置管道温度（主要由网络调用）
+     */
+    public void setTemperature(int temperature) {
+        if (this.temperature == temperature) return;
+
+        this.temperature = temperature;
+        world.checkLight(pos);
+
+        // 记录温度变化（用于客户端渲染）
+        if (!world.isRemote) {
+            writeCustomData(CONDUCTOR_TEMPERATURE, buf -> buf.writeVarInt(temperature));
+        }
+
+        // 如果温度接近或超过最大温度，启动tick更新以检查是否损坏
+        if (!isTicking && temperature > getNodeData().getMaxTemperature() * 0.8) {
+            TaskScheduler.scheduleTask(world, this::update);
+            isTicking = true;
+        }
     }
 
     @Nullable
@@ -151,6 +178,8 @@ public class TileEntityHeatConductor extends TileEntityMaterialPipeBase<HeatCond
                 for (HeatNetHandler handler : handlers.values()) {
                     handler.updateNetwork(current);
                 }
+                // 网络变化时同步温度
+                syncNetworkTemperature();
             }
         }
     }
@@ -184,7 +213,11 @@ public class TileEntityHeatConductor extends TileEntityMaterialPipeBase<HeatCond
     @Override
     public void receiveCustomData(int discriminator, PacketBuffer buf) {
         if (discriminator == CONDUCTOR_TEMPERATURE) {
-            setTemperature(buf.readVarInt());
+            int newTemp = buf.readVarInt();
+            if (this.temperature != newTemp) {
+                this.temperature = newTemp;
+                world.checkLight(pos);
+            }
         } else {
             super.receiveCustomData(discriminator, buf);
         }
@@ -212,7 +245,8 @@ public class TileEntityHeatConductor extends TileEntityMaterialPipeBase<HeatCond
                 new TextComponentTranslation(TextFormattingUtil.formatNumbers(this.getTemperature()) + "K")
                         .setStyle(new Style().setColor(TextFormatting.RED))));
         list.add(new TextComponentTranslation("behavior.tricorder.max_temperature",
-                new TextComponentTranslation(TextFormattingUtil.formatNumbers(this.getNodeData().getMaxTemperature()) + "K")
+                new TextComponentTranslation(
+                        TextFormattingUtil.formatNumbers(this.getNodeData().getMaxTemperature()) + "K")
                         .setStyle(new Style().setColor(TextFormatting.YELLOW))));
         return list;
     }

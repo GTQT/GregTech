@@ -51,6 +51,7 @@ public class SimpleCapabilityManager {
         registerCapabilityWithNoDefault(IOpticalComputationProvider.class);
         registerCapabilityWithNoDefault(ConverterTrait.class);
         registerCapabilityWithNoDefault(ILaserContainer.class);
+        registerCapabilityWithNoDefault(IHeatable.class);
 
         // internal capabilities
         CapabilityManager.INSTANCE.register(GTWorldGenCapability.class, GTWorldGenCapability.STORAGE,

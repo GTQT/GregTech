@@ -11,20 +11,26 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
 
 public class HeatContainerHandler extends MTETrait implements IHeatable {
 
-    protected final long maxHeatCapacity;      // 最大热容量（HU）
-    protected final int maxTemperature;        // 最大工作温度（K）
-    protected long heatStored;                 // 当前存储的热量（HU）
+    protected long maxHeatCapacity;      // 最大热容量（HU）
+    protected int maxTemperature;        // 最大工作温度（K）
+    protected long heatStored;           // 当前存储的热量（HU）
 
-    private final long maxInputHeatFlow;       // 最大输入热流量（HU/tick）
-    private final long maxOutputHeatFlow;      // 最大输出热流量（HU/tick）
+    @Getter
+    private long maxInputHeatFlow;       // 最大输入热流量（HU/tick）
+    @Getter
+    private long maxOutputHeatFlow;      // 最大输出热流量（HU/tick）
 
+    @Setter
     private Predicate<EnumFacing> sideInputCondition;
+    @Setter
     private Predicate<EnumFacing> sideOutputCondition;
 
     // 热量流量统计
@@ -34,9 +40,7 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     protected long heatOutputPerSec = 0;
 
     // 温度相关
-    private int currentTemperature = 293;      // 当前温度（K），默认室温
-    private int baseTemperature = 293;         // 基础温度（环境温度，K）
-    private long thermalConductivity = 1000;   // 热导率（HU/K·tick）
+    private int currentTemperature = 293; // 当前温度（K），默认室温
 
     // 热流限制
     protected long inputHeatFlowThisTick = 0;
@@ -59,22 +63,6 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     public static HeatContainerHandler receiverContainer(MetaTileEntity tileEntity, long maxHeatCapacity,
                                                          int maxTemperature, long maxInputHeatFlow) {
         return new HeatContainerHandler(tileEntity, maxHeatCapacity, maxTemperature, maxInputHeatFlow, 0L);
-    }
-
-    public void setSideInputCondition(Predicate<EnumFacing> sideInputCondition) {
-        this.sideInputCondition = sideInputCondition;
-    }
-
-    public void setSideOutputCondition(Predicate<EnumFacing> sideOutputCondition) {
-        this.sideOutputCondition = sideOutputCondition;
-    }
-
-    public void setBaseTemperature(int baseTemperature) {
-        this.baseTemperature = baseTemperature;
-    }
-
-    public void setThermalConductivity(long thermalConductivity) {
-        this.thermalConductivity = thermalConductivity;
     }
 
     @Override
@@ -107,6 +95,8 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         NBTTagCompound compound = new NBTTagCompound();
         compound.setLong("HeatStored", heatStored);
         compound.setInteger("Temperature", currentTemperature);
+        compound.setInteger("MaxTemperature", maxTemperature);
+        compound.setLong("MaxHeatCapacity", maxHeatCapacity);
         return compound;
     }
 
@@ -114,7 +104,8 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     public void deserializeNBT(@NotNull NBTTagCompound compound) {
         this.heatStored = compound.getLong("HeatStored");
         this.currentTemperature = compound.getInteger("Temperature");
-        notifyHeatListener(true);
+        this.maxTemperature = compound.getInteger("MaxTemperature");
+        this.maxHeatCapacity = compound.getLong("MaxHeatCapacity");
     }
 
     @Override
@@ -131,47 +122,6 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
             heatInputPerSec += this.heatStored - oldHeatStored;
         } else {
             heatOutputPerSec += oldHeatStored - this.heatStored;
-        }
-
-        // 根据存储的热量重新计算温度
-        updateTemperatureFromHeat();
-
-        if (!metaTileEntity.getWorld().isRemote) {
-            metaTileEntity.markDirty();
-            notifyHeatListener(false);
-        }
-    }
-
-    protected void updateTemperatureFromHeat() {
-        if (thermalConductivity > 0) {
-            // 温度 = 基础温度 + 存储热量 / 热导率
-            int calculatedTemp = baseTemperature + (int)(heatStored / thermalConductivity);
-            this.currentTemperature = Math.min(calculatedTemp, maxTemperature);
-
-            // 如果计算温度超过最大温度，触发过热保护
-            if (calculatedTemp > maxTemperature) {
-                handleOverheat(calculatedTemp);
-            }
-        }
-    }
-
-    protected void handleOverheat(int calculatedTemp) {
-        // 触发过热事件
-        if (metaTileEntity instanceof IHeatChangeListener) {
-            ((IHeatChangeListener) metaTileEntity).onOverheat(calculatedTemp, maxTemperature);
-        }
-
-        // 根据配置决定是否爆炸
-        if (calculatedTemp >= maxTemperature * 1.2) { // 超过20%安全余量
-            metaTileEntity.doExplosion(GTUtility.getExplosionPower(
-                    (int)((calculatedTemp - maxTemperature) / 100.0f)
-            ));
-        }
-    }
-
-    protected void notifyHeatListener(boolean isInitialChange) {
-        if (metaTileEntity instanceof IHeatChangeListener) {
-            ((IHeatChangeListener) metaTileEntity).onHeatChanged(this, isInitialChange);
         }
     }
 
@@ -211,9 +161,9 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
 
                         if (heatable == null || !heatable.canAcceptHeat()) continue;
 
-                        // 输出热量，考虑温度差
-                        long heatToTransfer = calculateHeatTransferForOutput(outputHeat - outputUsed);
-                        long heatAccepted = heatable.transferHeat(heatToTransfer);
+                        // 输出热量，同时传递当前温度
+                        long heatToTransfer = Math.min(outputHeat - outputUsed, getMaxOutputHeatFlow());
+                        long heatAccepted = heatable.transferHeat(heatToTransfer, getTemperature());
 
                         if (heatAccepted > 0) {
                             outputUsed += heatAccepted;
@@ -230,24 +180,10 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         }
     }
 
-    protected long calculateHeatTransferForOutput(long availableHeat) {
-        // 考虑温度差的热量传输
-        // 温度差越大，热传导越快
-        int ourTemp = getTemperature();
-
-        // 简化计算：最大输出热流量的80%作为基础，然后根据温度差调整
-        long baseTransfer = (long)(getMaxOutputHeatFlow() * 0.8);
-
-        // 如果我们温度很高，可以提高传输速率
-        float tempFactor = Math.min(1.0f, (ourTemp - baseTemperature) / (float)(maxTemperature - baseTemperature));
-
-        return Math.min(availableHeat, (long)(baseTransfer * (1.0f + tempFactor)));
-    }
-
     @Override
-    public long transferHeat(long heatToTransfer) {
+    public long transferHeat(long heatToTransfer, int sourceTemperature) {
         // 检查是否可以接受热量
-        if (heatToTransfer <= 0 || !canAcceptHeatInternal()) return 0;
+        if (heatToTransfer <= 0 || !canAcceptHeat()) return 0;
 
         // 检查输入热流限制
         if (inputHeatFlowThisTick >= getMaxInputHeatFlow()) return 0;
@@ -259,17 +195,26 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         long heatToAccept = Math.min(Math.min(heatToTransfer, availableSpace), availableInput);
 
         if (heatToAccept > 0) {
+            // 接受热量
             setHeatStored(heatStored + heatToAccept);
             inputHeatFlowThisTick += heatToAccept;
+
+            // 同步温度（使用热源温度，或取平均值）
+            if (sourceTemperature > getTemperature()) {
+                // 热力学第二定律：热量从高温传到低温
+                // 这里简化处理：直接使用热源温度
+                setTemperature(sourceTemperature);
+            } else if (heatStored > 0) {
+                // 如果热源温度较低，使用加权平均
+                long totalHeat = getHeatStored() * getTemperature() + heatToAccept * sourceTemperature;
+                int avgTemp = (int)(totalHeat / (getHeatStored() + heatToAccept));
+                setTemperature(avgTemp);
+            }
+
             return heatToAccept;
         }
 
         return 0;
-    }
-
-    protected boolean canAcceptHeatInternal() {
-        // 内部检查：温度未超过上限
-        return currentTemperature < maxTemperature;
     }
 
     @Override
@@ -279,7 +224,6 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
 
     @Override
     public boolean canAcceptHeat() {
-        // 外部接口：只检查是否有空间
         return heatStored < maxHeatCapacity && currentTemperature < maxTemperature;
     }
 
@@ -296,6 +240,7 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         return canOutputHeat() && (sideOutputCondition == null || sideOutputCondition.test(side));
     }
 
+    @Override
     public long changeHeat(long heatToAdd) {
         long oldHeatStored = getHeatStored();
         long newHeatStored = Math.max(0, Math.min(maxHeatCapacity, oldHeatStored + heatToAdd));
@@ -308,13 +253,28 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         return this.currentTemperature;
     }
 
+    @Override
     public void setTemperature(int temperature) {
-        this.currentTemperature = Math.max(baseTemperature, Math.min(temperature, maxTemperature));
+        // 安全地设置温度
+        if (metaTileEntity == null || metaTileEntity.getWorld() == null) {
+            // 在初始化阶段，直接设置温度
+            this.currentTemperature = Math.max(293, Math.min(temperature, maxTemperature));
+            return;
+        }
 
-        // 根据温度更新存储的热量
-        if (thermalConductivity > 0) {
-            long calculatedHeat = (long)((currentTemperature - baseTemperature) * thermalConductivity);
-            this.heatStored = Math.max(0, Math.min(calculatedHeat, maxHeatCapacity));
+        // 检查温度是否超过最大温度
+        if (temperature > maxTemperature) {
+            handleOverheat(temperature);
+            return;
+        }
+
+        if (this.currentTemperature != temperature) {
+            this.currentTemperature = temperature;
+
+            // 标记数据已更改
+            if (!metaTileEntity.getWorld().isRemote) {
+                metaTileEntity.markDirty();
+            }
         }
     }
 
@@ -323,12 +283,26 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         return this.maxTemperature;
     }
 
-    public long getMaxInputHeatFlow() {
-        return this.maxInputHeatFlow;
+    @Override
+    public void setMaxTemperature(int maxTemperature) {
+        this.maxTemperature = maxTemperature;
+
+        // 如果当前温度超过新的最大温度，触发过热
+        if (currentTemperature > maxTemperature) {
+            handleOverheat(currentTemperature);
+        }
     }
 
-    public long getMaxOutputHeatFlow() {
-        return this.maxOutputHeatFlow;
+    protected void handleOverheat(int temperature) {
+        // 触发过热事件
+        if (temperature >= maxTemperature * 1.2) { // 超过20%安全余量
+            metaTileEntity.doExplosion(GTUtility.getExplosionPower(
+                    (int)((temperature - maxTemperature) / 100.0f)
+            ));
+        } else {
+            // 只是警告，不爆炸
+            // 可以在这里添加粒子效果、声音等
+        }
     }
 
     public long getHeatCanBeInserted() {
@@ -337,11 +311,6 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
 
     public long getHeatCanBeExtracted() {
         return heatStored;
-    }
-
-    public interface IHeatChangeListener {
-        void onHeatChanged(IHeatable container, boolean isInitialChange);
-        default void onOverheat(int currentTemp, int maxTemp) {}
     }
 
     @Override
@@ -353,7 +322,6 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
                 ", maxTemperature=" + maxTemperature +
                 ", maxInputHeatFlow=" + maxInputHeatFlow +
                 ", maxOutputHeatFlow=" + maxOutputHeatFlow +
-                ", thermalConductivity=" + thermalConductivity +
                 '}';
     }
 }

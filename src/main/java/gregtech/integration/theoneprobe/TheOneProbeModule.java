@@ -13,6 +13,7 @@ import gregtech.integration.theoneprobe.provider.ConverterInfoProvider;
 import gregtech.integration.theoneprobe.provider.CoverInfoProvider;
 import gregtech.integration.theoneprobe.provider.DiodeInfoProvider;
 import gregtech.integration.theoneprobe.provider.ElectricContainerInfoProvider;
+import gregtech.integration.theoneprobe.provider.HeatContainerInfoProvider;
 import gregtech.integration.theoneprobe.provider.HeatPipeInfoProvider;
 import gregtech.integration.theoneprobe.provider.LDPipeProvider;
 import gregtech.integration.theoneprobe.provider.LampInfoProvider;
@@ -52,6 +53,7 @@ public class TheOneProbeModule extends IntegrationSubmodule {
         ITheOneProbe oneProbe = TheOneProbe.theOneProbeImp;
         oneProbe.registerProvider(new ElectricContainerInfoProvider());
         oneProbe.registerProvider(new HeatPipeInfoProvider());
+        oneProbe.registerProvider(new HeatContainerInfoProvider());
         oneProbe.registerProvider(new MultiblockThreadProvider());
         oneProbe.registerProvider(new WorkableInfoProvider());
         oneProbe.registerProvider(new ControllableInfoProvider());

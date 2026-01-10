@@ -155,6 +155,11 @@ gregtech.top.ld_pipe_output_endpoint=输出接口：
 gregtech.top.heat_pipe.temperature=温度：
 gregtech.top.heat_pipe.heat_transfer=热传导率：
 gregtech.top.heat_pipe.heat_loss=热损失/米：
+gregtech.top.heat.input=热能输入：
+gregtech.top.heat.output=热能输出：
+gregtech.top.heat.accept=可接受热能
+gregtech.top.heat.cannot_accept=无法接受热能
+gregtech.top.heat.can_output=可输出热能
 
 option.gregtech.block_ore=矿石
 option.gregtech.controllable=机器控制器

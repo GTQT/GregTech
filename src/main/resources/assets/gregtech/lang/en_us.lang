@@ -155,6 +155,11 @@ gregtech.top.ld_pipe_output_endpoint=Output Endpoint:
 gregtech.top.heat_pipe.temperature=Temperature:
 gregtech.top.heat_pipe.heat_transfer=Heat Transfer:
 gregtech.top.heat_pipe.heat_loss=Heat Loss per Block:
+gregtech.top.heat.input=Heat Input:
+gregtech.top.heat.output=Heat Output:
+gregtech.top.heat.accept=Can accept heat
+gregtech.top.heat.cannot_accept=Cannot accept heat
+gregtech.top.heat.can_output=Can output heat
 
 option.gregtech.block_ore=Ore Blocks
 option.gregtech.controllable=Controllable Machines
