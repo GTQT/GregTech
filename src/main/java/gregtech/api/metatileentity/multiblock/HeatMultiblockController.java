@@ -1,9 +1,10 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.capability.IHeatable;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.FluidTankList;
+import gregtech.api.capability.impl.HeatMultiblockRecipeLogic;
 import gregtech.api.capability.impl.ItemHandlerList;
-import gregtech.api.capability.impl.NoEnergyMultiblockRecipeLogic;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.TextFormattingUtil;
@@ -21,12 +22,18 @@ import gtqt.api.util.GTQTUtility;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockController{
+public abstract class HeatMultiblockController extends RecipeMapMultiblockController{
 
-    public NoEnergyMultiblockController(ResourceLocation metaTileEntityId,
-                                        RecipeMap<?> recipeMap) {
+    List<IHeatable> heatHatch;
+
+    public HeatMultiblockController(ResourceLocation metaTileEntityId,
+                                    RecipeMap<?> recipeMap) {
         super(metaTileEntityId,recipeMap);
-        this.recipeMapWorkable = new NoEnergyMultiblockRecipeLogic(this);
+        this.recipeMapWorkable = new HeatMultiblockRecipeLogic(this);
+    }
+
+    public List<IHeatable> getHeatHatch() {
+        return heatHatch;
     }
 
     @Override
@@ -50,6 +57,10 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
         outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
         outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
         this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
+
+        if(!getAbilities(MultiblockAbility.INPUT_HEAT).isEmpty())
+            heatHatch = getAbilities(MultiblockAbility.INPUT_HEAT);
+        else heatHatch = new ArrayList<>();
     }
 
     public TraceabilityPredicate autoAbilities(
@@ -61,7 +72,41 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
                                                boolean checkMuffler) {
         TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
 
+        predicate = predicate.or(abilities(MultiblockAbility.INPUT_HEAT).setPreviewCount(1).setMaxGlobalLimited(2));
 
+        if (checkItemIn || checkFluidIn) {
+            if (recipeMap.getMaxInputs() > 0 || recipeMap.getMaxFluidInputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.DUAL_IMPORT).setPreviewCount(1));
+            }
+        }
+        if (checkItemOut || checkFluidOut) {
+            if (recipeMap.getMaxOutputs() > 0 || recipeMap.getMaxFluidOutputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
+            }
+        }
+
+        predicate = predicate.or(abilities(MultiblockAbility.COMPLEX_DUAL).setPreviewCount(1));
+
+        if (checkItemIn) {
+            if (recipeMap.getMaxInputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
+            }
+        }
+        if (checkItemOut) {
+            if (recipeMap.getMaxOutputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1));
+            }
+        }
+        if (checkFluidIn) {
+            if (recipeMap.getMaxFluidInputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1));
+            }
+        }
+        if (checkFluidOut) {
+            if (recipeMap.getMaxFluidOutputs() > 0) {
+                predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
+            }
+        }
         return predicate;
     }
 

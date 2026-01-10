@@ -9,6 +9,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMould
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
@@ -53,6 +54,9 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
     public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
     public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[GTValues.V.length - 1];
+    public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[5];
+    public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[5];
+
 
     public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
@@ -178,6 +182,15 @@ public class GTQTMetaTileEntities {
             String voltageName = GTValues.VN[tier].toLowerCase();
             DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), tier);
             registerMetaTileEntity(2890 + i, DUST_COLLECTOR[i]);
+        }
+
+        // 热力输入输出仓
+        for (int i = 0; i < HEAT_INPUT_HATCH.length - 1; i++) {
+            String voltageName = GTValues.VN[i].toLowerCase();
+            HEAT_INPUT_HATCH[i] = new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false);
+            registerMetaTileEntity(2910 + i, HEAT_INPUT_HATCH[i]);
+            HEAT_OUTPUT_HATCH[i] = new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true);
+            registerMetaTileEntity(2915 + i, HEAT_OUTPUT_HATCH[i]);
         }
 
         //无线能源仓注册 ID 3000+

@@ -443,6 +443,12 @@ public class Textures {
             "overlay/machine/overlay_energy_out_max");
     public static final SimpleOverlayRenderer ENERGY_IN_MAX = new SimpleOverlayRenderer(
             "overlay/machine/overlay_energy_in_max");
+
+    public static final SimpleOverlayRenderer HEAT_IN = new SimpleOverlayRenderer(
+            "overlay/machine/heat_input/overlay_front");
+    public static final SimpleOverlayRenderer HEAT_OUT = new SimpleOverlayRenderer(
+            "overlay/machine/heat_export/overlay_front");
+
     public static final SimpleOverlayRenderer CONVEYOR_OVERLAY = new SimpleOverlayRenderer("cover/overlay_conveyor");
     public static final SimpleOverlayRenderer CONVEYOR_OVERLAY_INVERTED = new SimpleOverlayRenderer(
             "cover/overlay_conveyor_inverted");

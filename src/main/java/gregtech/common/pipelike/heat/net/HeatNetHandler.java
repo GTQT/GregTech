@@ -1,6 +1,7 @@
 package gregtech.common.pipelike.heat.net;
 
 import gregtech.api.capability.IHeatable;
+import gregtech.api.util.GTLog;
 import gregtech.common.pipelike.heat.tile.TileEntityHeatConductor;
 
 import net.minecraft.util.EnumFacing;
@@ -114,5 +115,12 @@ public class HeatNetHandler implements IHeatable {
     @Override
     public boolean canOutputHeat() {
         return true;
+    }
+
+
+    @Override
+    public long changeHeat(long heatToAdd) {
+        GTLog.logger.warn("Do not use changeHeat() for heat conductors directly! Use transferHeat() for heat transfer between blocks.");
+        return 0;
     }
 }

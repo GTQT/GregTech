@@ -12,6 +12,14 @@ public interface IHeatable {
     long transferHeat(long heatToTransfer);
 
     /**
+     * 改变当前存储的热量
+     *
+     * @param heatToAdd 要添加的热量（单位：HU - Heat Unit）
+     * @return 添加后的实际热量
+     */
+    long changeHeat(long heatToAdd);
+
+    /**
      * 获取当前温度
      *
      * @return 当前温度（开尔文）
@@ -74,20 +82,16 @@ public interface IHeatable {
     }
 
     /**
-     * 是否应该在TOP（The One Probe）中隐藏热信息
-     *
-     * @return 是否隐藏
-     */
-    default boolean isOneProbeHidden() {
-        return false;
-    }
-
-    /**
      * 默认实现 - 不进行任何热交互
      */
     IHeatable DEFAULT = new IHeatable() {
         @Override
         public long transferHeat(long heatToTransfer) {
+            return 0;
+        }
+
+        @Override
+        public long changeHeat(long heatToAdd) {
             return 0;
         }
 

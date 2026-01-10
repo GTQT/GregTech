@@ -1,6 +1,19 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.capability.*;
+import gregtech.api.capability.DualHandler;
+import gregtech.api.capability.IDataAccessHatch;
+import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IHPCAComponentHatch;
+import gregtech.api.capability.IHeatable;
+import gregtech.api.capability.ILaserContainer;
+import gregtech.api.capability.IMaintenanceHatch;
+import gregtech.api.capability.IMufflerHatch;
+import gregtech.api.capability.IObjectHolder;
+import gregtech.api.capability.IOpticalComputationHatch;
+import gregtech.api.capability.IOpticalDataAccessHatch;
+import gregtech.api.capability.IRotorHolder;
+import gregtech.api.capability.IThreadHatch;
+import gregtech.api.capability.IWirelessController;
 import gregtech.api.metatileentity.MetaTileEntity;
 
 import net.minecraftforge.fluids.IFluidTank;
@@ -32,6 +45,12 @@ public class MultiblockAbility<T> {
             "input_energy", IEnergyContainer.class);
     public static final MultiblockAbility<IEnergyContainer> OUTPUT_ENERGY = ability(
             "output_energy", IEnergyContainer.class);
+
+
+    public static final MultiblockAbility<IHeatable> INPUT_HEAT = ability(
+            "input_heat", IHeatable.class);
+    public static final MultiblockAbility<IHeatable> OUTPUT_HEAT = ability(
+            "output_heat", IHeatable.class);
 
     public static final MultiblockAbility<IEnergyContainer> SUBSTATION_INPUT_ENERGY = ability(
             "substation_input_energy", IEnergyContainer.class);
