@@ -12,6 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import lombok.Getter;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,8 +28,9 @@ public class HeatNet extends PipeNet<HeatConductorProperties> {
     private long heatFluxPerSec;
     private long lastTime;
 
-    // 网络温度管理 - 核心改动
+    @Getter
     private int networkTemperature = 293; // 默认室温
+
     private final Set<BlockPos> heatSources = new HashSet<>(); // 热源位置
     private final Map<BlockPos, Integer> heatSourceTemperatures = new HashMap<>(); // 热源温度
 
@@ -70,14 +72,6 @@ public class HeatNet extends PipeNet<HeatConductorProperties> {
     }
 
     // === 温度管理方法 ===
-
-    /**
-     * 获取网络当前温度
-     * @return 网络温度（K）
-     */
-    public int getNetworkTemperature() {
-        return networkTemperature;
-    }
 
     /**
      * 添加热源并更新网络温度

@@ -127,6 +127,8 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.glodblock.github.common.item.fake.FakeFluids;
 import com.glodblock.github.common.item.fake.FakeItemRegister;
+import com.glodblock.github.loader.FCItems;
+import com.glodblock.github.util.FluidPatternDetails;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -592,72 +594,159 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
     public List<ItemStack> createPatterns() {
         ArrayList<ItemStack> patterns = new ArrayList<>();
 
-        if (Objects.equals(input, "null") || Objects.equals(output, "null") || inputNumber == 0 || outputNumber == 0)
+        // 1. 基础验证
+        if (Objects.equals(input, "null") || Objects.equals(output, "null") ||
+                inputNumber <= 0 || outputNumber <= 0) {
             return patterns;
+        }
 
-        OrePrefix inputPrefix = OrePrefix.getPrefix(input);
-        OrePrefix outputPrefix = OrePrefix.getPrefix(output);
+        // 2. 获取OrePrefix (非流体时)
+        OrePrefix inputPrefix = null;
+        OrePrefix outputPrefix = null;
 
+        if (!input.equals("fluid")) {
+            inputPrefix = OrePrefix.getPrefix(input);
+            if (inputPrefix == null) return patterns;
+        }
+
+        if (!output.equals("fluid")) {
+            outputPrefix = OrePrefix.getPrefix(output);
+            if (outputPrefix == null) return patterns;
+        }
+
+        // ★ 核心：在调用层决策是否需要流体样板 ★
+        final boolean isFluidPattern = input.equals("fluid") || output.equals("fluid");
+
+        // 3. 材料过滤
         List<MaterialFlag> whiteTag = MaterialFlag.getFlagListByName(whiteTagList);
         List<MaterialFlag> blackTag = MaterialFlag.getFlagListByName(blackTagList);
 
-        if (inputPrefix == null || outputPrefix == null)
-            return patterns;
-
         for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
-            if(blackList.contains(material.toString()))continue;
-            if(!MaterialFlag.checkMaterialHasFlag(material,whiteTag,blackTag))continue;
-            ItemStack inputStack = OreDictUnifier.get(inputPrefix, material, inputNumber);
-            ItemStack outputStack = OreDictUnifier.get(outputPrefix, material, outputNumber);
-            if (inputStack == ItemStack.EMPTY || outputStack == ItemStack.EMPTY) continue;
-            patterns.add(virtualCraftingPattern(inputStack, outputStack, true));
-        }
+            // 3.1 黑名单过滤
+            if (blackList.contains(material.toString())) continue;
 
+            // 3.2 标签过滤
+            if (!MaterialFlag.checkMaterialHasFlag(material, whiteTag, blackTag)) continue;
+
+            // 3.3 获取输入/输出物品
+            ItemStack inputStack;
+            ItemStack outputStack;
+
+            if (input.equals("fluid")) {
+                if(!material.hasFluid())return patterns;
+                FluidStack fluid = material.getFluid(inputNumber);
+                inputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
+            } else {
+                inputStack = OreDictUnifier.get(inputPrefix, material, inputNumber);
+            }
+
+            if (output.equals("fluid")) {
+                if(!material.hasFluid())return patterns;
+                FluidStack fluid = material.getFluid(outputNumber);
+                outputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
+            } else {
+                outputStack = OreDictUnifier.get(outputPrefix, material, outputNumber);
+            }
+
+            // 3.4 有效性检查
+            if (inputStack.isEmpty() || outputStack.isEmpty()) continue;
+
+            // ★ 直接传递决策结果 ★
+            patterns.add(virtualCraftingPattern(inputStack, outputStack, true, isFluidPattern));
+        }
         return patterns;
     }
 
-    private ItemStack virtualCraftingPattern(ItemStack input, ItemStack output, boolean substitute) {
-        // 1. 准备输入/输出数组 (AE2要求9输入槽+3输出槽)
+    private ItemStack virtualCraftingPattern(
+            ItemStack input,
+            ItemStack output,
+            boolean substitute,
+            boolean isFluidPattern
+    ) {
+        // 1. 准备槽位 (AE2标准布局)
         ItemStack[] inputs = new ItemStack[9];
         ItemStack[] outputs = new ItemStack[3];
 
-        // 主输入/输出 (槽位0)
-        inputs[0] = input.copy();   // 主输入
-        outputs[0] = output.copy(); // 主输出
+        // 1.1 主槽位
+        inputs[0] = input.copy();
+        outputs[0] = output.copy();
 
-        // 填充额外输入 (槽位1-8)
+        // 1.2 额外输入 (槽位1-8)
         for (int i = 0; i < 8 && i < extraInput.getSlots(); i++) {
-            inputs[i + 1] = extraInput.getStackInSlot(i).copy();
+            ItemStack extra = extraInput.getStackInSlot(i);
+            if (!extra.isEmpty()) inputs[i + 1] = extra.copy();
         }
 
-        // 填充额外输出 (槽位1-2)
+        // 1.3 额外输出 (槽位1-2)
         for (int i = 0; i < 2 && i < extraOutput.getSlots(); i++) {
-            outputs[i + 1] = extraOutput.getStackInSlot(i).copy();
+            ItemStack extra = extraOutput.getStackInSlot(i);
+            if (!extra.isEmpty()) outputs[i + 1] = extra.copy();
         }
 
+        // 2. 无条件执行决策
+        return isFluidPattern ?
+                createFluidPattern(inputs, outputs) :
+                createStandardPattern(inputs, outputs, substitute);
+    }
+
+    // 创建流体样板 (处理模式)
+    private ItemStack createFluidPattern(ItemStack[] inputs, ItemStack[] outputs) {
+        // 1. 创建流体样板
+        ItemStack patternStack = new ItemStack(FCItems.DENSE_ENCODED_PATTERN);
+        FluidPatternDetails pattern = new FluidPatternDetails(patternStack);
+
+        // 2. 设置槽位数据
+        pattern.setInputs(collectInventory(inputs));
+        pattern.setOutputs(collectInventory(outputs));
+
+        return pattern.writeToStack();
+    }
+
+    // 创建标准物品样板
+    private ItemStack createStandardPattern(
+            ItemStack[] inputs,
+            ItemStack[] outputs,
+            boolean substitute
+    ) {
+        // 1. 构建NBT
         NBTTagCompound tag = new NBTTagCompound();
         NBTTagList inTag = new NBTTagList();
         NBTTagList outTag = new NBTTagList();
 
-        for (final ItemStack i : inputs) {
-            inTag.appendTag(createItemTag(i));
-        }
-
-        for (final ItemStack i : outputs) {
-            outTag.appendTag(createItemTag(i));
-        }
+        for (ItemStack i : inputs) inTag.appendTag(createItemTag(i));
+        for (ItemStack i : outputs) outTag.appendTag(createItemTag(i));
 
         tag.setTag("in", inTag);
         tag.setTag("out", outTag);
-        tag.setBoolean("crafting", false);
+        tag.setBoolean("crafting", false);  // 处理模式
         tag.setBoolean("substitute", substitute);
 
-        Optional<ItemStack> maybePattern = AEApi.instance().definitions().items().encodedPattern().maybeStack(1);
-        output = maybePattern.get();
+        // 2. 获取样板原型
+        Optional<ItemStack> maybePattern = AEApi.instance()
+                .definitions()
+                .items()
+                .encodedPattern()
+                .maybeStack(1);
 
-        output.setTagCompound(tag);
+        if (!maybePattern.isPresent()) {
+            GTLog.logger.error("Standard pattern item not found! Is AE2 loaded?");
+            return ItemStack.EMPTY;
+        }
 
-        return output;
+        // 3. 注入NBT
+        ItemStack patternStack = maybePattern.get();
+        patternStack.setTagCompound(tag);
+        return patternStack;
+    }
+
+    private static IAEItemStack[] collectInventory(ItemStack[] slots) {
+        List<IAEItemStack> acc = new ArrayList<>();
+        for (ItemStack stack : slots) {
+            if (stack == null || stack == ItemStack.EMPTY) continue;
+            IAEItemStack aeStack = AEItemStack.fromItemStack(stack);
+            if (aeStack != null) acc.add(aeStack);
+        }
+        return acc.toArray(new IAEItemStack[0]);
     }
 
     NBTBase createItemTag(final ItemStack i) {
@@ -820,7 +909,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         IntSyncValue inputNumberValue = new IntSyncValue(
                 () -> inputNumber,
                 num -> {
-                    if (num >= 1 && num <= 64) this.inputNumber = num; // 堆叠大小限制
+                    if (num >= 1) this.inputNumber = num; // 堆叠大小限制
                 }
         );
 
@@ -836,7 +925,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         IntSyncValue outputNumberValue = new IntSyncValue(
                 () -> outputNumber,
                 num -> {
-                    if (num >= 1 && num <= 64) this.outputNumber = num;
+                    if (num >= 1) this.outputNumber = num;
                 }
         );
 
@@ -875,7 +964,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
                     if (str.isEmpty()) return "1";
                     try {
                         int num = Integer.parseInt(str);
-                        return String.valueOf(Math.min(64, Math.max(1, num))); // 自动钳制范围
+                        return String.valueOf(Math.max(1, num)); // 自动钳制范围
                     } catch (NumberFormatException e) {
                         return "0"; // 保持当前值
                     }
@@ -914,7 +1003,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
                     if (str.isEmpty()) return "1";
                     try {
                         int num = Integer.parseInt(str);
-                        return String.valueOf(Math.min(64, Math.max(1, num)));
+                        return String.valueOf(Math.max(1, num));
                     } catch (NumberFormatException e) {
                         return "0";
                     }
