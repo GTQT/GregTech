@@ -1,9 +1,13 @@
 package gregtech.common.items.behaviors;
 
+import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.util.GTUtility;
 
@@ -16,24 +20,43 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.factory.HandGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class MultiblockBuilderBehavior implements IItemBehaviour {
+public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory {
+
+    int tier = 0;
 
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
                                            float hitY, float hitZ, EnumHand hand) {
         // Initial checks
         TileEntity tileEntity = world.getTileEntity(pos);
-        if (!(tileEntity instanceof IGregTechTileEntity)) return EnumActionResult.PASS;
+        if (!(tileEntity instanceof IGregTechTileEntity)) {
+            if (!world.isRemote) {
+                MetaItemGuiFactory.open(player, hand);
+            }
+            return EnumActionResult.SUCCESS;
+        }
         MetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
         if (!(mte instanceof MultiblockControllerBase multiblock)) return EnumActionResult.PASS;
         if (!player.canPlayerEdit(pos, side, player.getHeldItem(hand))) return EnumActionResult.FAIL;
@@ -43,7 +66,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
             // If sneaking, try to build the multiblock.
             // Only try to auto-build if the structure is not already formed
             if (!multiblock.isStructureFormed()) {
-                multiblock.structurePattern.autoBuild(player, multiblock);
+                multiblock.structurePattern.autoBuild(player, multiblock,tier);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -81,5 +104,97 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         lines.add(I18n.format("metaitem.tool.multiblock_builder.tooltip2"));
+        if(tier==0)
+            lines.add(I18n.format("构建结构：最大等级"));
+        else if(tier==1)
+            lines.add(I18n.format("构建结构：最小等级"));
+        else
+            lines.add(I18n.format("构建结构：" + tier));
+    }
+
+    @Override
+    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        var panel = GTGuis.createPanel(guiData.getUsedItemStack(), 176, 100);
+
+        IntSyncValue tierValue = new IntSyncValue(
+                this::getTier,
+                this::setTier
+        );
+
+        StringSyncValue formattedUpdateTime = new StringSyncValue(()->{
+            if(tierValue.getValue()==0)return "等级：MAX";
+            return "等级：" + tierValue.getValue();
+        });
+
+        guiSyncManager.syncValue("tier_value", tierValue);
+
+        return panel.child(IKey.lang("多方块构建器").asWidget().pos(5, 5))
+                .child(new TextFieldWidget()
+                        .widthRel(0.8f)
+                        .pos(15,17)
+                        .height(20)
+                        .setTextColor(Color.WHITE.darker(1))
+                        .value(formattedUpdateTime)
+                        .background(GTGuiTextures.DISPLAY)
+                )
+                .child(Flow.row()
+                        .pos(15,42)
+                        .widthRel(0.8f)
+                        .height(36+9)
+                        .child(new ButtonWidget<>()
+                                .left(0).width(60)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("当前可重复的通道重复次数-1（只有当前可重复通道达到最小重复次数时恢复下一个通道）")))
+                                .onMousePressed(mouseButton -> {
+                                    tierValue.setValue(MathHelper.clamp(
+                                            tierValue.getValue() -1, 0,
+                                            100));
+                                    return true;
+                                })
+                                .onUpdateListener(w-> w.overlay(IKey.str("减小等级")))
+                        )
+                        .child(new ButtonWidget<>()
+                                .left(80).width(60)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("当前可重复的通道重复次数+1（只有当前可重复通道达到最大重复次数时重复下一个通道）")))
+                                .onMousePressed(mouseButton -> {
+                                    tierValue.setValue(MathHelper.clamp(
+                                            tierValue.getValue() +1, 0,
+                                            100));
+                                    return true;
+                                })
+                                .onUpdateListener(w-> w.overlay(IKey.str("增大等级")))
+                        )
+                        .child(new ButtonWidget<>()
+                                .top(27)
+                                .left(0).width(60)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("每个通道只重复一次")))
+                                .onMousePressed(mouseButton -> {
+                                    tierValue.setValue(1);
+                                    return true;
+                                })
+                                .onUpdateListener(w-> w.overlay(IKey.str("最小等级")))
+                        )
+                        .child(new ButtonWidget<>()
+                                .top(27)
+                                .left(80).width(60)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("每个通道重复最大次数")))
+                                .onMousePressed(mouseButton -> {
+                                    tierValue.setValue(0);
+                                    return true;
+                                })
+                                .onUpdateListener(w-> w.overlay(IKey.str("最大等级")))
+                        )
+                );
+    }
+
+    private void setTier(int newTier) {
+        tier = newTier;
+    }
+
+    private int getTier() {
+        return tier;
     }
 }

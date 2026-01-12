@@ -306,7 +306,59 @@ public class BlockPattern {
         return matchContext;
     }
 
-    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase) {
+    /**
+     * 根据全局等级计算每个通道的实际重复次数
+     *
+     * @param tier 全局等级:
+     *             <ul>
+     *             <li>{@code tier <= 0} = 最大规模 (所有通道取最大值)</li>
+     *             <li>{@code tier = 1} = 最小规模 (所有通道取最小值)</li>
+     *             <li>{@code tier >= 2} = 逐步扩展 (按z轴顺序填充可变通道)</li>
+     *             </ul>
+     * @return 每个通道的实际重复次数数组
+     */
+    public int[] calculateRepetitionsByTier(int tier) {
+        int[] repetitions = new int[aisleRepetitions.length];
+
+        // tier=0 直接返回最大规模
+        if (tier <= 0) {
+            for (int i = 0; i < aisleRepetitions.length; i++) {
+                repetitions[i] = aisleRepetitions[i][1];
+            }
+            return repetitions;
+        }
+
+        // tier=1 返回最小规模
+        if (tier == 1) {
+            for (int i = 0; i < aisleRepetitions.length; i++) {
+                repetitions[i] = aisleRepetitions[i][0];
+            }
+            return repetitions;
+        }
+
+        // 初始化为最小重复次数
+        for (int i = 0; i < aisleRepetitions.length; i++) {
+            repetitions[i] = aisleRepetitions[i][0];
+        }
+
+        // 按通道顺序分配增量 (tier-1)
+        int remaining = tier - 1;
+        for (int i = 0; i < aisleRepetitions.length && remaining > 0; i++) {
+            int min = aisleRepetitions[i][0];
+            int max = aisleRepetitions[i][1];
+            int increment = Math.min(max - min, remaining);
+            repetitions[i] += increment;
+            remaining -= increment;
+        }
+
+        return repetitions;
+    }
+
+    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase){
+        autoBuild(player, controllerBase,1);
+    }
+
+    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,int tier) {
         World world = player.world;
         BlockWorldState worldState = new BlockWorldState();
         int minZ = -centerOffset[4];
@@ -316,8 +368,11 @@ public class BlockPattern {
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, Object> blocks = new HashMap<>();
         blocks.put(controllerBase.getPos(), controllerBase);
+
+        int[] repetitions = calculateRepetitionsByTier(tier);
+
         for (int c = 0, z = minZ++, r; c < this.fingerLength; c++) {
-            for (r = 0; r < aisleRepetitions[c][0]; r++) {
+            for (r = 0; r < repetitions[c]; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
                 for (int b = 0, y = -centerOffset[1]; b < this.thumbLength; b++, y++) {
                     for (int a = 0, x = -centerOffset[0]; a < this.palmLength; a++, x++) {
@@ -501,10 +556,11 @@ public class BlockPattern {
             }
         });
     }
+
     /**
-     * 获取结构中所有方块的位置和信息
+     * 获取结构中所有方块的位置和信息（基于实际构建的缓存）
      *
-     * @param world 世界对象
+     * @param world 世界对象（仅用于验证缓存有效性，可为空）
      * @param centerPos 结构中心位置(控制器位置)
      * @param frontFacing 朝向
      * @param upwardsFacing 向上朝向
@@ -515,32 +571,57 @@ public class BlockPattern {
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
         Map<BlockPos, BlockInfo> blocks = new HashMap<>();
-        int minZ = -this.centerOffset[4];
 
-        // 遍历所有可能的结构位置
+        // 1. 优先使用缓存数据（实际构建的结构）
+        if (!cache.isEmpty()) {
+            cache.forEach((posLong, blockInfo) -> {
+                BlockPos pos = BlockPos.fromLong(posLong);
+                // 跳过控制器位置
+                if (pos.equals(centerPos)) return;
+
+                // 2. 验证缓存有效性（可选）
+                if (world != null && !world.isBlockLoaded(pos)) {
+                    return; // 跳过未加载区块
+                }
+
+                // 3. 过滤空气方块（保持与原逻辑一致）
+                if (blockInfo.getBlockState().getBlock() != Blocks.AIR) {
+                    blocks.put(pos, blockInfo);
+                }
+            });
+            return blocks;
+        }
+
+        // 4. 回退逻辑：当缓存为空时（结构未形成），使用最小等级
+        int minZ = -this.centerOffset[4];
         for (int c = 0, z = minZ, r; c < this.fingerLength; c++) {
-            for (r = 0; r < this.aisleRepetitions[c][0]; r++) {
+            // 使用实际形成的重复次数（如果已检查）或最小重复次数
+            int repetitions = (formedRepetitionCount != null && c < formedRepetitionCount.length)
+                    ? formedRepetitionCount[c]
+                    : aisleRepetitions[c][0];
+
+            for (r = 0; r < repetitions; r++) {
                 for (int b = 0, y = -this.centerOffset[1]; b < this.thumbLength; b++, y++) {
                     for (int a = 0, x = -this.centerOffset[0]; a < this.palmLength; a++, x++) {
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(
                                         x, y, z, frontFacing, upwardsFacing, isFlipped, this.structureDir)
-                                .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+                                .add(centerPos);
 
-                        if (pos.equals(centerPos)) continue; // 跳过排除的位置
+                        if (pos.equals(centerPos)) continue;
 
-                        TileEntity tileEntity = world.getTileEntity(pos);
-                        IBlockState blockState = world.getBlockState(pos);
+                        if (world != null && world.isBlockLoaded(pos)) {
+                            TileEntity tileEntity = world.getTileEntity(pos);
+                            IBlockState blockState = world.getBlockState(pos);
 
-                        // 记录所有非空气方块
-                        if (blockState.getBlock() != Blocks.AIR) {
-                            blocks.put(pos, new BlockInfo(blockState, tileEntity));
+                            if (blockState.getBlock() != Blocks.AIR) {
+                                blocks.put(pos, new BlockInfo(blockState, tileEntity));
+                            }
                         }
                     }
                 }
                 z++;
             }
         }
-
         return blocks;
     }
 

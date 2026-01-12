@@ -157,7 +157,6 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
 
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
-    private static final int BASE_TANK_SIZE = 8000;
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
             .asIcon().size(16);
     private final IDrawable FILTER = new ItemDrawable(Items.PAPER)
@@ -203,7 +202,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
     public MetaTileEntityHugeMEOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
         this.numSlots = getTier();
-        this.tankSize = BASE_TANK_SIZE * (1 << tier) / (numSlots == 4 ? 4 : 8);
+        this.tankSize = Integer.MAX_VALUE;
         FluidTank[] fluidsHandlers = new FluidTank[numSlots];
         for (int i = 0; i < fluidsHandlers.length; i++) {
             fluidsHandlers[i] = new NotifiableFluidTank(tankSize, this, false);
