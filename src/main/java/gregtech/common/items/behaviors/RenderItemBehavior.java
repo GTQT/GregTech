@@ -1,6 +1,5 @@
 package gregtech.common.items.behaviors;
 
-import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
@@ -54,10 +53,10 @@ public class RenderItemBehavior implements IItemBehaviour {
 
             // 每20tick且按住Shift时刷新预览
             if (player.isSneaking() && player.world.getWorldTime() % 20 == 0) {
-                MultiblockPreviewRenderer.renderMultiBlockPreview(controller, renderPos, 60000);
+                MultiblockPreviewRenderer.renderMultiBlockPreviewByTier(controller, renderPos, 60000);
                 player.sendMessage(new TextComponentString("正在预览下一等级"));
             } else if (isFollowing) {
-                MultiblockPreviewRenderer.renderMultiBlockPreview(controller, renderPos, 0, 60000);
+                MultiblockPreviewRenderer.renderMultiBlockPreviewByTier(controller, renderPos,0, 60000);
             }
         }
     }

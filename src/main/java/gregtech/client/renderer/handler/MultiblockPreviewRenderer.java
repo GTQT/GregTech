@@ -9,7 +9,11 @@ import gregtech.client.utils.TrackedDummyWorld;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.BlockRendererDispatcher;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GLAllocation;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
@@ -97,7 +101,28 @@ public class MultiblockPreviewRenderer {
         }
         GlStateManager.glEndList();
     }
-    public static void renderMultiBlockPreview(MultiblockControllerBase controller,BlockPos pos ,long durTimeMillis) {
+
+    public static void renderMultiBlockPreviewByTier(MultiblockControllerBase controller, BlockPos pos,
+                                                     long durTimeMillis) {
+        if (!controller.getPos().equals(mbpPos)) {
+            tier = 0;
+        } else {
+            if (mbpEndTime - System.currentTimeMillis() < 200) return;
+            tier++;
+        }
+        resetMultiblockRender();
+        mbpPos = controller.getPos();
+        mbpEndTime = System.currentTimeMillis() + durTimeMillis;
+        opList = GLAllocation.generateDisplayLists(1); // allocate op list
+        GlStateManager.glNewList(opList, GL11.GL_COMPILE);
+        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+        if (!shapes.isEmpty())
+            renderControllerInList(controller, shapes.get(Math.min(tier, shapes.size() - 1)), 0, pos);
+        if (tier >= shapes.size() - 1) tier = 0;
+        GlStateManager.glEndList();
+    }
+
+    public static void renderMultiBlockPreview(MultiblockControllerBase controller, BlockPos pos, long durTimeMillis) {
         if (!controller.getPos().equals(mbpPos)) {
             layer = 0;
         } else {
@@ -113,7 +138,22 @@ public class MultiblockPreviewRenderer {
         if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer, pos);
         GlStateManager.glEndList();
     }
-    public static void renderMultiBlockPreview(MultiblockControllerBase controller,BlockPos pos,int layer,long durTimeMillis) {
+
+    public static void renderMultiBlockPreviewByTier(MultiblockControllerBase controller, BlockPos pos, int tier,
+                                                     long durTimeMillis) {
+        resetMultiblockRender();
+        mbpPos = controller.getPos();
+        mbpEndTime = System.currentTimeMillis() + durTimeMillis;
+        opList = GLAllocation.generateDisplayLists(1); // allocate op list
+        GlStateManager.glNewList(opList, GL11.GL_COMPILE);
+        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+        if (!shapes.isEmpty())
+            renderControllerInList(controller, shapes.get(Math.min(tier, shapes.size() - 1)), layer, pos);
+        GlStateManager.glEndList();
+    }
+
+    public static void renderMultiBlockPreview(MultiblockControllerBase controller, BlockPos pos, int layer,
+                                               long durTimeMillis) {
         resetMultiblockRender();
         mbpPos = controller.getPos();
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
@@ -123,6 +163,7 @@ public class MultiblockPreviewRenderer {
         if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer, pos);
         GlStateManager.glEndList();
     }
+
     public static void resetMultiblockRender() {
         mbpPos = null;
         mbpEndTime = 0;
@@ -229,8 +270,9 @@ public class MultiblockPreviewRenderer {
 
         GlStateManager.popMatrix();
     }
+
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
-                                              int layer , BlockPos targetPos) {
+                                              int layer, BlockPos targetPos) {
         EnumFacing frontFacing, previewFacing;
         previewFacing = controllerBase.getFrontFacing();
         BlockPos controllerPos = BlockPos.ORIGIN;
@@ -326,6 +368,7 @@ public class MultiblockPreviewRenderer {
 
         GlStateManager.popMatrix();
     }
+
     @SideOnly(Side.CLIENT)
     private static class TargetBlockAccess implements IBlockAccess {
 
