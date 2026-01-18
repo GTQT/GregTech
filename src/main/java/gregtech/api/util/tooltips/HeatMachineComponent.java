@@ -8,16 +8,17 @@ import net.minecraft.util.text.TextFormatting;
 
 import java.util.List;
 
-public class SteamMachineComponent extends AbstractTooltipComponent {
+public class HeatMachineComponent extends AbstractTooltipComponent {
     private final int parallel;
-    public SteamMachineComponent(int parallel) {
+    public HeatMachineComponent(int parallel) {
         this.parallel = parallel;
     }
     @Override
     public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
-        tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.steam_available"));
-        tooltip.add(I18n.format("gregtech.multiblock.steam_.duration_modifier"));
+        tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.heat_mte_available"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.parallel", parallel));
-        tooltip.add(TooltipHelper.BLINKING_ORANGE + I18n.format("gregtech.multiblock.require_steam_parts"));
+        tooltip.add(I18n.format("gregtech.multiblock.heat_multiblock.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.multiblock.heat_multiblock.tooltip.2"));
+        tooltip.add(TooltipHelper.BLINKING_ORANGE + I18n.format("gregtech.multiblock.require_heat_parts"));
     }
 }

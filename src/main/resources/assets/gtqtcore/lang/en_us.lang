@@ -370,6 +370,27 @@ gregtech.machine.dust_collector.max.name=MAX Dust Collector
 gregtech.machine.dust_collector.tooltip.1=Collect ashes from the Muffler Hatch
 gregtech.machine.dust_collector.tooltip.2=It is allowed to be installed in front of the anechoic chamber without affecting the detection of the Muffler Hatch
 
+gregtech.machine.heat_input_hatch.ulv.name=§8ULV§r Heat Sink Hatch
+gregtech.machine.heat_input_hatch.lv.name=§7LV§r Heat Sink Hatch
+gregtech.machine.heat_input_hatch.mv.name=§bMV§r Heat Sink Hatch
+gregtech.machine.heat_input_hatch.hv.name=§6HV§r Heat Sink Hatch
+gregtech.machine.heat_input_hatch.ev.name=§5EV§r Heat Sink Hatch
+
+gregtech.machine.heat_hatch.input.tooltip=Inputs heat for multiblock structures
+
+gregtech.machine.heat_output_hatch.ulv.name=§8ULV§r Heat Source Hatch
+gregtech.machine.heat_output_hatch.lv.name=§7LV§r Heat Source Hatch
+gregtech.machine.heat_output_hatch.mv.name=§bMV§r Heat Source Hatch
+gregtech.machine.heat_output_hatch.hv.name=§6HV§r Heat Source Hatch
+gregtech.machine.heat_output_hatch.ev.name=§5EV§r Heat Source Hatch
+
+gregtech.machine.heat_hatch.output.tooltip=Outputs heat from multiblock structures
+
+gregtech.universal.tooltip.heat_in_till=§cMax Heat Input: §f%,d HU
+gregtech.universal.tooltip.heat_out_till=§cMax Heat Output: §f%,d HU
+gregtech.universal.tooltip.heat_storage_capacity=§bHeat Storage: §f%,d HU
+gregtech.universal.tooltip.max_temperature=§eMax Temperature: §f%,d K
+
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
 gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy

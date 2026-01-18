@@ -761,7 +761,8 @@ public class GTGuiTextures {
             "textures/gui/progress_bar/progress_bar_turbine_rotor_durability.png", 62, 14);
     public static final UITexture PROGRESS_BAR_FLUID_RIG_DEPLETION = progressBar(
             "textures/gui/progress_bar/progress_bar_fluid_rig_depletion.png", 190, 14);
-
+    public static final UITexture PROGRESS_BAR_HEAT_TEMP = progressBar(
+            "textures/gui/progress_bar/progress_bar_heat_temp.png", 190, 14);
     // MISC
     public static final UITexture RGB_GRADIENT = fullImage("textures/gui/widget/rgb_gradient.png");
 

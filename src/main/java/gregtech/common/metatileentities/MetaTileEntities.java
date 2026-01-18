@@ -808,12 +808,12 @@ public class MetaTileEntities {
         //回收机 IDs 890-905 RECYCLER
         registerSimpleMetaTileEntity(RECYCLER, 890, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY, true);
 
-        // Chunk Miner, IDs 920-934
+        // Chunk Miner, IDs 920-922
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
         MINER[1] = registerMetaTileEntity(921, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
         MINER[2] = registerMetaTileEntity(922, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
 
-        // Buffers, IDs 1510-1514
+        // Buffers, IDs 930-934
         BUFFER[0] = registerMetaTileEntity(930, new MetaTileEntityBuffer(gregtechId("buffer.lv"), 1));
         BUFFER[1] = registerMetaTileEntity(931, new MetaTileEntityBuffer(gregtechId("buffer.mv"), 2));
         BUFFER[2] = registerMetaTileEntity(932, new MetaTileEntityBuffer(gregtechId("buffer.hv"), 3));
@@ -1055,10 +1055,9 @@ public class MetaTileEntities {
             SUBSTATION_ENERGY_OUTPUT_HATCH[i] = registerMetaTileEntity(1405 + i,
                     new MetaTileEntitySubstationEnergyHatch(gregtechId("substation_hatch.output_64a." + voltageName), i,
                             64, true));
-
         }
 
-        // Transformer, IDs 1420-1469
+        // Transformer, IDs 1420-1464
         endPos = GregTechAPI.isHighTier() ? TRANSFORMER.length - 1 : Math.min(TRANSFORMER.length - 1, GTValues.UV);
         for (int i = 0; i <= endPos; i++) {
             // 1A <-> 4A

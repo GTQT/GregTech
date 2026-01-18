@@ -36,6 +36,11 @@ public class TooltipBuilder {
         return this;
     }
 
+    public TooltipBuilder addHeatMachine(int parallel) {
+        components.add(new HeatMachineComponent(parallel));
+        return this;
+    }
+
     public TooltipBuilder addRecipe(RecipeMap<?> recipeMap) {
         components.add(new RecipeComponent(recipeMap));
         return this;

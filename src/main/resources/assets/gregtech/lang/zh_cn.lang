@@ -6230,6 +6230,12 @@ gregtech.tooltip.laser_hatch.tooltips=本设备支持使用激光仓代替能源
 gregtech.tooltip.heat_available=-温度增幅效果:
 gregtech.tooltip.coil_available=-线圈增幅效果:
 gregtech.tooltip.special_available=-特殊配方逻辑:
+gregtech.tooltip.steam_available=-蒸汽多方块:
+
+gregtech.tooltip.heat_mte_available=-热力多方块:
+gregtech.multiblock.heat_multiblock.tooltip.1=温度每高出配方需求温度200k,配方耗时减少10%%（乘算）
+gregtech.multiblock.heat_multiblock.tooltip.2=配方最低需求热量7HU/t，配方最低需求温度373K
+gregtech.multiblock.require_heat_parts=只需要热阱仓来输入热量，无需消耗蒸汽或电力！
 
 gregtech.machine.maintenance_hatch.name=维护仓
 gregtech.machine.maintenance_hatch.tooltip=用于维护多方块结构
@@ -6963,6 +6969,9 @@ gregtech.multiblock.large_boiler.heat_time_tooltip=§7需要§f%d秒§7预热
 gregtech.multiblock.large_boiler.explosion_tooltip=无水时提供燃料将爆炸
 gregtech.multiblock.large_boiler.water_bar_hover=§7供水量：§9%,d / %,d L
 gregtech.multiblock.large_boiler.no_water=§e缺水！
+
+gregtech.multiblock.heat_multiblock.heat_bar_hover=§7供热量：§c%,d / %,d HU
+gregtech.multiblock.heat_multiblock.no_heat=§e缺热！
 
 gregtech.multiblock.miner.neither_mode=区块对齐模式：§c禁用§r/n精准采集模式：§c禁用§r/n§7机器必须在闲置状态下切换。
 gregtech.multiblock.miner.chunk_mode=区块对齐模式：§a启用§r/n精准采集模式：§c禁用§r/n§7机器必须在闲置状态下切换。

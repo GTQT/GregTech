@@ -1,7 +1,6 @@
 package gregtech.api.capability.impl;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.IHeatable;
 import gregtech.api.metatileentity.multiblock.HeatMultiblockController;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.logic.OCParams;
@@ -19,6 +18,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     int recipeHeat;
     int recipeTemperature;
+    HeatMultiblockController metaTileEntity;
 
     /**
      * 热量系统有两个参数
@@ -29,6 +29,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     public HeatMultiblockRecipeLogic(HeatMultiblockController tileEntity) {
         super(tileEntity);
+        metaTileEntity = tileEntity;
     }
 
     @Override
@@ -75,14 +76,17 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @MustBeInvokedByOverriders
     protected void setupRecipe(@NotNull Recipe recipe) {
         super.setupRecipe(recipe);
-        recipeHeat = recipe.getProperty(HeatProperty.getInstance(), 0);
-        recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 0);
+        //最低写7，对应ULV
+        recipeHeat = recipe.getProperty(HeatProperty.getInstance(), 25);
+        //起码100°
+        recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 373);
     }
 
     @MustBeInvokedByOverriders
     protected void completeRecipe() {
         super.completeRecipe();
         recipeHeat = 0;
+        recipeTemperature = 373;
     }
 
     @NotNull
@@ -104,7 +108,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe) {
         recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 0);
-        if (getTemperature() >= recipeTemperature)
+        if (metaTileEntity.getTemperature() >= recipeTemperature)
             return super.checkRecipe(recipe);
         return false;
     }
@@ -139,9 +143,9 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
         recipeHeat = appendEfficiency(recipeHeat);
         // this should be the ONLY time eut is negative!
         if (consumesHeat()) recipeHeat = -recipeHeat;
-        long resultHeat = getHeatStored() + recipeHeat;
-        if (resultHeat >= 0L && resultHeat <= getHeatCapacity()) {
-            if (!simulate) changeHeat(recipeHeat);
+        long resultHeat = metaTileEntity.getHeatStored() + recipeHeat;
+        if (resultHeat >= 0L && resultHeat <= metaTileEntity.getHeatCapacity()) {
+            if (!simulate) metaTileEntity.changeHeat(recipeHeat);
             return true;
         } else return false;
     }
@@ -150,48 +154,12 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
         return true;
     }
 
-    private void changeHeat(long recipeEUt) {
-        HeatMultiblockController controller = (HeatMultiblockController) metaTileEntity;
-        if (controller.getHeatHatch() != null) return;
-        controller.getHeatHatch()
-                .forEach(hatch -> hatch.changeHeat(recipeEUt));
-
-    }
-
-    private long getHeatStored() {
-        HeatMultiblockController controller = (HeatMultiblockController) metaTileEntity;
-        if (controller.getHeatHatch() != null) return 0;
-        return controller.getHeatHatch()
-                .stream()
-                .mapToLong(IHeatable::getHeatStored)
-                .sum();
-    }
-
-    private long getHeatCapacity() {
-        HeatMultiblockController controller = (HeatMultiblockController) metaTileEntity;
-        if (controller.getHeatHatch() != null) return 0;
-        return controller.getHeatHatch()
-                .stream()
-                .mapToLong(IHeatable::getHeatCapacity)
-                .sum();
-    }
-
-    private int getTemperature() {
-        HeatMultiblockController controller = (HeatMultiblockController) metaTileEntity;
-        if (controller.getHeatHatch() != null) return 0;
-        return controller.getHeatHatch()
-                .stream()
-                .mapToInt(IHeatable::getTemperature)
-                .max()
-                .orElse(0);
-    }
-
     @Override
     protected void modifyOverclockPost(@NotNull OCResult ocResult, @NotNull RecipePropertyStorage storage) {
         super.modifyOverclockPost(ocResult, storage);
 
         // 每高出200k，耗时*90%一次
-        int currentTemperature = getTemperature();
+        int currentTemperature = metaTileEntity.getTemperature();
 
         if (currentTemperature > recipeTemperature) {
             int excessTemperature = currentTemperature - recipeTemperature;

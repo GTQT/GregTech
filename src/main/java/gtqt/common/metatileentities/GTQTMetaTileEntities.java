@@ -31,7 +31,8 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityME
 
 import static gregtech.api.GTValues.VN;
 import static gregtech.api.util.GTUtility.gregtechId;
-import static gregtech.api.util.Mods.Names.BETTER_QUESTING;
+import static gregtech.api.util.Mods.Names.FORESTRY;
+import static gregtech.api.util.Mods.Names.FTB_LIB;
 import static gregtech.common.metatileentities.MetaTileEntities.registerMetaTileEntity;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
@@ -95,6 +96,7 @@ public class GTQTMetaTileEntities {
 
     public static final MetaTileEntityWirelessController[] WIRELESS_CONTROLLERS = new MetaTileEntityWirelessController[15];
     public static final SimpleMachineMetaTileEntity[] BEE_ATTRACTORS = new SimpleMachineMetaTileEntity[15];
+
     //从2500开始写 与gtceu本体共用一个注册表
     //任务：GTQT内不方便写的内容转移到这里来写
     //例如 高等级的能源仓 激光仓等等
@@ -169,7 +171,7 @@ public class GTQTMetaTileEntities {
         }
 
         // ME Muffler Hatches, IDs 2875-2890
-        for (int i = 0; i < ME_MUFFLER_HATCH.length - 1; i++) {
+        for (int i = 0; i < ME_MUFFLER_HATCH.length; i++) {
             int tier = i+1;
             String voltageName = GTValues.VN[tier].toLowerCase();
             ME_MUFFLER_HATCH[i] = new MetaTileEntityMEMufflerHatch(gregtechId("me_muffler_hatch." + voltageName), tier);
@@ -177,15 +179,14 @@ public class GTQTMetaTileEntities {
         }
 
         // Dust Collector, IDs 2890-2905
-        for (int i = 0; i < DUST_COLLECTOR.length - 1; i++) {
-            int tier = i+1;
-            String voltageName = GTValues.VN[tier].toLowerCase();
-            DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), tier);
+        for (int i = 0; i < DUST_COLLECTOR.length; i++) {
+            String voltageName = GTValues.VN[i].toLowerCase();
+            DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), i);
             registerMetaTileEntity(2890 + i, DUST_COLLECTOR[i]);
         }
 
         // 热力输入输出仓
-        for (int i = 0; i < HEAT_INPUT_HATCH.length - 1; i++) {
+        for (int i = 0; i < HEAT_INPUT_HATCH.length; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
             HEAT_INPUT_HATCH[i] = new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false);
             registerMetaTileEntity(2910 + i, HEAT_INPUT_HATCH[i]);
@@ -193,11 +194,25 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2915 + i, HEAT_OUTPUT_HATCH[i]);
         }
 
+        if(isModLoaded(FORESTRY))
+        {
+            //引蜂器
+            for (int i = 0; i < 15; i++) {
+                String tier = VN[i].toLowerCase();
+                BEE_ATTRACTORS[i] = registerMetaTileEntity(2930 + i,
+                        new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),
+                                RecipeMaps.ATTRACTOR_RECIPES,
+                                Textures.BEE_ATTRACTOR_OVERLAY, i, false));
+            }
+        }
+
         //无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {
             String tier = VN[i].toLowerCase();
+            //管理单元
+            WIRELESS_CONTROLLERS[i] = registerMetaTileEntity(2980 + i, new MetaTileEntityWirelessController(gregtechId("wireless_controller." + tier), i));
 
-            if(isModLoaded(BETTER_QUESTING)) {
+            if(isModLoaded(FTB_LIB)) {
                 WIRELESS_INPUT_ENERGY_HATCH[i] = registerMetaTileEntity(3000 + i,
                         new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input." + tier), i, 2,
                                 false));
@@ -265,12 +280,6 @@ public class GTQTMetaTileEntities {
                         new MetaTileEntityWirelessEnergyHatch(
                                 gregtechId("wireless_energy_hatch.output_1048576a." + tier), i, 1048576, true));
             }
-
-            //管理单元
-            WIRELESS_CONTROLLERS[i] = registerMetaTileEntity(3000+500 + i, new MetaTileEntityWirelessController(gregtechId("wireless_controller." + tier), i));
-            //引蜂器
-            BEE_ATTRACTORS[i] = registerMetaTileEntity(3000+515 + i, new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),RecipeMaps.ATTRACTOR_RECIPES,
-                    Textures.BEE_ATTRACTOR_OVERLAY,i,false));
         }
     }
 }

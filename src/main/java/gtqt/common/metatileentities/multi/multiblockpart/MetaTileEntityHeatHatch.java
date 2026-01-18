@@ -10,22 +10,26 @@ import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.client.utils.PipelineUtil;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
+import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 import static gregtech.api.capability.GregtechCapabilities.CAPABILITY_HEAT_CONTAINER;
 
-public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart
-        implements IMultiblockAbilityPart<IHeatable> {
+public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart implements IMultiblockAbilityPart<IHeatable> {
 
     protected final IHeatable heatable;
     boolean isExportHatch;
@@ -35,34 +39,22 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart
         this.isExportHatch = isExportHatch;
 
         if (isExportHatch) {
-            this.heatable = HeatContainerHandler.emitterContainer(this, GTValues.V[tier] * 64L, (tier+1) * 200 + 273,
-                    GTValues.V[tier]);
+            this.heatable = HeatContainerHandler.emitterContainer(this, GTValues.V[tier] * 64L, (tier+1) * 200 + 273, GTValues.V[tier]*20);
             ((HeatContainerHandler) this.heatable).setSideOutputCondition(s -> s == getFrontFacing());
         } else {
-            this.heatable = HeatContainerHandler.receiverContainer(this, GTValues.V[tier] * 64L, (tier+1) * 200 + 273,
-                    GTValues.V[tier]);
+            this.heatable = HeatContainerHandler.receiverContainer(this, GTValues.V[tier] * 64L, (tier+1) * 200 + 273, GTValues.V[tier]*20);
         }
     }
 
     public void update() {
         super.update();
-        if (getWorld().isRemote) {
-            return;
-        }
-
-        if (isExportHatch) {
-            heatable.setTemperature(400);
-            heatable.changeHeat(114);
-
-        }
     }
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
-            getOverlay().renderSided(getFrontFacing(), renderState, translation,
-                    PipelineUtil.color(pipeline, GTValues.VC[getTier()]));
+            getOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
 
@@ -96,5 +88,19 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart
             return CAPABILITY_HEAT_CONTAINER.cast(heatable);
         }
         return super.getCapability(capability, side);
+    }
+
+    @Override
+    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
+        if (isExportHatch) {
+            tooltip.add(I18n.format("gregtech.machine.heat_hatch.input.tooltip"));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_in_till", GTValues.V[getTier()]*20));
+        } else {
+            tooltip.add(I18n.format("gregtech.machine.heat_hatch.output.tooltip"));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()]*20));
+        }
+        tooltip.add(I18n.format("gregtech.universal.tooltip.max_temperature", heatable.getMaxTemperature()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.heat_storage_capacity", heatable.getHeatCapacity()));
+        tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 }

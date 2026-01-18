@@ -705,10 +705,12 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      * Prioritized over any warnings provided by {@link MultiblockWithDisplayBase#addWarningText}.
      */
     protected void addErrorText(List<ITextComponent> textList) {
-        MultiblockDisplayText.builder(textList, isStructureFormed())
-                .addMufflerObstructedLine(hasMufflerMechanics() && !isMufflerFaceFree());
-        MultiblockDisplayText.builder(textList, isStructureFormed())
-                .addMufflerFullLine(hasMufflerMechanics() && !isMufflerEmpty());
+        if(hasMufflerMechanics()) {
+            MultiblockDisplayText.builder(textList, isStructureFormed())
+                    .addMufflerObstructedLine(!isMufflerFaceFree());
+            MultiblockDisplayText.builder(textList, isStructureFormed())
+                    .addMufflerFullLine(!isMufflerEmpty());
+        }
 
     }
 
