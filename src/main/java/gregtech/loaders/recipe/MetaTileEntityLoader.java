@@ -678,25 +678,31 @@ public class MetaTileEntityLoader {
                 MetaBlocks.METAL_CASING.getItemVariant(PALLADIUM_SUBSTATION));
 
         if (ConfigHolder.machines.steelSteamMultiblocks) {
-            ModHandler.addShapedRecipe(true, "steam_oven", MetaTileEntities.STEAM_OVEN.getStackForm(), "CGC", "FMF",
-                    "CGC", 'F', MetaBlocks.BOILER_FIREBOX_CASING.getItemVariant(STEEL_FIREBOX), 'C',
-                    MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID), 'M',
-                    MetaTileEntities.STEAM_FURNACE_STEEL.getStackForm(), 'G',
-                    new UnificationEntry(OrePrefix.gear, Materials.Invar));
-            ModHandler.addShapedRecipe(true, "steam_grinder", MetaTileEntities.STEAM_GRINDER.getStackForm(), "CGC",
-                    "CFC", "CGC", 'G', new UnificationEntry(OrePrefix.gear, Materials.Potin), 'F',
-                    MetaTileEntities.STEAM_MACERATOR_STEEL.getStackForm(), 'C',
-                    MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
+            ModHandler.addShapedRecipe(true, "steam_oven", MetaTileEntities.STEAM_OVEN.getStackForm(),
+                    "CGC", "FMF", "CGC",
+                    'F', MetaBlocks.BOILER_FIREBOX_CASING.getItemVariant(STEEL_FIREBOX),
+                    'C', MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID),
+                    'M', MetaTileEntities.STEAM_FURNACE_STEEL.getStackForm(),
+                    'G', new UnificationEntry(OrePrefix.gear, Materials.Invar));
+
+            ModHandler.addShapedRecipe(true, "steam_grinder", MetaTileEntities.STEAM_GRINDER.getStackForm(),
+                    "CGC", "CFC", "CGC",
+                    'G', new UnificationEntry(OrePrefix.gear, Materials.Potin),
+                    'F', MetaTileEntities.STEAM_MACERATOR_STEEL.getStackForm(),
+                    'C', MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
         } else {
-            ModHandler.addShapedRecipe(true, "steam_oven", MetaTileEntities.STEAM_OVEN.getStackForm(), "CGC", "FMF",
-                    "CGC", 'F', MetaBlocks.BOILER_FIREBOX_CASING.getItemVariant(BRONZE_FIREBOX), 'C',
-                    MetaBlocks.METAL_CASING.getItemVariant(BRONZE_BRICKS), 'M',
-                    MetaTileEntities.STEAM_FURNACE_BRONZE.getStackForm(), 'G',
-                    new UnificationEntry(OrePrefix.gear, Materials.Invar));
-            ModHandler.addShapedRecipe(true, "steam_grinder", MetaTileEntities.STEAM_GRINDER.getStackForm(), "CGC",
-                    "CFC", "CGC", 'G', new UnificationEntry(OrePrefix.gear, Materials.Potin), 'F',
-                    MetaTileEntities.STEAM_MACERATOR_BRONZE.getStackForm(), 'C',
-                    MetaBlocks.METAL_CASING.getItemVariant(BRONZE_BRICKS));
+            ModHandler.addShapedRecipe(true, "steam_oven", MetaTileEntities.STEAM_OVEN.getStackForm(),
+                    "CGC", "FMF", "CGC",
+                    'F', MetaBlocks.BOILER_FIREBOX_CASING.getItemVariant(BRONZE_FIREBOX),
+                    'C', MetaBlocks.METAL_CASING.getItemVariant(BRONZE_BRICKS),
+                    'M', MetaTileEntities.STEAM_FURNACE_BRONZE.getStackForm(),
+                    'G', new UnificationEntry(OrePrefix.gear, Materials.Invar));
+
+            ModHandler.addShapedRecipe(true, "steam_grinder", MetaTileEntities.STEAM_GRINDER.getStackForm(),
+                    "CGC", "CFC", "CGC",
+                    'G', new UnificationEntry(OrePrefix.gear, Materials.Potin),
+                    'F', MetaTileEntities.STEAM_MACERATOR_BRONZE.getStackForm(),
+                    'C', MetaBlocks.METAL_CASING.getItemVariant(BRONZE_BRICKS));
         }
         ModHandler.addShapedRecipe(true, "steam_input_hatch", MetaTileEntities.STEAM_IMPORT_HATCH.getStackForm(), "C",
                 "H", 'H', MetaBlocks.STEAM_CASING.getItemVariant(BRONZE_HULL), 'C', MetaTileEntities.BRONZE_DRUM.getStackForm());

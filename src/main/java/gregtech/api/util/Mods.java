@@ -164,6 +164,7 @@ public enum Mods {
         public static final String XAEROS_MINIMAP = "xaerominimap";
         public static final String VINTAGIUM = "vintagium";
         public static final String GTQT_CORE = "gtqtcore";
+        public static final String GT_STEAM = "gtsteam";
         public static final String ALFHEIM = "alfheim";
         public static final String LOLIASM = "loliasm";
         public static final String VINTAGE = "vintagefix";

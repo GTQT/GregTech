@@ -55,6 +55,7 @@ import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GT_STEAM;
 import static gregtech.common.blocks.BlockMetalCasing.MetalCasingType.BRONZE_BRICKS;
 import static gregtech.common.blocks.MetaBlocks.METAL_CASING;
 import static gregtech.common.items.MetaItems.*;
@@ -1125,33 +1126,33 @@ public class MachineRecipeLoader {
     }
 
     private static void registerDecompositionRecipes() {
-        if (!Loader.isModLoaded(GTQT_CORE)) {
-            EXTRACTOR_RECIPES.recipeBuilder()
-                    .inputs(STICKY_RESIN.getStackForm())
-                    .output(dust, RawRubber, 3)
-                    .duration(150).EUt(2)
-                    .buildAndRegister();
 
-            EXTRACTOR_RECIPES.recipeBuilder().duration(300).EUt(2)
-                    .inputs(new ItemStack(MetaBlocks.RUBBER_LEAVES, 16))
-                    .output(dust, RawRubber)
-                    .buildAndRegister();
+        boolean timeBoost = Loader.isModLoaded(GT_STEAM);
+        EXTRACTOR_RECIPES.recipeBuilder()
+                .inputs(STICKY_RESIN.getStackForm())
+                .output(dust, RawRubber, 3)
+                .duration(150).EUt(timeBoost ? 30 : 2)
+                .buildAndRegister();
 
-            EXTRACTOR_RECIPES.recipeBuilder().duration(300).EUt(2)
-                    .inputs(new ItemStack(MetaBlocks.RUBBER_LOG))
-                    .output(dust, RawRubber)
-                    .buildAndRegister();
+        EXTRACTOR_RECIPES.recipeBuilder().duration(300).EUt(timeBoost ? 30 : 2)
+                .inputs(new ItemStack(MetaBlocks.RUBBER_LEAVES, 16))
+                .output(dust, RawRubber)
+                .buildAndRegister();
 
-            EXTRACTOR_RECIPES.recipeBuilder().duration(300).EUt(2)
-                    .inputs(new ItemStack(MetaBlocks.RUBBER_SAPLING))
-                    .output(dust, RawRubber)
-                    .buildAndRegister();
+        EXTRACTOR_RECIPES.recipeBuilder().duration(300).EUt(timeBoost ? 30 : 2)
+                .inputs(new ItemStack(MetaBlocks.RUBBER_LOG))
+                .output(dust, RawRubber)
+                .buildAndRegister();
 
-            EXTRACTOR_RECIPES.recipeBuilder().duration(150).EUt(2)
-                    .inputs(new ItemStack(Items.SLIME_BALL))
-                    .output(dust, RawRubber, 2)
-                    .buildAndRegister();
-        }
+        EXTRACTOR_RECIPES.recipeBuilder().duration(300).EUt(timeBoost ? 30 : 2)
+                .inputs(new ItemStack(MetaBlocks.RUBBER_SAPLING))
+                .output(dust, RawRubber)
+                .buildAndRegister();
+
+        EXTRACTOR_RECIPES.recipeBuilder().duration(150).EUt(timeBoost ? 30 : 2)
+                .inputs(new ItemStack(Items.SLIME_BALL))
+                .output(dust, RawRubber, 2)
+                .buildAndRegister();
 
         COMPRESSOR_RECIPES.recipeBuilder().duration(300).EUt(2).input("treeSapling", 8).output(PLANT_BALL)
                 .buildAndRegister();

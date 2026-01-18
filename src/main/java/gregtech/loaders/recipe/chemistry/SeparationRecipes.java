@@ -110,14 +110,14 @@ public class SeparationRecipes {
             }
         }
 
-        CENTRIFUGE_RECIPES.recipeBuilder().duration(400).EUt(5)
+        CENTRIFUGE_RECIPES.recipeBuilder().duration(400).EUt(20)
                 .input(STICKY_RESIN)
                 .output(dust, RawRubber, 3)
                 .chancedOutput(PLANT_BALL, 1000, 850)
                 .fluidOutputs(Glue.getFluid(100))
                 .buildAndRegister();
 
-        CENTRIFUGE_RECIPES.recipeBuilder().duration(200).EUt(20)
+        CENTRIFUGE_RECIPES.recipeBuilder().duration(200).EUt(30)
                 .inputs(new ItemStack(MetaBlocks.RUBBER_LOG))
                 .chancedOutput(STICKY_RESIN, 5000, 1200)
                 .chancedOutput(PLANT_BALL, 3750, 900)
