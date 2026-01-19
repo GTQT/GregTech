@@ -1,6 +1,6 @@
 package gregtech.api.mui.widget;
 
-import gregtech.api.capability.impl.GhostMouldItemStackHandler;
+import gregtech.api.capability.impl.GhostMoldItemStackHandler;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.client.utils.TooltipHelper;
@@ -44,7 +44,7 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
         tooltipAutoUpdate(true);
         tooltipBuilder(this::getCircuitSlotTooltip);
         size(18);
-        background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY);
+        background(GTGuiTextures.SLOT, GTGuiTextures.MOLD_OVERLAY);
         ItemDrawable stack = new ItemDrawable();
         overlay(stack.asIcon().alignment(Alignment.Center));
         onUpdateListener(w -> stack.setItem(syncHandler.getCircuitStack()));
@@ -87,13 +87,13 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
     protected void getCircuitSlotTooltip(@NotNull RichTooltip tooltip) {
         String configString;
         int value = this.syncHandler.getCircuitValue();
-        if (value == GhostMouldItemStackHandler.NO_CONFIG) {
-            configString = IKey.lang("gregtech.gui.configurator_slot.no_value").get();
+        if (value == GhostMoldItemStackHandler.NO_CONFIG) {
+            configString = IKey.lang("gregtech.gui.configurator_mold_slot.no_value").get();
         } else {
             configString = String.valueOf(value);
         }
         tooltip.clearText();
-        tooltip.addLine(IKey.lang("gregtech.gui.configurator_slot.tooltip", configString));
+        tooltip.addLine(IKey.lang("gregtech.gui.configurator_mold_slot.tooltip", configString));
     }
 
     @Override
@@ -111,13 +111,13 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
             this.selectorPanel = IPanelHandler.simple(getPanel(), (mainPanel, player) -> {
                 ItemDrawable circuitPreview = new ItemDrawable(this.syncHandler.getCircuitStack());
 
-                return GTGuis.createPopupPanel("circuit_selector", 176, 120)
-                        .child(IKey.lang("metaitem.circuit.integrated.gui").asWidget().pos(5, 5))
+                return GTGuis.createPopupPanel("mold_selector", 176, 120)
+                        .child(IKey.str("模具配置").asWidget().pos(5, 5))
                         .child(new Widget<>()
                                 .size(18)
                                 .top(19).alignX(0.5f)
                                 .overlay(circuitPreview.asIcon().margin(1))
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
+                                .background(GTGuiTextures.SLOT, GTGuiTextures.MOLD_OVERLAY))
                         .child(new Grid()
                                 .left(7).right(7).top(41).height(4 * 18)
                                 .mapTo(9, MetaItems.SHAPE_MOLDS.length, value -> new ButtonWidget<>()
@@ -150,9 +150,9 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
         private final int index;
 
         public GhostMouldSyncHandler(IItemHandlerModifiable handler, int index) {
-            if (!(handler instanceof GhostMouldItemStackHandler)) {
+            if (!(handler instanceof GhostMoldItemStackHandler)) {
                 throw new IllegalArgumentException(
-                        "GhostCircuitSyncHandler has IItemHandler that is not GhostMouldItemStackHandler");
+                        "GhostCircuitSyncHandler has IItemHandler that is not GhostMoldItemStackHandler");
             }
             this.handler = handler;
             this.index = index;
@@ -171,7 +171,7 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
                 setCircuitValue(getNextCircuitValue(1));
             } else if (mouseData.mouseButton == 1 && mouseData.shift) {
                 // clear on shift-right-click
-                setCircuitValue(GhostMouldItemStackHandler.NO_CONFIG);
+                setCircuitValue(GhostMoldItemStackHandler.NO_CONFIG);
             } else if (mouseData.mouseButton == 1) {
                 // decrement on right-click
                 setCircuitValue(getNextCircuitValue(-1));
@@ -183,7 +183,7 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
         }
 
         private void setCircuitValue(int value) {
-            GhostMouldItemStackHandler handler = getGhostCircuitHandler();
+            GhostMoldItemStackHandler handler = getGhostCircuitHandler();
             if (handler.getCircuitValue() != value) {
                 handler.setCircuitValue(value);
                 syncToClient(SYNC_CIRCUIT, buf -> buf.writeItemStack(getCircuitStack()));
@@ -217,7 +217,7 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
         }
 
         private int getNextCircuitValue(int delta) {
-            GhostMouldItemStackHandler handler = getGhostCircuitHandler();
+            GhostMoldItemStackHandler handler = getGhostCircuitHandler();
 
             // if no circuit, skip 0 and return 32 if decrementing,
             // or, skip 0 and return 1 when incrementing
@@ -225,18 +225,18 @@ public class GhostMouldSlotWidget extends Widget<GhostMouldSlotWidget> implement
                 return delta == 1 ? 1 : MetaItems.SHAPE_MOLDS.length-1;
                 // if at max, loop around to no circuit
             } else if (handler.getCircuitValue() + delta >= MetaItems.SHAPE_MOLDS.length) {
-                return GhostMouldItemStackHandler.NO_CONFIG;
+                return GhostMoldItemStackHandler.NO_CONFIG;
                 // if at 1, skip 0 and return to no circuit
             } else if (handler.getCircuitValue() + delta < 1) {
-                return GhostMouldItemStackHandler.NO_CONFIG;
+                return GhostMoldItemStackHandler.NO_CONFIG;
             }
 
             // normal case: change by "delta" which is either 1 or -1
             return handler.getCircuitValue() + delta;
         }
 
-        public GhostMouldItemStackHandler getGhostCircuitHandler() {
-            return (GhostMouldItemStackHandler) this.handler;
+        public GhostMoldItemStackHandler getGhostCircuitHandler() {
+            return (GhostMoldItemStackHandler) this.handler;
         }
     }
 }

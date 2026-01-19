@@ -157,6 +157,22 @@ gregtech.machine.huge_item_bus.export.uxv.name=UXV Huge Output Bus
 gregtech.machine.huge_item_bus.export.opv.name=OpV Huge Output Bus
 gregtech.machine.huge_item_bus.export.max.name=MAX Huge Output Bus
 
+gregtech.machine.mold_item_bus.ulv.name=ULV Mold Bus
+gregtech.machine.mold_item_bus.lv.name=LV Mold Bus
+gregtech.machine.mold_item_bus.mv.name=MV Mold Bus
+gregtech.machine.mold_item_bus.hv.name=HV Mold Bus
+gregtech.machine.mold_item_bus.ev.name=EV Mold Bus
+gregtech.machine.mold_item_bus.iv.name=IV Mold Bus
+gregtech.machine.mold_item_bus.luv.name=LuV Mold Bus
+gregtech.machine.mold_item_bus.zpm.name=ZPM Mold Bus
+gregtech.machine.mold_item_bus.uv.name=UV Mold Bus
+gregtech.machine.mold_item_bus.uhv.name=UHV Mold Bus
+gregtech.machine.mold_item_bus.uev.name=UEV Mold Bus
+gregtech.machine.mold_item_bus.uiv.name=UIV Mold Bus
+gregtech.machine.mold_item_bus.uxv.name=UXV Mold Bus
+gregtech.machine.mold_item_bus.opv.name=OpV Mold Bus
+gregtech.machine.mold_item_bus.max.name=MAX Mold Bus
+
 gregtech.machine.dual_hatch.import.ulv.name=§8ULV§r Dual Input Hatch
 gregtech.machine.dual_hatch.import.lv.name=§7LV§r Dual Input Hatch
 gregtech.machine.dual_hatch.import.mv.name=§bMV§r Dual Input Hatch
@@ -385,6 +401,14 @@ gregtech.machine.heat_output_hatch.hv.name=§6HV§r Heat Source Hatch
 gregtech.machine.heat_output_hatch.ev.name=§5EV§r Heat Source Hatch
 
 gregtech.machine.heat_hatch.output.tooltip=Outputs heat from multiblock structures
+
+gregtech.machine.electric_heater.ulv.name=§8ULV§r Electric Heater
+gregtech.machine.electric_heater.lv.name=§7LV§r Electric Heater
+gregtech.machine.electric_heater.mv.name=§bMV§r Electric Heater
+gregtech.machine.electric_heater.hv.name=§6HV§r Electric Heater
+gregtech.machine.electric_heater.ev.name=§5EV§r Electric Heater
+
+gregtech.machine.electric_heater.tooltip=Converts electrical energy into thermal energy
 
 gregtech.universal.tooltip.heat_in_till=§cMax Heat Input: §f%,d HU
 gregtech.universal.tooltip.heat_out_till=§cMax Heat Output: §f%,d HU

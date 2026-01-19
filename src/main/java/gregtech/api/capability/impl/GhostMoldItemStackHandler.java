@@ -4,7 +4,6 @@ import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
-
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.item.ItemStack;
@@ -13,12 +12,13 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class GhostMouldItemStackHandler extends GTItemStackHandler
+public class GhostMoldItemStackHandler extends GTItemStackHandler
                                           implements IItemHandlerModifiable, INotifiableHandler {
 
     /**
@@ -28,27 +28,26 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
 
     private final List<MetaTileEntity> notifiableEntities = new ArrayList<>();
 
+    /**
+     * -- GETTER --
+     * 返回电路值，或
+     * 如果
+     * 无电路值设置。
+     * ＊
+     *
+     */
+    @Getter
     private int circuitValue = NO_CONFIG;
     private ItemStack circuitStack = ItemStack.EMPTY;
 
-    public GhostMouldItemStackHandler(MetaTileEntity metaTileEntity) {
+    public GhostMoldItemStackHandler(MetaTileEntity metaTileEntity) {
         super(metaTileEntity);
-    }
-
-    /**
-     *返回电路值，或{@link GhostMouldItemStackHandler#NO_CONFIG}如果
-    *无电路值设置。
-     ＊
-     * @返回一个有效的电路值，如果存在，否则{@link GhostMouldItemStackHandler#NO_CONFIG}
-    */
-    public int getCircuitValue() {
-        return this.circuitValue;
     }
 
     /**
      *返回该实例是否包含有效的电路值。
      ＊
-     * @return此实例是否包含有效的电路值。
+     * &#064;return此实例是否包含有效的电路值。
      */
     public boolean hasCircuitValue() {
         return this.circuitValue != NO_CONFIG;
@@ -56,11 +55,11 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
 
     /**
      * 将此库存的电路值设置为给定值并更新物品。物品被设置为对应整数值的电路物品，
-     * 或如果给定 {@link GhostMouldItemStackHandler#NO_CONFIG} 则为一个空的物品堆栈。
+     * 或如果给定 {@link GhostMoldItemStackHandler#NO_CONFIG} 则为一个空的物品堆栈。
      * <p>
      * 该值预期为有效的电路值
      * ({@link IntCircuitIngredient#CIRCUIT_MIN} ~ {@link IntCircuitIngredient#CIRCUIT_MAX}，包括两者)
-     * 或 {@link GhostMouldItemStackHandler#NO_CONFIG}；任何其他值将产生 IllegalArgumentException。
+     * 或 {@link GhostMoldItemStackHandler#NO_CONFIG}；任何其他值将产生 IllegalArgumentException。
      *
      * @param config 新的配置值
      * @throws IllegalArgumentException 输入无效时抛出
@@ -70,7 +69,7 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
         if (config == NO_CONFIG) {
             this.circuitValue = NO_CONFIG;
             this.circuitStack = ItemStack.EMPTY;
-        } else if (config >= IntCircuitIngredient.CIRCUIT_MIN && config < MetaItems.SHAPE_MOLDS.length) {
+        } else if (config >= 0 && config < MetaItems.SHAPE_MOLDS.length) {
             this.circuitValue = config;
             this.circuitStack = MetaItems.SHAPE_MOLDS[config].getStackForm();
         } else {
@@ -85,12 +84,12 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
 
     /**
      * 从给定物品设置此库存的电路值。只有当提供的物品为整数电路时，电路值才会被设置为有效的电路值；
-     * 提供任何其他物品将把电路值设置为 {@link GhostMouldItemStackHandler#NO_CONFIG}。
+     * 提供任何其他物品将把电路值设置为 {@link GhostMoldItemStackHandler#NO_CONFIG}。
      *
      * @param stack 要读取电路值的物品堆栈
      */
 
-    public void setCircuitValueFromStack(@NotNull ItemStack stack) {
+    public void setMoldValueFromStack(@NotNull ItemStack stack) {
         if(!stack.isEmpty())
         {
             if(stack.getItem()==MetaItems.SHAPE_MOLDS[0].getStackForm().getItem() &&
@@ -121,14 +120,14 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
     public void addCircuitValue(int configDelta) {
         if (hasCircuitValue()) {
             setCircuitValue(MathHelper.clamp(getCircuitValue() + configDelta,
-                    IntCircuitIngredient.CIRCUIT_MIN, MetaItems.SHAPE_MOLDS.length));
+                    0, MetaItems.SHAPE_MOLDS.length));
         }
     }
 
     @Override
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         validateSlot(slot);
-        setCircuitValueFromStack(stack);
+        setMoldValueFromStack(stack);
     }
 
     @Override
@@ -191,7 +190,7 @@ public class GhostMouldItemStackHandler extends GTItemStackHandler
     public void read(@NotNull NBTTagCompound tag) {
         int circuitValue = tag.hasKey("GhostMould", Constants.NBT.TAG_ANY_NUMERIC) ? tag.getInteger("GhostMould") :
                 NO_CONFIG;
-        if (circuitValue < IntCircuitIngredient.CIRCUIT_MIN || circuitValue > MetaItems.SHAPE_MOLDS.length)
+        if (circuitValue < 0 || circuitValue > MetaItems.SHAPE_MOLDS.length)
             circuitValue = NO_CONFIG;
         setCircuitValue(circuitValue);
     }

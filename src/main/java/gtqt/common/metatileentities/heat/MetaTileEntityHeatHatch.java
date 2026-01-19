@@ -1,4 +1,4 @@
-package gtqt.common.metatileentities.multi.multiblockpart;
+package gtqt.common.metatileentities.heat;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHeatable;
@@ -91,13 +91,14 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart implem
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip, boolean advanced) {
+        super.addInformation(stack, world, tooltip, advanced);
         if (isExportHatch) {
-            tooltip.add(I18n.format("gregtech.machine.heat_hatch.input.tooltip"));
-            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_in_till", GTValues.V[getTier()]*20));
-        } else {
             tooltip.add(I18n.format("gregtech.machine.heat_hatch.output.tooltip"));
             tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()]*20));
+        } else {
+            tooltip.add(I18n.format("gregtech.machine.heat_hatch.input.tooltip"));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_in_till", GTValues.V[getTier()]*20));
         }
         tooltip.add(I18n.format("gregtech.universal.tooltip.max_temperature", heatable.getMaxTemperature()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.heat_storage_capacity", heatable.getHeatCapacity()));

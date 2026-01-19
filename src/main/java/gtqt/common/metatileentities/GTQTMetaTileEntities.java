@@ -4,15 +4,16 @@ import gregtech.api.GTValues;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMouldItemBus;
 
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
+import gtqt.common.metatileentities.heat.MetaTileEntityElectricHeater;
+import gtqt.common.metatileentities.heat.MetaTileEntityHeatHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMoldItemBus;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityThreadHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
@@ -57,7 +58,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[GTValues.V.length - 1];
     public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[5];
     public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[5];
-
+    public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[5];
 
     public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
@@ -69,7 +70,7 @@ public class GTQTMetaTileEntities {
 
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
-    public static final MetaTileEntityMouldItemBus[] MOULD_ITEM_BUS = new MetaTileEntityMouldItemBus[GTValues.V.length - 1];
+    public static final MetaTileEntityMoldItemBus[] MOLD_ITEM_BUS = new MetaTileEntityMoldItemBus[GTValues.V.length - 1];
 
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_INPUT_ENERGY_HATCH = new MetaTileEntityWirelessEnergyHatch[15];
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_OUTPUT_ENERGY_HATCH = new MetaTileEntityWirelessEnergyHatch[15];
@@ -155,12 +156,12 @@ public class GTQTMetaTileEntities {
                     gregtechId("huge_item_bus.import." + voltageName), i, false);
             HUGE_ITEM_EXPORT_BUS[i] = new MetaTileEntityHugeItemBus(
                     gregtechId("huge_item_bus.export." + voltageName), i, true);
-            MOULD_ITEM_BUS[i] = new MetaTileEntityMouldItemBus(gregtechId("mould_item_bus." + voltageName), i+1);
+            MOLD_ITEM_BUS[i] = new MetaTileEntityMoldItemBus(gregtechId("mold_item_bus." + voltageName), i+1);
 
 
             registerMetaTileEntity(2800 + i, HUGE_ITEM_IMPORT_BUS[i]);
             registerMetaTileEntity(2815 + i, HUGE_ITEM_EXPORT_BUS[i]);
-            registerMetaTileEntity(2830 + i, MOULD_ITEM_BUS[i]);
+            registerMetaTileEntity(2830 + i, MOLD_ITEM_BUS[i]);
         }
 
         //线程仓
@@ -192,6 +193,8 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2910 + i, HEAT_INPUT_HATCH[i]);
             HEAT_OUTPUT_HATCH[i] = new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true);
             registerMetaTileEntity(2915 + i, HEAT_OUTPUT_HATCH[i]);
+            ELECTRIC_HEATER[i] = new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i);
+            registerMetaTileEntity(2920 + i, ELECTRIC_HEATER[i]);
         }
 
         if(isModLoaded(FORESTRY))

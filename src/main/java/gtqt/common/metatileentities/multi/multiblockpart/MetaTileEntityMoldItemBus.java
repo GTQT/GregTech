@@ -1,4 +1,4 @@
-package gregtech.common.metatileentities.multi.multiblockpart;
+package gtqt.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
@@ -6,7 +6,7 @@ import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.INotifiableHandler;
-import gregtech.api.capability.impl.GhostMouldItemStackHandler;
+import gregtech.api.capability.impl.GhostMoldItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -22,6 +22,7 @@ import gregtech.api.mui.widget.GhostMouldSlotWidget;
 import gregtech.api.util.GTHashMaps;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -55,6 +56,7 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,23 +64,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiablePart
+public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable,
                    IGhostSlotConfigurable {
 
     @Nullable
-    protected GhostMouldItemStackHandler circuitInventory;
+    protected GhostMoldItemStackHandler moldInventory;
     private IItemHandlerModifiable actualImportItems;
 
     private boolean workingEnabled;
+    @Getter
     private boolean autoCollapse;
 
-    public MetaTileEntityMouldItemBus(ResourceLocation metaTileEntityId, int tier) {
+    public MetaTileEntityMoldItemBus(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
         this.workingEnabled = true;
         initializeInventory();
-
-
     }
 
     private static void collapseInventorySlotContents(IItemHandlerModifiable inventory) {
@@ -121,16 +122,16 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMouldItemBus(metaTileEntityId, getTier());
+        return new MetaTileEntityMoldItemBus(metaTileEntityId, getTier());
     }
 
     @Override
     protected void initializeInventory() {
         super.initializeInventory();
         if (this.hasGhostCircuitInventory()) {
-            this.circuitInventory = new GhostMouldItemStackHandler(this);
-            this.circuitInventory.addNotifiableMetaTileEntity(this);
-            this.actualImportItems = new ItemHandlerList(Arrays.asList(super.getImportItems(), this.circuitInventory));
+            this.moldInventory = new GhostMoldItemStackHandler(this);
+            this.moldInventory.addNotifiableMetaTileEntity(this);
+            this.actualImportItems = new ItemHandlerList(Arrays.asList(super.getImportItems(), this.moldInventory));
         } else {
             this.actualImportItems = null;
         }
@@ -257,8 +258,8 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         super.writeToNBT(data);
         data.setBoolean("workingEnabled", workingEnabled);
         data.setBoolean("autoCollapse", autoCollapse);
-        if (this.circuitInventory != null) {
-            this.circuitInventory.write(data);
+        if (this.moldInventory != null) {
+            this.moldInventory.write(data);
         }
         return data;
     }
@@ -272,8 +273,8 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         if (data.hasKey("autoCollapse")) {
             this.autoCollapse = data.getBoolean("autoCollapse");
         }
-        if (this.circuitInventory != null) {
-            this.circuitInventory.read(data);
+        if (this.moldInventory != null) {
+            this.moldInventory.read(data);
         }
     }
 
@@ -315,7 +316,7 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
 
         IItemHandlerModifiable handler = importItems;
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
+        boolean hasGhostMould = hasGhostCircuitInventory() && this.moldInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
@@ -355,10 +356,10 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
                                 .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
                                         IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
                                         IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostCircuit, new GhostMouldSlotWidget()
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
+                        .childIf(hasGhostMould, new GhostMouldSlotWidget()
+                                .slot(moldInventory, 0)
+                                .background(GTGuiTextures.SLOT, GTGuiTextures.MOLD_OVERLAY))
+                        .childIf(!hasGhostMould, new Widget<>()
                                 .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
                                 .tooltip(t -> t.addLine(
                                         IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
@@ -384,10 +385,6 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
         return true;
     }
 
-    public boolean isAutoCollapse() {
-        return autoCollapse;
-    }
-
     public void setAutoCollapse(boolean inverted) {
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
@@ -403,20 +400,20 @@ public class MetaTileEntityMouldItemBus extends MetaTileEntityMultiblockNotifiab
 
     @Override
     public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+        if (this.moldInventory == null || this.moldInventory.getCircuitValue() == config) {
             return;
         }
-        this.circuitInventory.setCircuitValue(config);
+        this.moldInventory.setCircuitValue(config);
         if (!getWorld().isRemote) {
             markDirty();
         }
     }
     @Override
     public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
+        if (this.moldInventory == null) {
             return 0;
         }
-        return this.circuitInventory.getCircuitValue();
+        return this.moldInventory.getCircuitValue();
     }
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
