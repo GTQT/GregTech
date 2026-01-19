@@ -54,9 +54,10 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public long getMaxVoltage() {
-        return GTValues.V[GTValues.ULV];
+        return GTValues.LV;
     }
 
+    @Override
     protected void runOverclockingLogic(OCParams ocParams, OCResult ocResult, RecipePropertyStorage propertyStorage,
                                         long maxVoltage) {
         ocParams.setEut(1L);
@@ -77,8 +78,8 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     protected void setupRecipe(@NotNull Recipe recipe) {
         super.setupRecipe(recipe);
         //最低写7，对应ULV
-        recipeHeat = recipe.getProperty(HeatProperty.getInstance(), 25);
-        //起码100°
+        recipeHeat = recipe.getProperty(HeatProperty.getInstance(), 7);
+        //起码100° 373k
         recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 373);
     }
 

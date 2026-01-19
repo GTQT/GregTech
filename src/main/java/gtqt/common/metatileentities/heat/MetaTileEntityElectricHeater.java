@@ -33,8 +33,11 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
 
     public MetaTileEntityElectricHeater(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
-        this.heatable = HeatContainerHandler.emitterContainer(this, V[tier] * 64L, (tier + 1) * 200 + 273, V[tier] * 20);
+        this.heatable = HeatContainerHandler.emitterContainer(this, V[tier] * 64L, (tier + 1) * 200 + 273,
+                V[tier] * 20);
         ((HeatContainerHandler) this.heatable).setSideOutputCondition(s -> s == getFrontFacing());
+
+        heatable.setTemperature((tier + 1) * 200 + 273);
     }
 
     @Override
@@ -44,7 +47,7 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
 
     public void update() {
         super.update();
-        if (energyContainer.getEnergyStored() > V[getTier()] && heatable.getHeatStored()<heatable.getHeatCapacity()) {
+        if (energyContainer.getEnergyStored() > V[getTier()] && heatable.getHeatStored() < heatable.getHeatCapacity()) {
             energyContainer.changeEnergy(-V[getTier()]);
             heatable.changeHeat(V[getTier()]);
         }
@@ -70,10 +73,11 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.machine.heat_hatch.output.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()]*20));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()] * 20));
         tooltip.add(I18n.format("gregtech.universal.tooltip.max_temperature", heatable.getMaxTemperature()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.heat_storage_capacity", heatable.getHeatCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
