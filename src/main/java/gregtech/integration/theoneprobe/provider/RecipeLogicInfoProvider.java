@@ -7,6 +7,7 @@ import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.PrimitiveRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.HeatMultiblockController;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
@@ -55,7 +56,12 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
                             TextStyleClass.INFO + " L/t {*" +
                             Materials.Steam.getUnlocalizedName() + "*}";
                 }
+                if (mte instanceof HeatMultiblockController) {
+                    text = TextFormatting.AQUA + TextFormattingUtil.formatNumbers(eut) +
+                            TextStyleClass.INFO + " H/t 热量";
+                }
             }
+
             if (text == null) {
                 // Default behavior, if this TE is not a steam machine (or somehow not instanceof
                 // IGregTechTileEntity...)
@@ -71,7 +77,7 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
             } else {
                 probeInfo.text(TextStyleClass.INFO + "{*gregtech.top.energy_production*} " + text);
             }
-        } else if(!Objects.equals(capability.getWhyFailed(), "")){
+        } else if (!Objects.equals(capability.getWhyFailed(), "")){
             String text = TextFormatting.RED + capability.getWhyFailed();
             probeInfo.text(TextStyleClass.INFO + "配方失败原因：" + text);
         }

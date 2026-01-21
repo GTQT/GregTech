@@ -74,7 +74,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public long getInfoProviderEUt() {
-        return 0;
+        return recipeHeat;
     }
 
     @MustBeInvokedByOverriders
@@ -89,7 +89,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @MustBeInvokedByOverriders
     protected void completeRecipe() {
         super.completeRecipe();
-        recipeHeat = 0;
+        recipeHeat = 7;
         recipeTemperature = 373;
     }
 

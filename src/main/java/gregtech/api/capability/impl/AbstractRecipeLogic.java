@@ -401,6 +401,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Override
     public void invalidateInputs() {
         this.invalidInputsForRecipes = true;
+        whyFailed = "根据当前输入没有找到配方";
     }
 
     /**
@@ -409,6 +410,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Override
     public void invalidateOutputs() {
         this.isOutputsFull = true;
+        whyFailed = "输出仓已满，产物无法继续输出（清空或设置销毁产物）";
     }
 
     public int getParallelRecipesPerformed() {
@@ -1190,7 +1192,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @MustBeInvokedByOverriders
     protected void setupRecipe(@NotNull Recipe recipe) {
         this.progressTime = 1;
-        whyFailed="";
+        whyFailed = "";
         setMaxProgress(ocResult.duration());
         this.recipeEUt = ocResult.eut();
         this.showRecipes = recipe;
@@ -1246,8 +1248,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         chancedItemOutputs = null;
         nonChancedFluidAmt = 0;
         chancedFluidOutputs = null;
-
-        whyFailed="";
     }
 
     /**
@@ -1477,8 +1477,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         invalidInputsForRecipes = false;
         this.ocResult.reset();
         setActive(false); // this marks dirty for us
-
-        whyFailed =  "";
     }
 
     /*
