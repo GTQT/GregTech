@@ -36,8 +36,6 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
         this.heatable = HeatContainerHandler.emitterContainer(this, V[tier] * 64L, (tier + 1) * 200 + 273,
                 V[tier] * 20);
         ((HeatContainerHandler) this.heatable).setSideOutputCondition(s -> s == getFrontFacing());
-
-        heatable.setTemperature((tier + 1) * 200 + 273);
     }
 
     @Override
@@ -50,6 +48,13 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
         if (energyContainer.getEnergyStored() > V[getTier()] && heatable.getHeatStored() < heatable.getHeatCapacity()) {
             energyContainer.changeEnergy(-V[getTier()]);
             heatable.changeHeat(V[getTier()]);
+        }
+        if (getOffsetTimer() % 20 == 0) {
+            if (heatable.getHeatStored() > 0) {
+                heatable.setTemperature(heatable.getMaxTemperature());
+            } else {
+                heatable.setTemperature(297);
+            }
         }
     }
 

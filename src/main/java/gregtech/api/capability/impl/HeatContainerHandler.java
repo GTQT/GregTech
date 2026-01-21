@@ -224,7 +224,7 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
 
     @Override
     public boolean canAcceptHeat() {
-        return heatStored < maxHeatCapacity && currentTemperature < maxTemperature;
+        return heatStored < maxHeatCapacity && currentTemperature <= maxTemperature;
     }
 
     public boolean canAcceptHeat(EnumFacing side) {

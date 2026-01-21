@@ -1,6 +1,7 @@
 package gregtech.api.capability.impl;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.IHeatable;
 import gregtech.api.metatileentity.multiblock.HeatMultiblockController;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.logic.OCParams;
@@ -14,6 +15,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     int recipeHeat;
@@ -21,10 +24,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     HeatMultiblockController metaTileEntity;
 
     /**
-     * 热量系统有两个参数
-     * 热量：每tick消耗的能量，计算时，如果有多个热源仓，则所有热源仓均扣除相应的热量
-     * 温度：热源的温度，相当于启动条件，参与计算超频，每高200k，耗时*0.9一次
-     * 注意：热量温度二者之间没有任何关联
+     * 热量系统有两个参数 热量：每tick消耗的能量，计算时，如果有多个热源仓，则所有热源仓均扣除相应的热量 温度：热源的温度，相当于启动条件，参与计算超频，每高200k，耗时*0.9一次 注意：热量温度二者之间没有任何关联
      */
 
     public HeatMultiblockRecipeLogic(HeatMultiblockController tileEntity) {
@@ -54,9 +54,6 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public long getMaxVoltage() {
-        //每高出273K 200K相当于一级电压
-        //273K -> ULV
-        //473K -> LV
         return GTValues.V[calculateBousCount()];
     }
 
@@ -72,7 +69,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
         //每高出273K 200K相当于一级电压
         //273K -> ULV
         //473K -> LV
-        return GTValues.V[calculateBousCount()];
+        return this.getMaxVoltage();
     }
 
     @Override
@@ -166,7 +163,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
         super.modifyOverclockPost(ocResult, storage);
 
         // 每高出配方温度200k，耗时*90%一次
-        int currentTemperature = metaTileEntity.getTemperature();
+        int currentTemperature = getTemperature();
 
         if (currentTemperature > recipeTemperature) {
             int excessTemperature = currentTemperature - recipeTemperature;
@@ -179,9 +176,22 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
         }
     }
 
+    public int getTemperature() {
+        if (!metaTileEntity.isStructureFormed()) return 293;
+        List<IHeatable> heatable = metaTileEntity.getHeatHatch();
+        if (heatable == null) return 293;
+        return heatable
+                .stream()
+                .mapToInt(IHeatable::getTemperature)
+                .max()
+                .orElse(293);
+    }
+
     public int calculateBousCount() {
-        int excessTemperature = metaTileEntity.getTemperature() - 273;
+        if (getTemperature() < 473) return 0; //ULV
+        int excessTemperature = getTemperature() - 273;
         // 每高出200K计算一次加成
-        return excessTemperature / 200;
+        //刚好473也算ULV 474-673 LV 674-873 MV
+        return (excessTemperature / 200) - 1;
     }
 }

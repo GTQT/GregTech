@@ -31,7 +31,7 @@ import java.util.function.UnaryOperator;
 
 public abstract class HeatMultiblockController extends RecipeMapMultiblockController implements ProgressBarMultiblock {
 
-    List<IHeatable> heatHatch;
+    List<IHeatable> heatHatch = null;
 
     public HeatMultiblockController(ResourceLocation metaTileEntityId,
                                     RecipeMap<?> recipeMap) {
@@ -69,7 +69,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
             heatHatch = getAbilities(MultiblockAbility.INPUT_HEAT);
         else if (getAbilities(MultiblockAbility.OUTPUT_HEAT).isEmpty())
             heatHatch = getAbilities(MultiblockAbility.OUTPUT_HEAT);
-        else heatHatch = new ArrayList<>();
+        else heatHatch = null;
     }
 
     @Override
@@ -141,7 +141,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
                 .stream()
                 .mapToInt(IHeatable::getTemperature)
                 .max()
-                .orElse(0);
+                .orElse(293);
     }
 
     public TraceabilityPredicate autoAbilities(
