@@ -91,6 +91,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean isOutputsFull;
     protected boolean invalidInputsForRecipes;
     protected boolean hasPerfectOC;
+    @Getter
+    protected String whyFailed = "";
     private double euDiscount = -1;
     private double euEfficiency = 1;
     private double speedBonus = -1;
@@ -98,11 +100,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Setter
     @Getter
     private long overclockVoltage;
-
     private boolean enableBatch = false;
     private boolean lockRecipe = false;
     private boolean lackEnergyWarning = false;
-
     /**
      * DO NOT use the parallelLimit field directly, EVER use {@link AbstractRecipeLogic#setParallelLimit(int)} instead
      */
@@ -367,6 +367,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean canFitNewOutputs() {
         // if the output is full check if the output changed, so we can process recipes results again.
         if (this.isOutputsFull && !hasNotifiedOutputs()) {
+            whyFailed = "当前输出条件非法（输出为空）";
             return false;
         } else {
             this.isOutputsFull = false;
@@ -381,7 +382,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     protected boolean canWorkWithInputs() {
         // if the inputs were bad last time, check if they've changed before trying to find a new recipe.
-        if (this.invalidInputsForRecipes && !hasNotifiedInputs()) return false;
+        if (this.invalidInputsForRecipes && !hasNotifiedInputs()) {
+            whyFailed = "当前输入条件非法（输入为空）";
+            return false;
+        }
 
         // the change in inputs (especially by removal of ingredient by the player) might change the current valid
         // recipe.
@@ -538,6 +542,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
             this.previousRecipe = currentRecipe;
             //热点配方
             addToPreviousRecipes(currentRecipe);
+        } else {
+            whyFailed = "无法根据当前输入/电压找到配方";
         }
         this.invalidInputsForRecipes = (currentRecipe == null);
 
@@ -590,7 +596,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
             if (ConfigHolder.machines.cleanMultiblocks && mte instanceof IMultiblockController) return true;
 
             ICleanroomProvider cleanroomProvider = receiver.getCleanroom();
-            if (cleanroomProvider == null) return false;
+            if (cleanroomProvider == null) {
+                whyFailed = "当前配方需要超净环境！";
+                return false;
+            }
 
             return cleanroomProvider.isClean() && cleanroomProvider.checkCleanroomType(requiredType);
         }
@@ -603,7 +612,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
         if (list == null) {
             return true;
         }
-        return list.checkDimension(this.getMetaTileEntity().getWorld().provider.getDimension());
+        if (list.checkDimension(this.getMetaTileEntity().getWorld().provider.getDimension())) {
+            return true;
+        }
+        whyFailed = "当前配方需要特定的维度!";
+        return false;
     }
 
     /**
@@ -792,6 +805,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected Recipe findRecipe(long maxVoltage, IItemHandlerModifiable inputs, IMultipleTankHandler fluidInputs) {
         RecipeMap<?> map = getRecipeMap();
         if (map == null || !isRecipeMapValid(map)) {
+            whyFailed = "非法的配方列表";
             return null;
         }
 
@@ -863,12 +877,14 @@ public abstract class AbstractRecipeLogic extends MTETrait
             recipe = subTickOC(ocResult, recipe, importInventory, importFluids);
             if (recipe == null) {
                 invalidateInputs();
+                whyFailed = "无法完成并行超频处理，可能是输入材料不足或无法分配并行处理资源";
                 return null;
             }
         }
 
         if (!hasEnoughPower(ocResult.eut(), ocResult.duration())) {
             ocResult.reset();
+            whyFailed = "电力不足，无法满足当前配方的运行需求";
             return null;
         }
 
@@ -877,9 +893,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
             if (recipe.matches(true, importInventory, importFluids)) {
                 this.metaTileEntity.addNotifiedInput(importInventory);
                 return recipe;
+            } else {
+                whyFailed = "当前输入条件无法满足配方需求（是否缺少了部分物品/流体）";
             }
         }
-
         return null;
     }
 
@@ -894,6 +911,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         if (!metaTileEntity.canVoidRecipeItemOutputs() &&
                 !GTTransferUtils.addItemsToItemHandler(exportInventory, true, recipe.getAllItemOutputs())) {
             this.isOutputsFull = true;
+            whyFailed = "当前输出条件无法满足配方需求（物品输出条件不满足）";
             return false;
         }
         return true;
@@ -909,6 +927,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         if (!metaTileEntity.canVoidRecipeFluidOutputs() &&
                 !GTTransferUtils.addFluidsToFluidHandler(exportFluids, true, recipe.getAllFluidOutputs())) {
             this.isOutputsFull = true;
+            whyFailed = "当前输出条件无法满足配方需求（液体输出条件不满足）";
             return false;
         }
         return true;
@@ -1177,6 +1196,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @MustBeInvokedByOverriders
     protected void setupRecipe(@NotNull Recipe recipe) {
         this.progressTime = 1;
+        whyFailed="";
         setMaxProgress(ocResult.duration());
         this.recipeEUt = ocResult.eut();
         this.showRecipes = recipe;
@@ -1232,6 +1252,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         chancedItemOutputs = null;
         nonChancedFluidAmt = 0;
         chancedFluidOutputs = null;
+
+        whyFailed="";
     }
 
     /**
@@ -1461,6 +1483,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         invalidInputsForRecipes = false;
         this.ocResult.reset();
         setActive(false); // this marks dirty for us
+
+        whyFailed =  "";
     }
 
     /*

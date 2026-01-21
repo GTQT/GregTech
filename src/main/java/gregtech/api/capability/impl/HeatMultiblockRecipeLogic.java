@@ -54,7 +54,10 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public long getMaxVoltage() {
-        return GTValues.LV;
+        //每高出273K 200K相当于一级电压
+        //273K -> ULV
+        //473K -> LV
+        return GTValues.V[calculateBousCount()];
     }
 
     @Override
@@ -66,7 +69,10 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public long getMaximumOverclockVoltage() {
-        return GTValues.V[GTValues.LV];
+        //每高出273K 200K相当于一级电压
+        //273K -> ULV
+        //473K -> LV
+        return GTValues.V[calculateBousCount()];
     }
 
     @Override
@@ -159,7 +165,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     protected void modifyOverclockPost(@NotNull OCResult ocResult, @NotNull RecipePropertyStorage storage) {
         super.modifyOverclockPost(ocResult, storage);
 
-        // 每高出200k，耗时*90%一次
+        // 每高出配方温度200k，耗时*90%一次
         int currentTemperature = metaTileEntity.getTemperature();
 
         if (currentTemperature > recipeTemperature) {
@@ -171,5 +177,11 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
             ocResult.setDuration(newDuration);
         }
+    }
+
+    public int calculateBousCount() {
+        int excessTemperature = metaTileEntity.getTemperature() - 273;
+        // 每高出200K计算一次加成
+        return excessTemperature / 200;
     }
 }

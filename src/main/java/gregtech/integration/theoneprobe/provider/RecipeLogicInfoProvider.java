@@ -21,6 +21,8 @@ import mcjty.theoneprobe.api.IProbeInfo;
 import mcjty.theoneprobe.api.TextStyleClass;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractRecipeLogic> {
 
     @Override
@@ -69,6 +71,9 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
             } else {
                 probeInfo.text(TextStyleClass.INFO + "{*gregtech.top.energy_production*} " + text);
             }
+        } else if(!Objects.equals(capability.getWhyFailed(), "")){
+            String text = TextFormatting.RED + capability.getWhyFailed();
+            probeInfo.text(TextStyleClass.INFO + "配方失败原因：" + text);
         }
     }
 }
