@@ -6237,6 +6237,12 @@ gregtech.multiblock.heat_multiblock.tooltip.1=温度每高出配方需求温度2
 gregtech.multiblock.heat_multiblock.tooltip.2=配方最低需求热量7HU/t，配方最低需求温度373K
 gregtech.multiblock.require_heat_parts=只需要热阱仓来输入热量，无需消耗蒸汽或电力！
 
+gregtech.tooltip.pollution_mte_available=-污染机制:
+gregtech.multiblock.pollution_multiblock.tooltip=工作时每 %s tick 排放 %s 污染
+
+gregtech.multiblock.pollution_hatch.tooltip.1=排放污染的量与间隔由控制器决定，如果控制器没有说明，则默认工作时每20tick排放0.001污染
+gregtech.multiblock.pollution_hatch.tooltip.2=消声仓的等级决定真实污染排放量，每一级消声仓减少10%%的污染
+
 gregtech.machine.maintenance_hatch.name=维护仓
 gregtech.machine.maintenance_hatch.tooltip=用于维护多方块结构
 gregtech.machine.maintenance_hatch_configurable.name=可配置维护仓

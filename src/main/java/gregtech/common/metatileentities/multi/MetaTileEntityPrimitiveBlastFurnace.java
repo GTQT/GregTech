@@ -197,6 +197,7 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
                 VanillaParticleEffects.PBF_SMOKE.runEffect(this);
             } else {
                 damageEntitiesAndBreakSnow();
+                pollution(this.getPollutionAmount(), this.getPollutionTicks());
             }
         }
     }
@@ -232,5 +233,10 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
     @Override
     public SoundType getSoundType() {
         return SoundType.STONE;
+    }
+
+    @Override
+    public double getPollutionAmount() {
+        return 0.005;
     }
 }

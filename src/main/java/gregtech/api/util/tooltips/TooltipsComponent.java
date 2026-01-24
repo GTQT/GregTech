@@ -1,6 +1,6 @@
 package gregtech.api.util.tooltips;
 
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.client.utils.TooltipHelper;
 
 import net.minecraft.client.resources.I18n;
@@ -16,7 +16,7 @@ public class TooltipsComponent extends AbstractTooltipComponent {
     }
 
     @Override
-    public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+    public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
         tooltip.add(TooltipHelper.RAINBOW_SLOW + I18n.format(key));
     }
 }

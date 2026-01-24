@@ -16,7 +16,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
@@ -233,7 +232,7 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         }
 
         @Override
-        public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+        public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
             tooltip.add(I18n.format("gregtech.machine.miner.multi.modes"));
             tooltip.add(I18n.format("gregtech.machine.miner.multi.production"));
             tooltip.add(I18n.format("gregtech.machine.miner.fluid_usage", getDrillingFluidConsumePerTick(),

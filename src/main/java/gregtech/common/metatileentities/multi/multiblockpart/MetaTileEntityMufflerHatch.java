@@ -17,6 +17,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
@@ -26,6 +27,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.items.CapabilityItemHandler;
@@ -80,6 +82,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         int sizeRoot = 1 + Math.min(GTValues.UHV, getTier());
         return sizeRoot * sizeRoot;
     }
+
     @Override
     public void update() {
         super.update();
@@ -97,8 +100,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
                             pushItemsIntoNearbyHandlers(getFrontFacing());
                             this.frontFaceFree = true;
                         } else this.frontFaceFree = checkFrontFaceFree();
-                    }
-                    else this.frontFaceFree = checkFrontFaceFree();
+                    } else this.frontFaceFree = checkFrontFaceFree();
                 }
             }
         }
@@ -106,7 +108,16 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         if (getWorld().isRemote && getController() instanceof MultiblockWithDisplayBase controller &&
                 controller.isActive()) {
             VanillaParticleEffects.mufflerEffect(this, controller.getMufflerParticle());
+            pollution(this.getPollutionAmount(), this.getPollutionTicks());
         }
+    }
+
+    @Override
+    public double getPollutionAmount() {
+        //没有控制器 排放0
+        //如果有控制器 控制器自己定义了污染那就按控制器的来，否则按照消声仓自己的来
+        if(getController() ==  null) return 0;
+        else return  (1 - getTier() * 0.1) * (getController().getPollutionAmount()== 0 ? getController().getPollutionAmount() : 0.001);
     }
 
     @Override
@@ -137,7 +148,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
 
     @Override
     public boolean isMufflerFull() {
-        if (mufflerDust){
+        if (mufflerDust) {
             for (int slot = 0; slot < inventory.getSlots(); slot++) {
                 if (inventory.getStackInSlot(slot).isEmpty())
                     return false;
@@ -180,12 +191,18 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
 
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
-        super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.3"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.4"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.5"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.6"));
+
+        if(ConfigHolder.machines.delayStructureCheckSwitch) {
+            tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.pollution_mte_available"));
+            tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.1"));
+            tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.2"));
+        }
+
         tooltip.add(I18n.format("gregtech.muffler.recovery_tooltip", recoveryChance));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
         tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.machine.muffler_hatch.tooltip.2"));

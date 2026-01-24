@@ -1,6 +1,6 @@
 package gregtech.api.util.tooltips;
 
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.MetaTileEntity;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ public class ConditionalComponent extends AbstractTooltipComponent {
     }
 
     @Override
-    public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+    public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
         if (condition) {
             component.addInformation(metaTileEntity, tooltip);
         }

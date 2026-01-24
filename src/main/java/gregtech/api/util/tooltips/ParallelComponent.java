@@ -1,6 +1,6 @@
 package gregtech.api.util.tooltips;
 
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.MetaTileEntity;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.TextFormatting;
@@ -13,7 +13,7 @@ public class ParallelComponent extends AbstractTooltipComponent {
         this.parallel = parallel;
     }
     @Override
-    public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+    public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
         tooltip.add(TextFormatting.GRAY + I18n.format("gregtech.universal.tooltip.parallel",parallel));
     }
 }

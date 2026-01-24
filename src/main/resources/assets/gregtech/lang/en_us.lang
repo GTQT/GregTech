@@ -6228,10 +6228,10 @@ gregtech.machine.batch_process.tooltips.1=This multi-block multiplies recipes th
 gregtech.machine.batch_process.tooltips.2=Batch processing is calculated separately after the recipe is overclocked and parallelized, so the energy consumption remains the same and the parallelism is ignored
 gregtech.machine.batch_process.tooltips.3=The special recipe logic that takes time to modify is calculated after the batch process, which may cause the recipe to actually be less than 128 ticks
 
-gregtech.tooltip.laser_available=-Laser support:
+gregtech.tooltip.laser_available=-Laser Support:
 gregtech.tooltip.laser_hatch.tooltips=This equipment supports the use of laser hatch instead of energy input/output hatch
 
-gregtech.tooltip.heat_available=-Temperature amplification effect:
+gregtech.tooltip.heat_available=-Temperature Amplification Effect:
 gregtech.tooltip.coil_available=-Coil amplification effect:
 gregtech.tooltip.special_available=-Special formulation logic:
 gregtech.tooltip.steam_available=-Steam Multiblock:
@@ -6240,6 +6240,12 @@ gregtech.tooltip.heat_mte_available=-Heat Multiblock:
 gregtech.multiblock.heat_multiblock.tooltip.1=Every 200K above the recipe requirement reduces recipe time by 10%% (multiplicative)
 gregtech.multiblock.heat_multiblock.tooltip.2=Recipe minimum heat requirement is 7HU/t, recipe minimum temperature requirement is 373K
 gregtech.multiblock.require_heat_parts=Requires only Heat Exchangers to input heat, no need to consume steam or electricity!
+
+gregtech.tooltip.pollution_mte_available=-Pollution Mechanism:
+gregtech.multiblock.pollution_multiblock.tooltip=%s pollution is emitted per %s tick during operation
+
+gregtech.multiblock.pollution_hatch.tooltip.1=The amount and interval of pollution emissions are determined by the controller. If not specified by the controller, the default is to emit 0.001 pollution every 20 ticks during operation
+gregtech.multiblock.pollution_hatch.tooltip.2=The muffler hatch tier determines the actual pollution emission amount, with each tier of muffler reducing 10%% of pollution
 
 gregtech.machine.maintenance_hatch.name=Maintenance Hatch
 gregtech.machine.maintenance_hatch.tooltip=For maintaining Multiblocks

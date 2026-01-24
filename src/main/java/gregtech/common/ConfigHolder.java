@@ -86,6 +86,10 @@ public class ConfigHolder {
     }
 
     public static class MachineOptions {
+        //启用污染机制？
+        @Config.Comment({ "Whether to enable Pollution.", "Default: true" })
+        public boolean enablePollution = true;
+
         @Config.Comment({ "Whether insufficient energy supply should reset Machine recipe progress to zero.",
                 "If true, progress will reset.", "If false, progress will decrease to zero with 2x speed",
                 "Default: false" })

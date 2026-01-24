@@ -221,10 +221,10 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.1"));
-        tooltip.add(I18n.format("gregtech.muffler.recovery_tooltip", recoveryChance));
         tooltip.add(I18n.format("gregtech.machine.me.item_export.tooltip"));
         tooltip.add(I18n.format("gregtech.machine.me.item_export.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.me.extra_connections.tooltip"));
+        tooltip.add(I18n.format("gregtech.muffler.recovery_tooltip", recoveryChance));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 

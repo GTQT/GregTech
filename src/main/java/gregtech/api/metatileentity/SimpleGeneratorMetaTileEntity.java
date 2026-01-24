@@ -1,7 +1,5 @@
 package gregtech.api.metatileentity;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IActiveOutputSide;
 import gregtech.api.capability.impl.EnergyContainerHandler;
@@ -15,11 +13,10 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.PipelineUtil;
-
-import lombok.Getter;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -37,8 +34,10 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -142,6 +141,21 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     }
 
     @Override
+    public void update() {
+        super.update();
+        if (this.isActive()) {
+            if (getWorld().isRemote) {
+                pollution(this.getPollutionAmount(), this.getPollutionTicks());
+            }
+        }
+    }
+
+    @Override
+    public double getPollutionAmount() {
+        return efficiency == 1 ? 0 : getTier() * 0.001;
+    }
+
+    @Override
     public boolean usesMui2() {
         RecipeMap<?> map = getRecipeMap();
         return map != null && map.getRecipeMapUI().usesMui2();
@@ -181,6 +195,8 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
+        TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
+
         String key = this.metaTileEntityId.getPath().split("\\.")[0];
         String mainKey = String.format("gregtech.machine.%s.tooltip", key);
         if (I18n.hasKey(mainKey)) {
@@ -193,7 +209,7 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
         if (recipeMap.getMaxFluidInputs() > 0 || recipeMap.getMaxFluidOutputs() > 0)
             tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity",
                     this.getTankScalingFunction().apply(getTier())));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.generation_efficiency", efficiency*100));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.generation_efficiency", efficiency * 100));
     }
 
     @Override

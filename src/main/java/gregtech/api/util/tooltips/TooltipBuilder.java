@@ -1,14 +1,28 @@
 package gregtech.api.util.tooltips;
 
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.common.ConfigHolder;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class TooltipBuilder {
+
     private final List<ITooltipComponent> components = new ArrayList<>();
+
+    // 创建默认建造者
+    public static TooltipBuilder create() {
+        return new TooltipBuilder();
+    }
+
+    // 创建包含基础信息的建造者
+    public static TooltipBuilder createDefault() {
+        return new TooltipBuilder()
+                .addStructure()
+                .addRecipe();
+    }
 
     // 添加预定义的组件
     public TooltipBuilder addTooltips(String key) {
@@ -60,6 +74,7 @@ public class TooltipBuilder {
         components.add(new BlastComponent());
         return this;
     }
+
     public TooltipBuilder addCoilLogic() {
         components.add(new CoilLogicComponent());
         return this;
@@ -80,6 +95,11 @@ public class TooltipBuilder {
         return this;
     }
 
+    public TooltipBuilder addPollution(double pollutionAmount, int ticks) {
+        if (ConfigHolder.machines.delayStructureCheckSwitch && pollutionAmount > 0) components.add(new PollutionComponent(pollutionAmount, ticks));
+        return this;
+    }
+
     // 添加自定义组件
     public TooltipBuilder add(ITooltipComponent component) {
         components.add(component);
@@ -93,21 +113,9 @@ public class TooltipBuilder {
     }
 
     // 构建并执行
-    public void build(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+    public void build(MetaTileEntity metaTileEntity, List<String> tooltip) {
         for (ITooltipComponent component : components) {
             component.addInformation(metaTileEntity, tooltip);
         }
-    }
-
-    // 创建默认建造者
-    public static TooltipBuilder create() {
-        return new TooltipBuilder();
-    }
-
-    // 创建包含基础信息的建造者
-    public static TooltipBuilder createDefault() {
-        return new TooltipBuilder()
-                .addStructure()
-                .addRecipe();
     }
 }

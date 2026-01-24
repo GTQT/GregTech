@@ -13,7 +13,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
@@ -234,7 +233,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         public DrillInformation(int tier) {this.tier = tier;}
 
         @Override
-        public void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip) {
+        public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
             tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.description"));
             tooltip.add(I18n.format("gregtech.machine.fluid_drilling_rig.depletion",
                     TextFormattingUtil.formatNumbers(100.0 / getDepletionChance())));

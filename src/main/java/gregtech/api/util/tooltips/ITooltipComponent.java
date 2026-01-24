@@ -1,9 +1,9 @@
 package gregtech.api.util.tooltips;
 
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.MetaTileEntity;
 
 import java.util.List;
 
 public interface ITooltipComponent {
-    void addInformation(MultiblockControllerBase metaTileEntity, List<String> tooltip);
+    void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip);
 }

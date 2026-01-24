@@ -142,7 +142,6 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
                 });
     }
 
-
     @Override
     public GTGuiTheme getUITheme() {
         return GTGuiTheme.PRIMITIVE;
@@ -185,5 +184,21 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
     @Override
     public SoundType getSoundType() {
         return SoundType.STONE;
+    }
+
+
+    @Override
+    public void update() {
+        super.update();
+        if (this.isActive()) {
+            if (getWorld().isRemote) {
+                pollution(this.getPollutionAmount(), this.getPollutionTicks());
+            }
+        }
+    }
+
+    @Override
+    public double getPollutionAmount() {
+        return 0.005;
     }
 }

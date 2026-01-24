@@ -22,6 +22,7 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.items.toolitem.ToolHelper;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.interfaces.IPollution;
 import gregtech.api.metatileentity.interfaces.ISyncedTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.mui.GTGuiTheme;
@@ -32,6 +33,7 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
+import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.RenderUtil;
@@ -122,7 +124,7 @@ import java.util.function.Consumer;
 
 import static gregtech.api.capability.GregtechDataCodes.*;
 
-public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, IVoidable, IGuiHolder<PosGuiData> {
+public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, IVoidable, IPollution, IGuiHolder<PosGuiData> {
 
     public static final IndexedCuboid6 FULL_CUBE_COLLISION = new IndexedCuboid6(null, Cuboid6.full);
 
@@ -252,6 +254,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                                boolean advanced) {
         if (ConfigHolder.machines.doTerrainExplosion && getIsWeatherOrTerrainResistant())
             tooltip.add(I18n.format("gregtech.universal.tooltip.terrain_resist"));
+        TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
     }
 
     /**
@@ -855,6 +858,32 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         if (getOffsetTimer() % 5 == 0L) {
             updateLightValue();
         }
+    }
+
+    /**
+     * 如果是要写污染的附属自己mixin这个方法实现
+     * ConfigHolder.machines.delayStructureCheckSwitch 是污染开关
+     * @param amount 污染的量
+     * @param ticks 污染的触发间隔
+     */
+    @Override
+    public void pollution(double amount , int ticks) {
+    }
+
+    /**
+     * 自己定义污染的量，默认是0（没有污染）
+     */
+    @Override
+    public double getPollutionAmount() {
+        return 0;
+    }
+
+    /**
+     * 获取污染的触发间隔，默认一秒触发一次
+     */
+    @Override
+    public int getPollutionTicks() {
+        return 20;
     }
 
     /**
