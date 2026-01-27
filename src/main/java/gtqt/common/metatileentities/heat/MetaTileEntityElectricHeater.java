@@ -51,9 +51,13 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
         }
         if (getOffsetTimer() % 20 == 0) {
             if (heatable.getHeatStored() > 0) {
-                heatable.setTemperature(heatable.getMaxTemperature());
+                if (heatable.getTemperature() < heatable.getMaxTemperature()) {
+                    heatable.setTemperature(heatable.getTemperature() + 10 * getTier());
+                }
             } else {
-                heatable.setTemperature(297);
+                if (heatable.getTemperature() > 293) {
+                    heatable.setTemperature(heatable.getTemperature() - 5);
+                }
             }
         }
     }
@@ -81,7 +85,7 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
     public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.machine.heat_hatch.output.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.electric_heater.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()] * 20));
         tooltip.add(I18n.format("gregtech.universal.tooltip.max_temperature", heatable.getMaxTemperature()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.heat_storage_capacity", heatable.getHeatCapacity()));

@@ -1,15 +1,18 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.capability.IHeatMachine;
 import gregtech.api.capability.IHeatable;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.HeatMultiblockRecipeLogic;
 import gregtech.api.capability.impl.ItemHandlerList;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.ConfigHolder;
 
@@ -29,7 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-public abstract class HeatMultiblockController extends RecipeMapMultiblockController implements ProgressBarMultiblock {
+public abstract class HeatMultiblockController extends RecipeMapMultiblockController implements ProgressBarMultiblock,
+                                                                                                IHeatMachine {
 
     List<IHeatable> heatHatch = null;
 
@@ -67,7 +71,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
 
         if (!getAbilities(MultiblockAbility.INPUT_HEAT).isEmpty())
             heatHatch = getAbilities(MultiblockAbility.INPUT_HEAT);
-        else if (getAbilities(MultiblockAbility.OUTPUT_HEAT).isEmpty())
+        else if (!getAbilities(MultiblockAbility.OUTPUT_HEAT).isEmpty())
             heatHatch = getAbilities(MultiblockAbility.OUTPUT_HEAT);
         else heatHatch = null;
     }
@@ -85,6 +89,17 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
     @Override
     public GTGuiTheme getUITheme() {
         return GTGuiTheme.STEEL;
+    }
+
+    @Override
+    protected void configureWarningText(MultiblockUIBuilder builder) {
+        super.configureWarningText(builder);
+        builder.addCustom((manager, syncer) -> {
+            if (isStructureFormed() && syncer.syncBoolean(getHeatStored() == 0)) {
+                manager.add(KeyUtil.lang(TextFormatting.YELLOW,
+                        "gregtech.multiblock.heat_multiblock.no_heat"));
+            }
+        });
     }
 
     @Override
@@ -136,7 +151,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
     }
 
     public int getTemperature() {
-        if (this.getHeatHatch() == null) return 0;
+        if (this.getHeatHatch() == null) return 293;
         return this.getHeatHatch()
                 .stream()
                 .mapToInt(IHeatable::getTemperature)

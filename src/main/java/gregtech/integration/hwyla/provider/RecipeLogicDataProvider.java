@@ -2,6 +2,7 @@ package gregtech.integration.hwyla.provider;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IHeatMachine;
 import gregtech.api.capability.ISteamMachine;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.PrimitiveRecipeLogic;
@@ -72,6 +73,9 @@ public class RecipeLogicDataProvider extends CapabilityDataProvider<AbstractReci
                     if (mte instanceof ISteamMachine) {
                         endText = ": " + TextFormattingUtil.formatNumbers(eut) + TextFormatting.RESET + " L/t " +
                                 I18n.format(Materials.Steam.getUnlocalizedName());
+                    }
+                    if (mte instanceof IHeatMachine) {
+                        endText = ": " + TextFormattingUtil.formatNumbers(eut) + TextFormatting.RESET + " HU/t ";
                     }
                     AbstractRecipeLogic arl = mte.getRecipeLogic();
                     if (arl != null) {
