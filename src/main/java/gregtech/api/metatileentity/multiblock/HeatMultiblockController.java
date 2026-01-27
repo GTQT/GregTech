@@ -127,12 +127,12 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
                 }));
     }
 
-    public void changeHeat(long recipeEUt) {
-        if (this.getHeatHatch() == null) return;
-        this.getHeatHatch()
-                .forEach(hatch -> hatch.changeHeat(recipeEUt));
-
+    public void changeHeat(long amount) {
+        if (getHeatHatch() == null) return;
+        long average = amount / getHeatHatch().size();
+        getHeatHatch().forEach(hatch -> hatch.changeHeat(average));
     }
+
 
     public long getHeatStored() {
         if (this.getHeatHatch() == null) return 0;
