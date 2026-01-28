@@ -149,7 +149,7 @@ public class BlockPattern {
                 }
                 if (pass) return worldState.hasError() ? null : matchContext;
             } else {
-                // 大缓存使用随机抽样（5%）
+                // 大缓存使用随机抽样
                 int cacheSize = cache.size();
                 int sampleCount = (int) Math.ceil(cacheSize * ConfigHolder.machines.delayStructureCheckSample);
                 boolean pass = true;

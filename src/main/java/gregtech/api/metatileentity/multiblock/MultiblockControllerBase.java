@@ -224,14 +224,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             checkStructurePattern();
             return;
         }
+
         // 检查是否启用延迟检测
-        if (ConfigHolder.machines.delayStructureCheckSwitch && shouldDelayCheck()) {
-            // 延迟检测模式：使用配置的检测间隔
+        if (shouldDelayCheck()) {
             if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckTick == 0) {
                 checkStructurePattern();
             }
         } else {
-            // 正常检测模式：每20tick检测一次
             if (getOffsetTimer() % 20 == 0) {
                 checkStructurePattern();
             }
@@ -367,7 +366,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * @return boolean 返回是否应该延迟检查的标识， 当前实现固定返回false表示不延迟
      */
     public boolean shouldDelayCheck() {
-        return ConfigHolder.machines.commonStructureCheckSwitch;
+        return ConfigHolder.machines.delayStructureCheckSwitch;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

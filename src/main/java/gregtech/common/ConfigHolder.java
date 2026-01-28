@@ -213,11 +213,6 @@ public class ConfigHolder {
                 "Default: true" })
         public boolean allowTickAcceleration = true;
 
-        //为所有设备都开启延迟检测功能
-        @Config.Comment({ "Whether to enable delayed structure checks for GT machines.",
-        "Otherwise, delay detection is enabled only for specific multi-party blocks"})
-        public boolean commonStructureCheckSwitch = false;
-
         @Config.Comment({ "Specifies whether to enable multi-block delay detection",
                 "If detected, detection is delayed for multi-party blocks that mark the need for delayed detection.", "If it is not detected, it will be the same as the original",
                 "Default: true",})
@@ -225,18 +220,13 @@ public class ConfigHolder {
 
         //每次检查的时间间隔（单位tick）
         @Config.Comment({ "The delay between structure checks for machines that require a structure.",
-                "值得注意的是，在原版逻辑中，就是每20tick检测一次，如果你设置为20tick，那么他将什么效果都没有",})
+                "多方块工作时的成型检测间隔，如果你确定不会改动多方块可以放心调大",})
         @Config.RangeInt(min = 20, max = 2000)
         public int delayStructureCheckTick = 100;
 
-        @Config.Comment({ "Specifies whether to enable delayed structure checks for machines that require a structure in the standby state.",
-                "If detected, detection is delayed for multi-party blocks that mark the need for delayed detection.", "If it is not detected, it will be the same as the original",
-                "Default: true",})
-        public boolean delayStructureCheckStandbySwitch = true;
-
         //待机状态时，检测间隔延长x倍
         @Config.Comment({ "The delay multiplier for structure checks for machines that require a structure.",
-                "对配方类型多方块待机时的检测间隔，需要设置的比delayStructureCheckTick大，否则你会更卡"})
+                "多方块待机时的成型检测间隔，需要设置的比工作时的成型检测间隔大，如果你确定不会改动多方块可以放心调大"})
         @Config.RangeInt(min = 20, max = 2000)
         public int delayStructureCheckStandby = 600;
 
