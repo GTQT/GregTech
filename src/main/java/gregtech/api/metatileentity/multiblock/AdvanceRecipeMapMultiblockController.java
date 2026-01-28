@@ -648,15 +648,13 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
             return;
         }
 
-        long timer = getOffsetTimer();
-
         // 根据多方块是否工作采用不同的检测策略
         if (checkActive()) {
             if (shouldDelayCheck()) {
                 if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckTick == 0) {
                     checkStructurePattern();
                 }
-            } else if (timer % 20 == 0) {
+            } else if (getOffsetTimer() % 20 == 0) {
                 checkStructurePattern();
             }
         } else {
@@ -664,7 +662,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                 if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckStandby == 0) {
                     checkStructurePattern();
                 }
-            } else if (timer % 20 == 0) {
+            } else if (getOffsetTimer() % 20 == 0) {
                 checkStructurePattern();
             }
         }
