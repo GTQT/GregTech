@@ -54,7 +54,7 @@ public class MetaTileEntityMachineRecipeLoader {
 
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(FLUID_IMPORT_HATCH[i])
-                    .input(pipeQuadrupleFluid, Pipe.get(i))
+                    .input(pipeNonupleFluid, Pipe.get(i))
                     .fluidInputs(Plastic.get(i).getFluid(L * 9))
                     .circuitMeta(9)
                     .output(NONUPLE_IMPORT_HATCH[i])
@@ -62,7 +62,7 @@ public class MetaTileEntityMachineRecipeLoader {
 
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(FLUID_IMPORT_HATCH[i])
-                    .input(pipeQuadrupleFluid, Pipe.get(i))
+                    .input(pipeQuadrupleFluid, Pipe.get(i),4)
                     .fluidInputs(Plastic.get(i).getFluid(L * 16))
                     .circuitMeta(16)
                     .output(SIXTEEN_IMPORT_HATCH[i])
@@ -78,7 +78,7 @@ public class MetaTileEntityMachineRecipeLoader {
 
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(FLUID_EXPORT_HATCH[i])
-                    .input(pipeNonupleFluid, Titanium)
+                    .input(pipeNonupleFluid, Pipe.get(i))
                     .fluidInputs(Plastic.get(i).getFluid(L * 9))
                     .circuitMeta(9)
                     .output(NONUPLE_EXPORT_HATCH[i])
@@ -86,7 +86,7 @@ public class MetaTileEntityMachineRecipeLoader {
 
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(FLUID_EXPORT_HATCH[i])
-                    .input(pipeQuadrupleFluid, Pipe.get(i))
+                    .input(pipeQuadrupleFluid, Pipe.get(i),4)
                     .fluidInputs(Plastic.get(i).getFluid(L * 16))
                     .circuitMeta(16)
                     .output(SIXTEEN_EXPORT_HATCH[i])
