@@ -755,6 +755,12 @@ public class Materials {
     public static Material Redstone;
     public static Material ChromiumDopedMolybdenite;
 
+    /**
+     * 尾气不应该直接加在配方内
+     * 应该是其他多方块专属
+     * 但是不写在 ceu
+     * 原则上保持ceu发电系统的落后性
+     */
     public static Material ExhaustGas;
     public static Material HighPressureExhaustGas;
     public static Material SupercriticalExhaustGas;

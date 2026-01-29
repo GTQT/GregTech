@@ -11,105 +11,90 @@ public class FuelRecipes {
         // diesel generator fuels
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Naphtha.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(500))
                 .duration(10)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(SulfuricLightFuel.getFluid(4))
-                .fluidOutputs(ExhaustGas.getFluid(100))
                 .duration(5)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Methanol.getFluid(4))
-                .fluidOutputs(ExhaustGas.getFluid(400))
                 .duration(8)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Ethanol.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(300))
                 .duration(6)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Octane.getFluid(2))
-                .fluidOutputs(ExhaustGas.getFluid(250))
                 .duration(5)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(BioDiesel.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(400))
                 .duration(8)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(LightFuel.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(500))
                 .duration(10)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Diesel.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(750))
                 .duration(15)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(CetaneBoostedDiesel.getFluid(2))
-                .fluidOutputs(ExhaustGas.getFluid(225))
                 .duration(45)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(RocketFuel.getFluid(16))
-                .fluidOutputs(ExhaustGas.getFluid(6250))
                 .duration(125)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Gasoline.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(2500))
                 .duration(50)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(HighOctaneGasoline.getFluid(1))
-                .fluidOutputs(ExhaustGas.getFluid(5000))
                 .duration(100)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Toluene.getFluid(1))
-                 .fluidOutputs(Gasoline.getFluid(500))
                 .duration(10)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(OilLight.getFluid(32))
-                .fluidOutputs(ExhaustGas.getFluid(250))
                 .duration(5)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(RawOil.getFluid(64))
-                .fluidOutputs(ExhaustGas.getFluid(750))
                 .duration(15)
                 .EUt(V[LV])
                 .buildAndRegister();
