@@ -34,17 +34,14 @@ import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.Lists;
-import gtqt.api.util.GTQTUtility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -89,16 +86,16 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
         // 根据多方块是否工作采用不同的检测策略
         if (recipeMapWorkable.isActive()) {
-            if (shouldDelayCheck()) {
-                if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckTick == 0) {
+            if (isDelayCheck()) {
+                if (getOffsetTimer() % getDelayStructureCheckStandby() == 0) {
                     checkStructurePattern();
                 }
             } else if (getOffsetTimer() % 20 == 0) {
                 checkStructurePattern();
             }
         } else {
-            if (shouldDelayCheck()) {
-                if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckStandby == 0) {
+            if (isDelayCheck()) {
+                if (getOffsetTimer() % getDelayStructureCheckWork() == 0) {
                     checkStructurePattern();
                 }
             } else if (getOffsetTimer() % 20 == 0) {
@@ -170,25 +167,12 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     protected void initializeAbilities() {
-        List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputInventory = new ItemHandlerList(inputItems);
-
-        List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
-        inputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
-
-        List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputInventory = new ItemHandlerList(outputItems);
-
-        List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
-        outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
+        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        this.inputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+        this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
+        this.outputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.EXPORT_FLUIDS));
 
         List<IEnergyContainer> inputEnergy = new ArrayList<>(getAbilities(MultiblockAbility.INPUT_ENERGY));
         inputEnergy.addAll(getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
@@ -209,29 +193,6 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         this.outputFluidInventory = new FluidTankList(true);
         this.energyContainer = new EnergyContainerList(Lists.newArrayList());
         this.refreshBeforeConsumptions.clear();
-    }
-
-    protected IMultipleTankHandler extendedImportFluidList(IMultipleTankHandler fluids) {
-        List<IFluidTank> tanks = new ArrayList<>(fluids.getFluidTanks());
-        // iterate import items to look for and tanks that we might have missed
-        // honestly this might not be worth checking because
-        // it might already be handled in ARL/MRL
-        for (var handler : getAbilities(MultiblockAbility.IMPORT_ITEMS)) {
-            if (handler instanceof IFluidTank tank) {
-                if (!tanks.contains(tank)) tanks.add(tank);
-            } else if (handler instanceof IMultipleTankHandler multipleTankHandler) {
-                for (var tank : multipleTankHandler.getFluidTanks()) {
-                    if (!tanks.contains(tank)) tanks.add(tank);
-                }
-            }
-        }
-        for (var handler : getAbilities(MultiblockAbility.DUAL_IMPORT)) {
-            for (var tank : handler.getFluidTanks()) {
-                if (!tanks.contains(tank)) tanks.add(tank);
-            }
-        }
-
-        return new FluidTankList(allowSameFluidFillForOutputs(), tanks);
     }
 
     public boolean allowSameFluidFillForOutputs() {
@@ -272,19 +233,6 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                     .setMaxGlobalLimited(2)
                     .setPreviewCount(1));
         }
-        if (checkItemIn || checkFluidIn) {
-            if (recipeMap.getMaxInputs() > 0 || recipeMap.getMaxFluidInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.DUAL_IMPORT).setPreviewCount(1));
-            }
-        }
-        if (checkItemOut || checkFluidOut) {
-            if (recipeMap.getMaxOutputs() > 0 || recipeMap.getMaxFluidOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
-            }
-        }
-
-        predicate = predicate.or(abilities(MultiblockAbility.COMPLEX_DUAL).setPreviewCount(1));
-
         if (checkItemIn) {
             if (recipeMap.getMaxInputs() > 0) {
                 predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
@@ -359,8 +307,6 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         if (this.isDistinct) {
             this.notifiedItemInputList
                     .addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-            this.notifiedItemInputList
-                    .addAll(this.getAbilities(MultiblockAbility.DUAL_IMPORT));
         } else {
             this.notifiedItemInputList.add(this.inputInventory);
         }

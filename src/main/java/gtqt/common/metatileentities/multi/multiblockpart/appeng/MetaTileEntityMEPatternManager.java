@@ -2,7 +2,6 @@ package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
@@ -30,7 +29,6 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,10 +47,6 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityMEPatternManager(metaTileEntityId, getTier(), isExportHatch);
-    }
-
-    @Override
-    public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
     }
 
     @Override

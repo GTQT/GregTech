@@ -9,28 +9,34 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTLambdaUtils;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.value.IBoolValue;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.Icon;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.utils.MouseData;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
@@ -39,6 +45,7 @@ import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -525,7 +532,7 @@ public class MultiblockUIFactory {
                 .name("side_col")
                 .coverChildren()
                 .align(Alignment.CenterLeft)
-                .child(createStructureCheckButton(mainPanel, panelSyncManager))
+                .child(createStructureDelayCheckButton(mainPanel, panelSyncManager))
                 .child(createBatchButton(mainPanel, panelSyncManager))
                 .child(lockRecipesButton(mainPanel, panelSyncManager))
                 .child(lackEnergyWarningButton(mainPanel, panelSyncManager))
@@ -601,21 +608,174 @@ public class MultiblockUIFactory {
     }
 
 
-    protected IWidget createStructureCheckButton(@NotNull ModularPanel mainPanel,
+    protected IWidget createStructureDelayCheckButton(@NotNull ModularPanel mainPanel,
                                                  @NotNull PanelSyncManager panelSyncManager) {
+
+        var throttlePanel = panelSyncManager.panel("structure_button", this::createStructureCheckPanel, true);
+        // 配置按钮 - 打开线程调整UI
         return new ButtonWidget<>()
-                .name("structure_button")
                 .size(18)
+                .overlay( new ItemDrawable(mte.getStackForm()).asIcon().size(16))
+                .addTooltipLine(IKey.lang("结构调整"))
                 .onMousePressed(mouseButton -> {
-                    mte.checkStructurePattern();
-                    panelSyncManager.getPlayer().sendMessage(new TextComponentTranslation(
-                            "位于" + mte.getPos() + "的" + mte.getStackForm().getDisplayName() + "结构" +
-                                    (mte.isStructureFormed() ? "成型" : "不成型")));
+                    if (throttlePanel.isPanelOpen()) {
+                        throttlePanel.closePanel();
+                    } else {
+                        throttlePanel.openPanel();
+                    }
                     return true;
-                })
-                .overlay(GTGuiTextures.BUTTON_STRUCTURE)
-                .addTooltipLine(IKey.lang("gregtech.multiblock.universal.structure_check"))
-                .disableHoverBackground();
+                });
+    }
+
+    protected ModularPanel createStructureCheckPanel(PanelSyncManager syncManager, IPanelHandler syncHandler) {
+        //两个按钮 一个开启延迟检测 一个进行多方块成型检查
+        BooleanSyncValue delayCheckSync = new BooleanSyncValue(mte::isDelayCheck, mte::setDelayCheck);
+        IntSyncValue delayStructureCheckStandbyValue = new IntSyncValue(mte::getDelayStructureCheckStandby, mte::setDelayStructureCheckStandby);
+        IntSyncValue delayStructureCheckWorkValue = new IntSyncValue(mte::getDelayStructureCheckWork, mte::setDelayStructureCheckWork);
+        syncManager.syncValue("delay_standby", delayStructureCheckStandbyValue);
+        syncManager.syncValue("delay_work", delayStructureCheckWorkValue);
+
+        // 为待机延迟创建字符串同步值
+        StringSyncValue standbyDelayStringValue = new StringSyncValue(
+                () -> "待机延迟: " + mte.getDelayStructureCheckStandby() + "t",
+                str -> {}
+        );
+
+        // 为工作延迟创建字符串同步值
+        StringSyncValue workDelayStringValue = new StringSyncValue(
+                () -> "工作延迟: " + mte.getDelayStructureCheckWork() + "t",
+                str -> {}
+        );
+
+        return GTGuis.createPopupPanel("structure_button", 180, 100)
+                .child(Flow.row()
+                        .pos(4, 4)
+                        .height(16)
+                        .coverChildrenWidth()
+                        .child(new ItemDrawable(mte.getStackForm())
+                                .asWidget()
+                                .size(16)
+                                .marginRight(4))
+                        .child(IKey.lang("设备结构模式")
+                                .asWidget()
+                                .heightRel(1.0f)))
+
+                .child(Flow.row()
+                        .pos(4, 24)
+                        .height(18)
+                        .child(new ButtonWidget<>()
+                                .name("structure_check_button")
+                                .size(18)
+                                .onMousePressed(mouseButton -> {
+                                    mte.checkStructurePattern();
+                                    syncManager.getPlayer().sendMessage(new TextComponentTranslation(
+                                            "位于" + mte.getPos() + "的" + mte.getStackForm().getDisplayName() + "结构" +
+                                                    (mte.isStructureFormed() ? "成型" : "不成型")));
+                                    return true;
+                                })
+                                .overlay(GTGuiTextures.BUTTON_STRUCTURE)
+                                .addTooltipLine(IKey.lang("gregtech.multiblock.universal.structure_check"))
+                                .disableHoverBackground())
+
+                        .child(new ToggleButton()
+                                .name("delay_check_button")
+                                .size(18)
+                                .disableHoverBackground()
+                                .overlay(true,  GTGuiTextures.BUTTON_POWER[1])
+                                .overlay(false,  GTGuiTextures.BUTTON_POWER[0])
+                                .value(delayCheckSync)
+                                .addTooltipLine(IKey.str("延迟检测多方块（延长多方块成型检测的时间间隔）"))
+                                .disableHoverBackground()
+                        )
+                )
+
+                // 添加待机检测延迟控制行
+                .child(Flow.row()
+                        .top(48)
+                        .height(20)
+                        .child(new ButtonWidget<>()
+                                .left(5).width(40)
+                                .height(18)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.str("减小待机检测延迟")))
+                                .onMousePressed(mouseButton -> {
+                                    delayStructureCheckStandbyValue.setValue(MathHelper.clamp(
+                                            delayStructureCheckStandbyValue.getValue() -
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)),
+                                            20, 1200));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(false)))
+                        )
+                        .child(new TextFieldWidget()
+                                .left(50)
+                                .width(76)
+                                .height(18)
+                                .setValidator(str -> standbyDelayStringValue.getValue())
+                                .value(standbyDelayStringValue)
+                                .background(GTGuiTextures.DISPLAY)
+                                .setTextColor(0x404040)
+                        )
+                        .child(new ButtonWidget<>()
+                                .left(131)
+                                .width(40)
+                                .height(18)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.str("增大待机检测延迟")))
+                                .onMousePressed(mouseButton -> {
+                                    delayStructureCheckStandbyValue.setValue(MathHelper.clamp(
+                                            delayStructureCheckStandbyValue.getValue() +
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)),
+                                            20, 1200));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(true)))
+                        )
+                )
+
+                // 添加工作检测延迟控制行
+                .child(Flow.row()
+                        .top(72)
+                        .height(20)
+                        .child(new ButtonWidget<>()
+                                .left(5).width(40)
+                                .height(18)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.str("减小工作检测延迟")))
+                                .onMousePressed(mouseButton -> {
+                                    delayStructureCheckWorkValue.setValue(MathHelper.clamp(
+                                            delayStructureCheckWorkValue.getValue() -
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)),
+                                            20, 1200));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(false)))
+                        )
+                        .child(new TextFieldWidget()
+                                .left(50)
+                                .width(76)
+                                .height(18)
+                                .setValidator(str -> workDelayStringValue.getValue())
+                                .value(workDelayStringValue)
+                                .background(GTGuiTextures.DISPLAY)
+                                .setTextColor(0x404040)
+                        )
+                        .child(new ButtonWidget<>()
+                                .left(131)
+                                .width(40)
+                                .height(18)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.str("增大工作检测延迟")))
+                                .onMousePressed(mouseButton -> {
+                                    delayStructureCheckWorkValue.setValue(MathHelper.clamp(
+                                            delayStructureCheckWorkValue.getValue() +
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)),
+                                            20, 1200));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(true)))
+                        )
+                );
     }
 
     @Nullable

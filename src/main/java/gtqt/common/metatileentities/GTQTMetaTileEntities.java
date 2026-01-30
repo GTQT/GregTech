@@ -8,6 +8,7 @@ import gregtech.client.renderer.texture.Textures;
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gtqt.common.metatileentities.heat.MetaTileEntityElectricHeater;
 import gtqt.common.metatileentities.heat.MetaTileEntityHeatHatch;
+import gtqt.common.metatileentities.multi.MetaTileEntityLogisticsMaterialDistributor;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
@@ -97,6 +98,8 @@ public class GTQTMetaTileEntities {
 
     public static final MetaTileEntityWirelessController[] WIRELESS_CONTROLLERS = new MetaTileEntityWirelessController[15];
     public static final SimpleMachineMetaTileEntity[] BEE_ATTRACTORS = new SimpleMachineMetaTileEntity[15];
+
+    public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
 
     //从2500开始写 与gtceu本体共用一个注册表
     //任务：GTQT内不方便写的内容转移到这里来写
@@ -209,6 +212,7 @@ public class GTQTMetaTileEntities {
             }
         }
 
+
         //无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {
             String tier = VN[i].toLowerCase();
@@ -284,5 +288,9 @@ public class GTQTMetaTileEntities {
                                 gregtechId("wireless_energy_hatch.output_1048576a." + tier), i, 1048576, true));
             }
         }
+
+        //5000+
+        LOGISTICS_MATERIAL_DISTRIBUTOR = registerMetaTileEntity(5000,
+                new MetaTileEntityLogisticsMaterialDistributor(gregtechId("logistics_material_distributor")));
     }
 }

@@ -1,10 +1,8 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
-import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
-import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 
@@ -17,6 +15,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
 
 import appeng.api.AEApi;
 import appeng.api.networking.GridFlags;
@@ -37,9 +36,6 @@ import appeng.me.helpers.IGridProxyable;
 import appeng.me.helpers.MachineSource;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import lombok.Getter;
-
-import net.minecraftforge.common.capabilities.Capability;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +46,7 @@ import java.util.List;
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ONLINE_STATUS;
 
 public abstract class MetaTileEntityMEControlBase extends MetaTileEntityMultiblockNotifiablePart
-        implements IMultiblockAbilityPart<DualHandler>, IControllable {
+        implements IControllable {
 
     public final static String WORKING_TAG = "WorkingEnabled";
     @Getter

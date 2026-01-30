@@ -1,6 +1,5 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NoEnergyMultiblockRecipeLogic;
@@ -14,9 +13,6 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.items.IItemHandler;
-
-import gtqt.api.util.GTQTUtility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,25 +27,12 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
 
     @Override
     protected void initializeAbilities() {
-        List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputInventory = new ItemHandlerList(inputItems);
-
-        List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
-        inputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
-
-        List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputInventory = new ItemHandlerList(outputItems);
-
-        List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
-        outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
+        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        this.inputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+        this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
+        this.outputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.EXPORT_FLUIDS));
     }
 
     public TraceabilityPredicate autoAbilities(

@@ -2,7 +2,6 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.capability.IHeatMachine;
 import gregtech.api.capability.IHeatable;
-import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.HeatMultiblockRecipeLogic;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -21,12 +20,10 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.items.IItemHandler;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import gtqt.api.util.GTQTUtility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,25 +46,13 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
 
     @Override
     protected void initializeAbilities() {
-        List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputInventory = new ItemHandlerList(inputItems);
+        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        this.inputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+        this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
+        this.outputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.EXPORT_FLUIDS));
 
-        List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
-        inputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
-
-        List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputInventory = new ItemHandlerList(outputItems);
-
-        List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
-        outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
 
         if (!getAbilities(MultiblockAbility.INPUT_HEAT).isEmpty())
             heatHatch = getAbilities(MultiblockAbility.INPUT_HEAT);
@@ -169,19 +154,6 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
         TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
 
         predicate = predicate.or(abilities(MultiblockAbility.INPUT_HEAT).setPreviewCount(1).setMaxGlobalLimited(2));
-
-        if (checkItemIn || checkFluidIn) {
-            if (recipeMap.getMaxInputs() > 0 || recipeMap.getMaxFluidInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.DUAL_IMPORT).setPreviewCount(1));
-            }
-        }
-        if (checkItemOut || checkFluidOut) {
-            if (recipeMap.getMaxOutputs() > 0 || recipeMap.getMaxFluidOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.DUAL_EXPORT).setPreviewCount(1));
-            }
-        }
-
-        predicate = predicate.or(abilities(MultiblockAbility.COMPLEX_DUAL).setPreviewCount(1));
 
         if (checkItemIn) {
             if (recipeMap.getMaxInputs() > 0) {

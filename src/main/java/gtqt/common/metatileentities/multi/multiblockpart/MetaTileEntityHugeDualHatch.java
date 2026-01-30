@@ -1,16 +1,12 @@
 package gtqt.common.metatileentities.multi.multiblockpart;
 
+import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
-import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IGhostSlotConfigurable;
-import gregtech.api.capability.INotifiableHandler;
-import gregtech.api.capability.impl.FluidHandlerProxy;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
-import gregtech.api.capability.impl.ItemHandlerList;
-import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -19,11 +15,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
-import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -31,21 +25,18 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMulti
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.fluids.FluidTank;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
@@ -55,7 +46,6 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
-import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
@@ -68,48 +58,32 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import static net.minecraft.util.text.TextFormatting.GREEN;
+public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifiablePart implements
+                                                                                        IMultiblockAbilityPart<IItemHandlerModifiable>,
+                                                                                        IControllable,
+                                                                                        IGhostSlotConfigurable {
 
-public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifiablePart
-        implements IMultiblockAbilityPart<DualHandler>, IControllable, IGhostSlotConfigurable {
-
-    private final int numSlots;
-    private final int tankSize;
-    // only holding this for convenience
-    private final FluidTankList fluidTankList;
-    //item
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;
+
     private LargeSlotItemStackHandler largeSlotItemStackHandler;
+
+    @Nullable
     private IItemHandlerModifiable actualImportItems;
-    private boolean workingEnabled;
-    private boolean autoCollapse;
+    private DualHandler dualHandler;
+
+    private boolean workingEnabled = true;
+    private boolean autoCollapse = false;
 
     public MetaTileEntityHugeDualHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
-        this.workingEnabled = true;
-
-        this.numSlots = getTier();
-        this.tankSize = Integer.MAX_VALUE;
-        FluidTank[] fluidsHandlers = new FluidTank[numSlots];
-        for (int i = 0; i < fluidsHandlers.length; i++) {
-            fluidsHandlers[i] = new NotifiableFluidTank(tankSize, this, isExportHatch);
-        }
-        this.fluidTankList = new FluidTankList(false, fluidsHandlers);
-
         initializeInventory();
-    }
-
-    public int getSlotByTier() {
-        return getTier() * getTier();
     }
 
     @Override
@@ -119,230 +93,130 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
 
     @Override
     protected void initializeInventory() {
-        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null, false,
+        super.initializeInventory();
+
+        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getItemSize(), null, false,
                 () -> Integer.MAX_VALUE);
 
-        if (this.hasGhostCircuitInventory()) {
+        if (hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
             this.circuitInventory.addNotifiableMetaTileEntity(this);
-            this.actualImportItems = new ItemHandlerList(
-                    Arrays.asList(largeSlotItemStackHandler, this.circuitInventory));
         } else {
-            this.actualImportItems = null;
+            actualImportItems = null;
+            exportItems = largeSlotItemStackHandler;
         }
-        this.importItems = createImportItemHandler();
-        this.exportItems = createExportItemHandler();
-        this.itemInventory = new ItemHandlerProxy(importItems, exportItems);
 
-        if (this.fluidTankList == null) return;
-        this.importFluids = createImportFluidHandler();
-        this.exportFluids = createExportFluidHandler();
-        this.fluidInventory = new FluidHandlerProxy(importFluids, exportFluids);
+        dualHandler = new DualHandler(
+                isExportHatch ? this.exportItems : this.actualImportItems,
+                isExportHatch ? getExportFluids() : getImportFluids(),
+                isExportHatch);
     }
 
     @Override
     public IItemHandlerModifiable getImportItems() {
-        return this.actualImportItems == null ? largeSlotItemStackHandler : this.actualImportItems;
+        return dualHandler;
     }
 
-    @Override
-    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
-        super.addToMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.addNotifiableMetaTileEntity(controllerBase);
-                    notifiable.addToNotifiedList(this, handler, isExportHatch);
-                }
-            }
+    protected IFluidTank[] createTanks() {
+        int size = getTankSize();
+        IFluidTank[] tanks = new IFluidTank[size];
+        for (int index = 0; index < tanks.length; index++) {
+            tanks[index] = new NotifiableFluidTank(getTankCapacity(), null, isExportHatch);
         }
+        return tanks;
     }
 
-    @Override
-    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
-        super.removeFromMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.removeNotifiableMetaTileEntity(controllerBase);
-                }
-            }
-        }
+    protected int getTankSize() {
+        return 1 + Math.min(GTValues.UHV, getTier());
     }
 
-    @Override
-    public void update() {
-        super.update();
-        if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
-            if (workingEnabled) {
-                if (isExportHatch) {
-                    pushItemsIntoNearbyHandlers(getFrontFacing());
-                } else {
-                    pullItemsFromNearbyHandlers(getFrontFacing());
-                }
-            }
-            if (workingEnabled) {
-                if (isExportHatch) {
-                    pushFluidsIntoNearbyHandlers(getFrontFacing());
-                } else {
-                    pullFluidsFromNearbyHandlers(getFrontFacing());
-                }
-            }
-            // Only attempt to auto collapse the inventory contents once the bus has been notified
-            if (isAutoCollapse()) {
-                // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
-                // from the slot
-                IItemHandlerModifiable inventory = (isExportHatch ? this.getExportItems() : largeSlotItemStackHandler);
-                if (!isAttachedToMultiBlock() || (isExportHatch ? this.getNotifiedItemOutputList().contains(inventory) :
-                        this.getNotifiedItemInputList().contains(inventory))) {
-                    GTUtility.collapseInventorySlotContents(inventory);
-                }
-
-                FluidTankList fluidInventory = (isExportHatch ? this.getExportFluids() : this.getImportFluids());
-                if (!isAttachedToMultiBlock() ||
-                        (isExportHatch ? this.getNotifiedFluidOutputList().contains(fluidInventory) :
-                                this.getNotifiedFluidInputList().contains(fluidInventory))) {
-                    GTUtility.collapseFluidTankContents(fluidInventory);
-                }
-            }
-        }
+    protected int getItemSize() {
+        return getTankSize() * getTankSize();
     }
 
-    @Override
-    public boolean isWorkingEnabled() {
-        return workingEnabled;
-    }
-
-    @Override
-    public void setWorkingEnabled(boolean workingEnabled) {
-        this.workingEnabled = workingEnabled;
-        World world = getWorld();
-        if (world != null && !world.isRemote) {
-            writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
-        }
-    }
-
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
-            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.largeSlotItemStackHandler);
-        }
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        super.renderMetaTileEntity(renderState, translation, pipeline);
-        if (shouldRenderOverlay()) {
-
-            SimpleOverlayRenderer overlay = isExportHatch ? Textures.DUAL_HATCH_OUTPUT_OVERLAY :
-                    Textures.DUAL_HATCH_INPUT_OVERLAY;
-            overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
-        }
-    }
-
-    private int getInventorySize() {
-        return getSlotByTier();
-    }
-
-    @Override
-    protected IItemHandlerModifiable createExportItemHandler() {
-        return isExportHatch ? new LargeSlotItemStackHandler(this, getInventorySize(), getController(), true) :
-                new GTItemStackHandler(this, 0);
+    protected int getTankCapacity() {
+        return Integer.MAX_VALUE;
     }
 
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
         return isExportHatch ? new GTItemStackHandler(this, 0) :
-                new LargeSlotItemStackHandler(this, getInventorySize(), getController(), false);
+                new LargeSlotItemStackHandler(this, getItemSize(), null, false);
+    }
+
+    @Override
+    protected IItemHandlerModifiable createExportItemHandler() {
+        return isExportHatch ? new LargeSlotItemStackHandler(this, getItemSize(), null, true) :
+                new GTItemStackHandler(this, 0);
     }
 
     @Override
     protected FluidTankList createImportFluidHandler() {
-        return isExportHatch ? new FluidTankList(false) : fluidTankList;
+        return isExportHatch ? new FluidTankList(false) : new FluidTankList(false, createTanks());
     }
 
     @Override
     protected FluidTankList createExportFluidHandler() {
-        return isExportHatch ? fluidTankList : new FluidTankList(false);
+        return isExportHatch ? new FluidTankList(false, createTanks()) : new FluidTankList(false);
     }
 
     @Override
-    public MultiblockAbility<DualHandler> getAbility() {
-        return isExportHatch ? MultiblockAbility.DUAL_EXPORT : MultiblockAbility.DUAL_IMPORT;
-    }
+    public void update() {
+        super.update();
 
-    @Override
-    public void writeInitialSyncData(PacketBuffer buf) {
-        super.writeInitialSyncData(buf);
-        buf.writeBoolean(workingEnabled);
-        buf.writeBoolean(autoCollapse);
-        for (var tank : fluidTankList.getFluidTanks()) {
-            NetworkUtils.writeFluidStack(buf, tank.getFluid());
-        }
-    }
+        if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
+            if (workingEnabled) {
+                if (isExportHatch) {
+                    pushItemsIntoNearbyHandlers(getFrontFacing());
+                    pushFluidsIntoNearbyHandlers(getFrontFacing());
+                } else {
+                    pullItemsFromNearbyHandlers(getFrontFacing());
+                    pullFluidsFromNearbyHandlers(getFrontFacing());
+                }
+            }
 
-    @Override
-    public void receiveInitialSyncData(PacketBuffer buf) {
-        super.receiveInitialSyncData(buf);
-        this.workingEnabled = buf.readBoolean();
-        this.autoCollapse = buf.readBoolean();
-        for (var tank : fluidTankList.getFluidTanks()) {
-            var fluid = NetworkUtils.readFluidStack(buf);
-            tank.fill(fluid, true);
-        }
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        super.writeToNBT(data);
-        data.setTag("largeSlotItemStackHandler", this.largeSlotItemStackHandler.serializeNBT());
-        data.setBoolean("workingEnabled", workingEnabled);
-        data.setBoolean("autoCollapse", autoCollapse);
-        if (this.circuitInventory != null && !this.isExportHatch) {
-            this.circuitInventory.write(data);
-        }
-        return data;
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound data) {
-        super.readFromNBT(data);
-        this.largeSlotItemStackHandler.deserializeNBT(data.getCompoundTag("largeSlotItemStackHandler"));
-        if (data.hasKey("workingEnabled")) {
-            this.workingEnabled = data.getBoolean("workingEnabled");
-        }
-        if (data.hasKey("autoCollapse")) {
-            this.autoCollapse = data.getBoolean("autoCollapse");
-        }
-        if (this.circuitInventory != null && !this.isExportHatch) {
-            this.circuitInventory.read(data);
+            if (autoCollapse()) {
+                IItemHandlerModifiable itemHandler = isExportHatch ? getExportItems() : super.getImportItems();
+                if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
+                        getNotifiedItemInputList().contains(itemHandler))) {
+                    GTUtility.collapseInventorySlotContents(itemHandler);
+                }
+            }
         }
     }
 
     @Override
-    public void receiveCustomData(int dataId, PacketBuffer buf) {
-        super.receiveCustomData(dataId, buf);
-        if (dataId == GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS) {
-            this.autoCollapse = buf.readBoolean();
-        } else if (dataId == GregtechDataCodes.WORKING_ENABLED) {
-            this.workingEnabled = buf.readBoolean();
+    public boolean hasGhostCircuitInventory() {
+        return !this.isExportHatch;
+    }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
         }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
+    public @Nullable MultiblockAbility<IItemHandlerModifiable> getAbility() {
+        return isExportHatch ? MultiblockAbility.EXPORT_ITEMS : MultiblockAbility.IMPORT_ITEMS;
     }
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(new DualHandler(isExportHatch ? this.exportItems : this.actualImportItems,
-                    isExportHatch ? exportFluids : importFluids, true));
-
-        } else {
-            abilityInstances.add(new DualHandler(isExportHatch ? this.exportItems : this.importItems,
-                    isExportHatch ? exportFluids : importFluids, false));
-        }
+        abilityInstances.add(dualHandler);
     }
 
     @Override
@@ -350,14 +224,15 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         return true;
     }
 
+    @SuppressWarnings("DuplicatedCode")
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = getTier();
+        int rowSize = (int) Math.sqrt(getItemSize());
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
                 9 * 18 + 18 + 14 + 5,   // Player Inv width
-                (rowSize + 1) * 18 + 14); // Bus Inv width
+                rowSize * 18 + 14 + 18); // Bus Inv width
         int backgroundHeight = 18 + 18 * rowSize + 94;
 
         List<List<IWidget>> widgets = new ArrayList<>();
@@ -365,7 +240,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
             widgets.add(new ArrayList<>());
             for (int j = 0; j < rowSize; j++) {
                 int index = i * rowSize + j;
-                IItemHandlerModifiable handler = isExportHatch ? exportItems : largeSlotItemStackHandler;
+                IItemHandlerModifiable handler = isExportHatch ? getExportItems() : getImportItems();
                 widgets.get(i)
                         .add(new ItemSlot()
                                 .slot(new ModularSlot(handler, index) {
@@ -378,18 +253,17 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
                                         .ignoreMaxStackSize(true)
                                         .slotGroup("item_inv")
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                                            if (onlyAmountChanged &&
-                                                    handler instanceof GTItemStackHandler gtHandler) {
+                                            if (onlyAmountChanged && handler instanceof LargeSlotItemStackHandler gtHandler) {
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
                                         .accessibility(!isExportHatch, true)));
-
             }
+
+            IFluidTank tankHandler = dualHandler.getTankAt(i);
             widgets.get(i).add(new GTFluidSlot()
-                    .syncHandler(GTFluidSlot.sync(fluidTankList.getTankAt(i))
-                            .accessibility(true, !isExportHatch))
-            );
+                    .syncHandler(GTFluidSlot.sync(tankHandler)
+                            .accessibility(true, !isExportHatch)));
         }
 
         BooleanSyncValue workingStateValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
@@ -397,18 +271,16 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
         guiSyncManager.syncValue("collapse_state", collapseStateValue);
 
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
+        boolean hasGhostCircuit = hasGhostCircuitInventory() && circuitInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child(new Grid()
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7)).child(new Grid()
                         .top(18).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
-                        .leftRel(0.5f)
+                        .alignX(0.5f)
                         .matrix(widgets))
-
                 .child(Flow.column()
                         .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
                         .width(18).height(18 * 4 + 5)
@@ -441,44 +313,57 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
                         .childIf(!hasGhostCircuit, new Widget<>()
                                 .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
                                 .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))))
-                );
+                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
     }
 
     @Override
-    public boolean hasGhostCircuitInventory() {
-        return !this.isExportHatch;
-    }
-
-    @Override
-    public boolean onScrewdriverClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
-                                      CuboidRayTraceResult hitResult) {
-        setAutoCollapse(!this.autoCollapse);
-
-        if (!getWorld().isRemote) {
-            if (this.autoCollapse) {
-                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_true"), true);
-            } else {
-                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_false"), true);
-            }
+    @SideOnly(Side.CLIENT)
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        if (shouldRenderOverlay()) {
+            SimpleOverlayRenderer overlay = isExportHatch ? Textures.DUAL_HATCH_OUTPUT_OVERLAY :
+                    Textures.DUAL_HATCH_INPUT_OVERLAY;
+            overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
-        return true;
     }
 
-    public boolean isAutoCollapse() {
-        return autoCollapse;
+    @Override
+    public void writeInitialSyncData(PacketBuffer buf) {
+        super.writeInitialSyncData(buf);
+        buf.writeBoolean(workingEnabled);
+        buf.writeBoolean(autoCollapse);
     }
 
+    @Override
+    public void receiveInitialSyncData(PacketBuffer buf) {
+        super.receiveInitialSyncData(buf);
+        workingEnabled = buf.readBoolean();
+        autoCollapse = buf.readBoolean();
+    }
+
+    @Override
+    public void setWorkingEnabled(boolean workingEnabled) {
+        this.workingEnabled = workingEnabled;
+        World world = getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
+        }
+    }
+
+    @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @SuppressWarnings("DuplicatedCode")
     public void setAutoCollapse(boolean inverted) {
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
             if (autoCollapse) {
                 if (isExportHatch) {
-                    addNotifiedOutput(this.getExportItems());
-                    addNotifiedOutput(this.getExportFluids());
+                    addNotifiedOutput(getExportItems());
                 } else {
-                    addNotifiedInput(largeSlotItemStackHandler);
-                    addNotifiedInput(this.getImportFluids());
+                    addNotifiedInput(getImportItems());
                 }
             }
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
@@ -488,23 +373,61 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         }
     }
 
+    public boolean autoCollapse() {
+        return autoCollapse;
+    }
+
     @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
+    public void receiveCustomData(int dataId, PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == GregtechDataCodes.WORKING_ENABLED) {
+            workingEnabled = buf.readBoolean();
+        } else if (dataId == GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS) {
+            autoCollapse = buf.readBoolean();
         }
-        this.circuitInventory.setCircuitValue(config);
+    }
+
+    @Override
+    public boolean onScrewdriverClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
+                                      CuboidRayTraceResult hitResult) {
+        setAutoCollapse(!autoCollapse);
+
         if (!getWorld().isRemote) {
-            markDirty();
+            if (autoCollapse) {
+                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_true"), true);
+            } else {
+                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_false"), true);
+            }
         }
+        return true;
     }
+
     @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
+    public NBTTagCompound writeToNBT(NBTTagCompound data) {
+        super.writeToNBT(data);
+
+        data.setBoolean("workingEnabled", workingEnabled);
+        data.setBoolean("autoCollapse", autoCollapse);
+
+        if (circuitInventory != null) {
+            circuitInventory.write(data);
         }
-        return this.circuitInventory.getCircuitValue();
+
+        return data;
     }
+
+    @Override
+    public void readFromNBT(NBTTagCompound data) {
+        super.readFromNBT(data);
+
+        this.workingEnabled = data.getBoolean("workingEnabled");
+        this.autoCollapse = data.getBoolean("autoCollapse");
+
+        if (circuitInventory != null) {
+            circuitInventory.read(data);
+        }
+    }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
@@ -513,10 +436,9 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         else
             tooltip.add(I18n.format("gregtech.machine.dual_hatch.export.tooltip"));
 
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getInventorySize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
-        tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
 
     @Override
@@ -526,28 +448,4 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
         super.addToolUsages(stack, world, tooltip, advanced);
     }
-
-    @Override
-    public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
-        // override here is gross, but keeps things in order despite
-        // IDs being out of order, due to UEV+ being added later
-        if (this == GTQTMetaTileEntities.HUGE_DUAL_IMPORT_HATCH[0]) {
-            for (var hatch : GTQTMetaTileEntities.HUGE_DUAL_IMPORT_HATCH) {
-                if (hatch != null) subItems.add(hatch.getStackForm());
-            }
-            for (var hatch : GTQTMetaTileEntities.HUGE_DUAL_EXPORT_HATCH) {
-                if (hatch != null) subItems.add(hatch.getStackForm());
-            }
-        } else if (this.getClass() != MetaTileEntityHugeDualHatch.class) {
-            // let subclasses fall through this override
-            super.getSubItems(creativeTab, subItems);
-        }
-    }
-
-    @Override
-    public void onRemoval() {
-        super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), largeSlotItemStackHandler);
-    }
-
 }

@@ -423,8 +423,8 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
     }
 
     @Override
-    public MultiblockAbility<DualHandler> getAbility() {
-        return MultiblockAbility.DUAL_IMPORT;
+    public @NotNull List<MultiblockAbility<?>> getAbilities() {
+        return Arrays.asList(MultiblockAbility.IMPORT_FLUIDS, MultiblockAbility.IMPORT_ITEMS);
     }
 
     @Override
@@ -789,13 +789,16 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(new DualHandler(this.actualImportItems,
-                    importFluids, true));
-
-        } else {
-            abilityInstances.add(new DualHandler(this.importItems,
-                    importFluids, false));
+        if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS))
+        {
+            if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
+                abilityInstances.add(this.actualImportItems);
+            } else {
+                abilityInstances.add(this.importItems);
+            }
+        }
+        if (abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
+            abilityInstances.add(this.fluidTankList);
         }
     }
 

@@ -5,7 +5,6 @@ import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IGhostSlotConfigurable;
-import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
@@ -15,7 +14,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
@@ -34,7 +32,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
@@ -137,31 +134,6 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
     @Override
     public IItemHandlerModifiable getImportItems() {
         return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
-    }
-
-    @Override
-    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
-        super.addToMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.addNotifiableMetaTileEntity(controllerBase);
-                    notifiable.addToNotifiedList(this, handler, isExportHatch);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
-        super.removeFromMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.removeNotifiableMetaTileEntity(controllerBase);
-                }
-            }
-        }
     }
 
     @Override

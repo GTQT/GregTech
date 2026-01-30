@@ -1,6 +1,5 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IDataAccessHatch;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IHPCAComponentHatch;
@@ -109,14 +108,6 @@ public class MultiblockAbility<T> {
             "hpca_component", IHPCAComponentHatch.class);
     public static final MultiblockAbility<IObjectHolder> OBJECT_HOLDER = ability(
             "object_holder", IObjectHolder.class);
-
-    //GTQT
-    public static final MultiblockAbility<DualHandler> DUAL_EXPORT = ability(
-            "dual_export", DualHandler.class);
-    public static final MultiblockAbility<DualHandler> DUAL_IMPORT = ability(
-            "dual_import", DualHandler.class);
-    public static final MultiblockAbility<DualHandler> COMPLEX_DUAL = ability(
-            "complex_dual", DualHandler.class);
 
     //无线管理
     public static final MultiblockAbility<IWirelessController> WIRELESS_CONTROLLER = ability(

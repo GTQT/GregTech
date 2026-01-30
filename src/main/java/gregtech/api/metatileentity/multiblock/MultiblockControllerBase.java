@@ -87,10 +87,17 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public BlockPattern structurePattern;
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
+    /**
+     * 判断是否应该延迟检查
+     *
+     * @return boolean 返回是否应该延迟检查的标识， 当前实现固定返回false表示不延迟
+     */
+    boolean delayCheck = false;
     @Getter
     private boolean structureFormed;
-
     private int structureTier = 0;
+    private int delayStructureCheckStandby = 20;
+    private int delayStructureCheckWork = 20;
 
     public MultiblockControllerBase(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -226,8 +233,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         // 检查是否启用延迟检测
-        if (shouldDelayCheck()) {
-            if (getOffsetTimer() % ConfigHolder.machines.delayStructureCheckTick == 0) {
+        if (isDelayCheck()) {
+            if (getOffsetTimer() % getDelayStructureCheckStandby() == 0) {
                 checkStructurePattern();
             }
         } else {
@@ -360,13 +367,28 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return BlockPos::hashCode;
     }
 
-    /**
-     * 判断是否应该延迟检查
-     *
-     * @return boolean 返回是否应该延迟检查的标识， 当前实现固定返回false表示不延迟
-     */
-    public boolean shouldDelayCheck() {
-        return ConfigHolder.machines.delayStructureCheckSwitch;
+    public boolean isDelayCheck() {
+        return delayCheck;
+    }
+
+    public void setDelayCheck(boolean delay) {
+        delayCheck = delay;
+    }
+
+    public int getDelayStructureCheckStandby() {
+        return Math.max(delayStructureCheckStandby, 20);
+    }
+
+    public void setDelayStructureCheckStandby(int delay) {
+        delayStructureCheckStandby = Math.max(Math.min(1200, delay), 20);
+    }
+
+    public int getDelayStructureCheckWork() {
+        return Math.max(delayStructureCheckWork, 20);
+    }
+
+    public void setDelayStructureCheckWork(int delay) {
+        delayStructureCheckWork = Math.max(Math.min(1200, delay), 20);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -374,7 +396,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (structurePattern == null) return;
         PatternMatchContext context = structurePattern.checkPatternFastAt(getWorld(), getPos(),
                 getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
-                shouldDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
+                isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
         if (context != null && !structureFormed) {
             Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
             ArrayList<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
@@ -489,6 +511,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.isFlipped = data.getBoolean("IsFlipped");
         }
         structureTier = data.getInteger("structureTier");
+        delayCheck = data.getBoolean("delayCheck");
+        delayStructureCheckStandby = data.getInteger("delayStructureCheckStandby");
+        delayStructureCheckWork = data.getInteger("delayStructureCheckWork");
         this.reinitializeStructurePattern();
     }
 
@@ -498,6 +523,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         data.setByte("UpwardsFacing", (byte) upwardsFacing.getIndex());
         data.setBoolean("IsFlipped", isFlipped);
         data.setInteger("structureTier", structureTier);
+        data.setBoolean("delayCheck", delayCheck);
+        data.setInteger("delayStructureCheckStandby", delayStructureCheckStandby);
+        data.setInteger("delayStructureCheckWork", delayStructureCheckWork);
         return data;
     }
 

@@ -12,6 +12,8 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.recipes.Recipe;
@@ -43,6 +45,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import gtqt.api.util.GTQTUtility;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.tuple.Pair;
@@ -52,7 +55,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -70,7 +72,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public int progressTime;
     protected Recipe previousRecipe;
     protected Recipe showRecipes;
-    protected LinkedList<Recipe> latestRecipes = new LinkedList<>();
     protected int parallelRecipesPerformed;
     @Getter
     @Setter
@@ -250,6 +251,23 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return the fluid inventory to input fluids from
      */
     protected IMultipleTankHandler getInputTank() {
+        //检查总成，如果有合并流体
+        if(metaTileEntity instanceof MultiblockControllerBase multiblock)
+        {
+            List<IItemHandlerModifiable> itemHandlers = multiblock.getAbilities(MultiblockAbility.IMPORT_ITEMS);
+            List<IMultipleTankHandler> inputFluids = new ArrayList<>();
+            boolean allowMerge =  metaTileEntity.getImportFluids().allowSameFluidFill();
+            inputFluids.add(metaTileEntity.getImportFluids());
+            // 遍历所有物品总线，检查是否是 DualHandler
+            for (IItemHandlerModifiable bus : itemHandlers) {
+                if (bus instanceof IMultipleTankHandler dualHandler) {
+                    // 将 DualHandler 的流体槽添加到总列表中
+                    inputFluids.add(dualHandler);
+                }
+            }
+            return GTQTUtility.mergeTankHandlers(inputFluids,allowMerge);
+        }
+
         return metaTileEntity.getImportFluids();
     }
 
@@ -257,6 +275,23 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return the fluid inventory to output fluids to
      */
     protected IMultipleTankHandler getOutputTank() {
+        //检查总成，如果有合并流体
+        if(metaTileEntity instanceof MultiblockControllerBase multiblock)
+        {
+            List<IItemHandlerModifiable> itemHandlers = multiblock.getAbilities(MultiblockAbility.EXPORT_ITEMS);
+            List<IMultipleTankHandler> outputFluids = new ArrayList<>();
+            boolean allowMerge = metaTileEntity.getExportFluids().allowSameFluidFill();
+            outputFluids.add(metaTileEntity.getExportFluids());
+            // 遍历所有物品总线，检查是否是 DualHandler
+            for (IItemHandlerModifiable bus : itemHandlers) {
+                if (bus instanceof IMultipleTankHandler dualHandler) {
+                    // 将 DualHandler 的流体槽添加到总列表中
+                    outputFluids.add(dualHandler);
+                }
+            }
+            return GTQTUtility.mergeTankHandlers(outputFluids,allowMerge);
+        }
+
         return metaTileEntity.getExportFluids();
     }
 
@@ -492,10 +527,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     public void forceRecipeRecheck() {
         this.previousRecipe = null;
-        this.latestRecipes.clear();
-
         trySearchNewRecipe();
     }
+
+
 
     /**
      * Try to search for a new recipe
@@ -512,25 +547,12 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 currentRecipe = previousRecipe;
             }
         }
-        // 未锁定配方时，按原逻辑搜索配方
         else {
-            // 首先检查上一个配方是否仍然有效
+            // 检查上一个配方是否仍然有效
             if (checkPreviousRecipe()) {
                 currentRecipe = this.previousRecipe;
             }
-            // 若无效则遍历历史记录寻找其他有效配方
-            else {
-                for (int i = latestRecipes.size() - 2; i >= 0; i--) { // 从倒数第二个开始
-                    Recipe recipe = latestRecipes.get(i);
-                    if (recipe == null) continue;
-                    if (recipe.getEUt() <= maxVoltage && recipe.matches(false, importInventory, importFluids)) {
-                        currentRecipe = recipe;
-                        break;
-                    }
-                }
-            }
 
-            // 若历史配方均无效则搜索新配方
             if (currentRecipe == null) {
                 currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
             }
@@ -538,27 +560,13 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
         // If a recipe was found, then inputs were valid. Cache found recipe.
         if (currentRecipe != null) {
-            //最临近配方
             this.previousRecipe = currentRecipe;
-            //热点配方
-            addToPreviousRecipes(currentRecipe);
         }
         this.invalidInputsForRecipes = (currentRecipe == null);
 
         // proceed if we have a usable recipe.
         if (currentRecipe != null && checkRecipe(currentRecipe)) {
             prepareRecipe(currentRecipe);
-        }
-    }
-
-    protected void addToPreviousRecipes(Recipe recipe) {
-        // 移除已存在的旧记录
-        latestRecipes.removeIf(r -> r.equals(recipe));
-        // 添加到末尾
-        latestRecipes.add(recipe);
-        // 移除超出限制的最旧配方
-        while (latestRecipes.size() > 16) {
-            latestRecipes.remove(0);
         }
     }
 

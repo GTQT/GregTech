@@ -5,7 +5,6 @@ import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.IGhostSlotConfigurable;
-import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -20,7 +19,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.gui.widget.appeng.AEFluidConfigWidget;
@@ -43,7 +41,6 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import appeng.api.config.Actionable;
@@ -61,7 +58,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
-        implements IMultiblockAbilityPart<DualHandler>, IControllable, IGhostSlotConfigurable, IDataStickIntractable {
+        implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable, IGhostSlotConfigurable, IDataStickIntractable {
 
     public final static String ITEM_BUFFER_TAG = "ItemSlots";
     public final static String FLUID_BUFFER_TAG = "FluidTanks";
@@ -76,6 +73,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
     protected NotifiableItemStackHandler extraSlotInventory;
 
     private ItemHandlerList actualImportItems;
+    private DualHandler dualHandler;
 
     public MetaTileEntityMEDualInputHatch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 6, false);
@@ -168,10 +166,15 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
         this.actualImportItems = new ItemHandlerList(
                 Arrays.asList(this.aeItemHandler, this.circuitInventory, this.extraSlotInventory));
         this.importItems = this.actualImportItems;
+
+        this.dualHandler = new DualHandler(
+               this.actualImportItems,
+                getImportFluids(),
+                false);
     }
 
     public IItemHandlerModifiable getImportItems() {
-        return this.actualImportItems;
+        return this.dualHandler;
     }
 
     @Override
@@ -282,27 +285,6 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
         }
     }
 
-    @Override
-    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
-        super.addToMultiBlock(controllerBase);
-        for (IItemHandler handler : this.actualImportItems.getBackingHandlers()) {
-            if (handler instanceof INotifiableHandler notifiable) {
-                notifiable.addNotifiableMetaTileEntity(controllerBase);
-                notifiable.addToNotifiedList(this, handler, false);
-            }
-        }
-    }
-
-    @Override
-    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
-        super.removeFromMultiBlock(controllerBase);
-        for (IItemHandler handler : this.actualImportItems.getBackingHandlers()) {
-            if (handler instanceof INotifiableHandler notifiable) {
-                notifiable.removeNotifiableMetaTileEntity(controllerBase);
-            }
-        }
-    }
-
     /// ///////////////////////////////////////////
     @Override
     protected final ModularUI createUI(EntityPlayer player) {
@@ -393,13 +375,13 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
     }
 
     @Override
-    public MultiblockAbility<DualHandler> getAbility() {
-        return MultiblockAbility.DUAL_IMPORT;
+    public @Nullable MultiblockAbility<IItemHandlerModifiable> getAbility() {
+        return MultiblockAbility.IMPORT_ITEMS;
     }
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        abilityInstances.add(new DualHandler(this.getImportItems(), this.getImportFluids(), false));
+        abilityInstances.add(dualHandler);
     }
 
     @Override

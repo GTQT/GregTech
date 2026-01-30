@@ -12,12 +12,15 @@ import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-public class DualHandler implements IItemHandlerModifiable, IMultipleTankHandler, INotifiableHandler {
+public class DualHandler implements IItemHandlerModifiable, IMultipleTankHandler, INotifiableHandler,
+                                    IMultipleNotifiableHandler {
 
     @NotNull
     private static final ItemStackHashStrategy strategy = ItemStackHashStrategy.comparingAll();
@@ -201,6 +204,29 @@ public class DualHandler implements IItemHandlerModifiable, IMultipleTankHandler
 
     public @NotNull IMultipleTankHandler getFluidDelegate() {
         return fluidDelegate;
+    }
+
+    @Override
+    public @NotNull Collection<INotifiableHandler> getBackingNotifiers() {
+        ImmutableList.Builder<INotifiableHandler> handlerList = ImmutableList.builder();
+
+        // 添加 DualHandler 自己作为一个通知处理器
+        handlerList.add(this);
+
+        // 同时也添加内部委托的通知处理器（可选）
+        if (itemDelegate instanceof IMultipleNotifiableHandler multipleNotifiableHandler) {
+            handlerList.addAll(multipleNotifiableHandler.getBackingNotifiers());
+        } else if (itemDelegate instanceof INotifiableHandler notifiableHandler) {
+            handlerList.add(notifiableHandler);
+        }
+
+        for (var tank : fluidDelegate) {
+            if (tank instanceof INotifiableHandler notifiableHandler) {
+                handlerList.add(notifiableHandler);
+            }
+        }
+
+        return handlerList.build();
     }
 
     public static class DualEntry implements ITankEntry, INotifiableHandler {

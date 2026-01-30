@@ -42,6 +42,7 @@ import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static net.minecraft.util.text.TextFormatting.GREEN;
@@ -84,8 +85,8 @@ public class MetaTileEntityHugeMEPatternProviderProxy extends MetaTileEntityMult
     }
 
     @Override
-    public MultiblockAbility<DualHandler> getAbility() {
-        return MultiblockAbility.DUAL_IMPORT;
+    public @NotNull List<MultiblockAbility<?>> getAbilities() {
+        return Arrays.asList(MultiblockAbility.IMPORT_FLUIDS, MultiblockAbility.IMPORT_ITEMS);
     }
 
     private MetaTileEntityHugeMEPatternProvider getMain() {
@@ -269,10 +270,14 @@ public class MetaTileEntityHugeMEPatternProviderProxy extends MetaTileEntityMult
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (hasMain())
-            abilityInstances.add(new DualHandler(getMain().getActualImportItems(), getMain().getImportFluids(), false));
-        else
-            abilityInstances.add(new DualHandler(this.importItems, importFluids, false));
+        if (hasMain()) {
+            if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS)) {
+                abilityInstances.add(getMain().getActualImportItems());
+            }
+            if (abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
+                abilityInstances.add(getMain().getImportFluids());
+            }
+        }
     }
 
     @Override

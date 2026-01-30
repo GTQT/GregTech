@@ -96,7 +96,8 @@ public class TooltipBuilder {
     }
 
     public TooltipBuilder addPollution(double pollutionAmount, int ticks) {
-        if (ConfigHolder.machines.delayStructureCheckSwitch && pollutionAmount > 0) components.add(new PollutionComponent(pollutionAmount, ticks));
+        if (ConfigHolder.machines.enablePollution && pollutionAmount > 0)
+            components.add(new PollutionComponent(pollutionAmount, ticks));
         return this;
     }
 

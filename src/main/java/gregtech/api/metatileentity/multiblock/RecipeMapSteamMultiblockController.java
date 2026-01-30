@@ -82,12 +82,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
         getMultiblockParts().forEach(part -> part.onDistinctChange(isDistinct));
         // mark buses as changed on distinct toggle
         if (this.isDistinct) {
-            this.notifiedItemInputList
-                    .addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-            this.notifiedItemInputList
-                    .addAll(this.getAbilities(MultiblockAbility.DUAL_IMPORT));
-            this.notifiedItemInputList
-                    .addAll(this.getAbilities(MultiblockAbility.COMPLEX_DUAL));
+            this.notifiedItemInputList.addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
         } else {
             this.notifiedItemInputList.add(this.inputInventory);
         }

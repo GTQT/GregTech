@@ -271,8 +271,8 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
     }
 
     @Override
-    public MultiblockAbility<DualHandler> getAbility() {
-        return MultiblockAbility.COMPLEX_DUAL;
+    public @NotNull List<MultiblockAbility<?>> getAbilities() {
+        return Arrays.asList(MultiblockAbility.IMPORT_FLUIDS, MultiblockAbility.IMPORT_ITEMS, MultiblockAbility.EXPORT_FLUIDS, MultiblockAbility.EXPORT_ITEMS);
     }
 
     @Override
@@ -335,10 +335,13 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(new DualHandler(this.actualImportItems, exportFluids, true));
-            abilityInstances.add(new DualHandler(this.actualImportItems, importFluids, false));
-
+        if (abilityInstances.isKey(MultiblockAbility.EXPORT_ITEMS)||abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS))
+        {
+            abilityInstances.add(this.exportItems);
+            abilityInstances.add(this.actualImportItems);
+        }
+        if (abilityInstances.isKey(MultiblockAbility.EXPORT_FLUIDS) || abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
+            abilityInstances.add(this.fluidTankList);
         }
     }
 

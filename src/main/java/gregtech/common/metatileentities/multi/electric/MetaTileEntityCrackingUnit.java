@@ -142,6 +142,11 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
         return this.coilTier;
     }
 
+    @Override
+    public boolean canBeDistinct() {
+        return true;
+    }
+
     @SuppressWarnings("InnerClassMayBeStatic")
     private class CrackingUnitWorkableHandler extends MultiblockRecipeLogic {
 

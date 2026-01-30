@@ -197,7 +197,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.5"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.6"));
 
-        if(ConfigHolder.machines.delayStructureCheckSwitch) {
+        if(ConfigHolder.machines.enablePollution) {
             tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.pollution_mte_available"));
             tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.1"));
             tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.2"));

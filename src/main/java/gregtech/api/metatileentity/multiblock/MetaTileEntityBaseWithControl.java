@@ -26,14 +26,12 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.Lists;
-import gtqt.api.util.GTQTUtility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -133,25 +131,12 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
     }
 
     protected void initializeAbilities() {
-        List<IItemHandler> inputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        inputItems.addAll(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputInventory = new ItemHandlerList(inputItems);
-
-        List<IMultipleTankHandler> inputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_IMPORT));
-        inputFluids.add(new FluidTankList(true, getAbilities(MultiblockAbility.IMPORT_FLUIDS)));
-        inputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.inputFluidInventory = GTQTUtility.mergeTankHandlers(inputFluids, true);
-
-        List<IItemHandler> outputItems = new ArrayList<>(this.getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        outputItems.addAll(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputItems.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputInventory = new ItemHandlerList(outputItems);
-
-        List<IMultipleTankHandler> outputFluids = new ArrayList<>(getAbilities(MultiblockAbility.DUAL_EXPORT));
-        outputFluids.add(new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS)));
-        outputFluids.addAll(getAbilities(MultiblockAbility.COMPLEX_DUAL));
-        this.outputFluidInventory = GTQTUtility.mergeTankHandlers(outputFluids, false);
+        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        this.inputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+        this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
+        this.outputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
+                getAbilities(MultiblockAbility.EXPORT_FLUIDS));
 
         List<IEnergyContainer> inputEnergy = new ArrayList<>(getAbilities(MultiblockAbility.INPUT_ENERGY));
         inputEnergy.addAll(getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
@@ -162,6 +147,10 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
         outEnergy.addAll(getAbilities(MultiblockAbility.OUTPUT_ENERGY));
         outEnergy.addAll(getAbilities(MultiblockAbility.OUTPUT_LASER));
         this.outEnergyContainer = new EnergyContainerList(outEnergy);
+    }
+
+    private boolean allowSameFluidFillForOutputs() {
+        return false;
     }
 
     private void resetTileAbilities() {

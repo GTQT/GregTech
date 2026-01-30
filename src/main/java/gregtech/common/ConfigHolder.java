@@ -213,23 +213,6 @@ public class ConfigHolder {
                 "Default: true" })
         public boolean allowTickAcceleration = true;
 
-        @Config.Comment({ "Specifies whether to enable multi-block delay detection",
-                "If detected, detection is delayed for multi-party blocks that mark the need for delayed detection.", "If it is not detected, it will be the same as the original",
-                "Default: true",})
-        public boolean delayStructureCheckSwitch = true;
-
-        //每次检查的时间间隔（单位tick）
-        @Config.Comment({ "The delay between structure checks for machines that require a structure.",
-                "多方块工作时的成型检测间隔，如果你确定不会改动多方块可以放心调大",})
-        @Config.RangeInt(min = 20, max = 2000)
-        public int delayStructureCheckTick = 100;
-
-        //待机状态时，检测间隔延长x倍
-        @Config.Comment({ "The delay multiplier for structure checks for machines that require a structure.",
-                "多方块待机时的成型检测间隔，需要设置的比工作时的成型检测间隔大，如果你确定不会改动多方块可以放心调大"})
-        @Config.RangeInt(min = 20, max = 2000)
-        public int delayStructureCheckStandby = 600;
-
         //是否开启抽样多方块成型检测
         @Config.Comment({ "Whether to enable sampling for structure checks for machines that require a structure.",
         "Note! Sampling molding testing will only be performed if the multi-block delay detection is turned on"})

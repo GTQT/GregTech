@@ -443,8 +443,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     }
 
     @Override
-    public MultiblockAbility<DualHandler> getAbility() {
-        return MultiblockAbility.DUAL_IMPORT;
+    public @NotNull List<MultiblockAbility<?>> getAbilities() {
+        return Arrays.asList(MultiblockAbility.IMPORT_FLUIDS, MultiblockAbility.IMPORT_ITEMS);
     }
 
     @Override
@@ -595,13 +595,16 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(new DualHandler(this.actualImportItems,
-                    importFluids, true));
-
-        } else {
-            abilityInstances.add(new DualHandler(this.importItems,
-                    importFluids, false));
+        if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS))
+        {
+            if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
+                abilityInstances.add(this.actualImportItems);
+            } else {
+                abilityInstances.add(this.importItems);
+            }
+        }
+        if (abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
+            abilityInstances.add(this.fluidTankList);
         }
     }
 
@@ -1154,8 +1157,11 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     public boolean addItemAndFluid(InventoryCrafting inventoryCrafting) throws GridAccessException {
         // 第一阶段：模拟检查所有物品是否可插入
         for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
+            //实际插入的物品
             ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
             if (itemStack.isEmpty()) continue;
+
+            //处理流体
 
             // 处理假流体/气体物品
             if (FakeFluids.isFluidFakeItem(itemStack)) {
@@ -1168,28 +1174,60 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                 }
             }
 
+            //处理物品
+
             // 处理集成电路 - 模拟阶段
             if (advancedCircuit && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
-                IMEMonitor<IAEItemStack> monitor = getItemMonitor();
                 IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
                 if (aeStack != null) {
                     // 模拟注入网络，检查是否可返还
-                    IAEItemStack remaining = monitor.injectItems(aeStack, Actionable.SIMULATE, getActionSource());
+                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE, getActionSource());
+                    //大于0代表无法返回网络（可能是网络满了）
                     if (remaining != null && remaining.getStackSize() > 0) {
-                        return false; // 网络无法完全接收物品
+                        return false;
                     }
                 }
                 continue; // 跳过容器插入检查
             }
 
-            // 普通物品模拟插入检查
+            //普通物品模拟插入检查
+            //样板转化会ItemStack
             ItemStack simulated = itemStack.copy();
-            for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
-                ItemStack remaining = importItems.insertItem(slot, simulated, true);
-                if (remaining.getCount() < simulated.getCount()) {
-                    simulated.shrink(simulated.getCount() - remaining.getCount());
+            //如果开了自动整理
+            if(isAutoCollapse()) {
+                //轮插 simulated轮询所有槽位，直到装填完毕
+                for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
+                    ItemStack remaining = importItems.insertItem(slot, simulated, true);
+                    if (remaining.getCount() < simulated.getCount()) {
+                        simulated.shrink(simulated.getCount() - remaining.getCount());
+                    }
+                }
+            } else {
+                //simulated只会去填充空槽，用于装配线非64自动化
+                //如果没有空槽再去轮询
+
+                // 步骤1: 先尝试填充空槽
+                for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
+                    // 检查是否是空槽
+                    if (importItems.getStackInSlot(slot).isEmpty()) {
+                        ItemStack remaining = importItems.insertItem(slot, simulated, true);
+                        if (remaining.getCount() < simulated.getCount()) {
+                            simulated.shrink(simulated.getCount() - remaining.getCount());
+                        }
+                    }
+                }
+
+                // 步骤2: 如果没有空槽或者空槽装不完，再轮询所有槽位
+                if (!simulated.isEmpty()) {
+                    for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
+                        ItemStack remaining = importItems.insertItem(slot, simulated, true);
+                        if (remaining.getCount() < simulated.getCount()) {
+                            simulated.shrink(simulated.getCount() - remaining.getCount());
+                        }
+                    }
                 }
             }
+
             if (!simulated.isEmpty()) {
                 return false;
             }
@@ -1222,10 +1260,30 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                 continue; // 跳过容器插入
             }
 
-            // 普通物品实际插入
+            // 普通物品实际插入 - 根据是否自动整理采用不同策略
             ItemStack toInsert = itemStack.copy();
-            for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
-                toInsert = importItems.insertItem(slot, toInsert, false);
+
+            if (isAutoCollapse()) {
+                // 自动整理模式：轮询所有槽位
+                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                    toInsert = importItems.insertItem(slot, toInsert, false);
+                }
+            } else {
+                // 非自动整理模式：先尝试空槽，再尝试所有槽位
+
+                // 阶段1: 只填充空槽
+                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                    if (importItems.getStackInSlot(slot).isEmpty()) {
+                        toInsert = importItems.insertItem(slot, toInsert, false);
+                    }
+                }
+
+                // 阶段2: 如果还有剩余，再尝试所有槽位
+                if (!toInsert.isEmpty()) {
+                    for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                        toInsert = importItems.insertItem(slot, toInsert, false);
+                    }
+                }
             }
         }
 
@@ -1233,58 +1291,55 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     }
 
     @Override
-    public boolean pushPattern(ICraftingPatternDetails iCraftingPatternDetails, InventoryCrafting inventoryCrafting) {
-        if (!isActive()) return false;
-
-        if (checkIfEmpty() && checkIfFluidEmpty()) {
-            try {
-                return addItemAndFluid(inventoryCrafting);
-            } catch (GridAccessException e) {
-                GTLog.logger.warn("Grid access failed", e);
-            }
+    public boolean pushPattern(ICraftingPatternDetails patternDetails, InventoryCrafting inventoryCrafting) {
+        if (!isActive()) {
+            GTLog.logger.debug("Machine is not active, rejecting pattern");
+            return false;
         }
 
-        if (isBlockedMode) {
-            for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
-                ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
-                if (itemStack.isEmpty()) continue;
-                if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) continue;
-                // 处理流体假物品
-                if (FakeFluids.isFluidFakeItem(itemStack)) {
-                    FluidStack fluid = FakeItemRegister.getStack(itemStack);
-                    if (fluid == null) return false;
+        boolean isEmpty = checkIfEmpty() && checkIfFluidEmpty();
 
-                    boolean fluidExists = false;
-                    for (IFluidTank tank : fluidTankList) {
-                        FluidStack tankFluid = tank.getFluid();
-                        if (tankFluid != null && tankFluid.isFluidEqual(fluid)) {
-                            fluidExists = true;
-                            break;
-                        }
-                    }
-                    if (!fluidExists) return false;
-                }
-                // 处理普通物品
-                else {
-                    boolean itemExists = false;
-                    for (int slot = 0; slot < importItems.getSlots(); slot++) {
-                        ItemStack slotStack = importItems.getStackInSlot(slot);
-                        if (!slotStack.isEmpty() && slotStack.isItemEqual(itemStack)) {
-                            itemExists = true;
-                            break;
-                        }
-                    }
-                    if (!itemExists) return false;
-                }
+        // 如果不是空容器且处于阻塞模式，进行兼容性检查
+        if (!isEmpty && isBlockedMode) {
+            if (!checkBlockedModeCompatibility(inventoryCrafting)) {
+                GTLog.logger.debug("Pattern rejected by blocked mode compatibility check");
+                return false;
             }
         }
 
         try {
             return addItemAndFluid(inventoryCrafting);
         } catch (GridAccessException e) {
-            GTLog.logger.warn("Grid access failed", e);
+            GTLog.logger.warn("Grid access failed while pushing pattern", e);
             return false;
         }
+    }
+
+    private boolean checkBlockedModeCompatibility(InventoryCrafting inventoryCrafting) {
+        for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
+            ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
+            if (itemStack.isEmpty()) continue;
+
+            // 集成电路特殊处理
+            if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
+                continue;
+            }
+
+            // 处理流体假物品
+            if (FakeFluids.isFluidFakeItem(itemStack)) {
+                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+                if (fluid == null || !GTUtility.hasMatchingFluid(fluid,fluidTankList)) {
+                    return false;
+                }
+            }
+            // 处理普通物品
+            else {
+                if (!GTUtility.hasMatchingItem(itemStack, importItems)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override
