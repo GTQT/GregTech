@@ -99,6 +99,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     protected IMultipleTankHandler getInputTank() {
         RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
+        if (controller.canBeDistinct() && controller.isDistinct() && getInputInventory().getSlots() > 0) {
+            return controller.getInputFluidInventory();
+        }
+
         //检查总成，如果有合并流体
         List<IItemHandlerModifiable> itemHandlers = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
         List<IMultipleTankHandler> inputFluids = new ArrayList<>();
