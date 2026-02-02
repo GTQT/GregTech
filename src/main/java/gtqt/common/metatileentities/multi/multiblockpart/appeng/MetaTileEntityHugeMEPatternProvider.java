@@ -440,6 +440,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         super.writeToNBT(data);
         data.setTag("Pattern", this.patternSlot.serializeNBT());
         data.setTag("ExtraItem", this.extraItem.serializeNBT());
+        data.setTag("largeSlotItemStackHandler", this.largeSlotItemStackHandler.serializeNBT());
+        this.importItems = this.largeSlotItemStackHandler;
 
         data.setBoolean("BlockingEnabled", isBlockedMode());
         data.setBoolean("Export", isExport());
@@ -469,6 +471,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         this.patternSlot.deserializeNBT(data.getCompoundTag("Pattern"));
         setPatternDetails();
         this.extraItem.deserializeNBT(data.getCompoundTag("ExtraItem"));
+        this.largeSlotItemStackHandler.deserializeNBT(data.getCompoundTag("largeSlotItemStackHandler"));
 
         setBlockedMode(data.getBoolean("BlockingEnabled"));
         setExport(data.getBoolean("Export"));
@@ -476,6 +479,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         setAdvancedCircuit(data.getBoolean("advancedCircuit"));
         this.parallel = data.getInteger("parallel");
         this.lastParallel = data.getInteger("lastParallel");
+
         setUseProxy(data.getBoolean("useProxy"));
         AEProxy_pos = new BlockPos(data.getInteger("aeProxy_x"), data.getInteger("aeProxy_y"),
                 data.getInteger("aeProxy_z"));
@@ -595,7 +599,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                                         .ignoreMaxStackSize(true)
                                         .slotGroup("item_inv")
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                                            if (onlyAmountChanged && handler instanceof LargeSlotItemStackHandler gtHandler) {
+                                            if (onlyAmountChanged &&
+                                                    handler instanceof LargeSlotItemStackHandler gtHandler) {
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
@@ -1200,7 +1205,9 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
 
             if (isAutoCollapse()) {
                 // 自动整理模式：轮询所有槽位
-                GTTransferUtils.insertItem(importItems, toInsert,false);
+                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                    toInsert = importItems.insertItem(slot, toInsert, false);
+                }
             } else {
                 // 非自动整理模式：先尝试空槽，再尝试所有槽位
 
@@ -1212,7 +1219,11 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                 }
 
                 // 阶段2: 如果还有剩余，再尝试所有槽位
-                GTTransferUtils.insertItem(importItems, toInsert,false);
+                if (!toInsert.isEmpty()) {
+                    for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                        toInsert = importItems.insertItem(slot, toInsert, false);
+                    }
+                }
             }
         }
 

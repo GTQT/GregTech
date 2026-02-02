@@ -103,8 +103,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         if (hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
             this.circuitInventory.addNotifiableMetaTileEntity(this);
-            this.importItems = this.largeSlotItemStackHandler;
-            actualImportItems = new ItemHandlerList(Arrays.asList(this.importItems, circuitInventory));
+            actualImportItems = new ItemHandlerList(Arrays.asList(this.largeSlotItemStackHandler, circuitInventory));
         } else {
             actualImportItems = this.importItems;
             exportItems = largeSlotItemStackHandler;
@@ -409,6 +408,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
+        data.setTag("largeSlotItemStackHandler", this.largeSlotItemStackHandler.serializeNBT());
 
         data.setBoolean("workingEnabled", workingEnabled);
         data.setBoolean("autoCollapse", autoCollapse);
@@ -423,6 +423,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
+        this.largeSlotItemStackHandler.deserializeNBT(data.getCompoundTag("largeSlotItemStackHandler"));
 
         this.workingEnabled = data.getBoolean("workingEnabled");
         this.autoCollapse = data.getBoolean("autoCollapse");

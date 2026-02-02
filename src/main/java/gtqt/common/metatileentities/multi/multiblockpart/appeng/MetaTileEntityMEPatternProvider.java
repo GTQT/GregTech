@@ -1186,7 +1186,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
             if (isAutoCollapse()) {
                 // 自动整理模式：轮询所有槽位
-                GTTransferUtils.insertItem(importItems, toInsert,false);
+                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                    toInsert = importItems.insertItem(slot, toInsert, false);
+                }
             } else {
                 // 非自动整理模式：先尝试空槽，再尝试所有槽位
 
@@ -1198,7 +1200,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 }
 
                 // 阶段2: 如果还有剩余，再尝试所有槽位
-                GTTransferUtils.insertItem(importItems, toInsert,false);
+                if (!toInsert.isEmpty()) {
+                    for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
+                        toInsert = importItems.insertItem(slot, toInsert, false);
+                    }
+                }
             }
         }
 

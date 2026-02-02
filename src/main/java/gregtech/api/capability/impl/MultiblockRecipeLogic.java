@@ -140,7 +140,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         List<IItemHandlerModifiable> itemHandlers = controller.getAbilities(MultiblockAbility.EXPORT_ITEMS);
         List<IMultipleTankHandler> outputFluids = new ArrayList<>();
         boolean allowMerge = controller.getOutputFluidInventory().allowSameFluidFill();
-        outputFluids.add(controller.getInputFluidInventory());
+        outputFluids.add(controller.getOutputFluidInventory());
         // 遍历所有物品总线，检查是否是 DualHandler
         for (IItemHandlerModifiable bus : itemHandlers) {
             if (bus instanceof IMultipleTankHandler dualHandler) {

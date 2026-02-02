@@ -40,6 +40,7 @@ import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,14 +80,26 @@ public class MultiblockUIBuilder {
     private static String formatRecipeRate(int recipeLength, long amount) {
         float perSecond = ((float) amount / recipeLength) * 20f;
 
-        String rate;
-        if (perSecond > 1) {
-            rate = "(" + String.format("%,.2f", perSecond).replaceAll("\\.?0+$", "") + "/s)";
-        } else {
-            rate = "(" + String.format("%,.2f", 1 / (perSecond)).replaceAll("\\.?0+$", "") + "s/ea)";
-        }
 
-        return rate;
+        StringBuilder rate = new StringBuilder();
+
+        // 每秒
+        rate.append("(").append(String.format("%,.2f", perSecond).replaceAll("\\.?0+$", "")).append("/s)");
+
+        if(Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
+            float perMinute = perSecond * 60f;
+            float perHour = perMinute * 60f;
+            float perDay = perHour * 24f;
+            // 每分钟
+            rate.append(" (").append(String.format("%,.2f", perMinute).replaceAll("\\.?0+$", "")).append("/m)");
+
+            // 每小时
+            rate.append(" (").append(String.format("%,.2f", perHour).replaceAll("\\.?0+$", "")).append("/h)");
+
+            // 每天（24小时）
+            rate.append(" (").append(String.format("%,.2f", perDay).replaceAll("\\.?0+$", "")).append("/d)");
+        }
+        return rate.toString();
     }
 
     private static IKey formatRecipeData(IKey name, IKey amount, IKey rate) {

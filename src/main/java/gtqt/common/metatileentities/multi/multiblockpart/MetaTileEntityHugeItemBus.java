@@ -5,7 +5,6 @@ import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IGhostSlotConfigurable;
-import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.LargeSlotItemStackHandler;
@@ -15,11 +14,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
-import gregtech.api.util.GTHashMaps;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -37,7 +34,6 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
@@ -57,14 +53,13 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static gregtech.api.util.GTUtility.collapseInventorySlotContents;
 import static net.minecraft.util.text.TextFormatting.GREEN;
 
 public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiablePart
@@ -85,43 +80,6 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         initializeInventory();
     }
 
-    private static void collapseInventorySlotContents(IItemHandlerModifiable inventory) {
-        // Gather a snapshot of the provided inventory
-        Object2IntMap<ItemStack> inventoryContents = GTHashMaps.fromItemHandler(inventory, true);
-
-        List<ItemStack> inventoryItemContents = new ArrayList<>();
-
-        // Populate the list of item stacks in the inventory with apportioned item stacks, for easy replacement
-        for (Object2IntMap.Entry<ItemStack> e : inventoryContents.object2IntEntrySet()) {
-            ItemStack stack = e.getKey();
-            int count = e.getIntValue();
-            int maxStackSize = stack.getMaxStackSize();
-            while (count >= maxStackSize) {
-                ItemStack copy = stack.copy();
-                copy.setCount(maxStackSize);
-                inventoryItemContents.add(copy);
-                count -= maxStackSize;
-            }
-            if (count > 0) {
-                ItemStack copy = stack.copy();
-                copy.setCount(count);
-                inventoryItemContents.add(copy);
-            }
-        }
-
-        for (int i = 0; i < inventory.getSlots(); i++) {
-            ItemStack stackToMove;
-            // Ensure that we are not exceeding the List size when attempting to populate items
-            if (i >= inventoryItemContents.size()) {
-                stackToMove = ItemStack.EMPTY;
-            } else {
-                stackToMove = inventoryItemContents.get(i);
-            }
-
-            // Populate the slots
-            inventory.setStackInSlot(i, stackToMove);
-        }
-    }
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityHugeItemBus(metaTileEntityId, getTier(), isExportHatch);
@@ -144,32 +102,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     public IItemHandlerModifiable getImportItems() {
-        return this.actualImportItems == null ? largeSlotItemStackHandler : this.actualImportItems;
-    }
-
-    @Override
-    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
-        super.addToMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.addNotifiableMetaTileEntity(controllerBase);
-                    notifiable.addToNotifiedList(this, handler, isExportHatch);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
-        super.removeFromMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.removeNotifiableMetaTileEntity(controllerBase);
-                }
-            }
-        }
+        return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
     }
 
     @Override
@@ -187,7 +120,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
             if (isAutoCollapse()) {
                 // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
                 // from the slot
-                IItemHandlerModifiable inventory = (isExportHatch ? this.getExportItems() : largeSlotItemStackHandler);
+                IItemHandlerModifiable inventory = largeSlotItemStackHandler;
                 if (!isAttachedToMultiBlock() || (isExportHatch ? this.getNotifiedItemOutputList().contains(inventory) :
                         this.getNotifiedItemInputList().contains(inventory))) {
                     collapseInventorySlotContents(inventory);
@@ -333,7 +266,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         BooleanSyncValue workingStateValue = new BooleanSyncValue(this::isWorkingEnabled, this::setWorkingEnabled);
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
 
-        IItemHandlerModifiable handler = isExportHatch ? exportItems : largeSlotItemStackHandler;
+        IItemHandlerModifiable handler = isExportHatch ? getExportItems() : largeSlotItemStackHandler;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
@@ -425,7 +358,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
                 if (isExportHatch) {
                     addNotifiedOutput(this.getExportItems());
                 } else {
-                    addNotifiedInput(largeSlotItemStackHandler);
+                    addNotifiedInput(this.getImportItems());
                 }
             }
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
