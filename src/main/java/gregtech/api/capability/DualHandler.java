@@ -210,10 +210,8 @@ public class DualHandler implements IItemHandlerModifiable, IMultipleTankHandler
     public @NotNull Collection<INotifiableHandler> getBackingNotifiers() {
         ImmutableList.Builder<INotifiableHandler> handlerList = ImmutableList.builder();
 
-        // 添加 DualHandler 自己作为一个通知处理器
         handlerList.add(this);
 
-        // 同时也添加内部委托的通知处理器（可选）
         if (itemDelegate instanceof IMultipleNotifiableHandler multipleNotifiableHandler) {
             handlerList.addAll(multipleNotifiableHandler.getBackingNotifiers());
         } else if (itemDelegate instanceof INotifiableHandler notifiableHandler) {

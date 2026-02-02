@@ -5,6 +5,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.block.machines.MachineItemBlock;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.FluidTankList;
+import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.fluids.GTFluid;
 import gregtech.api.gui.widgets.ProgressWidget;
@@ -1175,6 +1176,8 @@ public class GTUtility {
             ItemStack stack = e.getKey();
             int count = e.getIntValue();
             int maxStackSize = stack.getMaxStackSize();
+            if(inventory instanceof LargeSlotItemStackHandler)
+                maxStackSize = Integer.MAX_VALUE;
             while (count >= maxStackSize) {
                 ItemStack copy = stack.copy();
                 copy.setCount(maxStackSize);

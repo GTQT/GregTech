@@ -99,7 +99,7 @@ public abstract class MetaTileEntityMEControlBase extends MetaTileEntityMultiblo
         buf.writeInt(this.meUpdateTick);
         buf.writeBoolean(this.isOnline);
         buf.writeBoolean(this.allowExtraConnections);
-        buf.writeBoolean(workingEnabled);
+        buf.writeBoolean(this.workingEnabled);
     }
 
     @Override

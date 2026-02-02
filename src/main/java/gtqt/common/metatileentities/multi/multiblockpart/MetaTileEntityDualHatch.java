@@ -423,8 +423,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
             tooltip.add(I18n.format("gregtech.machine.dual_hatch.export.tooltip"));
 
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
-                getTankCapacity()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 

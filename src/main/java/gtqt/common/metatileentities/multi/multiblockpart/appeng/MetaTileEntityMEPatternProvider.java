@@ -1,16 +1,14 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
+import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.IGhostSlotConfigurable;
-import gregtech.api.capability.INotifiableHandler;
-import gregtech.api.capability.impl.FluidHandlerProxy;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
-import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -55,13 +53,10 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.IFluidTank;
-import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
@@ -73,8 +68,6 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
 import appeng.api.networking.events.MENetworkCraftingPatternChange;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
@@ -95,7 +88,6 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
-import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
@@ -120,6 +112,7 @@ import com.glodblock.github.common.item.fake.FakeItemRegister;
 import gtqt.api.util.PatternUtils;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -134,10 +127,11 @@ import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
 public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
-        implements IMultiblockAbilityPart<DualHandler>, IGhostSlotConfigurable,
+        implements IMultiblockAbilityPart<IItemHandlerModifiable>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
 
+    // ICONS
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
@@ -146,58 +140,53 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             .asIcon().size(16);
     private final IDrawable TERMINAL = new ItemDrawable(new ItemStack(Items.NAME_TAG))
             .asIcon().size(16);
-
-    private final int numSlots;
-    private final int tankSize;
-    private static final int BASE_TANK_SIZE = 8000;
-    // only holding this for convenience
-    private final FluidTankList fluidTankList;
+    @Nullable
     private final List<ICraftingPatternDetails> patternDetails;
-    //item
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;
-    //AE
-    boolean export;
-    int aeProxy_x;
-    int aeProxy_y;
-    int aeProxy_z;
+    // AE
+    BlockPos AEProxy_pos = new BlockPos(0, 0, 0);
+    @Setter
+    @Getter
     boolean useProxy;
+    @Setter
+    @Getter
+    boolean export = false;
+    // SLOTS
     @Getter
     private IItemHandlerModifiable actualImportItems;
-    @Getter
-    private boolean autoCollapse;
-    @Getter
-    private ItemStackHandler patternSlot;
-    private boolean needPatternSync = true;
+    @Nullable
     private ItemStackHandler extraItem;
-    // Controls blocking
-    private boolean isBlockedMode = true;
-    private boolean patternDeal = false;
-    private boolean advancedCircuit = false;
+    @Getter
+    @Nullable
+    private ItemStackHandler patternSlot;
+    @Nullable
+    private DualHandler dualHandler;
+    private boolean needPatternSync = true;
     private int parallel;
     private int lastParallel;
-    //样板管理
     @Getter
+    private boolean autoCollapse;
+    @Setter
+    @Getter
+    private boolean blockedMode = true;
+    @Setter
+    @Getter
+    private boolean patternDeal = false;
+    @Setter
+    @Getter
+    private boolean advancedCircuit = false;
+    @Getter
+    @Setter
     private String showName = IKey.lang(this.getMetaFullName()).toString();
     @Getter
+    @Setter
     private boolean hideInfo = false;
 
     public MetaTileEntityMEPatternProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
-        this.numSlots = getTier();
-        this.tankSize = BASE_TANK_SIZE * (1 << tier) / (numSlots == 4 ? 4 : 8);
-        FluidTank[] fluidsHandlers = new FluidTank[numSlots];
-        for (int i = 0; i < fluidsHandlers.length; i++) {
-            fluidsHandlers[i] = new NotifiableFluidTank(tankSize, this, false);
-        }
-        this.fluidTankList = new FluidTankList(false, fluidsHandlers);
-
-        patternDetails = new ArrayList<>(Collections.nCopies(getSlotByTier(), null));
+        patternDetails = new ArrayList<>(Collections.nCopies(getItemSize(), null));
         initializeInventory();
-    }
-
-    public int getSlotByTier() {
-        return getTier() * getTier();
     }
 
     @Override
@@ -207,7 +196,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     @Override
     protected void initializeInventory() {
-        this.patternSlot = new ItemStackHandler(getSlotByTier()) {
+        super.initializeInventory();
+        this.patternSlot = new ItemStackHandler(getItemSize()) {
 
             @Override
             public int getSlotLimit(int slot) {
@@ -225,65 +215,83 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 setPatternDetails();
             }
         };
-        this.extraItem = new NotifiableItemStackHandler(this, getTier() + 1, null, false);
+        this.extraItem = new NotifiableItemStackHandler(this, getTankSize() + 1, null, false);
 
-        this.importItems = createImportItemHandler();
-        this.exportItems = createExportItemHandler();
-        this.itemInventory = new ItemHandlerProxy(importItems, exportItems);
+        this.circuitInventory = new GhostCircuitItemStackHandler(this);
+        this.circuitInventory.addNotifiableMetaTileEntity(this);
+        this.actualImportItems = new ItemHandlerList(
+                Arrays.asList(this.importItems, this.circuitInventory, extraItem));
 
-        if (this.hasGhostCircuitInventory()) {
-            this.circuitInventory = new GhostCircuitItemStackHandler(this);
-            this.circuitInventory.addNotifiableMetaTileEntity(this);
-            this.actualImportItems = new ItemHandlerList(
-                    Arrays.asList(super.getImportItems(), this.circuitInventory, extraItem));
-        } else {
-            this.actualImportItems = null;
-        }
-
-        if (this.fluidTankList == null) return;
-        this.importFluids = createImportFluidHandler();
-        this.exportFluids = createExportFluidHandler();
-        this.fluidInventory = new FluidHandlerProxy(importFluids, exportFluids);
+        dualHandler = new DualHandler(
+                this.actualImportItems,
+                getImportFluids(),
+                isExportHatch);
     }
 
     @Override
     public IItemHandlerModifiable getImportItems() {
-        return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
+        return dualHandler;
+    }
+
+    protected IFluidTank[] createTanks() {
+        int size = getTankSize();
+        IFluidTank[] tanks = new IFluidTank[size];
+        for (int index = 0; index < tanks.length; index++) {
+            tanks[index] = new NotifiableFluidTank(getTankCapacity(), null, isExportHatch);
+        }
+        return tanks;
+    }
+
+    protected int getTankSize() {
+        return 1 + Math.min(GTValues.UHV, getTier());
+    }
+
+    protected int getItemSize() {
+        return getTankSize() * getTankSize();
+    }
+
+    protected int getTankCapacity() {
+        return 8_000 * Math.min(Integer.MAX_VALUE, 1 << getTier());
     }
 
     @Override
-    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
-        super.addToMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.addNotifiableMetaTileEntity(controllerBase);
-                    notifiable.addToNotifiedList(this, handler, false);
-                }
-            }
-        }
+    protected IItemHandlerModifiable createImportItemHandler() {
+        return new NotifiableItemStackHandler(this, getItemSize(), null, false);
     }
 
     @Override
-    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
-        super.removeFromMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.removeNotifiableMetaTileEntity(controllerBase);
-                }
-            }
-        }
+    protected FluidTankList createImportFluidHandler() {
+        return new FluidTankList(false, createTanks());
     }
 
     @Override
     public void update() {
         super.update();
-        if (patternDeal && getOffsetTimer() % 20 == 0) {
+        if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
+            if (isWorkingEnabled()) {
+                if (isExportHatch) {
+                    pushItemsIntoNearbyHandlers(getFrontFacing());
+                    pushFluidsIntoNearbyHandlers(getFrontFacing());
+                } else {
+                    pullItemsFromNearbyHandlers(getFrontFacing());
+                    pullFluidsFromNearbyHandlers(getFrontFacing());
+                }
+            }
+
+            if (isAutoCollapse()) {
+                IItemHandlerModifiable itemHandler = importItems;
+                if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
+                        getNotifiedItemInputList().contains(itemHandler))) {
+                    GTUtility.collapseInventorySlotContents(itemHandler);
+                }
+            }
+        }
+
+        if (isPatternDeal() && getOffsetTimer() % 20 == 0) {
             if (isAttachedToMultiBlock()) {
                 MultiblockControllerBase controllerBase = getController();
                 if (controllerBase instanceof RecipeMapMultiblockController controller) {
-                    if (controller.getRecipeMapWorkable().getParallelLimit() != 0) {
+                    if (controller.getRecipeMapWorkable().getParallelLimit() != 0 && lastParallel != parallel) {
 
                         lastParallel = parallel;
                         parallel = controller.getRecipeMapWorkable().getParallelLimit();
@@ -307,29 +315,47 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 needPatternSync = MEPatternChange();
             }
         }
-
-        // Only attempt to auto collapse the inventory contents once the bus has been notified
-        if (isAutoCollapse()) {
-            // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
-            // from the slot
-            IItemHandlerModifiable inventory = (super.getImportItems());
-            if (!isAttachedToMultiBlock() || (this.getNotifiedItemInputList().contains(inventory))) {
-                GTUtility.collapseInventorySlotContents(inventory);
-            }
-
-            FluidTankList fluidInventory = (this.getImportFluids());
-            if (!isAttachedToMultiBlock()) {
-                GTUtility.collapseFluidTankContents(fluidInventory);
-            }
-        }
-        if (export) {
-            returnItems();
-            returnFluids();
+        if (isExport()) {
+            returnToNet();
         }
     }
 
+    @Override
+    public boolean hasGhostCircuitInventory() {
+        return true;
+    }
+
+    @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
+    @Override
+    public @Nullable MultiblockAbility<IItemHandlerModifiable> getAbility() {
+        return MultiblockAbility.IMPORT_ITEMS;
+    }
+
+    @Override
+    public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
+        abilityInstances.add(dualHandler);
+    }
+
     public void pushToGridCache() {
-        if (useProxy) {
+        if (isUseProxy()) {
             try {
                 if (getProxy() != null && getProxy().getGrid() != null)
                     getProxy().getGrid().getCache(ICraftingGrid.class).addNode(getProxy().getNode(), this);
@@ -340,7 +366,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     }
 
     public void removeFromGridCache() {
-        if (useProxy) {
+        if (isUseProxy()) {
             try {
                 if (getProxy() != null && getProxy().getGrid() != null)
                     getProxy().getGrid().getCache(ICraftingGrid.class).removeNode(getProxy().getNode(), this);
@@ -350,49 +376,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         }
     }
 
-    private void returnFluids() {
-        if (checkIfFluidEmpty()) return;
-        IMEMonitor<IAEFluidStack> monitor = getFluidMonitor();
-        if (monitor == null) return;
-        for (int x = 0; x < this.fluidTankList.getTanks(); x++)
-            handleEmptyFluidTarget(monitor, fluidTankList.getTankAt(x));
-    }
-
-    private void handleEmptyFluidTarget(IMEMonitor<IAEFluidStack> monitor, IFluidTank exportTank) {
-        FluidStack exportFluid = exportTank.getFluid();
-        if (exportFluid != null) {
-            IAEFluidStack aeFluid = AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)
-                    .createStack(exportFluid);
-            if (aeFluid != null) {
-                IAEFluidStack remaining = monitor.injectItems(aeFluid, Actionable.MODULATE, getActionSource());
-                if (remaining != null) {
-                    exportTank.drain((int) (aeFluid.getStackSize() - remaining.getStackSize()), true);
-                } else {
-                    exportTank.drain(exportFluid.amount, true);
-                }
-            }
-        }
-    }
-
-    private void returnItems() {
-        if (checkIfEmpty()) return;
-
-        IMEMonitor<IAEItemStack> monitor = getItemMonitor();
-        if (monitor == null) return;
-
-        for (int x = 0; x < this.importItems.getSlots(); x++) {
-            ItemStack itemStack = this.importItems.getStackInSlot(x);
-            if (itemStack.isEmpty()) continue;
-
-            IAEItemStack iaeItemStack = AEItemStack.fromItemStack(itemStack);
-
-            IAEItemStack notInserted = monitor.injectItems(iaeItemStack, Actionable.MODULATE, getActionSource());
-            if (notInserted != null && notInserted.getStackSize() > 0) {
-                itemStack.setCount((int) notInserted.getStackSize());
-            } else {
-                this.importItems.setStackInSlot(x, ItemStack.EMPTY);
-            }
-        }
+    private void returnToNet() {
+        Utils.returnItems(getItemMonitor(), getImportItems(), getActionSource());
+        Utils.returnFluids(getFluidMonitor(), getImportFluids(), getActionSource());
     }
 
     private boolean MEPatternChange() {
@@ -426,40 +412,19 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     }
 
     @Override
-    protected IItemHandlerModifiable createImportItemHandler() {
-        return new NotifiableItemStackHandler(this, getSlotByTier(), getController(), false);
-    }
-
-    @Override
-    protected FluidTankList createImportFluidHandler() {
-        return fluidTankList;
-    }
-
-    @Override
-    public @NotNull List<MultiblockAbility<?>> getAbilities() {
-        return isExportHatch ? Arrays.asList(MultiblockAbility.EXPORT_FLUIDS, MultiblockAbility.EXPORT_ITEMS):
-                Arrays.asList(MultiblockAbility.IMPORT_FLUIDS, MultiblockAbility.IMPORT_ITEMS);
-    }
-
-    @Override
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
-        for (var tank : fluidTankList.getFluidTanks()) {
-            NetworkUtils.writeFluidStack(buf, tank.getFluid());
-        }
-        buf.writeBoolean(this.isBlockedMode);
+        buf.writeBoolean(isBlockedMode());
         buf.writeBoolean(this.export);
+        buf.writeBoolean(isAutoCollapse());
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
-        for (var tank : fluidTankList.getFluidTanks()) {
-            var fluid = NetworkUtils.readFluidStack(buf);
-            tank.fill(fluid, true);
-        }
-        this.isBlockedMode = buf.readBoolean();
-        this.export = buf.readBoolean();
+        setBlockedMode(buf.readBoolean());
+        setExport(buf.readBoolean());
+        setAutoCollapse(buf.readBoolean());
     }
 
     @Override
@@ -468,24 +433,24 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         data.setTag("Pattern", this.patternSlot.serializeNBT());
         data.setTag("ExtraItem", this.extraItem.serializeNBT());
 
-        data.setBoolean("BlockingEnabled", this.isBlockedMode);
-        data.setBoolean("Export", this.export);
-        data.setBoolean("patternDeal", this.patternDeal);
-        data.setBoolean("advancedCircuit", this.advancedCircuit);
+        data.setBoolean("BlockingEnabled", isBlockedMode());
+        data.setBoolean("Export", isExport());
+        data.setBoolean("patternDeal", isPatternDeal());
+        data.setBoolean("advancedCircuit", isAdvancedCircuit());
         data.setInteger("parallel", this.parallel);
         data.setInteger("lastParallel", this.lastParallel);
 
-        data.setBoolean("useProxy", this.useProxy);
-        data.setInteger("aeProxy_x", this.aeProxy_x);
-        data.setInteger("aeProxy_y", this.aeProxy_y);
-        data.setInteger("aeProxy_z", this.aeProxy_z);
+        data.setBoolean("useProxy", isUseProxy());
+        data.setInteger("aeProxy_x", AEProxy_pos.getX());
+        data.setInteger("aeProxy_y", AEProxy_pos.getY());
+        data.setInteger("aeProxy_z", AEProxy_pos.getZ());
 
         if (this.circuitInventory != null) {
             this.circuitInventory.write(data);
         }
 
-        data.setBoolean("hideInfo", this.hideInfo);
-        data.setString("showName", this.showName);
+        data.setBoolean("hideInfo", isHideInfo());
+        data.setString("showName", getShowName());
 
         return data;
     }
@@ -497,39 +462,37 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         setPatternDetails();
         this.extraItem.deserializeNBT(data.getCompoundTag("ExtraItem"));
 
-        this.isBlockedMode = data.getBoolean("BlockingEnabled");
-        this.export = data.getBoolean("Export");
-        this.patternDeal = data.getBoolean("patternDeal");
-        this.advancedCircuit = data.getBoolean("advancedCircuit");
+        setBlockedMode(data.getBoolean("BlockingEnabled"));
+        setExport(data.getBoolean("Export"));
+        setPatternDeal(data.getBoolean("patternDeal"));
+        setAdvancedCircuit(data.getBoolean("advancedCircuit"));
         this.parallel = data.getInteger("parallel");
         this.lastParallel = data.getInteger("lastParallel");
-
-        this.useProxy = data.getBoolean("useProxy");
-        this.aeProxy_x = data.getInteger("aeProxy_x");
-        this.aeProxy_y = data.getInteger("aeProxy_y");
-        this.aeProxy_z = data.getInteger("aeProxy_z");
+        setUseProxy(data.getBoolean("useProxy"));
+        AEProxy_pos = new BlockPos(data.getInteger("aeProxy_x"), data.getInteger("aeProxy_y"),
+                data.getInteger("aeProxy_z"));
 
         if (this.circuitInventory != null) {
             this.circuitInventory.read(data);
         }
 
-        this.hideInfo = data.getBoolean("hideInfo");
-        this.showName = data.getString("showName");
+        setHideInfo(data.getBoolean("hideInfo"));
+        setShowName(data.getString("showName"));
     }
 
     @Override
     public void receiveCustomData(int dataId, PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
         if (dataId == UPDATE_ACTIVE) {
-            this.isBlockedMode = buf.readBoolean();
+            setBlockedMode(buf.readBoolean());
         }
     }
 
     @Override
     public AENetworkProxy getProxy() {
-        if (useProxy) {
+        if (isUseProxy()) {
             if (this.getWorld() != null) {
-                TileEntity tileEntity = this.getWorld().getTileEntity(new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
+                TileEntity tileEntity = this.getWorld().getTileEntity(AEProxy_pos);
                 if (tileEntity instanceof AENetworkPowerTile proxy) {
                     return proxy.getProxy();
                 }
@@ -555,13 +518,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     @Override
     public void provideCrafting(ICraftingProviderHelper iCraftingProviderHelper) {
         if (!isActive() || patternDetails == null) return;
-        for (int i = 0; i < getSlotByTier(); i++) {
+        for (int i = 0; i < getItemSize(); i++) {
             if (patternDetails.get(i) != null) iCraftingProviderHelper.addCraftingOption(this, patternDetails.get(i));
         }
     }
 
     private void setPatternDetails() {
-        for (int i = 0; i < getSlotByTier(); i++) {
+        for (int i = 0; i < getItemSize(); i++) {
             ItemStack pattern = patternSlot.getStackInSlot(i);
             if (pattern.isEmpty()) {
                 patternDetails.set(i, null);
@@ -572,7 +535,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
             }
         }
-        if (useProxy) {
+        if (isUseProxy()) {
             removeFromGridCache();
             pushToGridCache();
         }
@@ -580,31 +543,15 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     @Override
     public void onRemoval() {
-        if (useProxy) {
+        if (isUseProxy()) {
             removeFromGridCache();
-            useProxy = false;
+            setUseProxy(false);
             getProxy();
         }
         super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), patternSlot);
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), extraItem);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
     }
-
-    @Override
-    public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS))
-        {
-            if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-                abilityInstances.add(this.actualImportItems);
-            } else {
-                abilityInstances.add(this.importItems);
-            }
-        }
-        if (abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
-            abilityInstances.add(this.fluidTankList);
-        }
-    }
-
 
     @Override
     public boolean usesMui2() {
@@ -640,8 +587,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                         })
                                         .accessibility(true, true)));
             }
+            IFluidTank tankHandler = dualHandler.getTankAt(i);
             widgetsItem.get(i).add(new GTFluidSlot()
-                    .syncHandler(GTFluidSlot.sync(fluidTankList.getTankAt(i))
+                    .syncHandler(GTFluidSlot.sync(tankHandler)
                             .accessibility(true, true))
             );
         }
@@ -673,7 +621,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         }
         // 创建用于显示的值（带前缀）和用于存储的值（纯数字）
         StringSyncValue displayXValue = new StringSyncValue(
-                () -> "X:" + aeProxy_x,  // 显示时带前缀
+                () -> "X:" + AEProxy_pos.getX(),  // 显示时带前缀
                 str -> {
                     // 移除前缀并解析
                     if (str.startsWith("X:")) {
@@ -682,7 +630,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                         str = str.substring(2);
                     }
                     try {
-                        aeProxy_x = Integer.parseInt(str.trim());
+                        AEProxy_pos = new BlockPos(Integer.parseInt(str.trim()), AEProxy_pos.getY(),
+                                AEProxy_pos.getZ());
                     } catch (NumberFormatException e) {
                         // 解析失败时保持原值
                         System.err.println("Invalid X coordinate: " + str);
@@ -691,7 +640,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         );
 
         StringSyncValue displayYValue = new StringSyncValue(
-                () -> "Y:" + aeProxy_y,
+                () -> "Y:" + AEProxy_pos.getY(),
                 str -> {
                     if (str.startsWith("Y:")) {
                         str = str.substring(2);
@@ -699,7 +648,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                         str = str.substring(2);
                     }
                     try {
-                        aeProxy_y = Integer.parseInt(str.trim());
+                        AEProxy_pos = new BlockPos(AEProxy_pos.getX(), Integer.parseInt(str.trim()),
+                                AEProxy_pos.getZ());
                     } catch (NumberFormatException e) {
                         System.err.println("Invalid Y coordinate: " + str);
                     }
@@ -707,7 +657,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         );
 
         StringSyncValue displayZValue = new StringSyncValue(
-                () -> "Z:" + aeProxy_z,
+                () -> "Z:" + AEProxy_pos.getZ(),
                 str -> {
                     if (str.startsWith("Z:")) {
                         str = str.substring(2);
@@ -715,7 +665,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                         str = str.substring(2);
                     }
                     try {
-                        aeProxy_z = Integer.parseInt(str.trim());
+                        AEProxy_pos = new BlockPos(AEProxy_pos.getX(), AEProxy_pos.getY(),
+                                Integer.parseInt(str.trim()));
                     } catch (NumberFormatException e) {
                         System.err.println("Invalid Z coordinate: " + str);
                     }
@@ -723,7 +674,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         );
 
         // 注册同步值
-        BooleanSyncValue useProxyStateValue = new BooleanSyncValue(() -> useProxy, val -> useProxy = val);
+        BooleanSyncValue useProxyStateValue = new BooleanSyncValue(this::isUseProxy, this::setUseProxy);
         guiSyncManager.syncValue("useProxyStateValue", useProxyStateValue);
 
         List<List<IWidget>> weightsPos = new ArrayList<>();
@@ -831,32 +782,33 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         weightsPos.add(row);
 
         StringSyncValue nameValue = new StringSyncValue(
-                () -> showName,
+                () -> getShowName(),
                 str -> {
                     if (str != null) {
-                        this.showName = str;
+                        setShowName(str);
                     } else {
-                        this.showName = IKey.lang(this.getMetaFullName()).toString();
+                        setShowName(IKey.lang(this.getMetaFullName()).toString());
                     }
                 }
         );
 
-        BooleanSyncValue blockStateValue = new BooleanSyncValue(() -> isBlockedMode, val -> isBlockedMode = val);
+        BooleanSyncValue blockStateValue = new BooleanSyncValue(this::isBlockedMode, this::setBlockedMode);
         guiSyncManager.syncValue("block_state", blockStateValue);
 
-        BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
+        BooleanSyncValue collapseStateValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
         guiSyncManager.syncValue("collapse_state", collapseStateValue);
 
-        BooleanSyncValue exportStateValue = new BooleanSyncValue(() -> export, val -> export = val);
+        BooleanSyncValue exportStateValue = new BooleanSyncValue(this::isExport, this::setExport);
         guiSyncManager.syncValue("export_state", exportStateValue);
 
-        BooleanSyncValue patternStateValue = new BooleanSyncValue(() -> patternDeal, val -> patternDeal = val);
+        BooleanSyncValue patternStateValue = new BooleanSyncValue(this::isPatternDeal, this::setPatternDeal);
         guiSyncManager.syncValue("pattern_state", patternStateValue);
 
-        BooleanSyncValue ghostCircuitStateValue = new BooleanSyncValue(() -> advancedCircuit, val -> advancedCircuit = val);
+        BooleanSyncValue ghostCircuitStateValue = new BooleanSyncValue(this::isAdvancedCircuit,
+                this::setAdvancedCircuit);
         guiSyncManager.syncValue("ghost_circuit_state", ghostCircuitStateValue);
 
-        BooleanSyncValue showInfoStateValue = new BooleanSyncValue(() -> hideInfo, val -> hideInfo = val);
+        BooleanSyncValue showInfoStateValue = new BooleanSyncValue(this::isHideInfo, this::setHideInfo);
         guiSyncManager.syncValue("hide_info", showInfoStateValue);
 
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
@@ -927,14 +879,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                                         .minRowHeight(18)
                                                         .matrix(weightsPos)
                                         )
-                                        .childIf(useProxy, () -> Column.column() // 创建多行文本列
+                                        .childIf(isUseProxy(), () -> Column.column() // 创建多行文本列
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
                                                 .child(new TextWidget<>(IKey.str("无线代理模式")))
-                                                .childIf(useProxy, () -> {
-                                                    TileEntity tileEntity = this.getWorld().getTileEntity(
-                                                            new BlockPos(aeProxy_x, aeProxy_y, aeProxy_z));
+                                                .childIf(isUseProxy(), () -> {
+                                                    TileEntity tileEntity = this.getWorld().getTileEntity(AEProxy_pos);
                                                     if (tileEntity instanceof AENetworkPowerTile proxy) {
                                                         return Column.column()
                                                                 .widthRel(1f)
@@ -951,13 +902,14 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                                                 .widthRel(1f)
                                                                 .child(new TextWidget<>(IKey.str("未找到无线网络代理")))
                                                                 .child(new TextWidget<>(IKey.dynamic(() ->
-                                                                        "坐标:" + aeProxy_x + ", " + aeProxy_y + ", " +
-                                                                                aeProxy_z
+                                                                        "坐标:" + AEProxy_pos.getX() + ", " +
+                                                                                AEProxy_pos.getY() + ", " +
+                                                                                AEProxy_pos.getZ()
                                                                 )));
                                                     }
                                                 })
                                         )
-                                        .childIf(!useProxy, () -> Column.column() // 创建多行文本列
+                                        .childIf(!isUseProxy(), () -> Column.column() // 创建多行文本列
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
@@ -981,7 +933,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                                 .setTextColor(Color.WHITE.darker(1))
                                                 .setValidator(str ->
                                                 {
-                                                    if (str == null || str.isEmpty()) return IKey.lang(this.getMetaFullName()).toString();
+                                                    if (str == null || str.isEmpty())
+                                                        return IKey.lang(this.getMetaFullName()).toString();
                                                     return str;
                                                 })
                                                 .value(nameValue)
@@ -1056,17 +1009,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     }
 
     @Override
-    public boolean hasGhostCircuitInventory() {
-        return true;
-    }
-
-    @Override
     public boolean onScrewdriverClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                       CuboidRayTraceResult hitResult) {
-        setAutoCollapse(!this.autoCollapse);
+        setAutoCollapse(!isAutoCollapse());
 
         if (!getWorld().isRemote) {
-            if (this.autoCollapse) {
+            if (isAutoCollapse()) {
                 playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_true"), true);
             } else {
                 playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_false"), true);
@@ -1078,34 +1026,17 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     public void setAutoCollapse(boolean inverted) {
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
-            if (autoCollapse) {
+            if (isAutoCollapse()) {
                 addNotifiedInput(super.getImportItems());
                 addNotifiedInput(this.getImportFluids());
             }
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
-                    packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
+                    packetBuffer -> packetBuffer.writeBoolean(isAutoCollapse()));
             notifyBlockUpdate();
             markDirty();
         }
     }
 
-    @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
-    }
     @Override
     public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
         tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
@@ -1156,7 +1087,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             if (FakeFluids.isFluidFakeItem(itemStack)) {
                 FluidStack fluid = FakeItemRegister.getStack(itemStack);
                 if (fluid != null) {
-                    if (fluidTankList.fill(fluid, false) < fluid.amount) {
+                    if (getImportFluids().fill(fluid, false) < fluid.amount) {
                         return false;
                     }
                     continue;
@@ -1166,11 +1097,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             //处理物品
 
             // 处理集成电路 - 模拟阶段
-            if (advancedCircuit && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
+            if (isAdvancedCircuit() && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
                 IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
                 if (aeStack != null) {
                     // 模拟注入网络，检查是否可返还
-                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE, getActionSource());
+                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE,
+                            getActionSource());
                     //大于0代表无法返回网络（可能是网络满了）
                     if (remaining != null && remaining.getStackSize() > 0) {
                         return false;
@@ -1183,7 +1115,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             //样板转化会ItemStack
             ItemStack simulated = itemStack.copy();
             //如果开了自动整理
-            if(isAutoCollapse()) {
+            if (isAutoCollapse()) {
                 //轮插 simulated轮询所有槽位，直到装填完毕
                 for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
                     ItemStack remaining = importItems.insertItem(slot, simulated, true);
@@ -1231,13 +1163,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             if (FakeFluids.isFluidFakeItem(itemStack)) {
                 FluidStack fluid = FakeItemRegister.getStack(itemStack);
                 if (fluid != null) {
-                    fluidTankList.fill(fluid, true);
+                    getImportFluids().fill(fluid, true);
                     continue;
                 }
             }
 
             // 处理集成电路 - 实际执行阶段
-            if (advancedCircuit && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
+            if (isAdvancedCircuit() && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
                 IMEMonitor<IAEItemStack> monitor = getItemMonitor();
                 IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
                 if (aeStack != null) {
@@ -1254,9 +1186,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
             if (isAutoCollapse()) {
                 // 自动整理模式：轮询所有槽位
-                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
-                    toInsert = importItems.insertItem(slot, toInsert, false);
-                }
+                GTTransferUtils.insertItem(importItems, toInsert,false);
             } else {
                 // 非自动整理模式：先尝试空槽，再尝试所有槽位
 
@@ -1268,11 +1198,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 }
 
                 // 阶段2: 如果还有剩余，再尝试所有槽位
-                if (!toInsert.isEmpty()) {
-                    for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
-                        toInsert = importItems.insertItem(slot, toInsert, false);
-                    }
-                }
+                GTTransferUtils.insertItem(importItems, toInsert,false);
             }
         }
 
@@ -1286,10 +1212,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             return false;
         }
 
-        boolean isEmpty = checkIfEmpty() && checkIfFluidEmpty();
+        boolean isEmpty = isInventoryEmpty(getImportItems()) && isFluidTankListEmpty(getImportFluids());
 
         // 如果不是空容器且处于阻塞模式，进行兼容性检查
-        if (!isEmpty && isBlockedMode) {
+        if (!isEmpty && isBlockedMode()) {
             if (!checkBlockedModeCompatibility(inventoryCrafting)) {
                 GTLog.logger.debug("Pattern rejected by blocked mode compatibility check");
                 return false;
@@ -1317,7 +1243,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             // 处理流体假物品
             if (FakeFluids.isFluidFakeItem(itemStack)) {
                 FluidStack fluid = FakeItemRegister.getStack(itemStack);
-                if (fluid == null || !GTUtility.hasMatchingFluid(fluid,fluidTankList)) {
+                if (fluid == null || !GTUtility.hasMatchingFluid(fluid, getImportFluids())) {
                     return false;
                 }
             }
@@ -1333,18 +1259,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     @Override
     public boolean isBusy() {
-        return export;
-    }
-
-    /**
-     * @return false if items are in any slot, true if empty
-     */
-    private boolean checkIfEmpty() {
-        return isInventoryEmpty(importItems);
-    }
-
-    private boolean checkIfFluidEmpty() {
-        return isFluidTankListEmpty(fluidTankList);
+        return isExport();
     }
 
     @Override
@@ -1360,8 +1275,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.3"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.4"));
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getSlotByTier()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
+                getTankCapacity()));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
@@ -1391,19 +1307,17 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         NBTTagCompound tag = dataStick.getTagCompound();
         if (tag == null) return false;
         if (tag.hasKey("CommonPos")) {
-            useProxy = false;
+            setUseProxy(false);
             readLocationFromTag(tag.getCompoundTag("CommonPos"));
             player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
-            useProxy = true;
+            setUseProxy(true);
             return true;
         }
         return false;
     }
 
     private void readLocationFromTag(NBTTagCompound tag) {
-        this.aeProxy_x = tag.getInteger("MainX");
-        this.aeProxy_y = tag.getInteger("MainY");
-        this.aeProxy_z = tag.getInteger("MainZ");
+        AEProxy_pos = new BlockPos(tag.getInteger("MainX"), tag.getInteger("MainY"), tag.getInteger("MainZ"));
     }
 
     @Override

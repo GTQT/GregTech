@@ -7,6 +7,7 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
+import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -62,6 +63,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifiablePart implements
@@ -101,8 +103,10 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         if (hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
             this.circuitInventory.addNotifiableMetaTileEntity(this);
+            this.importItems = this.largeSlotItemStackHandler;
+            actualImportItems = new ItemHandlerList(Arrays.asList(this.importItems, circuitInventory));
         } else {
-            actualImportItems = null;
+            actualImportItems = this.importItems;
             exportItems = largeSlotItemStackHandler;
         }
 
@@ -176,7 +180,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
             }
 
             if (autoCollapse()) {
-                IItemHandlerModifiable itemHandler = isExportHatch ? getExportItems() : super.getImportItems();
+                IItemHandlerModifiable itemHandler = largeSlotItemStackHandler;
                 if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
                         getNotifiedItemInputList().contains(itemHandler))) {
                     GTUtility.collapseInventorySlotContents(itemHandler);
