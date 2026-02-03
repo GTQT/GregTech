@@ -1,11 +1,11 @@
 package gtqt.common.metatileentities.multi.multiblockpart;
 
+import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IGhostSlotConfigurable;
-import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.FluidHandlerProxy;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
@@ -19,7 +19,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
@@ -42,8 +41,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.fluids.FluidTank;
-import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
@@ -53,7 +51,6 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
-import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
@@ -67,6 +64,7 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -76,37 +74,24 @@ import java.util.List;
 
 public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<DualHandler>, IControllable, IGhostSlotConfigurable {
-
-    //fluid
-    private static final int BASE_TANK_SIZE = 8000;
-    private final int numSlots;
-    private final int tankSize;
-    // only holding this for convenience
-    private final FluidTankList fluidTankList;
     //item
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;
+    @Nullable
     private IItemHandlerModifiable actualImportItems;
+    @Nullable
+    protected IItemHandlerModifiable commonItems;
+    @Nullable
+    protected FluidTankList commonFluids;
+
     private boolean workingEnabled;
+    @Getter
     private boolean autoCollapse;
 
     public MetaTileEntityComplexDualHatch(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
         this.workingEnabled = true;
-
-        this.numSlots = getTier();
-        this.tankSize = BASE_TANK_SIZE * (1 << tier) / (numSlots == 4 ? 4 : 8);
-        FluidTank[] fluidsHandlers = new FluidTank[numSlots];
-        for (int i = 0; i < fluidsHandlers.length; i++) {
-            fluidsHandlers[i] = new NotifiableFluidTank(tankSize, this, true);
-        }
-        this.fluidTankList = new FluidTankList(false, fluidsHandlers);
-
         initializeInventory();
-    }
-
-    public int getSlotByTier() {
-        return getTier() * getTier();
     }
 
     @Override
@@ -118,62 +103,63 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
     protected void initializeInventory() {
         this.importItems = createImportItemHandler();
         this.exportItems = createExportItemHandler();
+
+        this.circuitInventory = new GhostCircuitItemStackHandler(this);
+        this.circuitInventory.addNotifiableMetaTileEntity(this);
+
+        this.commonItems = createCommonItemHandler();
+        this.importItems = commonItems;
+        this.exportItems = commonItems;
         this.itemInventory = new ItemHandlerProxy(importItems, exportItems);
 
-        if (this.fluidTankList == null) return;
-        this.importFluids = createImportFluidHandler();
-        this.exportFluids = createExportFluidHandler();
+        this.commonFluids = new FluidTankList(false, createTanks());
+        this.importFluids = commonFluids;
+        this.exportFluids = commonFluids;
         this.fluidInventory = new FluidHandlerProxy(importFluids, exportFluids);
 
-        if (this.hasGhostCircuitInventory()) {
-            this.circuitInventory = new GhostCircuitItemStackHandler(this);
-            this.circuitInventory.addNotifiableMetaTileEntity(this);
-            this.actualImportItems = new ItemHandlerList(
-                    Arrays.asList(super.getImportItems(), super.getExportItems(), this.circuitInventory));
-        } else {
-            this.actualImportItems = null;
+        this.actualImportItems = new ItemHandlerList(Arrays.asList(this.commonItems, this.circuitInventory));
+    }
+
+    protected IFluidTank[] createTanks() {
+        int size = getTankSize();
+        IFluidTank[] tanks = new IFluidTank[size];
+        for (int index = 0; index < tanks.length; index++) {
+            tanks[index] = new NotifiableFluidTank(getTankCapacity(), null, false);
         }
+        return tanks;
+    }
+
+    protected int getTankSize() {
+        return 1 + Math.min(GTValues.UHV, getTier());
+    }
+
+    protected int getItemSize() {
+        return getTankSize() * getTankSize();
+    }
+
+    protected int getTankCapacity() {
+        return 8_000 * Math.min(Integer.MAX_VALUE, 1 << getTier());
+    }
+
+    protected IItemHandlerModifiable createCommonItemHandler() {
+        return new NotifiableItemStackHandler(this, getItemSize(), null, false);
     }
 
     @Override
     public IItemHandlerModifiable getImportItems() {
-        return this.actualImportItems == null ?
-                new ItemHandlerList(Arrays.asList(super.getImportItems(), super.getExportItems())) :
-                this.actualImportItems;
+        return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
     }
-
     @Override
     public IItemHandlerModifiable getExportItems() {
-        return this.actualImportItems == null ?
-                new ItemHandlerList(Arrays.asList(super.getImportItems(), super.getExportItems())) :
-                this.actualImportItems;
+        return commonItems;
     }
-
     @Override
-    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
-        super.addToMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.addNotifiableMetaTileEntity(controllerBase);
-                    notifiable.addToNotifiedList(this, handler, true);
-                    notifiable.addToNotifiedList(this, handler, false);
-
-                }
-            }
-        }
+    public FluidTankList getImportFluids() {
+        return commonFluids;
     }
-
     @Override
-    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
-        super.removeFromMultiBlock(controllerBase);
-        if (hasGhostCircuitInventory() && this.actualImportItems instanceof ItemHandlerList) {
-            for (IItemHandler handler : ((ItemHandlerList) this.actualImportItems).getBackingHandlers()) {
-                if (handler instanceof INotifiableHandler notifiable) {
-                    notifiable.removeNotifiableMetaTileEntity(controllerBase);
-                }
-            }
-        }
+    public FluidTankList getExportFluids() {
+        return commonFluids;
     }
 
     @Override
@@ -196,145 +182,60 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
             if (isAutoCollapse()) {
                 // Exclude the ghost circuit inventory from the auto collapse, so it does not extract any ghost circuits
                 // from the slot
-                IItemHandlerModifiable inventory = actualImportItems;
+                IItemHandlerModifiable inventory = commonItems;
                 if (!isAttachedToMultiBlock() || (this.getNotifiedItemInputList().contains(inventory))) {
                     GTUtility.collapseInventorySlotContents(inventory);
-                }
-
-                FluidTankList fluidInventory = fluidTankList;
-                if (!isAttachedToMultiBlock() || (this.getNotifiedFluidInputList().contains(fluidInventory))) {
-                    GTUtility.collapseFluidTankContents(fluidInventory);
                 }
             }
         }
     }
 
+
     @Override
-    public boolean isWorkingEnabled() {
-        return workingEnabled;
+    public boolean hasGhostCircuitInventory() {
+        return true;
     }
 
     @Override
-    public void setWorkingEnabled(boolean workingEnabled) {
-        this.workingEnabled = workingEnabled;
-        World world = getWorld();
-        if (world != null && !world.isRemote) {
-            writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
         }
     }
-
     @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
         }
-        return super.getCapability(capability, side);
+        return this.circuitInventory.getCircuitValue();
     }
 
-    @Override
-    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        super.renderMetaTileEntity(renderState, translation, pipeline);
-        if (shouldRenderOverlay()) {
-
-            SimpleOverlayRenderer overlay = Textures.COMPLEX_DUAL_HATCH;
-            overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
-        }
-    }
-
-    private int getInventorySize() {
-        return getSlotByTier();
-    }
-
-    @Override
-    protected IItemHandlerModifiable createExportItemHandler() {
-        return new NotifiableItemStackHandler(this, getInventorySize(), getController(), true);
-    }
-
-    @Override
-    protected IItemHandlerModifiable createImportItemHandler() {
-        return new NotifiableItemStackHandler(this, getInventorySize(), getController(), false);
-    }
-
-    @Override
-    protected FluidTankList createImportFluidHandler() {
-        return fluidTankList;
-    }
-
-    @Override
-    protected FluidTankList createExportFluidHandler() {
-        return fluidTankList;
-    }
 
     @Override
     public @NotNull List<MultiblockAbility<?>> getAbilities() {
-        return Arrays.asList(MultiblockAbility.IMPORT_FLUIDS, MultiblockAbility.IMPORT_ITEMS, MultiblockAbility.EXPORT_FLUIDS, MultiblockAbility.EXPORT_ITEMS);
-    }
-
-    @Override
-    public void writeInitialSyncData(PacketBuffer buf) {
-        super.writeInitialSyncData(buf);
-        buf.writeBoolean(workingEnabled);
-        buf.writeBoolean(autoCollapse);
-        for (var tank : fluidTankList.getFluidTanks()) {
-            NetworkUtils.writeFluidStack(buf, tank.getFluid());
-        }
-    }
-
-    @Override
-    public void receiveInitialSyncData(PacketBuffer buf) {
-        super.receiveInitialSyncData(buf);
-        this.workingEnabled = buf.readBoolean();
-        this.autoCollapse = buf.readBoolean();
-        for (var tank : fluidTankList.getFluidTanks()) {
-            var fluid = NetworkUtils.readFluidStack(buf);
-            tank.fill(fluid, true);
-        }
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        super.writeToNBT(data);
-        data.setBoolean("workingEnabled", workingEnabled);
-        data.setBoolean("autoCollapse", autoCollapse);
-        if (this.circuitInventory != null) {
-            this.circuitInventory.write(data);
-        }
-        return data;
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound data) {
-        super.readFromNBT(data);
-        if (data.hasKey("workingEnabled")) {
-            this.workingEnabled = data.getBoolean("workingEnabled");
-        }
-        if (data.hasKey("autoCollapse")) {
-            this.autoCollapse = data.getBoolean("autoCollapse");
-        }
-        if (this.circuitInventory != null) {
-            this.circuitInventory.read(data);
-        }
-    }
-
-    @Override
-    public void receiveCustomData(int dataId, PacketBuffer buf) {
-        super.receiveCustomData(dataId, buf);
-        if (dataId == GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS) {
-            this.autoCollapse = buf.readBoolean();
-        } else if (dataId == GregtechDataCodes.WORKING_ENABLED) {
-            this.workingEnabled = buf.readBoolean();
-        }
+        return Arrays.asList(
+                MultiblockAbility.IMPORT_FLUIDS,
+                MultiblockAbility.IMPORT_ITEMS,
+                MultiblockAbility.EXPORT_FLUIDS,
+                MultiblockAbility.EXPORT_ITEMS
+        );
     }
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (abilityInstances.isKey(MultiblockAbility.EXPORT_ITEMS)||abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS))
+        if (abilityInstances.isKey(MultiblockAbility.EXPORT_ITEMS))
         {
-                abilityInstances.add(this.exportItems);
-                abilityInstances.add(this.actualImportItems);
+                abilityInstances.add(this.commonItems);
+        }
+        if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS)) {
+            abilityInstances.add(this.actualImportItems);
         }
         if (abilityInstances.isKey(MultiblockAbility.EXPORT_FLUIDS) || abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
-            abilityInstances.add(this.fluidTankList);
+            abilityInstances.add(this.commonFluids);
         }
     }
 
@@ -358,7 +259,7 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
             widgets.add(new ArrayList<>());
             for (int j = 0; j < rowSize; j++) {
                 int index = i * rowSize + j;
-                IItemHandlerModifiable handler = actualImportItems;
+                IItemHandlerModifiable handler = commonItems;
                 widgets.get(i)
                         .add(new ItemSlot()
                                 .slot(SyncHandlers.itemSlot(handler, index)
@@ -373,7 +274,7 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
 
             }
             widgets.get(i).add(new GTFluidSlot()
-                    .syncHandler(GTFluidSlot.sync(fluidTankList.getTankAt(i))
+                    .syncHandler(GTFluidSlot.sync(commonFluids.getTankAt(i))
                             .accessibility(true, true))
             );
         }
@@ -430,8 +331,92 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
     }
 
     @Override
-    public boolean hasGhostCircuitInventory() {
-        return true;
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        if (shouldRenderOverlay()) {
+            SimpleOverlayRenderer overlay = Textures.COMPLEX_DUAL_HATCH;
+            overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
+        }
+    }
+
+
+    @Override
+    public void writeInitialSyncData(PacketBuffer buf) {
+        super.writeInitialSyncData(buf);
+        buf.writeBoolean(workingEnabled);
+        buf.writeBoolean(autoCollapse);
+    }
+
+    @Override
+    public void receiveInitialSyncData(PacketBuffer buf) {
+        super.receiveInitialSyncData(buf);
+        this.workingEnabled = buf.readBoolean();
+        this.autoCollapse = buf.readBoolean();
+    }
+
+
+    @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @Override
+    public void setWorkingEnabled(boolean workingEnabled) {
+        this.workingEnabled = workingEnabled;
+        World world = getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
+        }
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
+        }
+        return super.getCapability(capability, side);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound data) {
+        super.writeToNBT(data);
+        data.setBoolean("workingEnabled", workingEnabled);
+        data.setBoolean("autoCollapse", autoCollapse);
+        if (this.circuitInventory != null) {
+            this.circuitInventory.write(data);
+        }
+
+        GTUtility.writeItems(commonItems, "commonItems", data);
+        data.setTag("commonFluids", commonFluids.serializeNBT());
+
+        return data;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound data) {
+        super.readFromNBT(data);
+        if (data.hasKey("workingEnabled")) {
+            this.workingEnabled = data.getBoolean("workingEnabled");
+        }
+        if (data.hasKey("autoCollapse")) {
+            this.autoCollapse = data.getBoolean("autoCollapse");
+        }
+        if (this.circuitInventory != null) {
+            this.circuitInventory.read(data);
+        }
+
+        GTUtility.readItems(commonItems, "commonItems", data);
+        commonFluids.deserializeNBT(data.getCompoundTag("commonFluids"));
+    }
+
+    @Override
+    public void receiveCustomData(int dataId, PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS) {
+            this.autoCollapse = buf.readBoolean();
+        } else if (dataId == GregtechDataCodes.WORKING_ENABLED) {
+            this.workingEnabled = buf.readBoolean();
+        }
     }
 
     @Override
@@ -449,21 +434,12 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
         return true;
     }
 
-    public boolean isAutoCollapse() {
-        return autoCollapse;
-    }
-
     public void setAutoCollapse(boolean inverted) {
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
             if (autoCollapse) {
-
-                addNotifiedOutput(this.getExportItems());
-                addNotifiedOutput(this.getExportFluids());
-
-                addNotifiedInput(this.getImportItems());
-                addNotifiedInput(this.getImportFluids());
-
+                addNotifiedInput(commonItems);
+                addNotifiedOutput(commonItems);
             }
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
                     packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
@@ -473,29 +449,12 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
     }
 
     @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
-    }
-    @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.2"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getInventorySize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", numSlots, tankSize));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 

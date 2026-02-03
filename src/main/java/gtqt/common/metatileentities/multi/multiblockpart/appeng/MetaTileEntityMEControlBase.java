@@ -286,6 +286,7 @@ public abstract class MetaTileEntityMEControlBase extends MetaTileEntityMultiblo
             this.workingEnabled = data.getBoolean(WORKING_TAG);
         }
     }
+
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
@@ -293,6 +294,7 @@ public abstract class MetaTileEntityMEControlBase extends MetaTileEntityMultiblo
         }
         return super.getCapability(capability, side);
     }
+
     @Override
     public boolean isWorkingEnabled() {
         return this.workingEnabled;

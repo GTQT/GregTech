@@ -563,6 +563,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
+        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), largeSlotItemStackHandler);
     }
 
     @Override
