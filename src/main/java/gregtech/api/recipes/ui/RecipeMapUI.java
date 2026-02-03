@@ -21,9 +21,9 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.sizer.Area;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import it.unimi.dsi.fastutil.bytes.Byte2ObjectMap;
 import it.unimi.dsi.fastutil.bytes.Byte2ObjectOpenHashMap;
@@ -642,6 +642,10 @@ public class RecipeMapUI<R extends RecipeMap<?>> {
 
                 if (fluidInputsCount > itemGridWidth)
                     // to move chem reactor fluid input to the left
+                    x -= 18;
+
+                if (fluidInputsCount == 2 && itemInputsCount % 3==0)
+                    // to move mixer fluid input to the left
                     x -= 18;
             }
             group.child(fluidGrid
