@@ -1,7 +1,11 @@
 package gregtech.api.capability.impl;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.*;
+import gregtech.api.capability.FeCompat;
+import gregtech.api.capability.GregtechCapabilities;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.IElectricItem;
+import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTUtility;
@@ -14,7 +18,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -131,17 +134,12 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
         }
     }
 
-    public boolean dischargeOrRechargeEnergyContainers(IItemHandlerModifiable itemHandler, int slotIndex) {
-        ItemStack stackInSlot = itemHandler.getStackInSlot(slotIndex);
-        if (stackInSlot.isEmpty()) { // no stack to charge/discharge
-            return false;
-        }
-
-        IElectricItem electricItem = stackInSlot.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+    public boolean dischargeOrRechargeEnergyContainers(ItemStack stack) {
+        IElectricItem electricItem = stack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
         if (electricItem != null) {
             return handleElectricItem(electricItem);
         } else if (ConfigHolder.compat.energy.nativeEUToFE) {
-            IEnergyStorage energyStorage = stackInSlot.getCapability(CapabilityEnergy.ENERGY, null);
+            IEnergyStorage energyStorage = stack.getCapability(CapabilityEnergy.ENERGY, null);
             if (energyStorage != null) {
                 return handleForgeEnergyItem(energyStorage);
             }

@@ -134,13 +134,13 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                    IGridProxyable, IPowerChannelState {
 
     // ICONS
-    private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
+    private final IDrawable CHEST = new ItemDrawable(Blocks.CHEST)
             .asIcon().size(16);
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
             .asIcon().size(16);
     private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
-    private final IDrawable TERMINAL = new ItemDrawable(new ItemStack(Items.NAME_TAG))
+    private final IDrawable TERMINAL = new ItemDrawable(Items.NAME_TAG)
             .asIcon().size(16);
     @Nullable
     private final List<ICraftingPatternDetails> patternDetails;
@@ -165,6 +165,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     @Nullable
     private LargeSlotItemStackHandler largeSlotItemStackHandler;
     @Nullable
+    @Getter
     private DualHandler dualHandler;
     private boolean needPatternSync = true;
     private int parallel;
@@ -288,8 +289,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
 
             if (isAutoCollapse()) {
                 IItemHandlerModifiable itemHandler = largeSlotItemStackHandler;
-                if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
-                        getNotifiedItemInputList().contains(itemHandler))) {
+                if (!isAttachedToMultiBlock() || (getNotifiedItemInputList().contains(itemHandler))) {
                     GTUtility.collapseInventorySlotContents(itemHandler);
                 }
             }
@@ -441,7 +441,6 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         data.setTag("Pattern", this.patternSlot.serializeNBT());
         data.setTag("ExtraItem", this.extraItem.serializeNBT());
         data.setTag("largeSlotItemStackHandler", this.largeSlotItemStackHandler.serializeNBT());
-        this.importItems = this.largeSlotItemStackHandler;
 
         data.setBoolean("BlockingEnabled", isBlockedMode());
         data.setBoolean("Export", isExport());
@@ -587,7 +586,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
             for (int j = 0; j < rowSize; j++) {
                 int index = i * rowSize + j;
 
-                IItemHandlerModifiable handler = importItems;
+                IItemHandlerModifiable handler = largeSlotItemStackHandler;
                 widgetsItem.get(i)
                         .add(new ItemSlot()
                                 .slot(new ModularSlot(handler, index) {

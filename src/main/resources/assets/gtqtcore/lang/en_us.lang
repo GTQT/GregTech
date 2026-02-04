@@ -419,7 +419,8 @@ gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
 gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy
 gregtech.machine.huge_me_pattern_provider_proxy.name=Huge ME Pattern Provider Proxy
-gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=Huge Ore Prefix Pattern Hatch
+gregtech.machine.me_ore_prefix_pattern_provider_proxy.name=Ore Prefix Pattern Provider Proxy
+gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=Huge Ore Prefix Pattern Provider Proxy
 
 gregtech.machine.me_ore_dict_bus.name=ME OreDict Input Bus
 gregtech.machine.me_pattern_manager.name=ME Pattern Manager

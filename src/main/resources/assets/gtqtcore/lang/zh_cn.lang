@@ -421,7 +421,8 @@ gregtech.machine.me_dual_hatch.import.name=ME输入总成
 gregtech.machine.me_dual_hatch.export.name=ME输出总成
 gregtech.machine.me_pattern_provider_proxy.name=ME代理样板总成
 gregtech.machine.huge_me_pattern_provider_proxy.name=巨型ME代理样板总成
-gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=巨型ME矿辞前缀样板总成
+gregtech.machine.me_ore_prefix_pattern_provider_proxy.name=ME矿辞前缀代理样板总成
+gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=巨型ME矿辞前缀代理样板总成
 
 gregtech.machine.me_ore_dict_bus.name=ME矿辞输入总线
 gregtech.machine.me_pattern_manager.name=ME样板管理器

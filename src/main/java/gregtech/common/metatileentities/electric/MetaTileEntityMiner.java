@@ -15,6 +15,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.TextStandards;
+import gregtech.api.unification.OreDictUnifier;
+import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.core.sound.GTSoundEvents;
@@ -227,8 +230,15 @@ public class MetaTileEntityMiner extends TieredMetaTileEntity implements IMiner,
         super.update();
         this.minerLogic.performMining();
         if (!getWorld().isRemote) {
-            ((EnergyContainerHandler) this.energyContainer).dischargeOrRechargeEnergyContainers(chargerInventory, 0);
-
+            ItemStack stack = chargerInventory.getStackInSlot(0);
+            if(!stack.isEmpty() && energyContainer.getEnergyStored() < energyContainer.getEnergyCapacity()) {
+                if(stack.isItemEqual(OreDictUnifier.get(OrePrefix.dust, Materials.Redstone)))
+                {
+                    stack.shrink(1);
+                    energyContainer.addEnergy(1920);
+                }
+                else ((EnergyContainerHandler) this.energyContainer).dischargeOrRechargeEnergyContainers(stack);
+            }
             if (getOffsetTimer() % 5 == 0)
                 pushItemsIntoNearbyHandlers(getFrontFacing());
 

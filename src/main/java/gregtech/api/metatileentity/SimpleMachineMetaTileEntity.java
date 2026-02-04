@@ -25,6 +25,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.unification.OreDictUnifier;
+import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.IMachineParticleEffect;
@@ -225,8 +228,15 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     public void update() {
         super.update();
         if (!getWorld().isRemote) {
-            ((EnergyContainerHandler) this.energyContainer).dischargeOrRechargeEnergyContainers(chargerInventory, 0);
-
+            ItemStack stack = chargerInventory.getStackInSlot(0);
+            if(!stack.isEmpty() && energyContainer.getEnergyStored() < energyContainer.getEnergyCapacity()) {
+                if(stack.isItemEqual(OreDictUnifier.get(OrePrefix.dust, Materials.Redstone)))
+                {
+                    stack.shrink(1);
+                    energyContainer.addEnergy(1920);
+                }
+                else ((EnergyContainerHandler) this.energyContainer).dischargeOrRechargeEnergyContainers(stack);
+            }
             if (getOffsetTimer() % 5 == 0) {
                 if (isAutoOutputFluids()) {
                     pushFluidsIntoNearbyHandlers(getOutputFacingFluids());

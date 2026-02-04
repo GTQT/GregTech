@@ -132,13 +132,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                    IGridProxyable, IPowerChannelState {
 
     // ICONS
-    private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
+    private final IDrawable CHEST = new ItemDrawable(Blocks.CHEST)
             .asIcon().size(16);
     private final IDrawable HATCH = new ItemDrawable(getStackForm())
             .asIcon().size(16);
     private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
-    private final IDrawable TERMINAL = new ItemDrawable(new ItemStack(Items.NAME_TAG))
+    private final IDrawable TERMINAL = new ItemDrawable(Items.NAME_TAG)
             .asIcon().size(16);
     @Nullable
     private final List<ICraftingPatternDetails> patternDetails;
@@ -160,6 +160,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     @Getter
     @Nullable
     private ItemStackHandler patternSlot;
+    @Getter
     @Nullable
     private DualHandler dualHandler;
     private boolean needPatternSync = true;

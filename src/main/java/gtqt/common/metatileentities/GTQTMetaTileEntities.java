@@ -19,6 +19,7 @@ import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityThreadHat
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEOrePrefixPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEOrePrefixPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
@@ -65,7 +66,8 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
     public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityHugeMEPatternProviderProxy HUGE_ME_PATTERN_PROVIDER_PROXY;
-    public static MetaTileEntityMEOrePrefixPatternProviderProxy HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY;
+    public static MetaTileEntityMEOrePrefixPatternProviderProxy ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY;
+    public static MetaTileEntityHugeMEOrePrefixPatternProviderProxy HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
     public static MetaTileEntityMEPatternManager ME_PATTERN_MANAGER;
 
@@ -139,7 +141,10 @@ public class GTQTMetaTileEntities {
         ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
         ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"));
         HUGE_ME_PATTERN_PROVIDER_PROXY = new MetaTileEntityHugeMEPatternProviderProxy(gregtechId("huge_me_pattern_provider_proxy"));
-        HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY = new MetaTileEntityMEOrePrefixPatternProviderProxy(gregtechId("huge_me_ore_prefix_pattern_provider_proxy"));
+
+        ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY = new MetaTileEntityMEOrePrefixPatternProviderProxy(gregtechId("me_ore_prefix_pattern_provider_proxy"));
+        HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY = new MetaTileEntityHugeMEOrePrefixPatternProviderProxy(gregtechId("huge_me_ore_prefix_pattern_provider_proxy"));
+
         ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"));
         ME_PATTERN_MANAGER = new MetaTileEntityMEPatternManager(gregtechId("me_pattern_manager"),6,false);
 
@@ -147,7 +152,8 @@ public class GTQTMetaTileEntities {
         registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
         registerMetaTileEntity(2702, ME_PATTERN_PROVIDER_PROXY);
         registerMetaTileEntity(2703, HUGE_ME_PATTERN_PROVIDER_PROXY);
-        registerMetaTileEntity(2704, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
+        registerMetaTileEntity(2704, ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
+        registerMetaTileEntity(2705, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
 
         registerMetaTileEntity(2750, ME_ORE_DICT_BUS);
         registerMetaTileEntity(2751, ME_PATTERN_MANAGER);
