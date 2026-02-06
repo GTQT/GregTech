@@ -1322,40 +1322,42 @@ public class MetaItem1 extends StandardMetaItem {
                 .addComponents(ElectricStats.createBattery(2000000000000L, GTValues.ZPM, true)).setModelAmount(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        ULTIMATE_BATTERY = addItem(753, "max.battery")
-                .addComponents(ElectricStats.createRechargeableBattery(Long.MAX_VALUE, GTValues.MAX))
-                .setUnificationData(OrePrefix.battery, Tier.MAX).setModelAmount(8)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        // UHV级电池 (9) - 量子能核心
-        QUANTUM_CORE = addItem(754, "battery.uhv.quantum_core")
+        // UHV级电池 (9) - 量子真空电池
+        QUANTUM_CORE = addItem(753, "uhv.battery")
                 .addComponents(ElectricStats.createRechargeableBattery(320_000_000_000L, GTValues.UHV))
                 .setUnificationData(OrePrefix.battery, Tier.UHV).setModelAmount(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // UEV级电池 (10) - 引力奇点单元
-        SINGULARITY_CELL = addItem(755, "battery.uev.singularity_cell")
+        SINGULARITY_CELL = addItem(754, "uev.battery")
                 .addComponents(ElectricStats.createRechargeableBattery(5_120_000_000_000L, GTValues.UEV))
                 .setUnificationData(OrePrefix.battery, Tier.UEV).setModelAmount(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // UIV级电池 (11) - 时空晶体矩阵
-        CHRONO_MATRIX = addItem(756, "battery.uiv.chrono_matrix")
+        CHRONO_MATRIX = addItem(755, "uiv.battery")
                 .addComponents(ElectricStats.createRechargeableBattery(81_920_000_000_000L, GTValues.UIV))
                 .setUnificationData(OrePrefix.battery, Tier.UIV).setModelAmount(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // UXV级电池 (12) - 超光速粒子反应堆
-        TACHYON_REACTOR = addItem(757, "battery.uxv.tachyon_reactor")
+        TACHYON_REACTOR = addItem(756, "uxv.battery")
                 .addComponents(ElectricStats.createRechargeableBattery(1_310_720_000_000_000L, GTValues.UXV))
                 .setUnificationData(OrePrefix.battery, Tier.UXV).setModelAmount(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // OPV级电池 (13) - 宇宙弦能量体
-        COSMIC_STRING = addItem(758, "battery.opv.cosmic_string")
+        COSMIC_STRING = addItem(757, "opv.battery")
                 .addComponents(ElectricStats.createRechargeableBattery(20_971_520_000_000_000L, GTValues.OpV))
                 .setUnificationData(OrePrefix.battery, Tier.OpV).setModelAmount(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        // MAX级电池 (14) - 创世之源
+        ULTIMATE_BATTERY = addItem(758, "max.battery")
+                .addComponents(ElectricStats.createRechargeableBattery(Long.MAX_VALUE, GTValues.MAX))
+                .setUnificationData(OrePrefix.battery, Tier.MAX).setModelAmount(8)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
 
         POWER_THRUSTER = addItem(776, "power_thruster").setRarity(EnumRarity.UNCOMMON);
         POWER_THRUSTER_ADVANCED = addItem(777, "power_thruster_advanced").setRarity(EnumRarity.RARE);

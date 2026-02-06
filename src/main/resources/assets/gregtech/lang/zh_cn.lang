@@ -521,8 +521,18 @@ metaitem.energy.module.name=能量模块
 metaitem.energy.module.tooltip=可充电电池
 metaitem.energy.cluster.name=能量簇
 metaitem.energy.cluster.tooltip=可充电电池
-metaitem.max.battery.name=创世之源
-metaitem.max.battery.tooltip=填满就能通关Minecraft
+metaitem.uhv.battery.name=量子真空电池
+metaitem.uhv.battery.tooltip=从量子真空中汲取创世余烬
+metaitem.uev.battery.name=引力奇点单元电池
+metaitem.uev.battery.tooltip=将黑洞之心囚禁于因果牢笼
+metaitem.uiv.battery.name=时空晶体矩阵电池
+metaitem.uiv.battery.tooltip=每一个晶体都在低语着平行世界的频率
+metaitem.uxv.battery.name=超光速粒子反应堆电池
+metaitem.uxv.battery.tooltip=能量在光锥之外流淌，定义新的因果律
+metaitem.opv.battery.name=宇宙弦能量体电池
+metaitem.opv.battery.tooltip=振动着宇宙诞生之初的绝对弦音
+metaitem.max.battery.name=创世之源电池
+metaitem.max.battery.tooltip=万物归一的终点，亦是创世爆发的奇点
 
 metaitem.battery.uhv.quantum_core.name=量子核心电池
 metaitem.battery.uhv.quantum_core.tooltip=利用量子叠加态存储能量的革命性设计
@@ -3118,7 +3128,14 @@ tile.battery_block.lapotronic_luv.name=兰波顿电容（§dLuV§r）
 tile.battery_block.lapotronic_zpm.name=兰波顿电容（§cZPM§r）
 tile.battery_block.empty_tier_iii.name=空电容（Tier III）
 tile.battery_block.lapotronic_uv.name=兰波顿电容（§3UV§r）
-tile.battery_block.ultimate_uhv.name=终极电容（§4UHV§r）
+tile.battery_block.quantum_uhv.name=量子真空电容（§4UHV§r）
+tile.battery_block.empty_tier_iv.name=空电容（Tier IV）
+tile.battery_block.spacetime_uev.name=引力奇点电容（§6UEV§r）
+tile.battery_block.graviton_uiv.name=时空晶体电容（§2UIV§r）
+tile.battery_block.empty_tier_v.name=空电容（Tier V）
+tile.battery_block.chronos_uxv.name=超光速粒子电容（§eUXV§r）
+tile.battery_block.cosmic_opv.name=宇宙弦电容（§aOpV§r）
+tile.battery_block.ultimate_max.name=创世电容（§c§lMAX§r）
 tile.battery_block.tooltip_empty=用于填补蓄能变电站的结构空隙
 
 # Long Distance Pipeline Blocks

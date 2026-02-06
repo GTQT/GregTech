@@ -427,7 +427,7 @@ public class BatteryRecipes {
                 .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 40))
                 .fluidInputs(Polybenzimidazole.getFluid(2304))
                 .fluidInputs(Naquadria.getFluid(L * 18))
-                .output(ULTIMATE_BATTERY)
+                .output(QUANTUM_CORE)
                 .stationResearch(b -> b
                         .researchStack(ENERGY_CLUSTER.getStackForm())
                         .CWUt(CWT[UV])
@@ -530,21 +530,91 @@ public class BatteryRecipes {
                 .circuitMeta(2)
                 .duration(200).EUt(VA[LV]).buildAndRegister();
 
-        /*
-        // Ultimate UHV
+        // QUANTUM UHV
         CANNER_RECIPES.recipeBuilder()
                 .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_III))
-                .inputNBT(ULTIMATE_BATTERY, NBTMatcher.ANY, NBTCondition.ANY)
-                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.ULTIMATE_UHV))
+                .inputNBT(QUANTUM_CORE, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.QUANTUM_UHV))
                 .duration(400).EUt(VA[IV]).buildAndRegister();
 
         PACKER_RECIPES.recipeBuilder()
-                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.ULTIMATE_UHV))
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.QUANTUM_UHV))
                 .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_III))
-                .output(ULTIMATE_BATTERY)
+                .output(QUANTUM_CORE)
                 .circuitMeta(2)
                 .duration(200).EUt(VA[LV]).buildAndRegister();
 
+        // Empty Tier IV
+        /*
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_IV))
+                .duration(400).EUt(VA[UHV]).buildAndRegister();
          */
+
+        // SPACETIME UEV
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_IV))
+                .inputNBT(ENERGY_CLUSTER, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.SPACETIME_UEV))
+                .duration(200).EUt(VA[LuV]).buildAndRegister();
+
+        PACKER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.SPACETIME_UEV))
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_IV))
+                .output(ENERGY_CLUSTER)
+                .circuitMeta(2)
+                .duration(200).EUt(VA[LV]).buildAndRegister();
+
+        // GRAVITON UIV
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_IV))
+                .inputNBT(ENERGY_CLUSTER, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.GRAVITON_UIV))
+                .duration(400).EUt(VA[LuV]).buildAndRegister();
+
+        PACKER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.GRAVITON_UIV))
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_IV))
+                .output(ENERGY_CLUSTER)
+                .circuitMeta(2)
+                .duration(200).EUt(VA[LV]).buildAndRegister();
+
+        // Empty Tier V
+        /*
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_V))
+                .duration(400).EUt(VA[UIV]).buildAndRegister();
+         */
+
+        // CHRONOS UXV
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_V))
+                .inputNBT(ENERGY_CLUSTER, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.CHRONOS_UXV))
+                .duration(200).EUt(VA[UV]).buildAndRegister();
+
+        PACKER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.CHRONOS_UXV))
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_V))
+                .output(ENERGY_CLUSTER)
+                .circuitMeta(2)
+                .duration(200).EUt(VA[LV]).buildAndRegister();
+
+        // COSMIC OPV
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_V))
+                .inputNBT(ENERGY_CLUSTER, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.COSMIC_OPV))
+                .duration(400).EUt(VA[UV]).buildAndRegister();
+
+        PACKER_RECIPES.recipeBuilder()
+                .inputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.COSMIC_OPV))
+                .outputs(BATTERY_BLOCK.getItemVariant(BatteryPartType.EMPTY_TIER_V))
+                .output(ENERGY_CLUSTER)
+                .circuitMeta(2)
+                .duration(200).EUt(VA[LV]).buildAndRegister();
+
+        // ULTIMATE MAX
+
     }
 }

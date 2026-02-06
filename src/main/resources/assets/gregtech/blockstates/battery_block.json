@@ -61,11 +61,60 @@
           "side": "gregtech:blocks/casings/battery/lapotronic_uv/side"
         }
       },
-      "ultimate_uhv": {
+      "quantum_uhv": {
         "textures": {
-          "bottom": "gregtech:blocks/casings/battery/ultimate_uhv/top",
-          "top": "gregtech:blocks/casings/battery/ultimate_uhv/top",
-          "side": "gregtech:blocks/casings/battery/ultimate_uhv/side"
+          "bottom": "gregtech:blocks/casings/battery/quantum_uhv/top",
+          "top": "gregtech:blocks/casings/battery/quantum_uhv/top",
+          "side": "gregtech:blocks/casings/battery/quantum_uhv/side"
+        }
+      },
+      "empty_tier_iv": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/empty_tier_iv/top",
+          "top": "gregtech:blocks/casings/battery/empty_tier_iv/top",
+          "side": "gregtech:blocks/casings/battery/empty_tier_iv/side"
+        }
+      },
+      "spacetime_uev": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/spacetime_uev/top",
+          "top": "gregtech:blocks/casings/battery/spacetime_uev/top",
+          "side": "gregtech:blocks/casings/battery/spacetime_uev/side"
+        }
+      },
+      "graviton_uiv": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/graviton_uiv/top",
+          "top": "gregtech:blocks/casings/battery/graviton_uiv/top",
+          "side": "gregtech:blocks/casings/battery/graviton_uiv/side"
+        }
+      },
+      "empty_tier_v": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/empty_tier_v/top",
+          "top": "gregtech:blocks/casings/battery/empty_tier_v/top",
+          "side": "gregtech:blocks/casings/battery/empty_tier_v/side"
+        }
+      },
+      "chronos_uxv": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/chronos_uxv/top",
+          "top": "gregtech:blocks/casings/battery/chronos_uxv/top",
+          "side": "gregtech:blocks/casings/battery/chronos_uxv/side"
+        }
+      },
+      "cosmic_opv": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/cosmic_opv/top",
+          "top": "gregtech:blocks/casings/battery/cosmic_opv/top",
+          "side": "gregtech:blocks/casings/battery/cosmic_opv/side"
+        }
+      },
+      "ultimate_max": {
+        "textures": {
+          "bottom": "gregtech:blocks/casings/battery/ultimate_max/top",
+          "top": "gregtech:blocks/casings/battery/ultimate_max/top",
+          "side": "gregtech:blocks/casings/battery/ultimate_max/top"
         }
       }
     }

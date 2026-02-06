@@ -521,8 +521,18 @@ metaitem.energy.module.name=Energy Module
 metaitem.energy.module.tooltip=Reusable Battery
 metaitem.energy.cluster.name=Energy Cluster
 metaitem.energy.cluster.tooltip=Reusable Battery
-metaitem.max.battery.name=Genesis Singularity
-metaitem.max.battery.tooltip=Fill this to win Minecraft
+metaitem.uhv.battery.name=Quantum Vacuum Cell Battery
+metaitem.uhv.battery.tooltip=Draws the embers of creation from the quantum vacuum.
+metaitem.uev.battery.name=Gravitational Singularity Unit Battery
+metaitem.uev.battery.tooltip=Imprisons a singularity within a cage of causality.
+metaitem.uiv.battery.name=Spacetime Crystal Matrix Battery
+metaitem.uiv.battery.tooltip=Each crystal whispers the frequencies of parallel worlds.
+metaitem.uxv.battery.name=Tachyon Reactor Battery
+metaitem.uxv.battery.tooltip=Energy flows beyond the light cone, defining new causality.
+metaitem.opv.battery.name=Cosmic String Energy Body Battery
+metaitem.opv.battery.tooltip=Vibrates with the primordial string of cosmic birth.
+metaitem.max.battery.name=Omega Singularity Battery
+metaitem.max.battery.tooltip=The singularity where all converges, and creation begins anew.
 
 metaitem.battery.uhv.quantum_core.name=Quantum Core Battery
 metaitem.battery.uhv.quantum_core.tooltip=Revolutionary design storing energy in quantum superposition states
@@ -3114,16 +3124,23 @@ tile.transparent_casing.laminated_glass.name=Laminated Glass
 tile.transparent_casing.cleanroom_glass.name=Cleanroom Glass
 
 # Battery blocks
-tile.battery_block.empty_tier_i.name=Empty Tier I Capacitor
-tile.battery_block.lapotronic_ev.name=EV Lapotronic Capacitor
-tile.battery_block.lapotronic_iv.name=IV Lapotronic Capacitor
-tile.battery_block.empty_tier_ii.name=Empty Tier II Capacitor
-tile.battery_block.lapotronic_luv.name=LuV Lapotronic Capacitor
-tile.battery_block.lapotronic_zpm.name=ZPM Lapotronic Capacitor
-tile.battery_block.empty_tier_iii.name=Empty Tier III Capacitor
-tile.battery_block.lapotronic_uv.name=UV Lapotronic Capacitor
-tile.battery_block.ultimate_uhv.name=UHV Ultimate Capacitor
-tile.battery_block.tooltip_empty=For filling space in your Power Substation
+tile.battery_block.empty_tier_i.name=Empty Capacitor (Tier I)
+tile.battery_block.lapotronic_ev.name=Lapotronic Capacitor (§5EV§r)
+tile.battery_block.lapotronic_iv.name=Lapotronic Capacitor (§1IV§r)
+tile.battery_block.empty_tier_ii.name=Empty Capacitor (Tier II)
+tile.battery_block.lapotronic_luv.name=Lapotronic Capacitor (§dLuV§r)
+tile.battery_block.lapotronic_zpm.name=Lapotronic Capacitor (§cZPM§r)
+tile.battery_block.empty_tier_iii.name=Empty Capacitor (Tier III)
+tile.battery_block.lapotronic_uv.name=Lapotronic Capacitor (§3UV§r)
+tile.battery_block.quantum_uhv.name=Quantum-Vacuum Capacitor (§4UHV§r)
+tile.battery_block.empty_tier_iv.name=Empty Capacitor (Tier IV)
+tile.battery_block.spacetime_uev.name=Gravitational Singularity Capacitor (§6UEV§r)
+tile.battery_block.graviton_uiv.name=Spacetime Crystal Capacitor (§2UIV§r)
+tile.battery_block.empty_tier_v.name=Empty Capacitor (Tier V)
+tile.battery_block.chronos_uxv.name=Tachyon Capacitor (§eUXV§r)
+tile.battery_block.cosmic_opv.name=Cosmic String Capacitor (§aOpV§r)
+tile.battery_block.ultimate_max.name=Genesis Capacitor (§c§lMAX§r)
+tile.battery_block.tooltip_empty=Used to fill structural gaps in your Power Substation
 
 # Long Distance Pipeline Blocks
 tile.long_distance_item_pipeline.name=Long Distance Item Pipe
