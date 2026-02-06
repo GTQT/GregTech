@@ -34,6 +34,51 @@ metaitem.programmable_circuit_29.name=Programmable Circuit（29）
 metaitem.programmable_circuit_30.name=Programmable Circuit（30）
 metaitem.programmable_circuit_31.name=Programmable Circuit（31）
 metaitem.programmable_circuit_32.name=Programmable Circuit（32）
+#  Universal Circuit Boards
+metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
+metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)
+metaitem.general_circuit.mv.name=Universal Circuit Board (§bMV§r)
+metaitem.general_circuit.hv.name=Universal Circuit Board (§6HV§r)
+metaitem.general_circuit.ev.name=Universal Circuit Board (§5EV§r)
+metaitem.general_circuit.iv.name=Universal Circuit Board (§1IV§r)
+metaitem.general_circuit.luv.name=Universal Circuit Board (§dLuV§r)
+metaitem.general_circuit.zpm.name=Universal Circuit Board (§cZPM§r)
+metaitem.general_circuit.uv.name=Universal Circuit Board (§3UV§r)
+metaitem.general_circuit.uhv.name=Universal Circuit Board (§4UHV§r)
+metaitem.general_circuit.uev.name=Universal Circuit Board (§aUEV§r)
+metaitem.general_circuit.uiv.name=Universal Circuit Board (§2UIV§r)
+metaitem.general_circuit.uxv.name=Universal Circuit Board (§eUXV§r)
+metaitem.general_circuit.opv.name=Universal Circuit Board (§9OpV§r)
+metaitem.general_circuit.max.name=Universal Circuit Board (§c§lMAX§r)
+
+metaitem.general_circuit.ulv.tooltip=§I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.lv.tooltip=§7I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.mv.tooltip=§bI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.hv.tooltip=§6I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.ev.tooltip=§5I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.iv.tooltip=§1I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.luv.tooltip=§dI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.zpm.tooltip=§cI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uv.tooltip=§3I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uhv.tooltip=§4I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uev.tooltip=§aI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uiv.tooltip=§2I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uxv.tooltip=§eI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.opv.tooltip=§9I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.max.tooltip=§c§lI am a lovely Universal Circuit Board§r
+
+metaitem.wooden_bucket.name=Wooden Bucket
+metaitem.large_fluid_cell.chrome.name=%s Chrome Cell
+metaitem.large_fluid_cell.iridium.name=%s Iridium Cell
+metaitem.large_fluid_cell.naquadah_alloy.name=%s Naquadah Alloy Cell
+metaitem.large_fluid_cell.neutronium.name=%s Neutronium Cell
+
+metaitem.wind_rotor.steel.name=Steel Wind Rotor
+metaitem.wind_rotor.aluminium.name=Aluminium Wind Rotor
+metaitem.wind_rotor.stainless_steel.name=Stainless Steel Wind Rotor
+metaitem.wind_rotor.titanium.name=Titanium Wind Rotor
+metaitem.wind_rotor.tungstensteel.name=Tungstensteel Wind Rotor
+metaitem.wind_rotor.rhodiumplatedpalladium.name=Rhodium-Plated Palladium Wind Rotor
 
 metaitem.shape.mold.vanadium_steel.empty.name=Empty Casting Mold
 metaitem.shape.mold.vanadium_steel.empty.tooltip=Mold for making Casting Molds
@@ -86,44 +131,6 @@ metaitem.tool.disposable.butchery_knife.name=Disposable Butchery Knife
 metaitem.tool.disposable.butchery_knife.tooltip=Disposable Tool for crafting recipes
 metaitem.tool.disposable.rolling_pin.name=Disposable Rolling Pin
 metaitem.tool.disposable.rolling_pin.tooltip=Disposable Tool for crafting recipes
-#  Universal Circuit Boards
-metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
-metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)
-metaitem.general_circuit.mv.name=Universal Circuit Board (§bMV§r)
-metaitem.general_circuit.hv.name=Universal Circuit Board (§6HV§r)
-metaitem.general_circuit.ev.name=Universal Circuit Board (§5EV§r)
-metaitem.general_circuit.iv.name=Universal Circuit Board (§1IV§r)
-metaitem.general_circuit.luv.name=Universal Circuit Board (§dLuV§r)
-metaitem.general_circuit.zpm.name=Universal Circuit Board (§cZPM§r)
-metaitem.general_circuit.uv.name=Universal Circuit Board (§3UV§r)
-metaitem.general_circuit.uhv.name=Universal Circuit Board (§4UHV§r)
-metaitem.general_circuit.uev.name=Universal Circuit Board (§aUEV§r)
-metaitem.general_circuit.uiv.name=Universal Circuit Board (§2UIV§r)
-metaitem.general_circuit.uxv.name=Universal Circuit Board (§eUXV§r)
-metaitem.general_circuit.opv.name=Universal Circuit Board (§9OpV§r)
-metaitem.general_circuit.max.name=Universal Circuit Board (§c§lMAX§r)
-
-metaitem.general_circuit.ulv.tooltip=§I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.lv.tooltip=§7I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.mv.tooltip=§bI am a lovely Universal Circuit Board§r
-metaitem.general_circuit.hv.tooltip=§6I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.ev.tooltip=§5I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.iv.tooltip=§1I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.luv.tooltip=§dI am a lovely Universal Circuit Board§r
-metaitem.general_circuit.zpm.tooltip=§cI am a lovely Universal Circuit Board§r
-metaitem.general_circuit.uv.tooltip=§3I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.uhv.tooltip=§4I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.uev.tooltip=§aI am a lovely Universal Circuit Board§r
-metaitem.general_circuit.uiv.tooltip=§2I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.uxv.tooltip=§eI am a lovely Universal Circuit Board§r
-metaitem.general_circuit.opv.tooltip=§9I am a lovely Universal Circuit Board§r
-metaitem.general_circuit.max.tooltip=§c§lI am a lovely Universal Circuit Board§r
-
-metaitem.wooden_bucket.name=Wooden Bucket
-metaitem.large_fluid_cell.chrome.name=%s Chrome Cell
-metaitem.large_fluid_cell.iridium.name=%s Iridium Cell
-metaitem.large_fluid_cell.naquadah_alloy.name=%s Naquadah Alloy Cell
-metaitem.large_fluid_cell.neutronium.name=%s Neutronium Cell
 #hatch
 gregtech.machine.huge_item_bus.import.ulv.name=ULV Huge Input Bus
 gregtech.machine.huge_item_bus.import.lv.name=LV Huge Input Bus

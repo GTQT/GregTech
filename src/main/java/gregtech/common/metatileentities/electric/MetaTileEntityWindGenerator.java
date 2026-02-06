@@ -281,11 +281,11 @@ public class MetaTileEntityWindGenerator extends TieredMetaTileEntity {
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("tooltip.wind_generator.tooltip1")); // 基础发电量为转子等级的电压值
-        tooltip.add(I18n.format("tooltip.wind_generator.tooltip2")); // 高度影响发电效率
-        tooltip.add(I18n.format("tooltip.wind_generator.tooltip3")); // 天气影响发电和转子损耗
-        tooltip.add(I18n.format("tooltip.wind_generator.tooltip4")); // 生物群系影响发电效率
-        tooltip.add(I18n.format("tooltip.wind_generator.tooltip5")); // 需要安装转子才能工作
+        tooltip.add(I18n.format("tooltip.wind_generator.tooltip1"));
+        tooltip.add(I18n.format("tooltip.wind_generator.tooltip2"));
+        tooltip.add(I18n.format("tooltip.wind_generator.tooltip3"));
+        tooltip.add(I18n.format("tooltip.wind_generator.tooltip4"));
+        tooltip.add(I18n.format("tooltip.wind_generator.tooltip5"));
     }
 
     @Override
