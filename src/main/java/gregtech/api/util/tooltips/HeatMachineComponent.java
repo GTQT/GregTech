@@ -17,7 +17,7 @@ public class HeatMachineComponent extends AbstractTooltipComponent {
     @Override
     public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
         tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.heat_mte_available"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.parallel", parallel));
+        if(parallel>1)tooltip.add(I18n.format("gregtech.universal.tooltip.parallel", parallel));
         tooltip.add(I18n.format("gregtech.multiblock.heat_multiblock.tooltip.1"));
         tooltip.add(I18n.format("gregtech.multiblock.heat_multiblock.tooltip.2"));
         tooltip.add(TooltipHelper.BLINKING_ORANGE + I18n.format("gregtech.multiblock.require_heat_parts"));

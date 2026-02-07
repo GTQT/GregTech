@@ -75,7 +75,7 @@ metaitem.large_fluid_cell.neutronium.name=%s Neutronium Cell
 
 metaitem.wind_rotor.steel.name=Steel Wind Rotor
 metaitem.wind_rotor.aluminium.name=Aluminium Wind Rotor
-metaitem.wind_rotor.stainless_steel.name=Stainless Steel Wind Rotor
+metaitem.wind_rotor.stainlesssteel.name=Stainless Steel Wind Rotor
 metaitem.wind_rotor.titanium.name=Titanium Wind Rotor
 metaitem.wind_rotor.tungstensteel.name=Tungstensteel Wind Rotor
 metaitem.wind_rotor.rhodiumplatedpalladium.name=Rhodium-Plated Palladium Wind Rotor

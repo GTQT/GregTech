@@ -69,6 +69,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private final OCParams ocParams = new OCParams();
     private final OCResult ocResult = new OCResult();
     public RecipeMap<?> recipeMap;
+    @Setter
     public int progressTime;
     protected Recipe previousRecipe;
     protected Recipe showRecipes;
@@ -92,6 +93,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean isOutputsFull;
     protected boolean invalidInputsForRecipes;
     protected boolean hasPerfectOC;
+    @Setter
     @Getter
     protected String whyFailed = "";
     private double euDiscount = -1;
@@ -252,11 +254,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     protected IMultipleTankHandler getInputTank() {
         //检查总成，如果有合并流体
-        if(metaTileEntity instanceof MultiblockControllerBase multiblock)
-        {
+        if (metaTileEntity instanceof MultiblockControllerBase multiblock) {
             List<IItemHandlerModifiable> itemHandlers = multiblock.getAbilities(MultiblockAbility.IMPORT_ITEMS);
             List<IMultipleTankHandler> inputFluids = new ArrayList<>();
-            boolean allowMerge =  metaTileEntity.getImportFluids().allowSameFluidFill();
+            boolean allowMerge = metaTileEntity.getImportFluids().allowSameFluidFill();
             inputFluids.add(metaTileEntity.getImportFluids());
             // 遍历所有物品总线，检查是否是 DualHandler
             for (IItemHandlerModifiable bus : itemHandlers) {
@@ -265,7 +266,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                     inputFluids.add(dualHandler);
                 }
             }
-            return GTQTUtility.mergeTankHandlers(inputFluids,allowMerge);
+            return GTQTUtility.mergeTankHandlers(inputFluids, allowMerge);
         }
 
         return metaTileEntity.getImportFluids();
@@ -276,8 +277,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     protected IMultipleTankHandler getOutputTank() {
         //检查总成，如果有合并流体
-        if(metaTileEntity instanceof MultiblockControllerBase multiblock)
-        {
+        if (metaTileEntity instanceof MultiblockControllerBase multiblock) {
             List<IItemHandlerModifiable> itemHandlers = multiblock.getAbilities(MultiblockAbility.EXPORT_ITEMS);
             List<IMultipleTankHandler> outputFluids = new ArrayList<>();
             boolean allowMerge = metaTileEntity.getExportFluids().allowSameFluidFill();
@@ -289,7 +289,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                     outputFluids.add(dualHandler);
                 }
             }
-            return GTQTUtility.mergeTankHandlers(outputFluids,allowMerge);
+            return GTQTUtility.mergeTankHandlers(outputFluids, allowMerge);
         }
 
         return metaTileEntity.getExportFluids();
@@ -530,8 +530,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
         trySearchNewRecipe();
     }
 
-
-
     /**
      * Try to search for a new recipe
      */
@@ -543,16 +541,21 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
         // 如果锁定配方且存在上一个配方，则只检查这一个配方
         if (lockRecipe && previousRecipe != null) {
-            if (previousRecipe.getEUt() <= maxVoltage && previousRecipe.matches(false, importInventory, importFluids)) {
+            if (previousRecipe.getEUt() <= maxVoltage &&
+                    previousRecipe.matches(false, importInventory, importFluids)) {
                 currentRecipe = previousRecipe;
+            } else {
+                this.invalidInputsForRecipes = true;
+                whyFailed = "无法运行锁定的配方";
+                return;
             }
-        }
-        else {
+        } else {
             // 检查上一个配方是否仍然有效
             if (checkPreviousRecipe()) {
                 currentRecipe = this.previousRecipe;
             }
 
+            // 如果上一个配方不存在，则尝试从配方列表中寻找
             if (currentRecipe == null) {
                 currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
             }
@@ -561,12 +564,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
         // If a recipe was found, then inputs were valid. Cache found recipe.
         if (currentRecipe != null) {
             this.previousRecipe = currentRecipe;
+        } else  {
+            // If no recipe was found, then inputs were invalid.
+            this.invalidInputsForRecipes = true;
+            whyFailed = "根据当前输入无法找到匹配的配方";
+            return;
         }
-        this.invalidInputsForRecipes = (currentRecipe == null);
 
         // proceed if we have a usable recipe.
-        if (currentRecipe != null && checkRecipe(currentRecipe)) {
+        if (checkRecipe(currentRecipe)) {
             prepareRecipe(currentRecipe);
+        } else {
+            if(whyFailed.isEmpty())
+                whyFailed = "配方的特殊条件不满足（例如温度，算力等额外条件）";
         }
     }
 
@@ -643,6 +653,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
                                  IMultipleTankHandler inputFluidInventory) {
         recipe = Recipe.trimRecipeOutputs(recipe, getRecipeMap(), metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
+        if (recipe == null) {
+            whyFailed = "配方输出数量超过机器限制（物品输出槽:" + metaTileEntity.getItemOutputLimit() +
+                    ", 流体输出槽:" + metaTileEntity.getFluidOutputLimit() + "）";
+            return false;
+        }
 
         // apply EU/speed discount (if any) before parallel
         if (euDiscount > 0 || speedBonus > 0) { // if-statement to avoid unnecessarily creating RecipeBuilder object
@@ -662,14 +677,21 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
 
         // Pass in the trimmed recipe to the parallel logic
-        recipe = findParallelRecipe(
-                recipe,
-                inputInventory,
-                inputFluidInventory,
-                getOutputInventory(),
-                getOutputTank(),
-                getMaxParallelVoltage(),
-                getParallelLimit());
+        if (getParallelLimit() > 1) {
+            Recipe originalRecipe = recipe;
+            recipe = findParallelRecipe(
+                    recipe,
+                    inputInventory,
+                    inputFluidInventory,
+                    getOutputInventory(),
+                    getOutputTank(),
+                    getMaxParallelVoltage(),
+                    getParallelLimit());
+            if (recipe == null) {
+                whyFailed = "无法进行并行处理，按无并行继续流程！";
+                recipe = originalRecipe;
+            }
+        }
 
         if (recipe != null) {
             recipe = setupAndConsumeRecipeInputs(recipe, inputInventory, inputFluidInventory);
@@ -861,44 +883,43 @@ public abstract class AbstractRecipeLogic extends MTETrait
                                                                  @NotNull IItemHandlerModifiable importInventory,
                                                                  @NotNull IMultipleTankHandler importFluids) {
         calculateOverclock(recipe);
-
-        // Complete time reduction calculation here
         modifyOverclockPost(ocResult, recipe.propertyStorage());
 
-        // Batch processing algorithm
-        boolean batchSuccess = false;
-        if (enableBatch) {
-            // Batch processing and TOC are mutually exclusive due to functional overlap
-            Recipe batchedRecipe = batchProcessing(ocResult, recipe, importInventory, importFluids);
-            if (batchedRecipe != recipe) {
-                // Batch processing was successful and changed the recipe
-                recipe = batchedRecipe;
-                batchSuccess = true;
-            }
-        }
-
-        // TOC algorithm
-        // Only perform TOC algorithm when batch processing is not enabled, or when batch processing is enabled but failed
-        if (ocResult.parallel() > 1 && !(enableBatch && batchSuccess)) {
+        // 执行并行处理（TOC），将单次配方扩展为多次并行执行
+        if (ocResult.parallel() > 1) {
             recipe = subTickOC(ocResult, recipe, importInventory, importFluids);
             if (recipe == null) {
                 invalidateInputs();
-                whyFailed = "无法完成并行超频处理，可能是输入材料不足或无法分配并行处理资源";
+                whyFailed = "并行处理失败，输入材料、输出空间或电压不足，无法执行多次配方";
                 return null;
             }
         }
 
+        // 执行批处理，将配方输入/输出/时长等比缩放，使总耗时趋近128 tick
+        if (enableBatch) {
+            Recipe batchedRecipe = batchProcessing(ocResult, recipe, importInventory, importFluids);
+            if (batchedRecipe != recipe) {
+                recipe = batchedRecipe;
+            }
+        }
+
+        // 检查电力是否满足配方需求
         if (!hasEnoughPower(ocResult.eut(), ocResult.duration())) {
             ocResult.reset();
             whyFailed = "电力不足，无法满足当前配方的运行需求";
             return null;
         }
 
-        if (checkOutputSpaceItems(recipe, getOutputInventory()) && checkOutputSpaceFluids(recipe, getOutputTank())) {
+        // 验证输出空间并消费输入
+        if (checkOutputSpaceItems(recipe, getOutputInventory()) &&
+                checkOutputSpaceFluids(recipe, getOutputTank())) {
             this.isOutputsFull = false;
             if (recipe.matches(true, importInventory, importFluids)) {
                 this.metaTileEntity.addNotifiedInput(importInventory);
                 return recipe;
+            } else {
+                whyFailed = "配方匹配失败：输入可能被共用仓口的机器取走";
+                return null;
             }
         }
         return null;
@@ -954,17 +975,15 @@ public abstract class AbstractRecipeLogic extends MTETrait
             return recipe;
         }
 
-        // Only process recipes with duration <= 64 ticks for batching
-        if (ocResult.duration() > 64) {
+        int baseDuration = ocResult.duration();
+
+        if (baseDuration > 64) {
             return recipe;
         }
 
-        int baseDuration = ocResult.duration();
-
-        // Calculate maximum possible batch multiplier (not exceeding 128 ticks)
         int maxMultiplier = (int) Math.floor(128.0 / baseDuration);
         int minMultiplier = 1;
-        int bestMultiplier = 1; // Default to original multiplier
+        int bestMultiplier = 1;
 
         // Find the maximum feasible batch multiplier using binary search
         while (minMultiplier <= maxMultiplier) {
@@ -983,17 +1002,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
             }
         }
 
-        // If a feasible batch multiplier is found (greater than 1), apply batch processing
-        if (bestMultiplier > 1) {
-            RecipeBuilder<?> batchBuilder = new RecipeBuilder<>(recipe, map)
-                    .batch(recipe, bestMultiplier, baseDuration);
-            Recipe resultRecipe = batchBuilder.build().getResult();
+        if (bestMultiplier <= 1) {
+            return recipe;
+        }
 
-            if (resultRecipe != null) {
-                // Modify OC result duration
-                ocResult.setDuration(ocResult.duration() * bestMultiplier);
-                return resultRecipe;
-            }
+        // 构建最终批处理配方
+        RecipeBuilder<?> batchBuilder = new RecipeBuilder<>(recipe, map)
+                .batch(recipe, bestMultiplier, baseDuration);
+        Recipe resultRecipe = batchBuilder.build().getResult();
+
+        if (resultRecipe != null) {
+            // Modify OC result duration
+            ocResult.setDuration(ocResult.duration() * bestMultiplier);
+            return resultRecipe;
         }
 
         return recipe;
@@ -1675,5 +1696,4 @@ public abstract class AbstractRecipeLogic extends MTETrait
         nbt.setTag(key, entries);
     }
 
-    public void setProgressTime(int progressTime) {this.progressTime = progressTime;}
 }

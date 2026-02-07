@@ -477,7 +477,11 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
             // if the reactor is not able to hold enough energy for it, do not run the recipe
             if (recipe.getProperty(FusionEUToStartProperty.getInstance(), 0L) > energyContainer.getEnergyCapacity())
+            {
+                setWhyFailed("聚变反应堆热容量大于能源仓缓存，无法预热开机");
                 return false;
+            }
+
 
             long heatDiff = recipe.getProperty(FusionEUToStartProperty.getInstance(), 0L) - heat;
             // if the stored heat is >= required energy, recipe is okay to run

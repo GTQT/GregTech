@@ -40,6 +40,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -331,13 +332,17 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
         if (consumeIfSuccess) return true; // don't check twice
-        // check ordered items
+
+        // 有序装配检查
         if (ConfigHolder.machines.orderedAssembly) {
             List<GTRecipeInput> inputs = recipe.getInputs();
             List<IItemHandlerModifiable> itemInputInventory = getAbilities(MultiblockAbility.IMPORT_ITEMS);
 
-            // slot count is not enough, so don't try to match it
-            if (itemInputInventory.size() < inputs.size()) return false;
+            // 物品槽位数量不足
+            if (itemInputInventory.size() < inputs.size()) {
+                recipeMapWorkable.setWhyFailed("有序装配失败：物品输入槽位数量不足");
+                return false;
+            }
 
             int itemIndex = 0;
             for (GTRecipeInput input : inputs) {
@@ -345,33 +350,49 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                         itemInputInventory.get(itemIndex).getStackInSlot(0).isEmpty()) {
                     itemIndex++;
                 }
-                if (itemIndex >= itemInputInventory.size()) return false;
-                if (!input.acceptsStack(itemInputInventory.get(itemIndex).getStackInSlot(0))) return false;
+                if (itemIndex >= itemInputInventory.size()) {
+                    recipeMapWorkable.setWhyFailed("有序装配失败：物品输入缺失");
+                    return false;
+                }
+                if (!input.acceptsStack(itemInputInventory.get(itemIndex).getStackInSlot(0))) {
+                    recipeMapWorkable.setWhyFailed("有序装配失败：物品类型不匹配");
+                    return false;
+                }
                 itemIndex++;
             }
 
-            // check ordered fluids
+            // 有序流体装配检查
             if (ConfigHolder.machines.orderedFluidAssembly) {
-                inputs = recipe.getFluidInputs();
+                List<GTRecipeInput> fluidInputs = recipe.getFluidInputs();
                 List<IFluidTank> fluidInputInventory = getAbilities(MultiblockAbility.IMPORT_FLUIDS);
 
-                // slot count is not enough, so don't try to match it
-                if (fluidInputInventory.size() < inputs.size()) return false;
+                if (fluidInputInventory.size() < fluidInputs.size()) {
+                    recipeMapWorkable.setWhyFailed("有序流体装配失败：流体输入槽位数量不足");
+                    return false;
+                }
 
-                for (int i = 0; i < inputs.size(); i++) {
-                    if (!inputs.get(i).acceptsFluid(fluidInputInventory.get(i).getFluid())) {
+                for (int i = 0; i < fluidInputs.size(); i++) {
+                    FluidStack tankFluid = fluidInputInventory.get(i).getFluid();
+                    if (tankFluid == null || !fluidInputs.get(i).acceptsFluid(tankFluid)) {
+                        recipeMapWorkable.setWhyFailed("有序流体装配失败：流体类型不匹配");
                         return false;
                     }
                 }
             }
         }
 
-        if (!ConfigHolder.machines.enableResearch || !recipe.hasProperty(ResearchProperty.getInstance())) {
-            return super.checkRecipe(recipe, consumeIfSuccess);
+        // 研究配方检查
+        if (ConfigHolder.machines.enableResearch && recipe.hasProperty(ResearchProperty.getInstance())) {
+            boolean available = isRecipeAvailable(getAbilities(MultiblockAbility.DATA_ACCESS_HATCH), recipe) ||
+                    isRecipeAvailable(getAbilities(MultiblockAbility.OPTICAL_DATA_RECEPTION), recipe);
+
+            if (!available) {
+                recipeMapWorkable.setWhyFailed("研究配方未解锁或缺少数据接口");
+                return false;
+            }
         }
 
-        return isRecipeAvailable(getAbilities(MultiblockAbility.DATA_ACCESS_HATCH), recipe) ||
-                isRecipeAvailable(getAbilities(MultiblockAbility.OPTICAL_DATA_RECEPTION), recipe);
+        return true;
     }
 
     private static boolean isRecipeAvailable(@NotNull Iterable<? extends IDataAccessHatch> hatches,

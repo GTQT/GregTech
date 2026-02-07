@@ -114,6 +114,7 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
         recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 0);
         if (metaTileEntity.getTemperature() >= recipeTemperature)
             return super.checkRecipe(recipe);
+        setWhyFailed("温度过低，配方需求至少 " + recipeTemperature + "K 温度");
         return false;
     }
 

@@ -55,7 +55,10 @@ public class ComputationRecipeLogic extends MultiblockRecipeLogic {
         }
 
         IOpticalComputationProvider provider = getComputationProvider();
-        return provider.requestCWUt(recipeCWUt, true) >= recipeCWUt;
+        if(provider.requestCWUt(recipeCWUt, true) >= recipeCWUt)
+            return true;
+        else setWhyFailed("算力不足");
+        return false;
     }
 
     @Override
