@@ -8,7 +8,7 @@
     },
     "icon": {
       "item": "gregtech:mte",
-      "data": 1647
+      "data": 2000
     }
   },
   "criteria": {
@@ -18,7 +18,7 @@
         "items": [
           {
             "item": "gregtech:mte",
-            "data": 1647
+            "data": 2000
           }
         ]
       }
