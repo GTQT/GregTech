@@ -56,7 +56,6 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
     private final RecipeMap<?> recipeMap;
     private final Recipe recipe;
-
     private final List<GTRecipeInput> sortedInputs;
     private final List<GTRecipeInput> sortedFluidInputs;
 
@@ -206,7 +205,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
     public void addIngredientTooltips(@NotNull Collection<String> tooltip, boolean notConsumed, boolean input,
                                       @Nullable Object ingredient, @Nullable Object ingredient2) {
         if (ingredient2 instanceof ChancedOutputLogic logic) {
-            if (ingredient instanceof BoostableChanceEntry<?> entry) {
+            if (ingredient instanceof BoostableChanceEntry<?>entry) {
                 double chance = entry.getChance() / 100.0;
                 double boost = entry.getChanceBoost() / 100.0;
                 if (logic != ChancedOutputLogic.NONE && logic != ChancedOutputLogic.OR) {
@@ -216,8 +215,10 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                     tooltip.add(TooltipHelper.BLINKING_CYAN + I18n.format("gregtech.recipe.chance",
                             chance, boost));
                 }
+
                 // Add the total chance to the tooltip
                 if (recipeMap.jeiOverclockButtonEnabled()) {
+                    if(jeiTexts.isEmpty())initJeiTexts();
                     int tier = jeiTexts.get(0).getState();
                     int recipeTier = Math.max(GTValues.LV, GTUtility.getTierByVoltage(recipe.getEUt()));
                     int tierDifference = tier - recipeTier;
@@ -237,7 +238,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
             // check for "normal" data items
             if (stack.getItem() instanceof IDataItem) return;
             // check for metaitem data items
-            if (stack.getItem() instanceof MetaItem<?> metaItem) {
+            if (stack.getItem() instanceof MetaItem<?>metaItem) {
                 for (IItemBehaviour behaviour : metaItem.getBehaviours(stack)) {
                     if (behaviour instanceof IDataItem) {
                         return;
@@ -271,8 +272,10 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                 .filter((property) -> !property.getKey().isHidden())
                 .count();
         int yPosition = recipeHeight - ((unhiddenCount + defaultLines) * 10 - 3);
+
         // [EUt, duration, color]
         long[] overclockResult = calculateJeiOverclock();
+
         // Default entries
         if (drawTotalEU) {
             // sadly we still need a custom override here, since computation uses duration and EU/t very differently
@@ -374,6 +377,11 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                         LocalizationUtils.format("gregtech.jei.ct_recipe.tooltip")))
                 .setClickAction((mc, x, y, button) -> false)
                 .setActiveSupplier(creativeTweaker));
+
+        initJeiTexts();
+    }
+
+    public void initJeiTexts() {
         if (recipeMap != null && recipeMap.jeiOverclockButtonEnabled()) {
             int recipeTier = Math.max(GTValues.LV, GTUtility.getTierByVoltage(recipe.getEUt()));
             // just here because if highTier is disabled, if a recipe is (incorrectly) registering
@@ -408,7 +416,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
     public long[] calculateJeiOverclock() {
         // simple case
-        if (!recipeMap.jeiOverclockButtonEnabled() || jeiTexts.isEmpty())
+        if (!recipeMap.jeiOverclockButtonEnabled())
             return new long[] { recipe.getEUt(), recipe.getDuration(), 0x111111 };
 
         // ULV doesn't overclock to LV, so treat ULV recipes as LV

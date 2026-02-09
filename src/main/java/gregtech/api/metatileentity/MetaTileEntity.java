@@ -566,32 +566,52 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         EnumFacing gridSideHit = CoverRayTracer.determineGridSideHit(hitResult);
         Cover cover = gridSideHit == null ? null : getCoverAtSide(gridSideHit);
 
-        // Prioritize covers where they apply (Screwdriver, Soft Mallet)
+        boolean actionPerformed = false;
+
+        // 为每个工具类别都检查一遍，不再提前返回
+        // 这样可以确保一个工具包含的多个ToolClasses都能执行
         if (toolClasses.contains(ToolClasses.SCREWDRIVER)) {
             if (cover != null && cover.onScrewdriverClick(playerIn, hand, hitResult) == EnumActionResult.SUCCESS) {
-                return true;
-            } else return onScrewdriverClick(playerIn, hand, gridSideHit, hitResult);
+                actionPerformed = true;
+            } else if (onScrewdriverClick(playerIn, hand, gridSideHit, hitResult)) {
+                actionPerformed = true;
+            }
         }
+
         if (toolClasses.contains(ToolClasses.SOFT_MALLET)) {
             if (cover != null && cover.onSoftMalletClick(playerIn, hand, hitResult) == EnumActionResult.SUCCESS) {
-                return true;
-            } else return onSoftMalletClick(playerIn, hand, gridSideHit, hitResult);
+                actionPerformed = true;
+            } else if (onSoftMalletClick(playerIn, hand, gridSideHit, hitResult)) {
+                actionPerformed = true;
+            }
         }
-        if (toolClasses.contains(ToolClasses.WRENCH)) {
-            return onWrenchClick(playerIn, hand, gridSideHit, hitResult);
-        }
-        if (toolClasses.contains(ToolClasses.CROWBAR)) {
-            return onCrowbarClick(playerIn, hand, gridSideHit, hitResult);
-        }
-        if (toolClasses.contains(ToolClasses.HARD_HAMMER)) {
-            return onHardHammerClick(playerIn, hand, gridSideHit, hitResult);
-        }
-        if (toolClasses.contains(ToolClasses.WIRE_CUTTER)) {
-            return onWireCutterClick(playerIn, hand, gridSideHit, hitResult);
-        }
-        return false;
-    }
 
+        if (toolClasses.contains(ToolClasses.WRENCH)) {
+            if (onWrenchClick(playerIn, hand, gridSideHit, hitResult)) {
+                actionPerformed = true;
+            }
+        }
+
+        if (toolClasses.contains(ToolClasses.CROWBAR)) {
+            if (onCrowbarClick(playerIn, hand, gridSideHit, hitResult)) {
+                actionPerformed = true;
+            }
+        }
+
+        if (toolClasses.contains(ToolClasses.HARD_HAMMER)) {
+            if (onHardHammerClick(playerIn, hand, gridSideHit, hitResult)) {
+                actionPerformed = true;
+            }
+        }
+
+        if (toolClasses.contains(ToolClasses.WIRE_CUTTER)) {
+            if (onWireCutterClick(playerIn, hand, gridSideHit, hitResult)) {
+                actionPerformed = true;
+            }
+        }
+
+        return actionPerformed;
+    }
     /**
      * Called when player clicks a wrench on specific side of this meta tile entity
      *

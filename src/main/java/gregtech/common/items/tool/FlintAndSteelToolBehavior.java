@@ -43,13 +43,11 @@ public class FlintAndSteelToolBehavior implements IToolBehavior {
         if (block instanceof BlockTNT) {
             ((BlockTNT) block).explode(world, pos, blockState.withProperty(BlockTNT.EXPLODE, true), player);
             world.setBlockState(pos, Blocks.AIR.getDefaultState(), 11);
-            return EnumActionResult.SUCCESS;
         }
         // 如果是GregTech的爆炸方块，则引爆它
         else if (block instanceof BlockGTExplosive) {
             ((BlockGTExplosive) block).explode(world, pos, player);
             world.setBlockState(pos, Blocks.AIR.getDefaultState(), 11);
-            return EnumActionResult.SUCCESS;
         } else {
             // 其他情况，在点击面的相邻位置放置火方块
             BlockPos offset = pos.offset(facing);
@@ -60,7 +58,8 @@ public class FlintAndSteelToolBehavior implements IToolBehavior {
                     CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP) player, offset, stack);
                 }
             }
-            return EnumActionResult.SUCCESS;
         }
+        stack.damageItem(1, player);
+        return EnumActionResult.SUCCESS;
     }
 }

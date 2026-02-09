@@ -714,10 +714,10 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .attackDamage(4.0F).attackSpeed(-2.0F)
                 )
-                .sound(SoundEvents.BLOCK_ANVIL_LAND)
+                .sound(GTSoundEvents.WRENCH_TOOL, true)
+                .oreDict(ToolOreDict.toolWrench)
                 .secondaryOreDicts("craftingToolWireCutter","craftingToolWrench","craftingToolSaw","craftingToolScrewdriver","craftingToolFile","craftingToolKnife")
-                .toolClasses(ToolClasses.WIRE_CUTTER,ToolClasses.WRENCH,ToolClasses.SAW,ToolClasses.SCREWDRIVER,ToolClasses.FILE,ToolClasses.KNIFE));
-
+                .toolClasses(ToolClasses.WRENCH,ToolClasses.WIRE_CUTTER,ToolClasses.SAW,ToolClasses.SCREWDRIVER,ToolClasses.FILE,ToolClasses.KNIFE));
     }
 
     public static IGTTool register(@NotNull ToolBuilder<?> builder) {
