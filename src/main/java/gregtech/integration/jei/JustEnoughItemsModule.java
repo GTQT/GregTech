@@ -375,13 +375,13 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
 
         String fluidVeinSpawnID = GTFluidVeinCategory.UID;
         registry.addRecipes(fluidVeinInfos, fluidVeinSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_HV.getStackForm(), oreSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_EV.getStackForm(), oreSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_IV.getStackForm(), oreSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_LUV.getStackForm(), oreSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_ZPM.getStackForm(), oreSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_UV.getStackForm(), oreSpawnID);
-        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_UHV.getStackForm(), oreSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_HV.getStackForm(), fluidVeinSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_EV.getStackForm(), fluidVeinSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_IV.getStackForm(), fluidVeinSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_LUV.getStackForm(), fluidVeinSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_ZPM.getStackForm(), fluidVeinSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_UV.getStackForm(), fluidVeinSpawnID);
+        registry.addRecipeCatalyst(MetaItems.PROSPECTOR_UHV.getStackForm(), fluidVeinSpawnID);
         // Fluid Veins End
 
         ingredientRegistry = registry.getIngredientRegistry();
