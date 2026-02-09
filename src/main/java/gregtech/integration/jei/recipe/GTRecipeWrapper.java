@@ -419,6 +419,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         if (!recipeMap.jeiOverclockButtonEnabled())
             return new long[] { recipe.getEUt(), recipe.getDuration(), 0x111111 };
 
+        if(jeiTexts.isEmpty()) initJeiTexts();
         // ULV doesn't overclock to LV, so treat ULV recipes as LV
         int recipeTier = Math.max(GTValues.LV, GTUtility.getTierByVoltage(recipe.getEUt()));
         // tier difference *should* not be negative here since at least displayOCTier() == recipeTier
