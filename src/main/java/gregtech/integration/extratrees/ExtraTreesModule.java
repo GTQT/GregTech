@@ -5,11 +5,9 @@ import gregtech.api.modules.GregTechModule;
 import gregtech.api.util.Mods;
 import gregtech.integration.IntegrationSubmodule;
 import gregtech.integration.extratrees.recipes.ExtraTreesWoodRecipe;
-import gregtech.integration.forestry.ForestryModule;
 import gregtech.modules.GregTechModules;
 
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +29,7 @@ public class ExtraTreesModule extends IntegrationSubmodule {
     }
 
     @SubscribeEvent
-    public static void registerRecipes(RegistryEvent.Register<IRecipe> event) {
+    public void postInit(FMLPostInitializationEvent event) {
         if (ExtraTreesConfig.enableGTWoodenCraftingTable) {
             ExtraTreesWoodRecipe.init();
         }

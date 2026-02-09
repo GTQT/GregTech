@@ -54,7 +54,7 @@ public class ExtraTreesWoodRecipe {
                                                 int logMeta, int slabMeta) {
         return new WoodTypeEntry.Builder(mcModId, woodName)
                 .log(Mods.ExtraTrees.getItem("logs." + logId, logMeta, 1)).removeCharcoalRecipe()
-                .planks(Mods.ExtraTrees.getItem("planks." + plankId, plankMeta, 1), null)
+                .planks(Mods.ExtraTrees.getItem("planks." + plankId, plankMeta, 1), woodName+"_planks")
                 .door(Mods.ExtraTrees.getItem("doors." + woodName), null)
                 .slab(Mods.ExtraTrees.getItem("slabs." + slabId, slabMeta, 1), null)
                 .fence(Mods.ExtraTrees.getItem("fences." + plankId, plankMeta, 1), null)

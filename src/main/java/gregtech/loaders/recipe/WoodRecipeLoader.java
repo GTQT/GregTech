@@ -19,7 +19,6 @@ import gregtech.common.items.MetaItems;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fml.common.registry.GameRegistry;
@@ -271,10 +270,7 @@ public class WoodRecipeLoader {
             // log -> charcoal furnace recipe removal, if enabled
             if (ConfigHolder.recipes.harderCharcoalRecipe) {
                 if (entry.removeCharcoalRecipe) {
-                    final ItemStack outputStack = FurnaceRecipes.instance().getSmeltingResult(entry.log);
-                    if (outputStack.getItem() == Items.COAL && outputStack.getItemDamage() == 1) {
-                        ModHandler.removeFurnaceSmelting(entry.log);
-                    }
+                    ModHandler.removeFurnaceSmelting(entry.log);
                 }
             } else {
                 if (entry.addCharcoalRecipe) {
@@ -491,7 +487,8 @@ public class WoodRecipeLoader {
             // nerf regular log -> plank crafting, if enabled
             if (ConfigHolder.recipes.nerfWoodCrafting) {
                 if (hasPlanksRecipe) {
-                    ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, prefix + "_" + entry.planksRecipeName));
+                    ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.planksRecipeName));
+                    ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, "fireproof_"+entry.planksRecipeName));
                 }
                 ModHandler.addShapelessRecipe(hasPlanksRecipe ? prefix + "_" + entry.planksRecipeName : prefix + "_" + name + "_planks",
                         GTUtility.copy(2, entry.planks), entry.log.copy());
@@ -509,10 +506,7 @@ public class WoodRecipeLoader {
             // log -> charcoal furnace recipe removal, if enabled
             if (ConfigHolder.recipes.harderCharcoalRecipe) {
                 if (entry.removeCharcoalRecipe) {
-                    final ItemStack outputStack = FurnaceRecipes.instance().getSmeltingResult(entry.log);
-                    if (outputStack.getItem() == Items.COAL && outputStack.getItemDamage() == 1) {
-                        ModHandler.removeFurnaceSmelting(entry.log);
-                    }
+                    ModHandler.removeFurnaceSmelting(entry.log);
                 }
             } else {
                 if (entry.addCharcoalRecipe) {

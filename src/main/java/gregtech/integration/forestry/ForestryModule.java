@@ -19,10 +19,22 @@ import gregtech.api.util.Mods;
 import gregtech.common.items.ToolItems;
 import gregtech.integration.IntegrationModule;
 import gregtech.integration.IntegrationSubmodule;
-import gregtech.integration.forestry.bees.*;
+import gregtech.integration.forestry.bees.BeeAttractorRecipeBuild;
+import gregtech.integration.forestry.bees.BeeRemovals;
+import gregtech.integration.forestry.bees.ForestryScannerLogic;
+import gregtech.integration.forestry.bees.GTAlleleBeeSpecies;
+import gregtech.integration.forestry.bees.GTBeeDefinition;
+import gregtech.integration.forestry.bees.GTCombItem;
+import gregtech.integration.forestry.bees.GTDropItem;
 import gregtech.integration.forestry.frames.GTFrameType;
 import gregtech.integration.forestry.frames.GTItemFrame;
-import gregtech.integration.forestry.recipes.*;
+import gregtech.integration.forestry.recipes.CombRecipes;
+import gregtech.integration.forestry.recipes.ForestryElectrodeRecipes;
+import gregtech.integration.forestry.recipes.ForestryExtractorRecipes;
+import gregtech.integration.forestry.recipes.ForestryFrameRecipes;
+import gregtech.integration.forestry.recipes.ForestryMiscRecipes;
+import gregtech.integration.forestry.recipes.ForestryToolRecipes;
+import gregtech.integration.forestry.recipes.ForestryWoodRecipe;
 import gregtech.integration.forestry.tools.ScoopBehavior;
 import gregtech.modules.GregTechModules;
 
@@ -189,6 +201,9 @@ public class ForestryModule extends IntegrationSubmodule {
             getLogger().info("Copying Forestry Centrifuge recipes to GT Centrifuge");
             CombRecipes.initForestryCombs();
         }
+        if(ForestryConfig.enableGTWoodenCraftingTable){
+            ForestryWoodRecipe.init();
+        }
         BeeAttractorRecipeBuild.initAttactorRecipes();
     }
 
@@ -285,10 +300,6 @@ public class ForestryModule extends IntegrationSubmodule {
         // GT Scoop
         if (ForestryConfig.enableGTScoop) {
             ForestryToolRecipes.registerHandlers();
-        }
-
-        if(ForestryConfig.enableGTWoodenCraftingTable){
-            ForestryWoodRecipe.init();
         }
 
         // Random other recipes

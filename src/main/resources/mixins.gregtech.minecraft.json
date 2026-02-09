@@ -8,7 +8,6 @@
     "maxShiftBy": 10
   },
   "mixins": [
-    "BiomeDecoratorMixin",
     "BlockConcretePowderMixin",
     "BlockRenderLayerMixin",
     "ContainerMixin",
@@ -17,10 +16,7 @@
     "MinecraftMixin",
     "MixinBlockChest",
     "MixinEntity",
-    "MixinEntityAnimal",
-    "MixinEntityBat",
-    "RecipeRepairItemMixin",
-    "WorldEntitySpawnerMixin"
+    "RecipeRepairItemMixin"
   ],
   "client": [
     "BlockFluidBaseMixin",

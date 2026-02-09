@@ -67,7 +67,7 @@ public class ForestryWoodRecipe {
                                           int logId, int slabId, String separator) {
         return new WoodTypeEntry.Builder(mcModId, woodName)
                 .log(Mods.Forestry.getItem("logs." + separator + logId, logMeta, 1)).removeCharcoalRecipe()
-                .planks(Mods.Forestry.getItem("planks." + separator + plankId, plankMeta, 1), null)
+                .planks(Mods.Forestry.getItem("planks." + separator + plankId, plankMeta, 1), "planks_" + woodName)
                 .door(Mods.Forestry.getItem("doors." + separator + woodName), null)
                 .slab(Mods.Forestry.getItem("slabs." + separator + slabId, slabMeta, 1), null)
                 .fence(Mods.Forestry.getItem("fences." + separator + plankId, plankMeta, 1), null)

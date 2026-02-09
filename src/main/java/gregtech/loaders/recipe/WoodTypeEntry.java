@@ -218,7 +218,7 @@ public final class WoodTypeEntry {
          * @return this
          */
         public Builder addCharcoalRecipe() {
-            this.addCharcoalRecipe = true;
+            this.addCharcoalRecipe = false;
             return this;
         }
 
