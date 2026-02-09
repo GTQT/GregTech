@@ -29,6 +29,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -186,15 +189,20 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
         return GTSoundEvents.BREAKDOWN_ELECTRICAL;
     }
 
-    @SideOnly(Side.CLIENT)
-    @NotNull
-    @Override
-    protected ICubeRenderer getFrontOverlay() {
-        return Textures.DISTILLATION_TOWER_OVERLAY;
-    }
-
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityLogisticsMaterialDistributor(metaTileEntityId);
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    protected @NotNull ICubeRenderer getFrontOverlay() {
+        return Textures.HPCA_OVERLAY;
+    }
+
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(), this.isActive(), false);
     }
 }

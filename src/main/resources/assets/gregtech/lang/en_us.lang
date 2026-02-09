@@ -5287,33 +5287,7 @@ gregtech.machine.fisher.opv.name=Legendary Fisher
 gregtech.machine.fisher.tooltip=Costs string to fish. Consumes one string each time.
 gregtech.machine.fisher.speed=Catches something every %,d ticks
 gregtech.machine.fisher.requirement=Requires a %,dx%,d centered square of water directly below.
-#Bee Attractor
-gregtech.machine.bee_attractor.lv.name=Basic Bee Attractor
-gregtech.machine.bee_attractor.lv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.mv.name=Advanced Bee Attractor
-gregtech.machine.bee_attractor.mv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.hv.name=Advanced Bee Attractor II
-gregtech.machine.bee_attractor.hv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.ev.name=Advanced Bee Attractor III
-gregtech.machine.bee_attractor.ev.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.iv.name=Elite Bee Attractor
-gregtech.machine.bee_attractor.iv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.luv.name=Elite Bee Attractor II
-gregtech.machine.bee_attractor.luv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.zpm.name=Elite Bee Attractor III
-gregtech.machine.bee_attractor.zpm.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.uv.name=Ultimate Bee Attractor
-gregtech.machine.bee_attractor.uv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.uhv.name=Epic Bee Attractor
-gregtech.machine.bee_attractor.uhv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.uev.name=Epic Bee Attractor II
-gregtech.machine.bee_attractor.uev.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.uiv.name=Epic Bee Attractor III
-gregtech.machine.bee_attractor.uiv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.uxv.name=Epic Bee Attractor IV
-gregtech.machine.bee_attractor.uxv.tooltip=Attracts proper lady bees
-gregtech.machine.bee_attractor.opv.name=Legendary Bee Attractor
-gregtech.machine.bee_attractor.opv.tooltip=Attracts proper lady bees
+
 # World Accelerator
 gregtech.machine.world_accelerator.ulv.name=Easy World Accelerator
 gregtech.machine.world_accelerator.ulv.tooltip=Tick accelerates Blocks

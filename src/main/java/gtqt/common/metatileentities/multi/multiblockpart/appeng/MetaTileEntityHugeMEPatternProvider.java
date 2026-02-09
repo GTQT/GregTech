@@ -1237,7 +1237,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
             return false;
         }
 
-        boolean isEmpty = isInventoryEmpty(getImportItems()) && isFluidTankListEmpty(getImportFluids());
+        boolean isEmpty = isInventoryEmpty(importItems) && isFluidTankListEmpty(getImportFluids());
 
         // 如果不是空容器且处于阻塞模式，进行兼容性检查
         if (!isEmpty && isBlockedMode()) {

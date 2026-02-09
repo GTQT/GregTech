@@ -26,7 +26,6 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -173,7 +172,8 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         //普通方块
         else if (silkTouch) {
             // 精准采集模式 - 尝试获取方块本身
-            ItemStack silkDrop = new ItemStack(block);
+            int meta = block.getMetaFromState(state);
+            ItemStack silkDrop = new ItemStack(block,1,meta);
             drops.add(silkDrop);
         } else {
             // 普通模式 - 正常掉落

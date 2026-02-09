@@ -434,6 +434,50 @@ gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=巨型ME矿辞�
 gregtech.machine.me_ore_dict_bus.name=ME矿辞输入总线
 gregtech.machine.me_pattern_manager.name=ME样板管理器
 
+# BeeAccractor
+gregtech.machine.bee_attractor.lv.name=基础引蜂器
+gregtech.machine.bee_attractor.lv.tooltip=专骗新手小蜜蜂
+gregtech.machine.bee_attractor.mv.name=进阶引蜂器
+gregtech.machine.bee_attractor.mv.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.hv.name=进阶引蜂器 II
+gregtech.machine.bee_attractor.hv.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.ev.name=进阶引蜂器 III
+gregtech.machine.bee_attractor.ev.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.iv.name=精英引蜂器
+gregtech.machine.bee_attractor.iv.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.luv.name=精英引蜂器 II
+gregtech.machine.bee_attractor.luv.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.zpm.name=精英引蜂器 III
+gregtech.machine.bee_attractor.zpm.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.uv.name=终极引蜂器
+gregtech.machine.bee_attractor.uv.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.uhv.name=史诗引蜂器
+gregtech.machine.bee_attractor.uhv.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.uev.name=史诗引蜂器 II
+gregtech.machine.bee_attractor.uev.tooltip=高收益蜂巢，稳赚不赔
+gregtech.machine.bee_attractor.uiv.name=史诗引蜂器 III
+gregtech.machine.bee_attractor.uiv.tooltip=高收益蜂巢，稳赚不赔
+gregtech.machine.bee_attractor.uxv.name=史诗引蜂器 IV
+gregtech.machine.bee_attractor.uxv.tooltip=高收益蜂巢，稳赚不赔
+gregtech.machine.bee_attractor.opv.name=传奇引蜂器
+gregtech.machine.bee_attractor.opv.tooltip=高收益蜂巢，稳赚不赔
+
+gregtech.machine.wireless_controller.ulv.name=无线能源管理器（§8ULV§r）
+gregtech.machine.wireless_controller.lv.name=无线能源管理器（§7LV§r）
+gregtech.machine.wireless_controller.mv.name=无线能源管理器（§bMV§r）
+gregtech.machine.wireless_controller.hv.name=无线能源管理器（§6HV§r）
+gregtech.machine.wireless_controller.ev.name=无线能源管理器（§5EV§r）
+gregtech.machine.wireless_controller.iv.name=无线能源管理器（§1IV§r）
+gregtech.machine.wireless_controller.luv.name=无线能源管理器（§dLuV§r）
+gregtech.machine.wireless_controller.zpm.name=无线能源管理器（§cZPM§r）
+gregtech.machine.wireless_controller.uv.name=无线能源管理器（§3UV§r）
+gregtech.machine.wireless_controller.uhv.name=无线能源管理器（§4UHV§r）
+gregtech.machine.wireless_controller.uev.name=无线能源管理器（§aUEV§r）
+gregtech.machine.wireless_controller.uiv.name=无线能源管理器（§2UIV§r）
+gregtech.machine.wireless_controller.uxv.name=无线能源管理器（§eUXV§r）
+gregtech.machine.wireless_controller.opv.name=无线能源管理器（§9OpV§r）
+gregtech.machine.wireless_controller.max.name=无线能源管理器（§c§lMAX§r）
+
 gregtech.machine.wireless_energy_hatch.tooltip.1=将能量存储于无线能量网络中，上限为2^(2^31)EU。
 gregtech.machine.wireless_energy_hatch.tooltip.2=无需连接导线，此仓室可以自动与网络交互来抽取/存储能量。
 gregtech.machine.wireless_energy_hatch.tooltip.shift=请在UI内自行选择频道，各频道之间能量传输存储均相互独立
@@ -789,6 +833,8 @@ gregtech.machine.wireless_energy_hatch.output_1048576a.uiv.name=1048576安无线
 gregtech.machine.wireless_energy_hatch.output_1048576a.uxv.name=1048576安无线动力仓（§eUXV§r）
 gregtech.machine.wireless_energy_hatch.output_1048576a.opv.name=1048576安无线动力仓（§9OpV§r）
 gregtech.machine.wireless_energy_hatch.output_1048576a.max.name=1048576安无线动力仓（§c§lMAX§r）
+
+gregtech.machine.logistics_material_distributor.name=物料分配器
 #gui
 gregtech.gui.output_item.tooltip.enabled=排出灰烬（是）
 gregtech.gui.output_item.tooltip.disabled=排出灰烬（否）

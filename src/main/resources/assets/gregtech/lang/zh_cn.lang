@@ -5283,33 +5283,7 @@ gregtech.machine.fisher.opv.name=传奇捕鱼机
 gregtech.machine.fisher.tooltip=消耗线捕鱼。每次运行消耗一根线。
 gregtech.machine.fisher.speed=每%d刻获得一条鱼（或者其它什么东西）
 gregtech.machine.fisher.requirement=需要在正下方倾倒边长为%,d格的静止水。
-# BeeAccractor
-gregtech.machine.bee_attractor.lv.name=基础引蜂器
-gregtech.machine.bee_attractor.lv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.mv.name=进阶引蜂器
-gregtech.machine.bee_attractor.mv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.hv.name=进阶引蜂器 II
-gregtech.machine.bee_attractor.hv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.ev.name=进阶引蜂器 III
-gregtech.machine.bee_attractor.ev.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.iv.name=精英引蜂器
-gregtech.machine.bee_attractor.iv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.luv.name=精英引蜂器 II
-gregtech.machine.bee_attractor.luv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.zpm.name=精英引蜂器 III
-gregtech.machine.bee_attractor.zpm.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.uv.name=终极引蜂器
-gregtech.machine.bee_attractor.uv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.uhv.name=史诗引蜂器
-gregtech.machine.bee_attractor.uhv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.uev.name=史诗引蜂器 II
-gregtech.machine.bee_attractor.uev.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.uiv.name=史诗引蜂器 III
-gregtech.machine.bee_attractor.uiv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.uxv.name=史诗引蜂器 IV
-gregtech.machine.bee_attractor.uxv.tooltip=引诱良家妇蜂
-gregtech.machine.bee_attractor.opv.name=传奇引蜂器
-gregtech.machine.bee_attractor.opv.tooltip=引诱良家妇蜂
+
 # World Accelerator
 gregtech.machine.world_accelerator.ulv.name=简易世界加速器
 gregtech.machine.world_accelerator.ulv.tooltip=游戏刻加速方块
