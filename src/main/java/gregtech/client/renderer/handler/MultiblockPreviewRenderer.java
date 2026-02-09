@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.KeyUtil;
 import gregtech.client.utils.TrackedDummyWorld;
 
 import net.minecraft.block.state.IBlockState;
@@ -17,6 +18,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -102,7 +104,8 @@ public class MultiblockPreviewRenderer {
         GlStateManager.glEndList();
     }
 
-    public static void renderMultiBlockPreviewByTier(MultiblockControllerBase controller, BlockPos pos,
+    public static void renderMultiBlockPreviewByTier(EntityPlayer player, MultiblockControllerBase controller,
+                                                     BlockPos pos,
                                                      long durTimeMillis) {
         if (!controller.getPos().equals(mbpPos)) {
             tier = 0;
@@ -110,6 +113,8 @@ public class MultiblockPreviewRenderer {
             if (mbpEndTime - System.currentTimeMillis() < 200) return;
             tier++;
         }
+        controller.noticePlayer(
+                "[结构预览]正在预览" + KeyUtil.lang(controller.getMetaFullName()) + "的第" + tier + "等级", player);
         resetMultiblockRender();
         mbpPos = controller.getPos();
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;

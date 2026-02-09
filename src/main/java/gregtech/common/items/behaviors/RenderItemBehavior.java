@@ -53,8 +53,7 @@ public class RenderItemBehavior implements IItemBehaviour {
 
             // 每20tick且按住Shift时刷新预览
             if (player.isSneaking() && player.world.getWorldTime() % 20 == 0) {
-                MultiblockPreviewRenderer.renderMultiBlockPreviewByTier(controller, renderPos, 60000);
-                player.sendMessage(new TextComponentString("正在预览下一等级"));
+                MultiblockPreviewRenderer.renderMultiBlockPreviewByTier(player,controller, renderPos, 60000);
             } else if (isFollowing) {
                 MultiblockPreviewRenderer.renderMultiBlockPreviewByTier(controller, renderPos,0, 60000);
             }
