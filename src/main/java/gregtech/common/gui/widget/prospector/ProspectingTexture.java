@@ -14,12 +14,12 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import it.unimi.dsi.fastutil.bytes.Byte2ObjectOpenHashMap;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ProspectingTexture extends AbstractTexture {
@@ -31,7 +31,7 @@ public class ProspectingTexture extends AbstractTexture {
     private int imageWidth = -1;
     private int imageHeight = -1;
     public final Map<Byte, String>[][] map;
-    public static Map<Byte, String> emptyTag = new Byte2ObjectOpenHashMap<>();
+    public static Map<Byte, String> emptyTag = new HashMap<>();
     private int playerXGui;
     private int playerYGui;
     private final ProspectorMode mode;
@@ -43,10 +43,10 @@ public class ProspectingTexture extends AbstractTexture {
         this.mode = mode;
         if (this.mode == ProspectorMode.FLUID) {
             // noinspection unchecked
-            map = new Byte2ObjectOpenHashMap[(radius * 2 - 1)][(radius * 2 - 1)];
+            map = new HashMap[(radius * 2 - 1)][(radius * 2 - 1)];
         } else {
             // noinspection unchecked
-            map = new Byte2ObjectOpenHashMap[(radius * 2 - 1) * 16][(radius * 2 - 1) * 16];
+            map = new HashMap[(radius * 2 - 1) * 16][(radius * 2 - 1) * 16];
         }
     }
 
