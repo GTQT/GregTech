@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-
 import gregtech.api.capability.IMultipleNotifiableHandler;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.INotifiableHandler;
@@ -55,8 +54,9 @@ public abstract class MetaTileEntityMultiblockNotifiablePart extends MetaTileEnt
 
     private List<INotifiableHandler> getPartHandlers() {
         List<INotifiableHandler> notifiableHandlers = new ArrayList<>();
+        boolean isAdded = false;
 
-        if (this instanceof IMultiblockAbilityPart<?>abilityPart) {
+        if (this instanceof IMultiblockAbilityPart<?> abilityPart) {
             List<MultiblockAbility<?>> abilities = abilityPart.getAbilities();
             for (var ability : abilities) {
                 AbilityInstances instances = new AbilityInstances(ability);
@@ -64,18 +64,22 @@ public abstract class MetaTileEntityMultiblockNotifiablePart extends MetaTileEnt
                 for (var handler : instances) {
                     if (handler instanceof IMultipleNotifiableHandler multipleNotifiableHandler) {
                         notifiableHandlers.addAll(multipleNotifiableHandler.getBackingNotifiers());
+                        isAdded = true;
                     } else if (handler instanceof IMultipleTankHandler multipleTankHandler) {
                         for (var tank : multipleTankHandler.getFluidTanks()) {
                             if (tank instanceof INotifiableHandler notifiableTank) {
                                 notifiableHandlers.add(notifiableTank);
+                                isAdded = true;
                             }
                         }
                     } else if (handler instanceof INotifiableHandler notifiableHandler) {
                         notifiableHandlers.add(notifiableHandler);
+                        isAdded = true;
                     }
                 }
             }
-        } else {
+        }
+        if (!isAdded) {
             for (var notif : getItemHandlers()) {
                 if (notif.size() > 0) {
                     notifiableHandlers.add(notif);

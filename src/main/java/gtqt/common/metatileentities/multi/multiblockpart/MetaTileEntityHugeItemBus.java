@@ -106,6 +106,11 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     }
 
     @Override
+    public IItemHandlerModifiable getExportItems() {
+        return this.largeSlotItemStackHandler == null ? super.getExportItems() : this.largeSlotItemStackHandler;
+    }
+
+    @Override
     public void update() {
         super.update();
         if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
@@ -266,7 +271,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         BooleanSyncValue workingStateValue = new BooleanSyncValue(this::isWorkingEnabled, this::setWorkingEnabled);
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
 
-        IItemHandlerModifiable handler = isExportHatch ? getExportItems() : largeSlotItemStackHandler;
+        IItemHandlerModifiable handler = largeSlotItemStackHandler;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
