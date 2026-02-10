@@ -558,12 +558,12 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
             BaseFilterContainer filter = getFilterContainerFromCover(cover);
 
             if (filter != null && filter.hasFilter()) {
-                flowRow.child(filter.initUILeisure(guiData, guiSyncManager));
+                flowRow.child(filter.initUILeisure(guiData, guiSyncManager,data.getIndex()));
                 s++;
             }
             else if(cover instanceof CoverStorage coverStorage)
             {
-                flowRow.child(coverStorage.initUILeisure(guiData, guiSyncManager));
+                flowRow.child(coverStorage.initUILeisure(guiData, guiSyncManager,data.getIndex()));
                 s++;
             }
         }

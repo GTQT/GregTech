@@ -2,15 +2,12 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IDistinctBusController;
-import gregtech.api.capability.IEnergyContainer;
-import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.IThreadController;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.IDataInfoProvider;
-import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
@@ -35,7 +32,6 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -65,13 +61,6 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public final RecipeMap<?> recipeMap;
     protected ArrayList<MultiblockRecipeLogic> recipeMapWorkable = new ArrayList<>();
 
-    protected IItemHandlerModifiable inputInventory;
-    protected IItemHandlerModifiable outputInventory;
-    protected IMultipleTankHandler inputFluidInventory;
-    protected IMultipleTankHandler outputFluidInventory;
-    protected IEnergyContainer energyContainer;
-    protected List<IRefreshBeforeConsumption> refreshBeforeConsumptions;
-
     protected int thread = 1;
 
     private boolean isDistinct = true;
@@ -86,35 +75,6 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         //随便初始化一个
         recipeMapWorkable = new ArrayList<>();
         recipeMapWorkable.add(new MultiblockRecipeLogic(this));
-
-        this.refreshBeforeConsumptions = new ArrayList<>();
-        resetTileAbilities();
-    }
-
-    public void refreshAllBeforeConsumption() {
-        for (IRefreshBeforeConsumption refresh : refreshBeforeConsumptions) {
-            refresh.refreshBeforeConsumption();
-        }
-    }
-
-    public IEnergyContainer getEnergyContainer() {
-        return energyContainer;
-    }
-
-    public IItemHandlerModifiable getInputInventory() {
-        return inputInventory;
-    }
-
-    public IItemHandlerModifiable getOutputInventory() {
-        return outputInventory;
-    }
-
-    public IMultipleTankHandler getInputFluidInventory() {
-        return inputFluidInventory;
-    }
-
-    public IMultipleTankHandler getOutputFluidInventory() {
-        return outputFluidInventory;
     }
 
     public ArrayList<MultiblockRecipeLogic> getRecipeMapWorkableList() {

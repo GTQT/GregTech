@@ -272,7 +272,7 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
                         .left(36).right(0).height(18));
     }
 
-    public IWidget initUILeisure(GuiData data, PanelSyncManager manager) {
+    public IWidget initUILeisure(GuiData data, PanelSyncManager manager,int index) {
         AtomicReference<IPanelHandler> filterPanel = new AtomicReference<>();
         AtomicInteger counter = new AtomicInteger();
 
@@ -280,7 +280,7 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
             filterPanel.set(getFilter().createPanelHandler(manager, counter.getAndIncrement()));
         }
 
-        manager.registerSyncedAction("update_filter_panel", packet -> {
+        manager.registerSyncedAction("update_filter_panel"+index, packet -> {
             if (hasFilter()) {
                 filterPanel.set(getFilter().createPanelHandler(manager, counter.getAndIncrement()));
             }
