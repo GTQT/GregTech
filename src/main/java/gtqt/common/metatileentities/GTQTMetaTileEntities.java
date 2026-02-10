@@ -8,6 +8,7 @@ import gregtech.client.renderer.texture.Textures;
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gtqt.common.metatileentities.heat.MetaTileEntityElectricHeater;
 import gtqt.common.metatileentities.heat.MetaTileEntityHeatHatch;
+import gtqt.common.metatileentities.multi.MetaTileEntityHugeTransformer;
 import gtqt.common.metatileentities.multi.MetaTileEntityLogisticsMaterialDistributor;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
@@ -104,6 +105,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
 
     public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
+    public static MetaTileEntityHugeTransformer HUGE_TRANSFORMER;
 
     //从2500开始写 与gtceu本体共用一个注册表
     //任务：GTQT内不方便写的内容转移到这里来写
@@ -307,5 +309,8 @@ public class GTQTMetaTileEntities {
         //5000+
         LOGISTICS_MATERIAL_DISTRIBUTOR = registerMetaTileEntity(5000,
                 new MetaTileEntityLogisticsMaterialDistributor(gregtechId("logistics_material_distributor")));
+
+        HUGE_TRANSFORMER = registerMetaTileEntity(5001,
+                new MetaTileEntityHugeTransformer(gregtechId("huge_transformer")));
     }
 }

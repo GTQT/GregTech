@@ -847,6 +847,7 @@ gregtech.machine.wireless_energy_hatch.output_1048576a.opv.name=1048576A Wireles
 gregtech.machine.wireless_energy_hatch.output_1048576a.max.name=1048576A Wireless Power Storage (§c§lMAX§r)
 
 gregtech.machine.logistics_material_distributor.name=Logistics Material Distributor
+gregtech.machine.huge_transformer.name=Huge Transformer
 # GUI
 gregtech.gui.output_item.tooltip.enabled=Ash Auto-Eject (Enabled)
 gregtech.gui.output_item.tooltip.disabled=Ash Auto-Eject (Disabled)

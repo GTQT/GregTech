@@ -842,6 +842,7 @@ gregtech.machine.wireless_energy_hatch.output_1048576a.opv.name=1048576安无线
 gregtech.machine.wireless_energy_hatch.output_1048576a.max.name=1048576安无线动力仓（§c§lMAX§r）
 
 gregtech.machine.logistics_material_distributor.name=物料分配器
+gregtech.machine.huge_transformer.name=大型变压器
 #gui
 gregtech.gui.output_item.tooltip.enabled=排出灰烬（是）
 gregtech.gui.output_item.tooltip.disabled=排出灰烬（否）
