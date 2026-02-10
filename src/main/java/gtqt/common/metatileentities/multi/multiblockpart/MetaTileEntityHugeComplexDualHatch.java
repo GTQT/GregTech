@@ -43,6 +43,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
@@ -374,6 +375,9 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
 
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.commonItems);
+        }
         if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
             return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
         }
