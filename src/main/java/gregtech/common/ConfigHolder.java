@@ -72,7 +72,7 @@ public class ConfigHolder {
         @Config.Comment({ "Whether insufficient energy supply should reset Machine recipe progress to zero.",
                 "If true, progress will reset.", "If false, progress will decrease to zero with 2x speed",
                 "Default: false" })
-        public boolean recipeProgressLowEnergy = false;
+        public boolean recipeProgressLowEnergy = true;
 
         @Config.Comment({ "Whether the machine should destroy the current recipe when power supply is interrupted.",
                 "If true, the current recipe will be immediately destroyed upon power loss.",
@@ -83,7 +83,7 @@ public class ConfigHolder {
         @Config.Comment({
                 "Whether to require a Wrench, Wirecutter, or other GregTech tools to break machines, casings, wires, and more.",
                 "Default: false" })
-        public boolean requireGTToolsForBlocks = false;
+        public boolean requireGTToolsForBlocks = true;
 
         @Config.Comment({ "Whether to enable the Maintenance Hatch, required for Multiblocks.", "Default: true" })
         public boolean enableMaintenance = true;
