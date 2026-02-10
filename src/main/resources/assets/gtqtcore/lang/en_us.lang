@@ -460,6 +460,14 @@ gregtech.machine.bee_attractor.uxv.tooltip=Attracts proper lady bees
 gregtech.machine.bee_attractor.opv.name=Legendary Bee Attractor
 gregtech.machine.bee_attractor.opv.tooltip=Attracts proper lady bees
 
+gregtech.machine.huge_buffer.tooltip=A Big Buffer to store Items and Fluids
+gregtech.machine.huge_buffer.lv.name=Basic Huge Buffer
+gregtech.machine.huge_buffer.mv.name=Advanced Huge Buffer
+gregtech.machine.huge_buffer.hv.name=Advanced Huge Buffer II
+gregtech.machine.huge_buffer.ev.name=Advanced Huge Buffer III
+gregtech.machine.huge_buffer.iv.name=Elite Huge Buffer
+
+
 gregtech.machine.wireless_controller.ulv.name=Wireless Controller（§8ULV§r）
 gregtech.machine.wireless_controller.lv.name=Wireless Controller（§7LV§r）
 gregtech.machine.wireless_controller.mv.name=Wireless Controller（§bMV§r）

@@ -8,6 +8,7 @@ import gregtech.api.util.ItemStackHashStrategy;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -289,7 +290,7 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
         return new ButtonWidget<>()
                 .overlay(new ItemDrawable(this.getFilterStack()).asIcon().size(16))
                 .setEnabledIf(w -> hasFilter())
-                .addTooltipLine(getFilterKey())
+                .addTooltipLine(getFilterKey() + " 方位：" + EnumFacing.byIndex(index).getName())
                 .onMousePressed(i -> {
                     IPanelHandler panel = filterPanel.get();
                     if (panel == null) return false;

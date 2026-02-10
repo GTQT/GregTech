@@ -31,6 +31,7 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityME
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternManager;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
+import gtqt.common.metatileentities.store.MetaTileEntityHugeBuffer;
 
 import static gregtech.api.GTValues.VN;
 import static gregtech.api.util.GTUtility.gregtechId;
@@ -100,6 +101,7 @@ public class GTQTMetaTileEntities {
 
     public static final MetaTileEntityWirelessController[] WIRELESS_CONTROLLERS = new MetaTileEntityWirelessController[15];
     public static final SimpleMachineMetaTileEntity[] BEE_ATTRACTORS = new SimpleMachineMetaTileEntity[15];
+    public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
 
     public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
 
@@ -218,6 +220,13 @@ public class GTQTMetaTileEntities {
             }
         }
 
+        //
+        // Huge Buffers, IDs 2945-2950
+        HUGE_BUFFER[0] = registerMetaTileEntity(2945, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.lv"), 1));
+        HUGE_BUFFER[1] = registerMetaTileEntity(2946, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.mv"), 2));
+        HUGE_BUFFER[2] = registerMetaTileEntity(2947, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.hv"), 3));
+        HUGE_BUFFER[3] = registerMetaTileEntity(2948, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.ev"), 4));
+        HUGE_BUFFER[4] = registerMetaTileEntity(2949, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
 
         //无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {

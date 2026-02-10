@@ -108,14 +108,15 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
                         .matrix(widgets));
     }
 
-    public IWidget initUILeisure(GuiData guiData, PanelSyncManager guiSyncManager,int index) {
-        var componentPanel = guiSyncManager.panel("component_panel"+index, this::makeComponentPanel, true);
+    public IWidget initUILeisure(GuiData guiData, PanelSyncManager guiSyncManager, int index) {
+        var componentPanel = guiSyncManager.panel("component_panel" + index,
+                (syncManager, syncHandler) -> makeComponentPanel(syncManager, syncHandler, index), true);
         // 返回按钮
         return new ButtonWidget<>()
                 .size(18, 18)
                 .overlay(new com.cleanroommc.modularui.drawable.ItemDrawable(
                         new net.minecraft.item.ItemStack(net.minecraft.init.Blocks.CHEST)))
-                .addTooltipLine(IKey.lang("cover.storage.title"))
+                .addTooltipLine(IKey.lang("cover.storage.title") + " 方位：" + EnumFacing.byIndex(index).getName())
                 .onMousePressed(i -> {
                     if (componentPanel.isPanelOpen()) {
                         componentPanel.closePanel();
@@ -126,12 +127,12 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
                 });
     }
 
-    private ModularPanel makeComponentPanel(PanelSyncManager syncManager, IPanelHandler syncHandler) {
+    private ModularPanel makeComponentPanel(PanelSyncManager syncManager, IPanelHandler syncHandler, int index) {
         // 计算行数（假设每个存储有9列）
         int rows = inventorySize / 9;
 
         // 注册槽位组
-        syncManager.registerSlotGroup("storage_slots", 9);
+        syncManager.registerSlotGroup("storage_slots" + index, 9);
 
         // 创建槽位网格
         List<List<IWidget>> slotRows = new ArrayList<>();
@@ -143,7 +144,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
                 rowSlots.add(
                         new ItemSlot()
                                 .slot(SyncHandlers.itemSlot(storageHandler, slotIndex)
-                                        .slotGroup("storage_slots"))
+                                        .slotGroup("storage_slots" + index))
                                 .size(18, 18)
                 );
             }
@@ -151,7 +152,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
         }
 
         // 创建并返回面板
-        return GTGuis.createPopupPanel("nuclear_components", 9 * 18 + 14, rows * 18 + 30)
+        return GTGuis.createPopupPanel("leisure_slot" + index, 9 * 18 + 14, rows * 18 + 30)
                 .child(IKey.lang("cover.storage.title").asWidget().pos(5, 5))
                 .child(new Grid()
                         .top(20)
@@ -164,6 +165,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
                         .matrix(slotRows)
                 );
     }
+
     @Override
     public void writeToNBT(@NotNull NBTTagCompound tagCompound) {
         super.writeToNBT(tagCompound);

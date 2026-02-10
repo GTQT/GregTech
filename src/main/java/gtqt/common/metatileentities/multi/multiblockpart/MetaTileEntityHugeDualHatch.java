@@ -69,6 +69,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static net.minecraft.util.text.TextFormatting.GREEN;
+
 public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifiablePart implements
                                                                                         IMultiblockAbilityPart<IItemHandlerModifiable>,
                                                                                         IControllable,
@@ -455,6 +457,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
+        tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
 
     @Override

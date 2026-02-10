@@ -462,6 +462,13 @@ gregtech.machine.bee_attractor.uxv.tooltip=高收益蜂巢，稳赚不赔
 gregtech.machine.bee_attractor.opv.name=传奇引蜂器
 gregtech.machine.bee_attractor.opv.tooltip=高收益蜂巢，稳赚不赔
 
+gregtech.machine.huge_buffer.tooltip=存储物品和流体的超大缓冲器
+gregtech.machine.huge_buffer.lv.name=基础巨型缓存器
+gregtech.machine.huge_buffer.mv.name=进阶巨型缓存器
+gregtech.machine.huge_buffer.hv.name=进阶巨型缓存器 II
+gregtech.machine.huge_buffer.ev.name=进阶巨型缓存器 III
+gregtech.machine.huge_buffer.iv.name=精英巨型缓存器
+
 gregtech.machine.wireless_controller.ulv.name=无线能源管理器（§8ULV§r）
 gregtech.machine.wireless_controller.lv.name=无线能源管理器（§7LV§r）
 gregtech.machine.wireless_controller.mv.name=无线能源管理器（§bMV§r）

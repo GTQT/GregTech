@@ -1,9 +1,9 @@
-package gregtech.common.metatileentities.storage;
+package gtqt.common.metatileentities.store;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.FluidTankList;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
+import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -27,7 +27,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
@@ -42,12 +41,12 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -57,18 +56,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.*;
+import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaTileEntity {
+public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredMetaTileEntity {
 
     private final int tier;
     private FluidTankList fluidTankList;
-    private ItemStackHandler itemStackHandler;
+    private LargeSlotItemStackHandler itemStackHandler;
     private boolean autoOutputItems;
     private boolean autoOutputFluids;
     private EnumFacing outputFacingItems;
     private EnumFacing outputFacingFluids;
 
-    public MetaTileEntityBuffer(ResourceLocation metaTileEntityId, int tier) {
+    public MetaTileEntityHugeBuffer(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId);
         this.tier = tier;
         initializeInventory();
@@ -82,7 +82,8 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
             fluidHandlers[i] = new FilteredFluidHandler(getTankCapacity());
         }
         fluidInventory = fluidTankList = new FluidTankList(false, fluidHandlers);
-        itemInventory = itemStackHandler = new GTItemStackHandler(this, getItemSize());
+        itemInventory = itemStackHandler = new LargeSlotItemStackHandler(this, getItemSize(), null, false,
+                () -> Integer.MAX_VALUE);
     }
 
     protected int getTankSize() {
@@ -94,7 +95,7 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
     }
 
     protected int getTankCapacity() {
-        return (int) (2000 * Math.pow(2, getTier()));
+        return Integer.MAX_VALUE;
     }
 
     @Override
@@ -114,7 +115,7 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityBuffer(metaTileEntityId, tier);
+        return new MetaTileEntityHugeBuffer(metaTileEntityId, tier);
     }
 
     @Override
@@ -138,8 +139,18 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
             slotWidgets.add(new ArrayList<>());
             for (int x = 0; x < invTier; x++) {
                 int index = y * invTier + x;
-                slotWidgets.get(y)
-                        .add(new ItemSlot().slot(SyncHandlers.itemSlot(itemStackHandler, index).slotGroup("item_inv")));
+                slotWidgets.get(y).add(new ItemSlot().slot(new ModularSlot(itemStackHandler, index) {
+
+                    @Override
+                    public int getSlotStackLimit() {
+                        return Integer.MAX_VALUE;
+                    }
+                }.ignoreMaxStackSize(true).slotGroup("item_inv")
+                        .changeListener((newItem, onlyAmountChanged, client, init) -> {
+                            if (onlyAmountChanged) {
+                                itemStackHandler.onContentsChanged(index);
+                            }
+                        }).accessibility(true, true)));
             }
         }
 
@@ -160,27 +171,15 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
         return GTGuis.createPanel(this, 176, 18 + Math.max(166, 112 + 18 * invTier))
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child(new Grid()
-                        .top(18).height(18 * invTier)
-                        .left(7)
-                        .minElementMargin(0, 0)
-                        .minColWidth(18).minRowHeight(18)
-                        .matrix(slotWidgets))
-                .child(new Grid()
-                        .top(18).height(18 * invTier)
-                        .left(144 + 7)
-                        .minElementMargin(0, 0)
-                        .minColWidth(18).minRowHeight(18)
-                        .matrix(tankWidgets))
-                .child(Flow.row().pos(7, 18 * invTier + 23).width(36).height(18)
-                        .child(new ToggleButton()
-                                .value(new BoolValue.Dynamic(workingStateValueItems::getBoolValue,
-                                        workingStateValueItems::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT))
-                        .child(new ToggleButton()
-                                .value(new BoolValue.Dynamic(workingStateValueFluids::getBoolValue,
-                                        workingStateValueFluids::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_FLUID_OUTPUT)));
+                .child(new Grid().top(18).height(18 * invTier).left(7).minElementMargin(0, 0).minColWidth(18)
+                        .minRowHeight(18).matrix(slotWidgets))
+                .child(new Grid().top(18).height(18 * invTier).left(144 + 7).minElementMargin(0, 0).minColWidth(18)
+                        .minRowHeight(18).matrix(tankWidgets))
+                .child(Flow.row().pos(7, 18 * invTier + 23).width(36).height(18).child(new ToggleButton().value(
+                                new BoolValue.Dynamic(workingStateValueItems::getBoolValue,
+                                        workingStateValueItems::setBoolValue)).overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT))
+                        .child(new ToggleButton().value(new BoolValue.Dynamic(workingStateValueFluids::getBoolValue,
+                                workingStateValueFluids::setBoolValue)).overlay(GTGuiTextures.BUTTON_FLUID_OUTPUT)));
     }
 
     @Override
@@ -294,7 +293,7 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound tag) {
         super.writeToNBT(tag);
-        tag.setTag("Inventory", itemStackHandler.serializeNBT());
+        tag.setTag("itemStackHandler", this.itemStackHandler.serializeNBT());
         tag.setTag("FluidInventory", fluidTankList.serializeNBT());
         tag.setInteger("OutputFacing", getOutputFacingItems().getIndex());
         tag.setInteger("OutputFacingF", getOutputFacingFluids().getIndex());
@@ -306,7 +305,7 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
     @Override
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
-        this.itemStackHandler.deserializeNBT(tag.getCompoundTag("Inventory"));
+        this.itemStackHandler.deserializeNBT(tag.getCompoundTag("itemStackHandler"));
         this.fluidTankList.deserializeNBT(tag.getCompoundTag("FluidInventory"));
         this.outputFacingItems = EnumFacing.VALUES[tag.getInteger("OutputFacing")];
         this.outputFacingFluids = EnumFacing.VALUES[tag.getInteger("OutputFacingF")];
@@ -362,10 +361,11 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.machine.buffer.tooltip"));
+        tooltip.add(I18n.format("gregtech.machine.huge_buffer.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
                 getTankCapacity()));
+        tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
 
     @Override
