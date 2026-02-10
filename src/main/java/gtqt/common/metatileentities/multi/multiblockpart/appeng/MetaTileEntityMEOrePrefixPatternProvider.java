@@ -600,7 +600,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
             ItemStack outputStack;
 
             if (input.equals("fluid")) {
-                if (!material.hasFluid()) return patterns;
+                if (!material.hasFluid()) continue;
                 FluidStack fluid = material.getFluid(inputNumber);
                 inputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
             } else {
@@ -608,7 +608,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
             }
 
             if (output.equals("fluid")) {
-                if (!material.hasFluid()) return patterns;
+                if (!material.hasFluid()) continue;
                 FluidStack fluid = material.getFluid(outputNumber);
                 outputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
             } else {

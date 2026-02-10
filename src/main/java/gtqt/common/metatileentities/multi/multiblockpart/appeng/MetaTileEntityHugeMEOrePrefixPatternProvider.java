@@ -610,7 +610,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
             ItemStack outputStack;
 
             if (input.equals("fluid")) {
-                if (!material.hasFluid()) return patterns;
+                if (!material.hasFluid()) continue;
                 FluidStack fluid = material.getFluid(inputNumber);
                 inputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
             } else {
@@ -618,7 +618,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
             }
 
             if (output.equals("fluid")) {
-                if (!material.hasFluid()) return patterns;
+                if (!material.hasFluid()) continue;
                 FluidStack fluid = material.getFluid(outputNumber);
                 outputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
             } else {
