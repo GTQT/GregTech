@@ -152,8 +152,10 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                     if (patternProvider.getController() != null) {
                         String recipeName;
                         if (patternProvider.getController().getRecipeLogic() != null) {
-                            RecipeMap<?> map = patternProvider.getController().getRecipeLogic().recipeMap;
-                            recipeName = I18n.format(map.getTranslationKey());
+                            RecipeMap<?> map = patternProvider.getController().getRecipeLogic().getRecipeMap();
+                            if (map != null) {
+                                recipeName = I18n.format(map.getTranslationKey());
+                            } else recipeName = "None";
                         } else recipeName = "None";
 
                         String controllerText =IKey.lang(patternProvider.getController().getMetaFullName()) +
@@ -217,8 +219,10 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                     if (patternProvider.getController() != null) {
                         String recipeName;
                         if (patternProvider.getController().getRecipeLogic() != null) {
-                            RecipeMap<?> map = patternProvider.getController().getRecipeLogic().recipeMap;
-                            recipeName = I18n.format(map.getTranslationKey());
+                            RecipeMap<?> map = patternProvider.getController().getRecipeLogic().getRecipeMap();
+                            if (map != null) {
+                                recipeName = I18n.format(map.getTranslationKey());
+                            } else recipeName = "None";
                         } else recipeName = "None";
 
                         String controllerText =IKey.lang(patternProvider.getController().getMetaFullName()) +
@@ -298,18 +302,13 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                     System.out.println(grid.getGridBlock().getLocation());
                     pos.add(grid.getGridBlock().getLocation().getPos());
                 }
-            } catch (Exception e) {
-
-            }
+            } catch (Exception ignored) {}
             try {
                 for (IGridNode grid : getProxy().getGrid().getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
                     System.out.println(grid.getGridBlock().getLocation());
                     pos.add(grid.getGridBlock().getLocation().getPos());
                 }
-            } catch (Exception e) {
-
-            }
-
+            } catch (Exception ignored) {}
             writeCustomData(UPDATE_ME_POS, buffer -> {
                 buffer.writeInt(pos.size());
                 for (BlockPos blockPos : pos) {
