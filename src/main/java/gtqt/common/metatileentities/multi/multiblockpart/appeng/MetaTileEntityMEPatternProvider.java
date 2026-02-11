@@ -1244,6 +1244,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
             // 集成电路特殊处理
             if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
+                //说明仓不空，应该检查电路是否相等
+                if(IntCircuitIngredient.getCircuitConfiguration(itemStack) != getGhostCircuitConfig())
+                    return false;
                 continue;
             }
 
