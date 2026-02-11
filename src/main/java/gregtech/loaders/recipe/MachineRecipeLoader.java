@@ -257,7 +257,7 @@ public class MachineRecipeLoader {
                         .input(dust, materialFuel, 2)
                         .output(ingot, Steel)
                         .output(dustTiny, dustType, 2)
-                        .duration((int) (1000 * time))
+                        .duration((int) (1800 * time))
                         .buildAndRegister();
             }
             if (materialFuel.hasProperty(PropertyKey.GEM)) {
@@ -266,7 +266,7 @@ public class MachineRecipeLoader {
                         .input(gem, materialFuel, 2)
                         .output(ingot, Steel)
                         .output(dustTiny, dustType, 2)
-                        .duration((int) (1200 * time))
+                        .duration((int) (1800 * time))
                         .buildAndRegister();
             }
             PRIMITIVE_BLAST_FURNACE_RECIPES.recipeBuilder()
@@ -274,7 +274,7 @@ public class MachineRecipeLoader {
                     .input(block, materialFuel)
                     .output(block, Steel)
                     .output(dust, dustType)
-                    .duration((int) (9600 * time))
+                    .duration((int) (14400 * time))
                     .buildAndRegister();
         }
         if (fuel instanceof ItemStack itemFuel) {
@@ -291,7 +291,7 @@ public class MachineRecipeLoader {
                     .inputs(itemFuel.splitStack(18))
                     .output(block, Steel)
                     .output(dust, dustType)
-                    .duration((int) (9600 * time)).buildAndRegister();
+                    .duration((int) (14400 * time)).buildAndRegister();
         }
     }
 
