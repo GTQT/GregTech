@@ -6899,9 +6899,9 @@ gregtech.multiblock.energy_stored=§7Energy: §e%,d / %,d EU
 gregtech.multiblock.structure_size.tooltip=§7Structure Size:§eX:%s ,Y: %s ,Z: %s
 gregtech.multiblock.structure_tier.tooltip=§7Total Tier:§e %s
 
-gregtech.multiblock.preview.zoom=Use mousewheel or right-click + drag to zoom
-gregtech.multiblock.preview.rotate=Click and drag to rotate
-gregtech.multiblock.preview.select=Right-click to check candidates
+gregtech.multiblock.preview.zoom=Mouse Wheel: Zoom
+gregtech.multiblock.preview.rotate=Left Drag: Rotate View
+gregtech.multiblock.preview.select=Right Drag: Pan | Right Click Block: View Alternatives
 
 gregtech.multiblock.pattern.error_message_header=Potential structure error:
 gregtech.multiblock.pattern.no_errors=No errors in structure found!

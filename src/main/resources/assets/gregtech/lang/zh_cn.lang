@@ -6895,9 +6895,9 @@ gregtech.multiblock.energy_stored=§7能量: §e%,d / %,d EU
 gregtech.multiblock.structure_size.tooltip=§7结构大小:§eX:%s ,Y: %s ,Z: %s
 gregtech.multiblock.structure_tier.tooltip=§7结构总等级:§e %s
 
-gregtech.multiblock.preview.zoom=使用鼠标滚轮或右键拖拽以缩放
-gregtech.multiblock.preview.rotate=左键拖拽以旋转
-gregtech.multiblock.preview.select=右击方块以查看其他可选方块
+gregtech.multiblock.preview.zoom=鼠标滚轮：缩放
+gregtech.multiblock.preview.rotate=左键拖拽：旋转视角
+gregtech.multiblock.preview.select=右键拖拽：平移 | 右键单击方块：查看可选替代品
 
 gregtech.multiblock.pattern.error_message_header=潜在的结构错误：
 gregtech.multiblock.pattern.no_errors=没有发现结构错误！

@@ -50,8 +50,6 @@ public class HeatRecipeBuilder extends RecipeBuilder<HeatRecipeBuilder> {
     @Override
     public ValidationResult<Recipe> build() {
         this.EUt(1);
-        this.applyProperty(HeatProperty.getInstance(), true);
-        this.applyProperty(TemperatureProperty.getInstance(), true);
         return super.build();
     }
 }

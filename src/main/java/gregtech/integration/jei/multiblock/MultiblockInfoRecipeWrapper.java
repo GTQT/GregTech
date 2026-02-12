@@ -381,89 +381,158 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             itemStackGroup.set(i, (ItemStack) null);
         }
     }
-
     @Override
     public void drawInfo(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
         WorldSceneRenderer renderer = getCurrentRenderer();
         int sceneHeight = recipeHeight - PARTS_HEIGHT;
+        int viewX = recipeLayout.getPosX();
+        int viewY = recipeLayout.getPosY();
+        int absMouseX = mouseX + viewX;
+        int absMouseY = mouseY + viewY;
 
-        renderer.render(recipeLayout.getPosX(), recipeLayout.getPosY(), recipeWidth, sceneHeight,
-                mouseX + recipeLayout.getPosX(), mouseY + recipeLayout.getPosY());
+        // 渲染3D场景（保留OpenGL状态安全）
+        GlStateManager.pushMatrix();
+        GlStateManager.pushAttrib();
+        try {
+            GlStateManager.enableRescaleNormal();
+            GlStateManager.enableLighting();
+            RenderHelper.enableStandardItemLighting();
+            renderer.render(viewX, viewY, recipeWidth, sceneHeight, absMouseX, absMouseY);
+        } finally {
+            GlStateManager.popAttrib();
+            GlStateManager.popMatrix();
+        }
+
+        // 绘制UI文字
         drawMultiblockName(recipeWidth);
         drawMultiblockTier(recipeWidth);
-        // reset colors (so any elements render after this point are not dark)
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F); // 重置颜色
 
+        // 绘制信息图标
         int iconX = recipeWidth - (ICON_SIZE + RIGHT_PADDING);
         int iconY = 49;
         this.infoIcon.draw(minecraft, iconX, iconY);
+        this.drawInfoIcon = mouseX >= iconX && mouseX <= iconX + ICON_SIZE &&
+                mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
 
-        this.drawInfoIcon = iconX <= mouseX && mouseX <= iconX + ICON_SIZE && iconY <= mouseY &&
-                mouseY <= iconY + ICON_SIZE;
-
-        // draw parts slots
+        // 绘制部件槽位（修正原偏移计算）
         for (int i = 0; i < MAX_PARTS; ++i) {
-            this.slot.draw(minecraft,
-                    SLOT_SIZE * i - (SLOTS_PER_ROW * SLOT_SIZE) * (i / SLOTS_PER_ROW) + (SLOT_SIZE / 2) - 2,
-                    sceneHeight + SLOT_SIZE * (i / SLOTS_PER_ROW));
+            int row = i / SLOTS_PER_ROW;
+            int col = i % SLOTS_PER_ROW;
+            int slotX = col * SLOT_SIZE + (SLOT_SIZE / 2) - 2; // 保留原偏移逻辑
+            int slotY = sceneHeight + row * SLOT_SIZE;
+            this.slot.draw(minecraft, slotX, slotY);
         }
 
-        // draw candidates slots
         for (int i = 0; i < predicates.size(); i++) {
-            this.slot.draw(minecraft, 5 + (i / 6) * SLOT_SIZE, (i % 6) * SLOT_SIZE + 10);
+            int slotX = 5 + (i / 6) * SLOT_SIZE;
+            int slotY = (i % 6) * SLOT_SIZE + 10;
+            this.slot.draw(minecraft, slotX, slotY);
         }
 
-        // draw buttons
         for (GuiButton button : buttons.keySet()) {
-            button.drawButton(minecraft, mouseX, mouseY, 0.0f);
+            button.drawButton(minecraft, absMouseX, absMouseY, 0.0f);
         }
 
+        boolean isMouseOverButton = false;
+        for (GuiButton button : buttons.keySet()) {
+            if (absMouseX >= button.x && absMouseX <= button.x + button.width &&
+                    absMouseY >= button.y && absMouseY <= button.y + button.height) {
+                isMouseOverButton = true;
+                break;
+            }
+        }
+        boolean insideView = mouseX >= 0 && mouseY >= 0 &&
+                mouseX < recipeWidth && mouseY < sceneHeight &&
+                !isMouseOverButton;
+
+        boolean leftClickHeld = Mouse.isButtonDown(0);
+        boolean rightClickHeld = Mouse.isButtonDown(1);
+        boolean cameraModified = false;
+
+        if (insideView && rightClickHeld) {
+            float deltaX = mouseX - lastMouseX;
+            float deltaY = mouseY - lastMouseY;
+            if (Math.abs(deltaX) > 0.5f || Math.abs(deltaY) > 0.5f) {
+                final float panSensitivity = 0.08f;
+
+                double yawRad = Math.toRadians(rotationPitch);   // rotationPitch = yaw
+                double pitchRad = Math.toRadians(rotationYaw);   // rotationYaw = pitch
+
+                Vec3d forward = new Vec3d(
+                        Math.cos(pitchRad) * Math.sin(yawRad),
+                        Math.sin(pitchRad),
+                        Math.cos(pitchRad) * Math.cos(yawRad)
+                ).normalize();
+
+                Vec3d right = forward.crossProduct(new Vec3d(0.0, 1.0, 0.0)).normalize();
+                if (right.lengthSquared() < 1e-6) {
+                    right = new Vec3d(1.0, 0.0, 0.0);
+                }
+
+                Vec3d up = right.crossProduct(forward).normalize();
+
+                center.x += (float)(-deltaX * right.x * panSensitivity);
+                center.y += (float)(-deltaX * right.y * panSensitivity);
+                center.z += (float)(-deltaX * right.z * panSensitivity);
+
+                center.x += (float)(-deltaY * up.x * panSensitivity);
+                center.y += (float)(-deltaY * up.y * panSensitivity);
+                center.z += (float)(-deltaY * up.z * panSensitivity);
+
+                cameraModified = true;
+            }
+        }
+        else if (insideView && leftClickHeld) {
+            rotationPitch += (mouseX - lastMouseX);
+            rotationPitch %= 360.0f;
+            if (rotationPitch < 0) rotationPitch += 360.0f;
+
+            rotationYaw = (float) MathHelper.clamp(
+                    rotationYaw + (mouseY - lastMouseY),
+                    -89.9f, 89.9f
+            );
+            cameraModified = true;
+        }
+        // 更新相机
+        if (cameraModified) {
+            renderer.setCameraLookAt(
+                    center,
+                    zoom,
+                    Math.toRadians(rotationPitch), // yaw
+                    Math.toRadians(rotationYaw)    // pitch
+            );
+        }
+
+        // 悬停检测（仅当未拖拽时）
         tooltipBlockStack = null;
         this.predicateTips = null;
         RayTraceResult rayTraceResult = renderer.getLastTraceResult();
-        boolean insideView = mouseX >= 0 && mouseY >= 0 &&
-                mouseX < recipeWidth && mouseY < sceneHeight;
-        boolean leftClickHeld = Mouse.isButtonDown(0);
-        boolean rightClickHeld = Mouse.isButtonDown(1);
-        if (insideView) {
-            for (GuiButton button : buttons.keySet()) {
-                if (button.isMouseOver()) {
-                    insideView = false;
-                    break;
-                }
-            }
-        }
-        if (insideView) {
-            if (leftClickHeld) {
-                rotationPitch += mouseX - lastMouseX + 360;
-                rotationPitch = rotationPitch % 360;
-                rotationYaw = (float) MathHelper.clamp(rotationYaw + (mouseY - lastMouseY), -89.9, 89.9);
-            } else if (rightClickHeld) {
-                int mouseDeltaY = mouseY - lastMouseY;
-                if (Math.abs(mouseDeltaY) > 1) {
-                    this.zoom = (float) MathHelper.clamp(zoom + (mouseDeltaY > 0 ? 0.5 : -0.5), 3, 999);
-                }
-            }
-            renderer.setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
-        }
 
-        if (!(leftClickHeld || rightClickHeld) && rayTraceResult != null &&
+        if (!(leftClickHeld || rightClickHeld) && insideView && rayTraceResult != null &&
                 !renderer.world.isAirBlock(rayTraceResult.getBlockPos())) {
+
             IBlockState blockState = renderer.world.getBlockState(rayTraceResult.getBlockPos());
-            ItemStack itemStack = blockState.getBlock().getPickBlock(blockState, rayTraceResult, renderer.world,
-                    rayTraceResult.getBlockPos(), minecraft.player);
+            ItemStack itemStack = blockState.getBlock().getPickBlock(
+                    blockState, rayTraceResult, renderer.world,
+                    rayTraceResult.getBlockPos(), minecraft.player
+            );
+
             TraceabilityPredicate predicates = patterns[currentRendererPage].getPredicateMap()
                     .get(rayTraceResult.getBlockPos());
             if (predicates != null) {
                 BlockWorldState worldState = new BlockWorldState();
                 worldState.update(renderer.world, rayTraceResult.getBlockPos(), new PatternMatchContext(),
                         new HashMap<>(), new HashMap<>(), predicates);
+
+                // 优先匹配common predicates
                 for (TraceabilityPredicate.SimplePredicate common : predicates.common) {
                     if (common.test(worldState)) {
                         predicateTips = common.getToolTips(predicates);
                         break;
                     }
                 }
+                // 未匹配则尝试limited predicates
                 if (predicateTips == null) {
                     for (TraceabilityPredicate.SimplePredicate limit : predicates.limited) {
                         if (limit.test(worldState)) {
@@ -569,9 +638,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @Override
     public List<String> getTooltipStrings(int mouseX, int mouseY) {
         if (drawInfoIcon) {
-            return Arrays.asList(I18n.format("gregtech.multiblock.preview.zoom"),
+            return Arrays.asList(
+                    I18n.format("gregtech.multiblock.preview.zoom"),
                     I18n.format("gregtech.multiblock.preview.rotate"),
-                    I18n.format("gregtech.multiblock.preview.select"));
+                    I18n.format("gregtech.multiblock.preview.select")
+            );
         } else if (tooltipBlockStack != null && !tooltipBlockStack.isEmpty() && !Mouse.isButtonDown(0)) {
             Minecraft minecraft = Minecraft.getMinecraft();
             ITooltipFlag flag = minecraft.gameSettings.advancedItemTooltips ? TooltipFlags.ADVANCED :
