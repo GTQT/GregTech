@@ -1027,16 +1027,19 @@ public class MachineRecipeLoader {
 
     private static void registerBlastFurnaceRecipes() {
         // Steel
-        BLAST_RECIPES.recipeBuilder().duration(500).EUt(VA[MV])
+        // LV 阶段 需要锻铁+焦煤粉+氧气
+        BLAST_RECIPES.recipeBuilder().duration(600).EUt(VA[MV])
                 .input(ingot, Iron)
+                .input(dust, Coke)
                 .fluidInputs(Oxygen.getFluid(200))
                 .output(ingot, Steel)
                 .chancedOutput(dust, Ash, 1111, 0)
                 .blastFurnaceTemp(1000)
                 .buildAndRegister();
 
-        BLAST_RECIPES.recipeBuilder().duration(400).EUt(VA[MV])
+        BLAST_RECIPES.recipeBuilder().duration(480).EUt(VA[MV])
                 .input(dust, Iron)
+                .input(dust, Coke)
                 .fluidInputs(Oxygen.getFluid(200))
                 .output(ingot, Steel)
                 .chancedOutput(dust, Ash, 1111, 0)
@@ -1044,16 +1047,18 @@ public class MachineRecipeLoader {
                 .blastFurnaceTemp(1000)
                 .buildAndRegister();
 
-        BLAST_RECIPES.recipeBuilder().duration(300).EUt(VA[MV])
+        BLAST_RECIPES.recipeBuilder().duration(360).EUt(VA[MV])
                 .input(ingot, WroughtIron)
+                .input(dust, Coke)
                 .fluidInputs(Oxygen.getFluid(200))
                 .output(ingot, Steel)
                 .chancedOutput(dust, Ash, 1111, 0)
                 .blastFurnaceTemp(1000)
                 .buildAndRegister();
 
-        BLAST_RECIPES.recipeBuilder().duration(100).EUt(VA[MV])
+        BLAST_RECIPES.recipeBuilder().duration(120).EUt(VA[MV])
                 .input(dust, WroughtIron)
+                .input(dust, Coke)
                 .fluidInputs(Oxygen.getFluid(200))
                 .output(ingot, Steel)
                 .chancedOutput(dust, Ash, 1111, 0)
@@ -1061,6 +1066,46 @@ public class MachineRecipeLoader {
                 .blastFurnaceTemp(1000)
                 .buildAndRegister();
 
+        // LV 阶段 需要锻铁+煤粉+氧气
+        BLAST_RECIPES.recipeBuilder().duration(1000).EUt(VA[MV])
+                .input(ingot, Iron)
+                .input(dust, Coke)
+                .fluidInputs(Oxygen.getFluid(200))
+                .output(ingot, Steel)
+                .chancedOutput(dust, Ash, 1111, 0)
+                .blastFurnaceTemp(1000)
+                .buildAndRegister();
+
+        BLAST_RECIPES.recipeBuilder().duration(800).EUt(VA[MV])
+                .input(dust, Iron)
+                .input(dust, Coke)
+                .fluidInputs(Oxygen.getFluid(200))
+                .output(ingot, Steel)
+                .chancedOutput(dust, Ash, 1111, 0)
+                .circuitMeta(2)
+                .blastFurnaceTemp(1000)
+                .buildAndRegister();
+
+        BLAST_RECIPES.recipeBuilder().duration(600).EUt(VA[MV])
+                .input(ingot, WroughtIron)
+                .input(dust, Coke)
+                .fluidInputs(Oxygen.getFluid(200))
+                .output(ingot, Steel)
+                .chancedOutput(dust, Ash, 1111, 0)
+                .blastFurnaceTemp(1000)
+                .buildAndRegister();
+
+        BLAST_RECIPES.recipeBuilder().duration(200).EUt(VA[MV])
+                .input(dust, WroughtIron)
+                .input(dust, Coke)
+                .fluidInputs(Oxygen.getFluid(200))
+                .output(ingot, Steel)
+                .chancedOutput(dust, Ash, 1111, 0)
+                .circuitMeta(2)
+                .blastFurnaceTemp(1000)
+                .buildAndRegister();
+
+        // EV 阶段 需要锻铁+碳粉
         BLAST_RECIPES.recipeBuilder().duration(250).EUt(VA[EV])
                 .input(dust, Iron, 4)
                 .input(dust, Carbon)

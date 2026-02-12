@@ -9,6 +9,7 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.impl.HeatProperty;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
+import gregtech.api.util.GTUtility;
 
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -89,8 +90,8 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @MustBeInvokedByOverriders
     protected void completeRecipe() {
         super.completeRecipe();
-        recipeHeat = 7;
-        recipeTemperature = 373;
+        recipeHeat = Math.max((int) recipeEUt, 7);
+        recipeTemperature = Math.max(273 + 200 * GTUtility.getTierByVoltage(recipeEUt), 473);
     }
 
     @NotNull
