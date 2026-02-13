@@ -60,7 +60,7 @@ public class BrewingRecipes {
         BREWING_RECIPES.recipeBuilder().duration(800).EUt(3).input("treeSapling", 1).fluidInputs(Water.getFluid(100))
                 .fluidOutputs(Biomass.getFluid(100)).buildAndRegister();
         BREWING_RECIPES.recipeBuilder().duration(480).EUt(3).input(log, Wood)
-                .fluidInputs(Water.getFluid(20)).fluidOutputs(Biomass.getFluid(60)).buildAndRegister();
+                .fluidInputs(Water.getFluid(60)).fluidOutputs(Biomass.getFluid(60)).buildAndRegister();
         BREWING_RECIPES.recipeBuilder().duration(160).EUt(3).inputs(new ItemStack(Items.POTATO))
                 .fluidInputs(Water.getFluid(20)).fluidOutputs(Biomass.getFluid(20)).buildAndRegister();
         BREWING_RECIPES.recipeBuilder().duration(160).EUt(3).inputs(new ItemStack(Items.CARROT))
