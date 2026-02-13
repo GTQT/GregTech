@@ -13,6 +13,7 @@ import static gregtech.api.recipes.RecipeMaps.BREWING_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.CHEMICAL_BATH_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
+import static gregtech.api.unification.ore.OrePrefix.log;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
 import static gregtech.common.items.MetaItems.BIO_CHAFF;
 
@@ -58,6 +59,8 @@ public class BrewingRecipes {
         // Biomass
         BREWING_RECIPES.recipeBuilder().duration(800).EUt(3).input("treeSapling", 1).fluidInputs(Water.getFluid(100))
                 .fluidOutputs(Biomass.getFluid(100)).buildAndRegister();
+        BREWING_RECIPES.recipeBuilder().duration(480).EUt(3).input(log, Wood)
+                .fluidInputs(Water.getFluid(20)).fluidOutputs(Biomass.getFluid(60)).buildAndRegister();
         BREWING_RECIPES.recipeBuilder().duration(160).EUt(3).inputs(new ItemStack(Items.POTATO))
                 .fluidInputs(Water.getFluid(20)).fluidOutputs(Biomass.getFluid(20)).buildAndRegister();
         BREWING_RECIPES.recipeBuilder().duration(160).EUt(3).inputs(new ItemStack(Items.CARROT))
