@@ -15,6 +15,7 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.MaterialStack;
 import gregtech.api.unification.stack.UnificationEntry;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockAsphalt;
@@ -280,7 +281,7 @@ public class MachineRecipeLoader {
         if (fuel instanceof ItemStack itemFuel) {
             PRIMITIVE_BLAST_FURNACE_RECIPES.recipeBuilder()
                     .input(ingot, WroughtIron)
-                    .inputs(itemFuel.splitStack(2))
+                    .inputs(GTUtility.copy(2, itemFuel))
                     .output(ingot, Steel)
                     .output(dustTiny, dustType, 2)
                     .duration((int) (1800 * time))
@@ -288,7 +289,7 @@ public class MachineRecipeLoader {
 
             PRIMITIVE_BLAST_FURNACE_RECIPES.recipeBuilder()
                     .input(block, WroughtIron)
-                    .inputs(itemFuel.splitStack(18))
+                    .inputs(GTUtility.copy(18, itemFuel))
                     .output(block, Steel)
                     .output(dust, dustType)
                     .duration((int) (14400 * time)).buildAndRegister();

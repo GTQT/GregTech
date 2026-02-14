@@ -566,6 +566,9 @@ public class MetaTileEntityLoader {
         ModHandler.addShapedRecipe(true, "coke_oven_hatch", MetaTileEntities.COKE_OVEN_HATCH.getStackForm(), "CD", 'C',
                 MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.COKE_BRICKS), 'D',
                 MetaTileEntities.WOODEN_DRUM.getStackForm());
+        ModHandler.addShapedRecipe(true, "primitive_blast_furnace_hatch", MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH.getStackForm(), "CD", 'C',
+                MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.PRIMITIVE_BRICKS), 'D',
+                Blocks.CHEST);
         ModHandler.addShapedRecipe(true, "vacuum_freezer", MetaTileEntities.VACUUM_FREEZER.getStackForm(), "PPP", "CMC",
                 "WCW", 'M', MetaBlocks.METAL_CASING.getItemVariant(ALUMINIUM_FROSTPROOF), 'P',
                 MetaItems.ELECTRIC_PUMP_HV, 'C', new UnificationEntry(OrePrefix.circuit, Tier.EV), 'W',

@@ -48,6 +48,7 @@ import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntityLargeBoiler;
 import gregtech.common.metatileentities.multi.MetaTileEntityMultiblockTank;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnace;
+import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnaceHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
@@ -371,6 +372,7 @@ public class MetaTileEntities {
     public static MetaTileEntityPumpHatch PUMP_OUTPUT_HATCH;
     public static MetaTileEntityPrimitiveWaterPump PRIMITIVE_WATER_PUMP;
     public static MetaTileEntityCokeOvenHatch COKE_OVEN_HATCH;
+    public static MetaTileEntityPrimitiveBlastFurnaceHatch PRIMITIVE_BLAST_FURNACE_HATCH;
     public static MetaTileEntitySteamHatch STEAM_HATCH;
     public static MetaTileEntityHugeSteamHatch HUGE_STEAM_HATCH;
     public static MetaTileEntitySteamItemBus STEAM_EXPORT_BUS;
@@ -995,6 +997,8 @@ public class MetaTileEntities {
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
 
+        PRIMITIVE_BLAST_FURNACE_HATCH = registerMetaTileEntity(1059,
+                new MetaTileEntityPrimitiveBlastFurnaceHatch(gregtechId("primitive_blast_furnace_hatch")));
         SAW_MILL = registerMetaTileEntity(1060, new MetaTileEntitySawMill(gregtechId("saw_mill")));
         //IO注册
         // Import/Export Buses/Hatches, IDs 1150-1300

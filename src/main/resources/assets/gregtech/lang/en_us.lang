@@ -5672,6 +5672,9 @@ gregtech.machine.processing_array.name=Processing Array
 gregtech.machine.advanced_processing_array.name=Advanced Processing Array
 gregtech.machine.coke_oven_hatch.name=Coke Oven Hatch
 gregtech.machine.coke_oven_hatch.tooltip=Allows automation access for the Coke Oven.
+gregtech.machine.primitive_blast_furnace_hatch.name=Primitive Blast Furnace Hatch
+gregtech.machine.primitive_blast_furnace_hatch.tooltip=Allows automation access for the Primitive Blast Furnace.
+
 gregtech.machine.large_chemical_reactor.name=Large Chemical Reactor
 
 gregtech.machine.large_combustion_engine.name=Large Combustion Engine

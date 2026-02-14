@@ -24,6 +24,7 @@ import gregtech.client.utils.BloomEffectUtil;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
@@ -85,7 +86,8 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
                 .aisle("XXX", "XXX", "XXX", "XXX")
                 .aisle("XXX", "X&X", "X#X", "X#X")
                 .aisle("XXX", "XYX", "XXX", "XXX")
-                .where('X', states(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS)))
+                .where('X', states(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS))
+                        .or(metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH).setMaxGlobalLimited(3)))
                 .where('#', air())
                 .where('&', air().or(SNOW_PREDICATE)) // this won't stay in the structure, and will be broken while
                 // running

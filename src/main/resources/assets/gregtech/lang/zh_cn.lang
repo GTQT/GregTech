@@ -5667,7 +5667,9 @@ gregtech.machine.coke_oven.name=焦炉
 gregtech.machine.processing_array.name=处理阵列
 gregtech.machine.advanced_processing_array.name=进阶处理阵列
 gregtech.machine.coke_oven_hatch.name=焦炉仓
-gregtech.machine.coke_oven_hatch.tooltip=允许自动化焦炉的物品吞吐。
+gregtech.machine.coke_oven_hatch.tooltip=允许自动化焦炉的物品/流体吞吐。
+gregtech.machine.primitive_blast_furnace_hatch.name=土高炉仓
+gregtech.machine.primitive_blast_furnace_hatch.tooltip=允许自动化土高炉的物品吞吐。
 gregtech.machine.large_chemical_reactor.name=大型化学反应釜
 
 gregtech.machine.large_combustion_engine.name=大型内燃引擎

@@ -86,4 +86,14 @@ public final class TemperatureProperty extends RecipeProperty<Integer> {
             registeredCoilTypes.put(temperature, coilMaterial);
         }
     }
+
+    @Override
+    public boolean hideTotalEU() {
+        return true;
+    }
+
+    @Override
+    public boolean hideEUt() {
+        return true;
+    }
 }
