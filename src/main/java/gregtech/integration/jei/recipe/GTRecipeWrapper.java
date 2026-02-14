@@ -285,10 +285,12 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                 int minimumCWUt = recipe.getProperty(ComputationProperty.getInstance(), 1);
                 minecraft.fontRenderer.drawString(I18n.format("gregtech.recipe.max_eu", eu / minimumCWUt), 0, yPosition,
                         0x111111);
+                yPosition += LINE_HEIGHT;
             } else {
                 minecraft.fontRenderer.drawString(
                         I18n.format("gregtech.recipe.total", overclockResult[0] * overclockResult[1]), 0, yPosition,
                         (int) overclockResult[2]);
+                yPosition += LINE_HEIGHT;
             }
         }
         if (drawEUt) {
@@ -297,19 +299,22 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                     I18n.format(recipe.getEUt() >= 0 ? "gregtech.recipe.eu" : "gregtech.recipe.eu_inverted",
                             overclockResult[0],
                             GTValues.VOCNF[GTUtility.getOCTierByVoltage(overclockResult[0])]),
-                    0, yPosition += LINE_HEIGHT, (int) overclockResult[2]);
+                    0, yPosition, (int) overclockResult[2]);
+            yPosition += LINE_HEIGHT;
         }
         if (drawDuration) {
             minecraft.fontRenderer.drawString(
                     I18n.format("gregtech.recipe.duration",
                             TextFormattingUtil.formatNumbers(overclockResult[1] / 20D)),
-                    0, yPosition += LINE_HEIGHT, (int) overclockResult[2]);
+                    0, yPosition, (int) overclockResult[2]);
+            yPosition += LINE_HEIGHT;
         }
         if (drawMufflerDust) {
             minecraft.fontRenderer.drawString(
                     I18n.format("gregtech.recipe.muffler_dust"
                             , recipe.getMufflerDustName()), 0,
-                    yPosition += LINE_HEIGHT, 0x111111);
+                    yPosition, 0x111111);
+            yPosition += LINE_HEIGHT;
         }
 
         // Property custom entries
@@ -317,8 +322,9 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
             if (!propertyEntry.getKey().isHidden()) {
                 RecipeProperty<?> property = propertyEntry.getKey();
                 var value = propertyEntry.getValue();
-                property.drawInfo(minecraft, 0, yPosition += property.getInfoHeight(value), 0x111111, value, mouseX,
+                property.drawInfo(minecraft, 0, yPosition, 0x111111, value, mouseX,
                         mouseY);
+                yPosition += property.getInfoHeight(value);
             }
         }
     }

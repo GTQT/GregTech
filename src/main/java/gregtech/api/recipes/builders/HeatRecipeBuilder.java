@@ -7,6 +7,8 @@ import gregtech.api.recipes.properties.impl.HeatProperty;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.api.util.ValidationResult;
 
+import org.jetbrains.annotations.NotNull;
+
 public class HeatRecipeBuilder extends RecipeBuilder<HeatRecipeBuilder> {
 
     public HeatRecipeBuilder() {
@@ -25,7 +27,7 @@ public class HeatRecipeBuilder extends RecipeBuilder<HeatRecipeBuilder> {
     }
 
     @Override
-    public boolean applyPropertyCT(String key, Object value) {
+    public boolean applyPropertyCT(@NotNull String key, @NotNull Object value) {
         if (key.equals(HeatProperty.KEY)) {
             this.Heat(((Number) value).intValue());
             return true;

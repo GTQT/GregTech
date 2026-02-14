@@ -526,6 +526,7 @@ public final class RecipeMaps {
             .fluidOutputs(1)
             .ui(CokeOvenUI::new)
             .sound(GTSoundEvents.FIRE)
+            .disableJeiOverclockButton()
             .build();
 
     /**
@@ -1461,6 +1462,7 @@ public final class RecipeMaps {
             .modifyFluidInputs(false)
             .modifyFluidOutputs(false)
             .sound(GTSoundEvents.FIRE)
+            .disableJeiOverclockButton()
             .build();
 
     /**

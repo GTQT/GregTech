@@ -39,4 +39,14 @@ public class HeatProperty extends RecipeProperty<Integer> {
     public Object deserialize( NBTBase nbt) {
         return ((NBTTagInt) nbt).getInt();
     }
+
+    @Override
+    public boolean hideTotalEU() {
+        return true;
+    }
+
+    @Override
+    public boolean hideEUt() {
+        return true;
+    }
 }
