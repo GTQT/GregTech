@@ -5,7 +5,6 @@ import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.properties.impl.HeatProperty;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
-import gregtech.api.util.ValidationResult;
 
 public class HeatRecipeBuilder extends RecipeBuilder<HeatRecipeBuilder> {
 
@@ -45,11 +44,5 @@ public class HeatRecipeBuilder extends RecipeBuilder<HeatRecipeBuilder> {
     public HeatRecipeBuilder Temperature(int Temperature) {
         this.applyProperty(TemperatureProperty.getInstance(), Math.max(Temperature, 473));
         return this;
-    }
-
-    @Override
-    public ValidationResult<Recipe> build() {
-        this.EUt(1);
-        return super.build();
     }
 }

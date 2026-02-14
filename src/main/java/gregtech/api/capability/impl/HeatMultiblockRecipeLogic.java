@@ -81,17 +81,23 @@ public class HeatMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @MustBeInvokedByOverriders
     protected void setupRecipe(@NotNull Recipe recipe) {
         super.setupRecipe(recipe);
-        //最低写7，对应ULV
-        recipeHeat = recipe.getProperty(HeatProperty.getInstance(), 7);
-        //起码100° 373k
-        recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 373);
+
+        if (recipeEUt != 0) {
+            recipeHeat = Math.max((int) recipeEUt, 7);
+            recipeTemperature = Math.max(473 + 200 * GTUtility.getTierByVoltage(recipeEUt), 373);
+        } else {
+            //最低写7，对应ULV
+            recipeHeat = recipe.getProperty(HeatProperty.getInstance(), 7);
+            //起码100° 373k
+            recipeTemperature = recipe.getProperty(TemperatureProperty.getInstance(), 373);
+        }
     }
 
     @MustBeInvokedByOverriders
     protected void completeRecipe() {
         super.completeRecipe();
-        recipeHeat = Math.max((int) recipeEUt, 7);
-        recipeTemperature = Math.max(273 + 200 * GTUtility.getTierByVoltage(recipeEUt), 473);
+        recipeHeat = 0;
+        recipeTemperature = 0;
     }
 
     @NotNull

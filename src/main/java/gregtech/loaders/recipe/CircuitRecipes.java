@@ -18,6 +18,7 @@ import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GT_STEAM;
 import static gregtech.common.items.MetaItems.*;
 
 public class CircuitRecipes {
@@ -300,7 +301,7 @@ public class CircuitRecipes {
     }
 
     private static void componentRecipes() {
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GT_STEAM)) {
             // Vacuum Tube
             ModHandler.addShapedRecipe("vacuum_tube", VACUUM_TUBE.getStackForm(),
                     "PTP", "WWW",
