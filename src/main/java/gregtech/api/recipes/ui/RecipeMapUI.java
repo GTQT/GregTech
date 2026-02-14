@@ -647,6 +647,9 @@ public class RecipeMapUI<R extends RecipeMap<?>> {
                 if (fluidInputsCount == 2 && itemInputsCount % 3==0)
                     // to move mixer fluid input to the left
                     x -= 18;
+                if (fluidInputsCount == 3 && itemInputsCount == 3)
+                    // to move mixer fluid input to the left
+                    x -= 36;
             }
             group.child(fluidGrid
                     .mapTo(fluidGridWidth, fluidInputsCount, i -> makeFluidSlot(i, fluidHandler, isOutputs))

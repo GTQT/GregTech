@@ -569,6 +569,8 @@ public class GTGuiTextures {
      */
     public static final UITexture[] BUTTON_POWER = slice("textures/gui/widget/button_power.png", 18, 36, 18, 18,
             ColorType.DEFAULT);
+    public static final UITexture[] SOUND_STATE = slice("textures/gui/widget/button_sound_state.png", 18, 36, 18, 18,
+            ColorType.DEFAULT);
 
     public static final UITexture BUTTON_POWER_DETAIL = fullImage("textures/gui/widget/button_power_detail.png");
 
