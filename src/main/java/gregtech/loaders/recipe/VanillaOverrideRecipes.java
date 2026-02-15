@@ -44,7 +44,9 @@ public class VanillaOverrideRecipes {
         if (ConfigHolder.recipes.harderBrickRecipes) {
             ModHandler.removeFurnaceSmelting(new ItemStack(Items.CLAY_BALL, 1, GTValues.W));
             ModHandler.removeRecipeByName("minecraft:brick_block");
-            ModHandler.addShapedRecipe("brick_from_water", new ItemStack(Blocks.BRICK_BLOCK, 2), "BBB", "BWB", "BBB",
+            ModHandler.addShapedRecipe("brick_from_water",
+                    new ItemStack(Blocks.BRICK_BLOCK, 2),
+                    "BBB", "BWB", "BBB",
                     'B', new ItemStack(Items.BRICK),
                     'W', new ItemStack(Items.WATER_BUCKET));
             ModHandler.removeFurnaceSmelting(new ItemStack(Blocks.NETHERRACK));

@@ -184,7 +184,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
     private boolean advancedCircuit = false;
     @Getter
     @Setter
-    private String showName = IKey.lang(this.getMetaFullName()).toString();
+    private String showName = this.getMetaFullName();
     @Getter
     @Setter
     private boolean hideInfo = false;
@@ -805,12 +805,10 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         weightsPos.add(row);
 
         StringSyncValue nameValue = new StringSyncValue(
-                () -> getShowName(),
+                () -> IKey.lang(getShowName()).toString(),
                 str -> {
                     if (str != null) {
                         setShowName(str);
-                    } else {
-                        setShowName(IKey.lang(this.getMetaFullName()).toString());
                     }
                 }
         );

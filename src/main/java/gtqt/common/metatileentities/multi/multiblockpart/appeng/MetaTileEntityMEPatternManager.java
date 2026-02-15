@@ -136,7 +136,7 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
 
                     List<IWidget> textWidgets = new ArrayList<>();
 
-                    String text = IKey.str(patternProvider.getShowName()) +
+                    String text = IKey.lang(patternProvider.getShowName()) +
                             " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
 
                     textWidgets.add(new ButtonWidget<>()

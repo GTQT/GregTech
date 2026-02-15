@@ -49,8 +49,10 @@ public class BlockHeatConductor extends BlockMaterialPipe<HeatConductorType, Hea
         return super.isValidPipeMaterial(material) && material.hasProperty(PropertyKey.INGOT);
     }
 
+    @SideOnly(Side.CLIENT)
+    @NotNull
     @Override
-    public @NotNull PipeRenderer getPipeRenderer() {
+    public PipeRenderer getPipeRenderer() {
         return HeatConductorRenderer.INSTANCE;
     }
 
