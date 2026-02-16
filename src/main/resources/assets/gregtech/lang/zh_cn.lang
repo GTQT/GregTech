@@ -2579,6 +2579,7 @@ recipemap.sifter.name=筛选机
 recipemap.polisher.name=抛光机
 recipemap.laser_engraver.name=精密激光蚀刻机
 recipemap.mixer.name=搅拌机
+recipemap.large_mixer.name=大型搅拌机
 recipemap.autoclave.name=高压釜
 recipemap.electromagnetic_separator.name=电磁选矿机
 recipemap.polarizer.name=两极磁化机

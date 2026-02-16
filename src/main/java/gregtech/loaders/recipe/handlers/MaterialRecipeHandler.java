@@ -211,17 +211,20 @@ public class MaterialRecipeHandler {
 
         int amount = 0;
         // generate builder
+        for (MaterialStack component : material.getMaterialComponents()) {
+            amount += (int) component.amount;
+        }
         RecipeBuilder<?> builder;
 
         builder = RecipeMaps.MIXER_RECIPES.recipeBuilder();
+        if (amount > 6)
+            builder = LARGE_MIXER_RECIPES.recipeBuilder();
 
         for (MaterialStack component : material.getMaterialComponents()) {
-            amount += (int) component.amount;
             builder.input(dust, component.material, (int) component.amount);
         }
 
-
-        if(circuit<0) builder.circuitMeta(amount % 10);
+        if (circuit < 0) builder.circuitMeta(amount % 10);
         else builder.circuitMeta(circuit);
 
         builder.output(dust, material, amount)

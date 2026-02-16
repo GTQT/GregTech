@@ -2583,6 +2583,7 @@ recipemap.sifter.name=Sifter
 recipemap.polisher.name=Polisher
 recipemap.laser_engraver.name=Precision Laser Engraver
 recipemap.mixer.name=Mixer
+recipemap.large_mixer.name=Large Mixer
 recipemap.autoclave.name=Autoclave
 recipemap.electromagnetic_separator.name=Electromagnetic Separator
 recipemap.polarizer.name=Electromagnetic Polarizer

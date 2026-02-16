@@ -1330,7 +1330,32 @@ public final class RecipeMaps {
                     .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
                     .progressBar(GTGuiTextures.PROGRESS_BAR_MIXER, Direction.CIRCULAR_CW))
             .sound(GTSoundEvents.MIXER)
+            .onBuild(gregtechId("lm_copy"), recipeBuilder -> RecipeMaps.LARGE_CHEMICAL_RECIPES.recipeBuilder()
+                    .inputs(recipeBuilder.getInputs().toArray(new GTRecipeInput[0]))
+                    .fluidInputs(recipeBuilder.getFluidInputs())
+                    .outputs(recipeBuilder.getOutputs())
+                    .chancedOutputs(recipeBuilder.getChancedOutputs())
+                    .fluidOutputs(recipeBuilder.getFluidOutputs())
+                    .chancedFluidOutputs(recipeBuilder.getChancedFluidOutputs())
+                    .cleanroom(recipeBuilder.getCleanroom())
+                    .duration(recipeBuilder.getDuration())
+                    .EUt(recipeBuilder.getEUt())
+                    .buildAndRegister())
             .build();
+
+    public static final RecipeMap<SimpleRecipeBuilder> LARGE_MIXER_RECIPES = new RecipeMapBuilder<>("large_mixer",
+            new SimpleRecipeBuilder())
+            .itemInputs(9)
+            .itemOutputs(1)
+            .fluidInputs(4)
+            .fluidOutputs(1)
+            .uiBuilder(builder -> builder
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_MIXER)
+            )
+            .sound(GTSoundEvents.MIXER)
+            .build()
+            .setSmallRecipeMap(MIXER_RECIPES);
 
     /**
      * Example:

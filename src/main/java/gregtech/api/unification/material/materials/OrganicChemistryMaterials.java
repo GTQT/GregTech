@@ -150,6 +150,7 @@ public class OrganicChemistryMaterials {
                 .gem(1)
                 .color(0xFAFAFA).iconSet(FINE)
                 .components(Carbon, 6, Hydrogen, 12, Oxygen, 6)
+                .flags(DISABLE_DECOMPOSITION)
                 .build();
 
         Methane = Material.builder(1018, gregtechId("methane"))
