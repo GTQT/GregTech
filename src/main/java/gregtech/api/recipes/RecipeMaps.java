@@ -1330,7 +1330,7 @@ public final class RecipeMaps {
                     .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, true)
                     .progressBar(GTGuiTextures.PROGRESS_BAR_MIXER, Direction.CIRCULAR_CW))
             .sound(GTSoundEvents.MIXER)
-            .onBuild(gregtechId("lm_copy"), recipeBuilder -> RecipeMaps.LARGE_CHEMICAL_RECIPES.recipeBuilder()
+            .onBuild(gregtechId("lm_copy"), recipeBuilder -> RecipeMaps.LARGE_MIXER_RECIPES.recipeBuilder()
                     .inputs(recipeBuilder.getInputs().toArray(new GTRecipeInput[0]))
                     .fluidInputs(recipeBuilder.getFluidInputs())
                     .outputs(recipeBuilder.getOutputs())
