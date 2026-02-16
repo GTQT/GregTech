@@ -15,7 +15,9 @@ import gregtech.common.metatileentities.MetaTileEntities;
 import net.minecraft.init.Blocks;
 import net.minecraftforge.fluids.FluidStack;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 import static gregtech.api.GTValues.*;
@@ -72,7 +74,7 @@ public class CraftingComponent {
     public static Component VOLTAGE_COIL;
     public static Component SPRING;
 
-    public static final Map<BlastProperty.GasTier, FluidStack> EBF_GASES = new EnumMap<>(BlastProperty.GasTier.class);
+    public static final Map<BlastProperty.GasTier, List<FluidStack>> EBF_GASES = new EnumMap<>(BlastProperty.GasTier.class);
 
     private CraftingComponent() {}
 
@@ -810,10 +812,21 @@ public class CraftingComponent {
                 .entry(UHV, OrePrefix.spring, Materials.Europium)
                 .build();
 
-        EBF_GASES.put(BlastProperty.GasTier.LOW, Materials.Nitrogen.getFluid(1000));
-        EBF_GASES.put(BlastProperty.GasTier.MID, Materials.Helium.getFluid(100));
-        EBF_GASES.put(BlastProperty.GasTier.HIGH, Materials.Argon.getFluid(50));
-        EBF_GASES.put(BlastProperty.GasTier.HIGHER, Materials.Neon.getFluid(25));
-        EBF_GASES.put(BlastProperty.GasTier.HIGHEST, Materials.Krypton.getFluid(10));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.LOW, k -> new ArrayList<>())
+                .add(Materials.Nitrogen.getFluid(1000));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.MID, k -> new ArrayList<>())
+                .add(Materials.Helium.getFluid(750));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.HIGH, k -> new ArrayList<>())
+                .add(Materials.Argon.getFluid(500));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.HIGH, k -> new ArrayList<>())
+                .add(Materials.Radon.getFluid(250));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.HIGHER, k -> new ArrayList<>())
+                .add(Materials.Neon.getFluid(100));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.HIGHER, k -> new ArrayList<>())
+                .add(Materials.Krypton.getFluid(50));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.HIGHEST, k -> new ArrayList<>())
+                .add(Materials.Xenon.getFluid(20));
+        EBF_GASES.computeIfAbsent(BlastProperty.GasTier.HIGHEST, k -> new ArrayList<>())
+                .add(Materials.Oganesson.getFluid(10));
     }
 }

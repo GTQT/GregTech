@@ -256,18 +256,31 @@ public class MaterialRecipeHandler {
                 .EUt(EUt);
 
         if (gasTier != null) {
-            FluidStack gas = CraftingComponent.EBF_GASES.get(gasTier).copy();
-
             blastBuilder.copy()
                     .circuitMeta(1)
                     .duration(duration)
                     .buildAndRegister();
 
-            blastBuilder.copy()
-                    .circuitMeta(2)
-                    .fluidInputs(gas)
-                    .duration((int) (duration * 0.67))
-                    .buildAndRegister();
+            int baseGasDuration = (int) (duration * 0.75);
+
+            for (BlastProperty.GasTier tier : BlastProperty.GasTier.values()) {
+                if (tier.ordinal() >= gasTier.ordinal()) {
+                    List<FluidStack> gases = CraftingComponent.EBF_GASES.get(tier);
+                    if (gases != null) {
+                        for (FluidStack gas : gases) {
+                            int tierDiff = tier.ordinal() - gasTier.ordinal();
+                            int newDuration = (int) (baseGasDuration * (1 - 0.1 * tierDiff));
+                            if (newDuration < 1) newDuration = 1;
+
+                            blastBuilder.copy()
+                                    .circuitMeta(2)
+                                    .fluidInputs(gas.copy())
+                                    .duration(newDuration)
+                                    .buildAndRegister();
+                        }
+                    }
+                }
+            }
         } else {
             blastBuilder.duration(duration);
             if (material == Materials.Silicon) {
