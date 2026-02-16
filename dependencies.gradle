@@ -65,7 +65,7 @@ dependencies {
     compileOnly rfg.deobf("curse.maven:littletiles-257818:4750222") // LittleTiles 1.5.82-1.12.2
     compileOnly rfg.deobf("curse.maven:creativecore-257814:4722163") // Creative Core 1.10.71
 
-    compileOnly rfg.deobf("curse.maven:lolasm-460609:6333774")
+    implementation rfg.deobf("curse.maven:lolasm-460609:7267368")
 
     //implementation rfg.deobf("curse.maven:ae2fluidcraft-rework-unofficial-1404390:7336029") // AE2FC 2.6.6
     implementation rfg.deobf(files("libs/ae2fc-2.7.10-unofficial.jar"))

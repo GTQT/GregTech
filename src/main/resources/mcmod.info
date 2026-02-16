@@ -4,7 +4,7 @@
   "description": "Finally, the awesome technology of GregTech-Intergalactical can be used in 1.12, now new and improved!",
   "version": "${version}",
   "mcversion": "${mcversion}",
-  "logoFile": "assets/gregtech/textures/gt_logo_long.png",
+  "logoFile": "logo.png",
   "url": "https://github.com/GTQT/GregTech",
   "authorList": [
     "MeowmelMuku",

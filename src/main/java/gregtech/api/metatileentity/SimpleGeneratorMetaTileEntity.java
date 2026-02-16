@@ -152,7 +152,7 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
 
     @Override
     public double getPollutionAmount() {
-        return efficiency == 1 ? 0 : getTier() * 0.001;
+        return getTier() * 0.001;
     }
 
     @Override

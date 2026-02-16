@@ -64,13 +64,13 @@ public class VillageEngineersHouse extends StructureVillagePieces.Village {
         this.setBlockState(world, Blocks.STONE_STAIRS.getDefaultState().withProperty(BlockStairs.FACING, EnumFacing.NORTH), 4, 0, 0, box);
 
         //Pillars
-        this.fillWithBlocks(world, box, 1, 1, 3, 1, 4, 3, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 1, 1, 8, 1, 6, 8, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 9, 1, 3, 9, 6, 3, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 9, 1, 8, 9, 6, 8, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 1, 4, 3, 9, 4, 8, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 6, 5, 3, 6, 7, 3, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 1, 5, 5, 1, 6, 5, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 1, 1, 3, 1, 4, 3, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 1, 1, 8, 1, 6, 8, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 9, 1, 3, 9, 6, 3, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 9, 1, 8, 9, 6, 8, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 1, 4, 3, 9, 4, 8, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 6, 5, 3, 6, 7, 3, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 1, 5, 5, 1, 6, 5, Blocks.LOG.getDefaultState(), Blocks.LOG.getDefaultState(), false);
 
         this.fillWithBlocks(world, box, 2, 4, 5, 8, 4, 7, Blocks.AIR.getDefaultState(), Blocks.AIR.getDefaultState(), false);
 
@@ -121,12 +121,12 @@ public class VillageEngineersHouse extends StructureVillagePieces.Village {
         this.fillWithBlocks(world, box, 9, 6, 5, 9, 6, 6, Blocks.GLASS_PANE.getDefaultState(), Blocks.GLASS_PANE.getDefaultState(), false);
 
         //Fences
-        this.fillWithBlocks(world, box, 1, 1, 1, 1, 1, 2, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 2, 1, 1, 3, 1, 1, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 5, 1, 1, 5, 1, 2, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 1, 5, 3, 1, 5, 4, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 2, 5, 3, 5, 5, 3, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
-        this.fillWithBlocks(world, box, 7, 1, 6, 7, 5, 6, Blocks.BRICK_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 1, 1, 1, 1, 1, 2, Blocks.OAK_FENCE.getDefaultState(), Blocks.OAK_FENCE.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 2, 1, 1, 3, 1, 1, Blocks.OAK_FENCE.getDefaultState(), Blocks.OAK_FENCE.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 5, 1, 1, 5, 1, 2, Blocks.OAK_FENCE.getDefaultState(), Blocks.OAK_FENCE.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 1, 5, 3, 1, 5, 4, Blocks.OAK_FENCE.getDefaultState(), Blocks.OAK_FENCE.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 2, 5, 3, 5, 5, 3, Blocks.OAK_FENCE.getDefaultState(), Blocks.OAK_FENCE.getDefaultState(), false);
+        this.fillWithBlocks(world, box, 7, 1, 6, 7, 5, 6, Blocks.OAK_FENCE.getDefaultState(), Blocks.OAK_FENCE.getDefaultState(), false);
 
         //Doors
         this.generateDoor(world, box, rand, 4, 1, 3, EnumFacing.NORTH, Blocks.OAK_DOOR);

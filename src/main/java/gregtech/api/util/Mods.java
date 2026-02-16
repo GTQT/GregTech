@@ -13,13 +13,11 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
 import net.optifine.shaders.Shaders;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -163,7 +161,7 @@ public enum Mods {
         public static final String VOXEL_MAP = "voxelmap";
         public static final String XAEROS_MINIMAP = "xaerominimap";
         public static final String VINTAGIUM = "vintagium";
-        public static final String GTQT_CORE = "gtqtcore";
+        public static final String GTQT_CORE = "test_gtqt";
         public static final String GT_STEAM = "gtsteam";
         public static final String ALFHEIM = "alfheim";
         public static final String LOLIASM = "loliasm";
