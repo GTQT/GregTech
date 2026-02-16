@@ -51,17 +51,19 @@ public enum KeyBind {
         for (KeyBind keybind : VALUES) {
             boolean previousPressed = keybind.isPressed;
             boolean previousKeyDown = keybind.isKeyDown;
-            keybind.isPressed = keybind.isPressed();
-            keybind.isKeyDown = keybind.isKeyDown();
-            if (previousPressed != keybind.isPressed || previousKeyDown != keybind.isKeyDown) {
+            boolean currentPressed = keybind.isPressed();
+            boolean currentKeyDown = keybind.isKeyDown();
+            keybind.isPressed = currentPressed;
+            keybind.isKeyDown = currentKeyDown;
+            if (previousPressed != currentPressed || previousKeyDown != currentKeyDown) {
                 updating.add(keybind);
             }
         }
+
         if (!updating.isEmpty()) {
             GregTechAPI.networkHandler.sendToServer(new PacketKeysPressed(updating));
         }
     }
-
     @SideOnly(Side.CLIENT)
     public static boolean scrollingUp() {
         return Mouse.getEventDWheel() > 0;
