@@ -1051,52 +1051,13 @@ public class MachineRecipeLoader {
         BLAST_RECIPES.recipeBuilder().duration(360).EUt(VA[MV])
                 .input(ingot, WroughtIron)
                 .input(dust, Coke)
-                .fluidInputs(Oxygen.getFluid(200))
                 .output(ingot, Steel)
+                .fluidInputs(Oxygen.getFluid(200))
                 .chancedOutput(dust, Ash, 1111, 0)
                 .blastFurnaceTemp(1000)
                 .buildAndRegister();
 
         BLAST_RECIPES.recipeBuilder().duration(120).EUt(VA[MV])
-                .input(dust, WroughtIron)
-                .input(dust, Coke)
-                .fluidInputs(Oxygen.getFluid(200))
-                .output(ingot, Steel)
-                .chancedOutput(dust, Ash, 1111, 0)
-                .circuitMeta(2)
-                .blastFurnaceTemp(1000)
-                .buildAndRegister();
-
-        // LV 阶段 需要锻铁+煤粉+氧气
-        BLAST_RECIPES.recipeBuilder().duration(1000).EUt(VA[MV])
-                .input(ingot, Iron)
-                .input(dust, Coke)
-                .fluidInputs(Oxygen.getFluid(200))
-                .output(ingot, Steel)
-                .chancedOutput(dust, Ash, 1111, 0)
-                .blastFurnaceTemp(1000)
-                .buildAndRegister();
-
-        BLAST_RECIPES.recipeBuilder().duration(800).EUt(VA[MV])
-                .input(dust, Iron)
-                .input(dust, Coke)
-                .fluidInputs(Oxygen.getFluid(200))
-                .output(ingot, Steel)
-                .chancedOutput(dust, Ash, 1111, 0)
-                .circuitMeta(2)
-                .blastFurnaceTemp(1000)
-                .buildAndRegister();
-
-        BLAST_RECIPES.recipeBuilder().duration(600).EUt(VA[MV])
-                .input(ingot, WroughtIron)
-                .input(dust, Coke)
-                .fluidInputs(Oxygen.getFluid(200))
-                .output(ingot, Steel)
-                .chancedOutput(dust, Ash, 1111, 0)
-                .blastFurnaceTemp(1000)
-                .buildAndRegister();
-
-        BLAST_RECIPES.recipeBuilder().duration(200).EUt(VA[MV])
                 .input(dust, WroughtIron)
                 .input(dust, Coke)
                 .fluidInputs(Oxygen.getFluid(200))
@@ -1112,6 +1073,7 @@ public class MachineRecipeLoader {
                 .input(dust, Carbon)
                 .output(ingot, Steel, 4)
                 .chancedOutput(dust, Ash, 1111, 0)
+                .circuitMeta(1)
                 .blastFurnaceTemp(2000)
                 .buildAndRegister();
 
@@ -1120,6 +1082,7 @@ public class MachineRecipeLoader {
                 .input(dust, Carbon)
                 .output(ingot, Steel, 4)
                 .chancedOutput(dust, Ash, 1111, 0)
+                .circuitMeta(1)
                 .blastFurnaceTemp(2000)
                 .buildAndRegister();
 
@@ -1447,7 +1410,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[EV])
                 .fluidInputs(Water.getFluid(6))
-                .circuitMeta(1)
+                .circuitMeta(2)
                 .fluidOutputs(HighPressureSteam.getFluid(480))
                 .buildAndRegister();
 
@@ -1455,7 +1418,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[EV])
                 .fluidInputs(DistilledWater.getFluid(6))
-                .circuitMeta(1)
+                .circuitMeta(2)
                 .fluidOutputs(HighPressureSteam.getFluid(480))
                 .buildAndRegister();
 
@@ -1471,7 +1434,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[LuV])
                 .fluidInputs(Water.getFluid(6))
-                .circuitMeta(1)
+                .circuitMeta(3)
                 .fluidOutputs(SupercriticalSteam.getFluid(240))
                 .buildAndRegister();
 
@@ -1479,7 +1442,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[LuV])
                 .fluidInputs(DistilledWater.getFluid(6))
-                .circuitMeta(1)
+                .circuitMeta(3)
                 .fluidOutputs(SupercriticalSteam.getFluid(240))
                 .buildAndRegister();
     }

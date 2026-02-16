@@ -73,9 +73,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.DoubleSupplier;
@@ -992,16 +992,18 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                                 }
                             }
                             if (ConfigHolder.misc.debug || GTValues.isDeobfEnvironment()) {
-                                GTLog.logger.warn(
-                                        "Recipe duplicate or conflict found in RecipeMap {} and was not added. See next lines for details",
-                                        this.unlocalizedName);
+                                if(!Objects.equals(this.unlocalizedName, "research_station")) {
+                                    GTLog.logger.warn(
+                                            "Recipe duplicate or conflict found in RecipeMap {} and was not added. See next lines for details",
+                                            this.unlocalizedName);
 
-                                GTLog.logger.warn("Attempted to add Recipe: {}", recipe.toString());
+                                    GTLog.logger.warn("Attempted to add Recipe: {}", recipe.toString());
 
-                                if (v.left().isPresent()) {
-                                    GTLog.logger.warn("Which conflicts with: {}", v.left().get().toString());
-                                } else {
-                                    GTLog.logger.warn("Could not find exact duplicate/conflict.");
+                                    if (v.left().isPresent()) {
+                                        GTLog.logger.warn("Which conflicts with: {}", v.left().get().toString());
+                                    } else {
+                                        GTLog.logger.warn("Could not find exact duplicate/conflict.");
+                                    }
                                 }
                             }
                         }
