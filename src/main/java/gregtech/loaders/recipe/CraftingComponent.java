@@ -585,7 +585,7 @@ public class CraftingComponent {
                 .entry(HV, MetaItems.ELECTRIC_PISTON_HV)
                 .entry(EV, MetaItems.ELECTRIC_PISTON_EV)
                 .entry(IV, MetaItems.ELECTRIC_PISTON_IV)
-                .entry(LuV, MetaItems.ELECTRIC_PISTON_LUV)
+                .entry(LuV, MetaItems.ELECTRIC_PISTON_LuV)
                 .entry(ZPM, MetaItems.ELECTRIC_PISTON_ZPM)
                 .entry(UV, MetaItems.ELECTRIC_PISTON_UV)
                 .build();

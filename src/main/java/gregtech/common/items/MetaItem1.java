@@ -466,7 +466,7 @@ public class MetaItem1 extends StandardMetaItem {
         ELECTRIC_PISTON_HV = addItem(174, "electric.piston.hv");
         ELECTRIC_PISTON_EV = addItem(175, "electric.piston.ev");
         ELECTRIC_PISTON_IV = addItem(176, "electric.piston.iv");
-        ELECTRIC_PISTON_LUV = addItem(177, "electric.piston.luv");
+        ELECTRIC_PISTON_LuV = addItem(177, "electric.piston.luv");
         ELECTRIC_PISTON_ZPM = addItem(178, "electric.piston.zpm");
         ELECTRIC_PISTON_UV = addItem(179, "electric.piston.uv");
         ELECTRIC_PISTON_UHV = addItem(180, "electric.piston.uhv").setInvisibleIf(!GregTechAPI.isHighTier());

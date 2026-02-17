@@ -245,7 +245,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_HV;
     public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_EV;
     public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_IV;
-    public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_LUV;
+    public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_LuV;
     public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_ZPM;
     public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_UV;
     public static MetaItem<?>.MetaValueItem ELECTRIC_PISTON_UHV;

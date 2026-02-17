@@ -583,7 +583,7 @@ public class ComponentRecipes {
                 .input(cableGtSingle, NiobiumTitanium, 2)
                 .fluidInputs(HighGradeSolderingAlloy.getFluid(L))
                 .fluidInputs(MolybdeniteLubricant.getFluid(250))
-                .output(ELECTRIC_PISTON_LUV)
+                .output(ELECTRIC_PISTON_LuV)
                 .scannerResearch(ELECTRIC_PISTON_IV)
                 .duration(600).EUt(6000).buildAndRegister();
 
@@ -600,7 +600,7 @@ public class ComponentRecipes {
                 .fluidInputs(MolybdeniteLubricant.getFluid(500))
                 .output(ELECTRIC_PISTON_ZPM)
                 .scannerResearch(b -> b
-                        .researchStack(ELECTRIC_PISTON_LUV)
+                        .researchStack(ELECTRIC_PISTON_LuV)
                         .duration(1200)
                         .EUt(VA[IV]))
                 .duration(600).EUt(24000).buildAndRegister();
@@ -699,7 +699,7 @@ public class ComponentRecipes {
                 .input(gear, HSSS)
                 .input(gearSmall, HSSS, 3)
                 .input(ELECTRIC_MOTOR_LuV, 2)
-                .input(ELECTRIC_PISTON_LUV)
+                .input(ELECTRIC_PISTON_LuV)
                 .input(circuit, Tier.LuV)
                 .input(circuit, Tier.IV, 2)
                 .input(circuit, Tier.EV, 4)

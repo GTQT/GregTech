@@ -227,7 +227,7 @@ public class MaterialRecipeHandler {
             builder.input(dust, component.material, (int) component.amount);
         }
 
-        if (circuit < 0) builder.circuitMeta(amount % 10);
+        if (circuit <= 0) builder.circuitMeta(amount % 10 == 0 ? 10 : amount % 10);
         else builder.circuitMeta(circuit);
 
         builder.output(dust, material, amount)
