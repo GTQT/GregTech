@@ -2030,6 +2030,7 @@ public final class RecipeMaps {
             .generator()
             .disableJeiOverclockButton()
             .build();
+
     @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> COMBS_PRODUCT = new RecipeMapBuilder<>("combs_product",
             new SimpleRecipeBuilder())

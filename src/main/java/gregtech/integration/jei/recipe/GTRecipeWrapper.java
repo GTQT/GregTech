@@ -205,7 +205,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
     public void addIngredientTooltips(@NotNull Collection<String> tooltip, boolean notConsumed, boolean input,
                                       @Nullable Object ingredient, @Nullable Object ingredient2) {
         if (ingredient2 instanceof ChancedOutputLogic logic) {
-            if (ingredient instanceof BoostableChanceEntry<?>entry) {
+            if (ingredient instanceof BoostableChanceEntry<?> entry) {
                 double chance = entry.getChance() / 100.0;
                 double boost = entry.getChanceBoost() / 100.0;
                 if (logic != ChancedOutputLogic.NONE && logic != ChancedOutputLogic.OR) {
@@ -218,7 +218,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
                 // Add the total chance to the tooltip
                 if (recipeMap.jeiOverclockButtonEnabled()) {
-                    if(jeiTexts.isEmpty())initJeiTexts();
+                    if (jeiTexts.isEmpty()) initJeiTexts();
                     int tier = jeiTexts.get(0).getState();
                     int recipeTier = Math.max(GTValues.LV, GTUtility.getTierByVoltage(recipe.getEUt()));
                     int tierDifference = tier - recipeTier;
@@ -238,7 +238,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
             // check for "normal" data items
             if (stack.getItem() instanceof IDataItem) return;
             // check for metaitem data items
-            if (stack.getItem() instanceof MetaItem<?>metaItem) {
+            if (stack.getItem() instanceof MetaItem<?> metaItem) {
                 for (IItemBehaviour behaviour : metaItem.getBehaviours(stack)) {
                     if (behaviour instanceof IDataItem) {
                         return;
@@ -259,12 +259,17 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         var properties = storage.values();
         boolean drawTotalEU = properties.isEmpty() || properties.stream().noneMatch(RecipeProperty::hideTotalEU);
         boolean drawEUt = properties.isEmpty() || properties.stream().noneMatch(RecipeProperty::hideEUt);
+        boolean drawCalorific = recipeMap.isGenerator();
         boolean drawDuration = properties.isEmpty() || properties.stream().noneMatch(RecipeProperty::hideDuration);
         boolean drawMufflerDust = recipe.isHasSpecialMufflerDust();
 
         int defaultLines = 0;
         if (drawTotalEU) defaultLines++;
-        if (drawEUt) defaultLines++;
+        if (drawEUt) {
+            defaultLines++;
+            if (drawCalorific)
+                defaultLines++;
+        }
         if (drawDuration) defaultLines++;
         if (drawMufflerDust) defaultLines++;
 
@@ -276,6 +281,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         // [EUt, duration, color]
         long[] overclockResult = calculateJeiOverclock();
 
+        long totalEU = 0;
         // Default entries
         if (drawTotalEU) {
             // sadly we still need a custom override here, since computation uses duration and EU/t very differently
@@ -287,8 +293,9 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                         0x111111);
                 yPosition += LINE_HEIGHT;
             } else {
+                totalEU = overclockResult[0] * overclockResult[1];
                 minecraft.fontRenderer.drawString(
-                        I18n.format("gregtech.recipe.total", overclockResult[0] * overclockResult[1]), 0, yPosition,
+                        I18n.format("gregtech.recipe.total", totalEU), 0, yPosition,
                         (int) overclockResult[2]);
                 yPosition += LINE_HEIGHT;
             }
@@ -296,11 +303,22 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         if (drawEUt) {
             // scuffed way of dealing with 2 eu/t recipes, just recomputing instead of checking if eu/t <= 2
             minecraft.fontRenderer.drawString(
-                    I18n.format(recipe.getEUt() >= 0 ? "gregtech.recipe.eu" : "gregtech.recipe.eu_inverted",
+                    I18n.format(recipeMap.isGenerator() ? "gregtech.recipe.eu_inverted" : "gregtech.recipe.eu",
                             overclockResult[0],
                             GTValues.VOCNF[GTUtility.getOCTierByVoltage(overclockResult[0])]),
                     0, yPosition, (int) overclockResult[2]);
             yPosition += LINE_HEIGHT;
+
+            if (drawCalorific) {
+                if (totalEU == 0) {
+                    totalEU = overclockResult[0] * overclockResult[1];
+                }
+                //计算燃料数量
+                minecraft.fontRenderer.drawString(I18n.format("gregtech.recipe.eu_calorific",
+                                totalEU / getAmount()),
+                        0, yPosition, (int) overclockResult[2]);
+                yPosition += LINE_HEIGHT;
+            }
         }
         if (drawDuration) {
             minecraft.fontRenderer.drawString(
@@ -327,6 +345,21 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                 yPosition += property.getInfoHeight(value);
             }
         }
+    }
+
+    private double getAmount() {
+        if (recipe.getInputs() != null && !recipe.getInputs().isEmpty()) {
+            return recipe.getInputs().stream()
+                    .mapToDouble(GTRecipeInput::getAmount)
+                    .average()
+                    .orElse(1);
+        } else if (recipe.getFluidInputs() != null && !recipe.getFluidInputs().isEmpty()) {
+            return recipe.getFluidInputs().stream()
+                    .mapToDouble(GTRecipeInput::getAmount)
+                    .average()
+                    .orElse(1);
+        }
+        return 1;
     }
 
     @NotNull
@@ -425,7 +458,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         if (!recipeMap.jeiOverclockButtonEnabled())
             return new long[] { recipe.getEUt(), recipe.getDuration(), 0x111111 };
 
-        if(jeiTexts.isEmpty()) initJeiTexts();
+        if (jeiTexts.isEmpty()) initJeiTexts();
         // ULV doesn't overclock to LV, so treat ULV recipes as LV
         int recipeTier = Math.max(GTValues.LV, GTUtility.getTierByVoltage(recipe.getEUt()));
         // tier difference *should* not be negative here since at least displayOCTier() == recipeTier
@@ -446,7 +479,6 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
         return result;
     }
-
 
     public ChancedItemOutput getOutputChance(int slot) {
         if (slot >= recipe.getChancedOutputs().getChancedEntries().size() || slot < 0) return null;

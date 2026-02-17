@@ -101,6 +101,7 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
 
     public final String unlocalizedName;
     private boolean jeiOverclockButton = true;
+    private boolean isGenerator = false;
     private final R recipeBuilderSample;
     private int maxInputs;
     private int maxOutputs;
@@ -308,9 +309,19 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         return this;
     }
 
+    public RecipeMap<R> setGenerator() {
+        this.isGenerator = true;
+        return this;
+    }
+
     public boolean jeiOverclockButtonEnabled() {
         return this.jeiOverclockButton;
     }
+
+    public boolean isGenerator() {
+        return this.isGenerator;
+    }
+
     /**
      * Internal usage <strong>only</strong>, use {@link RecipeBuilder#buildAndRegister()}
      *

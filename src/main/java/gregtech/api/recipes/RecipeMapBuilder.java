@@ -37,7 +37,7 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     private int fluidOutputs;
     private boolean modifyFluidOutputs = true;
     private boolean jeiOverclockButton = true;
-    private boolean isGenerator;
+    private boolean isGenerator = false;
     private SoundEvent sound;
     private boolean allowEmptyOutputs;
 
@@ -372,6 +372,9 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
         }
         if (!jeiOverclockButton) {
             recipeMap.disableJeiOverclockButton();
+        }
+        if(isGenerator){
+            recipeMap.setGenerator();
         }
         recipeMap.getPrimaryRecipeCategory().jeiSortToBack(sortToBack);
         return recipeMap;
