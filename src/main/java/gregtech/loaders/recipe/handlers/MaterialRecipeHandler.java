@@ -210,14 +210,17 @@ public class MaterialRecipeHandler {
         if (EUt <= 0) EUt = VA[MV];
 
         int amount = 0;
+        int type = 0;
         // generate builder
         for (MaterialStack component : material.getMaterialComponents()) {
             amount += (int) component.amount;
+            type += 1;
+
         }
         RecipeBuilder<?> builder;
 
         builder = RecipeMaps.MIXER_RECIPES.recipeBuilder();
-        if (amount > 6)
+        if (type > 6)
             builder = LARGE_MIXER_RECIPES.recipeBuilder();
 
         for (MaterialStack component : material.getMaterialComponents()) {
