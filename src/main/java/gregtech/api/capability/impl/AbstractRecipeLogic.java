@@ -436,7 +436,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Override
     public void invalidateInputs() {
         this.invalidInputsForRecipes = true;
-        whyFailed = "根据当前输入没有找到配方";
     }
 
     /**
@@ -567,7 +566,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         } else  {
             // If no recipe was found, then inputs were invalid.
             this.invalidInputsForRecipes = true;
-            whyFailed = "根据当前输入无法找到匹配的配方";
+            whyFailed = "NoneRecipes";
             return;
         }
 

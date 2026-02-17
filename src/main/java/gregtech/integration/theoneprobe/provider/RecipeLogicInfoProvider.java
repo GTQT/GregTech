@@ -77,9 +77,13 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
             } else {
                 probeInfo.text(TextStyleClass.INFO + "{*gregtech.top.energy_production*} " + text);
             }
-        } else if (!Objects.equals(capability.getWhyFailed(), "")){
-            String text = TextFormatting.RED + capability.getWhyFailed();
-            probeInfo.text(TextStyleClass.INFO + "配方失败原因：" + text);
+        } else if (!Objects.equals(capability.getWhyFailed(), "")) {
+            if (capability.getWhyFailed().equals("NoneRecipes") && player.isSneaking()) {
+                probeInfo.text(TextStyleClass.INFO + "当前输入不构成配方");
+            } else {
+                String text = TextFormatting.RED + capability.getWhyFailed();
+                probeInfo.text(TextStyleClass.INFO + "配方失败原因：" + text);
+            }
         }
     }
 }
