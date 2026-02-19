@@ -770,21 +770,21 @@ public class GTGuiTextures {
 
     public static void init() {/**/}
 
-    private static UITexture fullImage(String path) {
+    public static UITexture fullImage(String path) {
         return fullImage(path, null);
     }
 
-    private static UITexture fullImage(String path, @Nullable ColorType colorType) {
+    public static UITexture fullImage(String path, @Nullable ColorType colorType) {
         return UITexture.fullImage(GTValues.MODID, path, colorType);
     }
 
     @SuppressWarnings("SameParameterValue")
-    private static UITexture[] slice(String path, int imageWidth, int imageHeight, int sliceWidth, int sliceHeight) {
+    public static UITexture[] slice(String path, int imageWidth, int imageHeight, int sliceWidth, int sliceHeight) {
         return slice(path, imageWidth, imageHeight, sliceWidth, sliceHeight, null);
     }
 
     @SuppressWarnings("SameParameterValue")
-    private static UITexture[] slice(String path, int imageWidth, int imageHeight, int sliceWidth, int sliceHeight,
+    public static UITexture[] slice(String path, int imageWidth, int imageHeight, int sliceWidth, int sliceHeight,
                                      @Nullable ColorType colorType) {
         if (imageWidth % sliceWidth != 0 || imageHeight % sliceHeight != 0)
             throw new IllegalArgumentException("Slice height and slice width must divide the image evenly!");
@@ -806,37 +806,37 @@ public class GTGuiTextures {
         return slices;
     }
 
-    private static UITexture[] slice(String path, int imageWidth, int imageHeight) {
+    public static UITexture[] slice(String path, int imageWidth, int imageHeight) {
         return slice(path, imageWidth, imageHeight, null);
     }
 
-    private static UITexture[] slice(String path, int imageWidth, int imageHeight, @Nullable ColorType colorType) {
+    public static UITexture[] slice(String path, int imageWidth, int imageHeight, @Nullable ColorType colorType) {
         int sliceSize = Math.min(imageWidth, imageHeight);
         return slice(path, imageWidth, imageHeight, sliceSize, sliceSize, colorType);
     }
 
-    private static IDrawable animated(String path, int imageWidth, int imageHeight, int rate) {
+    public static IDrawable animated(String path, int imageWidth, int imageHeight, int rate) {
         return dynamic(slice(path, imageWidth, imageHeight, null), rate);
     }
 
-    private static IDrawable animated(String path, int imageWidth, int imageHeight, @Nullable ColorType colorType,
+    public static IDrawable animated(String path, int imageWidth, int imageHeight, @Nullable ColorType colorType,
                                       int rate) {
         return dynamic(slice(path, imageWidth, imageHeight, colorType), rate);
     }
 
-    private static UITexture progressBar(String path) {
+    public static UITexture progressBar(String path) {
         return progressBar(path, 20, 40);
     }
 
-    private static UITexture progressBar(String path, @Nullable ColorType colorType) {
+    public static UITexture progressBar(String path, @Nullable ColorType colorType) {
         return progressBar(path, 20, 40, colorType);
     }
 
-    private static UITexture progressBar(String path, int width, int height) {
+    public static UITexture progressBar(String path, int width, int height) {
         return progressBar(path, width, height, null);
     }
 
-    private static UITexture progressBar(String path, int width, int height, @Nullable ColorType colorType) {
+    public static UITexture progressBar(String path, int width, int height, @Nullable ColorType colorType) {
         return new UITexture.Builder()
                 .location(GTValues.MODID, path)
                 .imageSize(width, height)

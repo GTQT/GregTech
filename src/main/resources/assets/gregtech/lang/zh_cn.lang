@@ -6195,7 +6195,6 @@ gregtech.machine.substation_hatch.output_64a.max.name=64安§c§lMAX§r变电动
 
 gregtech.machine.rotor_holder.tooltip1=为多方块结构固定转子，使其不能飞走
 gregtech.machine.rotor_holder.tooltip2=需要前方3*1*3的区域（中空）是否为空气
-gregtech.machine.rotor_holder.tooltip3=转子在工作时会对前方3*5*3的区域产生吸力，同时接触到转子的实体会受到伤害且转子也会受到损耗
 
 gregtech.machine.rotor_holder.hv.name=§6HV§r转子支架
 gregtech.machine.rotor_holder.ev.name=§5EV§r转子支架

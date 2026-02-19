@@ -60,8 +60,7 @@ public class MetaTileEntityRotorHolder extends MetaTileEntityMultiblockNotifiabl
 
     static final int SPEED_INCREMENT = 1;
     static final int SPEED_DECREMENT = 3;
-    // 最小推动转速
-    private static final double MIN_SPEED_TO_PUSH = 2000;
+
     private final InventoryRotorHolder inventory;
     private final int maxSpeed;
     private int currentSpeed;
@@ -124,7 +123,6 @@ public class MetaTileEntityRotorHolder extends MetaTileEntityMultiblockNotifiabl
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.machine.rotor_holder.tooltip1"));
         tooltip.add(I18n.format("gregtech.machine.rotor_holder.tooltip2"));
-        tooltip.add(I18n.format("gregtech.machine.rotor_holder.tooltip3"));
         tooltip.add(I18n.format("gregtech.universal.disabled"));
     }
 

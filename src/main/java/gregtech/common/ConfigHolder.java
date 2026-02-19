@@ -201,7 +201,7 @@ public class ConfigHolder {
         @Config.Comment({ "The sampling rate for structure checks for machines that require a structure.",
         "Each failed sampling increases the proportion of the next sampling until the test is completed"})
         @Config.RangeDouble(min = 0.05,max = 1)
-        public double delayStructureCheckSample = 0.20
+        public double delayStructureCheckSample = 0.20;
     }
 
     public static class WorldGenOptions {
