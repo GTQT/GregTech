@@ -1,0 +1,26 @@
+item.gt.tool.chisel.name=%s Chisel
+gt.tool.class.chisel=Chisel
+
+item.gt.tool.wand.name=%s Wand
+gt.tool.class.wand=Wand
+
+# singleblock
+# Auto Chisel
+gregtech.machine.auto_chisel.lv.name=基础自动凿岩机
+gregtech.machine.auto_chisel.lv.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.mv.name=高级自动凿岩机
+gregtech.machine.auto_chisel.mv.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.hv.name=高级自动凿岩机 II
+gregtech.machine.auto_chisel.hv.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.ev.name=高级自动凿岩机 III
+gregtech.machine.auto_chisel.ev.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.iv.name=精英自动凿岩机
+gregtech.machine.auto_chisel.iv.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.luv.name=精英自动凿岩机 II
+gregtech.machine.auto_chisel.luv.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.zpm.name=精英自动凿岩机 III
+gregtech.machine.auto_chisel.zpm.tooltip=你的理想，由我们雕琢。
+gregtech.machine.auto_chisel.uv.name=终极自动凿岩机
+gregtech.machine.auto_chisel.uv.tooltip=你的理想，由我们雕琢。
+# recipemaps
+recipemap.auto_chisel.name=Auto Chisel

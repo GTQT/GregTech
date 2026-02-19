@@ -61,7 +61,9 @@ dependencies {
     compileOnly rfg.deobf("curse.maven:baubles-227083:2518667") // Baubles 1.5.2
     implementation rfg.deobf("curse.maven:forestry-59751:2684780") // Forestry 5.8.2.387
     implementation rfg.deobf("curse.maven:binnies-mods-patched-899182:5492997") // Binnie's Mods Patched 2.5.1.212
-    compileOnly rfg.deobf("curse.maven:chisel-235279:2915375") // Chisel 1.0.2.45
+    implementation rfg.deobf("curse.maven:chisel-235279:2915375") // Chisel 1.0.2.45
+    implementation rfg.deobf("curse.maven:better-builders-wands-238403:2691084")
+    implementation rfg.deobf("curse.maven:gtmoretools-1458022:7614303")
     compileOnly rfg.deobf("curse.maven:littletiles-257818:4750222") // LittleTiles 1.5.82-1.12.2
     compileOnly rfg.deobf("curse.maven:creativecore-257814:4722163") // Creative Core 1.10.71
 

@@ -58,6 +58,7 @@ public enum Mods {
     GregTech(Names.GREGTECH),
     GregTechFoodOption(Names.GREGTECH_FOOD_OPTION),
     GroovyScript(Names.GROOVY_SCRIPT),
+    GTMT(Names.GT_MORE_TOOLS),
     GTCE2OC(Names.GTCE_2_OC),
     HWYLA(Names.HWYLA),
     ImmersiveEngineering(Names.IMMERSIVE_ENGINEERING),
@@ -139,6 +140,7 @@ public enum Mods {
         public static final String GREGTECH = GTValues.MODID;
         public static final String GREGTECH_FOOD_OPTION = "gregtechfoodoption";
         public static final String GROOVY_SCRIPT = "groovyscript";
+        public static final String GT_MORE_TOOLS = "gtmt";
         public static final String GTCE_2_OC = "gtce2oc";
         public static final String HWYLA = "hwyla";
         public static final String IMMERSIVE_ENGINEERING = "immersiveengineering";

@@ -1,0 +1,18 @@
+# singleblock
+# Auto Chisel
+gregtech.machine.auto_chisel.lv.name=Basic Auto Chisel
+gregtech.machine.auto_chisel.lv.tooltip=Your ideal, we will sculpt it./nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.mv.name=Advanced Auto Chisel
+gregtech.machine.auto_chisel.mv.tooltip=Your ideal, we will sculpt it/nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.hv.name=Advanced Auto Chisel II
+gregtech.machine.auto_chisel.hv.tooltip=Your ideal, we will sculpt it/nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.ev.name=Advanced Auto Chisel III
+gregtech.machine.auto_chisel.ev.tooltip=Your ideal, we will sculpt it./nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.iv.name=Elite Auto Chisel
+gregtech.machine.auto_chisel.iv.tooltip=Your ideal, we will sculpt it/nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.luv.name=Elite Auto Chisel II
+gregtech.machine.auto_chisel.luv.tooltip=Your ideal, we will sculpt it/nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.zpm.name=Elite Auto Chisel III
+gregtech.machine.auto_chisel.zpm.tooltip=Your ideal, we will sculpt it./nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940
+gregtech.machine.auto_chisel.uv.name=Ultimate Auto Chisel
+gregtech.machine.auto_chisel.uv.tooltip=Your ideal, we will sculpt it/nMaterial in the left, chiseling to the right. See JEI's Chiseling page for details./n§dAuthor:§f @tier940

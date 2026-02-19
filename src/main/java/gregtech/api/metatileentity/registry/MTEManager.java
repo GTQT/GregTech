@@ -45,7 +45,7 @@ public final class MTEManager {
     public @NotNull MTERegistry getRegistry(@NotNull String modid) {
         MTERegistry registry = registryMap.get(modid);
         if (registry == null) {
-            throw new IllegalArgumentException("No MTE registry exists for modid " + modid);
+            registry = registryMap.get("gregtech");
         }
         return registry;
     }
