@@ -86,6 +86,18 @@ public class Textures {
             "casings/solid/machine_casing_stable_titanium");
     public static final SimpleOverlayRenderer ROBUST_TUNGSTENSTEEL_CASING = new SimpleOverlayRenderer(
             "casings/solid/machine_casing_robust_tungstensteel");
+
+    public static final SimpleOverlayRenderer TURBINE_STEEL_CASING = new SimpleOverlayRenderer(
+            "casings/mechanic/machine_casing_turbine_steel");
+    public static final SimpleOverlayRenderer TURBINE_STAINLESS_STEEL_CASING = new SimpleOverlayRenderer(
+            "casings/mechanic/machine_casing_turbine_stainless_steel");
+    public static final SimpleOverlayRenderer TURBINE_TITANIUM_CASING = new SimpleOverlayRenderer(
+            "casings/mechanic/machine_casing_turbine_titanium");
+    public static final SimpleOverlayRenderer TURBINE_TUNGSTENSTEEL_CASING = new SimpleOverlayRenderer(
+            "casings/mechanic/machine_casing_turbine_tungstensteel");
+
+
+
     public static final SimpleOverlayRenderer STURDY_HSSE_CASING = new SimpleOverlayRenderer(
             "casings/solid/machine_casing_sturdy_hsse");
     public static final SimpleOverlayRenderer PALLADIUM_SUBSTATION_CASING = new SimpleOverlayRenderer(

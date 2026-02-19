@@ -158,6 +158,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static gregtech.api.GTValues.*;
 import static gregtech.api.util.GTUtility.gregtechId;
 
 public class MetaTileEntities {
@@ -574,7 +575,7 @@ public class MetaTileEntities {
                         gregtechId(String.format("%s.%s", "arc_furnace", voltageName)),
                         RecipeMaps.ARC_FURNACE_RECIPES,
                         -1,
-                        tier >= GTValues.EV ? 9 : 4,
+                        tier >= EV ? 9 : 4,
                         Textures.ARC_FURNACE_OVERLAY,
                         tier,
                         false,
@@ -917,22 +918,22 @@ public class MetaTileEntities {
         CRACKER = registerMetaTileEntity(1009, new MetaTileEntityCrackingUnit(gregtechId("cracker")));
 
         LARGE_STEAM_TURBINE = registerMetaTileEntity(1010,
-                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.steam"), RecipeMaps.STEAM_TURBINE_FUELS, 3,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.steam"), RecipeMaps.STEAM_TURBINE_FUELS, HV,
                         MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STEEL_TURBINE_CASING),
                         MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STEEL_GEARBOX),
-                        Textures.SOLID_STEEL_CASING, false, Textures.LARGE_STEAM_TURBINE_OVERLAY));
+                        Textures.TURBINE_STEEL_CASING, false, Textures.LARGE_STEAM_TURBINE_OVERLAY));
 
         LARGE_GAS_TURBINE = registerMetaTileEntity(1011,
-                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.gas"), RecipeMaps.GAS_TURBINE_FUELS, 4,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.gas"), RecipeMaps.GAS_TURBINE_FUELS, EV,
                         MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STAINLESS_TURBINE_CASING),
                         MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STAINLESS_STEEL_GEARBOX),
-                        Textures.CLEAN_STAINLESS_STEEL_CASING, true, Textures.LARGE_GAS_TURBINE_OVERLAY));
+                        Textures.TURBINE_STAINLESS_STEEL_CASING, true, Textures.LARGE_GAS_TURBINE_OVERLAY));
 
         LARGE_PLASMA_TURBINE = registerMetaTileEntity(1012,
-                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.plasma"), RecipeMaps.PLASMA_GENERATOR_FUELS, 5,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.plasma"), RecipeMaps.PLASMA_GENERATOR_FUELS, IV,
                         MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.TUNGSTENSTEEL_TURBINE_CASING),
                         MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.TUNGSTENSTEEL_GEARBOX),
-                        Textures.ROBUST_TUNGSTENSTEEL_CASING, false, Textures.LARGE_PLASMA_TURBINE_OVERLAY));
+                        Textures.TURBINE_TUNGSTENSTEEL_CASING, false, Textures.LARGE_PLASMA_TURBINE_OVERLAY));
 
         LARGE_BRONZE_BOILER = registerMetaTileEntity(1013,
                 new MetaTileEntityLargeBoiler(gregtechId("large_boiler.bronze"), BoilerType.BRONZE));
@@ -960,8 +961,8 @@ public class MetaTileEntities {
         STEAM_OVEN = registerMetaTileEntity(1024, new MetaTileEntitySteamOven(gregtechId("steam_oven")));
         STEAM_GRINDER = registerMetaTileEntity(1025, new MetaTileEntitySteamGrinder(gregtechId("steam_grinder")));
 
-        BASIC_LARGE_MINER = registerMetaTileEntity(1026, new MetaTileEntityLargeMiner(gregtechId("large_miner.ev"), GTValues.EV, 16, 3, 4, Materials.Steel, 8));
-        LARGE_MINER = registerMetaTileEntity(1027, new MetaTileEntityLargeMiner(gregtechId("large_miner.iv"), GTValues.IV, 4, 5, 5, Materials.Titanium, 16));
+        BASIC_LARGE_MINER = registerMetaTileEntity(1026, new MetaTileEntityLargeMiner(gregtechId("large_miner.ev"), EV, 16, 3, 4, Materials.Steel, 8));
+        LARGE_MINER = registerMetaTileEntity(1027, new MetaTileEntityLargeMiner(gregtechId("large_miner.iv"), IV, 4, 5, 5, Materials.Titanium, 16));
         ADVANCED_LARGE_MINER = registerMetaTileEntity(1028, new MetaTileEntityLargeMiner(gregtechId("large_miner.luv"), GTValues.LuV, 1, 7, 6, Materials.TungstenSteel, 32));
 
         CENTRAL_MONITOR = registerMetaTileEntity(1029, new MetaTileEntityCentralMonitor(gregtechId("central_monitor")));
@@ -1102,9 +1103,9 @@ public class MetaTileEntities {
 
         //激光 1530-
         endPos = GregTechAPI.isHighTier() ? LASER_INPUT_HATCH_256.length - 1 :
-                Math.min(LASER_INPUT_HATCH_256.length - 1, GTValues.UHV - GTValues.IV);
+                Math.min(LASER_INPUT_HATCH_256.length - 1, GTValues.UHV - IV);
         for (int i = 0; i < endPos; i++) {
-            int v = i + GTValues.IV;
+            int v = i + IV;
             String voltageName = GTValues.VN[v].toLowerCase();
             LASER_INPUT_HATCH_256[i] = registerMetaTileEntity(1530 + i,
                     new MetaTileEntityLaserHatch(gregtechId("laser_hatch.target_256a." + voltageName), false, v, 256));
@@ -1256,7 +1257,7 @@ public class MetaTileEntities {
         DATA_ACCESS_HATCH[0] = registerMetaTileEntity(1910,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.i"), GTValues.MV, false));
         DATA_ACCESS_HATCH[1] = registerMetaTileEntity(1911,
-                new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.ii"), GTValues.EV, false));
+                new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.ii"), EV, false));
         DATA_ACCESS_HATCH[2] = registerMetaTileEntity(1912,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.iii"), GTValues.LuV, false));
         DATA_ACCESS_HATCH[3] = registerMetaTileEntity(1913,

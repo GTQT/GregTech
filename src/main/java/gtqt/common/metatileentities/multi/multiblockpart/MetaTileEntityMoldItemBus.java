@@ -220,8 +220,11 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
     }
 
     public int getInventorySize() {
-        int sizeRoot = 1 + Math.min(GTValues.UHV, getTier());
-        return sizeRoot * sizeRoot;
+        return getTankSize() * getTankSize();
+    }
+
+    protected int getTankSize() {
+        return 1 + Math.min(GTValues.UHV, getTier());
     }
 
     @Override
@@ -304,7 +307,7 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
-        int rowSize = (int) Math.sqrt(getInventorySize());
+        int rowSize = getTankSize();
         panelSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(

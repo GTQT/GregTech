@@ -150,7 +150,7 @@ public class RenderItemMixin {
             int damage = stack.getItemDamage();
 
             // Create string, position, and color
-            String string = format(((maxDamage - damage) * (unbreaking + 1)));
+            String string = gregTech$format(((maxDamage - damage) * (unbreaking + 1)));
             int stringWidth = fr.getStringWidth(string);
             int x = ((xPosition + 8) * 2 + 1 + stringWidth / 2 - stringWidth);
 
@@ -174,13 +174,11 @@ public class RenderItemMixin {
     }
 
     @Unique
-    public String format(float number) {
+    public String gregTech$format(float number) {
         DecimalFormat decimalFormat = new DecimalFormat("0.#");
-
         if (number >= 1000000000) return decimalFormat.format(number / 1000000000) + "b";
         if (number >= 1000000) return decimalFormat.format(number / 1000000) + "m";
         if (number >= 1000) return decimalFormat.format(number / 1000) + "k";
-
         return Float.toString(number).replaceAll("\\.?0*$", "");
     }
 }

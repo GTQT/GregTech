@@ -13,7 +13,6 @@ import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -58,13 +57,13 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -250,7 +249,7 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = getTier();
+        int rowSize = getTankSize();
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
@@ -266,16 +265,22 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
                 IItemHandlerModifiable handler = commonItems;
                 widgets.get(i)
                         .add(new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(handler, index)
+                                .slot(new ModularSlot(handler, index) {
+
+                                    @Override
+                                    public int getSlotStackLimit() {
+                                        return Integer.MAX_VALUE;
+                                    }
+                                }
+                                        .ignoreMaxStackSize(true)
                                         .slotGroup("item_inv")
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
                                             if (onlyAmountChanged &&
-                                                    handler instanceof GTItemStackHandler gtHandler) {
+                                                    handler instanceof LargeSlotItemStackHandler gtHandler) {
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
                                         .accessibility(true, true)));
-
             }
             widgets.get(i).add(new GTFluidSlot()
                     .syncHandler(GTFluidSlot.sync(commonFluids.getTankAt(i))

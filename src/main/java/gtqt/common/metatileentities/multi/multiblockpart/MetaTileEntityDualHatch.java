@@ -223,7 +223,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
     @SuppressWarnings("DuplicatedCode")
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = (int) Math.sqrt(getItemSize());
+        int rowSize = getTankSize();
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(

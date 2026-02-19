@@ -246,7 +246,7 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = getTier();
+        int rowSize = getTankSize();
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
