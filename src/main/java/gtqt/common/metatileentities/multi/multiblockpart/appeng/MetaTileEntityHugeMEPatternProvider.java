@@ -429,6 +429,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         buf.writeBoolean(isBlockedMode());
         buf.writeBoolean(this.export);
         buf.writeBoolean(isAutoCollapse());
+        buf.writeInt(getShowName().length());
+        buf.writeString(getShowName());
     }
 
     @Override
@@ -437,6 +439,8 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         setBlockedMode(buf.readBoolean());
         setExport(buf.readBoolean());
         setAutoCollapse(buf.readBoolean());
+        int size = buf.readInt();
+        setShowName(buf.readString(size));
     }
 
     @Override

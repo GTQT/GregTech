@@ -177,6 +177,7 @@ public class GregtechDataCodes {
 
     //多线程
     public static final int UPDATE_THREAD_STATE = assignId();
+    public static final int UPDATE_SHOW_NAME = assignId();
 
     // NBT Keys
 

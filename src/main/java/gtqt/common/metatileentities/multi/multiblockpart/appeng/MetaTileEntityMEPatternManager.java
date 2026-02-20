@@ -31,7 +31,7 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
@@ -122,7 +122,12 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
         posListValue.updateCacheFromSource(true);
         guiSyncManager.syncValue("posList", posListValue);
 
-        StringSyncValue searchFieldValue = new StringSyncValue(() -> searchText, s -> searchText = s);
+        StringSyncValue searchFieldValue = new StringSyncValue(() -> searchText, s -> {
+            if(s==null)
+                searchText = "";
+            else
+                searchText = s;
+        });
         searchFieldValue.updateCacheFromSource(true);
 
         List<BlockPos> newList = stringToBlockPosList(posListValue.getStringValue());
@@ -134,187 +139,205 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
         else searchText = searchFieldValue.getStringValue();
 
         int num = 0;
-        for (BlockPos pos : newList) {
-            TileEntity te = this.getWorld().getTileEntity(pos);
-            if (te instanceof IGregTechTileEntity igtte) {
-                MetaTileEntity mte = igtte.getMetaTileEntity();
-                if (mte instanceof MetaTileEntityMEPatternProvider patternProvider && !patternProvider.isHideInfo()) {
-                    ItemStackHandler itemHandler = patternProvider.getPatternSlot();
-                    int slots = itemHandler.getSlots();
-                    int rowSize = patternProvider.getTier();
-                    num++;
-                    guiSyncManager.registerSlotGroup("pattern_slots" + num, slots);
+        if (newList != null) {
+            for (BlockPos pos : newList) {
+                TileEntity te = this.getWorld().getTileEntity(pos);
+                if (te instanceof IGregTechTileEntity igtte) {
+                    MetaTileEntity mte = igtte.getMetaTileEntity();
+                    if (mte instanceof MetaTileEntityMEPatternProvider patternProvider && !patternProvider.isHideInfo()) {
+                        ItemStackHandler itemHandler = patternProvider.getPatternSlot();
+                        int slots = itemHandler.getSlots();
+                        int rowSize = patternProvider.getTier();
+                        num++;
+                        guiSyncManager.registerSlotGroup("pattern_slots" + num, slots);
 
-                    List<IWidget> textWidgets = new ArrayList<>();
+                        List<IWidget> textWidgets = new ArrayList<>();
 
-                    String text = IKey.lang(patternProvider.getShowName()) +
-                            " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
+                        String text = IKey.lang(patternProvider.getShowName()) +
+                                " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
 
-                    if (patternProvider.getShowName().contains(searchText)) add = true;
-
-                    textWidgets.add(new ButtonWidget<>()
-                            .size(18, 18)
-                            .overlay(new ItemDrawable(patternProvider.getStackForm()).asIcon().size(16))
-                            .onMousePressed(mouseButton -> {
-                                patternProvider.noticePlayer("当前指向的样板总成：" + text, guiSyncManager.getPlayer());
-                                return true;
-                            })
-                            .addTooltipLine(IKey.str(text))
-                    );
-
-                    if (patternProvider.getController() != null) {
-                        String recipeName;
-                        if (patternProvider.getController().getRecipeLogic() != null) {
-                            RecipeMap<?> map = patternProvider.getController().getRecipeLogic().getRecipeMap();
-                            if (map != null) {
-                                recipeName = I18n.format(map.getTranslationKey());
-                            } else recipeName = "None";
-                        } else recipeName = "None";
-
-                        if (recipeName.contains(searchText)) add = true;
-
-                        String controllerName = IKey.lang(patternProvider.getController().getMetaFullName()).toString();
-                        String controllerText = controllerName +
-                                " X:" + patternProvider.getController().getPos().getX() + " Y:" +
-                                patternProvider.getController().getPos().getY() + " Z:" +
-                                patternProvider.getController().getPos().getZ();
-
-                        if (controllerName.contains(searchText)) add = true;
+                        if (patternProvider.getShowName().contains(searchText)) add = true;
 
                         textWidgets.add(new ButtonWidget<>()
                                 .size(18, 18)
-                                .overlay(new ItemDrawable(patternProvider.getController().getStackForm()).asIcon()
-                                        .size(16))
+                                .overlay(new ItemDrawable(patternProvider.getStackForm()).asIcon().size(16))
                                 .onMousePressed(mouseButton -> {
-                                    patternProvider.getController()
-                                            .noticePlayer("当前样板总成所属多方块：" + controllerText,
-                                                    guiSyncManager.getPlayer());
+                                    patternProvider.noticePlayer("当前指向的样板总成：" + text, guiSyncManager.getPlayer());
                                     return true;
                                 })
-                                .addTooltipLine(controllerText + IKey.str(" 当前配方：" + recipeName))
+                                .addTooltipLine(IKey.str(text))
                         );
-                    }
 
-                    if (add) {
-                        list.add(textWidgets);
+                        if (patternProvider.getController() != null) {
+                            String recipeName;
+                            if (patternProvider.getController().getRecipeLogic() != null) {
+                                RecipeMap<?> map = patternProvider.getController().getRecipeLogic().getRecipeMap();
+                                if (map != null) {
+                                    recipeName = I18n.format(map.getTranslationKey());
+                                } else recipeName = "None";
+                            } else recipeName = "None";
 
-                        for (int i = 0; i < rowSize; i++) {
-                            // 创建新行
-                            List<IWidget> rowWidgets = new ArrayList<>();
-                            for (int j = 0; j < rowSize; j++) {
-                                int index = i * rowSize + j;
+                            if (recipeName.contains(searchText)) add = true;
 
-                                // 在槽位范围内的创建ItemSlot
-                                rowWidgets.add(new ItemSlot()
-                                        .slot(SyncHandlers.itemSlot(itemHandler, index)
-                                                .slotGroup("pattern_slots" + num)
-                                                .accessibility(true, true))
-                                        .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
-                                );
-                            }
+                            String controllerName = IKey.lang(patternProvider.getController().getMetaFullName()).toString();
+                            String controllerText = controllerName +
+                                    " X:" + patternProvider.getController().getPos().getX() + " Y:" +
+                                    patternProvider.getController().getPos().getY() + " Z:" +
+                                    patternProvider.getController().getPos().getZ();
 
-                            // 将当前行添加到列表中
-                            list.add(rowWidgets);
+                            if (controllerName.contains(searchText)) add = true;
+
+                            textWidgets.add(new ButtonWidget<>()
+                                    .size(18, 18)
+                                    .overlay(new ItemDrawable(patternProvider.getController().getStackForm()).asIcon()
+                                            .size(16))
+                                    .onMousePressed(mouseButton -> {
+                                        patternProvider.getController()
+                                                .noticePlayer("当前样板总成所属多方块：" + controllerText,
+                                                        guiSyncManager.getPlayer());
+                                        return true;
+                                    })
+                                    .addTooltipLine(controllerText + IKey.str(" 当前配方：" + recipeName))
+                            );
                         }
-                    }
-                } else if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider &&
-                        !patternProvider.isHideInfo()) {
-                    ItemStackHandler itemHandler = patternProvider.getPatternSlot();
-                    int slots = itemHandler.getSlots();
-                    int rowSize = patternProvider.getTier();
-                    num++;
-                    guiSyncManager.registerSlotGroup("pattern_slots" + num, slots);
 
-                    List<IWidget> textWidgets = new ArrayList<>();
+                        if (add) {
+                            list.add(textWidgets);
 
-                    String text = IKey.lang(patternProvider.getShowName()) +
-                            " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
+                            for (int i = 0; i < rowSize; i++) {
+                                // 创建新行
+                                List<IWidget> rowWidgets = new ArrayList<>();
+                                for (int j = 0; j < rowSize; j++) {
+                                    int index = i * rowSize + j;
 
-                    if (patternProvider.getShowName().contains(searchText)) add = true;
+                                    // 在槽位范围内的创建ItemSlot
+                                    rowWidgets.add(new ItemSlot()
+                                            .slot(SyncHandlers.itemSlot(itemHandler, index)
+                                                    .slotGroup("pattern_slots" + num)
+                                                    .accessibility(true, true))
+                                            .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
+                                    );
+                                }
 
-                    textWidgets.add(new ButtonWidget<>()
-                            .size(18, 18)
-                            .overlay(new ItemDrawable(patternProvider.getStackForm()).asIcon().size(16))
-                            .onMousePressed(mouseButton -> {
-                                patternProvider.noticePlayer("当前指向的样板总成：" + text, guiSyncManager.getPlayer());
-                                return true;
-                            })
-                            .addTooltipLine(IKey.str(text))
-                    );
+                                // 将当前行添加到列表中
+                                list.add(rowWidgets);
+                            }
+                        }
+                    } else if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider &&
+                            !patternProvider.isHideInfo()) {
+                        ItemStackHandler itemHandler = patternProvider.getPatternSlot();
+                        int slots = itemHandler.getSlots();
+                        int rowSize = patternProvider.getTier();
+                        num++;
+                        guiSyncManager.registerSlotGroup("pattern_slots" + num, slots);
 
-                    if (patternProvider.getController() != null) {
-                        String recipeName;
-                        if (patternProvider.getController().getRecipeLogic() != null) {
-                            RecipeMap<?> map = patternProvider.getController().getRecipeLogic().getRecipeMap();
-                            if (map != null) {
-                                recipeName = I18n.format(map.getTranslationKey());
-                            } else recipeName = "None";
-                        } else recipeName = "None";
+                        List<IWidget> textWidgets = new ArrayList<>();
 
-                        if (recipeName.contains(searchText)) add = true;
+                        String text = IKey.lang(patternProvider.getShowName()) +
+                                " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
 
-                        String controllerName = IKey.lang(patternProvider.getController().getMetaFullName()).toString();
-                        String controllerText = controllerName +
-                                " X:" + patternProvider.getController().getPos().getX() + " Y:" +
-                                patternProvider.getController().getPos().getY() + " Z:" +
-                                patternProvider.getController().getPos().getZ();
-
-                        if (controllerName.contains(searchText)) add = true;
+                        if (patternProvider.getShowName().contains(searchText)) add = true;
 
                         textWidgets.add(new ButtonWidget<>()
                                 .size(18, 18)
-                                .overlay(new ItemDrawable(patternProvider.getController().getStackForm()).asIcon()
-                                        .size(16))
+                                .overlay(new ItemDrawable(patternProvider.getStackForm()).asIcon().size(16))
                                 .onMousePressed(mouseButton -> {
-                                    patternProvider.getController()
-                                            .noticePlayer("当前样板总成所属多方块：" + controllerText,
-                                                    guiSyncManager.getPlayer());
+                                    patternProvider.noticePlayer("当前指向的样板总成：" + text, guiSyncManager.getPlayer());
                                     return true;
                                 })
-                                .addTooltipLine(controllerText + IKey.str(" 当前配方：" + recipeName))
+                                .addTooltipLine(IKey.str(text))
                         );
-                    }
-                    if (add) {
-                        list.add(textWidgets);
 
-                        for (int i = 0; i < rowSize; i++) {
-                            // 创建新行
-                            List<IWidget> rowWidgets = new ArrayList<>();
-                            for (int j = 0; j < rowSize; j++) {
-                                int index = i * rowSize + j;
+                        if (patternProvider.getController() != null) {
+                            String recipeName;
+                            if (patternProvider.getController().getRecipeLogic() != null) {
+                                RecipeMap<?> map = patternProvider.getController().getRecipeLogic().getRecipeMap();
+                                if (map != null) {
+                                    recipeName = I18n.format(map.getTranslationKey());
+                                } else recipeName = "None";
+                            } else recipeName = "None";
 
-                                // 在槽位范围内的创建ItemSlot
-                                rowWidgets.add(new ItemSlot()
-                                        .slot(SyncHandlers.itemSlot(itemHandler, index)
-                                                .slotGroup("pattern_slots" + num)
-                                                .accessibility(true, true))
-                                        .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
-                                );
+                            if (recipeName.contains(searchText)) add = true;
+
+                            String controllerName = IKey.lang(patternProvider.getController().getMetaFullName()).toString();
+                            String controllerText = controllerName +
+                                    " X:" + patternProvider.getController().getPos().getX() + " Y:" +
+                                    patternProvider.getController().getPos().getY() + " Z:" +
+                                    patternProvider.getController().getPos().getZ();
+
+                            if (controllerName.contains(searchText)) add = true;
+
+                            textWidgets.add(new ButtonWidget<>()
+                                    .size(18, 18)
+                                    .overlay(new ItemDrawable(patternProvider.getController().getStackForm()).asIcon()
+                                            .size(16))
+                                    .onMousePressed(mouseButton -> {
+                                        patternProvider.getController()
+                                                .noticePlayer("当前样板总成所属多方块：" + controllerText,
+                                                        guiSyncManager.getPlayer());
+                                        return true;
+                                    })
+                                    .addTooltipLine(controllerText + IKey.str(" 当前配方：" + recipeName))
+                            );
+                        }
+                        if (add) {
+                            list.add(textWidgets);
+
+                            for (int i = 0; i < rowSize; i++) {
+                                // 创建新行
+                                List<IWidget> rowWidgets = new ArrayList<>();
+                                for (int j = 0; j < rowSize; j++) {
+                                    int index = i * rowSize + j;
+
+                                    // 在槽位范围内的创建ItemSlot
+                                    rowWidgets.add(new ItemSlot()
+                                            .slot(SyncHandlers.itemSlot(itemHandler, index)
+                                                    .slotGroup("pattern_slots" + num)
+                                                    .accessibility(true, true))
+                                            .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
+                                    );
+                                }
+
+                                // 将当前行添加到列表中
+                                list.add(rowWidgets);
                             }
-
-                            // 将当前行添加到列表中
-                            list.add(rowWidgets);
                         }
                     }
                 }
-            }
 
+            }
         }
 
         return GTGuis.createPanel(this, 176, 238)
                 .child(IKey.lang(getMetaFullName())
                         .asWidget()
                         .top(7).left(7))
-                .child(new TextFieldWidget()
-                        .widthRel(0.6f)
-                        .top(18)
+                .child(Column.column()
                         .leftRel(0.5f)
+                        .top(18)
+                        .widthRel(0.9f)
                         .height(18)
-                        .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                .addLine(IKey.str("搜索框")))
-                        .value(searchFieldValue)
-                        .setTextColor(Color.WHITE.darker(1))
-                        .background(GTGuiTextures.DISPLAY)
+                        .child(new TextFieldWidget()
+                                .leftRel(0.55f)
+                                .widthRel(0.7f)
+                                .top(0)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.str("搜索框")))
+                                .value(searchFieldValue)
+                                .setTextColor(Color.WHITE.darker(1))
+                                .background(GTGuiTextures.DISPLAY))
+
+                        .child(new ButtonWidget<>()
+                                .leftRel(0.10f)
+                                .top(0)
+                                .onMousePressed(mouseButton -> {
+                                    posListValue.setStringValue("null");
+                                    return true;
+                                })
+                                .overlay(GTGuiTextures.PATTERN_OVERLAY)
+                                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                        .addLine(IKey.str("刷新终端缓存，重新打开UI以刷新")))
+                        )
                 )
                 .child(new Grid()
                         .scrollable(new VerticalScrollData())
@@ -323,19 +346,6 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                         .height(18 * 6)
                         .leftRel(0.5f)
                         .matrix(list)
-                )
-                .child(Flow.column()
-                        .height(18)
-                        .pos(4, 132)
-                        .child(new ButtonWidget<>()
-                                .top(0)
-                                .onMousePressed(mouseButton -> {
-                                    posListValue.setStringValue("null");
-                                    return true;
-                                })
-                                .overlay(GTGuiTextures.PATTERN_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.str("刷新终端缓存，重新打开UI以刷新"))))
                 )
                 .bindPlayerInventory();
     }

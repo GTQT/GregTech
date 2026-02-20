@@ -56,7 +56,7 @@ public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, IT
                     if (itemStack != ItemStack.EMPTY && isItemValid(itemStack)) {
                         if (getProgrammableCircuit(itemStack).getName().equals("programmable_circuit")) {
                             machineMetaTile.setGhostCircuitConfig(getProgrammableCircuit(itemStack).getType());
-                            importItems.extractItem(i, itemStack.getCount(), false);
+                            importItems.extractItem(i, 1, false);
                             GTTransferUtils.addItemsToItemHandler(machineMetaTile.getExportItems(), false,
                                     Collections.singletonList(itemStack));
                         }
@@ -72,7 +72,7 @@ public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, IT
                         if (getProgrammableCircuit(itemStack).getName().equals("programmable_circuit")) {
 
                             configurable.setGhostCircuitConfig(getProgrammableCircuit(itemStack).getType());
-                            importItems.extractItem(i, itemStack.getCount(), false);
+                            importItems.extractItem(i, 1, false);
                             if (hatch.getController() instanceof MultiblockWithDisplayBase controller) {
                                 if (controller.getExportItems() == null) return;
 
