@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.client.renderer.texture.Textures;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.nbt.NBTTagCompound;
@@ -15,12 +16,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.networking.IGridNode;
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
@@ -29,6 +34,7 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +45,7 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_ME_POS;
 public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase {
 
     ArrayList<BlockPos> pos = new ArrayList<>();
+    String searchText = "";
 
     public MetaTileEntityMEPatternManager(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
@@ -106,24 +113,28 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                 () -> blockPosListToString(this.pos),
                 str -> {
                     if (str != null) {
-                        // 客户端：将字符串转换回 BlockPos 列表
                         List<BlockPos> newList = stringToBlockPosList(str);
                         this.pos.clear();
                         if (newList != null) this.pos.addAll(newList);
                     }
                 }
         );
-
-        // 注册到同步管理器
+        posListValue.updateCacheFromSource(true);
         guiSyncManager.syncValue("posList", posListValue);
 
-        List<BlockPos> newList = stringToBlockPosList(posListValue.getStringValue());
+        StringSyncValue searchFieldValue = new StringSyncValue(() -> searchText, s -> searchText = s);
+        searchFieldValue.updateCacheFromSource(true);
 
+        List<BlockPos> newList = stringToBlockPosList(posListValue.getStringValue());
         List<List<IWidget>> list = new ArrayList<>();
+
+        String searchText = "";
+        boolean add = false;
+        if (searchFieldValue.getStringValue() == "") add = true;
+        else searchText = searchFieldValue.getStringValue();
 
         int num = 0;
         for (BlockPos pos : newList) {
-
             TileEntity te = this.getWorld().getTileEntity(pos);
             if (te instanceof IGregTechTileEntity igtte) {
                 MetaTileEntity mte = igtte.getMetaTileEntity();
@@ -139,6 +150,8 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                     String text = IKey.lang(patternProvider.getShowName()) +
                             " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
 
+                    if (patternProvider.getShowName().contains(searchText)) add = true;
+
                     textWidgets.add(new ButtonWidget<>()
                             .size(18, 18)
                             .overlay(new ItemDrawable(patternProvider.getStackForm()).asIcon().size(16))
@@ -158,43 +171,54 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                             } else recipeName = "None";
                         } else recipeName = "None";
 
-                        String controllerText =IKey.lang(patternProvider.getController().getMetaFullName()) +
-                                " X:" + patternProvider.getController().getPos().getX() + " Y:" + patternProvider.getController().getPos().getY() + " Z:" + patternProvider.getController().getPos().getZ();
+                        if (recipeName.contains(searchText)) add = true;
+
+                        String controllerName = IKey.lang(patternProvider.getController().getMetaFullName()).toString();
+                        String controllerText = controllerName +
+                                " X:" + patternProvider.getController().getPos().getX() + " Y:" +
+                                patternProvider.getController().getPos().getY() + " Z:" +
+                                patternProvider.getController().getPos().getZ();
+
+                        if (controllerName.contains(searchText)) add = true;
 
                         textWidgets.add(new ButtonWidget<>()
                                 .size(18, 18)
                                 .overlay(new ItemDrawable(patternProvider.getController().getStackForm()).asIcon()
                                         .size(16))
                                 .onMousePressed(mouseButton -> {
-                                    patternProvider.getController().noticePlayer("当前样板总成所属多方块：" + controllerText, guiSyncManager.getPlayer());
+                                    patternProvider.getController()
+                                            .noticePlayer("当前样板总成所属多方块：" + controllerText,
+                                                    guiSyncManager.getPlayer());
                                     return true;
                                 })
                                 .addTooltipLine(controllerText + IKey.str(" 当前配方：" + recipeName))
                         );
                     }
 
-                    list.add(textWidgets);
+                    if (add) {
+                        list.add(textWidgets);
 
-                    for (int i = 0; i < rowSize; i++) {
-                        // 创建新行
-                        List<IWidget> rowWidgets = new ArrayList<>();
-                        for (int j = 0; j < rowSize; j++) {
-                            int index = i * rowSize + j;
+                        for (int i = 0; i < rowSize; i++) {
+                            // 创建新行
+                            List<IWidget> rowWidgets = new ArrayList<>();
+                            for (int j = 0; j < rowSize; j++) {
+                                int index = i * rowSize + j;
 
-                            // 在槽位范围内的创建ItemSlot
-                            rowWidgets.add(new ItemSlot()
-                                    .slot(SyncHandlers.itemSlot(itemHandler, index)
-                                            .slotGroup("pattern_slots" + num)
-                                            .accessibility(true, true))
-                                    .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
-                            );
+                                // 在槽位范围内的创建ItemSlot
+                                rowWidgets.add(new ItemSlot()
+                                        .slot(SyncHandlers.itemSlot(itemHandler, index)
+                                                .slotGroup("pattern_slots" + num)
+                                                .accessibility(true, true))
+                                        .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
+                                );
+                            }
+
+                            // 将当前行添加到列表中
+                            list.add(rowWidgets);
                         }
-
-                        // 将当前行添加到列表中
-                        list.add(rowWidgets);
                     }
-                }
-                else if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider && !patternProvider.isHideInfo()) {
+                } else if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider &&
+                        !patternProvider.isHideInfo()) {
                     ItemStackHandler itemHandler = patternProvider.getPatternSlot();
                     int slots = itemHandler.getSlots();
                     int rowSize = patternProvider.getTier();
@@ -203,8 +227,10 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
 
                     List<IWidget> textWidgets = new ArrayList<>();
 
-                    String text = IKey.str(patternProvider.getShowName()) +
+                    String text = IKey.lang(patternProvider.getShowName()) +
                             " X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
+
+                    if (patternProvider.getShowName().contains(searchText)) add = true;
 
                     textWidgets.add(new ButtonWidget<>()
                             .size(18, 18)
@@ -225,40 +251,50 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                             } else recipeName = "None";
                         } else recipeName = "None";
 
-                        String controllerText =IKey.lang(patternProvider.getController().getMetaFullName()) +
-                                " X:" + patternProvider.getController().getPos().getX() + " Y:" + patternProvider.getController().getPos().getY() + " Z:" + patternProvider.getController().getPos().getZ();
+                        if (recipeName.contains(searchText)) add = true;
+
+                        String controllerName = IKey.lang(patternProvider.getController().getMetaFullName()).toString();
+                        String controllerText = controllerName +
+                                " X:" + patternProvider.getController().getPos().getX() + " Y:" +
+                                patternProvider.getController().getPos().getY() + " Z:" +
+                                patternProvider.getController().getPos().getZ();
+
+                        if (controllerName.contains(searchText)) add = true;
 
                         textWidgets.add(new ButtonWidget<>()
                                 .size(18, 18)
                                 .overlay(new ItemDrawable(patternProvider.getController().getStackForm()).asIcon()
                                         .size(16))
                                 .onMousePressed(mouseButton -> {
-                                    patternProvider.getController().noticePlayer("当前样板总成所属多方块：" + controllerText, guiSyncManager.getPlayer());
+                                    patternProvider.getController()
+                                            .noticePlayer("当前样板总成所属多方块：" + controllerText,
+                                                    guiSyncManager.getPlayer());
                                     return true;
                                 })
                                 .addTooltipLine(controllerText + IKey.str(" 当前配方：" + recipeName))
                         );
                     }
+                    if (add) {
+                        list.add(textWidgets);
 
-                    list.add(textWidgets);
+                        for (int i = 0; i < rowSize; i++) {
+                            // 创建新行
+                            List<IWidget> rowWidgets = new ArrayList<>();
+                            for (int j = 0; j < rowSize; j++) {
+                                int index = i * rowSize + j;
 
-                    for (int i = 0; i < rowSize; i++) {
-                        // 创建新行
-                        List<IWidget> rowWidgets = new ArrayList<>();
-                        for (int j = 0; j < rowSize; j++) {
-                            int index = i * rowSize + j;
+                                // 在槽位范围内的创建ItemSlot
+                                rowWidgets.add(new ItemSlot()
+                                        .slot(SyncHandlers.itemSlot(itemHandler, index)
+                                                .slotGroup("pattern_slots" + num)
+                                                .accessibility(true, true))
+                                        .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
+                                );
+                            }
 
-                            // 在槽位范围内的创建ItemSlot
-                            rowWidgets.add(new ItemSlot()
-                                    .slot(SyncHandlers.itemSlot(itemHandler, index)
-                                            .slotGroup("pattern_slots" + num)
-                                            .accessibility(true, true))
-                                    .background(GTGuiTextures.SLOT, GTGuiTextures.PATTERN_OVERLAY)
-                            );
+                            // 将当前行添加到列表中
+                            list.add(rowWidgets);
                         }
-
-                        // 将当前行添加到列表中
-                        list.add(rowWidgets);
                     }
                 }
             }
@@ -269,9 +305,20 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                 .child(IKey.lang(getMetaFullName())
                         .asWidget()
                         .top(7).left(7))
+                .child(new TextFieldWidget()
+                        .widthRel(0.6f)
+                        .top(18)
+                        .leftRel(0.5f)
+                        .height(18)
+                        .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                .addLine(IKey.str("搜索框")))
+                        .value(searchFieldValue)
+                        .setTextColor(Color.WHITE.darker(1))
+                        .background(GTGuiTextures.DISPLAY)
+                )
                 .child(new Grid()
                         .scrollable(new VerticalScrollData())
-                        .top(18)
+                        .top(36)
                         .width(18 * 9 + 4)
                         .height(18 * 6)
                         .leftRel(0.5f)
@@ -288,7 +335,7 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                                 })
                                 .overlay(GTGuiTextures.PATTERN_OVERLAY)
                                 .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("刷新缓存，重新打开UI以刷新"))))
+                                        .addLine(IKey.str("刷新终端缓存，重新打开UI以刷新"))))
                 )
                 .bindPlayerInventory();
     }
@@ -299,13 +346,11 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
         if (pos.isEmpty()) {
             try {
                 for (IGridNode grid : getProxy().getGrid().getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
-                    System.out.println(grid.getGridBlock().getLocation());
                     pos.add(grid.getGridBlock().getLocation().getPos());
                 }
             } catch (Exception ignored) {}
             try {
                 for (IGridNode grid : getProxy().getGrid().getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
-                    System.out.println(grid.getGridBlock().getLocation());
                     pos.add(grid.getGridBlock().getLocation().getPos());
                 }
             } catch (Exception ignored) {}
@@ -347,6 +392,7 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
             data.setTag("posList", posListTag);
             data.setInteger("posListSize", pos.size());
         }
+        data.setString("searchText", searchText);
         return super.writeToNBT(data);
     }
 
@@ -369,6 +415,7 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
                 }
             }
         }
+        searchText = data.getString("searchText");
     }
 
     @Override
@@ -390,4 +437,9 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase 
         }
     }
 
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        Textures.FUSION_REACTOR_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
+    }
 }

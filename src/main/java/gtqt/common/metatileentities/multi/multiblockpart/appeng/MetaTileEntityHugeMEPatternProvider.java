@@ -807,8 +807,10 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
         StringSyncValue nameValue = new StringSyncValue(
                 () -> IKey.lang(getShowName()).toString(),
                 str -> {
-                    if (str != null) {
+                    if (str != "") {
                         setShowName(str);
+                    } else {
+                        setShowName(getMetaFullName());
                     }
                 }
         );

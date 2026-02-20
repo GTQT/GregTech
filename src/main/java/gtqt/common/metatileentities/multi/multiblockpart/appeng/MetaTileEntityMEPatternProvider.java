@@ -785,8 +785,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         StringSyncValue nameValue = new StringSyncValue(
                 () -> IKey.lang(getShowName()).toString(),
                 str -> {
-                    if (str != null) {
+                    if (str != "") {
                         setShowName(str);
+                    } else {
+                        setShowName(getMetaFullName());
                     }
                 }
         );
