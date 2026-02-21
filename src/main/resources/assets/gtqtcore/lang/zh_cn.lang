@@ -842,7 +842,12 @@ gregtech.machine.wireless_energy_hatch.output_1048576a.opv.name=1048576安无线
 gregtech.machine.wireless_energy_hatch.output_1048576a.max.name=1048576安无线动力仓（§c§lMAX§r）
 
 gregtech.machine.logistics_material_distributor.name=物料分配器
+
 gregtech.machine.huge_transformer.name=大型变压器
+gregtech.machine.huge_transformer.tooltip1=家门口的变电站
+gregtech.machine.huge_transformer.tooltip2=可以将任意数量的能量§f输入§7整合为任意数量的能量§f输出§7。
+gregtech.machine.huge_transformer.tooltip3=仅支持能源仓
+gregtech.machine.huge_transformer.tooltip4=在工作时拆除会触发瞬时电压等级威力的爆炸
 #gui
 gregtech.gui.output_item.tooltip.enabled=排出灰烬（是）
 gregtech.gui.output_item.tooltip.disabled=排出灰烬（否）

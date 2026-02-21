@@ -15,6 +15,7 @@ import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -107,6 +108,9 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
     @Override
     public void invalidateStructure() {
         super.invalidateStructure();
+        if (isWorkingEnabled()) {
+            explodeMultiblock(GTUtility.getTierByVoltage(averageIOLastSec) * 2);
+        }
         this.powerOutput = new EnergyContainerList(new ArrayList<>());
         this.powerInput = new EnergyContainerList(new ArrayList<>());
         setActive(false);
@@ -284,8 +288,10 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
                                boolean advanced) {
         tooltip.add(I18n.format("gregtech.machine.active_transformer.tooltip1"));
         tooltip.add(I18n.format("gregtech.machine.active_transformer.tooltip2"));
-        tooltip.add(I18n.format("gregtech.machine.active_transformer.tooltip3") + TooltipHelper.RAINBOW_SLOW +
-                I18n.format("gregtech.machine.active_transformer.tooltip3.5"));
+        tooltip.add(I18n.format("gregtech.machine.active_transformer.tooltip3"));
+        tooltip.add(I18n.format("gregtech.machine.active_transformer.tooltip4"));
+        tooltip.add(I18n.format("gregtech.machine.active_transformer.tooltip5") + TooltipHelper.BLINKING_RED +
+                I18n.format("gregtech.machine.active_transformer.tooltip5.5"));
     }
 
     public long getAverageIOLastSec() {

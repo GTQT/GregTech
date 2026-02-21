@@ -5782,8 +5782,11 @@ gregtech.multiblock.power_substation.description=蓄能变电站是一个用于�
 gregtech.machine.active_transformer.name=有源变压器
 gregtech.machine.active_transformer.tooltip1=变形金刚：伪装的激光
 gregtech.machine.active_transformer.tooltip2=可以将任意数量的能量§f输入§7整合为任意数量的能量§f输出§7。
-gregtech.machine.active_transformer.tooltip3=当你使用§d激光§7进行能量传输时，拥有惊人的传输距离。
-gregtech.machine.active_transformer.tooltip3.5= 
+gregtech.machine.active_transformer.tooltip3=支持普通能源仓，变电仓，激光仓
+gregtech.machine.active_transformer.tooltip4=在工作时拆除会触发瞬时电压等级威力的爆炸
+gregtech.machine.active_transformer.tooltip5=以惊人的传输距离传输
+gregtech.machine.active_transformer.tooltip5.5= Lasers§7.
+
 gregtech.multiblock.active_transformer.description=有源变压器是个多方块变压器，它可以接受任意数量，任意能量等级的能源仓输入，并以任意数量，任意能量等级的动力仓输出。有源变压器允许使用激光仓进行能量传输，这种长距离能量传输没有任何线损，但激光传导线缆必须位于一条直线上，否则不能传递能量。
 gregtech.machine.active_transformer.routing=路由模式
 gregtech.multiblock.active_transformer.max_in=最大输入：%s
