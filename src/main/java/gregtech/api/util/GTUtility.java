@@ -57,10 +57,13 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.MouseData;
 import com.google.common.util.concurrent.AtomicDouble;
@@ -1303,5 +1306,23 @@ public class GTUtility {
 
             world.spawnEntity(entity);
         }
+    }
+
+    /**
+     * Get a value multiplier based on what modifier keys the player is holding down. <br/>
+     * Returns {@code 1} if no modifiers are pressed, otherwise: <br/>
+     * - {@code shift}: x4 <br/>
+     * - {@code ctrl}: x16 <br/>
+     * - {@code alt}: x64 <br/>
+     * Holding down multiple modifiers multiplies their effects, so if the player is holding down {@code shift},
+     * {@code ctrl}, and {@code alt} all at the same time, this method will return {@code 4096}.
+     */
+    @SideOnly(Side.CLIENT)
+    public static int getButtonIncrementValue() {
+        int adjust = 1;
+        if (Interactable.hasShiftDown()) adjust *= 4;
+        if (Interactable.hasControlDown()) adjust *= 16;
+        if (Interactable.hasAltDown()) adjust *= 64;
+        return adjust;
     }
 }

@@ -40,7 +40,6 @@ import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,33 +76,39 @@ public class MultiblockUIBuilder {
     private IKey runningKey = IKey.lang("gregtech.multiblock.running").style(TextFormatting.GREEN);
     private Runnable onRebuild;
 
-    private static String formatRecipeRate(int recipeLength, long amount) {
-        float perSecond = ((float) amount / recipeLength) * 20f;
-
-
-        StringBuilder rate = new StringBuilder();
-
-        // 每秒
-        rate.append("(").append(String.format("%,.2f", perSecond).replaceAll("\\.?0+$", "")).append("/s)");
-
-        if(Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
-            float perMinute = perSecond * 60f;
-            float perHour = perMinute * 60f;
-            float perDay = perHour * 24f;
-            // 每分钟
-            rate.append(" (").append(String.format("%,.2f", perMinute).replaceAll("\\.?0+$", "")).append("/m)");
-
-            // 每小时
-            rate.append(" (").append(String.format("%,.2f", perHour).replaceAll("\\.?0+$", "")).append("/h)");
-
-            // 每天（24小时）
-            rate.append(" (").append(String.format("%,.2f", perDay).replaceAll("\\.?0+$", "")).append("/d)");
-        }
-        return rate.toString();
+    private static float calculatePerSecond(int recipeLength, long amount) {
+        return ((float) amount / recipeLength) * 20f;
     }
 
-    private static IKey formatRecipeData(IKey name, IKey amount, IKey rate) {
-        return IKey.comp(name, KeyUtil.string(TextFormatting.WHITE, " x "), amount, IKey.SPACE, rate);
+    private static String formatPerSecond(int recipeLength, long amount) {
+        float perSecond = calculatePerSecond(recipeLength, amount);
+        return formatRateValue(perSecond) + "/s";
+    }
+
+    private static String formatPerMinute(int recipeLength, long amount) {
+        float perSecond = calculatePerSecond(recipeLength, amount);
+        float perMinute = perSecond * 60f;
+        return formatRateValue(perMinute) + "/m";
+    }
+
+    private static String formatPerHour(int recipeLength, long amount) {
+        float perSecond = calculatePerSecond(recipeLength, amount);
+        float perHour = perSecond * 60f * 60f;
+        return formatRateValue(perHour) + "/h";
+    }
+
+    private static String formatPerDay(int recipeLength, long amount) {
+        float perSecond = calculatePerSecond(recipeLength, amount);
+        float perDay = perSecond * 60f * 60f * 24f;
+        return formatRateValue(perDay) + "/d";
+    }
+
+    private static String formatRateValue(float value) {
+        return String.format("%,.2f", value).replaceAll("\\.?0+$", "");
+    }
+
+    private static IKey formatRecipeData(IKey name, IKey amount) {
+        return IKey.comp(name, KeyUtil.string(TextFormatting.WHITE, " x "), amount);
     }
 
     @NotNull
@@ -729,13 +734,25 @@ public class MultiblockUIBuilder {
     private void addItemOutputLine(@NotNull ItemStack stack, long count, int recipeLength) {
         IKey name = KeyUtil.string(TextFormatting.AQUA, stack.getDisplayName());
         IKey amount = KeyUtil.number(TextFormatting.GOLD, count);
-        IKey rate = KeyUtil.string(TextFormatting.WHITE,
-                formatRecipeRate(getSyncer().syncInt(recipeLength), count));
+        IKey rateSecond = KeyUtil.string(TextFormatting.WHITE,
+                formatPerSecond(getSyncer().syncInt(recipeLength), count));
+        IKey rateMinute = KeyUtil.string(TextFormatting.WHITE,
+                formatPerMinute(getSyncer().syncInt(recipeLength), count));
+        IKey rateHour = KeyUtil.string(TextFormatting.WHITE,
+                formatPerHour(getSyncer().syncInt(recipeLength), count));
+        IKey rateDay = KeyUtil.string(TextFormatting.WHITE,
+                formatPerDay(getSyncer().syncInt(recipeLength), count));
+
 
         addKey(new GTObjectDrawable(stack, count)
                 .asIcon()
                 .asHoverable()
-                .addTooltipLine(formatRecipeData(name, amount, rate)), Operation::add);
+                .addTooltipLine(formatRecipeData(name, amount))
+                .addTooltipLine(rateSecond)
+                .addTooltipLine(rateMinute)
+                .addTooltipLine(rateHour)
+                .addTooltipLine(rateDay)
+                , Operation::add);
     }
 
     /**
@@ -747,13 +764,24 @@ public class MultiblockUIBuilder {
     private void addFluidOutputLine(@NotNull FluidStack stack, long count, int recipeLength) {
         IKey name = KeyUtil.fluid(TextFormatting.AQUA, stack);
         IKey amount = KeyUtil.number(TextFormatting.GOLD, count);
-        IKey rate = KeyUtil.string(TextFormatting.WHITE,
-                formatRecipeRate(getSyncer().syncInt(recipeLength), count));
+        IKey rateSecond = KeyUtil.string(TextFormatting.WHITE,
+                formatPerSecond(getSyncer().syncInt(recipeLength), count));
+        IKey rateMinute = KeyUtil.string(TextFormatting.WHITE,
+                formatPerMinute(getSyncer().syncInt(recipeLength), count));
+        IKey rateHour = KeyUtil.string(TextFormatting.WHITE,
+                formatPerHour(getSyncer().syncInt(recipeLength), count));
+        IKey rateDay = KeyUtil.string(TextFormatting.WHITE,
+                formatPerDay(getSyncer().syncInt(recipeLength), count));
 
         addKey(new GTObjectDrawable(stack, count)
                 .asIcon()
                 .asHoverable()
-                .addTooltipLine(formatRecipeData(name, amount, rate)), Operation::add);
+                        .addTooltipLine(formatRecipeData(name, amount))
+                        .addTooltipLine(rateSecond)
+                        .addTooltipLine(rateMinute)
+                        .addTooltipLine(rateHour)
+                        .addTooltipLine(rateDay)
+                , Operation::add);
     }
 
     /**
@@ -765,13 +793,25 @@ public class MultiblockUIBuilder {
                                           int count, int chance, int recipeLength) {
         IKey name = KeyUtil.string(TextFormatting.AQUA, output.getIngredient().getDisplayName());
         IKey amount = KeyUtil.number(TextFormatting.GOLD, count);
-        IKey rate = KeyUtil.string(TextFormatting.WHITE, formatRecipeRate(getSyncer().syncInt(recipeLength), count));
+        IKey rateSecond = KeyUtil.string(TextFormatting.WHITE,
+                formatPerSecond(getSyncer().syncInt(recipeLength), count));
+        IKey rateMinute = KeyUtil.string(TextFormatting.WHITE,
+                formatPerMinute(getSyncer().syncInt(recipeLength), count));
+        IKey rateHour = KeyUtil.string(TextFormatting.WHITE,
+                formatPerHour(getSyncer().syncInt(recipeLength), count));
+        IKey rateDay = KeyUtil.string(TextFormatting.WHITE,
+                formatPerDay(getSyncer().syncInt(recipeLength), count));
 
         addKey(new GTObjectDrawable(output, count)
                 .setBoostFunction(entry -> chance)
                 .asIcon()
                 .asHoverable()
-                .addTooltipLine(formatRecipeData(name, amount, rate)), Operation::add);
+                        .addTooltipLine(formatRecipeData(name, amount))
+                        .addTooltipLine(rateSecond)
+                        .addTooltipLine(rateMinute)
+                        .addTooltipLine(rateHour)
+                        .addTooltipLine(rateDay)
+                , Operation::add);
     }
 
     /**
@@ -783,14 +823,25 @@ public class MultiblockUIBuilder {
                                            int count, int chance, int recipeLength) {
         IKey name = KeyUtil.fluid(TextFormatting.AQUA, output.getIngredient());
         IKey amount = KeyUtil.number(TextFormatting.GOLD, count);
-        IKey rate = KeyUtil.string(TextFormatting.WHITE,
-                formatRecipeRate(getSyncer().syncInt(recipeLength), count));
+        IKey rateSecond = KeyUtil.string(TextFormatting.WHITE,
+                formatPerSecond(getSyncer().syncInt(recipeLength), count));
+        IKey rateMinute = KeyUtil.string(TextFormatting.WHITE,
+                formatPerMinute(getSyncer().syncInt(recipeLength), count));
+        IKey rateHour = KeyUtil.string(TextFormatting.WHITE,
+                formatPerHour(getSyncer().syncInt(recipeLength), count));
+        IKey rateDay = KeyUtil.string(TextFormatting.WHITE,
+                formatPerDay(getSyncer().syncInt(recipeLength), count));
 
         addKey(new GTObjectDrawable(output, count)
                 .setBoostFunction(entry -> chance)
                 .asIcon()
-                .asHoverable()
-                .addTooltipLine(formatRecipeData(name, amount, rate)), Operation::add);
+                        .asHoverable()
+                        .addTooltipLine(formatRecipeData(name, amount))
+                        .addTooltipLine(rateSecond)
+                        .addTooltipLine(rateMinute)
+                        .addTooltipLine(rateHour)
+                        .addTooltipLine(rateDay)
+                , Operation::add);
     }
 
     /** Insert an empty line into the text list. */

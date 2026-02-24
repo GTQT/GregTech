@@ -7106,6 +7106,9 @@ gregtech.creative.energy.amperage=电流
 gregtech.creative.energy.voltage=电压
 gregtech.creative.energy.sink=归零
 gregtech.creative.energy.source=最大值
+gregtech.creative.energy.io=每秒平均能流: %s
+gregtech.creative.energy.amps_plus=增加电压
+gregtech.creative.energy.amps_minus=降低电压
 
 gregtech.creative.activity.on=已激活
 gregtech.creative.activity.off=未激活
