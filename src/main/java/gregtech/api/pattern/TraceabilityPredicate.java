@@ -16,7 +16,12 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -215,12 +220,26 @@ public class TraceabilityPredicate {
     }
 
     public boolean test(BlockWorldState blockWorldState) {
+        for (SimplePredicate predicate : limited) {
+            boolean needGlobal = predicate.minGlobalCount > 0 &&
+                    blockWorldState.globalCount.getOrDefault(predicate, 0) < predicate.minGlobalCount;
+            boolean needLayer = predicate.minLayerCount > 0 &&
+                    blockWorldState.layerCount.getOrDefault(predicate, 0) < predicate.minLayerCount;
+
+            if (needGlobal || needLayer) {
+                if (predicate.testLimited(blockWorldState)) {
+                    return true;
+                }
+            }
+        }
+
         boolean flag = false;
         for (SimplePredicate predicate : limited) {
             if (predicate.testLimited(blockWorldState)) {
                 flag = true;
             }
         }
+
         return flag || common.stream().anyMatch(predicate -> predicate.test(blockWorldState));
     }
 
