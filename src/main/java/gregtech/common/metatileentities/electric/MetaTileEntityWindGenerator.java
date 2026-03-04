@@ -7,12 +7,12 @@ import gregtech.api.metatileentity.TieredMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.core.advancement.AdvancementTriggers;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -176,11 +176,7 @@ public class MetaTileEntityWindGenerator extends TieredMetaTileEntity {
     @Override
     public void onRemoval() {
         super.onRemoval();
-        var pos = getPos();
-        if (!inventory.getStackInSlot(0).isEmpty()) {
-            getWorld().spawnEntity(new EntityItem(getWorld(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                    inventory.getStackInSlot(0)));
-        }
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), inventory);
     }
 
     @Override
@@ -244,12 +240,6 @@ public class MetaTileEntityWindGenerator extends TieredMetaTileEntity {
     }
 
     @Override
-    public void clearMachineInventory(@NotNull List<@NotNull ItemStack> itemBuffer) {
-        super.clearMachineInventory(itemBuffer);
-        clearInventory(itemBuffer, inventory);
-    }
-
-    @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setTag("inventory", inventory.serializeNBT());
@@ -270,11 +260,6 @@ public class MetaTileEntityWindGenerator extends TieredMetaTileEntity {
         this.weatherEfficiency = data.getDouble("WeatherEfficiency");
         this.baseRotorDamage = data.getInteger("BaseRotorDamage");
         this.weatherRotorDamageBonus = data.getInteger("WeatherRotorDamageBonus");
-    }
-
-    // 获取当前总效率（可用于UI显示）
-    public double getCurrentEfficiency() {
-        return heightEfficiency * weatherEfficiency * biomeEfficiency;
     }
 
     @Override

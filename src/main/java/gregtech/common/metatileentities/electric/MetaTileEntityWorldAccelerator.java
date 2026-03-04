@@ -9,6 +9,7 @@ import gregtech.api.metatileentity.TieredMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.util.GTLog;
+import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
 
@@ -48,18 +49,15 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
 
     private static final Map<String, Class<?>> blacklistedClasses = new Object2ObjectOpenHashMap<>();
     private static final Object2BooleanFunction<Class<? extends TileEntity>> blacklistCache = new Object2BooleanOpenHashMap<>();
+    // Variables for Random Tick mode optimization
+    // limit = ((tier - min) / (max - min)) * 2^tier
+    private static final int[] SUCCESS_LIMITS = { 1, 8, 27, 64, 125, 216, 343, 512, 729, 1000, 1331, 1728, 2197, 2744 };
     private static boolean gatheredClasses = false;
-
     private final int speed;
-
+    private final int successLimit;
     private boolean tileMode = false;
     private boolean isActive = false;
     private boolean isPaused = false;
-
-    // Variables for Random Tick mode optimization
-    // limit = ((tier - min) / (max - min)) * 2^tier
-    private static final int[] SUCCESS_LIMITS = { 1, 8, 27, 64, 125, 216, 343, 512, 729, 1000, 1331, 1728, 2197, 2744};
-    private final int successLimit;
     private BlockPos bottomLeftCorner;
 
     public MetaTileEntityWorldAccelerator(ResourceLocation metaTileEntityId, int tier) {
@@ -67,6 +65,53 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
         this.speed = (int) Math.pow(2, tier);
         this.successLimit = SUCCESS_LIMITS[tier - 1];
         initializeInventory();
+    }
+
+    private static void gatherWorldAcceleratorBlacklist() {
+        if (!gatheredClasses) {
+            for (String name : ConfigHolder.machines.worldAcceleratorBlacklist) {
+                if (!blacklistedClasses.containsKey(name)) {
+                    try {
+                        blacklistedClasses.put(name, Class.forName(name));
+                    } catch (ClassNotFoundException ignored) {
+                        GTLog.logger.warn("Could not find class {} for World Accelerator Blacklist!", name);
+                    }
+                }
+            }
+
+            try {
+                // Block CoFH tile entities by default, non-overridable
+                String cofhTileClass = "cofh.thermalexpansion.block.device.TileDeviceBase";
+                blacklistedClasses.put(cofhTileClass, Class.forName(cofhTileClass));
+            } catch (ClassNotFoundException ignored) {/**/}
+
+            gatheredClasses = true;
+        }
+    }
+
+    private static boolean canTileAccelerate(TileEntity tile) {
+        // Check GT tiles first
+        if (tile instanceof IGregTechTileEntity || tile instanceof TileEntityPipeBase) return false;
+
+        gatherWorldAcceleratorBlacklist();
+
+        final Class<? extends TileEntity> tileClass = tile.getClass();
+        if (blacklistCache.containsKey(tileClass)) {
+            // Tile already tracked, return the value
+            return blacklistCache.getBoolean(tileClass);
+        }
+
+        // Tile not tracked, see if it is a subclass of a blacklisted class or not
+        for (Class<?> clazz : blacklistedClasses.values()) {
+            if (clazz.isAssignableFrom(tileClass)) {
+                // Is a subclass, so it cannot be accelerated
+                blacklistCache.put(tileClass, false);
+                return false;
+            }
+        }
+        // Is not a subclass, so it can be accelerated
+        blacklistCache.put(tileClass, true);
+        return true;
     }
 
     @Override
@@ -150,12 +195,22 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
         for (EnumFacing facing : EnumFacing.VALUES) {
             TileEntity te = getNeighbor(facing);
 
-            if (!(te instanceof ITickable tickable)) continue;
-            if (te.isInvalid()) continue;
-            if (!canTileAccelerate(te)) continue;
+            MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(world, pos.offset(facing));
 
-            for (int i = 0; i < speed; i++) {
-                tickable.update();
+            if (metaTileEntity != null) {
+                for (int i = 0; i < speed; i++) {
+                    metaTileEntity.update();
+                }
+                continue;
+            }
+
+            if (te instanceof ITickable tickable) {
+                if (te.isInvalid()) continue;
+                if (!canTileAccelerate(te)) continue;
+
+                for (int i = 0; i < speed; i++) {
+                    tickable.update();
+                }
             }
         }
         return true;
@@ -244,6 +299,10 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
         return true;
     }
 
+    public boolean isTEMode() {
+        return tileMode;
+    }
+
     public void setTEMode(boolean inverted) {
         if (tileMode != inverted) {
             this.tileMode = inverted;
@@ -254,10 +313,6 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
                 markDirty();
             }
         }
-    }
-
-    public boolean isTEMode() {
-        return tileMode;
     }
 
     @Override
@@ -335,52 +390,5 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
             return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
         }
         return super.getCapability(capability, side);
-    }
-
-    private static void gatherWorldAcceleratorBlacklist() {
-        if (!gatheredClasses) {
-            for (String name : ConfigHolder.machines.worldAcceleratorBlacklist) {
-                if (!blacklistedClasses.containsKey(name)) {
-                    try {
-                        blacklistedClasses.put(name, Class.forName(name));
-                    } catch (ClassNotFoundException ignored) {
-                        GTLog.logger.warn("Could not find class {} for World Accelerator Blacklist!", name);
-                    }
-                }
-            }
-
-            try {
-                // Block CoFH tile entities by default, non-overridable
-                String cofhTileClass = "cofh.thermalexpansion.block.device.TileDeviceBase";
-                blacklistedClasses.put(cofhTileClass, Class.forName(cofhTileClass));
-            } catch (ClassNotFoundException ignored) {/**/}
-
-            gatheredClasses = true;
-        }
-    }
-
-    private static boolean canTileAccelerate(TileEntity tile) {
-        // Check GT tiles first
-        if (tile instanceof IGregTechTileEntity || tile instanceof TileEntityPipeBase) return false;
-
-        gatherWorldAcceleratorBlacklist();
-
-        final Class<? extends TileEntity> tileClass = tile.getClass();
-        if (blacklistCache.containsKey(tileClass)) {
-            // Tile already tracked, return the value
-            return blacklistCache.getBoolean(tileClass);
-        }
-
-        // Tile not tracked, see if it is a subclass of a blacklisted class or not
-        for (Class<?> clazz : blacklistedClasses.values()) {
-            if (clazz.isAssignableFrom(tileClass)) {
-                // Is a subclass, so it cannot be accelerated
-                blacklistCache.put(tileClass, false);
-                return false;
-            }
-        }
-        // Is not a subclass, so it can be accelerated
-        blacklistCache.put(tileClass, true);
-        return true;
     }
 }
