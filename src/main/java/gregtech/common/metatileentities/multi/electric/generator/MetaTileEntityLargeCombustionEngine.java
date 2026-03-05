@@ -368,6 +368,11 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
         return getEnergyContainer().getEnergyCanBeInserted() < recipeMapWorkable.getRecipeEUt();
     }
 
+    @Override
+    public double getPollutionAmount() {
+        return isExtreme ? 0.025 : 0.02;
+    }
+
     private static class LargeCombustionEngineWorkableHandler extends MultiblockFuelRecipeLogic {
 
         private boolean isOxygenBoosted = false;

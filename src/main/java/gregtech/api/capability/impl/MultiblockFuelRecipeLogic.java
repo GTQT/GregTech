@@ -22,7 +22,6 @@ import java.util.List;
 
 public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
-    ParallelLogicType type;
     protected long totalContinuousRunningTime;
     private int previousDuration = 0;
 
@@ -52,12 +51,6 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
         if (maintenanceValues.getFirst() > 0) {
             ocResult.setDuration((int) (ocResult.duration() * (1 - 0.1 * maintenanceValues.getFirst())));
         }
-    }
-
-    @NotNull
-    @Override
-    public ParallelLogicType getParallelLogicType() {
-        return type;
     }
 
     @Override

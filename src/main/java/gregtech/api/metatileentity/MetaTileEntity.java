@@ -33,7 +33,6 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
-import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.RenderUtil;
@@ -254,7 +253,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                                boolean advanced) {
         if (ConfigHolder.machines.doTerrainExplosion && getIsWeatherOrTerrainResistant())
             tooltip.add(I18n.format("gregtech.universal.tooltip.terrain_resist"));
-        TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
     }
 
     /**

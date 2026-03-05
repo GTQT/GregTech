@@ -599,6 +599,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                                boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
         TooltipBuilder.createDefault().build(this, tooltip);
+        TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
     }
 
     @Override

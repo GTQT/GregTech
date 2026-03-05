@@ -181,8 +181,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     protected IItemHandlerModifiable createExportItemHandler() {
-        return isExportHatch ? new LargeSlotItemStackHandler(this, getInventorySize(), getController(), true) :
-                new GTItemStackHandler(this, 0);
+        return isExportHatch ? largeSlotItemStackHandler : new GTItemStackHandler(this, 0);
     }
 
     @Override
