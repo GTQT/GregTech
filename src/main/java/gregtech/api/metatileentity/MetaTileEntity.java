@@ -880,7 +880,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     /**
      * 如果是要写污染的附属自己mixin这个方法实现
-     * ConfigHolder.machines.delayStructureCheckSwitch 是污染开关
+     * ConfigHolder.machines.enablePollution 是污染开关
      * @param amount 污染的量
      * @param ticks 污染的触发间隔
      */

@@ -59,7 +59,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                    IThreadController {
 
     public final RecipeMap<?> recipeMap;
-    protected ArrayList<MultiblockRecipeLogic> recipeMapWorkable = new ArrayList<>();
+    protected ArrayList<MultiblockRecipeLogic> recipeMapWorkable;
 
     protected int thread = 1;
 
@@ -101,7 +101,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         if (!isActive()) {
             recipeMapWorkable = new ArrayList<>();
             for (int i = 0; i < currentThread; i++) {
-                recipeMapWorkable.add(new MultiblockRecipeLogic(this));
+                recipeMapWorkable.add(new MultiblockRecipeLogic(this){
+                    @Override
+                    public long getMaximumOverclockVoltage() {
+                        return super.getMaximumOverclockVoltage()/currentThread;
+                    }
+                });
             }
         }
     }
