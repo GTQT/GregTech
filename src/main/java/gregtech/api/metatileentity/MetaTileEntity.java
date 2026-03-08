@@ -854,14 +854,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public void update() {
-        if (!allowTickAcceleration() && getWorld().getMinecraftServer() != null) {
-            int currentTick = getWorld().getMinecraftServer().getTickCounter();
-            if (currentTick == lastTick) {
-                return;
-            }
-            lastTick = currentTick;
-        }
-
         for (MTETrait mteTrait : this.mteTraits.values()) {
             if (shouldUpdate(mteTrait)) {
                 mteTrait.update();
@@ -873,7 +865,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         } else {
             updateSound();
         }
-        if (getOffsetTimer() % 5 == 0L) {
+        if (getOffsetTimer() % 10 == 0L) {
             updateLightValue();
         }
     }
@@ -902,15 +894,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     @Override
     public int getPollutionTicks() {
         return 20;
-    }
-
-    /**
-     * @return Whether this machine is allowed to be tick accelerated by external means. This does NOT apply to World
-     * Accelerators from GT, those will never work on machines. This refers to effects like Time in a Bottle, or
-     * Torcherino, or similar.
-     */
-    public boolean allowTickAcceleration() {
-        return ConfigHolder.machines.allowTickAcceleration;
     }
 
     protected boolean shouldUpdate(MTETrait trait) {

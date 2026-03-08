@@ -101,10 +101,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         if (!isActive()) {
             recipeMapWorkable = new ArrayList<>();
             for (int i = 0; i < currentThread; i++) {
-                recipeMapWorkable.add(new MultiblockRecipeLogic(this){
+                recipeMapWorkable.add(new MultiblockRecipeLogic(this) {
+
                     @Override
                     public long getMaximumOverclockVoltage() {
-                        return super.getMaximumOverclockVoltage()/currentThread;
+                        return super.getMaximumOverclockVoltage() / currentThread;
                     }
                 });
             }
@@ -198,7 +199,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setThread(int thread) {
-        if(!this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty()){
+        if (!this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty()) {
             this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).setCurrentThread(thread);
         }
     }
@@ -366,6 +367,13 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         super.writeToNBT(data);
         data.setBoolean("isDistinct", isDistinct);
         data.setInteger("thread", thread);
+        int i = 0;
+        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable) {
+            if (recipeMapWorkable.progressTime == 0) continue;
+            data.setTag("rp" + i, recipeMapWorkable.serializeNBT());
+            i++;
+        }
+
         return data;
     }
 
@@ -375,6 +383,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         isDistinct = data.getBoolean("isDistinct");
         thread = data.getInteger("thread");
         refreshThread(thread);
+        int i = 0;
+        for (MultiblockRecipeLogic multiblockRecipeLogic : recipeMapWorkable) {
+            multiblockRecipeLogic.deserializeNBT(data.getCompoundTag("rp" + i));
+            i++;
+        }
     }
 
     @Override

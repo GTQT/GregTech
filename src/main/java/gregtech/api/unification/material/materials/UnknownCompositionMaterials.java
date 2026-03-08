@@ -629,7 +629,8 @@ public class UnknownCompositionMaterials {
         TreatedWood = Material.builder(1648, gregtechId("treated_wood"))
                 .wood()
                 .color(0x674A28).iconSet(WOOD)
-                .flags(GENERATE_PLATE, GENERATE_ROD, GENERATE_FRAME)
+                .flags(GENERATE_PLATE, GENERATE_ROD, GENERATE_FRAME, GENERATE_BOLT_SCREW, GENERATE_GEAR,
+                        GENERATE_SMALL_GEAR)
                 .fluidPipeProperties(340, 10, false)
                 .build();
 

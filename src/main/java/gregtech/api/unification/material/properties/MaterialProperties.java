@@ -4,7 +4,13 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class MaterialProperties {
 
@@ -42,6 +48,10 @@ public class MaterialProperties {
             return;
         propertyMap.put(key, value);
         propertyMap.remove(PropertyKey.EMPTY);
+    }
+
+    public void removeProperty(PropertyKey<?> key) {
+        if (hasProperty(key)) propertyMap.remove(key);
     }
 
     public <T extends IMaterialProperty> void ensureSet(PropertyKey<T> key, boolean verify) {

@@ -187,11 +187,6 @@ public class ConfigHolder {
         @Config.RequiresMcRestart
         public boolean highTierContent = true;
 
-        @Config.Comment({ "Whether tick acceleration effects are allowed to affect GT machines.",
-                "This does NOT apply to the World Accelerator, but to external effects like Time in a Bottle.",
-                "Default: true" })
-        public boolean allowTickAcceleration = true;
-
         //是否开启抽样多方块成型检测
         @Config.Comment({ "Whether to enable sampling for structure checks for machines that require a structure.",
         "Note! Sampling molding testing will only be performed if the multi-block delay detection is turned on"})

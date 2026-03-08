@@ -166,11 +166,6 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
     }
 
     @Override
-    public boolean allowTickAcceleration() {
-        return false;
-    }
-
-    @Override
     public void update() {
         super.update();
         if (!getWorld().isRemote) {

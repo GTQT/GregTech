@@ -130,12 +130,13 @@ public class ToolRecipeHandler {
 
                 ModHandler.addShapedEnergyTransferRecipe(recipeName, powerUnitStack,
                         Ingredient.fromStacks(batteryStack), true, false,
-                        "S d", "GMG", "PBP",
-                        'M', motorItems.get(tier).getStackForm(),
-                        'S', new UnificationEntry(OrePrefix.screw, baseMaterials.get(tier)),
+                        "YRf", "PSP", "XPH",
+                        'R', new UnificationEntry(OrePrefix.stick, baseMaterials.get(tier)),
                         'P', new UnificationEntry(OrePrefix.plate, baseMaterials.get(tier)),
-                        'G', new UnificationEntry(OrePrefix.gearSmall, baseMaterials.get(tier)),
-                        'B', batteryStack);
+                        'S', new UnificationEntry(OrePrefix.spring, baseMaterials.get(tier)),
+                        'Y', new UnificationEntry(OrePrefix.screw, baseMaterials.get(tier)),
+                        'H', batteryStack,
+                        'X', motorItems.get(tier).getStackForm());
             }
         }
     }
