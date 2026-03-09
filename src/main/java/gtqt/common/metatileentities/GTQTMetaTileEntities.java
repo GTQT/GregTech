@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gtqt.common.metatileentities.heat.MetaTileEntityElectricHeater;
@@ -42,6 +43,8 @@ import static gregtech.common.metatileentities.MetaTileEntities.registerMetaTile
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class GTQTMetaTileEntities {
+
+    public static final MetaTileEntityQuantumMultiTank[] MULTI_QUANTUM_TANK = new MetaTileEntityQuantumMultiTank[10];
 
     public static final MetaTileEntityDualHatch[] DUAL_IMPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length - 2]; // All tiers but MAX
     public static final MetaTileEntityDualHatch[] DUAL_EXPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length - 2];
@@ -111,7 +114,23 @@ public class GTQTMetaTileEntities {
     //任务：GTQT内不方便写的内容转移到这里来写
     //例如 高等级的能源仓 激光仓等等
     public static void initialization() {
-        //总成类 maxTier-2
+
+        // Multi Super / Quantum Tanks, IDs 2400-
+        for (int i = 0; i < 5; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_super_tank." + voltageName), i + 1,
+                    4000000 * (int) Math.pow(2, i));
+            registerMetaTileEntity(2400 + i, MULTI_QUANTUM_TANK[i]);
+        }
+
+        for (int i = 5; i < MULTI_QUANTUM_TANK.length; i++) {
+            String voltageName = GTValues.VN[i].toLowerCase();
+            int capacity = i == GTValues.UHV ? Integer.MAX_VALUE : 4000000 * (int) Math.pow(2, i);
+            MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_quantum_tank." + voltageName), i, capacity);
+            registerMetaTileEntity(2400 + i, MULTI_QUANTUM_TANK[i]);
+        }
+
+        //总成类, IDs 2500-
         for(int i=0;i<DUAL_IMPORT_HATCH.length;i++)
         {
             String voltageName = GTValues.VN[i+1].toLowerCase();

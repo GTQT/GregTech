@@ -243,4 +243,122 @@ public class QuantumStorageRenderer implements IconRegistrar {
         float lightmapYCoord = actualLight >> 16;
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lightmapXCoord, lightmapYCoord);
     }
+
+    /**
+     * 渲染4个流体槽的液位（正面分成2x2网格）
+     */
+    public static void renderMultiTankFluids(CCRenderState renderState, Matrix4 translation,
+                                             IVertexOperation[] pipeline, FluidTank[] tanks, IBlockAccess world,
+                                             BlockPos pos, EnumFacing frontFacing) {
+
+        if (!ConfigHolder.client.enableFancyChestRender) return;
+        if (world != null) {
+            renderState.setBrightness(world, pos);
+        }
+
+        // 2x2网格布局参数（每个槽位占1/4区域）
+        float[][] offsets = {
+                {1.0625f / 16.0f, 1.0625f / 16.0f},   // 槽位0: 左下
+                {8.0f / 16.0f, 1.0625f / 16.0f},      // 槽位1: 右下
+                {1.0625f / 16.0f, 8.0f / 16.0f},      // 槽位2: 左上
+                {8.0f / 16.0f, 8.0f / 16.0f}         // 槽位3: 右上
+        };
+        float slotSize = 6.875f / 16.0f;
+
+        for (int i = 0; i < tanks.length; i++) {
+            FluidTank tank = tanks[i];
+            if (tank == null) continue;
+
+            FluidStack stack = tank.getFluid();
+            if (stack == null || stack.amount == 0) continue;
+
+            Fluid fluid = stack.getFluid();
+            if (fluid == null) continue;
+
+            double fillFraction = (double) stack.amount / tank.getCapacity();
+            boolean gas = fluid.isGaseous(stack);
+
+            float minX = offsets[i][0];
+            float minZ = offsets[i][1];
+            float maxX = minX + slotSize;
+            float maxZ = minZ + slotSize;
+            float minY = 2.0625f / 16.0f;
+            float maxY = gas ? 14.0f / 16.0f : Math.min((float) ((11.875 * fillFraction) + 2.0625), 14.0f) / 16.0f;
+
+            if (gas) {
+                minY = Math.max((float) (13.9375 - (11.875 * fillFraction)), 2.0f) / 16.0f;
+            }
+
+            Cuboid6 partialFluidBox = new Cuboid6(minX, minY, minZ, maxX, maxY, maxZ);
+
+            renderState.setFluidColour(stack);
+            ResourceLocation fluidStill = fluid.getStill(stack);
+            TextureAtlasSprite fluidStillSprite = Minecraft.getMinecraft().getTextureMapBlocks()
+                    .getAtlasSprite(fluidStill.toString());
+
+            Textures.renderFace(renderState, translation, pipeline, frontFacing, partialFluidBox,
+                    fluidStillSprite, BlockRenderLayer.CUTOUT_MIPPED);
+            Textures.renderFace(renderState, translation, pipeline, gas ? EnumFacing.DOWN : EnumFacing.UP,
+                    partialFluidBox, fluidStillSprite, BlockRenderLayer.CUTOUT_MIPPED);
+        }
+
+        GlStateManager.resetColor();
+        renderState.reset();
+    }
+
+    /**
+     * 渲染4个流体槽的数量显示（正面分成2x2网格）
+     */
+    public static void renderMultiTankAmount(double x, double y, double z, EnumFacing frontFacing, long[] amounts) {
+        float lastBrightnessX = OpenGlHelper.lastBrightnessX;
+        float lastBrightnessY = OpenGlHelper.lastBrightnessY;
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
+
+        float[][] textOffsets = {
+                {-0.25f, -0.25f},   // 槽位0: 左下
+                { 0.25f, -0.25f},   // 槽位1: 右下
+                {-0.25f,  0.25f},   // 槽位2: 左上
+                { 0.25f,  0.25f}    // 槽位3: 右上
+        };
+
+        for (int i = 0; i < amounts.length; i++) {
+            if (amounts[i] <= 0) continue;
+
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x, y, z);
+
+            GlStateManager.translate(frontFacing.getXOffset() * -1 / 16f,
+                    frontFacing.getYOffset() * -1 / 16f,
+                    frontFacing.getZOffset() * -1 / 16f);
+            RenderUtil.moveToFace(0, 0, 0, frontFacing);
+
+            if (frontFacing.getAxis() == EnumFacing.Axis.Y) {
+                RenderUtil.rotateToFace(frontFacing, EnumFacing.SOUTH);
+            } else {
+                RenderUtil.rotateToFace(frontFacing, null);
+            }
+
+            float x_offset = textOffsets[i][0];
+            float z_offset = textOffsets[i][1];
+
+            GlStateManager.translate(x_offset, 0, z_offset);
+
+            String amountText = TextFormattingUtil.formatLongToCompactString(amounts[i], 4);
+
+            float scale_factor = 0.5f / 64;
+            GlStateManager.scale(scale_factor, scale_factor, 0);
+
+            GlStateManager.translate(-16, -16, 0);
+
+            GlStateManager.disableLighting();
+            textRenderer.setText(amountText);
+
+            textRenderer.draw(0, 7, 32, 14);
+            GlStateManager.enableLighting();
+
+            GlStateManager.popMatrix();
+        }
+
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lastBrightnessX, lastBrightnessY);
+    }
 }

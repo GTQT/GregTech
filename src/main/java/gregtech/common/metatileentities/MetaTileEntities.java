@@ -1327,7 +1327,7 @@ public class MetaTileEntities {
         QUANTUM_STORAGE_EXTENDER = registerMetaTileEntity(2022,
                 new MetaTileEntityQuantumExtender(gregtechId("quantum_storage_extender")));
 
-        // Super / Quantum Chests, IDs 1560-1574
+        // Super / Quantum Chests, IDs 2030-2040
         for (int i = 0; i < 5; i++) {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
             QUANTUM_CHEST[i] = new MetaTileEntityQuantumChest(gregtechId("super_chest." + voltageName), i + 1,
@@ -1342,7 +1342,7 @@ public class MetaTileEntities {
             registerMetaTileEntity(2030 + i, QUANTUM_CHEST[i]);
         }
 
-        // Super / Quantum Tanks, IDs 1575-1589
+        // Super / Quantum Tanks, IDs 2040-2050
         for (int i = 0; i < 5; i++) {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
             QUANTUM_TANK[i] = new MetaTileEntityQuantumTank(gregtechId("super_tank." + voltageName), i + 1,
@@ -1356,7 +1356,8 @@ public class MetaTileEntities {
             QUANTUM_TANK[i] = new MetaTileEntityQuantumTank(gregtechId("quantum_tank." + voltageName), i, capacity);
             registerMetaTileEntity(2040 + i, QUANTUM_TANK[i]);
         }
-        // Tanks, IDs 1596-1609
+
+        // Tanks, IDs 2050-
         WOODEN_TANK_VALVE = registerMetaTileEntity(2050,
                 new MetaTileEntityTankValve(gregtechId("tank_valve.wood"), false));
         WOODEN_TANK = registerMetaTileEntity(2051,
@@ -1372,7 +1373,7 @@ public class MetaTileEntities {
 
         MONITOR_SCREEN = registerMetaTileEntity(2056, new MetaTileEntityMonitorScreen(gregtechId("monitor_screen")));
 
-        // Drums, IDs 1610-1624
+        // Drums, IDs 2060-
         WOODEN_DRUM = registerMetaTileEntity(2060,
                 new MetaTileEntityDrum(gregtechId("drum.wood"), Materials.Wood, 16000));
         BRONZE_DRUM = registerMetaTileEntity(2061,
@@ -1405,7 +1406,7 @@ public class MetaTileEntities {
         NEUTRONIUM_DRUM = MetaTileEntities.registerMetaTileEntity(2074,
                 new MetaTileEntityDrum(gregtechId("drum.neutronium"), Materials.Neutronium, 16_384_000));
 
-        // Crates, IDs 1625-1635
+        // Crates, IDs 2080-
         WOODEN_CRATE = registerMetaTileEntity(2080,
                 new MetaTileEntityCrate(gregtechId("crate.wood"), Materials.Wood, 27, 9));
         BRONZE_CRATE = registerMetaTileEntity(2081,

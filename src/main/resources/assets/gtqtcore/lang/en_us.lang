@@ -132,6 +132,18 @@ metaitem.tool.disposable.butchery_knife.tooltip=Disposable Tool for crafting rec
 metaitem.tool.disposable.rolling_pin.name=Disposable Rolling Pin
 metaitem.tool.disposable.rolling_pin.tooltip=Disposable Tool for crafting recipes
 #hatch
+gregtech.machine.multi_super_tank.ulv.name=Multi Base Tank I
+gregtech.machine.multi_super_tank.lv.name=Multi Super Tank I
+gregtech.machine.multi_super_tank.mv.name=Multi Super Tank II
+gregtech.machine.multi_super_tank.hv.name=Multi Super Tank III
+gregtech.machine.multi_super_tank.ev.name=Multi Super Tank IV
+gregtech.machine.multi_super_tank.iv.name=Multi Super Tank V
+gregtech.machine.multi_quantum_tank.iv.name=Multi Quantum Tank I
+gregtech.machine.multi_quantum_tank.luv.name=Multi Quantum Tank II
+gregtech.machine.multi_quantum_tank.zpm.name=Multi Quantum Tank III
+gregtech.machine.multi_quantum_tank.uv.name=Multi Quantum Tank IV
+gregtech.machine.multi_quantum_tank.uhv.name=Multi Quantum Tank V
+
 gregtech.machine.huge_item_bus.import.ulv.name=ULV Huge Input Bus
 gregtech.machine.huge_item_bus.import.lv.name=LV Huge Input Bus
 gregtech.machine.huge_item_bus.import.mv.name=MV Huge Input Bus

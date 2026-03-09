@@ -133,6 +133,18 @@ metaitem.tool.disposable.butchery_knife.tooltip=仅用于合成的一次性工�
 metaitem.tool.disposable.rolling_pin.name=一次性擀面杖
 metaitem.tool.disposable.rolling_pin.tooltip=仅用于合成的一次性工具
 #仓口
+gregtech.machine.multi_super_tank.ulv.name=多重初级缸 I
+gregtech.machine.multi_super_tank.lv.name=多重超级缸 I
+gregtech.machine.multi_super_tank.mv.name=多重超级缸 II
+gregtech.machine.multi_super_tank.hv.name=多重超级缸 III
+gregtech.machine.multi_super_tank.ev.name=多重超级缸 IV
+gregtech.machine.multi_super_tank.iv.name=多重超级缸 V
+gregtech.machine.multi_quantum_tank.iv.name=多重量子缸 I
+gregtech.machine.multi_quantum_tank.luv.name=多重量子缸 II
+gregtech.machine.multi_quantum_tank.zpm.name=多重量子缸 III
+gregtech.machine.multi_quantum_tank.uv.name=多重量子缸 IV
+gregtech.machine.multi_quantum_tank.uhv.name=多重量子缸 V
+
 gregtech.machine.huge_item_bus.import.ulv.name=§8ULV§r巨型输入总线
 gregtech.machine.huge_item_bus.import.lv.name=§7LV§r巨型输入总线
 gregtech.machine.huge_item_bus.import.mv.name=§bMV§r巨型输入总线
