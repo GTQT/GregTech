@@ -3,6 +3,7 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.capability.IDataAccessHatch;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IHPCAComponentHatch;
+import gregtech.api.capability.IHeat;
 import gregtech.api.capability.IHeatable;
 import gregtech.api.capability.ILaserContainer;
 import gregtech.api.capability.IMaintenanceHatch;
@@ -50,6 +51,8 @@ public class MultiblockAbility<T> {
             "input_heat", IHeatable.class);
     public static final MultiblockAbility<IHeatable> OUTPUT_HEAT = ability(
             "output_heat", IHeatable.class);
+    public static final MultiblockAbility<IHeat> HEAT_SENSOR = ability(
+            "heat_sensor", IHeat.class);
 
     public static final MultiblockAbility<IEnergyContainer> SUBSTATION_INPUT_ENERGY = ability(
             "substation_input_energy", IEnergyContainer.class);

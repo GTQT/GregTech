@@ -46,6 +46,7 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart implem
         }
     }
 
+    @Override
     public void update() {
         super.update();
     }

@@ -595,7 +595,7 @@ public class MetaTileEntityLoader {
                 MetaTileEntities.LARGE_COMBUSTION_ENGINE.getStackForm(), "PCP", "EME", "GWG", 'M',
                 MetaTileEntities.HULL[GTValues.EV].getStackForm(), 'P', MetaItems.ELECTRIC_PISTON_EV.getStackForm(),
                 'E', MetaItems.ELECTRIC_MOTOR_EV.getStackForm(), 'C', new UnificationEntry(OrePrefix.circuit, Tier.IV),
-                'W', new UnificationEntry(OrePrefix.cableGtSingle, Materials.Aluminium), 'G',
+                'W', new UnificationEntry(OrePrefix.cableGtSingle, TungstenSteel), 'G',
                 new UnificationEntry(OrePrefix.gear, Materials.Titanium));
         ModHandler.addShapedRecipe(true, "extreme_combustion_engine",
                 MetaTileEntities.EXTREME_COMBUSTION_ENGINE.getStackForm(), "PCP", "EME", "GWG", 'M',

@@ -429,6 +429,11 @@ gregtech.machine.electric_heater.ev.name=§5EV§r Electric Heater
 
 gregtech.machine.electric_heater.tooltip=Converts electrical energy into thermal energy
 
+gregtech.machine.heat_sensor.name=Heat Sensor
+gregtech.machine.heat_sensor.tooltip.1=Reads the heat of a multiblock and outputs a redstone signal.
+gregtech.machine.heat_sensor.tooltip.2=Increases the redstone signal level by 1 for every 200K above 373K (up to level 15).
+gregtech.machine.heat_sensor.tooltip.3=Use a screwdriver to right-click to invert the output (outputs level 15 at minimum temperature).
+
 gregtech.universal.tooltip.heat_in_till=§cMax Heat Input: §f%,d HU
 gregtech.universal.tooltip.heat_out_till=§cMax Heat Output: §f%,d HU
 gregtech.universal.tooltip.heat_storage_capacity=§bHeat Storage: §f%,d HU

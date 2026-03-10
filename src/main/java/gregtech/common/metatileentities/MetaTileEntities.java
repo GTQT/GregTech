@@ -911,9 +911,9 @@ public class MetaTileEntities {
         MULTI_FURNACE = registerMetaTileEntity(1006, new MetaTileEntityMultiSmelter(gregtechId("multi_furnace")));
 
         LARGE_COMBUSTION_ENGINE = registerMetaTileEntity(1007,
-                new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine"), 4));
+                new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine"), EV));
         EXTREME_COMBUSTION_ENGINE = registerMetaTileEntity(1008,
-                new MetaTileEntityLargeCombustionEngine(gregtechId("extreme_combustion_engine"), 5));
+                new MetaTileEntityLargeCombustionEngine(gregtechId("extreme_combustion_engine"), IV));
 
         CRACKER = registerMetaTileEntity(1009, new MetaTileEntityCrackingUnit(gregtechId("cracker")));
 

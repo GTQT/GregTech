@@ -135,6 +135,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
                 .sum();
     }
 
+    @Override
     public int getTemperature() {
         if (this.getHeatHatch() == null) return 293;
         return this.getHeatHatch()
@@ -154,6 +155,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
         TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
 
         predicate = predicate.or(abilities(MultiblockAbility.INPUT_HEAT).setPreviewCount(1).setMaxGlobalLimited(2));
+        predicate = predicate.or(abilities(MultiblockAbility.HEAT_SENSOR).setMaxGlobalLimited(1));
 
         if (checkItemIn) {
             if (recipeMap.getMaxInputs() > 0) {

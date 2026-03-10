@@ -108,6 +108,9 @@ public class GregtechDataCodes {
     // Item Bus Item Stack Auto Collapsing
     public static final int TOGGLE_COLLAPSE_ITEMS = assignId();
 
+    // Reverse Control
+    public static final int TOGGLE_REVERSE = assignId();
+
     // Fusion Reactor
     public static final int UPDATE_COLOR = assignId();
 

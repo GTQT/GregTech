@@ -431,6 +431,11 @@ gregtech.machine.electric_heater.ev.name=§5EV§r 电加热器
 
 gregtech.machine.electric_heater.tooltip=将电能转化为热能
 
+gregtech.machine.heat_sensor.name=热量传感器
+gregtech.machine.heat_sensor.tooltip.1=读取多方块的热量并输出红石信号
+gregtech.machine.heat_sensor.tooltip.2=温度每超过373k 200k则增加一级红石信号（最高15级信号）
+gregtech.machine.heat_sensor.tooltip.3=使用螺丝刀右键反转输出（温度最低时输出15级信号）
+
 gregtech.universal.tooltip.heat_in_till=§c输入热量上限：§f%,d HU
 gregtech.universal.tooltip.heat_out_till=§c输出热量上限：§f%,d HU
 gregtech.universal.tooltip.heat_storage_capacity=§b热量缓存：§f%,d HU

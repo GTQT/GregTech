@@ -9,6 +9,7 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gtqt.common.metatileentities.heat.MetaTileEntityElectricHeater;
 import gtqt.common.metatileentities.heat.MetaTileEntityHeatHatch;
+import gtqt.common.metatileentities.heat.MetaTileEntityHeatSensor;
 import gtqt.common.metatileentities.multi.MetaTileEntityHugeTransformer;
 import gtqt.common.metatileentities.multi.MetaTileEntityLogisticsMaterialDistributor;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
@@ -66,6 +67,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[5];
     public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[5];
     public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[5];
+    public static MetaTileEntityHeatSensor HEAT_SENSOR;
 
     public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
     public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
@@ -228,6 +230,8 @@ public class GTQTMetaTileEntities {
             ELECTRIC_HEATER[i] = new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i);
             registerMetaTileEntity(2920 + i, ELECTRIC_HEATER[i]);
         }
+
+        HEAT_SENSOR = registerMetaTileEntity(2925, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));
 
         if(isModLoaded(FORESTRY))
         {
