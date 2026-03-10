@@ -1447,7 +1447,7 @@ public class MachineRecipeLoader {
                 .buildAndRegister();
     }
 
-    private static void registerSmoothRecipe(List<ItemStack> roughStack, List<ItemStack> smoothStack) {
+    public static void registerSmoothRecipe(List<ItemStack> roughStack, List<ItemStack> smoothStack) {
         for (int i = 0; i < roughStack.size(); i++) {
             ModHandler.addSmeltingRecipe(roughStack.get(i), smoothStack.get(i), 0.1f);
 
@@ -1459,7 +1459,7 @@ public class MachineRecipeLoader {
         }
     }
 
-    private static void registerCobbleRecipe(List<ItemStack> smoothStack, List<ItemStack> cobbleStack) {
+    public static void registerCobbleRecipe(List<ItemStack> smoothStack, List<ItemStack> cobbleStack) {
         for (int i = 0; i < smoothStack.size(); i++) {
             FORGE_HAMMER_RECIPES.recipeBuilder()
                     .inputs(smoothStack.get(i))
@@ -1468,7 +1468,7 @@ public class MachineRecipeLoader {
         }
     }
 
-    private static void registerBricksRecipe(List<ItemStack> polishedStack, List<ItemStack> brickStack,
+    public static void registerBricksRecipe(List<ItemStack> polishedStack, List<ItemStack> brickStack,
                                              MarkerMaterial color) {
         for (int i = 0; i < polishedStack.size(); i++) {
             LASER_ENGRAVER_RECIPES.recipeBuilder()
@@ -1479,7 +1479,7 @@ public class MachineRecipeLoader {
         }
     }
 
-    private static void registerMossRecipe(List<ItemStack> regularStack, List<ItemStack> mossStack) {
+    public static void registerMossRecipe(List<ItemStack> regularStack, List<ItemStack> mossStack) {
         for (int i = 0; i < regularStack.size(); i++) {
             CHEMICAL_BATH_RECIPES.recipeBuilder()
                     .inputs(regularStack.get(i))
