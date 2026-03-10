@@ -303,7 +303,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         if (drawEUt) {
             // scuffed way of dealing with 2 eu/t recipes, just recomputing instead of checking if eu/t <= 2
             minecraft.fontRenderer.drawString(
-                    I18n.format(recipeMap.isGenerator() ? "·" : "gregtech.recipe.eu",
+                    I18n.format(recipeMap.isGenerator() ? "gregtech.recipe.eu_inverted" : "gregtech.recipe.eu",
                             overclockResult[0],
                             GTValues.VOCNF[GTUtility.getOCTierByVoltage(overclockResult[0])]),
                     0, yPosition, (int) overclockResult[2]);
