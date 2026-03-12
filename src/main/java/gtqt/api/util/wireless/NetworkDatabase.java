@@ -1,13 +1,10 @@
 package gtqt.api.util.wireless;
 
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.util.GTUtility;
 import gregtech.integration.ftb.utility.FTBTeamHelper;
 
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.WorldSavedData;
@@ -15,7 +12,6 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import com.feed_the_beast.ftblib.lib.data.ForgePlayer;
 import com.feed_the_beast.ftblib.lib.data.ForgeTeam;
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 
 import java.util.Collections;
 import java.util.Map;
@@ -41,6 +37,7 @@ public class NetworkDatabase extends WorldSavedData {
         return instance;
     }
 
+    // ========== readFromNBT 修改 ==========
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
         networks.clear();
@@ -51,24 +48,19 @@ public class NetworkDatabase extends WorldSavedData {
                     UUID.fromString(nodeTag.getString("owner")),
                     nodeTag.getString("name")
             );
+            // 只恢复位置信息，不尝试获取实例（避免区块未加载问题）
             NBTTagList listMtes = nodeTag.getTagList("Mtes", 10);
-            // 恢复hatches
             for (int i = 0; i < listMtes.tagCount(); i++) {
-                NBTTagCompound entry = listMtes.getCompoundTagAt(i);
-                int dim = entry.getInteger("dim");
-                BlockPos pos = new BlockPos(entry.getInteger("x"), entry.getInteger("y"), entry.getInteger("z"));
-                World world = NetworkManager.getWorldByDimension(dim);
-                if (world != null) {
-                    MetaTileEntity mte = GTUtility.getMetaTileEntity(world, pos);
-                    if (mte instanceof MetaTileEntityWirelessController) {
-                        node.addNewHatch((MetaTileEntityWirelessController) mte);
-                    }
-                }
+                NetworkNode.HatchLocation loc = NetworkNode.HatchLocation.readFromNBT(
+                        listMtes.getCompoundTagAt(i)
+                );
+                node.hatchLocations.add(loc); // 直接添加位置
             }
             networks.put(node.getOwnerUUID(), node);
         }
     }
 
+    // ========== writeToNBT 修改 ==========
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
         NBTTagList list = new NBTTagList();
@@ -77,15 +69,10 @@ public class NetworkDatabase extends WorldSavedData {
             nodeTag.setString("owner", node.getOwnerUUID().toString());
             nodeTag.setString("name", node.getNetworkName());
 
+            // 直接保存位置列表，无需检查世界/实例
             NBTTagList listMte = new NBTTagList();
-            for (MetaTileEntityWirelessController hatch : node.getHatches()) {
-                if (hatch.getWorld() == null) continue;
-                NBTTagCompound entry = new NBTTagCompound();
-                entry.setInteger("dim", hatch.getWorld().provider.getDimension());
-                entry.setInteger("x", hatch.getPos().getX());
-                entry.setInteger("y", hatch.getPos().getY());
-                entry.setInteger("z", hatch.getPos().getZ());
-                listMte.appendTag(entry);
+            for (NetworkNode.HatchLocation loc : node.getHatchLocations()) {
+                listMte.appendTag(loc.writeToNBT());
             }
             nodeTag.setTag("Mtes", listMte);
             list.appendTag(nodeTag);

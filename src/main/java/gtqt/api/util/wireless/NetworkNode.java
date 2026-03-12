@@ -1,52 +1,100 @@
 package gtqt.api.util.wireless;
 
+import gregtech.api.util.GTUtility;
+
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class NetworkNode {
 
     private final UUID ownerUUID;
-    private final List<MetaTileEntityWirelessController> hatches;
+
+    public final List<HatchLocation> hatchLocations;
     private String networkName;
+
+    // ==================== 内部位置类 ====================
+
+    public static class HatchLocation {
+        public final int dimension;
+        public final BlockPos pos;
+
+        public HatchLocation(int dimension, BlockPos pos) {
+            this.dimension = dimension;
+            this.pos = pos.toImmutable(); // 确保不可变
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof HatchLocation)) return false;
+            HatchLocation that = (HatchLocation) o;
+            return dimension == that.dimension && pos.equals(that.pos);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dimension, pos);
+        }
+
+        // 用于 NBT 序列化
+        public net.minecraft.nbt.NBTTagCompound writeToNBT() {
+            net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+            tag.setInteger("dim", dimension);
+            tag.setInteger("x", pos.getX());
+            tag.setInteger("y", pos.getY());
+            tag.setInteger("z", pos.getZ());
+            return tag;
+        }
+
+        // 用于 NBT 反序列化
+        public static HatchLocation readFromNBT(net.minecraft.nbt.NBTTagCompound tag) {
+            return new HatchLocation(
+                    tag.getInteger("dim"),
+                    new BlockPos(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"))
+            );
+        }
+    }
+
+    // ==================== 构造函数 ====================
 
     public NetworkNode(UUID owner, String name) {
         this.ownerUUID = owner;
         this.networkName = name;
-        this.hatches = new ArrayList<>();
+        this.hatchLocations = new ArrayList<>();
     }
 
     // ==================== Getter / Setter ====================
 
-    public UUID getOwnerUUID() {
-        return ownerUUID;
-    }
+    public UUID getOwnerUUID() { return ownerUUID; }
+    public String getNetworkName() { return networkName; }
+    public void setNetworkName(String networkName) { this.networkName = networkName; }
 
-    public String getNetworkName() {
-        return networkName;
-    }
-
-    public void setNetworkName(String networkName) {
-        this.networkName = networkName;
+    // 暴露位置列表用于序列化
+    public synchronized List<HatchLocation> getHatchLocations() {
+        return new ArrayList<>(hatchLocations);
     }
 
     // ==================== 能量格式化方法 ====================
-
+    // ... (保持不变) ...
     public String getEnergyContainer() {
         BigInteger totalStored = getTotalStored();
         return formatScientificNotation(totalStored) + " EU (" +
                 formatEnergyValue(totalStored) + ")";
     }
-
     private String formatScientificNotation(BigInteger energy) {
         double value = energy.doubleValue();
         return String.format("%.3E", value);
     }
-
     private String formatEnergyValue(BigInteger energy) {
         if (energy.compareTo(BigInteger.valueOf(1_000_000_000L)) >= 0) {
             return energy.divide(BigInteger.valueOf(1_000_000_000L)) + " GE";
@@ -59,55 +107,104 @@ public class NetworkNode {
         }
     }
 
+    // ==================== 核心：动态获取已加载仓室 ====================
+
+    /**
+     * 动态解析当前已加载的无线仓室实例
+     * 调用方应始终使用此方法替代直接访问 hatches
+     */
+    public synchronized List<MetaTileEntityWirelessController> getLoadedHatches() {
+        List<MetaTileEntityWirelessController> loaded = new ArrayList<>();
+        for (HatchLocation loc : hatchLocations) {
+            World world = NetworkManager.getWorldByDimension(loc.dimension);
+            if (world != null && world.isBlockLoaded(loc.pos)) {
+                var mte = GTUtility.getMetaTileEntity(world, loc.pos);
+                if (mte instanceof MetaTileEntityWirelessController controller) {
+                    loaded.add(controller);
+                }
+            }
+        }
+        return loaded;
+    }
+
     // ==================== 仓室管理（线程安全）====================
 
     /**
-     * 添加一个新的无线仓室到网络
+     * 添加仓室：同时记录位置信息
      */
     public synchronized void addNewHatch(MetaTileEntityWirelessController hatch) {
-        if (!hatches.contains(hatch)) {
-            hatches.add(hatch);
+        if (hatch.getWorld() == null) return;
+        HatchLocation loc = new HatchLocation(
+                hatch.getWorld().provider.getDimension(),
+                hatch.getPos()
+        );
+        if (!hatchLocations.contains(loc)) {
+            hatchLocations.add(loc);
         }
     }
 
     /**
-     * 从网络中移除一个无线仓室
+     * 移除仓室：通过实例反查位置并移除
      */
     public synchronized void removeHatch(MetaTileEntityWirelessController hatch) {
-        hatches.remove(hatch);
+        if (hatch.getWorld() == null) return;
+        HatchLocation loc = new HatchLocation(
+                hatch.getWorld().provider.getDimension(),
+                hatch.getPos()
+        );
+        hatchLocations.remove(loc);
     }
 
     /**
-     * 获取当前所有仓室的副本（用于外部遍历，避免并发修改）
+     * ✅ 通过位置直接移除（用于清理无效数据）
      */
+    public synchronized boolean removeHatchByLocation(HatchLocation loc) {
+        return hatchLocations.remove(loc);
+    }
+
+    /**
+     * @deprecated 外部遍历请使用 getLoadedHatches()
+     */
+    @Deprecated
     public synchronized List<MetaTileEntityWirelessController> getHatches() {
-        return new ArrayList<>(hatches);
+        return getLoadedHatches();
     }
 
     // ==================== 内部工具方法 ====================
 
     /**
-     * 移除无效的仓室（如多方块未成形或已失效）
+     * 清理无效仓室位置：
+     * - 区块已加载但控制器不存在/未成形/非目标类型
      */
-    private synchronized void removeInvalidHatches() {
-        hatches.removeIf(hatch -> hatch == null || !hatch.getController().isStructureFormed());
+    private synchronized void removeInvalidHatchLocations() {
+        Iterator<HatchLocation> iterator = hatchLocations.iterator();
+        while (iterator.hasNext()) {
+            HatchLocation loc = iterator.next();
+            World world = NetworkManager.getWorldByDimension(loc.dimension);
+            if (world != null && world.isBlockLoaded(loc.pos)) {
+                // 区块已加载，可以验证有效性
+                var mte = GTUtility.getMetaTileEntity(world, loc.pos);
+                if (!(mte instanceof MetaTileEntityWirelessController controller) ||
+                        !controller.getController().isStructureFormed()) {
+                    iterator.remove(); // 无效，移除位置记录
+                }
+            }
+            // 区块未加载则保留位置，等待下次检查
+        }
     }
 
     /**
-     * 获取按优先级升序排序的仓室列表（先清理无效仓室）
+     * 获取按优先级升序排序的已加载仓室列表
      */
     private synchronized List<MetaTileEntityWirelessController> getSortedHatches() {
-        removeInvalidHatches();
-        List<MetaTileEntityWirelessController> sorted = new ArrayList<>(hatches);
+        removeInvalidHatchLocations();
+        List<MetaTileEntityWirelessController> sorted = getLoadedHatches();
         sorted.sort(Comparator.comparingInt(MetaTileEntityWirelessController::getPriority));
         return sorted;
     }
 
     // ==================== 能量操作 ====================
 
-    /**
-     * 向网络填充能量，返回实际填充量
-     */
     public synchronized long fill(long amount) {
         if (amount <= 0) return 0;
         long remaining = amount;
@@ -119,9 +216,6 @@ public class NetworkNode {
         return amount - remaining;
     }
 
-    /**
-     * 从网络抽取能量，返回实际抽取量
-     */
     public synchronized long drain(long amount) {
         if (amount <= 0) return 0;
         long remaining = amount;
@@ -133,40 +227,27 @@ public class NetworkNode {
         return amount - remaining;
     }
 
-    /**
-     * 获取网络总容量（所有仓室容量之和）
-     */
     public BigInteger getTotalCapacity() {
         BigInteger total = BigInteger.ZERO;
-        for (MetaTileEntityWirelessController hatch : getHatches()) {
+        for (MetaTileEntityWirelessController hatch : getLoadedHatches()) {
             total = total.add(hatch.getCapacity());
         }
         return total;
     }
 
-    /**
-     * 获取网络当前总存储量（所有仓室存储之和）
-     */
     public BigInteger getTotalStored() {
         BigInteger total = BigInteger.ZERO;
-        for (MetaTileEntityWirelessController hatch : getHatches()) {
+        for (MetaTileEntityWirelessController hatch : getLoadedHatches()) {
             total = total.add(hatch.getStored());
         }
         return total;
     }
 
-    /**
-     * 修改网络能量（通过物理仓室操作），返回实际变动量。
-     * @param delta 正数表示向网络填充能量，负数表示从网络抽取能量
-     * @return 实际改变的能量值：正数表示成功填充的量，负数表示成功抽取的量
-     */
     public synchronized BigInteger modifyEnergy(BigInteger delta) {
         if (delta.signum() > 0) {
-            // 向网络填充能量
             long filled = fill(delta.longValue());
             return BigInteger.valueOf(filled);
         } else if (delta.signum() < 0) {
-            // 从网络抽取能量
             long drained = drain(-delta.longValue());
             return BigInteger.valueOf(-drained);
         } else {

@@ -124,4 +124,8 @@ public class NetworkManager {
     private Object getLock(UUID ownerUUID) {
         return networkLocks.computeIfAbsent(ownerUUID, k -> new Object());
     }
+
+    public NetworkNode getNetworkForPlayer(World world, UUID playerUUID) {
+        return NetworkDatabase.get(world).getNetworkForPlayer(playerUUID);
+    }
 }

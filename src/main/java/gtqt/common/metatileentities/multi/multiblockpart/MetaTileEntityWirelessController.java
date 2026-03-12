@@ -6,8 +6,8 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
@@ -17,6 +17,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -70,13 +72,14 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
-            getOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
+            getFrontOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
 
+    @SideOnly(Side.CLIENT)
     @NotNull
-    private SimpleOverlayRenderer getOverlay() {
-        return Textures.FUSION_TEXTURE;
+    protected ICubeRenderer getFrontOverlay() {
+        return Textures.FUSION_REACTOR_OVERLAY;
     }
 
     // ==================== 网络绑定 ====================

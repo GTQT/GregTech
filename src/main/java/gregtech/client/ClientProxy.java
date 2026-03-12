@@ -72,12 +72,14 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStack;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.oredict.OreDictionary;
 
+import gtqt.api.util.wireless.ClientWirelessHUD;
 import org.jetbrains.annotations.NotNull;
 import paulscode.sound.SoundSystemConfig;
 
@@ -345,6 +347,11 @@ public class ClientProxy extends CommonProxy {
                 }
             }
         }
+    }
+
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        MinecraftForge.EVENT_BUS.register(new ClientWirelessHUD());
     }
 
     private static void renderToolbeltHotbar(GuiIngameForge gui, ItemStack stack, ItemGTToolbelt toolbelt,
