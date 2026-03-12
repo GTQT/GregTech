@@ -6,6 +6,7 @@ import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IWirelessController;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -157,10 +158,19 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
             this.energyBank.rebuild(parts);
         }
         this.passiveDrain = this.energyBank.getPassiveDrainPerTick();
+
+        List<IWirelessController> wirelessControllers = getAbilities(MultiblockAbility.WIRELESS_CONTROLLER);
+        if(wirelessControllers!=null && !wirelessControllers.isEmpty()){
+            wirelessControllers.get(0).sentMTE();
+        }
     }
 
     @Override
     public void invalidateStructure() {
+        List<IWirelessController> wirelessControllers = getAbilities(MultiblockAbility.WIRELESS_CONTROLLER);
+        if(wirelessControllers!=null && !wirelessControllers.isEmpty()){
+            wirelessControllers.get(0).removeMTE();
+        }
         // don't null out energyBank since it holds the stored energy, which
         // we need to hold on to across rebuilds to not void all energy if a
         // multiblock part or block other than the controller is broken.

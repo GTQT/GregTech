@@ -17,21 +17,18 @@ import java.util.stream.Collectors;
 
 public class NetworkManager {
 
-    // 单例模式
     public static final NetworkManager INSTANCE = new NetworkManager();
     private final ConcurrentHashMap<UUID, Object> networkLocks = new ConcurrentHashMap<>();
 
+    // 获取指定维度的World（服务端）
     public static World getWorldByDimension(int dimension) {
         MinecraftServer server = FMLServerHandler.instance().getServer();
-        if (server != null) {
-            return server.getWorld(dimension);
-        }
-        return null;
+        return server != null ? server.getWorld(dimension) : null;
     }
 
-    public static List<UUID> getPartList(UUID Owner) {
-        ForgeTeam team = FTBTeamHelper.getTeam(Owner);
-
+    // 获取队伍成员UUID列表（可能为null）
+    public static List<UUID> getPartList(UUID owner) {
+        ForgeTeam team = FTBTeamHelper.getTeam(owner);
         if (team != null) {
             return team.players.keySet().stream()
                     .map(ForgePlayer::getId)
@@ -40,100 +37,91 @@ public class NetworkManager {
         return null;
     }
 
-    // 获取当前世界的网络数据库
-    private NetworkDatabase getDatabase(World world) {
-        return NetworkDatabase.get(world);
+    // 核心方法：根据玩家UUID获取其所属的网络（队伍共享或个人）
+    private NetworkNode getNetwork(World world, UUID playerUUID) {
+        NetworkDatabase db = NetworkDatabase.get(world);
+        return db.getNetworkForPlayer(playerUUID);
     }
 
-    // 修改后的createNetwork方法
-    public NetworkNode createNetwork(World world, UUID owner, String name) {
+    public NetworkNode getOrCreateNetwork(World world, UUID playerUUID, String defaultName) {
         NetworkDatabase db = NetworkDatabase.get(world);
-        NetworkNode node = new NetworkNode(owner, name);
-        db.addNetwork(node); // 改用安全方法操作
+        NetworkNode node = db.getNetworkForPlayer(playerUUID);
+        if (node == null) {
+            node = new NetworkNode(playerUUID, defaultName);
+            db.addNetwork(node);
+        }
         return node;
     }
 
-    /// /////////////////////////////////////////////////////////////////////////////////////// 新的能源网络只存储 hatches
-    /// 在每次sort时同步刷新有效性与状态（电量 优先级）
-    /// ///////////////////////////////////////////////////////////////////////////////////////
-    public NetworkNode getNetwork(World world, UUID networkID) {
-        Object lock = networkLocks.computeIfAbsent(networkID, k -> new Object());
-        synchronized (lock) {
-            NetworkDatabase db = NetworkDatabase.get(world);
-            return db.getNetworks().get(networkID);
+    // 创建网络（如果队伍已有网络则返回现有网络，否则新建）
+    public NetworkNode createNetwork(World world, UUID owner, String name) {
+        NetworkDatabase db = NetworkDatabase.get(world);
+        NetworkNode existing = db.getNetworkForPlayer(owner);
+        if (existing != null) {
+            return existing; // 队伍已有网络，直接返回
+        }
+        // 新建网络，以owner的UUID为键
+        NetworkNode node = new NetworkNode(owner, name);
+        db.addNetwork(node);
+        return node;
+    }
+
+    // 向网络填充能量（返回实际填充量）
+    public long fill(World world, UUID playerUUID, long amount) {
+        if (amount <= 0) return 0;
+        NetworkNode node = getNetwork(world, playerUUID);
+        if (node == null) return 0;
+        synchronized (getLock(node.getOwnerUUID())) {
+            return node.fill(amount);
         }
     }
 
-    //fill网络 向网络内填充能量
-    public long fill(World world, UUID networkID, BigInteger amount) {
+    public long fill(World world, UUID playerUUID, BigInteger amount) {
+        return fill(world, playerUUID, amount.longValue());
+    }
+
+    // 从网络抽取能量（返回实际抽取量）
+    public long drain(World world, UUID playerUUID, long amount) {
+        if (amount <= 0) return 0;
+        NetworkNode node = getNetwork(world, playerUUID);
+        if (node == null) return 0;
+        synchronized (getLock(node.getOwnerUUID())) {
+            return node.drain(amount);
+        }
+    }
+
+    public long drain(World world, UUID playerUUID, BigInteger amount) {
+        return drain(world, playerUUID, amount.longValue());
+    }
+
+    // 获取网络总容量
+    public BigInteger getCapacity(World world, UUID playerUUID) {
+        NetworkNode node = getNetwork(world, playerUUID);
+        return node != null ? node.getTotalCapacity() : BigInteger.ZERO;
+    }
+
+    // 获取网络当前存储
+    public BigInteger getStored(World world, UUID playerUUID) {
+        NetworkNode node = getNetwork(world, playerUUID);
+        return node != null ? node.getTotalStored() : BigInteger.ZERO;
+    }
+
+    // 旧版transferEnergy保留，但推荐使用新方法
+    public long transferEnergy(World world, UUID playerUUID, BigInteger amount) {
         if (amount.equals(BigInteger.ZERO)) return 0L;
-        NetworkNode node = getNetwork(world, networkID);
-        return node.fill(amount.longValue());
-    }
-
-    public long fill(World world, UUID networkID, long amount) {
-        if (amount == 0) return 0;
-        NetworkNode node = getNetwork(world, networkID);
-        return node.fill(amount);
-    }
-
-    //drain网络 消耗网络内的能量
-    public long drain(World world, UUID networkID, BigInteger amount) {
-        if (amount.equals(BigInteger.ZERO)) return 0L;
-        NetworkNode node = getNetwork(world, networkID);
-        return node.drain(amount.longValue());
-    }
-
-    public long drain(World world, UUID networkID, long amount) {
-        if (amount == 0) return 0;
-        NetworkNode node = getNetwork(world, networkID);
-        return node.drain(amount);
-    }
-
-    //获取总容量
-    public BigInteger getCapacity(World world, UUID networkID) {
-        NetworkNode node = getNetwork(world, networkID);
-        return node.getTotalCapacity();
-    }
-
-    //获取总存储
-    public BigInteger getStored(World world, UUID networkID) {
-        NetworkNode node = getNetwork(world, networkID);
-        return node.getTotalStored();
-    }
-
-    /// /////////////////////////////////////////////////////////////////////////////////////// 老方法
-    /// ///////////////////////////////////////////////////////////////////////////////////////
-    public long transferEnergy(World world, UUID networkID, BigInteger amount) {
-        if (amount.equals(BigInteger.ZERO)) return 0L;
-
-        Object lock = networkLocks.computeIfAbsent(networkID, k -> new Object());
-        synchronized (lock) {
-            NetworkDatabase db = NetworkDatabase.get(world);
-            NetworkNode node = db.getNetworks().get(networkID);
-            if (node == null) return 0L;
-
+        NetworkNode node = getNetwork(world, playerUUID);
+        if (node == null) return 0L;
+        synchronized (getLock(node.getOwnerUUID())) {
             BigInteger actual = node.modifyEnergy(amount);
             if (!actual.equals(BigInteger.ZERO)) {
-                db.markDirty();
+                NetworkDatabase.get(world).markDirty();
             }
             return actual.longValue();
         }
     }
 
-    // ID生成逻辑优化
-    //    private int generateUniqueID(NetworkDatabase db) {
-    //        return db.getNetworks().keySet().stream()
-    //                .mapToInt(Integer::intValue)
-    //                .max().orElse(0) + 1;
-    //    }
-    // 在NetworkManager中添加便捷方法
-    public BigInteger getEnergy(World world, UUID networkID) {
-        NetworkNode node = NetworkDatabase.get(world).getNetwork(networkID);
-        return node != null ? node.getEnergy() : BigInteger.ZERO;
-    }
-
-    public boolean hasEnoughEnergy(World world, UUID networkID, BigInteger amount) {
-        return getEnergy(world, networkID).compareTo(amount) >= 0;
+    // 获取或创建锁对象（基于网络所有者UUID）
+    private Object getLock(UUID ownerUUID) {
+        return networkLocks.computeIfAbsent(ownerUUID, k -> new Object());
     }
 }

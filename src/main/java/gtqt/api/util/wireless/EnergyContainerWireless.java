@@ -1,67 +1,56 @@
 package gtqt.api.util.wireless;
 
-
 import gregtech.api.capability.impl.EnergyContainerHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 
-import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
+import net.minecraft.world.World;
 
 import java.math.BigInteger;
 import java.util.UUID;
 
 public class EnergyContainerWireless extends EnergyContainerHandler {
 
-    public EnergyContainerWireless(MetaTileEntity tileEntity, boolean isExport, long voltage, long amperage){
-        this(tileEntity,voltage*amperage*320,isExport?0:voltage,amperage,isExport?voltage:0,amperage);
+    boolean isExport;
+
+    public EnergyContainerWireless(MetaTileEntity tileEntity, boolean isExport, long voltage, long amperage) {
+        this(tileEntity, voltage * amperage * 320, isExport ? 0 : voltage, amperage, isExport ? voltage : 0, amperage);
+        this.isExport = isExport;
     }
 
-    public EnergyContainerWireless(MetaTileEntity tileEntity, long maxCapacity, long maxInputVoltage, long maxInputAmperage, long maxOutputVoltage, long maxOutputAmperage) {
+    public EnergyContainerWireless(MetaTileEntity tileEntity, long maxCapacity, long maxInputVoltage,
+                                   long maxInputAmperage, long maxOutputVoltage, long maxOutputAmperage) {
         super(tileEntity, maxCapacity, maxInputVoltage, maxInputAmperage, maxOutputVoltage, maxOutputAmperage);
     }
 
     @Override
     public void update() {
         super.update();
-        if(!this.metaTileEntity.getWorld().isRemote){
-            var world = metaTileEntity.getWorld();
-            if(this.metaTileEntity.getOwnerGT()!=null){
-                UUID id = this.metaTileEntity.getOwnerGT();
-                // 安全获取网络示例
-                NetworkDatabase db = NetworkDatabase.get(world);
-                NetworkNode node = db.getNetwork(id);
+        if (!this.metaTileEntity.getWorld().isRemote) {
+            World world = metaTileEntity.getWorld();
+            UUID ownerId = this.metaTileEntity.getOwnerGT();
+            if (ownerId == null) return; // 无所有者，无法操作网络
 
-                if (node == null) {
-                    NetworkManager.INSTANCE.createNetwork(world,metaTileEntity.getOwnerGT(),"无线网络");
-                    db = NetworkDatabase.get(world);
-                    node = db.getNetwork(id);
-                }
-                //是动力舱 给网络增加能量
-                if(this.getInputVoltage()==0)
-                {
-                    if(this.energyStored>0)
-                    {
-                        var b1 =BigInteger.valueOf(this.energyStored);
-                        if(node!=null)
-                        {
-                            long added = NetworkManager.INSTANCE.transferEnergy(world,id,b1);
-                            this.removeEnergy(added);
-                        }
-
+            if (isExport) { // 动力舱（输出能量到网络）
+                if (this.energyStored > 0) {
+                    long toTransfer = this.energyStored;
+                    long transferred = NetworkManager.INSTANCE.transferEnergy(world, ownerId,
+                            BigInteger.valueOf(toTransfer));
+                    if (transferred > 0) {
+                        this.removeEnergy(transferred);
                     }
-                }//是能源仓 抽取能量
-                else
-                {
-                    long needEnergy = this.getEnergyCapacity()-this.getEnergyStored();
-                    if(node!=null)
-                    {
-                        long added = NetworkManager.INSTANCE.transferEnergy(world,id,BigInteger.valueOf(-needEnergy));
-                        this.addEnergy(Math.abs(added));
+                }
+            } else { // 能源仓（从网络抽取能量）
+                long needEnergy = this.getEnergyCapacity() - this.getEnergyStored();
+                if (needEnergy > 0) {
+                    long transferred = NetworkManager.INSTANCE.transferEnergy(world, ownerId,
+                            BigInteger.valueOf(-needEnergy));
+                    if (transferred < 0) {
+                        this.addEnergy(-transferred); // transferred 为负值，取反后为正数
                     }
                 }
             }
         }
     }
-
 
     @Override
     public long getEnergyCanBeInserted() {

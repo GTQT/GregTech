@@ -6,19 +6,21 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 
-import gtqt.api.util.wireless.NetworkDatabase;
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import gtqt.api.util.wireless.NetworkManager;
 import gtqt.api.util.wireless.NetworkNode;
 import org.jetbrains.annotations.NotNull;
@@ -29,44 +31,27 @@ import java.util.List;
 import java.util.UUID;
 
 public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPart
-        implements IMultiblockAbilityPart<IWirelessController>,IWirelessController{
+        implements IMultiblockAbilityPart<IWirelessController>, IWirelessController {
 
-    //MetaTileEntityWirelessController是MetaTileEntityPowerSubstation内energyBank的代理
+    private int priority;
 
-    //优先级 100
-    private int priority = 100;
+    // ==================== 构造与基础方法 ====================
 
-    public int getPriority() {
-        return priority;
-    }
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
-
-    @Override
-    public void update(){
-        super.update();
-    }
-    @Override
-    public void onRemoval() {
-        super.onRemoval();
-        NetworkNode node = getNetwork();
-        if (node != null) {
-            node.removeHatch(this);
-        }
-    }
     public MetaTileEntityWirelessController(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
+        priority = tier;
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityWirelessController(metaTileEntityId, getTier());
     }
+
     @Override
     public MultiblockAbility<IWirelessController> getAbility() {
-        return  MultiblockAbility.WIRELESS_CONTROLLER;
+        return MultiblockAbility.WIRELESS_CONTROLLER;
     }
+
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         abilityInstances.add(this);
@@ -74,92 +59,114 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
     @Override
     public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
-
+        tooltip.add(I18n.format("安装在已成形的PSS上后，该PSS将成为无线网络的中枢节点。"));
+        tooltip.add(I18n.format("网络内的所有无线能源仓（输入模式）和动力仓（输出模式）将直接与绑定的PSS交互，"));
+        tooltip.add(I18n.format("能量在各个PSS的物理缓存之间流动，多个PSS的缓存总和构成网络的总能量。"));
+        tooltip.add(I18n.format("FTB同组玩家自动共享同一网络，无需额外操作，放置即自动连入。"));
+        tooltip.add(I18n.format("仓的等级决定了能量交互的优先级，等级越高在网络充放电顺序中越优先。"));
+        tooltip.add(I18n.format("注意：每个无线代理仓必须安装在已成形且有效的PSS上才能正常工作，多方块被拆除后会自动注销本仓的代理行为。"));
     }
-    //无线电网操作////////////////////////////////////////////////////////////////////////////
-    //对外暴露
-    //返回自身即可
-    //激活 向NetworkNode网络发送自己
-    //多方块成型？UI手动？放置时自动？
-    public void sentMTE(){
-        NetworkNode node = getNetwork();
-        node.addNewHatch(this);
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        if (shouldRenderOverlay()) {
+            getOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
+        }
     }
 
+    @NotNull
+    private SimpleOverlayRenderer getOverlay() {
+        return Textures.FUSION_TEXTURE;
+    }
 
-    //
-    public NetworkNode getNetwork() {
-        var world = this.getWorld();
-        if(this.getOwnerGT()!=null) {
-            UUID id = this.getOwnerGT();
-            // 安全获取网络示例
-            NetworkDatabase db = NetworkDatabase.get(world);
-            NetworkNode node = db.getNetwork(id);
+    // ==================== 网络绑定 ====================
 
-            if (node == null) {
-                NetworkManager.INSTANCE.createNetwork(world,this.getOwnerGT(),"无线网络");
-                db = NetworkDatabase.get(world);
-                node = db.getNetwork(id);
-            }
-            return node;
+    /**
+     * 获取当前仓所属的网络（如果不存在则自动创建）
+     */
+    private NetworkNode getOrCreateNetwork() {
+        World world = this.getWorld();
+        if (world == null || world.isRemote) return null;
+
+        UUID ownerId = this.getOwnerGT();
+        if (ownerId == null) return null;
+
+        return NetworkManager.INSTANCE.getOrCreateNetwork(world, ownerId, "无线网络");
+    }
+
+    /**
+     * 将当前仓添加到网络（多方块成形时调用）
+     */
+    public void sentMTE() {
+        NetworkNode node = getOrCreateNetwork();
+        if (node != null) {
+            node.addNewHatch(this);
+        }
+    }
+
+    /**
+     * 从网络中移除当前仓（多方块拆解时调用）
+     */
+    public void removeMTE() {
+        NetworkNode node = getOrCreateNetwork();
+        if (node != null) {
+            node.removeHatch(this);
+        }
+    }
+
+    // ==================== 能量代理 ====================
+
+    public MetaTileEntityPowerSubstation getPSS() {
+        if (this.getController() instanceof MetaTileEntityPowerSubstation powerStation && powerStation.isStructureFormed()) {
+            return powerStation;
         }
         return null;
     }
 
-    public EntityPlayer getPlayerByGTuuid(UUID GTuuid) {
-        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-        if (server != null) {
-            return server.getPlayerList().getPlayerByUUID(GTuuid);
-        }
-        return null;
-    }
-
-    //IO操作////////////////////////////////////////////////////////////////////////////
-
-    //检查容量
     public BigInteger getCapacity() {
-        if(getPSS()!=null)
-            return getPSS().getEnergyBank().getCapacity();
-        return BigInteger.ZERO;
+        return getPSS() != null ? getPSS().getEnergyBank().getCapacity() : BigInteger.ZERO;
     }
 
     public BigInteger getStored() {
-        if(getPSS()!=null)
-            return getPSS().getEnergyBank().getStored();
-        return BigInteger.ZERO;
+        return getPSS() != null ? getPSS().getEnergyBank().getStored() : BigInteger.ZERO;
     }
 
-    //fill
-    //返回实际填充数值 （如果满了就是溢出的部分）
     public long fill(long amount) {
-        return getPSS().getEnergyBank().fill(amount);
+        return getPSS() != null ? getPSS().getEnergyBank().fill(amount) : 0;
     }
 
-    //drain
-    //返回实际抽取的量 （如果没那么多就是实际抽取的量）
     public long drain(long amount) {
-        return getPSS().getEnergyBank().drain(amount);
+        return getPSS() != null ? getPSS().getEnergyBank().drain(amount) : 0;
     }
 
-    //接口实现////////////////////////////////////////////////////////////////////////////
+    // ==================== 优先级 ====================
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+
+    // ==================== 接口实现（IWirelessController）====================
+
     @Override
     public MetaTileEntityPowerSubstation.PowerStationEnergyBank getEnergyBank() {
-        if(getPSS()!=null)
-            return getPSS().getEnergyBank();
-        return null;
-    }
-
-    public MetaTileEntityPowerSubstation getPSS() {
-        if(this.getController() instanceof MetaTileEntityPowerSubstation powerStation)
-            return powerStation;
-        return null;
+        MetaTileEntityPowerSubstation pss = getPSS();
+        return pss != null ? pss.getEnergyBank() : null;
     }
 
     @Override
     public void setEnergyBank(MetaTileEntityPowerSubstation.PowerStationEnergyBank energyBank) {
-        if(getPSS()!=null) getPSS().setEnergyBank(energyBank);
+        MetaTileEntityPowerSubstation pss = getPSS();
+        if (pss != null) {
+            pss.setEnergyBank(energyBank);
+        }
     }
-    //接口实现////////////////////////////////////////////////////////////////////////////
+
+    // ==================== 数据持久化 ====================
+
     @Override
     public NBTTagCompound writeToNBT(@NotNull NBTTagCompound data) {
         data.setInteger("priority", this.priority);
