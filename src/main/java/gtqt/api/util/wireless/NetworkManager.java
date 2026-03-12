@@ -2,9 +2,7 @@ package gtqt.api.util.wireless;
 
 import gregtech.integration.ftb.utility.FTBTeamHelper;
 
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.server.FMLServerHandler;
 
 import com.feed_the_beast.ftblib.lib.data.ForgePlayer;
 import com.feed_the_beast.ftblib.lib.data.ForgeTeam;
@@ -12,19 +10,11 @@ import com.feed_the_beast.ftblib.lib.data.ForgeTeam;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class NetworkManager {
 
     public static final NetworkManager INSTANCE = new NetworkManager();
-    private final ConcurrentHashMap<UUID, Object> networkLocks = new ConcurrentHashMap<>();
-
-    // 获取指定维度的World（服务端）
-    public static World getWorldByDimension(int dimension) {
-        MinecraftServer server = FMLServerHandler.instance().getServer();
-        return server != null ? server.getWorld(dimension) : null;
-    }
 
     // 获取队伍成员UUID列表（可能为null）
     public static List<UUID> getPartList(UUID owner) {
@@ -71,9 +61,7 @@ public class NetworkManager {
         if (amount <= 0) return 0;
         NetworkNode node = getNetwork(world, playerUUID);
         if (node == null) return 0;
-        synchronized (getLock(node.getOwnerUUID())) {
-            return node.fill(amount);
-        }
+        return node.fill(amount);
     }
 
     public long fill(World world, UUID playerUUID, BigInteger amount) {
@@ -85,9 +73,7 @@ public class NetworkManager {
         if (amount <= 0) return 0;
         NetworkNode node = getNetwork(world, playerUUID);
         if (node == null) return 0;
-        synchronized (getLock(node.getOwnerUUID())) {
-            return node.drain(amount);
-        }
+        return node.drain(amount);
     }
 
     public long drain(World world, UUID playerUUID, BigInteger amount) {
@@ -106,24 +92,6 @@ public class NetworkManager {
         return node != null ? node.getTotalStored() : BigInteger.ZERO;
     }
 
-    // 旧版transferEnergy保留，但推荐使用新方法
-    public long transferEnergy(World world, UUID playerUUID, BigInteger amount) {
-        if (amount.equals(BigInteger.ZERO)) return 0L;
-        NetworkNode node = getNetwork(world, playerUUID);
-        if (node == null) return 0L;
-        synchronized (getLock(node.getOwnerUUID())) {
-            BigInteger actual = node.modifyEnergy(amount);
-            if (!actual.equals(BigInteger.ZERO)) {
-                NetworkDatabase.get(world).markDirty();
-            }
-            return actual.longValue();
-        }
-    }
-
-    // 获取或创建锁对象（基于网络所有者UUID）
-    private Object getLock(UUID ownerUUID) {
-        return networkLocks.computeIfAbsent(ownerUUID, k -> new Object());
-    }
 
     public NetworkNode getNetworkForPlayer(World world, UUID playerUUID) {
         return NetworkDatabase.get(world).getNetworkForPlayer(playerUUID);

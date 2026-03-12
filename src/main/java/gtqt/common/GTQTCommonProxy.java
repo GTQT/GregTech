@@ -14,6 +14,7 @@ import gtqt.api.util.wireless.WirelessWorldEventHandler;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.covers.GTQTCoverBehavior;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
+import gtqt.common.network.NetworkHandler;
 import gtqt.common.villagerHandler.VillageEngineersHouse;
 import gtqt.common.villagerHandler.VillagerHandler;
 import gtqt.loaders.recipe.RecipeManager;
@@ -44,6 +45,7 @@ public class GTQTCommonProxy {
     public static void preInit() {
         GTQTMetaTileEntities.initialization();
         GTQTMetaItems.initialization();
+        NetworkHandler.registerMessages();
     }
 
     public static void registerRecipes() {

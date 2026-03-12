@@ -1,23 +1,28 @@
 package gtqt.api.util.wireless;
 
-
-import gregtech.core.network.packets.PacketWirelessNetwork;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import gtqt.common.network.CPacketRequestNetworkInfo;
+import gtqt.common.network.NetworkHandler;
 
 import java.math.BigInteger;
 
+@SideOnly(Side.CLIENT)
+@Mod.EventBusSubscriber(Side.CLIENT)
 public class ClientWirelessHUD {
 
     private static BigInteger stored = BigInteger.ZERO;
     private static BigInteger capacity = BigInteger.ZERO;
     private static boolean hasNetwork = false;
     private static int tickCounter = 0;
-    private static final int REQUEST_INTERVAL = 100; // 5秒 (20 ticks/秒 * 5)
+    private static final int REQUEST_INTERVAL = 1;
 
     public static void updateInfo(BigInteger newStored, BigInteger newCapacity) {
         stored = newStored;
@@ -38,7 +43,7 @@ public class ClientWirelessHUD {
         if (tickCounter >= REQUEST_INTERVAL) {
             tickCounter = 0;
             // 发送请求包（使用新组合包）
-            gregtech.api.GregTechAPI.networkHandler.sendToServer(new PacketWirelessNetwork.Server());
+            NetworkHandler.INSTANCE.sendToServer(new CPacketRequestNetworkInfo());
         }
     }
 

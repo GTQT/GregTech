@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 
 import net.minecraft.world.World;
 
-import java.math.BigInteger;
 import java.util.UUID;
 
 public class EnergyContainerWireless extends EnergyContainerHandler {
@@ -30,22 +29,23 @@ public class EnergyContainerWireless extends EnergyContainerHandler {
             UUID ownerId = this.metaTileEntity.getOwnerGT();
             if (ownerId == null) return; // 无所有者，无法操作网络
 
+            NetworkNode node = NetworkManager.INSTANCE.getNetworkForPlayer(world, ownerId);
+            if (node == null) return;
+
             if (isExport) { // 动力舱（输出能量到网络）
                 if (this.energyStored > 0) {
                     long toTransfer = this.energyStored;
-                    long transferred = NetworkManager.INSTANCE.transferEnergy(world, ownerId,
-                            BigInteger.valueOf(toTransfer));
+                    long transferred = node.fill(toTransfer);
                     if (transferred > 0) {
                         this.removeEnergy(transferred);
                     }
                 }
-            } else { // 能源仓（从网络抽取能量）
+            } else { // 能源仓：从网络抽取能量
                 long needEnergy = this.getEnergyCapacity() - this.getEnergyStored();
                 if (needEnergy > 0) {
-                    long transferred = NetworkManager.INSTANCE.transferEnergy(world, ownerId,
-                            BigInteger.valueOf(-needEnergy));
-                    if (transferred < 0) {
-                        this.addEnergy(-transferred); // transferred 为负值，取反后为正数
+                    long transferred = node.drain(needEnergy);
+                    if (transferred > 0) {
+                        this.addEnergy(transferred);
                     }
                 }
             }

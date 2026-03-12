@@ -4,6 +4,7 @@ import gregtech.api.util.GTUtility;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 
@@ -80,7 +81,7 @@ public class NetworkNode {
     public void setNetworkName(String networkName) { this.networkName = networkName; }
 
     // 暴露位置列表用于序列化
-    public synchronized List<HatchLocation> getHatchLocations() {
+    public List<HatchLocation> getHatchLocations() {
         return new ArrayList<>(hatchLocations);
     }
 
@@ -113,11 +114,11 @@ public class NetworkNode {
      * 动态解析当前已加载的无线仓室实例
      * 调用方应始终使用此方法替代直接访问 hatches
      */
-    public synchronized List<MetaTileEntityWirelessController> getLoadedHatches() {
+    public List<MetaTileEntityWirelessController> getLoadedHatches() {
         List<MetaTileEntityWirelessController> loaded = new ArrayList<>();
         for (HatchLocation loc : hatchLocations) {
-            World world = NetworkManager.getWorldByDimension(loc.dimension);
-            if (world != null && world.isBlockLoaded(loc.pos)) {
+            World world = getWorldByDimension(loc.dimension);
+            if (world.isBlockLoaded(loc.pos)) {
                 var mte = GTUtility.getMetaTileEntity(world, loc.pos);
                 if (mte instanceof MetaTileEntityWirelessController controller) {
                     loaded.add(controller);
@@ -132,7 +133,7 @@ public class NetworkNode {
     /**
      * 添加仓室：同时记录位置信息
      */
-    public synchronized void addNewHatch(MetaTileEntityWirelessController hatch) {
+    public void addNewHatch(MetaTileEntityWirelessController hatch) {
         if (hatch.getWorld() == null) return;
         HatchLocation loc = new HatchLocation(
                 hatch.getWorld().provider.getDimension(),
@@ -146,7 +147,7 @@ public class NetworkNode {
     /**
      * 移除仓室：通过实例反查位置并移除
      */
-    public synchronized void removeHatch(MetaTileEntityWirelessController hatch) {
+    public void removeHatch(MetaTileEntityWirelessController hatch) {
         if (hatch.getWorld() == null) return;
         HatchLocation loc = new HatchLocation(
                 hatch.getWorld().provider.getDimension(),
@@ -156,18 +157,10 @@ public class NetworkNode {
     }
 
     /**
-     * ✅ 通过位置直接移除（用于清理无效数据）
+     * 通过位置直接移除（用于清理无效数据）
      */
-    public synchronized boolean removeHatchByLocation(HatchLocation loc) {
+    public boolean removeHatchByLocation(HatchLocation loc) {
         return hatchLocations.remove(loc);
-    }
-
-    /**
-     * @deprecated 外部遍历请使用 getLoadedHatches()
-     */
-    @Deprecated
-    public synchronized List<MetaTileEntityWirelessController> getHatches() {
-        return getLoadedHatches();
     }
 
     // ==================== 内部工具方法 ====================
@@ -176,12 +169,12 @@ public class NetworkNode {
      * 清理无效仓室位置：
      * - 区块已加载但控制器不存在/未成形/非目标类型
      */
-    private synchronized void removeInvalidHatchLocations() {
+    private void removeInvalidHatchLocations() {
         Iterator<HatchLocation> iterator = hatchLocations.iterator();
         while (iterator.hasNext()) {
             HatchLocation loc = iterator.next();
-            World world = NetworkManager.getWorldByDimension(loc.dimension);
-            if (world != null && world.isBlockLoaded(loc.pos)) {
+            World world = getWorldByDimension(loc.dimension);
+            if (world.isBlockLoaded(loc.pos)) {
                 // 区块已加载，可以验证有效性
                 var mte = GTUtility.getMetaTileEntity(world, loc.pos);
                 if (!(mte instanceof MetaTileEntityWirelessController controller) ||
@@ -193,10 +186,15 @@ public class NetworkNode {
         }
     }
 
+    private World getWorldByDimension(int dimension) {
+        return FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(dimension);
+    }
+
+
     /**
      * 获取按优先级升序排序的已加载仓室列表
      */
-    private synchronized List<MetaTileEntityWirelessController> getSortedHatches() {
+    private List<MetaTileEntityWirelessController> getSortedHatches() {
         removeInvalidHatchLocations();
         List<MetaTileEntityWirelessController> sorted = getLoadedHatches();
         sorted.sort(Comparator.comparingInt(MetaTileEntityWirelessController::getPriority));
@@ -205,7 +203,7 @@ public class NetworkNode {
 
     // ==================== 能量操作 ====================
 
-    public synchronized long fill(long amount) {
+    public long fill(long amount) {
         if (amount <= 0) return 0;
         long remaining = amount;
         for (MetaTileEntityWirelessController hatch : getSortedHatches()) {
@@ -216,7 +214,7 @@ public class NetworkNode {
         return amount - remaining;
     }
 
-    public synchronized long drain(long amount) {
+    public long drain(long amount) {
         if (amount <= 0) return 0;
         long remaining = amount;
         for (MetaTileEntityWirelessController hatch : getSortedHatches()) {
@@ -243,7 +241,7 @@ public class NetworkNode {
         return total;
     }
 
-    public synchronized BigInteger modifyEnergy(BigInteger delta) {
+    public BigInteger modifyEnergy(BigInteger delta) {
         if (delta.signum() > 0) {
             long filled = fill(delta.longValue());
             return BigInteger.valueOf(filled);
