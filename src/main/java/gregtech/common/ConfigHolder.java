@@ -423,6 +423,10 @@ public class ConfigHolder {
         @Config.RequiresMcRestart
         public ArmorHud armorHud = new ArmorHud();
 
+        @Config.Name("Wireless HUD Location")
+        @Config.RequiresMcRestart
+        public WirelessHud wirelessHud = new WirelessHud();
+
         @Config.Comment("Config options for Shaders and Post-processing Effects")
         @Config.Name("Shader Options")
         public ShaderOptions shader = new ShaderOptions();
@@ -526,7 +530,16 @@ public class ConfigHolder {
                     "Default: true" })
             public boolean smoothProgressBars = true;
         }
+        public static class WirelessHud {
+            @Config.Comment({ "X of HUD.", "Default: 5" })
+            @Config.RangeInt(min = 0, max = 255)
+            public int hudOffsetX = 5;
 
+            @Config.Comment({ "Y of HUD.", "Default: 40" })
+            @Config.RangeInt(min = 0, max = 255)
+            public int hudOffsetY = 40;
+
+        }
         public static class ArmorHud {
 
             @Config.Comment({ "Sets HUD location", "1 - left-upper corner", "2 - right-upper corner",

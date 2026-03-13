@@ -34,7 +34,10 @@ public class CPacketRequestNetworkInfo implements IMessage {
                 if (node != null) {
                     BigInteger stored = node.getTotalStored();
                     BigInteger capacity = node.getTotalCapacity();
-                    NetworkHandler.INSTANCE.sendTo(new SPacketWirelessNetworkInfo(stored, capacity), player);
+                    BigInteger energyIn = node.getTotalInput();
+                    BigInteger energyOut = node.getTotalOutput();
+                    node.resetStats();
+                    NetworkHandler.INSTANCE.sendTo(new SPacketWirelessNetworkInfo(stored, capacity,energyIn,energyOut), player);
                 }
             });
             return null;

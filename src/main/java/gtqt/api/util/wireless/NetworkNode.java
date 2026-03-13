@@ -2,71 +2,33 @@ package gtqt.api.util.wireless;
 
 import gregtech.api.util.GTUtility;
 
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
+import lombok.Getter;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 public class NetworkNode {
 
-    private final UUID ownerUUID;
-
     public final List<HatchLocation> hatchLocations;
+    @Getter
+    private final UUID ownerUUID;
+    @Getter
     private String networkName;
 
-    // ==================== 内部位置类 ====================
-
-    public static class HatchLocation {
-        public final int dimension;
-        public final BlockPos pos;
-
-        public HatchLocation(int dimension, BlockPos pos) {
-            this.dimension = dimension;
-            this.pos = pos.toImmutable(); // 确保不可变
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof HatchLocation)) return false;
-            HatchLocation that = (HatchLocation) o;
-            return dimension == that.dimension && pos.equals(that.pos);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(dimension, pos);
-        }
-
-        // 用于 NBT 序列化
-        public net.minecraft.nbt.NBTTagCompound writeToNBT() {
-            net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
-            tag.setInteger("dim", dimension);
-            tag.setInteger("x", pos.getX());
-            tag.setInteger("y", pos.getY());
-            tag.setInteger("z", pos.getZ());
-            return tag;
-        }
-
-        // 用于 NBT 反序列化
-        public static HatchLocation readFromNBT(net.minecraft.nbt.NBTTagCompound tag) {
-            return new HatchLocation(
-                    tag.getInteger("dim"),
-                    new BlockPos(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"))
-            );
-        }
-    }
-
-    // ==================== 构造函数 ====================
+    @Getter
+    private BigInteger totalInput = BigInteger.ZERO;
+    @Getter
+    private BigInteger totalOutput = BigInteger.ZERO;
 
     public NetworkNode(UUID owner, String name) {
         this.ownerUUID = owner;
@@ -74,28 +36,23 @@ public class NetworkNode {
         this.hatchLocations = new ArrayList<>();
     }
 
-    // ==================== Getter / Setter ====================
+    public void setNetworkName(String networkName) {this.networkName = networkName;}
 
-    public UUID getOwnerUUID() { return ownerUUID; }
-    public String getNetworkName() { return networkName; }
-    public void setNetworkName(String networkName) { this.networkName = networkName; }
-
-    // 暴露位置列表用于序列化
     public List<HatchLocation> getHatchLocations() {
         return new ArrayList<>(hatchLocations);
     }
 
-    // ==================== 能量格式化方法 ====================
-    // ... (保持不变) ...
     public String getEnergyContainer() {
         BigInteger totalStored = getTotalStored();
         return formatScientificNotation(totalStored) + " EU (" +
                 formatEnergyValue(totalStored) + ")";
     }
+
     private String formatScientificNotation(BigInteger energy) {
         double value = energy.doubleValue();
         return String.format("%.3E", value);
     }
+
     private String formatEnergyValue(BigInteger energy) {
         if (energy.compareTo(BigInteger.valueOf(1_000_000_000L)) >= 0) {
             return energy.divide(BigInteger.valueOf(1_000_000_000L)) + " GE";
@@ -108,11 +65,8 @@ public class NetworkNode {
         }
     }
 
-    // ==================== 核心：动态获取已加载仓室 ====================
-
     /**
-     * 动态解析当前已加载的无线仓室实例
-     * 调用方应始终使用此方法替代直接访问 hatches
+     * 动态解析当前已加载的无线仓室实例 调用方应始终使用此方法替代直接访问 hatches
      */
     public List<MetaTileEntityWirelessController> getLoadedHatches() {
         List<MetaTileEntityWirelessController> loaded = new ArrayList<>();
@@ -128,7 +82,7 @@ public class NetworkNode {
         return loaded;
     }
 
-    // ==================== 仓室管理（线程安全）====================
+    // ==================== 核心：动态获取已加载仓室 ====================
 
     /**
      * 添加仓室：同时记录位置信息
@@ -143,6 +97,8 @@ public class NetworkNode {
             hatchLocations.add(loc);
         }
     }
+
+    // ==================== 仓室管理（线程安全）====================
 
     /**
      * 移除仓室：通过实例反查位置并移除
@@ -163,11 +119,8 @@ public class NetworkNode {
         return hatchLocations.remove(loc);
     }
 
-    // ==================== 内部工具方法 ====================
-
     /**
-     * 清理无效仓室位置：
-     * - 区块已加载但控制器不存在/未成形/非目标类型
+     * 清理无效仓室位置： - 区块已加载但控制器不存在/未成形/非目标类型
      */
     private void removeInvalidHatchLocations() {
         Iterator<HatchLocation> iterator = hatchLocations.iterator();
@@ -186,10 +139,11 @@ public class NetworkNode {
         }
     }
 
+    // ==================== 内部工具方法 ====================
+
     private World getWorldByDimension(int dimension) {
         return FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(dimension);
     }
-
 
     /**
      * 获取按优先级升序排序的已加载仓室列表
@@ -201,8 +155,6 @@ public class NetworkNode {
         return sorted;
     }
 
-    // ==================== 能量操作 ====================
-
     public long fill(long amount) {
         if (amount <= 0) return 0;
         long remaining = amount;
@@ -211,8 +163,14 @@ public class NetworkNode {
             long filled = hatch.fill(remaining);
             remaining -= filled;
         }
-        return amount - remaining;
+        long filledAmount = amount - remaining;
+        if (filledAmount > 0) {
+            totalInput = totalInput.add(BigInteger.valueOf(filledAmount));
+        }
+        return filledAmount;
     }
+
+    // ==================== 能量操作 ====================
 
     public long drain(long amount) {
         if (amount <= 0) return 0;
@@ -222,7 +180,11 @@ public class NetworkNode {
             long drained = hatch.drain(remaining);
             remaining -= drained;
         }
-        return amount - remaining;
+        long drainedAmount = amount - remaining;
+        if (drainedAmount > 0) {
+            totalOutput = totalOutput.add(BigInteger.valueOf(drainedAmount));
+        }
+        return drainedAmount;
     }
 
     public BigInteger getTotalCapacity() {
@@ -233,6 +195,11 @@ public class NetworkNode {
         return total;
     }
 
+    public void resetStats() {
+        totalInput = BigInteger.ZERO;
+        totalOutput = BigInteger.ZERO;
+    }
+
     public BigInteger getTotalStored() {
         BigInteger total = BigInteger.ZERO;
         for (MetaTileEntityWirelessController hatch : getLoadedHatches()) {
@@ -241,15 +208,34 @@ public class NetworkNode {
         return total;
     }
 
-    public BigInteger modifyEnergy(BigInteger delta) {
-        if (delta.signum() > 0) {
-            long filled = fill(delta.longValue());
-            return BigInteger.valueOf(filled);
-        } else if (delta.signum() < 0) {
-            long drained = drain(-delta.longValue());
-            return BigInteger.valueOf(-drained);
-        } else {
-            return BigInteger.ZERO;
+    public record HatchLocation(int dimension, BlockPos pos) {
+
+            public HatchLocation(int dimension, BlockPos pos) {
+                this.dimension = dimension;
+                this.pos = pos.toImmutable(); // 确保不可变
+            }
+
+            public static HatchLocation readFromNBT(NBTTagCompound tag) {
+                return new HatchLocation(
+                        tag.getInteger("dim"),
+                        new BlockPos(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"))
+                );
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (!(o instanceof HatchLocation that)) return false;
+                return dimension == that.dimension && pos.equals(that.pos);
+            }
+
+        public NBTTagCompound writeToNBT() {
+                NBTTagCompound tag = new NBTTagCompound();
+                tag.setInteger("dim", dimension);
+                tag.setInteger("x", pos.getX());
+                tag.setInteger("y", pos.getY());
+                tag.setInteger("z", pos.getZ());
+                return tag;
+            }
         }
-    }
 }

@@ -1,5 +1,7 @@
 package gtqt.api.util.wireless;
 
+import gregtech.common.ConfigHolder;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -12,21 +14,40 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import gtqt.common.network.CPacketRequestNetworkInfo;
 import gtqt.common.network.NetworkHandler;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 
 @SideOnly(Side.CLIENT)
 @Mod.EventBusSubscriber(Side.CLIENT)
 public class ClientWirelessHUD {
 
-    private static BigInteger stored = BigInteger.ZERO;
-    private static BigInteger capacity = BigInteger.ZERO;
-    private static boolean hasNetwork = false;
-    private static int tickCounter = 0;
-    private static final int REQUEST_INTERVAL = 1;
+    private static final String[] ENERGY_UNITS = {" EU", " KEU", " MEU", " GEU", " TEU", " PEU", " EEU", " ZEU", " YEU"};
 
-    public static void updateInfo(BigInteger newStored, BigInteger newCapacity) {
+    private static volatile BigInteger stored = BigInteger.ZERO;
+    private static volatile BigInteger capacity = BigInteger.ZERO;
+    private static volatile BigInteger lastStored = BigInteger.ZERO;
+    private static volatile BigInteger inputRate = BigInteger.ZERO;
+    private static volatile BigInteger outputRate = BigInteger.ZERO;
+    private static volatile boolean hasNetwork = false;
+    private static volatile String throughputString = "";
+    private static int tickCounter = 0;
+    private static final int REQUEST_INTERVAL = 20; // 1秒 (20 ticks)
+
+    public static void updateInfo(BigInteger newStored, BigInteger newCapacity, BigInteger newInputRate, BigInteger newOutputRate) {
+        if (lastStored.compareTo(BigInteger.ZERO) != 0) {
+            BigInteger delta = newStored.subtract(lastStored);
+            BigDecimal ratePerSecond = new BigDecimal(delta);
+            throughputString = formatRate(ratePerSecond);
+        } else {
+            throughputString = "";
+        }
+
         stored = newStored;
         capacity = newCapacity;
+        lastStored = newStored;
+        inputRate = newInputRate;
+        outputRate = newOutputRate;
         hasNetwork = true;
     }
 
@@ -42,7 +63,6 @@ public class ClientWirelessHUD {
         tickCounter++;
         if (tickCounter >= REQUEST_INTERVAL) {
             tickCounter = 0;
-            // 发送请求包（使用新组合包）
             NetworkHandler.INSTANCE.sendToServer(new CPacketRequestNetworkInfo());
         }
     }
@@ -54,28 +74,75 @@ public class ClientWirelessHUD {
 
         Minecraft mc = Minecraft.getMinecraft();
         ScaledResolution res = new ScaledResolution(mc);
-        int x = 5;
-        int y = res.getScaledHeight() - 40;
+        int x = ConfigHolder.client.wirelessHud.hudOffsetX;
+        int y = res.getScaledHeight() - ConfigHolder.client.wirelessHud.hudOffsetY;
 
         String storedStr = formatEnergy(stored);
+        String capacityStr = formatEnergy(capacity);
         double percent = capacity.compareTo(BigInteger.ZERO) == 0 ? 0 :
                 stored.doubleValue() / capacity.doubleValue() * 100;
         String percentStr = String.format("%.1f%%", percent);
 
-        mc.fontRenderer.drawStringWithShadow("无线网络", x, y, 0xFFFFFF);
-        mc.fontRenderer.drawStringWithShadow("存量: " + storedStr, x, y + 10, 0xAAAAAA);
-        mc.fontRenderer.drawStringWithShadow("占比: " + percentStr, x, y + 20, 0xAAAAAA);
+        String combined = "系统蓄能: " + storedStr + " / " + capacityStr + " (" + percentStr + ")";
+
+        int currentY = y;
+        mc.fontRenderer.drawStringWithShadow("无线网络", x, currentY, 0xFFFFFF); currentY += 10;
+        mc.fontRenderer.drawStringWithShadow(combined, x, currentY, 0xFFFF55); currentY += 10;
+
+        if (!throughputString.isEmpty()) {
+            int throughputColor;
+            if (throughputString.startsWith("+")) {
+                throughputColor = 0x55FF55;
+            } else if (throughputString.startsWith("-")) {
+                throughputColor = 0xFF5555;
+            } else {
+                throughputColor = 0xAAAAAA;
+            }
+            mc.fontRenderer.drawStringWithShadow("能量吞吐: " + throughputString, x, currentY, throughputColor); currentY += 10;
+        }
+
+        String inputStr = formatEnergy(inputRate) + "/s";
+        String outputStr = formatEnergy(outputRate) + "/s";
+
+        String inputLabel = "纯流入: ";
+        int xPos = x;
+        mc.fontRenderer.drawStringWithShadow(inputLabel, xPos, currentY, 0xFFFFFF);
+        xPos += mc.fontRenderer.getStringWidth(inputLabel);
+        mc.fontRenderer.drawStringWithShadow(inputStr, xPos, currentY, 0x55FF55);
+        xPos += mc.fontRenderer.getStringWidth(inputStr);
+
+        String outputLabel = "  纯流出: ";
+        mc.fontRenderer.drawStringWithShadow(outputLabel, xPos, currentY, 0xFFFFFF);
+        xPos += mc.fontRenderer.getStringWidth(outputLabel);
+        mc.fontRenderer.drawStringWithShadow(outputStr, xPos, currentY, 0xFF5555);
     }
 
     private static String formatEnergy(BigInteger energy) {
-        if (energy.compareTo(BigInteger.valueOf(1_000_000_000L)) >= 0) {
-            return energy.divide(BigInteger.valueOf(1_000_000_000L)) + " GE";
-        } else if (energy.compareTo(BigInteger.valueOf(1_000_000L)) >= 0) {
-            return energy.divide(BigInteger.valueOf(1_000_000L)) + " ME";
-        } else if (energy.compareTo(BigInteger.valueOf(1_000L)) >= 0) {
-            return energy.divide(BigInteger.valueOf(1_000L)) + " KE";
-        } else {
-            return energy + " EU";
+        if (energy.compareTo(BigInteger.ZERO) == 0) {
+            return "0 EU";
         }
+        BigDecimal value = new BigDecimal(energy);
+        BigDecimal divisor = BigDecimal.valueOf(1000);
+        int unitIndex = 0;
+        while (value.compareTo(divisor) >= 0 && unitIndex < ENERGY_UNITS.length - 1) {
+            value = value.divide(divisor, 1, RoundingMode.HALF_UP);
+            unitIndex++;
+        }
+        return value.stripTrailingZeros().toPlainString() + ENERGY_UNITS[unitIndex];
+    }
+
+    private static String formatRate(BigDecimal rate) {
+        if (rate.compareTo(BigDecimal.ZERO) == 0) {
+            return "0 EU/s";
+        }
+        String sign = rate.compareTo(BigDecimal.ZERO) > 0 ? "+" : "-";
+        BigDecimal absRate = rate.abs();
+        BigDecimal divisor = BigDecimal.valueOf(1000);
+        int unitIndex = 0;
+        while (absRate.compareTo(divisor) >= 0 && unitIndex < ENERGY_UNITS.length - 1) {
+            absRate = absRate.divide(divisor, 1, RoundingMode.HALF_UP);
+            unitIndex++;
+        }
+        return sign + absRate.stripTrailingZeros().toPlainString() + ENERGY_UNITS[unitIndex] + "/s";
     }
 }

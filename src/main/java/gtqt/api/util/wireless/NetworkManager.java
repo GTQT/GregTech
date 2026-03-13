@@ -7,7 +7,6 @@ import net.minecraft.world.World;
 import com.feed_the_beast.ftblib.lib.data.ForgePlayer;
 import com.feed_the_beast.ftblib.lib.data.ForgeTeam;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -27,7 +26,6 @@ public class NetworkManager {
         return null;
     }
 
-    // 核心方法：根据玩家UUID获取其所属的网络（队伍共享或个人）
     private NetworkNode getNetwork(World world, UUID playerUUID) {
         NetworkDatabase db = NetworkDatabase.get(world);
         return db.getNetworkForPlayer(playerUUID);
@@ -42,56 +40,6 @@ public class NetworkManager {
         }
         return node;
     }
-
-    // 创建网络（如果队伍已有网络则返回现有网络，否则新建）
-    public NetworkNode createNetwork(World world, UUID owner, String name) {
-        NetworkDatabase db = NetworkDatabase.get(world);
-        NetworkNode existing = db.getNetworkForPlayer(owner);
-        if (existing != null) {
-            return existing; // 队伍已有网络，直接返回
-        }
-        // 新建网络，以owner的UUID为键
-        NetworkNode node = new NetworkNode(owner, name);
-        db.addNetwork(node);
-        return node;
-    }
-
-    // 向网络填充能量（返回实际填充量）
-    public long fill(World world, UUID playerUUID, long amount) {
-        if (amount <= 0) return 0;
-        NetworkNode node = getNetwork(world, playerUUID);
-        if (node == null) return 0;
-        return node.fill(amount);
-    }
-
-    public long fill(World world, UUID playerUUID, BigInteger amount) {
-        return fill(world, playerUUID, amount.longValue());
-    }
-
-    // 从网络抽取能量（返回实际抽取量）
-    public long drain(World world, UUID playerUUID, long amount) {
-        if (amount <= 0) return 0;
-        NetworkNode node = getNetwork(world, playerUUID);
-        if (node == null) return 0;
-        return node.drain(amount);
-    }
-
-    public long drain(World world, UUID playerUUID, BigInteger amount) {
-        return drain(world, playerUUID, amount.longValue());
-    }
-
-    // 获取网络总容量
-    public BigInteger getCapacity(World world, UUID playerUUID) {
-        NetworkNode node = getNetwork(world, playerUUID);
-        return node != null ? node.getTotalCapacity() : BigInteger.ZERO;
-    }
-
-    // 获取网络当前存储
-    public BigInteger getStored(World world, UUID playerUUID) {
-        NetworkNode node = getNetwork(world, playerUUID);
-        return node != null ? node.getTotalStored() : BigInteger.ZERO;
-    }
-
 
     public NetworkNode getNetworkForPlayer(World world, UUID playerUUID) {
         return NetworkDatabase.get(world).getNetworkForPlayer(playerUUID);
