@@ -77,45 +77,82 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     // Structure Constants
     public static final int MAX_BATTERY_LAYERS = 18;
-    private static final int MIN_CASINGS = 14;
-
     // Passive Drain Constants
     // 1% capacity per 24 hours
     public static final long PASSIVE_DRAIN_DIVISOR = 20 * 60 * 60 * 24 * 100;
     // no more than 100kEU/t per storage block
     public static final long PASSIVE_DRAIN_MAX_PER_STORAGE = 100_000L;
-
+    private static final int MIN_CASINGS = 14;
     // NBT Keys
     private static final String NBT_ENERGY_BANK = "EnergyBank";
 
     // Match Context Headers
     private static final String PMC_BATTERY_HEADER = "PSSBattery_";
-
+    protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> new TraceabilityPredicate(
+            blockWorldState -> {
+                IBlockState state = blockWorldState.getBlockState();
+                if (GregTechAPI.PSS_BATTERIES.containsKey(state)) {
+                    IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(state);
+                    // Allow unfilled batteries in the structure, but do not add them to match context.
+                    // This lets you use empty batteries as "filler slots" for convenience if desired.
+                    if (battery.getTier() != -1 && battery.getCapacity() > 0) {
+                        String key = PMC_BATTERY_HEADER + battery.getBatteryName();
+                        BatteryMatchWrapper wrapper = blockWorldState.getMatchContext().get(key);
+                        if (wrapper == null) wrapper = new BatteryMatchWrapper(battery);
+                        blockWorldState.getMatchContext().set(key, wrapper.increment());
+                    }
+                    return true;
+                }
+                return false;
+            }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
+            .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
+            .map(entry -> new BlockInfo(entry.getKey(), null))
+            .toArray(BlockInfo[]::new))
+            .addTooltips("gregtech.multiblock.pattern.error.batteries");
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
-
     private PowerStationEnergyBank energyBank;
-    public PowerStationEnergyBank getEnergyBank()
-    {
-        return energyBank;
-    }
-    public void setEnergyBank(PowerStationEnergyBank energyBank)
-    {
-        this.energyBank = energyBank;
-    }
-
     private EnergyContainerList inputHatches;
     private EnergyContainerList outputHatches;
     private long passiveDrain;
     private boolean isActive, isWorkingEnabled = true;
-
     // Stats tracked for UI display
     private long netInLastSec;
     private long averageInLastSec;
     private long netOutLastSec;
     private long averageOutLastSec;
-
     public MetaTileEntityPowerSubstation(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    private static IKey getTimeToFillDrainText(BigInteger timeToFillSeconds) {
+        if (timeToFillSeconds.compareTo(BIG_INTEGER_MAX_LONG) > 0) {
+            // too large to represent in a java Duration
+            timeToFillSeconds = BIG_INTEGER_MAX_LONG;
+        }
+
+        Duration duration = Duration.ofSeconds(timeToFillSeconds.longValue());
+        String key;
+        long fillTime;
+        if (duration.getSeconds() <= 180) {
+            fillTime = duration.getSeconds();
+            key = "gregtech.multiblock.power_substation.time_seconds";
+        } else if (duration.toMinutes() <= 180) {
+            fillTime = duration.toMinutes();
+            key = "gregtech.multiblock.power_substation.time_minutes";
+        } else if (duration.toHours() <= 72) {
+            fillTime = duration.toHours();
+            key = "gregtech.multiblock.power_substation.time_hours";
+        } else if (duration.toDays() <= 730) { // 2 years
+            fillTime = duration.toDays();
+            key = "gregtech.multiblock.power_substation.time_days";
+        } else if (duration.toDays() / 365 < 1_000_000) {
+            fillTime = duration.toDays() / 365;
+            key = "gregtech.multiblock.power_substation.time_years";
+        } else {
+            return KeyUtil.lang("gregtech.multiblock.power_substation.time_forever");
+        }
+
+        return KeyUtil.lang(key, TextFormattingUtil.formatNumbers(fillTime));
     }
 
     @Override
@@ -160,7 +197,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         this.passiveDrain = this.energyBank.getPassiveDrainPerTick();
 
         List<IWirelessController> wirelessControllers = getAbilities(MultiblockAbility.WIRELESS_CONTROLLER);
-        if(wirelessControllers!=null && !wirelessControllers.isEmpty()){
+        if (wirelessControllers != null && !wirelessControllers.isEmpty()) {
             wirelessControllers.get(0).sentMTE();
         }
     }
@@ -168,7 +205,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     @Override
     public void invalidateStructure() {
         List<IWirelessController> wirelessControllers = getAbilities(MultiblockAbility.WIRELESS_CONTROLLER);
-        if(wirelessControllers!=null && !wirelessControllers.isEmpty()){
+        if (wirelessControllers != null && !wirelessControllers.isEmpty()) {
             wirelessControllers.get(0).removeMTE();
         }
         // don't null out energyBank since it holds the stored energy, which
@@ -200,18 +237,30 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                 // Bank from Energy Input Hatches
                 long energyBanked = energyBank.fill(inputHatches.getEnergyStored());
                 inputHatches.changeEnergy(-energyBanked);
-                netInLastSec += energyBanked;
+                recordEnergyIn(energyBanked);
 
                 // Passive drain
                 long energyPassiveDrained = energyBank.drain(getPassiveDrain());
-                netOutLastSec += energyPassiveDrained;
+                recordEnergyOut(energyPassiveDrained);
 
                 // Debank to Dynamo Hatches
                 long energyDebanked = energyBank
                         .drain(outputHatches.getEnergyCapacity() - outputHatches.getEnergyStored());
                 outputHatches.changeEnergy(energyDebanked);
-                netOutLastSec += energyDebanked;
+                recordEnergyOut(energyDebanked);
             }
+        }
+    }
+
+    private void recordEnergyIn(long amount) {
+        if (amount > 0) {
+            netInLastSec += amount;
+        }
+    }
+
+    private void recordEnergyOut(long amount) {
+        if (amount > 0) {
+            netOutLastSec += amount;
         }
     }
 
@@ -322,28 +371,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     protected IBlockState getGlassState() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS);
     }
-
-    protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> new TraceabilityPredicate(
-            blockWorldState -> {
-                IBlockState state = blockWorldState.getBlockState();
-                if (GregTechAPI.PSS_BATTERIES.containsKey(state)) {
-                    IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(state);
-                    // Allow unfilled batteries in the structure, but do not add them to match context.
-                    // This lets you use empty batteries as "filler slots" for convenience if desired.
-                    if (battery.getTier() != -1 && battery.getCapacity() > 0) {
-                        String key = PMC_BATTERY_HEADER + battery.getBatteryName();
-                        BatteryMatchWrapper wrapper = blockWorldState.getMatchContext().get(key);
-                        if (wrapper == null) wrapper = new BatteryMatchWrapper(battery);
-                        blockWorldState.getMatchContext().set(key, wrapper.increment());
-                    }
-                    return true;
-                }
-                return false;
-            }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
-            .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-            .map(entry -> new BlockInfo(entry.getKey(), null))
-            .toArray(BlockInfo[]::new))
-            .addTooltips("gregtech.multiblock.pattern.error.batteries");
 
     @SideOnly(Side.CLIENT)
     @Override
@@ -460,37 +487,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         });
     }
 
-    private static IKey getTimeToFillDrainText(BigInteger timeToFillSeconds) {
-        if (timeToFillSeconds.compareTo(BIG_INTEGER_MAX_LONG) > 0) {
-            // too large to represent in a java Duration
-            timeToFillSeconds = BIG_INTEGER_MAX_LONG;
-        }
-
-        Duration duration = Duration.ofSeconds(timeToFillSeconds.longValue());
-        String key;
-        long fillTime;
-        if (duration.getSeconds() <= 180) {
-            fillTime = duration.getSeconds();
-            key = "gregtech.multiblock.power_substation.time_seconds";
-        } else if (duration.toMinutes() <= 180) {
-            fillTime = duration.toMinutes();
-            key = "gregtech.multiblock.power_substation.time_minutes";
-        } else if (duration.toHours() <= 72) {
-            fillTime = duration.toHours();
-            key = "gregtech.multiblock.power_substation.time_hours";
-        } else if (duration.toDays() <= 730) { // 2 years
-            fillTime = duration.toDays();
-            key = "gregtech.multiblock.power_substation.time_days";
-        } else if (duration.toDays() / 365 < 1_000_000) {
-            fillTime = duration.toDays() / 365;
-            key = "gregtech.multiblock.power_substation.time_years";
-        } else {
-            return KeyUtil.lang("gregtech.multiblock.power_substation.time_forever");
-        }
-
-        return KeyUtil.lang(key, TextFormattingUtil.formatNumbers(fillTime));
-    }
-
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
@@ -586,6 +582,20 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         return TextFormattingUtil.formatNumbers(energyBank.getCapacity());
     }
 
+    public BigInteger getCapacityByBigInteger() {
+        if (energyBank == null) {
+            return BigInteger.ZERO;
+        }
+        return energyBank.getCapacity();
+    }
+
+    public BigInteger getStoredByBigInteger() {
+        if (energyBank == null) {
+            return BigInteger.ZERO;
+        }
+        return energyBank.getStored();
+    }
+
     public long getAverageInLastSec() {
         return averageInLastSec;
     }
@@ -625,6 +635,48 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                         t.addLine(IKey.lang("gregtech.multiblock.invalid_structure"));
                     }
                 }));
+    }
+
+    /**
+     * 外部设备向 PSS 能量库填充能量
+     *
+     * @param amount 尝试填充的能量值（必须 >= 0）
+     * @return 实际成功填充的能量值
+     */
+    public long externalFill(long amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+
+        long filled = energyBank.fill(amount);
+        recordEnergyIn(filled);
+        return filled;
+
+    }
+
+    /**
+     * 外部设备从 PSS 能量库抽取能量
+     *
+     * @param amount 尝试抽取的能量值（必须 >= 0）
+     * @return 实际成功抽取的能量值
+     */
+    public long externalDrain(long amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+
+        long drained = energyBank.drain(amount);
+        recordEnergyOut(drained);
+        return drained;
+
+    }
+
+    /**
+     * 检查 PSS 是否允许外部能量交互
+     * @return true 如果结构成形、工作启用且能量库就绪
+     */
+    public boolean isExternalEnergyAccessAllowed() {
+        return isStructureFormed() && isWorkingEnabled() && energyBank != null;
     }
 
     public static class PowerStationEnergyBank {
@@ -667,6 +719,18 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
             capacity = summarize(max);
         }
 
+        private static BigInteger summarize(long[] num) {
+            return BigInteger.valueOf(num[0]).shiftLeft(63).add(BigInteger.valueOf(num[1]));
+        }
+
+        private static void add(long[] num, long val) {
+            num[1] += val;
+            if (num[1] < 0) {
+                num[0]++;
+                num[1] -= Long.MIN_VALUE;
+            }
+        }
+
         public NBTTagCompound writeToNBT(NBTTagCompound compound) {
             compound.setLong(NBT_STORED + "0", stored[0]);
             compound.setLong(NBT_STORED + "1", stored[1]);
@@ -689,9 +753,8 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
 
         /**
-         * Rebuild the power storage with a new list of batteries.
-         * Will use existing stored power and try to map it onto new batteries.
-         * If there was more power before the rebuild operation, it will be lost.
+         * Rebuild the power storage with a new list of batteries. Will use existing stored power and try to map it onto
+         * new batteries. If there was more power before the rebuild operation, it will be lost.
          */
         public void rebuild(@NotNull List<IBatteryData> batteries) {
             if (batteries.isEmpty()) {
@@ -759,18 +822,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
         public boolean hasEnergy() {
             return stored[0] != 0 && stored[1] != 0;
-        }
-
-        private static BigInteger summarize(long[] num) {
-            return BigInteger.valueOf(num[0]).shiftLeft(63).add(BigInteger.valueOf(num[1]));
-        }
-
-        private static void add(long[] num, long val) {
-            num[1] += val;
-            if (num[1] < 0) {
-                num[0]++;
-                num[1] -= Long.MIN_VALUE;
-            }
         }
 
         @VisibleForTesting

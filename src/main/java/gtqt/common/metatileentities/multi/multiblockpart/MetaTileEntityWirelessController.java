@@ -117,8 +117,6 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         }
     }
 
-    // ==================== 能量代理 ====================
-
     public MetaTileEntityPowerSubstation getPSS() {
         if (this.getController() instanceof MetaTileEntityPowerSubstation powerStation && powerStation.isStructureFormed()) {
             return powerStation;
@@ -127,19 +125,25 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     }
 
     public BigInteger getCapacity() {
-        return getPSS() != null ? getPSS().getEnergyBank().getCapacity() : BigInteger.ZERO;
+        return getPSS() != null ? getPSS().getCapacityByBigInteger() : BigInteger.ZERO;
     }
 
     public BigInteger getStored() {
-        return getPSS() != null ? getPSS().getEnergyBank().getStored() : BigInteger.ZERO;
+        return getPSS() != null ? getPSS().getStoredByBigInteger() : BigInteger.ZERO;
     }
 
     public long fill(long amount) {
-        return getPSS() != null ? getPSS().getEnergyBank().fill(amount) : 0;
+        if (getPSS() != null && getPSS().isExternalEnergyAccessAllowed()) {
+            return getPSS().externalFill(amount);
+        }
+        return 0;
     }
 
     public long drain(long amount) {
-        return getPSS() != null ? getPSS().getEnergyBank().drain(amount) : 0;
+        if (getPSS() != null && getPSS().isExternalEnergyAccessAllowed()) {
+            return getPSS().externalDrain(amount);
+        }
+        return 0;
     }
 
     // ==================== 优先级 ====================
@@ -150,22 +154,6 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
     public void setPriority(int priority) {
         this.priority = priority;
-    }
-
-    // ==================== 接口实现（IWirelessController）====================
-
-    @Override
-    public MetaTileEntityPowerSubstation.PowerStationEnergyBank getEnergyBank() {
-        MetaTileEntityPowerSubstation pss = getPSS();
-        return pss != null ? pss.getEnergyBank() : null;
-    }
-
-    @Override
-    public void setEnergyBank(MetaTileEntityPowerSubstation.PowerStationEnergyBank energyBank) {
-        MetaTileEntityPowerSubstation pss = getPSS();
-        if (pss != null) {
-            pss.setEnergyBank(energyBank);
-        }
     }
 
     // ==================== 数据持久化 ====================
