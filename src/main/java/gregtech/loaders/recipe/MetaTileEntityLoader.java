@@ -1116,15 +1116,30 @@ public class MetaTileEntityLoader {
 
         ModHandler.addShapedRecipe(true, "wooden_crate", MetaTileEntities.WOODEN_CRATE.getStackForm(), "RPR", "PsP",
                 "RPR", 'P', "plankWood", 'R', new UnificationEntry(OrePrefix.screw, Materials.Iron));
+        ModHandler.addShapedRecipe(true, "copper_crate", MetaTileEntities.COPPER_CRATE.getStackForm(), "RPR", "PhP",
+                "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Copper), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Copper));
+        ModHandler.addShapedRecipe(true, "iron_crate", MetaTileEntities.IRON_CRATE.getStackForm(), "RPR", "PhP",
+                "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Iron), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Iron));
         ModHandler.addShapedRecipe(true, "bronze_crate", MetaTileEntities.BRONZE_CRATE.getStackForm(), "RPR", "PhP",
                 "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Bronze), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Bronze));
+        ModHandler.addShapedRecipe(true, "silver_crate", MetaTileEntities.SILVER_CRATE.getStackForm(), "RPR", "PhP",
+                "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Silver), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Silver));
         ModHandler.addShapedRecipe(true, "steel_crate", MetaTileEntities.STEEL_CRATE.getStackForm(), "RPR", "PhP",
                 "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Steel), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Steel));
+        ModHandler.addShapedRecipe(true, "gold_crate", MetaTileEntities.GOLD_CRATE.getStackForm(), "RPR", "PhP",
+                "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Gold), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Gold));
         ModHandler.addShapedRecipe(true, "aluminium_crate", MetaTileEntities.ALUMINIUM_CRATE.getStackForm(), "RPR",
                 "PhP", "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.Aluminium), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Aluminium));
+        ModHandler.addShapedRecipe(true, "diamond_crate", MetaTileEntities.DIAMOND_CRATE.getStackForm(), "RPR",
+                "PhP", "RPR", 'P', new UnificationEntry(OrePrefix.plate, Diamond), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Diamond));
         ModHandler.addShapedRecipe(true, "stainless_steel_crate", MetaTileEntities.STAINLESS_STEEL_CRATE.getStackForm(),
                 "RPR", "PhP", "RPR", 'P', new UnificationEntry(OrePrefix.plate, Materials.StainlessSteel), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.StainlessSteel));
@@ -1160,6 +1175,9 @@ public class MetaTileEntityLoader {
         ModHandler.addShapedRecipe(true, "steel_drum", MetaTileEntities.STEEL_DRUM.getStackForm(), " h ", "PRP", "PRP",
                 'P', new UnificationEntry(OrePrefix.plate, Materials.Steel), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Steel));
+        ModHandler.addShapedRecipe(true, "chrome_drum", MetaTileEntities.CHROME_DRUM.getStackForm(), " h ", "PRP", "PRP",
+                'P', new UnificationEntry(OrePrefix.plate,  Materials.Chrome), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Chrome));
         ModHandler.addShapedRecipe(true, "aluminium_drum", MetaTileEntities.ALUMINIUM_DRUM.getStackForm(), " h ", "PRP",
                 "PRP", 'P', new UnificationEntry(OrePrefix.plate, Materials.Aluminium), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Aluminium));
@@ -1169,9 +1187,15 @@ public class MetaTileEntityLoader {
         ModHandler.addShapedRecipe(true, "titanium_drum", MetaTileEntities.TITANIUM_DRUM.getStackForm(), " h ", "PRP",
                 "PRP", 'P', new UnificationEntry(OrePrefix.plate, Materials.Titanium), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Titanium));
+        ModHandler.addShapedRecipe(true, "tungsten_drum", MetaTileEntities.TUNGSTEN_DRUM.getStackForm(), " h ", "PRP",
+                "PRP", 'P', new UnificationEntry(OrePrefix.plate, Materials.Tungsten), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Tungsten));
         ModHandler.addShapedRecipe(true, "tungstensteel_drum", MetaTileEntities.TUNGSTENSTEEL_DRUM.getStackForm(),
                 " h ", "PRP", "PRP", 'P', new UnificationEntry(OrePrefix.plate, Materials.TungstenSteel), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.TungstenSteel));
+        ModHandler.addShapedRecipe(true, "iridium_drum", MetaTileEntities.IRIDIUM_DRUM.getStackForm(),
+                " h ", "PRP", "PRP", 'P', new UnificationEntry(OrePrefix.plate, Materials.Iridium), 'R',
+                new UnificationEntry(OrePrefix.stickLong, Materials.Iridium));
         ModHandler.addShapedRecipe(true, "gold_drum", MetaTileEntities.GOLD_DRUM.getStackForm(), " h ", "PRP", "PRP",
                 'P', new UnificationEntry(OrePrefix.plate, Materials.Gold), 'R',
                 new UnificationEntry(OrePrefix.stickLong, Materials.Gold));

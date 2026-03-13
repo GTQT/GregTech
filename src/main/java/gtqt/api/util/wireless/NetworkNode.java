@@ -2,7 +2,6 @@ package gtqt.api.util.wireless;
 
 import gregtech.api.util.GTUtility;
 
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -15,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class NetworkNode {
@@ -208,34 +208,43 @@ public class NetworkNode {
         return total;
     }
 
-    public record HatchLocation(int dimension, BlockPos pos) {
+    public static class HatchLocation {
+        public final int dimension;
+        public final BlockPos pos;
 
-            public HatchLocation(int dimension, BlockPos pos) {
-                this.dimension = dimension;
-                this.pos = pos.toImmutable(); // 确保不可变
-            }
-
-            public static HatchLocation readFromNBT(NBTTagCompound tag) {
-                return new HatchLocation(
-                        tag.getInteger("dim"),
-                        new BlockPos(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"))
-                );
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (!(o instanceof HatchLocation that)) return false;
-                return dimension == that.dimension && pos.equals(that.pos);
-            }
-
-        public NBTTagCompound writeToNBT() {
-                NBTTagCompound tag = new NBTTagCompound();
-                tag.setInteger("dim", dimension);
-                tag.setInteger("x", pos.getX());
-                tag.setInteger("y", pos.getY());
-                tag.setInteger("z", pos.getZ());
-                return tag;
-            }
+        public HatchLocation(int dimension, BlockPos pos) {
+            this.dimension = dimension;
+            this.pos = pos.toImmutable(); // 确保不可变
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof HatchLocation that)) return false;
+            return dimension == that.dimension && pos.equals(that.pos);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dimension, pos);
+        }
+
+        // 用于 NBT 序列化
+        public net.minecraft.nbt.NBTTagCompound writeToNBT() {
+            net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+            tag.setInteger("dim", dimension);
+            tag.setInteger("x", pos.getX());
+            tag.setInteger("y", pos.getY());
+            tag.setInteger("z", pos.getZ());
+            return tag;
+        }
+
+        // 用于 NBT 反序列化
+        public static HatchLocation readFromNBT(net.minecraft.nbt.NBTTagCompound tag) {
+            return new HatchLocation(
+                    tag.getInteger("dim"),
+                    new BlockPos(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"))
+            );
+        }
+    }
 }
