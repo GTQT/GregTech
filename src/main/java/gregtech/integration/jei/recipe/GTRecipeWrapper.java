@@ -314,9 +314,12 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                     totalEU = overclockResult[0] * overclockResult[1];
                 }
                 //计算燃料数量
-                minecraft.fontRenderer.drawString(I18n.format("gregtech.recipe.eu_calorific",
-                                totalEU / getAmount()),
-                        0, yPosition, (int) overclockResult[2]);
+                double value = (double) totalEU / getAmount();  // 确保浮点除法
+                String formattedValue = String.format("%.2f", value);
+                minecraft.fontRenderer.drawString(
+                        I18n.format("gregtech.recipe.eu_calorific", formattedValue),
+                        0, yPosition, (int) overclockResult[2]
+                );
                 yPosition += LINE_HEIGHT;
             }
         }
