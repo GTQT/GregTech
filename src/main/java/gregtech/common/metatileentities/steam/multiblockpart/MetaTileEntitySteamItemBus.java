@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.steam.multiblockpart;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -13,7 +11,6 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.client.utils.TooltipHelper;
-import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityItemBus;
 
 import net.minecraft.client.resources.I18n;
@@ -29,10 +26,11 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.layout.Grid;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,8 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntitySteamItemBus extends MetaTileEntityItemBus {
-
-    private static final boolean IS_STEEL = ConfigHolder.machines.steelSteamMultiblocks;
 
     public MetaTileEntitySteamItemBus(ResourceLocation metaTileEntityId, boolean isExportHatch) {
         super(metaTileEntityId, 1, isExportHatch);
@@ -68,7 +64,7 @@ public class MetaTileEntitySteamItemBus extends MetaTileEntityItemBus {
     public ICubeRenderer getBaseTexture() {
         MultiblockControllerBase controller = getController();
         if (controller == null)
-            return IS_STEEL ? Textures.STEAM_CASING_STEEL : Textures.STEAM_CASING_BRONZE;
+            return Textures.STEAM_CASING_BRONZE;
         return controller.getBaseTexture(this);
     }
 
@@ -122,7 +118,7 @@ public class MetaTileEntitySteamItemBus extends MetaTileEntityItemBus {
 
     @Override
     public GTGuiTheme getUITheme() {
-        return IS_STEEL ? GTGuiTheme.STEEL : GTGuiTheme.BRONZE;
+        return GTGuiTheme.BRONZE;
     }
 
     @Override

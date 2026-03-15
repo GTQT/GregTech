@@ -12,7 +12,6 @@ import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 
@@ -30,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 import static gregtech.client.renderer.texture.Textures.BRONZE_PLATED_BRICKS;
-import static gregtech.client.renderer.texture.Textures.SOLID_STEEL_CASING;
 
 public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockController {
 
@@ -59,15 +57,13 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
     }
 
     public IBlockState getCasingState() {
-        return ConfigHolder.machines.steelSteamMultiblocks ?
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID) :
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return ConfigHolder.machines.steelSteamMultiblocks ? SOLID_STEEL_CASING : BRONZE_PLATED_BRICKS;
+        return BRONZE_PLATED_BRICKS;
     }
 
     @SideOnly(Side.CLIENT)

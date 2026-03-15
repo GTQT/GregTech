@@ -10,9 +10,6 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.client.utils.TooltipHelper;
-import gregtech.common.ConfigHolder;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFluidHatch;
-
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 
 import net.minecraft.client.resources.I18n;
@@ -30,8 +27,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityHugeSteamFluidHatch extends MetaTileEntityMultiFluidHatch {
-
-    private static final boolean IS_STEEL = true;
 
     public MetaTileEntityHugeSteamFluidHatch(ResourceLocation metaTileEntityId, boolean isExportHatch) {
         super(metaTileEntityId, 1, 4,isExportHatch);
@@ -58,7 +53,7 @@ public class MetaTileEntityHugeSteamFluidHatch extends MetaTileEntityMultiFluidH
     public ICubeRenderer getBaseTexture() {
         MultiblockControllerBase controller = getController();
         if (controller == null)
-            return IS_STEEL ? Textures.STEAM_CASING_STEEL : Textures.STEAM_CASING_BRONZE;
+            return Textures.STEAM_CASING_STEEL;
         return controller.getBaseTexture(this);
     }
 
@@ -85,6 +80,6 @@ public class MetaTileEntityHugeSteamFluidHatch extends MetaTileEntityMultiFluidH
 
     @Override
     public GTGuiTheme getUITheme() {
-        return IS_STEEL ? GTGuiTheme.STEEL : GTGuiTheme.BRONZE;
+        return GTGuiTheme.STEEL;
     }
 }

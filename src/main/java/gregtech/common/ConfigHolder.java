@@ -113,9 +113,6 @@ public class ConfigHolder {
         @Config.Comment({ "Minimum distance betweeb Long Distance Fluid Pipe Endpoints", "Default: 50" })
         public int ldFluidPipeMinDistance = 50;
 
-        @Config.Comment({ "Whether Steam Multiblocks should use Steel instead of Bronze.", "Default: false" })
-        public boolean steelSteamMultiblocks = false;
-
         @Config.Comment({ "Steam to EU multiplier for Steam Multiblocks.",
                 "1.0 means 1L Steam -> 1 EU. 0.5 means 2L Steam -> 1 EU.", "Default: 0.5" })
         public double multiblockSteamToEU = 0.5;

@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.steam.multiblockpart;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.capability.impl.CommonFluidFilters;
 import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.FilteredItemHandler;
@@ -20,7 +18,6 @@ import gregtech.api.mui.sync.GTFluidSyncHandler;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
 import gregtech.common.mui.widget.GTFluidSlot;
@@ -41,13 +38,14 @@ import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.RichTextWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,8 +55,6 @@ public class MetaTileEntitySteamHatch extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<IFluidTank> {
 
     private static final int INVENTORY_SIZE = 64000;
-    private static final boolean IS_STEEL = ConfigHolder.machines.steelSteamMultiblocks;
-
     public MetaTileEntitySteamHatch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 0);
     }
@@ -100,7 +96,7 @@ public class MetaTileEntitySteamHatch extends MetaTileEntityMultiblockPart
     public ICubeRenderer getBaseTexture() {
         MultiblockControllerBase controller = getController();
         if (controller == null)
-            return IS_STEEL ? Textures.STEAM_CASING_STEEL : Textures.STEAM_CASING_BRONZE;
+            return Textures.STEAM_CASING_BRONZE;
         return controller.getBaseTexture(this);
     }
 
@@ -151,7 +147,7 @@ public class MetaTileEntitySteamHatch extends MetaTileEntityMultiblockPart
         return GTGuis.createPanel(this, 176, 166)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child((IS_STEEL ? GTGuiTextures.DISPLAY_STEEL : GTGuiTextures.DISPLAY_BRONZE).asWidget()
+                .child((GTGuiTextures.DISPLAY_BRONZE).asWidget()
                         .left(7).top(16)
                         .size(81, 55))
                 .child(GTGuiTextures.TANK_ICON.asWidget()
@@ -186,7 +182,7 @@ public class MetaTileEntitySteamHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public GTGuiTheme getUITheme() {
-        return IS_STEEL ? GTGuiTheme.STEEL : GTGuiTheme.BRONZE;
+        return GTGuiTheme.BRONZE;
     }
 
     @Override

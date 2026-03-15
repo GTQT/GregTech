@@ -14,7 +14,6 @@ import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockFireboxCasing;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
@@ -65,15 +64,11 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
     }
 
     public IBlockState getCasingState() {
-        return ConfigHolder.machines.steelSteamMultiblocks ?
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID) :
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
     }
 
     public IBlockState getFireboxState() {
-        return ConfigHolder.machines.steelSteamMultiblocks ?
-                MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.STEEL_FIREBOX) :
-                MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX);
+        return MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX);
     }
 
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
@@ -83,18 +78,10 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        if (ConfigHolder.machines.steelSteamMultiblocks) {
-            if (sourcePart != null && isFireboxPart(sourcePart)) {
-                return lastActive ? Textures.STEEL_FIREBOX_ACTIVE : Textures.STEEL_FIREBOX;
-            }
-            return Textures.SOLID_STEEL_CASING;
-
-        } else {
-            if (sourcePart != null && isFireboxPart(sourcePart)) {
-                return lastActive ? Textures.BRONZE_FIREBOX_ACTIVE : Textures.BRONZE_FIREBOX;
-            }
-            return Textures.BRONZE_PLATED_BRICKS;
+        if (sourcePart != null && isFireboxPart(sourcePart)) {
+            return lastActive ? Textures.BRONZE_FIREBOX_ACTIVE : Textures.BRONZE_FIREBOX;
         }
+        return Textures.BRONZE_PLATED_BRICKS;
     }
 
     @SideOnly(Side.CLIENT)

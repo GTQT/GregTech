@@ -27,8 +27,6 @@ import java.util.List;
 
 public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
 
-    private static final boolean IS_STEEL = true;
-
     public MetaTileEntityHugeSteamItemBus(ResourceLocation metaTileEntityId, boolean isExportHatch) {
         super(metaTileEntityId, 2, isExportHatch);
         initializeInventory();
@@ -49,7 +47,7 @@ public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
     public ICubeRenderer getBaseTexture() {
         MultiblockControllerBase controller = getController();
         if (controller == null)
-            return IS_STEEL ? Textures.STEAM_CASING_STEEL : Textures.STEAM_CASING_BRONZE;
+            return Textures.STEAM_CASING_STEEL;
         return controller.getBaseTexture(this);
     }
 
@@ -76,6 +74,6 @@ public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
 
     @Override
     public GTGuiTheme getUITheme() {
-        return IS_STEEL ? GTGuiTheme.STEEL : GTGuiTheme.BRONZE;
+        return GTGuiTheme.STEEL;
     }
 }
