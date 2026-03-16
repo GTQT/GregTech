@@ -187,13 +187,6 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
         return (int) Math.max(1.0, RecipeMapFurnace.RECIPE_DURATION * 2 * parallel / Math.max(1, parallelLimit * 1.0));
     }
 
-    @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
-                               boolean advanced) {
-        super.addInformation(stack, world, tooltip, advanced);
-        TooltipBuilder.create().addParallel(32).build(this, tooltip);
-    }
-
     protected class MultiSmelterWorkable extends MultiblockRecipeLogic {
 
         public MultiSmelterWorkable(RecipeMapMultiblockController tileEntity) {
