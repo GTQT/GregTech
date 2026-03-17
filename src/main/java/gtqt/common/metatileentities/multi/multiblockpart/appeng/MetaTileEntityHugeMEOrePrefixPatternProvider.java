@@ -1009,8 +1009,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.PLUS)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("添加到黑名单"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("添加到黑名单"))));
 
         // 从黑名单移除按钮
         weightText.get(2).add(new ButtonWidget<>()
@@ -1029,8 +1028,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.MINUS)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("从黑名单移除"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("从黑名单中移除"))));
 
         // 显示当前黑名单按钮
         weightText.get(2).add(new ButtonWidget<>()
@@ -1053,8 +1051,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.BUTTON_BLACKLIST)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("显示当前黑名单列表"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("显示黑名单列表"))));
 
         List<List<IWidget>> weightTagList = new ArrayList<>();
         // ★ 第一行：白标签管理行 ★
@@ -1085,8 +1082,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.PLUS)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("添加到白标签"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("添加到白标签"))));
 
         // 从白标签移除按钮
         weightTagList.get(0).add(new ButtonWidget<>()
@@ -1105,8 +1101,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.MINUS)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("从白标签移除"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("从白标签移除"))));
 
         // ★ 第二行：黑标签管理行 ★
         weightTagList.add(new ArrayList<>());
@@ -1136,8 +1131,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.PLUS)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("添加到黑标签"))));
+                 .tooltip(tooltip -> tooltip.addLine(IKey.str("添加到黑标签"))));
 
         // 从黑标签移除按钮
         weightTagList.get(1).add(new ButtonWidget<>()
@@ -1156,8 +1150,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                     return true;
                 })
                 .overlay(GTGuiTextures.MINUS)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("从黑标签移除"))));
+                 .tooltip(tooltip -> tooltip.addLine(IKey.str("从黑标签移除"))));
 
         // 创建用于显示的值（带前缀）和用于存储的值（纯数字）
         StringSyncValue displayXValue = new StringSyncValue(
@@ -1227,8 +1220,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                 .value(new BoolValue.Dynamic(useProxyStateValue::getBoolValue,
                         useProxyStateValue::setBoolValue))
                 .overlay(GTGuiTextures.PROXY_OVERLAY)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("无线代理模式"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("无线代理模式"))));
 
         // 添加X坐标文本框
         row.add((new TextFieldWidget()
@@ -1506,24 +1498,21 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                                 .value(new BoolValue.Dynamic(blockStateValue::getBoolValue,
                                         blockStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("阻挡模式"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("阻挡模式"))))
                         .child(new ToggleButton()
                                 .top(18 * 2)
                                 .left(18)
                                 .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
                                         exportStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.EXPORT_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("返回模式"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("返回模式"))))
 
                         .child(new ToggleButton()
                                 .top(18)
                                 .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
                                         collapseStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("自动整理"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("自动整理"))))
 
                         .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
                                 .top(18)
@@ -1545,8 +1534,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                                     return true;
                                 })
                                 .overlay(GTGuiTextures.PATTERN_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("样板生成"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("样板生成"))))
 
                         .child(new ToggleButton()
                                 .top(0)
@@ -1554,8 +1542,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
                                 .value(new BoolValue.Dynamic(ghostCircuitStateValue::getBoolValue,
                                         ghostCircuitStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.CIRCUIT_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("高级样板电路"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("高级样板电路"))))
 
                 );
     }

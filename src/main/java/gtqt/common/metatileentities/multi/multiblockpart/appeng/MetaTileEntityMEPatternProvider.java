@@ -692,8 +692,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 .value(new BoolValue.Dynamic(useProxyStateValue::getBoolValue,
                         useProxyStateValue::setBoolValue))
                 .overlay(GTGuiTextures.PROXY_OVERLAY)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(IKey.lang("无线代理模式"))));
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("无线代理模式"))));
 
         // 添加X坐标文本框
         row.add((new TextFieldWidget()
@@ -961,24 +960,21 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                 .value(new BoolValue.Dynamic(blockStateValue::getBoolValue,
                                         blockStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("阻挡模式"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("阻挡模式"))))
                         .child(new ToggleButton()
                                 .top(18 * 2)
                                 .left(18)
                                 .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
                                         exportStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.EXPORT_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("返回模式"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("返回模式"))))
 
                         .child(new ToggleButton()
                                 .top(18)
                                 .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
                                         collapseStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("自动整理"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("自动整理"))))
 
                         .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
                                 .top(18)
@@ -998,8 +994,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                 .value(new BoolValue.Dynamic(patternStateValue::getBoolValue,
                                         patternStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.PATTERN_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("样板优化"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("样板优化"))))
 
                         .child(new ToggleButton()
                                 .top(0)
@@ -1007,8 +1002,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                                 .value(new BoolValue.Dynamic(ghostCircuitStateValue::getBoolValue,
                                         ghostCircuitStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.CIRCUIT_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(IKey.lang("高级样板电路"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("高级样板电路"))))
 
                 );
     }
