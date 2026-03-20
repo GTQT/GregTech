@@ -600,23 +600,11 @@ public class Textures {
     public static final SimpleOverlayRenderer ME_DUAL_OUTPUT_HATCH_ACTIVE = new SimpleOverlayRenderer("overlay/appeng/me_dual_output_hatch_active");
     public static final SimpleOverlayRenderer ME_DUAL_OUTPUT_HATCH = new SimpleOverlayRenderer("overlay/appeng/me_dual_output_hatch");
 
-
-    public static final ResourceLocation ACE_CAPE_TEXTURE = gregtechId("textures/capes/acecape.png");
-    public static final ResourceLocation AGENDER_CAPE_TEXTURE = gregtechId("textures/capes/agendercape.png");
-    public static final ResourceLocation AROMANTIC_CAPE_TEXTURE = gregtechId("textures/capes/aromanticcape.png");
-    public static final ResourceLocation BI_CAPE_TEXTURE = gregtechId("textures/capes/bicape.png");
-    public static final ResourceLocation GENDERFLUID_CAPE_TEXTURE = gregtechId("textures/capes/genderfluidcape.png");
-    public static final ResourceLocation GENDERQUEER_CAPE_TEXTURE = gregtechId("textures/capes/genderqueercape.png");
     public static final ResourceLocation GREEN_CAPE_TEXTURE = gregtechId("textures/capes/greencape.png");
     public static final ResourceLocation GREGTECH_CAPE_TEXTURE = gregtechId("textures/capes/gregtechcape.png");
-    public static final ResourceLocation INTERSEX_CAPE_TEXTURE = gregtechId("textures/capes/intersexcape.png");
-    public static final ResourceLocation LESBIAN_CAPE_TEXTURE = gregtechId("textures/capes/lesbiancape.png");
-    public static final ResourceLocation NONBINARY_CAPE_TEXTURE = gregtechId("textures/capes/nonbinarycape.png");
-    public static final ResourceLocation PAN_CAPE_TEXTURE = gregtechId("textures/capes/pancape.png");
-    public static final ResourceLocation RAINBOW_CAPE_TEXTURE = gregtechId("textures/capes/rainbowcape.png");
     public static final ResourceLocation RED_CAPE_TEXTURE = gregtechId("textures/capes/redcape.png");
-    public static final ResourceLocation TRANS_CAPE_TEXTURE = gregtechId("textures/capes/transcape.png");
     public static final ResourceLocation YELLOW_CAPE_TEXTURE = gregtechId("textures/capes/yellowcape.png");
+
     private static final ThreadLocal<BlockFace> blockFaces = ThreadLocal.withInitial(BlockFace::new);
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY = new SimpleOverlayRenderer(
             "wireless_hatch/overlay_front");

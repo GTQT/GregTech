@@ -23,6 +23,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import crafttweaker.annotations.ZenRegister;
+import org.jetbrains.annotations.ApiStatus;
 import stanhebben.zenscript.annotations.ZenClass;
 import stanhebben.zenscript.annotations.ZenMethod;
 
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,10 +46,10 @@ public class CapesRegistry {
     private static final Map<UUID, List<ResourceLocation>> UNLOCKED_CAPES = new HashMap<>();
     private static final Map<UUID, ResourceLocation> WORN_CAPES = new HashMap<>();
     private static final Map<Advancement, ResourceLocation> CAPE_ADVANCEMENTS = new HashMap<>();
-    private static final Set<ResourceLocation> FREE_CAPES = new HashSet<>();
+    private static final Set<ResourceLocation> ADVANCEMENT_CAPES = new LinkedHashSet<>();
+    private static final Set<ResourceLocation> FREE_CAPES = new LinkedHashSet<>();
 
     public static void registerDevCapes() {
-        /*
         unlockCape(UUID.fromString("a24a9108-23d2-43fc-8db7-43f809d017db"), Textures.GREGTECH_CAPE_TEXTURE); // ALongStringOfNumbers
         unlockCape(UUID.fromString("77e2129d-8f68-4025-9394-df946f1f3aee"), Textures.GREGTECH_CAPE_TEXTURE); // Brachy84
         unlockCape(UUID.fromString("c1377a67-4585-46b6-b70e-dfaa419f1e71"), Textures.GREGTECH_CAPE_TEXTURE); // BraggestSage833
@@ -57,22 +59,16 @@ public class CapesRegistry {
         unlockCape(UUID.fromString("5d7073e3-882f-4c4a-94b3-0e5ba1c11e02"), Textures.GREGTECH_CAPE_TEXTURE); // htmlcsjs
         unlockCape(UUID.fromString("30628e4c-f7ac-427f-8ca7-aab2c0572be8"), Textures.GREGTECH_CAPE_TEXTURE); // TheLastKumquat
         unlockCape(UUID.fromString("44f38ff8-aad7-49c3-acb3-d92317af9078"), Textures.GREGTECH_CAPE_TEXTURE); // LAGIdiot
-        unlockCape(UUID.fromString("2c69579f-a7fa-46ad-814e-9837e01215c1"), Textures.GREGTECH_CAPE_TEXTURE); // Z_orbatron
-        unlockCape(UUID.fromString("3dbb689e-edcf-41b9-9c09-6ae4ebb6ca5b"), Textures.GREGTECH_CAPE_TEXTURE); // M_W_K
-
-        // GT:CEu Modern devs
-        unlockCape(UUID.fromString("274846e6-1d07-4e59-8dea-f4f73e76f9fb"), Textures.GREGTECH_CAPE_TEXTURE); // DilithiumThoride
-        unlockCape(UUID.fromString("c43b3c3d-7da6-4c2b-b335-703fce2ed795"), Textures.GREGTECH_CAPE_TEXTURE); // Ghostipedia
-        unlockCape(UUID.fromString("fe4bafe8-8ea9-494a-b4e9-29397cea89fc"), Textures.GREGTECH_CAPE_TEXTURE); // Gustavo
-        unlockCape(UUID.fromString("c18c1d7f-3174-42c6-81dc-3c7ff9f720c3"), Textures.GREGTECH_CAPE_TEXTURE); // jurrejelle
-        unlockCape(UUID.fromString("29f1e04c-58d8-4a3b-9eff-f85be7825256"), Textures.GREGTECH_CAPE_TEXTURE); // kross000
-        unlockCape(UUID.fromString("5cb66945-2ca4-498d-8c9a-29a676769363"), Textures.GREGTECH_CAPE_TEXTURE); // omergunr100
-        unlockCape(UUID.fromString("f76fc8b3-ac6b-44b9-9023-76edaf3d5909"), Textures.GREGTECH_CAPE_TEXTURE); // spicierspace153
-        unlockCape(UUID.fromString("24ab5496-0c9d-45d7-bfa6-c57760263be6"), Textures.GREGTECH_CAPE_TEXTURE); // TarLaboratories
-        unlockCape(UUID.fromString("60057953-6a71-4f11-9e72-bb0c81fa0085"), Textures.GREGTECH_CAPE_TEXTURE); // ursamina
-        unlockCape(UUID.fromString("3a27782d-6864-4814-a9fe-7c6931f29a8a"), Textures.GREGTECH_CAPE_TEXTURE); // YoungOnion
-
-         */
+        // todo Mikerooni (when he gets a new account)
+        unlockCape(UUID.fromString("4a57640e-c1b1-4413-a6ab-e9a8b60ec167"), Textures.GREGTECH_CAPE_TEXTURE); // PrototypeTrousers
+        unlockCape(UUID.fromString("12892f29-9eef-47ed-b8fb-df3e0e90db0c"), Textures.GREGTECH_CAPE_TEXTURE); // Quarri6343
+        unlockCape(UUID.fromString("1184eb79-5831-4f7d-b8f4-3a46fccf7a1d"), Textures.GREGTECH_CAPE_TEXTURE); // screret
+        unlockCape(UUID.fromString("a82fb558-64f9-4dd6-a87d-84040e84bb43"), Textures.GREGTECH_CAPE_TEXTURE); // serenibyss
+        unlockCape(UUID.fromString("fbd96f69-60f9-481c-b71e-4b190cd5fc72"), Textures.GREGTECH_CAPE_TEXTURE); // Anne-Marie
+        unlockCape(UUID.fromString("5c2933b3-5340-4356-81e7-783c53bd7845"), Textures.GREGTECH_CAPE_TEXTURE); // Tech22
+        unlockCape(UUID.fromString("e6e784af-bd04-46ad-8141-47b8b9102cb9"), Textures.GREGTECH_CAPE_TEXTURE); // Tictim
+        unlockCape(UUID.fromString("2fa297a6-7803-4629-8360-7059155cf43e"), Textures.GREGTECH_CAPE_TEXTURE); // KilaBash
+        unlockCape(UUID.fromString("56bd41d0-06ef-4ed7-ab48-926ce45651f9"), Textures.GREGTECH_CAPE_TEXTURE); // Zalgo239
         save();
     }
 
@@ -171,24 +167,13 @@ public class CapesRegistry {
         for (Tuple<ResourceLocation, ResourceLocation> tuple : ctRegisterCapes) {
             registerCape(tuple.getFirst(), tuple.getSecond(), world);
         }
+
         FREE_CAPES.addAll(ctFreeCapes);
-        FREE_CAPES.add(Textures.ACE_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.AGENDER_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.AROMANTIC_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.BI_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.GENDERFLUID_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.GENDERQUEER_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.INTERSEX_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.LESBIAN_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.NONBINARY_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.PAN_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.RAINBOW_CAPE_TEXTURE);
-        FREE_CAPES.add(Textures.TRANS_CAPE_TEXTURE);
     }
 
     /**
      * Allows one to check what capes a specific player has unlocked through CapesRegistry.
-     * 
+     *
      * @param uuid The player data used to get what capes the player has through internal maps.
      * @return A list of ResourceLocations containing the cape textures that the player has unlocked.
      */
@@ -199,7 +184,7 @@ public class CapesRegistry {
     /**
      * Links an advancement with a cape, which allows a player to unlock it when they receive the advancement.
      * This should only be called on world load, since advancements are only accessible then.
-     * 
+     *
      * @param advancement A ResourceLocation pointing to the advancement that is to be used for getting a cape.
      * @param cape        The ResourceLocation that points to the cape that can be unlocked through the advancement.
      * @param world       The world that may contain the advancement used for getting a cape.
@@ -213,15 +198,25 @@ public class CapesRegistry {
                 CAPE_ADVANCEMENTS.put(advObject, cape);
             }
         }
+        ADVANCEMENT_CAPES.add(cape);
     }
 
     /**
      * Adds a cape that will always be unlocked for all players.
-     * 
+     *
      * @param cape A ResourceLocation pointing to the cape texture.
      */
-    public static void addFreeCape(ResourceLocation cape) {
+    public static void registerFreeCape(ResourceLocation cape) {
         FREE_CAPES.add(cape);
+    }
+
+    /**
+     * Deprecated for naming consistency, use {@link #registerFreeCape(ResourceLocation)} instead
+     */
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
+    @Deprecated
+    public static void addFreeCape(ResourceLocation cape) {
+        registerFreeCape(cape);
     }
 
     private static final List<Tuple<ResourceLocation, ResourceLocation>> ctRegisterCapes = new ArrayList<>();
@@ -242,7 +237,7 @@ public class CapesRegistry {
     /**
      * Automatically gives a cape to a player, which may be used for a reward for something other than an advancement
      * DOES NOT SAVE AUTOMATICALLY; PLEASE CALL SAVE AFTER THIS FUNCTION IS USED IF THIS DATA IS MEANT TO PERSIST.
-     * 
+     *
      * @param uuid The UUID of the player to be given the cape.
      * @param cape The ResourceLocation that holds the cape used here.
      */
@@ -262,6 +257,17 @@ public class CapesRegistry {
             player.sendMessage(new TextComponentTranslation("gregtech.chat.cape"));
             save();
         }
+    }
+
+    /**
+     * @return A list of all registered capes, with advancement capes sorted before free capes.
+     *         This currently does not count capes that are manually unlocked by other mods.
+     */
+    public static List<ResourceLocation> allCapes() {
+        List<ResourceLocation> result = new ArrayList<>();
+        result.addAll(ADVANCEMENT_CAPES);
+        result.addAll(FREE_CAPES);
+        return result;
     }
 
     public static void clearMaps() {
@@ -285,7 +291,7 @@ public class CapesRegistry {
         if (player instanceof EntityPlayerMP) {
             UUID uuid = player.getPersistentID();
             GregTechAPI.networkHandler.sendToAll(new PacketNotifyCapeChange(uuid, WORN_CAPES.get(uuid))); // sync to
-                                                                                                          // others
+            // others
             for (EntityPlayerMP otherPlayer : FMLCommonHandler.instance().getMinecraftServerInstance().getPlayerList()
                     .getPlayers()) { // sync to login
                 uuid = otherPlayer.getPersistentID();
