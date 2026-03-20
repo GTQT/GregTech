@@ -7121,31 +7121,26 @@ gregtech.creative.energy.amps_minus=降低电压
 gregtech.creative.activity.on=已激活
 gregtech.creative.activity.off=未激活
 
-# new terminal
-terminal.app.gregtech.home.name=Home
-terminal.app.gregtech.settings.name=Theme Settings
-terminal.app.gregtech.capes.name=Cape Selector
+terminal.app.gregtech.home.name=主页
+terminal.app.gregtech.settings.name=主题设置
+terminal.app.gregtech.capes.name=披风选择器
 
-terminal.settings.background=Background
-terminal.settings.background_select=Select Background
-terminal.settings.color=Set color %s
-terminal.settings.reset_color=Reset to default color
+terminal.settings.background=背景
+terminal.settings.background_select=选择背景
+terminal.settings.color=设置颜色 %s
+terminal.settings.reset_color=重置为默认颜色
 
-terminal.capes.locked=Locked
-terminal.capes.advancement=Unlock this cape by progressing through GregTech's advancements
-terminal.capes.selected=Equipped
+terminal.capes.locked=已锁定
+terminal.capes.advancement=通过推进 GregTech 的进度来解锁此披风
+terminal.capes.selected=已装备
 
-# old terminal
-# currently indirectly used in alarm
+terminal.component.searching=搜索中
 
-terminal.component.searching=searching
-
-# currently used in prospector
-terminal.prospector.list=All Resources
-terminal.prospector.ore=Ore Data
-terminal.prospector.fluid=Fluid Deposit Data
+terminal.prospector.list=所有资源
+terminal.prospector.ore=矿石数据
+terminal.prospector.fluid=流体矿脉数据
 terminal.prospector.fluid.info=%s %s - %s%%
-terminal.prospector.waypoint.add=[Double §7Left click§r] to add waypoint
+terminal.prospector.waypoint.add=[双击§7左键§r] 添加路标
 
 metaitem.cover.digital.title.mode=模式：
 metaitem.cover.digital.title.spin=旋转：
