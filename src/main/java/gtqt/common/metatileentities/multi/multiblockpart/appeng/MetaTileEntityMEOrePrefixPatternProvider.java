@@ -240,7 +240,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         this.extraItem = new NotifiableItemStackHandler(this, getTankSize() + 1, null, false);
 
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
-        this.circuitInventory.addNotifiableMetaTileEntity(this);
         this.actualImportItems = new ItemHandlerList(
                 Arrays.asList(this.importItems, this.circuitInventory, extraItem));
 

@@ -152,7 +152,6 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         this.outputFluidInventory = new FluidHandlerProxy(new FluidTankList(false), exportFluids);
         if (this.hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
-            this.circuitInventory.addNotifiableMetaTileEntity(this);
         }
 
         this.actualImportItems = null;

@@ -6573,6 +6573,13 @@ gregtech.machine.me.extra_connections.enabled=Allow connections from all sides
 gregtech.machine.me.extra_connections.disabled=Allow connection only on front face
 gregtech.machine.me.extra_connections.tooltip=Right-click with wire cutters to allow connecting to AE2 on all sides
 
+gregtech.machine.me.settings.button=ME Settings
+gregtech.machine.me.settings.refresh_rate=Refresh rate:
+gregtech.machine.me.settings.minimum=Minimum stack size:
+gregtech.machine.me.settings.minimum.tooltip=Set to 0 to disable the minimum stack size filtering
+gregtech.machine.me.settings.ore_dict=Input OreDict Restriction
+gregtech.machine.me.settings.ore_dict.tooltip=After entering an OreDict key, only materials with that specific OreDict key will be pulled.
+gregtech.machine.me.multiplier.button=Config multiplier
 # Universal tooltips
 gregtech.universal.tooltip.voltage_in=§aVoltage IN: §f%,d EU/t (%s§f)
 gregtech.universal.tooltip.max_voltage_in=§aMax Voltage IN: §f%,d (%s§f)
@@ -6684,7 +6691,7 @@ gregtech.fluid.state_plasma=§aState: Plasma
 gregtech.fluid.type_acid.tooltip=§6Acidic! Handle with care!
 gregtech.gui.fuel_amount=Fuel Amount:
 gregtech.gui.fluid_amount=Fluid Amount:
-gregtech.gui.amount_raw=Amount:
+gregtech.gui.amount_raw=Amount:%s
 gregtech.gui.toggle_view.disabled=Toggle View (Fluids)
 gregtech.gui.toggle_view.enabled=Toggle View (Items)
 gregtech.gui.overclock.enabled=Overclocking Enabled./nClick to Disable

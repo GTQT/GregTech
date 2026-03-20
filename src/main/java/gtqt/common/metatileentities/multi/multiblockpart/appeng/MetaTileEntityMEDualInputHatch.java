@@ -23,9 +23,9 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.gui.widget.appeng.AEFluidConfigWidget;
 import gregtech.common.gui.widget.appeng.AEItemConfigWidget;
-import gregtech.common.inventory.appeng.ExportOnlyAEFluidList;
-import gregtech.common.inventory.appeng.ExportOnlyAEItemList;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidList;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidSlot;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemList;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemSlot;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedFluidStack;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedItemStack;
@@ -160,7 +160,6 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
         super.initializeInventory();
         this.aeItemHandler = getAEItemHandler();
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
-        this.circuitInventory.addNotifiableMetaTileEntity(this);
         this.extraSlotInventory = new NotifiableItemStackHandler(this, 2, this, false);
         this.extraSlotInventory.addNotifiableMetaTileEntity(this);
         this.actualImportItems = new ItemHandlerList(

@@ -14,9 +14,11 @@ import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Efficiently delegates calls into multiple item handlers
@@ -26,9 +28,14 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
     private final Int2ObjectMap<IItemHandler> handlerBySlotIndex = new Int2ObjectOpenHashMap<>();
     private final Object2IntMap<IItemHandler> baseIndexOffset = new Object2IntArrayMap<>();
 
-    public ItemHandlerList(List<? extends IItemHandler> itemHandlerList) {
+    public ItemHandlerList(@NotNull IItemHandler @NotNull... handlers) {
+        this(Arrays.asList(handlers));
+    }
+
+    public ItemHandlerList(@NotNull List<? extends @NotNull IItemHandler> itemHandlerList) {
         int currentSlotIndex = 0;
         for (IItemHandler itemHandler : itemHandlerList) {
+            Objects.requireNonNull(itemHandler, "Handler passed to ItemHandlerList was null.");
             if (baseIndexOffset.containsKey(itemHandler)) {
                 throw new IllegalArgumentException("Attempted to add item handler " + itemHandler + " twice");
             }

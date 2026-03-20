@@ -6,7 +6,12 @@ import gregtech.api.util.JEIUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.RenderItem;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
@@ -40,7 +45,11 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
 import java.awt.image.BufferedImage;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @SideOnly(Side.CLIENT)
 public class RenderUtil {
@@ -381,6 +390,26 @@ public class RenderUtil {
         fr.drawString(renderedText, 0, 0, color);
         GlStateManager.popMatrix();
     }
+
+    public static void renderTextSized(String text, double x, double y, int color, boolean dropShadow, float scale,
+                                       boolean center) {
+        GlStateManager.pushMatrix();
+        FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+        double scaledTextWidth = center ? fontRenderer.getStringWidth(text) * scale : 0.0;
+        GlStateManager.translate(x - scaledTextWidth / 2.0, y, 0.0f);
+        GlStateManager.scale(scale, scale, scale);
+        fontRenderer.drawString(text, 0, 0, color, dropShadow);
+        GlStateManager.popMatrix();
+    }
+
+    public static void renderTextFixedCorner(String text, double x, double y, int color, boolean dropShadow,
+                                             float scale) {
+        FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+        double scaledWidth = fontRenderer.getStringWidth(text) * scale;
+        double scaledHeight = fontRenderer.FONT_HEIGHT * scale;
+        renderTextSized(text, x - scaledWidth, y - scaledHeight, color, dropShadow, scale, false);
+    }
+
 
     public static void renderItemOverLay(float x, float y, float z, float scale, ItemStack itemStack) {
         RenderHelper.enableStandardItemLighting();
