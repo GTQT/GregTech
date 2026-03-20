@@ -121,7 +121,7 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
 
     protected void setRefreshRate(int newRefreshRate) {
         if (newRefreshRate == this.refreshRate) return;
-        if (newRefreshRate < 1) throw new IllegalArgumentException("Refresh rate of AE part cannot be below 1!");
+        if (newRefreshRate < 1) newRefreshRate = 1;
 
         this.refreshRate = newRefreshRate;
         if (!getWorld().isRemote) {

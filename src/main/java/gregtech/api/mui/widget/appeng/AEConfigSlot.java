@@ -30,6 +30,8 @@ public abstract class AEConfigSlot<T extends IAEStack<T>> extends Widget<AEConfi
     protected final int index;
     protected final BooleanSupplier isAutoPull;
 
+    private static final int SYNC_CONFIG_AMOUNT = 20;
+
     private static final IDrawable normalBackground = IDrawable.of(GTGuiTextures.SLOT, GTGuiTextures.CONFIG_ARROW_DARK);
     private static final IDrawable autoPullBackground = IDrawable.of(GTGuiTextures.SLOT_DARK,
             GTGuiTextures.CONFIG_ARROW);
@@ -122,7 +124,11 @@ public abstract class AEConfigSlot<T extends IAEStack<T>> extends Widget<AEConfi
         }
 
         if (newStackSize > 0) {
-            getSyncHandler().setConfigAmount(index, newStackSize);
+            long finalNewStackSize = newStackSize;
+            getSyncHandler().syncToServer(SYNC_CONFIG_AMOUNT, buf -> {
+                buf.writeInt(this.index);
+                buf.writeLong(finalNewStackSize);
+            });
             return true;
         }
 
@@ -146,8 +152,12 @@ public abstract class AEConfigSlot<T extends IAEStack<T>> extends Widget<AEConfi
                             .child(new TextFieldWidget()
                                     .setNumbersLong(test -> test < 1 ? 1 : test)
                                     .setDefaultNumber(1)
-                                    .value(new LongValue.Dynamic(() -> getSyncHandler().getConfigAmount(index),
-                                            newAmount -> getSyncHandler().setConfigAmount(index, newAmount)))
+                                    .value(new LongValue.Dynamic(
+                                            () -> getSyncHandler().getConfigAmount(index),
+                                            newAmount -> getSyncHandler().syncToServer(SYNC_CONFIG_AMOUNT, buf -> {
+                                                buf.writeInt(this.index);
+                                                buf.writeLong(newAmount);
+                                            })))
                                     .size(100, 10)
                                     .left(18 + 5 * 2)
                                     // alignY didn't work :whar:

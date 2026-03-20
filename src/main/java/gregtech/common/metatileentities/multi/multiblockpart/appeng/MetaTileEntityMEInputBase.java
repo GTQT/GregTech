@@ -11,6 +11,7 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.appeng.AESyncHandler;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.Mods;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAESlot;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.IExportOnlyAEStackList;
@@ -32,6 +33,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -229,16 +231,17 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
                 .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY);
     }
 
+    private final IDrawable CONTROLLER_ICON = new ItemDrawable(Mods.AppliedEnergistics2.getItem("controller"))
+            .asIcon().size(16);
     protected ModularPanel buildSettingsPopup(PanelSyncManager syncManager, IPanelHandler syncHandler) {
         IntSyncValue refreshRateSync = new IntSyncValue(this::getRefreshRate, this::setRefreshRate);
-        ItemDrawable meControllerDrawable = new ItemDrawable(getStackForm());
 
         final int width = 110;
         return GTGuis.createPopupPanel("settings", width, getSettingsPopupHeight())
                 .child(Flow.row()
                         .pos(4, 4)
                         .height(16)
-                        .child(meControllerDrawable.asWidget()
+                        .child(CONTROLLER_ICON.asWidget()
                                 .size(16)
                                 .marginRight(4))
                         .child(IKey.lang("gregtech.machine.me.settings.button")

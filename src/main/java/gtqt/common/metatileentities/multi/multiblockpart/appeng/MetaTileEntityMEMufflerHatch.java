@@ -13,7 +13,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.drawable.GTObjectDrawable;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.inventory.appeng.SerializableItemList;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOutputBase;
 
 import net.minecraft.client.resources.I18n;
@@ -52,20 +51,12 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAE
                                                                                              IMufflerHatch {
 
     public final static String ITEM_BUFFER_TAG = "ItemBuffer";
-    public final static String WORKING_TAG = "WorkingEnabled";
     private final int recoveryChance;
     private boolean workingEnabled = true;
-    private SerializableItemList internalBuffer;
 
     public MetaTileEntityMEMufflerHatch(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier,  IItemStorageChannel.class);
         this.recoveryChance = Math.min((tier-1) * 10, 100);
-    }
-
-    @Override
-    protected void initializeInventory() {
-        this.internalBuffer = new SerializableItemList();
-        super.initializeInventory();
     }
 
     @Override

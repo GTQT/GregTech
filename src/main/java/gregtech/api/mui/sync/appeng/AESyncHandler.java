@@ -28,6 +28,7 @@ public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> e
     public static final int bulkClearConfigID = 3;
     public static final int changeConfigAmountID = 4;
     public static final int bulkConfigAmountChangeID = 5;
+    public static final int SYNC_CONFIG_AMOUNT_FROM_POPUP = 20;
 
     protected final boolean isStocking;
     protected final IntConsumer ghostCircuitConfig;
@@ -112,12 +113,13 @@ public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> e
     public void readOnServer(int id, PacketBuffer buf) throws IOException {
         switch (id) {
             case clearConfigID -> slots[buf.readVarInt()].setConfig(null);
+
             case changeConfigAmountID -> {
-                AEStackType config = getConfig(buf.readVarInt());
-                if (config != null) {
-                    config.setStackSize(buf.readLong());
-                }
+                int index = buf.readVarInt();
+                long newAmount = buf.readLong();
+                setConfigAmountDirect(index, newAmount);
             }
+
             case setConfigID -> {
                 int index = buf.readVarInt();
                 AEStackType newConfig = buf.readBoolean() ? byteBufAdapter.deserialize(buf) : null;
@@ -142,6 +144,12 @@ public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> e
                     }
                 }
             }
+
+            case SYNC_CONFIG_AMOUNT_FROM_POPUP -> {
+                int index = buf.readVarInt();
+                long newAmount = buf.readLong();
+                setConfigAmountDirect(index, newAmount);
+            }
         }
     }
 
@@ -164,6 +172,31 @@ public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> e
                 } else {
                     slot.setStock(null);
                 }
+            }
+        }
+        else if (id == SYNC_CONFIG_AMOUNT_FROM_POPUP) {
+            int index = buf.readVarInt();
+            long newAmount = buf.readLong();
+            AEStackType config = slots[index].getConfig();
+            if (config != null) {
+                config.setStackSize(newAmount);
+                if (index < cached.length) {
+                    cached[index] = null;
+                }
+            }
+        }
+    }
+
+    private void setConfigAmountDirect(int index, long newAmount) {
+        AEStackType config = slots[index].getConfig();
+        if (config != null) {
+            config.setStackSize(newAmount);
+            syncToClient(SYNC_CONFIG_AMOUNT_FROM_POPUP, buffer -> {
+                buffer.writeVarInt(index);
+                buffer.writeLong(newAmount);
+            });
+            if (dirtyNotifier != null) {
+                dirtyNotifier.run();
             }
         }
     }
@@ -207,6 +240,7 @@ public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> e
 
     @SideOnly(Side.CLIENT)
     public void setConfigAmount(int index, long newAmount) {
+        // ✅ 修改：使用 changeConfigAmountID，服务端会调用 setConfigAmountDirect 广播
         syncToServer(changeConfigAmountID, buf -> {
             buf.writeVarInt(index);
             buf.writeLong(newAmount);
