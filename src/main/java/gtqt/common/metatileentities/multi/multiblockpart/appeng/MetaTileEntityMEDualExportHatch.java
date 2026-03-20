@@ -18,6 +18,7 @@ import gregtech.common.gui.widget.appeng.AEFluidGridWidget;
 import gregtech.common.gui.widget.appeng.AEItemGridWidget;
 import gregtech.common.inventory.appeng.SerializableFluidList;
 import gregtech.common.inventory.appeng.SerializableItemList;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
@@ -43,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class MetaTileEntityMEDualExportHatch extends MetaTileEntityMEControlBase
+public class MetaTileEntityMEDualExportHatch extends MetaTileEntityAEHostablePart
         implements IMultiblockAbilityPart<DualHandler>, IControllable {
 
     public final static String ITEM_BUFFER_TAG = "ItemBuffer";
@@ -90,7 +91,7 @@ public class MetaTileEntityMEDualExportHatch extends MetaTileEntityMEControlBase
     @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote && this.isWorkingEnabled() && this.shouldSyncME() && this.updateMEStatus()) {
+        if (!getWorld().isRemote && isWorkingEnabled() && isOnline && shouldSyncME()) {
             if (!this.internalItemBuffer.isEmpty()) {
 
                 IMEMonitor<IAEItemStack> monitor = getItemMonitor();
@@ -163,6 +164,7 @@ public class MetaTileEntityMEDualExportHatch extends MetaTileEntityMEControlBase
         builder.bindPlayerInventory(entityPlayer.inventory, GuiTextures.SLOT, 7, 18 + 18 * 8 + 12);
         return builder.build(this.getHolder(), entityPlayer);
     }
+
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {

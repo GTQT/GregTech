@@ -4,7 +4,6 @@ import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
-import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.FluidTankList;
@@ -33,8 +32,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.ConfigHolder;
 import gregtech.common.items.MetaItems;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
@@ -57,7 +56,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -67,7 +65,6 @@ import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
-import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
@@ -129,7 +126,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -139,7 +135,7 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
 import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
-public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMEControlBase
+public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEHostablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
@@ -297,15 +293,9 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
                 }
             }
         }
-        if (!getWorld().isRemote) {
-            updateMEStatus();
-
-            if (isNeedPatternSync() && getOffsetTimer() % 10 == 0) {
-                setNeedPatternSync(MEPatternChange());
-            }
-        }
-        if (isExport()) {
-            returnToNet();
+        if (!getWorld().isRemote && isWorkingEnabled() && isOnline && shouldSyncME()) {
+            if(isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
+            if (isExport()) returnToNet();
         }
     }
 
@@ -381,14 +371,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
         }
 
         return false;
-    }
-
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
-        }
-        return super.getCapability(capability, side);
     }
 
     @Override
@@ -512,15 +494,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityMECo
             }
         }
         return super.getProxy();
-    }
-
-    @Override
-    public AENetworkProxy createProxy() {
-        AENetworkProxy proxy = new AENetworkProxy(this, "mte_proxy", this.getStackForm(), true);
-        proxy.setFlags(GridFlags.REQUIRE_CHANNEL);
-        proxy.setIdlePowerUsage(ConfigHolder.compat.ae2.meHatchEnergyUsage);
-        proxy.setValidSides(EnumSet.of(this.getFrontFacing()));
-        return proxy;
     }
 
     @Override

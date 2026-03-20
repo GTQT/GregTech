@@ -1,8 +1,6 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.GregtechDataCodes;
-import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -21,11 +19,9 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -46,36 +42,21 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAEItemStack> implements
-                                                                                             IMultiblockAbilityPart<IMufflerHatch>,
-                                                                                             ITieredMetaTileEntity,
-                                                                                             IMufflerHatch {
+                                                                                           IMultiblockAbilityPart<IMufflerHatch>,
+                                                                                           ITieredMetaTileEntity,
+                                                                                           IMufflerHatch {
 
     public final static String ITEM_BUFFER_TAG = "ItemBuffer";
     private final int recoveryChance;
-    private boolean workingEnabled = true;
 
     public MetaTileEntityMEMufflerHatch(ResourceLocation metaTileEntityId, int tier) {
-        super(metaTileEntityId, tier,  IItemStorageChannel.class);
-        this.recoveryChance = Math.min((tier-1) * 10, 100);
+        super(metaTileEntityId, tier, IItemStorageChannel.class);
+        this.recoveryChance = Math.min((tier - 1) * 10, 100);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityMEMufflerHatch(metaTileEntityId, getTier());
-    }
-
-    @Override
-    public boolean isWorkingEnabled() {
-        return this.workingEnabled;
-    }
-
-    @Override
-    public void setWorkingEnabled(boolean workingEnabled) {
-        this.workingEnabled = workingEnabled;
-        World world = this.getWorld();
-        if (world != null && !world.isRemote) {
-            writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
-        }
     }
 
     @Override
@@ -109,7 +90,6 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAE
         text.space();
         text.addLine(KeyUtil.number(TextFormatting.WHITE, wrappedStack.getStackSize(), "x"));
     }
-
 
     @Override
     public void onRemoval() {
@@ -183,14 +163,6 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAE
         if (this.shouldRenderOverlay()) {
             Textures.ME_MUFFLER_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
-    }
-
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
-        }
-        return super.getCapability(capability, side);
     }
 
     @Override

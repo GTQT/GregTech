@@ -23,6 +23,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.gui.widget.appeng.AEFluidConfigWidget;
 import gregtech.common.gui.widget.appeng.AEItemConfigWidget;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidList;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEFluidSlot;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemList;
@@ -57,21 +58,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
-        implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable, IGhostSlotConfigurable, IDataStickIntractable {
+public class MetaTileEntityMEDualInputHatch extends MetaTileEntityAEHostablePart
+        implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable, IGhostSlotConfigurable,
+                   IDataStickIntractable {
 
     public final static String ITEM_BUFFER_TAG = "ItemSlots";
     public final static String FLUID_BUFFER_TAG = "FluidTanks";
-
     private final static int ITEM_CONFIG_SIZE = 16;
     private final static int FLUID_CONFIG_SIZE = 16;
-
     protected ExportOnlyAEFluidList aeFluidHandler;
     protected ExportOnlyAEItemList aeItemHandler;
-
     protected GhostCircuitItemStackHandler circuitInventory;
     protected NotifiableItemStackHandler extraSlotInventory;
-
     private ItemHandlerList actualImportItems;
     private DualHandler dualHandler;
 
@@ -167,7 +165,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
         this.importItems = this.actualImportItems;
 
         this.dualHandler = new DualHandler(
-               this.actualImportItems,
+                this.actualImportItems,
                 getImportFluids(),
                 false);
     }
@@ -184,7 +182,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
     @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote && this.isWorkingEnabled() && updateMEStatus() && shouldSyncME()) {
+        if (!getWorld().isRemote && isWorkingEnabled() && isOnline && shouldSyncME()) {
             syncItemME();
             syncFluidME();
         }
@@ -333,7 +331,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
 
         /// ///////////////////////////////////////////////////////////////////////////////
         // Config slots
-        builder.widget(new AEFluidConfigWidget(7, 25+ 18 * 4, this.getAEFluidHandler()));
+        builder.widget(new AEFluidConfigWidget(7, 25 + 18 * 4, this.getAEFluidHandler()));
 
         // Arrow image
         builder.image(7 + 18 * 4, 25 + 18 + 18 * 4, 18, 18, GuiTextures.ARROW_DOUBLE);
@@ -389,6 +387,14 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
     }
 
     @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
     public void setGhostCircuitConfig(int config) {
         if (this.circuitInventory.getCircuitValue() == config) {
             return;
@@ -398,13 +404,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
             markDirty();
         }
     }
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
-    }
+
     @Override
     public final void onDataStickLeftClick(EntityPlayer player, ItemStack dataStick) {
         NBTTagCompound tag = new NBTTagCompound();

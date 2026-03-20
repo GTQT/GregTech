@@ -3,7 +3,6 @@ package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
-import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.FluidTankList;
@@ -30,8 +29,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.ConfigHolder;
 import gregtech.common.items.MetaItems;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -51,7 +50,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -60,7 +58,6 @@ import net.minecraftforge.items.ItemStackHandler;
 import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
-import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
@@ -119,14 +116,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
 import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
-public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
+public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
@@ -163,6 +159,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     @Getter
     @Nullable
     private DualHandler dualHandler;
+    @Setter
+    @Getter
     private boolean needPatternSync = true;
     private int parallel;
     private int lastParallel;
@@ -212,7 +210,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
             @Override
             protected void onContentsChanged(int slot) {
-                needPatternSync = true;
+                setNeedPatternSync(true);
                 setPatternDetails();
             }
         };
@@ -269,14 +267,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
     public void update() {
         super.update();
         if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
-            if (isWorkingEnabled()) {
-                if (isExportHatch) {
-                    pushItemsIntoNearbyHandlers(getFrontFacing());
-                    pushFluidsIntoNearbyHandlers(getFrontFacing());
-                } else {
-                    pullItemsFromNearbyHandlers(getFrontFacing());
-                    pullFluidsFromNearbyHandlers(getFrontFacing());
-                }
+
+            if (isExportHatch) {
+                pushItemsIntoNearbyHandlers(getFrontFacing());
+                pushFluidsIntoNearbyHandlers(getFrontFacing());
+            } else {
+                pullItemsFromNearbyHandlers(getFrontFacing());
+                pullFluidsFromNearbyHandlers(getFrontFacing());
             }
 
             if (isAutoCollapse()) {
@@ -309,15 +306,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
                 }
             }
         }
-        if (!getWorld().isRemote) {
-            updateMEStatus();
-
-            if (needPatternSync && getOffsetTimer() % 10 == 0) {
-                needPatternSync = MEPatternChange();
-            }
-        }
-        if (isExport()) {
-            returnToNet();
+        if (!getWorld().isRemote && isWorkingEnabled() && isOnline && shouldSyncME()) {
+            if(isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
+            if (isExport()) returnToNet();
         }
     }
 
@@ -393,14 +384,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
         }
 
         return false;
-    }
-
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
-        }
-        return super.getCapability(capability, side);
     }
 
     @Override
@@ -504,15 +487,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             }
         }
         return super.getProxy();
-    }
-
-    @Override
-    public AENetworkProxy createProxy() {
-        AENetworkProxy proxy = new AENetworkProxy(this, "mte_proxy", this.getStackForm(), true);
-        proxy.setFlags(GridFlags.REQUIRE_CHANNEL);
-        proxy.setIdlePowerUsage(ConfigHolder.compat.ae2.meHatchEnergyUsage);
-        proxy.setValidSides(EnumSet.of(this.getFrontFacing()));
-        return proxy;
     }
 
     @Override
@@ -1060,7 +1034,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
 
     @Override
     public void gridChanged() {
-        needPatternSync = true;
+        setNeedPatternSync(true);
     }
 
     @Override
@@ -1243,7 +1217,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityMEControlBase
             // 集成电路特殊处理
             if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
                 //说明仓不空，应该检查电路是否相等
-                if(IntCircuitIngredient.getCircuitConfiguration(itemStack) != getGhostCircuitConfig())
+                if (IntCircuitIngredient.getCircuitConfiguration(itemStack) != getGhostCircuitConfig())
                     return false;
                 continue;
             }

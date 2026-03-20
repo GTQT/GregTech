@@ -6,6 +6,7 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.nbt.NBTTagCompound;
@@ -42,7 +43,7 @@ import java.util.Objects;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ME_POS;
 
-public class MetaTileEntityMEPatternManager extends MetaTileEntityMEControlBase {
+public class MetaTileEntityMEPatternManager extends MetaTileEntityAEHostablePart {
 
     ArrayList<BlockPos> pos = new ArrayList<>();
     String searchText = "";

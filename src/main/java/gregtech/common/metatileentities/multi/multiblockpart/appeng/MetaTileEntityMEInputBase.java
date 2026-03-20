@@ -88,7 +88,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
     @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote && workingEnabled && isOnline && (getOffsetTimer() % getRefreshRate() == 0)) {
+        if (!getWorld().isRemote && workingEnabled && isOnline && shouldSyncME()) {
             operateOnME();
         }
     }

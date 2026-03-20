@@ -68,7 +68,7 @@ public abstract class MetaTileEntityMEOutputBase<AEStackType extends IAEStack<AE
     @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote && workingEnabled && isOnline && (getOffsetTimer() % getRefreshRate() == 0)) {
+        if (!getWorld().isRemote && workingEnabled && isOnline && shouldSyncME()) {
             if (this.internalBuffer.isEmpty()) return;
 
             IMEMonitor<AEStackType> monitor = getMonitor();

@@ -4,7 +4,6 @@ import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
-import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.FluidTankList;
@@ -33,8 +32,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.ConfigHolder;
 import gregtech.common.items.MetaItems;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
@@ -68,7 +67,6 @@ import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
-import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
@@ -131,7 +129,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -142,7 +139,7 @@ import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityMEControlBase
+public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityAEHostablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
@@ -306,12 +303,8 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
 
             }
         }
-        if (!getWorld().isRemote) {
-            updateMEStatus();
-
-            if (isNeedPatternSync() && getOffsetTimer() % 10 == 0) {
-                setNeedPatternSync(MEPatternChange());
-            }
+        if (!getWorld().isRemote && isWorkingEnabled() && isOnline && shouldSyncME() && isNeedPatternSync()) {
+            setNeedPatternSync(MEPatternChange());
         }
         if (isExport()) {
             returnToNet();
@@ -396,9 +389,6 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
             return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(this.largeSlotItemStackHandler);
-        }
-        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
         }
         return super.getCapability(capability, side);
     }
@@ -526,15 +516,6 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
             }
         }
         return super.getProxy();
-    }
-
-    @Override
-    public AENetworkProxy createProxy() {
-        AENetworkProxy proxy = new AENetworkProxy(this, "mte_proxy", this.getStackForm(), true);
-        proxy.setFlags(GridFlags.REQUIRE_CHANNEL);
-        proxy.setIdlePowerUsage(ConfigHolder.compat.ae2.meHatchEnergyUsage);
-        proxy.setValidSides(EnumSet.of(this.getFrontFacing()));
-        return proxy;
     }
 
     @Override

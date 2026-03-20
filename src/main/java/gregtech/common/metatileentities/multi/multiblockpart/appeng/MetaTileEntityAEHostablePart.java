@@ -1,5 +1,8 @@
 package gregtech.common.metatileentities.multi.multiblockpart.appeng;
 
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
 import gregtech.api.metatileentity.IAEStatusProvider;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
@@ -11,12 +14,22 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
 
+import appeng.api.AEApi;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.storage.IMEMonitor;
+import appeng.api.storage.IStorageChannel;
+import appeng.api.storage.channels.IFluidStorageChannel;
+import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
+import appeng.me.GridAccessException;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.BaseActionSource;
 import appeng.me.helpers.IGridProxyable;
@@ -32,9 +45,12 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_IO_SPEED;
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ONLINE_STATUS;
 
 public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultiblockNotifiablePart implements
-                                                                                                  IAEStatusProvider {
+                                                                                                  IAEStatusProvider,
+                                                                                                  IControllable {
 
     public static final String REFRESH_RATE_TAG = "RefreshRate";
+    public final static String WORKING_TAG = "WorkingEnabled";
+    private boolean workingEnabled = true;
 
     private AENetworkProxy aeProxy;
     private int refreshRate = ConfigHolder.compat.ae2.updateIntervals;
@@ -68,6 +84,7 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
         buf.writeVarInt(refreshRate);
         buf.writeBoolean(isOnline);
         buf.writeBoolean(allowsExtraConnections);
+        buf.writeBoolean(workingEnabled);
     }
 
     @Override
@@ -90,6 +107,7 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
         refreshRate = buf.readVarInt();
         isOnline = buf.readBoolean();
         allowsExtraConnections = buf.readBoolean();
+        workingEnabled = buf.readBoolean();
     }
 
     @Override
@@ -225,6 +243,7 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
         super.writeToNBT(data);
         data.setBoolean("AllowExtraConnections", allowsExtraConnections);
         data.setInteger(REFRESH_RATE_TAG, this.refreshRate);
+        data.setBoolean(WORKING_TAG, this.workingEnabled);
         return data;
     }
 
@@ -235,5 +254,74 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
         if (data.hasKey(REFRESH_RATE_TAG)) {
             this.refreshRate = data.getInteger(REFRESH_RATE_TAG);
         }
+        if (data.hasKey(WORKING_TAG)) {
+            this.workingEnabled = data.getBoolean(WORKING_TAG);
+        }
+    }
+
+    @Override
+    public boolean isWorkingEnabled() {
+        return this.workingEnabled;
+    }
+
+    @Override
+    public void setWorkingEnabled(boolean workingEnabled) {
+        this.workingEnabled = workingEnabled;
+
+        World world = this.getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
+        }
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
+            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(this);
+        }
+
+        return super.getCapability(capability, side);
+    }
+
+    @NotNull
+    protected IStorageChannel<IAEFluidStack> getFluidStorageChannel() {
+        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+    }
+
+    @Nullable
+    protected IMEMonitor<IAEFluidStack> getFluidMonitor() {
+        AENetworkProxy proxy = getProxy();
+        if (proxy == null) return null;
+
+        IStorageChannel<IAEFluidStack> channel = getFluidStorageChannel();
+
+        try {
+            return proxy.getStorage().getInventory(channel);
+        } catch (GridAccessException ignored) {
+            return null;
+        }
+    }
+
+    @NotNull
+    protected IStorageChannel<IAEItemStack> getItemStorageChannel() {
+        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+    }
+
+    @Nullable
+    protected IMEMonitor<IAEItemStack> getItemMonitor() {
+        AENetworkProxy proxy = getProxy();
+        if (proxy == null) return null;
+
+        IStorageChannel<IAEItemStack> channel = getItemStorageChannel();
+
+        try {
+            return proxy.getStorage().getInventory(channel);
+        } catch (GridAccessException ignored) {
+            return null;
+        }
+    }
+
+    protected boolean shouldSyncME() {
+        return getOffsetTimer() % getRefreshRate() == 0;
     }
 }
