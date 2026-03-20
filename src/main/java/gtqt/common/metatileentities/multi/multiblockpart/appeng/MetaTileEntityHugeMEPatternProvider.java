@@ -989,7 +989,7 @@ public class MetaTileEntityHugeMEPatternProvider extends MetaTileEntityMEControl
                                 .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
                                         exportStateValue::setBoolValue))
                                 .overlay(GTGuiTextures.EXPORT_OVERLAY)
-                                ..tooltip(tooltip -> tooltip.addLine(IKey.str("返回模式"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("返回模式"))))
 
                         .child(new ToggleButton()
                                 .top(18)
