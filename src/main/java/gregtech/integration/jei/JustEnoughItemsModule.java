@@ -234,6 +234,7 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
 
         // register transfer handler for all categories, but not for the crafting station
         ModularUIGuiHandler modularUIGuiHandler = new ModularUIGuiHandler(jeiHelpers.recipeTransferHandlerHelper());
+        transferHelper = jeiHelpers.recipeTransferHandlerHelper();
         modularUIGuiHandler.blacklistCategory(
                 IntCircuitCategory.UID,
                 MaterialTreeCategory.UID,

@@ -85,6 +85,7 @@ public enum Mods {
     GTQTCore(Names.GTQT_CORE),
     Alfheim(Names.ALFHEIM),
     Loliasm(Names.LOLIASM),
+    ModNameTooltip(Names.MOD_NAME_TOOLTIP),
 
     // Special Optifine handler, but consolidated here for simplicity
     OptiFine(null) {
@@ -167,6 +168,7 @@ public enum Mods {
         public static final String GT_STEAM = "gtsteam";
         public static final String ALFHEIM = "alfheim";
         public static final String LOLIASM = "loliasm";
+        public static final String MOD_NAME_TOOLTIP = "modnametooltip";
         public static final String VINTAGE = "vintagefix";
     }
 

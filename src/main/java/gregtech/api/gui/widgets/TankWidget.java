@@ -6,7 +6,11 @@ import gregtech.api.gui.IRenderContext;
 import gregtech.api.gui.Widget;
 import gregtech.api.gui.ingredient.IIngredientSlot;
 import gregtech.api.gui.resources.IGuiTexture;
-import gregtech.api.util.*;
+import gregtech.api.util.FluidTooltipUtil;
+import gregtech.api.util.LocalizationUtils;
+import gregtech.api.util.Position;
+import gregtech.api.util.Size;
+import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.utils.RenderUtil;
 import gregtech.client.utils.TooltipHelper;
 
@@ -23,7 +27,9 @@ import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fluids.*;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
@@ -511,7 +517,7 @@ public class TankWidget extends Widget implements IIngredientSlot {
             if (extra != 0) {
                 fluidAmount += String.format(" + %d L", extra);
             }
-            tooltip.add(TextFormatting.GRAY + LocalizationUtils.format("gregtech.gui.amount_raw") + fluidAmount);
+            tooltip.add(TextFormatting.GRAY + LocalizationUtils.format("gregtech.gui.amount_raw", fluidAmount));
         }
     }
 }

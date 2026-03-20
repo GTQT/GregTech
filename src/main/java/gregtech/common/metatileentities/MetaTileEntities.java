@@ -144,7 +144,7 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumExtender;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumProxy;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumStorageController;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
-import gregtech.common.metatileentities.storage.MetaTileEntityWorkbench;
+import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
 import gregtech.integration.jei.multiblock.MultiblockInfoCategory;
@@ -1250,13 +1250,13 @@ public class MetaTileEntities {
             ITEM_EXPORT_BUS_ME = registerMetaTileEntity(1901,
                     new MetaTileEntityMEOutputBus(gregtechId("me_export_item_bus")));
             FLUID_IMPORT_HATCH_ME = registerMetaTileEntity(1902,
-                    new MetaTileEntityMEInputHatch(gregtechId("me_import_fluid_hatch")));
+                    new MetaTileEntityMEInputHatch(gregtechId("me_import_fluid_hatch"), GTValues.EV));
             ITEM_IMPORT_BUS_ME = registerMetaTileEntity(1903,
-                    new MetaTileEntityMEInputBus(gregtechId("me_import_item_bus")));
+                    new MetaTileEntityMEInputBus(gregtechId("me_import_item_bus"), GTValues.EV));
             STOCKING_BUS_ME = registerMetaTileEntity(1904,
-                    new MetaTileEntityMEStockingBus(gregtechId("me_stocking_item_bus")));
+                    new MetaTileEntityMEStockingBus(gregtechId("me_stocking_item_bus"), GTValues.IV));
             STOCKING_HATCH_ME = registerMetaTileEntity(1905,
-                    new MetaTileEntityMEStockingHatch(gregtechId("me_stocking_fluid_hatch")));
+                    new MetaTileEntityMEStockingHatch(gregtechId("me_stocking_fluid_hatch"), GTValues.IV));
 
         }
 

@@ -4,29 +4,32 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IMufflerHatch;
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.ModularUI;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.mui.drawable.GTObjectDrawable;
+import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.gui.widget.appeng.AEItemGridWidget;
 import gregtech.common.inventory.appeng.SerializableItemList;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOutputBase;
 
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.config.Actionable;
 import appeng.api.storage.IMEMonitor;
@@ -36,12 +39,14 @@ import appeng.util.item.AEItemStack;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.drawable.IRichTextBuilder;
+import com.cleanroommc.modularui.utils.serialization.IByteBufDeserializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<IAEItemStack> implements
+public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAEItemStack> implements
                                                                                              IMultiblockAbilityPart<IMufflerHatch>,
                                                                                              ITieredMetaTileEntity,
                                                                                              IMufflerHatch {
@@ -53,7 +58,7 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
     private SerializableItemList internalBuffer;
 
     public MetaTileEntityMEMufflerHatch(ResourceLocation metaTileEntityId, int tier) {
-        super(metaTileEntityId, tier, true, IItemStorageChannel.class);
+        super(metaTileEntityId, tier,  IItemStorageChannel.class);
         this.recoveryChance = Math.min((tier-1) * 10, 100);
     }
 
@@ -82,6 +87,7 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
         }
     }
 
+    @Override
     public void recoverItemsTable(List<ItemStack> recoveryItems, int parallel) {
         if (calculateChance()) {
             for (ItemStack recoveryItem : recoveryItems) {
@@ -94,24 +100,25 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
     }
 
     @Override
-    public void update() {
-        super.update();
-        if (!getWorld().isRemote && this.workingEnabled && this.shouldSyncME() && this.updateMEStatus()) {
-            if (this.internalBuffer.isEmpty()) return;
-
-            IMEMonitor<IAEItemStack> monitor = getMonitor();
-            if (monitor == null) return;
-
-            for (IAEItemStack item : this.internalBuffer) {
-                IAEItemStack notInserted = monitor.injectItems(item.copy(), Actionable.MODULATE, getActionSource());
-                if (notInserted != null && notInserted.getStackSize() > 0) {
-                    item.setStackSize(notInserted.getStackSize());
-                } else {
-                    item.reset();
-                }
-            }
-        }
+    protected @NotNull IByteBufDeserializer<IAEItemStack> getDeserializer() {
+        return AEItemStack::fromPacket;
     }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    protected void addStackLine(@NotNull IRichTextBuilder<?> text,
+                                @NotNull IAEItemStack wrappedStack) {
+        ItemStack stack = wrappedStack.getDefinition();
+        text.add(new GTObjectDrawable(stack, 0)
+                .asIcon()
+                .asHoverable()
+                // Auto update has to be true for "Press CTRL for Advanced Info" to work
+                .tooltipAutoUpdate(true)
+                .tooltipBuilder(tooltip -> tooltip.addFromItem(stack)));
+        text.space();
+        text.addLine(KeyUtil.number(TextFormatting.WHITE, wrappedStack.getStackSize(), "x"));
+    }
+
 
     @Override
     public void onRemoval() {
@@ -122,23 +129,6 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
             }
         }
         super.onRemoval();
-    }
-
-    @Override
-    protected ModularUI createUI(EntityPlayer entityPlayer) {
-        ModularUI.Builder builder = ModularUI
-                .builder(GuiTextures.BACKGROUND, 176, 18 + 18 * 4 + 94)
-                .label(10, 5, getMetaFullName());
-        // ME Network status
-        builder.dynamicLabel(10, 15, () -> this.isOnline ?
-                        I18n.format("gregtech.gui.me_network.online") :
-                        I18n.format("gregtech.gui.me_network.offline"),
-                0x404040);
-        builder.label(10, 25, "gregtech.gui.waiting_list", 0xFFFFFFFF);
-        builder.widget(new AEItemGridWidget(10, 35, 3, this.internalBuffer));
-
-        builder.bindPlayerInventory(entityPlayer.inventory, GuiTextures.SLOT, 7, 18 + 18 * 4 + 12);
-        return builder.build(this.getHolder(), entityPlayer);
     }
 
     private boolean calculateChance() {
@@ -175,19 +165,24 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityAEHostablePart<I
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
-        data.setBoolean(WORKING_TAG, this.workingEnabled);
-        data.setTag(ITEM_BUFFER_TAG, this.internalBuffer.serializeNBT());
+
+        NBTTagList nbtList = new NBTTagList();
+        for (IAEItemStack stack : internalBuffer) {
+            NBTTagCompound stackTag = new NBTTagCompound();
+            stack.writeToNBT(stackTag);
+            nbtList.appendTag(stackTag);
+        }
+        data.setTag(ITEM_BUFFER_TAG, nbtList);
+
         return data;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
-        if (data.hasKey(WORKING_TAG)) {
-            this.workingEnabled = data.getBoolean(WORKING_TAG);
-        }
-        if (data.hasKey(ITEM_BUFFER_TAG, 9)) {
-            this.internalBuffer.deserializeNBT((NBTTagList) data.getTag(ITEM_BUFFER_TAG));
+        for (NBTBase tag : data.getTagList(ITEM_BUFFER_TAG, Constants.NBT.TAG_COMPOUND)) {
+            NBTTagCompound tagCompound = (NBTTagCompound) tag;
+            internalBuffer.add(AEItemStack.fromNBT(tagCompound));
         }
     }
 

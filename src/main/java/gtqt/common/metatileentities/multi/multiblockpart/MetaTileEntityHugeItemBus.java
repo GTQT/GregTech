@@ -91,7 +91,6 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
         if (this.hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
-            this.circuitInventory.addNotifiableMetaTileEntity(this);
             this.actualImportItems = new ItemHandlerList(Arrays.asList(largeSlotItemStackHandler, this.circuitInventory));
         } else {
             this.actualImportItems = null;

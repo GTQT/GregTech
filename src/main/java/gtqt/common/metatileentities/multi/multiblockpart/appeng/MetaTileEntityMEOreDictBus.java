@@ -1,29 +1,27 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
-import appeng.api.config.Actionable;
-import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
-
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.ModularUI;
-import gregtech.api.gui.widgets.ImageCycleButtonWidget;
-import gregtech.api.gui.widgets.ImageWidget;
-import gregtech.api.gui.widgets.TextFieldWidget2;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEStockingBus;
 
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.stack.WrappedItemStack;
-
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.oredict.OreDictionary;
 
+import appeng.api.config.Actionable;
+import appeng.api.storage.IMEMonitor;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IItemList;
+import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,28 +29,47 @@ import java.util.List;
 
 public class MetaTileEntityMEOreDictBus extends MetaTileEntityMEStockingBus {
 
-    String oreDictName= "在这里输入矿辞前缀";
+    protected String oreDictName= "在这里输入矿辞前缀";
 
-    public MetaTileEntityMEOreDictBus(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId);
+    public MetaTileEntityMEOreDictBus(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, tier);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity iGregTechTileEntity) {
-        return new MetaTileEntityMEOreDictBus(metaTileEntityId);
+        return new MetaTileEntityMEOreDictBus(metaTileEntityId, getTier());
+    }
+
+
+    @Override
+    protected ModularPanel buildSettingsPopup(PanelSyncManager syncManager, IPanelHandler syncHandler) {
+        return super.buildSettingsPopup(syncManager, syncHandler)
+                .child(IKey.lang("gregtech.machine.me.settings.minimum")
+                        .asWidget()
+                        .left(5)
+                        .top(5 + 18 + 18 + 8))
+                .child(new TextFieldWidget()
+                        .left(5)
+                        .top(15 + 18 + 18 + 8)
+                        .size(100, 10)
+                        .setNumbers(0, Integer.MAX_VALUE)
+                        .setDefaultNumber(0)
+                        .value(new IntSyncValue(this::getMinimumStackSize, this::setMinimumStackSize)))
+                .child(IKey.lang("gregtech.machine.me.settings.ore_dict")
+                        .asWidget()
+                        .left(5)
+                        .top(30 + 18 + 18 + 8))
+                .child(new TextFieldWidget()
+                        .left(5)
+                        .top(35 + 18 + 18 + 8)
+                        .size(100, 10)
+                        .value(new StringSyncValue(this::getOreDict, this::setOreDict)))
+                ;
     }
 
     @Override
-    protected ModularUI.Builder createUITemplate(EntityPlayer player) {
-        ModularUI.Builder builder = super.createUITemplate(player);
-        builder.widget(new ImageCycleButtonWidget(7 + 18 * 4 + 1, 26, 16, 16, GuiTextures.BUTTON_AUTO_PULL,
-                () -> autoPull, this::setAutoPull).setTooltipHoverString("gregtech.gui.me_bus.auto_pull_button"));
-
-        builder.widget(new ImageWidget(59, 14, 110, 12, GuiTextures.DISPLAY));
-        builder.widget(new TextFieldWidget2(60, 15, 108,10,
-                this::getOreDict, this::setOreDict)
-                .setMaxLength(10));
-        return builder;
+    protected int getSettingsPopupHeight() {
+        return super.getSettingsPopupHeight() + 20;
     }
 
     private void setOreDict(String s) {
@@ -66,10 +83,6 @@ public class MetaTileEntityMEOreDictBus extends MetaTileEntityMEStockingBus {
 
     @Override
     protected void refreshList() {
-        if(oreDictName.isEmpty()||oreDictName.equals("在这里输入矿辞前缀")){
-            super.refreshList();
-            return;
-        }
         IMEMonitor<IAEItemStack> monitor = getMonitor();
         if (monitor == null) {
             clearInventory(0);
@@ -83,6 +96,7 @@ public class MetaTileEntityMEOreDictBus extends MetaTileEntityMEStockingBus {
         }
 
         int index = 0;
+        ExportOnlyAEStockingItemSlot[] inventory = getAEHandler().getInventory();
         for (IAEItemStack stack : storageList) {
             if (index >= CONFIG_SIZE) break;
             if (stack.getStackSize() == 0) continue;
@@ -98,11 +112,9 @@ public class MetaTileEntityMEOreDictBus extends MetaTileEntityMEStockingBus {
 
             // Ensure that it is valid to configure with this stack
             if (autoPullTest != null && !autoPullTest.test(itemStack)) continue;
-
-            IAEItemStack selectedStack = WrappedItemStack.fromItemStack(itemStack);
-            if (selectedStack == null) continue;
+            IAEItemStack selectedStack = stack.copy();
             IAEItemStack configStack = selectedStack.copy().setStackSize(1);
-            var slot = this.getAEItemHandler().getInventory()[index];
+            ExportOnlyAEStockingItemSlot slot = inventory[index];
             slot.setConfig(configStack);
             slot.setStack(selectedStack);
             index++;

@@ -160,7 +160,6 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityMEControlBase
         super.initializeInventory();
         this.aeItemHandler = getAEItemHandler();
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
-        this.circuitInventory.addNotifiableMetaTileEntity(this);
         this.extraSlotInventory = new NotifiableItemStackHandler(this, 2, this, false);
         this.extraSlotInventory.addNotifiableMetaTileEntity(this);
         this.actualImportItems = new ItemHandlerList(

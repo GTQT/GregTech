@@ -6570,6 +6570,13 @@ gregtech.machine.me.extra_connections.enabled=允许从任意方向连接
 gregtech.machine.me.extra_connections.disabled=只允许从正面连接
 gregtech.machine.me.extra_connections.tooltip=使用剪线钳右键单击，以允许从任意方向连接AE2
 
+gregtech.machine.me.settings.button=ME 设置
+gregtech.machine.me.settings.refresh_rate=刷新频率：
+gregtech.machine.me.settings.minimum=最小堆叠大小：
+gregtech.machine.me.settings.minimum.tooltip=设为 0 可禁用最小堆叠大小过滤
+gregtech.machine.me.settings.ore_dict=输入限制矿辞
+gregtech.machine.me.settings.ore_dict.tooltip=输入矿辞后，只会拉取带有指定矿辞的材料
+gregtech.machine.me.multiplier.button=配置倍率
 # Universal tooltips
 gregtech.universal.tooltip.voltage_in=§a输入电压：§f%,d EU/t（%s§f）
 gregtech.universal.tooltip.max_voltage_in=§a最大输入电压：§f%,d（%s§f）
@@ -6681,7 +6688,7 @@ gregtech.fluid.state_plasma=§a状态：等离子态
 gregtech.fluid.type_acid.tooltip=§6酸性物质！轻拿轻放！
 gregtech.gui.fuel_amount=燃料总量：
 gregtech.gui.fluid_amount=流体总量：
-gregtech.gui.amount_raw=数量：
+gregtech.gui.amount_raw=数量：%s
 gregtech.gui.toggle_view.disabled=切换视图（流体）
 gregtech.gui.toggle_view.enabled=切换视图（物品）
 gregtech.gui.overclock.enabled=已启用超频/n点击以禁用

@@ -108,7 +108,6 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         this.exportItems = createExportItemHandler();
 
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
-        this.circuitInventory.addNotifiableMetaTileEntity(this);
 
         this.commonItems = createCommonItemHandler();
         this.importItems = commonItems;

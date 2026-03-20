@@ -108,7 +108,6 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
 
         if (hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
-            this.circuitInventory.addNotifiableMetaTileEntity(this);
             actualImportItems = new ItemHandlerList(Arrays.asList(this.largeSlotItemStackHandler, circuitInventory));
         } else {
             actualImportItems = this.importItems;
