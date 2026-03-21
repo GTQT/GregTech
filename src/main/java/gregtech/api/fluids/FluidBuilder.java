@@ -40,6 +40,7 @@ public class FluidBuilder {
 
     private String name = null;
     private String translationKey = null;
+    private String tooltip = "null";
 
     private final Collection<FluidAttribute> attributes = new ArrayList<>();
 
@@ -77,6 +78,15 @@ public class FluidBuilder {
      */
     public @NotNull FluidBuilder translation(@NotNull String translationKey) {
         this.translationKey = translationKey;
+        return this;
+    }
+
+    /**
+     * @param tooltip the tooltip of the fluid
+     * @return this
+     */
+    public @NotNull FluidBuilder tooltip(@NotNull String tooltip) {
+        this.tooltip = tooltip;
         return this;
     }
 
@@ -349,7 +359,7 @@ public class FluidBuilder {
             FluidUnifier.registerFluid(fluid, material);
         }
 
-        FluidTooltipUtil.registerTooltip(fluid, FluidTooltipUtil.createFluidTooltip(material, fluid, state));
+        FluidTooltipUtil.registerTooltip(fluid, FluidTooltipUtil.createFluidTooltip(material, fluid, tooltip ,state));
 
         if (hasFluidBlock) {
             if (fluid.getBlock() == null) {

@@ -660,9 +660,20 @@ public class Material implements Comparable<Material> {
             property.store(key, fluid);
 
             postProcessors.add(
-                    m -> FluidTooltipUtil.registerTooltip(fluid, FluidTooltipUtil.createFluidTooltip(m, fluid, state)));
+                    m -> FluidTooltipUtil.registerTooltip(fluid, FluidTooltipUtil.createFluidTooltip(m, fluid,"null", state)));
             return this;
         }
+
+        public Builder fluid(@NotNull Fluid fluid, @NotNull FluidStorageKey key, @NotNull FluidState state, @NotNull String tooltip) {
+            properties.ensureSet(PropertyKey.FLUID);
+            FluidProperty property = properties.getProperty(PropertyKey.FLUID);
+            property.store(key, fluid);
+
+            postProcessors.add(
+                    m -> FluidTooltipUtil.registerTooltip(fluid, FluidTooltipUtil.createFluidTooltip(m, fluid, tooltip, state)));
+            return this;
+        }
+
 
         /**
          * Add a liquid for this material.

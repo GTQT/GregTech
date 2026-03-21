@@ -68,6 +68,11 @@ public class MaterialFlags {
     public static final MaterialFlag DISABLE_DECOMPOSITION = new MaterialFlag.Builder("disable_decomposition").build();
 
     /**
+     * Disables recycling for this material
+     */
+    public static final MaterialFlag NO_RECYCLING = new MaterialFlag.Builder("no_recycling").build();
+
+    /**
      * Add to material if it is some kind of explosive
      */
     public static final MaterialFlag EXPLOSIVE = new MaterialFlag.Builder("explosive").build();

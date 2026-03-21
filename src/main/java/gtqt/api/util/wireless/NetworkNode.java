@@ -131,7 +131,8 @@ public class NetworkNode {
                 // 区块已加载，可以验证有效性
                 var mte = GTUtility.getMetaTileEntity(world, loc.pos);
                 if (!(mte instanceof MetaTileEntityWirelessController controller) ||
-                        !controller.getController().isStructureFormed()) {
+                        controller.getController() == null ||
+                        !controller.getController().isStructureFormed() ) {
                     iterator.remove(); // 无效，移除位置记录
                 }
             }

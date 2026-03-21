@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import static gregtech.api.fluids.FluidConstants.CRYOGENIC_FLUID_THRESHOLD;
@@ -112,12 +113,7 @@ public class FluidTooltipUtil {
         return getFluidTooltip(FluidRegistry.getFluid(fluidName));
     }
 
-    public static Supplier<List<String>> createGTFluidTooltip(@NotNull GTFluid fluid) {
-        Material material = fluid instanceof GTFluid.GTMaterialFluid matFluid ? matFluid.getMaterial() : null;
-        return createFluidTooltip(material, fluid, fluid.getState());
-    }
-
-    public static Supplier<List<String>> createFluidTooltip(@Nullable Material material, @NotNull Fluid fluid,
+    public static Supplier<List<String>> createFluidTooltip(@Nullable Material material, @NotNull Fluid fluid,String tooltips,
                                                             @NotNull FluidState fluidState) {
         return () -> {
             List<String> tooltip = new ArrayList<>();
@@ -133,6 +129,11 @@ public class FluidTooltipUtil {
 
             if (fluid.getTemperature() < CRYOGENIC_FLUID_THRESHOLD) {
                 tooltip.add(I18n.format("gregtech.fluid.temperature.cryogenic"));
+            }
+
+            if(!Objects.equals(tooltips, "null"))
+            {
+                tooltip.add(I18n.format(tooltips));
             }
 
             return tooltip;

@@ -13,6 +13,7 @@ import gregtech.api.recipes.ingredients.nbtmatch.NBTTagType;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.info.MaterialFlags;
 import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
@@ -28,8 +29,14 @@ import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -138,6 +145,9 @@ public class RecyclingRecipes {
                 m = m.getProperty(PropertyKey.INGOT).getMacerateInto();
             }
             if (!m.hasProperty(PropertyKey.FLUID) || m.getFluid() == null) {
+                return;
+            }
+            if(m.hasFlags(MaterialFlags.NO_RECYCLING)){
                 return;
             }
             if (prefix == OrePrefix.dust && m.hasProperty(PropertyKey.BLAST)) {
