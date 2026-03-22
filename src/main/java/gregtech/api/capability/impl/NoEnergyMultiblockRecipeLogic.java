@@ -28,6 +28,11 @@ public class NoEnergyMultiblockRecipeLogic extends MultiblockRecipeLogic {
     }
 
     @Override
+    protected long getMaxParallelVoltage() {
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
     protected boolean drawEnergy(long recipeEUt, boolean simulate) {
         return true; // spoof energy being drawn
     }
