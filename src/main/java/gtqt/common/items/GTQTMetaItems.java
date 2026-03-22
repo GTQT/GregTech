@@ -3,7 +3,7 @@ package gtqt.common.items;
 import gregtech.api.items.metaitem.MetaItem;
 
 public class GTQTMetaItems {
-
+    public static MetaItem<?>.MetaValueItem ORDER;
     public static MetaItem<?>.MetaValueItem COVER_PROGRAMMABLE_CIRCUIT;
     public static MetaItem<?>.MetaValueItem PROGRAMMABLE_CIRCUIT_0;
     public static MetaItem<?>.MetaValueItem PROGRAMMABLE_CIRCUIT_1;

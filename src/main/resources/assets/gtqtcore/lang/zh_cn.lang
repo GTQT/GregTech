@@ -1,6 +1,7 @@
 #cover
 metaitem.cover.programmable_circuit.name=可编程电路覆盖板
 #item
+metaitem.order.name=订单
 metaitem.programmable_circuit_0.name=可编程电路卡（0）
 metaitem.programmable_circuit_1.name=可编程电路卡（1）
 metaitem.programmable_circuit_2.name=可编程电路卡（2）

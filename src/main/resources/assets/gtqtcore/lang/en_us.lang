@@ -1,6 +1,7 @@
 #cover
 metaitem.cover.programmable_circuit.name=Programmable Circuit Cover
 #item
+metaitem.order.name=Order
 metaitem.programmable_circuit_0.name=Programmable Circuit（0）
 metaitem.programmable_circuit_1.name=Programmable Circuit（1）
 metaitem.programmable_circuit_2.name=Programmable Circuit（2）

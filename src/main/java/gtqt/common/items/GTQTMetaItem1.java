@@ -13,6 +13,7 @@ import gregtech.api.unification.stack.RecyclingData;
 import gregtech.common.creativetab.GTCreativeTabs;
 
 import gtqt.common.GTQTCommonProxy;
+import gtqt.common.items.behaviors.OrderBehavior;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import gtqt.common.items.behaviors.WindRotorBehavior;
 
@@ -26,9 +27,11 @@ public class GTQTMetaItem1 extends StandardMetaItem {
     }
 
     public void registerSubItems() {
+        GTQTMetaItems.ORDER = addItem(0, "order").addComponents(new OrderBehavior());
+
+
         GTQTMetaItems.COVER_PROGRAMMABLE_CIRCUIT = addItem(1, "cover.programmable_circuit").setCreativeTabs(
                 GTQTCommonProxy.GTQTCore_PC);
-
         GTQTMetaItems.PROGRAMMABLE_CIRCUIT_0 = this.addItem(20, "programmable_circuit_0")
                 .addComponents(new ProgrammableCircuit(0, "programmable_circuit"))
                 .setCreativeTabs(GTQTCommonProxy.GTQTCore_PC);

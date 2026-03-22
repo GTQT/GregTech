@@ -1,0 +1,12 @@
+{
+  "package": "gregtech.mixins.ae2",
+  "refmap": "mixins.gregtech.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinCraftingCPUCluster"
+  ],
+  "client": [],
+  "server": []
+}
