@@ -19,6 +19,7 @@ import gregtech.common.blocks.BlockMachineCasing;
 import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
 import gregtech.common.blocks.BlockMultiblockCasing;
 import gregtech.common.blocks.BlockMultiblockCasing.MultiblockCasingType;
+import gregtech.common.blocks.BlockSteamCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.wood.BlockGregPlanks;
 import gregtech.common.items.MetaItems;
@@ -51,6 +52,7 @@ import static gregtech.common.blocks.BlockTurbineCasing.TurbineCasingType.*;
 import static gregtech.common.blocks.BlockWarningSign.SignType.*;
 import static gregtech.common.blocks.BlockWarningSign1.SignType.*;
 import static gregtech.common.blocks.BlockWireCoil.CoilType.CUPRONICKEL;
+import static gregtech.common.metatileentities.MetaTileEntities.VULCANIZING_PRESS;
 import static gregtech.loaders.recipe.CraftingComponent.*;
 import static gtqt.common.items.GTQTMetaItems.CASTING_MOLD_EMPTY;
 
@@ -547,6 +549,26 @@ public class MetaTileEntityLoader {
                 new UnificationEntry(OrePrefix.plate, Materials.WroughtIron), 'S',
                 new UnificationEntry(OrePrefix.plate, Materials.Steel), 'P',
                 new UnificationEntry(OrePrefix.pipeSmallFluid, Materials.TinAlloy));
+
+        // Steam Vulcanizing Presses
+        ModHandler.addShapedRecipe(true, "vulcanizing_press_bronze", MetaTileEntities.STEAM_VULCANIZING_PRESS_BRONZE.getStackForm(),
+                "DSG", "QHQ", "PPP",
+                'H', MetaBlocks.STEAM_CASING.getItemVariant(BlockSteamCasing.SteamCasingType.BRONZE_BRICKS_HULL),
+                'S', new UnificationEntry(springSmall, Iron),
+                'P', new UnificationEntry(pipeNormalFluid, Bronze),
+                'D', new UnificationEntry(stick, Iron),
+                'G', new ItemStack(Blocks.GLASS),
+                'Q', new ItemStack(Blocks.PISTON));
+
+        ModHandler.addShapedRecipe(true, "vulcanizing_press_steel", MetaTileEntities.STEAM_VULCANIZING_PRESS_STEEL.getStackForm(),
+                "SXS", "PVP", "QQQ",
+                'V', MetaTileEntities.STEAM_VULCANIZING_PRESS_BRONZE.getStackForm(),
+                'P', new UnificationEntry(plate, Steel),
+                'Q', new UnificationEntry(pipeNormalFluid, TinAlloy),
+                'S', new UnificationEntry(springSmall, WroughtIron),
+                'X', new UnificationEntry(gearSmall, Steel));
+
+
         ModHandler.addShapedRecipe(true, "steam_miner", MetaTileEntities.STEAM_MINER.getStackForm(), "DSD", "SMS",
                 "GSG", 'M', MetaBlocks.STEAM_CASING.getItemVariant(BRONZE_HULL), 'S',
                 new UnificationEntry(OrePrefix.pipeNormalFluid, Materials.Bronze), 'D',
@@ -1061,6 +1083,18 @@ public class MetaTileEntityLoader {
                 'F', CABLE_HEX,
                 'C', CIRCUIT,
                 'G', MOTOR);
+
+        // Vulcanizing Press
+        MetaTileEntityLoader.registerMachineRecipe(true, VULCANIZING_PRESS,
+                "CSR", "PHQ", "WXW",
+                'H', HULL,
+                'X', CIRCUIT,
+                'W', CABLE,
+                'P', PISTON,
+                'Q', PUMP,
+                'S', SPRING_SMALL,
+                'C', CONVEYOR,
+                'R', PIPE_REACTOR);
 
         MetaTileEntityLoader.registerMachineRecipe(true,MetaTileEntities.MUFFLER_HATCH,
                 "AMA", "PHP","ARA",

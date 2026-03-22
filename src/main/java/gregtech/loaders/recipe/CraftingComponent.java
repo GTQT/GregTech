@@ -73,6 +73,7 @@ public class CraftingComponent {
     public static Component POWER_COMPONENT;
     public static Component VOLTAGE_COIL;
     public static Component SPRING;
+    public static Component SPRING_SMALL;
 
     public static final Map<BlastProperty.GasTier, List<FluidStack>> EBF_GASES = new EnumMap<>(BlastProperty.GasTier.class);
 
@@ -811,6 +812,20 @@ public class CraftingComponent {
                 .entry(UV, OrePrefix.spring, Materials.YttriumBariumCuprate)
                 .entry(UHV, OrePrefix.spring, Materials.Europium)
                 .build();
+
+        SPRING_SMALL  = new Component.Builder()
+                .entry(ULV, OrePrefix.springSmall, Materials.Lead)
+                .entry(LV, OrePrefix.springSmall, Materials.Tin)
+                .entry(MV, OrePrefix.springSmall, Materials.Copper)
+                .entry(HV, OrePrefix.springSmall, Materials.Gold)
+                .entry(EV, OrePrefix.springSmall, Materials.Aluminium)
+                .entry(IV, OrePrefix.springSmall, Materials.Tungsten)
+                .entry(LuV, OrePrefix.springSmall, Materials.NiobiumTitanium)
+                .entry(ZPM, OrePrefix.springSmall, Materials.VanadiumGallium)
+                .entry(UV, OrePrefix.springSmall, Materials.YttriumBariumCuprate)
+                .entry(UHV, OrePrefix.springSmall, Materials.Europium)
+                .build();
+
 
         EBF_GASES.computeIfAbsent(BlastProperty.GasTier.LOW, k -> new ArrayList<>())
                 .add(Materials.Nitrogen.getFluid(1000));

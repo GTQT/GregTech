@@ -32,8 +32,10 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.Lists;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 //万物基类
@@ -117,9 +119,6 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
     @Override
     public abstract MetaTileEntity createMetaTileEntity(IGregTechTileEntity iGregTechTileEntity);
 
-    @Override
-    public abstract List<ITextComponent> getDataInfo();
-
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         this.initializeAbilities();
@@ -149,11 +148,11 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
         this.outEnergyContainer = new EnergyContainerList(outEnergy);
     }
 
-    private boolean allowSameFluidFillForOutputs() {
+    protected boolean allowSameFluidFillForOutputs() {
         return false;
     }
 
-    private void resetTileAbilities() {
+    protected void resetTileAbilities() {
         this.inputInventory = new GTItemStackHandler(this, 0);
         this.inputFluidInventory = new FluidTankList(true);
         this.outputInventory = new GTItemStackHandler(this, 0);
@@ -231,5 +230,10 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
     @Override
     public int getMaxProgress() {
         return 0;
+    }
+
+    @Override
+    public @NotNull List<ITextComponent> getDataInfo() {
+        return Collections.emptyList();
     }
 }

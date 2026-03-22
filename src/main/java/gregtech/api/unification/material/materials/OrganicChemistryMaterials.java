@@ -19,7 +19,7 @@ public class OrganicChemistryMaterials {
                 .polymer()
                 .liquid(new FluidBuilder().temperature(900))
                 .color(0xDCDCDC)
-                .flags(GENERATE_GEAR, GENERATE_RING, GENERATE_FOIL)
+                .flags(GENERATE_GEAR, GENERATE_RING, GENERATE_FOIL, GENERATE_BOLT_SCREW)
                 .components(Carbon, 2, Hydrogen, 6, Oxygen, 1, Silicon, 1)
                 .build()
                 .setFormula("Si(CH3)2O", true);
@@ -49,7 +49,7 @@ public class OrganicChemistryMaterials {
                 .polymer()
                 .liquid(new FluidBuilder().temperature(1000))
                 .color(0x211A18).iconSet(SHINY)
-                .flags(GENERATE_FOIL, GENERATE_RING)
+                .flags(GENERATE_GEAR, GENERATE_RING, GENERATE_FOIL, GENERATE_BOLT_SCREW)
                 .components(Carbon, 20, Hydrogen, 26)
                 .build()
                 .setFormula("(C4H6)3C8H8", true);

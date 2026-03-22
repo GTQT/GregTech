@@ -2647,6 +2647,7 @@ recipemap.cryogenic_reactor.name=Cryogenic Reactor
 recipemap.sonicator.name=Sonicator
 recipemap.lightning_processor.name=Lightning Processor
 recipemap.recycle.name=Recycler
+recipemap.vulcanizing_press.name=Vulcanizing Press
 recipemap.primitive_blast_furnace.name=Primitive Blast Furnace
 recipemap.coke_oven.name=Coke Oven
 recipemap.research_station.name=Research Station
@@ -3406,6 +3407,10 @@ gregtech.machine.steam_rock_breaker_bronze.name=Steam Rock Breaker
 gregtech.machine.steam_rock_breaker_bronze.tooltip=Requires §bWater§7 and §cLava§7 horizontally adjacent
 gregtech.machine.steam_rock_breaker_steel.name=High Pressure Steam Rock Breaker
 gregtech.machine.steam_rock_breaker_steel.tooltip=Requires §bWater§7 and §cLava§7 horizontally adjacent
+gregtech.machine.vulcanizing_press_bronze.name=蒸汽硫化机
+gregtech.machine.vulcanizing_press_bronze.tooltip=胶乳硫化器
+gregtech.machine.vulcanizing_press_steel.name=高压蒸汽硫化机
+gregtech.machine.vulcanizing_press_steel.tooltip=增产更多的橡胶！
 gregtech.machine.steam_miner.name=Steam Miner
 gregtech.machine.steam_miner.tooltip=Mines ores below the Miner!
 
@@ -5278,6 +5283,34 @@ gregtech.machine.recycler.uxv.name=Epic Recycler IV
 gregtech.machine.recycler.uxv.tooltip=Molecular Decomposition Device
 gregtech.machine.recycler.opv.name=Legendary Recycler
 gregtech.machine.recycler.opv.tooltip=Molecular Decomposition Device
+
+# Vulcanizing Press
+gregtech.machine.vulcanizing_press.lv.name=基础硫化机
+gregtech.machine.vulcanizing_press.lv.tooltip=橡胶制造厂
+gregtech.machine.vulcanizing_press.mv.name=进阶硫化机
+gregtech.machine.vulcanizing_press.mv.tooltip=橡胶制造厂
+gregtech.machine.vulcanizing_press.hv.name=进阶硫化机 II
+gregtech.machine.vulcanizing_press.hv.tooltip=橡胶制造厂
+gregtech.machine.vulcanizing_press.ev.name=进阶硫化机 III
+gregtech.machine.vulcanizing_press.ev.tooltip=万能硫化器
+gregtech.machine.vulcanizing_press.iv.name=精英硫化机
+gregtech.machine.vulcanizing_press.iv.tooltip=万能硫化器
+gregtech.machine.vulcanizing_press.luv.name=精英硫化机 II
+gregtech.machine.vulcanizing_press.luv.tooltip=万能硫化器
+gregtech.machine.vulcanizing_press.zpm.name=精英硫化机 III
+gregtech.machine.vulcanizing_press.zpm.tooltip=万能硫化器
+gregtech.machine.vulcanizing_press.uv.name=终极硫化机
+gregtech.machine.vulcanizing_press.uv.tooltip=化合转换者
+gregtech.machine.vulcanizing_press.uhv.name=史诗硫化机
+gregtech.machine.vulcanizing_press.uhv.tooltip=化合转换者
+gregtech.machine.vulcanizing_press.uev.name=史诗硫化机 II
+gregtech.machine.vulcanizing_press.uev.tooltip=化合转换者
+gregtech.machine.vulcanizing_press.uiv.name=史诗硫化机 III
+gregtech.machine.vulcanizing_press.uiv.tooltip=化合转换者
+gregtech.machine.vulcanizing_press.uxv.name=史诗硫化机 IV
+gregtech.machine.vulcanizing_press.uxv.tooltip=化合转换者
+gregtech.machine.vulcanizing_press.opv.name=传奇硫化机
+gregtech.machine.vulcanizing_press.opv.tooltip=化合转换者
 
 # Fisher
 gregtech.machine.fisher.lv.name=Basic Fisher

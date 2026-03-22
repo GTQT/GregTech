@@ -1,7 +1,6 @@
 package gregtech.loaders.recipe.chemistry;
 
 import gregtech.api.fluids.store.FluidStorageKeys;
-
 import gregtech.api.unification.material.Material;
 
 import net.minecraft.init.Items;
@@ -29,6 +28,7 @@ public class ChemistryRecipes {
         FuelRecipeChains.init();
         GemSlurryRecipes.init();
         PlatGroupMetalsRecipes.init();
+        RubberRecipes.init();
         NaquadahRecipes.init();
         AcidRecipes.init();
         TitaniumRecipes.init();

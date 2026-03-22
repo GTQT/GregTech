@@ -77,12 +77,6 @@ public class ReactorRecipes {
                 .duration(240).EUt(360).buildAndRegister();
 
         CHEMICAL_RECIPES.recipeBuilder()
-                .input(dust, Polydimethylsiloxane, 9)
-                .input(dust, Sulfur)
-                .fluidOutputs(SiliconeRubber.getFluid(1296))
-                .duration(600).EUt(VA[LV]).buildAndRegister();
-
-        CHEMICAL_RECIPES.recipeBuilder()
                 .fluidInputs(Dimethyldichlorosilane.getFluid(1000))
                 .fluidInputs(Water.getFluid(1000))
                 .output(dust, Polydimethylsiloxane, 3)
@@ -508,12 +502,6 @@ public class ReactorRecipes {
                 .output(dust, Magnesia, 2)
                 .fluidOutputs(CarbonDioxide.getFluid(1000))
                 .duration(240).EUt(VA[LV]).buildAndRegister();
-
-        CHEMICAL_RECIPES.recipeBuilder()
-                .input(dust, RawRubber, 9)
-                .input(dust, Sulfur)
-                .fluidOutputs(Rubber.getFluid(1296))
-                .duration(600).EUt(16).buildAndRegister();
 
         CHEMICAL_RECIPES.recipeBuilder()
                 .inputs(new ItemStack(Items.MELON, 1, OreDictionary.WILDCARD_VALUE))

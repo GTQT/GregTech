@@ -1853,6 +1853,20 @@ public final class RecipeMaps {
             .sound(GTSoundEvents.RECYCLE)
             .build();
 
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> VULCANIZING_PRESS_RECIPES = new RecipeMapBuilder<>("vulcanizing_press",
+            new SimpleRecipeBuilder())
+            .itemInputs(4)
+            .itemOutputs(2)
+            .fluidInputs(2)
+            .fluidOutputs(1)
+            .uiBuilder(b -> b
+                    .itemSlotOverlay(GTGuiTextures.DUST_OVERLAY, false,false)
+                    .itemSlotOverlay(GTGuiTextures.MOLD_OVERLAY,  false, true)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE))
+            .sound(GTSoundEvents.COMBUSTION)
+            .build();
+
 
     /**
      * Example:

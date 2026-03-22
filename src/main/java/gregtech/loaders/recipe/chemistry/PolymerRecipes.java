@@ -349,12 +349,6 @@ public class PolymerRecipes {
                 .fluidInputs(Oxygen.getFluid(15000))
                 .output(dust, RawStyreneButadieneRubber, 41)
                 .duration(480).EUt(240).buildAndRegister();
-
-        POLYMERIZATION_RECIPES.recipeBuilder()
-                .input(dust, RawStyreneButadieneRubber, 9)
-                .input(dust, Sulfur)
-                .fluidOutputs(StyreneButadieneRubber.getFluid(1296))
-                .duration(600).EUt(VA[LV]).buildAndRegister();
     }
 
     private static void polybenzimidazoleProcess() {

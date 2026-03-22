@@ -290,6 +290,7 @@ public class Textures {
             "machines/mass_fabricator");
     public static final OrientedOverlayRenderer REPLICATOR_OVERLAY = new OrientedOverlayRenderer("machines/replicator");
     public static final OrientedOverlayRenderer RECYCLER_OVERLAY = new OrientedOverlayRenderer("machines/recycler");
+    public static final OrientedOverlayRenderer VULCANIZING_PRESS_OVERLAY = new OrientedOverlayRenderer("machines/vulcanizing_press");
     public static final OrientedOverlayRenderer SCANNER_OVERLAY = new OrientedOverlayRenderer("machines/scanner");
     public static final OrientedOverlayRenderer COMBUSTION_GENERATOR_OVERLAY = new OrientedOverlayRenderer(
             "generators/combustion");

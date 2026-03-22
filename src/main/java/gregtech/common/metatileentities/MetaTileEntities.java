@@ -123,6 +123,7 @@ import gregtech.common.metatileentities.steam.SteamHammer;
 import gregtech.common.metatileentities.steam.SteamMacerator;
 import gregtech.common.metatileentities.steam.SteamMiner;
 import gregtech.common.metatileentities.steam.SteamRockBreaker;
+import gregtech.common.metatileentities.steam.SteamVulcanizingPress;
 import gregtech.common.metatileentities.steam.boiler.SteamCoalBoiler;
 import gregtech.common.metatileentities.steam.boiler.SteamLavaBoiler;
 import gregtech.common.metatileentities.steam.boiler.SteamSolarBoiler;
@@ -260,6 +261,7 @@ public class MetaTileEntities {
     public static final SimpleMachineMetaTileEntity[] CHEMICAL_DEHYDRATOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] LIGHTNING_PROCESSOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] RECYCLER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] VULCANIZING_PRESS = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
 
     // GENERATORS SECTION
     public static final SimpleGeneratorMetaTileEntity[] COMBUSTION_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
@@ -369,6 +371,8 @@ public class MetaTileEntities {
     public static SteamAlloySmelter STEAM_ALLOY_SMELTER_STEEL;
     public static SteamRockBreaker STEAM_ROCK_BREAKER_BRONZE;
     public static SteamRockBreaker STEAM_ROCK_BREAKER_STEEL;
+    public static SteamVulcanizingPress STEAM_VULCANIZING_PRESS_BRONZE;
+    public static SteamVulcanizingPress STEAM_VULCANIZING_PRESS_STEEL;
     public static SteamMiner STEAM_MINER;
     public static MetaTileEntityPumpHatch PUMP_OUTPUT_HATCH;
     public static MetaTileEntityPrimitiveWaterPump PRIMITIVE_WATER_PUMP;
@@ -548,7 +552,12 @@ public class MetaTileEntities {
         STEAM_ROCK_BREAKER_STEEL = registerMetaTileEntity(20,
                 new SteamRockBreaker(gregtechId("steam_rock_breaker_steel"), true));
 
-        STEAM_MINER = registerMetaTileEntity(21, new SteamMiner(gregtechId("steam_miner"), 320, 4, 0));
+        STEAM_VULCANIZING_PRESS_BRONZE = registerMetaTileEntity(21,
+                new SteamVulcanizingPress(gregtechId("steam_vulcanizing_press_bronze"), false));
+        STEAM_VULCANIZING_PRESS_STEEL = registerMetaTileEntity(22,
+                new SteamVulcanizingPress(gregtechId("steam_vulcanizing_press_steel"), true));
+
+        STEAM_MINER = registerMetaTileEntity(40, new SteamMiner(gregtechId("steam_miner"), 320, 4, 0));
 
         //50- 电力单方块
         // Electric Furnace, IDs 50-64
@@ -817,6 +826,9 @@ public class MetaTileEntities {
 
         //回收机 IDs 890-905 RECYCLER
         registerSimpleMetaTileEntity(RECYCLER, 890, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY, true);
+
+        //硫化机 IDs 905-910 VULCANIZING_PRESS
+        registerSimpleMetaTileEntity(VULCANIZING_PRESS, 905, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES, Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
         // Chunk Miner, IDs 920-922
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
