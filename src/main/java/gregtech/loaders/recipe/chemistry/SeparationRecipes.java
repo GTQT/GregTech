@@ -25,6 +25,7 @@ import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GT_STEAM;
 import static gregtech.common.items.MetaItems.PLANT_BALL;
 import static gregtech.common.items.MetaItems.STICKY_RESIN;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
@@ -110,21 +111,23 @@ public class SeparationRecipes {
             }
         }
 
-        CENTRIFUGE_RECIPES.recipeBuilder().duration(400).EUt(20)
-                .input(STICKY_RESIN)
-                .output(dust, RawRubber, 3)
-                .chancedOutput(PLANT_BALL, 1000, 850)
-                .fluidOutputs(Glue.getFluid(100))
-                .buildAndRegister();
+        if(!isModLoaded(GT_STEAM)) {
+            CENTRIFUGE_RECIPES.recipeBuilder().duration(400).EUt(20)
+                    .input(STICKY_RESIN)
+                    .output(dust, RawRubber, 3)
+                    .chancedOutput(PLANT_BALL, 1000, 850)
+                    .fluidOutputs(Glue.getFluid(100))
+                    .buildAndRegister();
 
-        CENTRIFUGE_RECIPES.recipeBuilder().duration(200).EUt(30)
-                .inputs(new ItemStack(MetaBlocks.RUBBER_LOG))
-                .chancedOutput(STICKY_RESIN, 5000, 1200)
-                .chancedOutput(PLANT_BALL, 3750, 900)
-                .chancedOutput(dust, Carbon, 2500, 600)
-                .chancedOutput(dust, Wood, 2500, 700)
-                .fluidOutputs(Methane.getFluid(60))
-                .buildAndRegister();
+            CENTRIFUGE_RECIPES.recipeBuilder().duration(200).EUt(30)
+                    .inputs(new ItemStack(MetaBlocks.RUBBER_LOG))
+                    .chancedOutput(STICKY_RESIN, 5000, 1200)
+                    .chancedOutput(PLANT_BALL, 3750, 900)
+                    .chancedOutput(dust, Carbon, 2500, 600)
+                    .chancedOutput(dust, Wood, 2500, 700)
+                    .fluidOutputs(Methane.getFluid(60))
+                    .buildAndRegister();
+        }
 
         CENTRIFUGE_RECIPES.recipeBuilder().duration(250).EUt(VA[LV])
                 .inputs(new ItemStack(Blocks.DIRT, 1, GTValues.W))
