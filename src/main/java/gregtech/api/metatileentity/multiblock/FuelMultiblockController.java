@@ -2,12 +2,15 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -25,6 +28,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -45,6 +49,32 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
         outputEnergy.addAll(getAbilities(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY));
         outputEnergy.addAll(getAbilities(MultiblockAbility.OUTPUT_LASER));
         this.energyContainer = new EnergyContainerList(outputEnergy);
+    }
+
+    public void outputRecoveryFluid(int progress) {
+        if(getGasType() == gasType.NONE) return;
+        for(IMufflerHatch muffler : getAbilities(MultiblockAbility.MUFFLER_HATCH))
+        {
+            if(muffler.mufflerWaste()) muffler.recoverFluidsTable(getGasType().getExhaustGas().getFluid(5*progress));
+        }
+    }
+
+    public gasType getGasType() {
+        return gasType.NONE;
+    }
+
+    @Getter
+    public enum gasType {
+        NONE(null),
+        LOW(Materials.ExhaustGas),
+        MEDIUM(Materials.HighPressureExhaustGas),
+        HIGH(Materials.SupercriticalExhaustGas);
+
+        final Material exhaustGas;
+
+        gasType(Material exhaustGas) {
+            this.exhaustGas = exhaustGas;
+        }
     }
 
     @Override

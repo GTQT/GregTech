@@ -764,6 +764,7 @@ public class Materials {
     public static Material ExhaustGas;
     public static Material HighPressureExhaustGas;
     public static Material SupercriticalExhaustGas;
+    public static Material LowTemperatureExhaustGas;
 
     /**
      * Third Degree Materials

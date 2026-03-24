@@ -1,6 +1,7 @@
 package gregtech.api.capability.impl;
 
 import gregtech.api.capability.IRotorHolder;
+import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
@@ -31,6 +32,18 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     public MultiblockFuelRecipeLogic(RecipeMapMultiblockController tileEntity,ParallelLogicType type) {
         super(tileEntity);
     }
+
+    @Override
+    protected void performMufflerOperations() {
+        if (metaTileEntity instanceof FuelMultiblockController generator) {
+            // output muffler items
+            if (generator.hasMufflerMechanics()) {
+                generator.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
+                generator.outputRecoveryFluid(progressTime);
+            }
+        }
+    }
+
     @Override
     protected void modifyOverclockPre(@NotNull OCParams ocParams, @NotNull RecipePropertyStorage storage) {
         // apply maintenance bonuses

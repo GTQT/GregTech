@@ -369,6 +369,11 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     }
 
     @Override
+    public gasType getGasType() {
+        return gasType.LOW;
+    }
+
+    @Override
     public double getPollutionAmount() {
         return isExtreme ? 0.025 : 0.02;
     }

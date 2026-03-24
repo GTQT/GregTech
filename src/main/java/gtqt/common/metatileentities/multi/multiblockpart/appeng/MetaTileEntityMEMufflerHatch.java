@@ -23,11 +23,10 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.config.Actionable;
-import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.util.item.AEItemStack;
@@ -72,6 +71,11 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAE
     }
 
     @Override
+    public void recoverFluidsTable(FluidStack recoveryFluids) {
+
+    }
+
+    @Override
     protected @NotNull IByteBufDeserializer<IAEItemStack> getDeserializer() {
         return AEItemStack::fromPacket;
     }
@@ -91,17 +95,6 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAE
         text.addLine(KeyUtil.number(TextFormatting.WHITE, wrappedStack.getStackSize(), "x"));
     }
 
-    @Override
-    public void onRemoval() {
-        IMEMonitor<IAEItemStack> monitor = getMonitor();
-        if (monitor != null) {
-            for (IAEItemStack item : this.internalBuffer) {
-                monitor.injectItems(item.copy(), Actionable.MODULATE, this.getActionSource());
-            }
-        }
-        super.onRemoval();
-    }
-
     private boolean calculateChance() {
         return recoveryChance >= 100 || recoveryChance > GTValues.RNG.nextInt(100);
     }
@@ -117,7 +110,7 @@ public class MetaTileEntityMEMufflerHatch extends MetaTileEntityMEOutputBase<IAE
     }
 
     @Override
-    public boolean mufflerDust() {
+    public boolean mufflerWaste() {
         return true;
     }
 

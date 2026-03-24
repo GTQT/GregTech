@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityGasHatch;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
@@ -27,6 +28,7 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHu
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEGasHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEMufflerHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOrePrefixPatternProvider;
@@ -63,6 +65,7 @@ public class GTQTMetaTileEntities {
 
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
     public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
+    public static final MetaTileEntityMEGasHatch[] ME_GAS_HATCH = new MetaTileEntityMEGasHatch[GTValues.V.length - 1];
     public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[GTValues.V.length - 1];
     public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[5];
     public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[5];
@@ -77,7 +80,7 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityHugeMEOrePrefixPatternProviderProxy HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY;
     public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
     public static MetaTileEntityMEPatternManager ME_PATTERN_MANAGER;
-
+    public static final MetaTileEntityGasHatch[] GAS_HATCH = new MetaTileEntityGasHatch[GTValues.UHV + 1]; // LV-UHV
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
     public static final MetaTileEntityMoldItemBus[] MOLD_ITEM_BUS = new MetaTileEntityMoldItemBus[GTValues.V.length - 1];
@@ -180,8 +183,23 @@ public class GTQTMetaTileEntities {
         registerMetaTileEntity(2704, ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
         registerMetaTileEntity(2705, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
 
-        registerMetaTileEntity(2750, ME_ORE_DICT_BUS);
-        registerMetaTileEntity(2751, ME_PATTERN_MANAGER);
+        registerMetaTileEntity(2710, ME_ORE_DICT_BUS);
+        registerMetaTileEntity(2711, ME_PATTERN_MANAGER);
+
+        // Gas Hatches, IDs 2720-2735
+        for (int i = 0; i < GAS_HATCH.length - 1; i++) {
+            int tier = i+1;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            GAS_HATCH[i] = new MetaTileEntityGasHatch(gregtechId("gas_hatch." + voltageName), tier);
+            registerMetaTileEntity(2720 + i, GAS_HATCH[i]);
+        }
+
+        // Dust Collector, IDs 2735-2750
+        for (int i = 0; i < DUST_COLLECTOR.length; i++) {
+            String voltageName = GTValues.VN[i].toLowerCase();
+            DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), i);
+            registerMetaTileEntity(2735 + i, DUST_COLLECTOR[i]);
+        }
 
         //巨型总线
         for (int i = 0; i < 14; i++) {
@@ -213,11 +231,12 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2875 + i, ME_MUFFLER_HATCH[i]);
         }
 
-        // Dust Collector, IDs 2890-2905
-        for (int i = 0; i < DUST_COLLECTOR.length; i++) {
-            String voltageName = GTValues.VN[i].toLowerCase();
-            DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), i);
-            registerMetaTileEntity(2890 + i, DUST_COLLECTOR[i]);
+        // ME Gas Hatch, IDs 2890-2905
+        for (int i = 0; i < ME_GAS_HATCH.length; i++) {
+            int tier = i+1;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            ME_GAS_HATCH[i] = new MetaTileEntityMEGasHatch(gregtechId("me_gas_hatch." + voltageName), tier);
+            registerMetaTileEntity(2890 + i, ME_GAS_HATCH[i]);
         }
 
         // 热力输入输出仓

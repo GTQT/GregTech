@@ -186,12 +186,14 @@ public class DistillationRecipes {
                 .disableDistilleryRecipes()
                 .duration(2000).EUt(VA[IV]).buildAndRegister();
 
+        // ExhaustGas 蒸馏
         DISTILLATION_RECIPES.recipeBuilder()
                 .fluidInputs(ExhaustGas.getFluid(10000))
-                .fluidOutputs(Nitrogen.getFluid(7700))
-                .fluidOutputs(CarbonDioxide.getFluid(1000))
-                .fluidOutputs(Oxygen.getFluid(900))
-                .fluidOutputs(Argon.getFluid(900))
+                .fluidOutputs(Nitrogen.getFluid(7200))
+                .fluidOutputs(CarbonDioxide.getFluid(1100))
+                .fluidOutputs(Oxygen.getFluid(500))
+                .fluidOutputs(Argon.getFluid(100))
+                .fluidOutputs(Water.getFluid(800))
                 .fluidOutputs(CarbonMonoxide.getFluid(100))
                 .fluidOutputs(NitricOxide.getFluid(100))
                 .fluidOutputs(NitrogenDioxide.getFluid(100))
@@ -199,27 +201,49 @@ public class DistillationRecipes {
                 .disableDistilleryRecipes()
                 .duration(200).EUt(VA[MV]).buildAndRegister();
 
+        // HighPressureExhaustGas 蒸馏
         DISTILLATION_RECIPES.recipeBuilder()
                 .fluidInputs(HighPressureExhaustGas.getFluid(10000))
-                .fluidOutputs(Nitrogen.getFluid(7500))
+                .fluidOutputs(Nitrogen.getFluid(7000))
                 .fluidOutputs(CarbonDioxide.getFluid(1200))
-                .fluidOutputs(Oxygen.getFluid(600))
-                .fluidOutputs(Argon.getFluid(900))
-                .fluidOutputs(Water.getFluid(800))
+                .fluidOutputs(Oxygen.getFluid(500))
+                .fluidOutputs(Argon.getFluid(100))
+                .fluidOutputs(Water.getFluid(900))
+                .fluidOutputs(CarbonMonoxide.getFluid(100))
+                .fluidOutputs(NitricOxide.getFluid(100))
+                .fluidOutputs(NitrogenDioxide.getFluid(100))
                 .chancedOutput(dust, Ash, 4000, 0)
                 .disableDistilleryRecipes()
                 .duration(180).EUt(VA[EV]).buildAndRegister();
 
+        // SupercriticalExhaustGas 蒸馏
         DISTILLATION_RECIPES.recipeBuilder()
                 .fluidInputs(SupercriticalExhaustGas.getFluid(10000))
-                .fluidOutputs(Nitrogen.getFluid(6800))
+                .fluidOutputs(Nitrogen.getFluid(6500))
                 .fluidOutputs(CarbonDioxide.getFluid(1800))
-                .fluidOutputs(Oxygen.getFluid(400))
-                .fluidOutputs(Argon.getFluid(900))
+                .fluidOutputs(Oxygen.getFluid(200))
+                .fluidOutputs(Argon.getFluid(100))
                 .fluidOutputs(Water.getFluid(1000))
-                .fluidOutputs(NitricOxide.getFluid(100))
+                .fluidOutputs(CarbonMonoxide.getFluid(100))
+                .fluidOutputs(NitricOxide.getFluid(200))
+                .fluidOutputs(NitrogenDioxide.getFluid(100))
                 .chancedOutput(dust, Ash, 4000, 0)
                 .disableDistilleryRecipes()
                 .duration(160).EUt(VA[IV]).buildAndRegister();
+
+        // LowTemperatureExhaustGas 蒸馏
+        DISTILLATION_RECIPES.recipeBuilder()
+                .fluidInputs(LowTemperatureExhaustGas.getFluid(10000))
+                .fluidOutputs(Nitrogen.getFluid(7800))
+                .fluidOutputs(CarbonDioxide.getFluid(1200))
+                .fluidOutputs(Oxygen.getFluid(400))
+                .fluidOutputs(Argon.getFluid(200))
+                .fluidOutputs(Water.getFluid(100))
+                .fluidOutputs(CarbonMonoxide.getFluid(100))
+                .fluidOutputs(NitricOxide.getFluid(100))
+                .fluidOutputs(NitrogenDioxide.getFluid(100))
+                .chancedOutput(dust, Ash, 2000, 0)  // 低温尾气中灰烬更少
+                .disableDistilleryRecipes()
+                .duration(150).EUt(VA[HV]).buildAndRegister();
     }
 }

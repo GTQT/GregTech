@@ -2385,6 +2385,7 @@ gregtech.material.chromium_doped_molybdenite=铬掺杂辉钼矿
 gregtech.material.exhaust_gas=尾气
 gregtech.material.high_pressure_exhaust_gas=高压尾气
 gregtech.material.supercritical_exhaust_gas=超临界尾气
+gregtech.material.low_temperature_exhaust_gas=低温尾气
 
 # Third Degree Materials
 gregtech.material.electrotine=蓝石
@@ -2629,6 +2630,7 @@ recipemap.gas_turbine.name=燃气轮机燃料
 recipemap.steam_turbine.name=蒸汽轮机燃料
 recipemap.high_pressure_steam_turbine.name=高压蒸汽轮机燃料
 recipemap.supercritical_steam_turbine.name=超临界蒸汽轮机燃料
+recipemap.exhaust_gas_turbine.name=尾气轮机燃料
 recipemap.semi_fluid_generator.name=半流质燃料
 recipemap.plasma_generator.name=等离子燃料
 recipemap.circuit_assembler.name=电路组装机
@@ -6338,6 +6340,28 @@ gregtech.machine.muffler_hatch.max.name=§c§lMAX§r消声仓
 
 gregtech.muffler.recovery_tooltip=§b收集概率：§f%d%%
 
+gregtech.machine.gas_hatch.tooltip.1=收集发电机产生的尾气
+gregtech.machine.gas_hatch.tooltip.2=尾气仓内部缓存填满后将阻止多方块运行
+gregtech.machine.gas_hatch.tooltip.3=尾气仓内可设置不产生尾气
+
+gregtech.machine.gas_hatch.ulv.name=§8ULV§r尾气仓
+gregtech.machine.gas_hatch.lv.name=§7LV§r尾气仓
+gregtech.machine.gas_hatch.mv.name=§bMV§r尾气仓
+gregtech.machine.gas_hatch.hv.name=§6HV§r尾气仓
+gregtech.machine.gas_hatch.ev.name=§5EV§r尾气仓
+gregtech.machine.gas_hatch.iv.name=§1IV§r尾气仓
+gregtech.machine.gas_hatch.luv.name=§dLuV§r尾气仓
+gregtech.machine.gas_hatch.zpm.name=§cZPM§r尾气仓
+gregtech.machine.gas_hatch.uv.name=§3UV§r尾气仓
+gregtech.machine.gas_hatch.uhv.name=§4UHV§r尾气仓
+gregtech.machine.gas_hatch.uev.name=§aUEV§r尾气仓
+gregtech.machine.gas_hatch.uiv.name=§2UIV§r尾气仓
+gregtech.machine.gas_hatch.uxv.name=§eUXV§r尾气仓
+gregtech.machine.gas_hatch.opv.name=§9OpV§r尾气仓
+gregtech.machine.gas_hatch.max.name=§c§lMAX§r尾气仓
+
+gregtech.gas.recovery_tooltip=§b收集概率：§f%d%%
+
 gregtech.machine.pump_hatch.name=水泵输出仓
 gregtech.machine.pump_hatch.tooltip=原始水泵专用流体输出口
 
@@ -6932,7 +6956,7 @@ gregtech.multiblock.universal.problem.wire_cutter=§7有几根线烧焦了。(§
 gregtech.multiblock.universal.problem.crowbar=§7这东西不属于这儿。(§a撬棍§7)
 gregtech.multiblock.universal.muffler_obstructed=消声仓受阻！
 gregtech.multiblock.universal.muffler_obstructed_desc=消音仓口前方必须有一格空气。
-gregtech.multiblock.universal.muffler_full=消声仓满！
+gregtech.multiblock.universal.muffler_full=消声/尾气仓满！
 gregtech.multiblock.universal.muffler_full_desc=消声仓已满，必须清空后才能处理更多废气。
 gregtech.multiblock.universal.distinct_enabled=仓口隔离：§a是§r/n每个物品总线/流体仓/总成将在配方识别中被视为完全独立。对于消耗材料相同，使用的非消耗材料（模头、透镜等）不同则产物也不同的配方以及在使用总成时来说作用显著。
 gregtech.multiblock.universal.distinct_disabled=仓口隔离：§c否§r/n每个物品总线/流体仓/总成将在配方识别中被视为组合的物品/流体输入。

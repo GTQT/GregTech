@@ -517,31 +517,40 @@ public class SecondDegreeMaterials {
                 .build();
 
         //尾气
-        // Exhaust Gas 普通尾气
-        // 普通燃油 1tick 50mb
+        // ExhaustGas 普通尾气
+        // 普通燃油(燃油 极限燃油) 1tick 5mb
         ExhaustGas = Material.builder(2067, gregtechId("exhaust_gas"))
                 .gas(new FluidBuilder().temperature(773))
                 .color(0x8A8A8A)
                 .flags(DISABLE_DECOMPOSITION)
-                .components(Nitrogen, 77, CarbonDioxide, 10, Oxygen, 9, Argon, 9, CarbonMonoxide, 1, NitricOxide, 1, NitrogenDioxide, 1)
+                .components(Nitrogen, 72, CarbonDioxide, 11, Oxygen, 5, Argon, 1, Water, 8, CarbonMonoxide, 1, NitricOxide, 1, NitrogenDioxide, 1)
                 .build();
 
         // HighPressureExhaustGas 高压尾气
-        // 促燃机 1tick 50mb
+        // 促燃机(通化) 1tick 5mb
         HighPressureExhaustGas = Material.builder(2068, gregtechId("high_pressure_exhaust_gas"))
                 .gas(new FluidBuilder().temperature(973))
                 .color(0x8A8A8A)
                 .flags(DISABLE_DECOMPOSITION)
-                .components(Nitrogen, 75, CarbonDioxide, 12, Oxygen, 6, Argon, 9, Water, 8, NitricOxide, 0, NitrogenDioxide, 0)
+                .components(Nitrogen, 70, CarbonDioxide, 12, Oxygen, 5, Argon, 1, Water, 9, CarbonMonoxide, 1, NitricOxide, 1, NitrogenDioxide, 1)
                 .build();
 
         // SupercriticalExhaustGas 超临界尾气
-        // 火箭发动机 1tick 50mb
+        // 火箭发动机(火箭) 1tick 5mb
         SupercriticalExhaustGas = Material.builder(2069, gregtechId("supercritical_exhaust_gas"))
                 .gas(new FluidBuilder().temperature(1473))
                 .color(0x8A8A8A)
                 .flags(DISABLE_DECOMPOSITION)
-                .components(Nitrogen, 68, CarbonDioxide, 18, Oxygen, 4, Argon, 9, Water, 10, NitricOxide, 1, NitrogenDioxide, 0)
+                .components(Nitrogen, 65, CarbonDioxide, 18, Oxygen, 2, Argon, 1, Water, 10, CarbonMonoxide, 1, NitricOxide, 2, NitrogenDioxide, 1)
+                .build();
+
+        // LowTemperatureExhaustGas 低温尾气
+        // 经多级涡轮利用后的废气
+        LowTemperatureExhaustGas = Material.builder(2070, gregtechId("low_temperature_exhaust_gas"))
+                .gas(new FluidBuilder().temperature(323))
+                .color(0x6A6A6A)
+                .flags(DISABLE_DECOMPOSITION)
+                .components(Nitrogen, 78, CarbonDioxide, 12, Oxygen, 4, Argon, 2, Water, 1, CarbonMonoxide, 1, NitricOxide, 1, NitrogenDioxide, 1)
                 .build();
     }
 }

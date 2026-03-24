@@ -2389,6 +2389,7 @@ gregtech.material.chromium_doped_molybdenite=Chromium-Doped Molybdenite
 gregtech.material.exhaust_gas=Exhaust Gas
 gregtech.material.high_pressure_exhaust_gas=High Pressure Exhaust Gas
 gregtech.material.supercritical_exhaust_gas=Supercritical Exhaust Gas
+gregtech.material.low_temperature_exhaust_gas=Low Temperature Exhaust Gas
 
 # Third Degree Materials
 gregtech.material.electrotine=Electrotine
@@ -2633,6 +2634,7 @@ recipemap.gas_turbine.name=Gas Fuels
 recipemap.steam_turbine.name=Steam Fuels
 recipemap.high_pressure_steam_turbine.name=High Pressure Steam Fuels
 recipemap.supercritical_steam_turbine.name=Supercritical Steam Fuels
+recipemap.exhaust_gas_turbine.name=Exhaust Gas Fuels
 recipemap.semi_fluid_generator.name=Semi Fluid Fuels
 recipemap.plasma_generator.name=Plasma Fuels
 recipemap.circuit_assembler.name=Circuit Assembler
@@ -6341,6 +6343,28 @@ gregtech.machine.muffler_hatch.opv.name=OpV Muffler Hatch
 gregtech.machine.muffler_hatch.max.name=MAX Muffler Hatch
 
 gregtech.muffler.recovery_tooltip=§bRecovery Chance: §f%d%%
+
+gregtech.machine.gas_hatch.tooltip.1=收集发电机产生的尾气
+gregtech.machine.gas_hatch.tooltip.2=尾气仓内部缓存填满后将阻止多方块运行
+gregtech.machine.gas_hatch.tooltip.3=尾气仓内可设置不产生尾气
+
+gregtech.machine.me_gas_hatch.ulv.name=ULV Gas Hatch
+gregtech.machine.me_gas_hatch.lv.name=LV Gas Hatch
+gregtech.machine.me_gas_hatch.mv.name=MV Gas Hatch
+gregtech.machine.me_gas_hatch.hv.name=HV Gas Hatch
+gregtech.machine.me_gas_hatch.ev.name=EV Gas Hatch
+gregtech.machine.me_gas_hatch.iv.name=IV Gas Hatch
+gregtech.machine.me_gas_hatch.luv.name=LuV Gas Hatch
+gregtech.machine.me_gas_hatch.zpm.name=ZPM Gas Hatch
+gregtech.machine.me_gas_hatch.uv.name=UV Gas Hatch
+gregtech.machine.me_gas_hatch.uhv.name=UHV Gas Hatch
+gregtech.machine.me_gas_hatch.uev.name=UEV Gas Hatch
+gregtech.machine.me_gas_hatch.uiv.name=UIV Gas Hatch
+gregtech.machine.me_gas_hatch.uxv.name=UXV Gas Hatch
+gregtech.machine.me_gas_hatch.opv.name=OpV Gas Hatch
+gregtech.machine.me_gas_hatch.max.name=MAX Gas Hatch
+
+gregtech.gas.recovery_tooltip=§b收集概率：§f%d%%
 
 gregtech.machine.pump_hatch.name=Pump Output Hatch
 gregtech.machine.pump_hatch.tooltip=Primitive Fluid Output for Water Pump

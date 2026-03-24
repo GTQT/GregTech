@@ -553,9 +553,9 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     public void outputRecoveryItems(int parallel) {
-        IMufflerHatch muffler = getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0);
-        if(muffler.mufflerDust()) {
-            muffler.recoverItemsTable(recoveryItems,parallel);
+        for(IMufflerHatch muffler : getAbilities(MultiblockAbility.MUFFLER_HATCH))
+        {
+            if(muffler.mufflerWaste()) muffler.recoverItemsTable(recoveryItems,parallel);
         }
     }
 

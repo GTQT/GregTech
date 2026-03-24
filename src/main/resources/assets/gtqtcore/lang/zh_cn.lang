@@ -389,6 +389,22 @@ gregtech.machine.me_muffler_hatch.uxv.name=§eUXV§r ME消声仓
 gregtech.machine.me_muffler_hatch.opv.name=§9OpV§r ME消声仓
 gregtech.machine.me_muffler_hatch.max.name=§c§lMAX§r ME消声仓
 
+gregtech.machine.me_gas_hatch.ulv.name=§8ULV§r ME尾气仓
+gregtech.machine.me_gas_hatch.lv.name=§7LV§r ME尾气仓
+gregtech.machine.me_gas_hatch.mv.name=§bMV§r ME尾气仓
+gregtech.machine.me_gas_hatch.hv.name=§6HV§r ME尾气仓
+gregtech.machine.me_gas_hatch.ev.name=§5EV§r ME尾气仓
+gregtech.machine.me_gas_hatch.iv.name=§1IV§r ME尾气仓
+gregtech.machine.me_gas_hatch.luv.name=§dLuV§r ME尾气仓
+gregtech.machine.me_gas_hatch.zpm.name=§cZPM§r ME尾气仓
+gregtech.machine.me_gas_hatch.uv.name=§3UV§r ME尾气仓
+gregtech.machine.me_gas_hatch.uhv.name=§4UHV§r ME尾气仓
+gregtech.machine.me_gas_hatch.uev.name=§aUEV§r ME尾气仓
+gregtech.machine.me_gas_hatch.uiv.name=§2UIV§r ME尾气仓
+gregtech.machine.me_gas_hatch.uxv.name=§eUXV§r ME尾气仓
+gregtech.machine.me_gas_hatch.opv.name=§9OpV§r ME尾气仓
+gregtech.machine.me_gas_hatch.max.name=§c§lMAX§r ME尾气仓
+
 gregtech.machine.dust_collector.ulv.name=§8ULV§r 除尘器
 gregtech.machine.dust_collector.lv.name=§7LV§r 除尘器
 gregtech.machine.dust_collector.mv.name=§bMV§r 除尘器

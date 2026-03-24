@@ -1980,7 +1980,7 @@ public final class RecipeMaps {
             .fluidInputs(1)
             .fluidOutputs(1)
             .uiBuilder(b -> b
-                    .fluidSlotOverlay(GTGuiTextures.CENTRIFUGE_OVERLAY, false)
+                    .fluidSlotOverlay(GTGuiTextures.DARK_CANISTER_OVERLAY, false)
                     .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
             .sound(GTSoundEvents.TURBINE)
             .allowEmptyOutputs()
@@ -1995,7 +1995,7 @@ public final class RecipeMaps {
             .fluidInputs(1)
             .fluidOutputs(1)
             .uiBuilder(b -> b
-                    .fluidSlotOverlay(GTGuiTextures.CENTRIFUGE_OVERLAY, false)
+                    .fluidSlotOverlay(GTGuiTextures.DARK_CANISTER_OVERLAY, false)
                     .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
             .sound(GTSoundEvents.TURBINE)
             .allowEmptyOutputs()
@@ -2010,6 +2010,20 @@ public final class RecipeMaps {
             .fluidOutputs(1)
             .uiBuilder(b -> b
                     .fluidSlotOverlay(GTGuiTextures.CENTRIFUGE_OVERLAY, false)
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
+            .sound(GTSoundEvents.TURBINE)
+            .allowEmptyOutputs()
+            .generator()
+            .disableJeiOverclockButton()
+            .build();
+
+    @ZenProperty
+    public static final RecipeMap<FuelRecipeBuilder> EXHAUST_GAS_TURBINE_FUELS = new RecipeMapBuilder<>("exhaust_gas_turbine",
+            new FuelRecipeBuilder())
+            .fluidInputs(1)
+            .fluidOutputs(1)
+            .uiBuilder(b -> b
+                    .fluidSlotOverlay(GTGuiTextures.DARK_CANISTER_OVERLAY, false)
                     .progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
             .sound(GTSoundEvents.TURBINE)
             .allowEmptyOutputs()

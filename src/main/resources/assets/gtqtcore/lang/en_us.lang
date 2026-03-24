@@ -387,6 +387,22 @@ gregtech.machine.me_muffler_hatch.uxv.name=UXV ME Muffler Hatch
 gregtech.machine.me_muffler_hatch.opv.name=OpV ME Muffler Hatch
 gregtech.machine.me_muffler_hatch.max.name=MAX ME Muffler Hatch
 
+gregtech.machine.me_gas_hatch.ulv.name=ULV ME Gas Hatch
+gregtech.machine.me_gas_hatch.lv.name=LV ME Gas Hatch
+gregtech.machine.me_gas_hatch.mv.name=MV ME Gas Hatch
+gregtech.machine.me_gas_hatch.hv.name=HV ME Gas Hatch
+gregtech.machine.me_gas_hatch.ev.name=EV ME Gas Hatch
+gregtech.machine.me_gas_hatch.iv.name=IV ME Gas Hatch
+gregtech.machine.me_gas_hatch.luv.name=LuV ME Gas Hatch
+gregtech.machine.me_gas_hatch.zpm.name=ZPM ME Gas Hatch
+gregtech.machine.me_gas_hatch.uv.name=UV ME Gas Hatch
+gregtech.machine.me_gas_hatch.uhv.name=UHV ME Gas Hatch
+gregtech.machine.me_gas_hatch.uev.name=UEV ME Gas Hatch
+gregtech.machine.me_gas_hatch.uiv.name=UIV ME Gas Hatch
+gregtech.machine.me_gas_hatch.uxv.name=UXV ME Gas Hatch
+gregtech.machine.me_gas_hatch.opv.name=OpV ME Gas Hatch
+gregtech.machine.me_gas_hatch.max.name=MAX ME Gas Hatch
+
 gregtech.machine.dust_collector.ulv.name=ULV Dust Collector
 gregtech.machine.dust_collector.lv.name=LV Dust Collector
 gregtech.machine.dust_collector.mv.name=MV Dust Collector

@@ -30,6 +30,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.items.CapabilityItemHandler;
 
 import codechicken.lib.render.CCRenderState;
@@ -135,6 +136,11 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         }
     }
 
+    @Override
+    public void recoverFluidsTable(FluidStack recoveryFluids) {
+
+    }
+
     private boolean calculateChance() {
         return recoveryChance >= 100 || recoveryChance > GTValues.RNG.nextInt(100);
     }
@@ -158,7 +164,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     }
 
     @Override
-    public boolean mufflerDust() {
+    public boolean mufflerWaste() {
         return mufflerDust;
     }
 
