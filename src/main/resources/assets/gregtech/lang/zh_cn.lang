@@ -2656,6 +2656,7 @@ recipemap.research_station.name=研究站
 recipemap.saw_mill.name=锯木机
 recipemap.combs_product.name=蜂窝萃取
 recipemap.attractor.name=蜜蜂引诱
+recipemap.tree_growth.name=原木拟生场
 
 gregtech.recipe.category.arc_furnace_recycling=电弧炉回收
 gregtech.recipe.category.macerator_recycling=研磨机回收

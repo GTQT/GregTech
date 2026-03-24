@@ -29,8 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
-import static gregtech.api.recipes.RecipeMaps.PYROLYSE_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.common.items.MetaItems.BIO_CHAFF;
@@ -931,5 +930,69 @@ public class WoodRecipeLoader {
                 .fluidOutputs(CoalTar.getFluid(4000))
                 .duration(320).EUt(96)
                 .buildAndRegister();
+    }
+
+    public static void registerTree(ItemStack sapling, ItemStack log, ItemStack leaves, ItemStack fruit) {
+        // 原木配方：不同工具产出不同数量
+        TREE_GROWTH_RECIPES.recipeBuilder()
+                .inputs(sapling)
+                .notConsumable("toolAxe")
+                .outputs(log)
+                .EUt(32)
+                .duration(200)
+                .buildAndRegister();
+
+        TREE_GROWTH_RECIPES.recipeBuilder()
+                .inputs(sapling)
+                .notConsumable("toolSaw")
+                .outputs(log)
+                .EUt(32)
+                .duration(200)
+                .buildAndRegister();
+
+        TREE_GROWTH_RECIPES.recipeBuilder()
+                .inputs(sapling)
+                .notConsumable("toolBuzzsaw")
+                .outputs(GTUtility.copy(2, log))
+                .EUt(32)
+                .duration(200)
+                .buildAndRegister();
+
+        TREE_GROWTH_RECIPES.recipeBuilder()
+                .inputs(sapling)
+                .notConsumable("toolChainsaw")
+                .outputs(GTUtility.copy(4, log))
+                .EUt(32)
+                .duration(200)
+                .buildAndRegister();
+
+        // 树苗配方：剪刀 -> 4个同种树苗
+        TREE_GROWTH_RECIPES.recipeBuilder()
+                .inputs(sapling)
+                .notConsumable("toolShears")
+                .outputs(GTUtility.copy(4, sapling))
+                .EUt(32)
+                .duration(200)
+                .buildAndRegister();
+
+        // 树叶配方：剪线钳 -> 4个同种树叶
+        TREE_GROWTH_RECIPES.recipeBuilder()
+                .inputs(sapling)
+                .notConsumable("toolWireCutter")
+                .outputs(GTUtility.copy(4, leaves))
+                .EUt(32)
+                .duration(200)
+                .buildAndRegister();
+
+        // 果实配方：小刀 -> 果实
+        if (fruit != null) {
+            TREE_GROWTH_RECIPES.recipeBuilder()
+                    .inputs(sapling)
+                    .notConsumable("toolKnife")
+                    .outputs(GTUtility.copy(4, fruit))
+                    .EUt(32)
+                    .duration(200)
+                    .buildAndRegister();
+        }
     }
 }

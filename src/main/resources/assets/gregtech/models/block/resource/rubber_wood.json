@@ -1,7 +1,7 @@
 {
 	"parent": "block/cube_column",
 	"textures": {
-		"side": "gregtech:blocks/wood/rubber/rubber_wood_sides",
-		"end": "gregtech:blocks/wood/rubber/rubber_wood_bottomtop"
+		"side": "gregtech:blocks/wood/rubber/rubber_wood_side",
+		"end": "gregtech:blocks/wood/rubber/rubber_wood_top"
 	}
 }

@@ -1,12 +1,12 @@
 {
 	"parent": "block/cube",
 	"textures": {
-		"particle": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback",
-		"down": "gregtech:blocks/wood/rubber/rubber_wood_wet_bottomtop",
-		"up": "gregtech:blocks/wood/rubber/rubber_wood_wet_bottomtop",
+		"particle": "gregtech:blocks/wood/rubber/rubber_wood_wet_side",
+		"down": "gregtech:blocks/wood/rubber/rubber_wood_wet_top",
+		"up": "gregtech:blocks/wood/rubber/rubber_wood_wet_top",
 		"north": "gregtech:blocks/wood/rubber/rubber_wood_wet_front",
-		"east": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback",
-		"south": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback",
-		"west": "gregtech:blocks/wood/rubber/rubber_wood_wet_leftrightback"
+		"east": "gregtech:blocks/wood/rubber/rubber_wood_wet_side",
+		"south": "gregtech:blocks/wood/rubber/rubber_wood_wet_side",
+		"west": "gregtech:blocks/wood/rubber/rubber_wood_wet_side"
 	}
 }

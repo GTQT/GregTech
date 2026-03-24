@@ -2660,6 +2660,7 @@ recipemap.research_station.name=Research Station
 recipemap.saw_mill.name=Saw Mill
 recipemap.combs_product.name=Honeycomb extraction
 recipemap.attractor.name=Bee Attractor
+recipemap.tree_growth.name=原木拟生场
 
 gregtech.recipe.category.arc_furnace_recycling=Arc Furnace Recycling
 gregtech.recipe.category.macerator_recycling=Macerator Recycling
