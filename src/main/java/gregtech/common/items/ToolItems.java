@@ -88,7 +88,9 @@ public final class ToolItems {
     public static IGTTool WRENCH_HV;
     public static IGTTool WRENCH_IV;
 
-    public static IGTTool BUZZSAW;
+    public static IGTTool BUZZSAW_LV;
+    public static IGTTool BUZZSAW_HV;
+    public static IGTTool BUZZSAW_IV;
 
     public static IGTTool SCREWDRIVER_LV;
     public static IGTTool SCREWDRIVER_HV;
@@ -445,7 +447,7 @@ public final class ToolItems {
                 .toolClasses(ToolClasses.WRENCH)
                 .electric(GTValues.IV));
 
-        BUZZSAW = register(ItemGTTool.Builder.of(GTValues.MODID, "buzzsaw")
+        BUZZSAW_LV = register(ItemGTTool.Builder.of(GTValues.MODID, "buzzsaw_lv")
                 .toolStats(b -> b.crafting().attackDamage(1.5F).attackSpeed(-3.2F)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
                 .sound(GTSoundEvents.CHAINSAW_TOOL, true)
@@ -454,6 +456,26 @@ public final class ToolItems {
                 .secondaryOreDicts(ToolOreDict.toolBuzzsaw)
                 .toolClasses(ToolClasses.SAW)
                 .electric(GTValues.LV));
+
+        BUZZSAW_HV = register(ItemGTTool.Builder.of(GTValues.MODID, "buzzsaw_hv")
+                .toolStats(b -> b.crafting().attackDamage(2.5F).attackSpeed(-3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
+                .sound(GTSoundEvents.CHAINSAW_TOOL, true)
+                .oreDict(ToolOreDict.toolSaw)
+                .secondaryOreDicts("craftingToolSaw")
+                .secondaryOreDicts(ToolOreDict.toolBuzzsaw)
+                .toolClasses(ToolClasses.SAW)
+                .electric(GTValues.HV));
+
+        BUZZSAW_IV = register(ItemGTTool.Builder.of(GTValues.MODID, "buzzsaw_iv")
+                .toolStats(b -> b.crafting().attackDamage(3.5F).attackSpeed(-3.2F)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
+                .sound(GTSoundEvents.CHAINSAW_TOOL, true)
+                .oreDict(ToolOreDict.toolSaw)
+                .secondaryOreDicts("craftingToolSaw")
+                .secondaryOreDicts(ToolOreDict.toolBuzzsaw)
+                .toolClasses(ToolClasses.SAW)
+                .electric(GTValues.IV));
 
         SCREWDRIVER_LV = register(ItemGTTool.Builder.of(GTValues.MODID, "screwdriver_lv")
                 .toolStats(b -> b.crafting().sneakBypassUse()

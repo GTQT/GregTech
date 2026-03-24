@@ -4,7 +4,6 @@ import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.toolitem.IGTTool;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.Mods;
 import gregtech.client.renderer.handler.LampItemOverlayRenderer;
 import gregtech.client.utils.RenderUtil;
 import gregtech.client.utils.ToolChargeBarRenderer;
@@ -120,12 +119,10 @@ public class RenderItemMixin {
                      ordinal = 0))
     public void showDurabilityBarMixin(FontRenderer fr, ItemStack stack, int xPosition, int yPosition, String text,
                                        CallbackInfo ci) {
-        if (!Mods.EnderCore.isModLoaded()) {
-            gregTechCEu$renderElectricBar(stack, xPosition, yPosition);
-            gregTechCEu$renderDrumBar(stack, xPosition, yPosition);
-            gregTechCEu$renderQuantumTankBar(stack, xPosition, yPosition);
-            gregTechCEu$renderQuantumChestBar(stack, xPosition, yPosition);
-        }
+        gregTechCEu$renderElectricBar(stack, xPosition, yPosition);
+        gregTechCEu$renderDrumBar(stack, xPosition, yPosition);
+        gregTechCEu$renderQuantumTankBar(stack, xPosition, yPosition);
+        gregTechCEu$renderQuantumChestBar(stack, xPosition, yPosition);
     }
 
     @Inject(at = @At("RETURN"),

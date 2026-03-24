@@ -105,7 +105,9 @@ public class ToolRecipeHandler {
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_LV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_HV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadWrench, ToolItems.WRENCH_IV);
-        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadBuzzSaw, ToolItems.BUZZSAW);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadBuzzSaw, ToolItems.BUZZSAW_LV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadBuzzSaw, ToolItems.BUZZSAW_HV);
+        ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadBuzzSaw, ToolItems.BUZZSAW_IV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_LV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_HV);
         ToolHeadReplaceRecipe.setToolHeadForTool(OrePrefix.toolHeadScrewdriver, ToolItems.SCREWDRIVER_IV);
@@ -364,7 +366,7 @@ public class ToolRecipeHandler {
 
             // buzzsaw
             toolPrefix = OrePrefix.toolHeadBuzzSaw;
-            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.BUZZSAW });
+            addElectricToolRecipe(toolPrefix, material, new IGTTool[] { ToolItems.BUZZSAW_LV,ToolItems.BUZZSAW_HV,ToolItems.BUZZSAW_IV });
 
             ModHandler.addShapedRecipe(String.format("buzzsaw_blade_%s", material),
                     OreDictUnifier.get(toolPrefix, material),

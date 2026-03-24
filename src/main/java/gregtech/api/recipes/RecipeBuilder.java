@@ -487,6 +487,14 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         return (R) this;
     }
 
+    public R notConsumable(String oredict) {
+        return input(new GTRecipeOreInput(oredict).setNonConsumable());
+    }
+
+    public R notConsumable(String oredict, int count) {
+        return input(new GTRecipeOreInput(oredict, count).setNonConsumable());
+    }
+
     public R notConsumable(GTRecipeInput gtRecipeIngredient) {
         return input(gtRecipeIngredient.setNonConsumable());
     }
