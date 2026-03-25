@@ -412,10 +412,10 @@ public class ConfigHolder {
 
         @Config.Comment({
                 "Make auto-filled fluid block showup in the JEI / in-world preview.",
-                "Default: false"
+                "Default: true"
         })
         @Config.RequiresMcRestart
-        public boolean showFluidsForAutoFillingMultiblocks = false;
+        public boolean showFluidsForAutoFillingMultiblocks = true;
 
     }
 
