@@ -252,7 +252,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     /**
      * @return the fluid inventory to input fluids from
      */
-    public IMultipleTankHandler getInputTank() {
+    protected IMultipleTankHandler getInputTank() {
         //检查总成，如果有合并流体
         if (metaTileEntity instanceof MultiblockControllerBase multiblock) {
             List<IItemHandlerModifiable> itemHandlers = multiblock.getAbilities(MultiblockAbility.IMPORT_ITEMS);
@@ -270,6 +270,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
 
         return metaTileEntity.getImportFluids();
+    }
+
+    public IMultipleTankHandler inputTank() {
+        return getInputTank();
     }
 
     /**

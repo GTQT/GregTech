@@ -17,7 +17,7 @@ import net.minecraftforge.fluids.FluidStack;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Fluid {
+public class FluidTraceability {
     public static final String FLUID_BLOCKS_KEY = "FluidBlocks";
 
     public static TraceabilityPredicate fluid(FluidStack fluidStack) {
@@ -65,7 +65,7 @@ public class Fluid {
         AbstractRecipeLogic recipeLogic = multi.getRecipeLogic();
         if (recipeLogic == null) return;
 
-        IMultipleTankHandler fluidInputs = recipeLogic.getInputTank();
+        IMultipleTankHandler fluidInputs = recipeLogic.inputTank();
         if (fluidInputs == null) return;
 
         FluidStack toDrain = new FluidStack(fluid, net.minecraftforge.fluids.Fluid.BUCKET_VOLUME);
