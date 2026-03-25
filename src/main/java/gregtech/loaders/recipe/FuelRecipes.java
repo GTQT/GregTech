@@ -133,23 +133,23 @@ public class FuelRecipes {
 
         // exhaust gas generator fuels
         RecipeMaps.EXHAUST_GAS_TURBINE_FUELS.recipeBuilder()
-                .fluidInputs(ExhaustGas.getFluid(400))
+                .fluidInputs(ExhaustGas.getFluid(320))
                 .fluidOutputs(LowTemperatureExhaustGas.getFluid(10))
-                .duration(20)
+                .duration(10)
                 .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.EXHAUST_GAS_TURBINE_FUELS.recipeBuilder()
-                .fluidInputs(HighPressureExhaustGas.getFluid(200))
+                .fluidInputs(HighPressureExhaustGas.getFluid(160))
                 .fluidOutputs(LowTemperatureExhaustGas.getFluid(10))
-                .duration(20)
+                .duration(10)
                 .EUt(V[EV])
                 .buildAndRegister();
 
         RecipeMaps.EXHAUST_GAS_TURBINE_FUELS.recipeBuilder()
-                .fluidInputs(SupercriticalExhaustGas.getFluid(100))
+                .fluidInputs(SupercriticalExhaustGas.getFluid(80))
                 .fluidOutputs(LowTemperatureExhaustGas.getFluid(10))
-                .duration(20)
+                .duration(10)
                 .EUt(V[LuV])
                 .buildAndRegister();
 

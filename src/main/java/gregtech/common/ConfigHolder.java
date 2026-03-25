@@ -409,6 +409,14 @@ public class ConfigHolder {
 
         @Config.Comment({ "Whether to give the terminal to new players on login", "Default: true" })
         public boolean spawnTerminal = true;
+
+        @Config.Comment({
+                "Make auto-filled fluid block showup in the JEI / in-world preview.",
+                "Default: false"
+        })
+        @Config.RequiresMcRestart
+        public boolean showFluidsForAutoFillingMultiblocks = false;
+
     }
 
     public static class ClientOptions {
