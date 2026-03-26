@@ -389,6 +389,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         return false;
     }
 
+    @Override
     public boolean allowsExtendedFacing() {
         return false;
     }
