@@ -24,6 +24,7 @@ public class GregtechDataCodes {
     public static final int COVER_REMOVED_MTE = assignId();
     public static final int UPDATE_COVER_DATA_MTE = assignId();
     public static final int UPDATE_SOUND_MUFFLED = assignId();
+    public static final int OVERLOAD_WARNING = assignId();
 
     public static final int UPDATE_OUTPUT_FACING = assignId();
     public static final int UPDATE_AUTO_OUTPUT_ITEMS = assignId();

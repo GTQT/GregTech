@@ -43,6 +43,18 @@ public interface ISoundManager {
     ISound startTileSound(ResourceLocation soundName, float volume, BlockPos pos);
 
     /**
+     * Starts a positioned sound at a provided BlockPos with a specific pitch.
+     *
+     * @param soundName The name of the sound to play.
+     * @param volume    The volume multiplier of the sound.
+     * @param pitch     The pitch of the sound (0.5-2.0, default 1.0).
+     * @param pos       The position to play the sound at.
+     * @return The sound that was played.
+     */
+    @SideOnly(Side.CLIENT)
+    ISound startTileSound(ResourceLocation soundName, float volume, float pitch, BlockPos pos);
+
+    /**
      * Stops the positioned sound playing at a given BlockPos (if any).
      */
     @SideOnly(Side.CLIENT)

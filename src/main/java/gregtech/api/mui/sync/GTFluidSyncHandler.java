@@ -256,6 +256,10 @@ public class GTFluidSyncHandler extends SyncHandler {
         if (!GTUtility.isEmpty(tankFluid)) {
             tooltip.addLine(KeyUtil.fluid(tankFluid));
 
+            if (showAmountInTooltip()) {
+                tooltip.addLine(IKey.lang("gregtech.fluid.amount", tankFluid.amount, getCapacity()));
+            }
+
             FluidTooltipUtil.handleFluidTooltip(tooltip, tankFluid);
 
             if (showAmountInTooltip()) {

@@ -7,6 +7,7 @@ import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.ILaserContainer;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
@@ -63,7 +64,8 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_IO_SPEED;
 import static gregtech.api.capability.GregtechTileCapabilities.CAPABILITY_LASER;
 
-public class MetaTileEntityCreativeEnergy extends MetaTileEntity implements ILaserContainer, IControllable {
+public class MetaTileEntityCreativeEnergy extends MetaTileEntity implements ILaserContainer, IControllable,
+                                                                            ITieredMetaTileEntity {
 
     private long voltage = 0;
     private int amps = 1;
@@ -437,5 +439,10 @@ public class MetaTileEntityCreativeEnergy extends MetaTileEntity implements ILas
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
         setActive(isWorkingAllowed);
+    }
+
+    @Override
+    public int getTier() {
+        return GTValues.MAX;
     }
 }

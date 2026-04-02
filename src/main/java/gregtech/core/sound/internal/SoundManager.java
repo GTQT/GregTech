@@ -51,14 +51,33 @@ public class SoundManager implements ISoundManager {
     @SideOnly(Side.CLIENT)
     @Override
     public ISound startTileSound(ResourceLocation soundName, float volume, BlockPos pos) {
-        ISound sound = soundMap.get(pos);
-        if (sound == null || !Minecraft.getMinecraft().getSoundHandler().isSoundPlaying(sound)) {
-            sound = new PositionedSoundRecord(soundName, SoundCategory.BLOCKS, volume, 1.0F,
-                    true, 0, ISound.AttenuationType.LINEAR, pos.getX() + 0.5F, pos.getY() + 0.5F, pos.getZ() + 0.5F);
+        return startTileSound(soundName, volume, 1.0F, pos);
+    }
 
-            soundMap.put(pos, sound);
-            Minecraft.getMinecraft().getSoundHandler().playSound(sound);
+    @SideOnly(Side.CLIENT)
+    @Override
+    public ISound startTileSound(ResourceLocation soundName, float volume, float pitch, BlockPos pos) {
+        ISound sound = soundMap.get(pos);
+        if (sound != null && Minecraft.getMinecraft().getSoundHandler().isSoundPlaying(sound)) {
+            // If the pitch changed significantly, restart the sound
+            if (sound instanceof PositionedSoundRecord) {
+                // PositionedSoundRecord pitch is immutable, so we must restart if pitch changed
+                float currentPitch = sound.getPitch();
+                if (Math.abs(currentPitch - pitch) > 0.05F) {
+                    Minecraft.getMinecraft().getSoundHandler().stopSound(sound);
+                    soundMap.remove(pos);
+                } else {
+                    return sound;
+                }
+            } else {
+                return sound;
+            }
         }
+        sound = new PositionedSoundRecord(soundName, SoundCategory.BLOCKS, volume, pitch,
+                true, 0, ISound.AttenuationType.LINEAR, pos.getX() + 0.5F, pos.getY() + 0.5F, pos.getZ() + 0.5F);
+
+        soundMap.put(pos, sound);
+        Minecraft.getMinecraft().getSoundHandler().playSound(sound);
         return sound;
     }
 

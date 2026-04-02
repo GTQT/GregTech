@@ -161,7 +161,11 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     private int cachedLightValue;
     private boolean wasExploded = false;
     private int playSoundCooldown = 0;
-    private int lastTick = 0;
+
+    /** Overload warning countdown. When > 0, machine is about to explode. */
+    private int overloadTicks = 0;
+    private float pendingExplosionPower = 0;
+
     @Nullable
     private UUID owner = null;
 
@@ -862,10 +866,21 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
         if (!getWorld().isRemote) {
             updateCovers();
+            // Overload explosion countdown (server side)
+            if (overloadTicks > 0) {
+                overloadTicks--;
+                if (overloadTicks == 0) {
+                    executeExplosion(pendingExplosionPower);
+                }
+            }
         } else {
             updateSound();
+            // Overload warning particles (client side)
+            if (overloadTicks > 0) {
+                spawnOverloadParticles();
+            }
         }
-        if (getOffsetTimer() % 10 == 0L) {
+        if (getOffsetTimer() % 5 == 0L) {
             updateLightValue();
         }
     }
@@ -909,16 +924,42 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         if (sound == null) {
             return;
         }
-        if (isValid() && isActive()) {
+        boolean canPlay = isValid() && isActive();
+        if (this instanceof IControllable controllable) {
+            canPlay &= controllable.isWorkingEnabled();
+        }
+        if (canPlay) {
             if (--playSoundCooldown > 0) {
                 return;
             }
-            GregTechAPI.soundManager.startTileSound(sound.getSoundName(), getVolume(), getPos());
+            float pitch = getSoundPitch();
+            GregTechAPI.soundManager.startTileSound(sound.getSoundName(), getVolume(), pitch, getPos());
             playSoundCooldown = 20;
         } else {
             GregTechAPI.soundManager.stopTileSound(getPos());
             playSoundCooldown = 0;
         }
+    }
+
+    /**
+     * Computes sound pitch based on energy fill level.
+     * Empty buffer = 0.85 pitch (lower), full buffer = 1.15 pitch (higher).
+     * Override for custom pitch behavior.
+     */
+    @SideOnly(Side.CLIENT)
+    protected float getSoundPitch() {
+        // Try to find energy container for pitch modulation
+        for (MTETrait trait : this.mteTraits.values()) {
+            if (trait instanceof IEnergyContainer energy) {
+                long capacity = energy.getEnergyCapacity();
+                if (capacity > 0) {
+                    float fill = (float) energy.getEnergyStored() / capacity;
+                    // Map fill [0..1] to pitch [0.85..1.15]
+                    return 0.85F + fill * 0.3F;
+                }
+            }
+        }
+        return 1.0F;
     }
 
     public final @NotNull ItemStack getStackForm(int amount) {
@@ -1113,9 +1154,16 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
             if (muffled) {
                 GregTechAPI.soundManager.stopTileSound(getPos());
             }
+        } else if (dataId == OVERLOAD_WARNING) {
+            this.overloadTicks = buf.readInt();
+            // Play warning sound on client
+            if (overloadTicks > 0 && getWorld() != null && getPos() != null) {
+                getWorld().playSound(getPos().getX() + 0.5, getPos().getY() + 0.5, getPos().getZ() + 0.5,
+                        net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE,
+                        net.minecraft.util.SoundCategory.BLOCKS, 0.4F, 2.0F, false);
+            }
         }
     }
-
     public BlockFaceShape getCoverFaceShape(EnumFacing side) {
         if (getCoverAtSide(side) != null) {
             return BlockFaceShape.SOLID; // covers are always solid
@@ -1611,11 +1659,52 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public void doExplosion(float explosionPower) {
+        if (overloadTicks > 0) return; // already overloading
+        noticePlayer("[爆炸提醒]位于" + getPos() + "的" + getStackForm().getDisplayName() + "设备即将爆炸！！！");
+        overloadTicks = 40; // 2 second warning
+        pendingExplosionPower = explosionPower;
+        // Sync to client for particles/sound
+        writeCustomData(OVERLOAD_WARNING, buf -> buf.writeInt(overloadTicks));
+    }
+
+    /**
+     * Actually perform the explosion after the warning countdown.
+     */
+    private void executeExplosion(float explosionPower) {
         noticePlayer("[爆炸提醒]位于" + getPos() + "的" + getStackForm().getDisplayName() + "设备发生爆炸！！！");
         setExploded();
         getWorld().setBlockToAir(getPos());
         getWorld().createExplosion(null, getPos().getX() + 0.5, getPos().getY() + 0.5, getPos().getZ() + 0.5,
                 explosionPower, ConfigHolder.machines.doesExplosionDamagesTerrain);
+    }
+
+    /**
+     * Client-side overload warning particles. Intensity escalates as countdown progresses.
+     */
+    @SideOnly(Side.CLIENT)
+    private void spawnOverloadParticles() {
+        if (getWorld() == null || getPos() == null) return;
+        BlockPos pos = getPos();
+        // Escalating intensity: more particles as we approach explosion
+        float progress = 1.0F - (overloadTicks / 40.0F); // 0.0 at start, 1.0 at explosion
+        int particleCount = 1 + (int) (progress * 5);
+        for (int i = 0; i < particleCount; i++) {
+            double x = pos.getX() + 0.2 + GTValues.RNG.nextDouble() * 0.6;
+            double y = pos.getY() + 0.2 + GTValues.RNG.nextDouble() * 0.6;
+            double z = pos.getZ() + 0.2 + GTValues.RNG.nextDouble() * 0.6;
+            double vx = (GTValues.RNG.nextDouble() - 0.5) * 0.1;
+            double vy = GTValues.RNG.nextDouble() * 0.15;
+            double vz = (GTValues.RNG.nextDouble() - 0.5) * 0.1;
+            getWorld().spawnParticle(net.minecraft.util.EnumParticleTypes.LAVA, x, y, z, vx, vy, vz);
+            if (progress > 0.3F) {
+                getWorld().spawnParticle(net.minecraft.util.EnumParticleTypes.FLAME, x, y, z, vx, vy * 0.5, vz);
+            }
+            if (progress > 0.7F) {
+                getWorld().spawnParticle(net.minecraft.util.EnumParticleTypes.SMOKE_LARGE, x, y, z, 0, 0.05, 0);
+            }
+        }
+        // Decrement client-side counter
+        overloadTicks--;
     }
 
     /**
