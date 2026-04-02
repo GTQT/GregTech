@@ -71,6 +71,8 @@ public class MetaTileEntityTESR extends TileEntitySpecialRenderer<MetaTileEntity
         tessellator.draw();
 
         RenderHelper.enableStandardItemLighting();
+        GlStateManager.enableCull();
+        GlStateManager.disableBlend();
 
         if (metaTileEntity instanceof IFastRenderMetaTileEntity) {
             ((IFastRenderMetaTileEntity) metaTileEntity).renderMetaTileEntity(x, y, z, partialTicks);
@@ -115,8 +117,8 @@ public class MetaTileEntityTESR extends TileEntitySpecialRenderer<MetaTileEntity
 
     @Override
     public boolean isGlobalRenderer(@NotNull MetaTileEntityHolder te) {
-        if (te.getMetaTileEntity() instanceof IFastRenderMetaTileEntity) {
-            return ((IFastRenderMetaTileEntity) te.getMetaTileEntity()).isGlobalRenderer();
+        if (te.getMetaTileEntity() instanceof IFastRenderMetaTileEntity fastRender) {
+            return fastRender.isGlobalRenderer();
         }
         return false;
     }

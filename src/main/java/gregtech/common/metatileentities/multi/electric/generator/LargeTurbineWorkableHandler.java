@@ -29,7 +29,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     private final int BASE_EU_OUTPUT;
     private long excessVoltage;
 
-    public LargeTurbineWorkableHandler(RecipeMapMultiblockController metaTileEntity, int tier) {
+    public LargeTurbineWorkableHandler(FuelMultiblockController metaTileEntity, int tier) {
         super(metaTileEntity);
         this.BASE_EU_OUTPUT = (int) GTValues.V[tier] * 2;
     }

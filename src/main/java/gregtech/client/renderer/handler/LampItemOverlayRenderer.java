@@ -50,6 +50,7 @@ public class LampItemOverlayRenderer {
             GuiTextures.LAMP_NO_LIGHT.draw(xPosition, yPosition, 16, 16);
         }
 
+        GlStateManager.disableBlend();
         GlStateManager.enableAlpha();
         GlStateManager.enableLighting();
         GlStateManager.enableDepth();

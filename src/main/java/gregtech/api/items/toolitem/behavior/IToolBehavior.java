@@ -35,6 +35,18 @@ public interface IToolBehavior {
                            @NotNull EntityLivingBase attacker) {}
 
     /**
+     * @param stack  The current ItemStack
+     * @param player The player using the item
+     * @param entity The entity interacted with (right-clicked)
+     * @param hand   The hand with the item
+     * @return true if the interaction was handled, false otherwise
+     */
+    default boolean onEntityInteract(@NotNull ItemStack stack, @NotNull EntityPlayer player,
+                                     @NotNull EntityLivingBase entity, @NotNull EnumHand hand) {
+        return false;
+    }
+
+    /**
      * Called before a block is broken.
      * <p>
      * This is called on only the server side!

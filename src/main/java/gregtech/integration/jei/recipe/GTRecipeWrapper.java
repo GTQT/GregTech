@@ -36,6 +36,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fluids.FluidStack;
 
 import mezz.jei.api.ingredients.IIngredients;
@@ -58,6 +59,10 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
     private final Recipe recipe;
     private final List<GTRecipeInput> sortedInputs;
     private final List<GTRecipeInput> sortedFluidInputs;
+
+    private static int ocScrollOffset = 0;
+    private int infoAreaY = 0;
+    private int infoAreaHeight = 0;
 
     public GTRecipeWrapper(RecipeMap<?> recipeMap, Recipe recipe) {
         this.recipeMap = recipeMap;
@@ -277,6 +282,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                 .filter((property) -> !property.getKey().isHidden())
                 .count();
         int yPosition = recipeHeight - ((unhiddenCount + defaultLines) * 10 - 3);
+        infoAreaY = yPosition;
 
         // [EUt, duration, color]
         long[] overclockResult = calculateJeiOverclock();
@@ -348,6 +354,8 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
                 yPosition += property.getInfoHeight(value);
             }
         }
+
+        infoAreaHeight = (yPosition + LINE_HEIGHT) - infoAreaY;
     }
 
     private double getAmount() {
@@ -369,6 +377,11 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
     @Override
     public List<String> getTooltipStrings(int mouseX, int mouseY) {
         List<String> tooltips = new ArrayList<>();
+
+        if (recipeMap.jeiOverclockButtonEnabled() && mouseX >= 0 && mouseX <= 100  && mouseY >= infoAreaY && mouseY <= infoAreaY + infoAreaHeight) {
+            buildOverclockTooltip(tooltips);
+        }
+
         for (var entry : recipe.propertyStorage().entrySet()) {
             if (!entry.getKey().isHidden()) {
                 RecipeProperty<?> property = entry.getKey();
@@ -377,6 +390,67 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
             }
         }
         return tooltips;
+    }
+
+    private void buildOverclockTooltip(@NotNull List<String> tooltips) {
+        long recipeEUt = recipe.getEUt();
+        int recipeDuration = recipe.getDuration();
+        int recipeTier = GTUtility.getTierByVoltage(recipeEUt);
+
+        if (recipeTier >= GTValues.V.length - 1) return;
+
+        java.util.List<long[]> ocTiers = new java.util.ArrayList<>();
+
+        for (int tier = Math.max(0, recipeTier - 1); tier <= recipeTier; tier++) {
+            long newEUt = recipeEUt * (long) Math.pow(0.25, recipeTier - tier);
+            int newDuration = (int) (recipeDuration * Math.pow(2.0, recipeTier - tier));
+            if (newEUt >= GTValues.V[tier] && newDuration >= 1) {
+                ocTiers.add(new long[] { tier, newEUt, newDuration });
+            }
+        }
+
+        ocTiers.add(new long[] { recipeTier, recipeEUt, recipeDuration });
+        long eut = recipeEUt;
+        int duration = recipeDuration;
+        for (int tier = recipeTier + 1; tier < GTValues.V.length; tier++) {
+            long newEUt = eut * 4;
+            int newDuration = duration / 2;
+            if (newEUt > GTValues.V[tier] || newDuration < 1) break;
+            eut = newEUt;
+            duration = newDuration;
+            ocTiers.add(new long[] { tier, eut, duration });
+        }
+
+        if (ocTiers.size() <= 1) return;
+
+        int maxVisible = Math.min(6, ocTiers.size());
+        int scrollOffset = ocScrollOffset % ocTiers.size();
+        if (scrollOffset < 0) scrollOffset += ocTiers.size();
+
+        tooltips.add(TextFormatting.GOLD + I18n.format("gregtech.jei.overclock.title") +
+                TextFormatting.DARK_GRAY + " [Ctrl+Scroll]");
+
+        for (int i = 0; i < maxVisible; i++) {
+            int idx = (scrollOffset + i) % ocTiers.size();
+            long[] data = ocTiers.get(idx);
+            int tier = (int) data[0];
+            long tierEUt = data[1];
+            long tierDur = data[2];
+            String marker = idx == 0 ? TextFormatting.WHITE + "\u25B6 " : TextFormatting.GRAY + "  ";
+            tooltips.add(marker + GTValues.VNF[tier] +
+                    TextFormatting.DARK_GRAY + " | " + TextFormatting.WHITE +
+                    TextFormattingUtil.formatNumbers(tierEUt) + TextFormatting.GRAY + " EU/t " +
+                    TextFormatting.WHITE + TextFormattingUtil.formatNumbers(tierDur / 20.0) +
+                    TextFormatting.GRAY + "s");
+        }
+
+        if (ocTiers.size() > maxVisible) {
+            tooltips.add(TextFormatting.DARK_GRAY + "  +" + (ocTiers.size() - maxVisible) + " more");
+        }
+    }
+
+    public static void handleOCScroll(int delta) {
+        ocScrollOffset += (delta > 0) ? -1 : 1;
     }
 
     @Override

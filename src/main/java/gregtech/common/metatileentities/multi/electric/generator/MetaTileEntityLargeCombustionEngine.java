@@ -12,7 +12,6 @@ import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
@@ -377,7 +376,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
         private static final FluidStack LIQUID_OXYGEN_STACK = Materials.Oxygen.getFluid(FluidStorageKeys.LIQUID, 80);
         private static final FluidStack LUBRICANT_STACK = Materials.Lubricant.getFluid(1);
 
-        public LargeCombustionEngineWorkableHandler(RecipeMapMultiblockController tileEntity, boolean isExtreme) {
+        public LargeCombustionEngineWorkableHandler(FuelMultiblockController tileEntity, boolean isExtreme) {
             super(tileEntity);
             this.combustionEngine = (MetaTileEntityLargeCombustionEngine) tileEntity;
             this.isExtreme = isExtreme;

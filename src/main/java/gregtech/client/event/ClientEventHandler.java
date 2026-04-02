@@ -8,6 +8,7 @@ import gregtech.api.items.metaitem.stats.IItemHUDProvider;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.util.CapesRegistry;
 import gregtech.client.particle.GTParticleManager;
+import gregtech.client.renderer.handler.BlockHighlightRenderer;
 import gregtech.client.renderer.handler.BlockPosHighlightRenderer;
 import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
 import gregtech.client.utils.BloomEffectUtil;
@@ -23,7 +24,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.event.*;
+import net.minecraftforge.client.event.DrawBlockHighlightEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -56,8 +60,15 @@ public class ClientEventHandler {
         if (tileEntity instanceof MetaTileEntityHolder) {
             if (((MetaTileEntityHolder) tileEntity).getMetaTileEntity() instanceof MetaTileEntityMonitorScreen) {
                 event.setCanceled(true);
+                return;
             }
         }
+        BlockHighlightRenderer.handleMaterialHighlight(event);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public static void onDrawMachineHighlight(DrawBlockHighlightEvent event) {
+        BlockHighlightRenderer.handleMachineHighlight(event);
     }
 
     @SubscribeEvent
@@ -118,6 +129,7 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public static void onRenderArmorHUD(TickEvent.RenderTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.inGameHasFocus && mc.world != null && !mc.gameSettings.showDebugInfo && Minecraft.isGuiEnabled()) {
             renderHUDMetaArmor(mc.player.inventory.armorItemInSlot(EntityEquipmentSlot.HEAD.getIndex()));

@@ -27,6 +27,7 @@ death.attack.scythe=%s一镰刀下去，%s的灵魂灰飞烟灭
 death.attack.shears=%s把%s剪成两半
 death.attack.knife=%2$s绅士地捅了%1$s几刀
 death.attack.butchery_knife=%s死在了%s的屠刀之下
+death.attack.club=%s死在了%s的敲击之下
 death.attack.drill_lv=%2$s的低压电钻洞穿了%1$s
 death.attack.drill_mv=%2$s的中压电钻洞穿了%1$s
 death.attack.drill_hv=%2$s的高压电钻洞穿了%1$s
@@ -55,6 +56,8 @@ death.attack.screwdriver_hv=%s的螺丝被%s扭掉了
 death.attack.screwdriver_iv=%s的螺丝被%s扭掉了
 
 enchantment.disjunction=末影离析
+
+gregtech.jei.overclock.title=超频数据
 
 gregtech.jei.remove_recipe.tooltip=复制用于删除此配方的%s代码片段
 gregtech.jei.ct_recipe.tooltip=CraftTweaker配方
@@ -1147,6 +1150,7 @@ gt.tool.class.scythe=镰刀
 gt.tool.class.shears=剪刀
 gt.tool.class.knife=刀
 gt.tool.class.butchery_knife=屠刀
+gt.tool.class.club=棒槌
 gt.tool.class.grafter=剪枝器
 gt.tool.class.plunger=搋子
 gt.tool.class.flint_and_steel=打火石
@@ -1175,6 +1179,8 @@ item.gt.tool.knife.name=%s刀
 item.gt.tool.shears.name=%s修枝剪
 item.gt.tool.butchery_knife.name=%s屠刀
 item.gt.tool.butchery_knife.tooltip=§8攻击速度较慢
+item.gt.tool.club.name=%s棒槌
+item.gt.tool.club.tooltip=§8就像撞到了石头
 item.gt.tool.scythe.name=%s镰刀
 item.gt.tool.scythe.tooltip=§8因为镰刀（scythe）没有意义（sense）
 item.gt.tool.rolling_pin.name=%s擀面杖

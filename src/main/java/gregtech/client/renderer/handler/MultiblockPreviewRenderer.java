@@ -73,6 +73,7 @@ public class MultiblockPreviewRenderer {
 
             GlStateManager.callList(opList);
 
+            GlStateManager.disableBlend();
             GlStateManager.enableLighting();
             GlStateManager.popMatrix();
             GlStateManager.color(1F, 1F, 1F, 1F);
@@ -97,11 +98,12 @@ public class MultiblockPreviewRenderer {
             tier = controller.getStructureTier();
             controller.reinitializeStructurePattern();
         }
-        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
-        if (!shapes.isEmpty()) {
-            renderControllerInList(controller, shapes.get(0), layer);
+        try {
+            List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+            if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer);
+        } finally {
+            GlStateManager.glEndList();
         }
-        GlStateManager.glEndList();
     }
 
     public static void renderMultiBlockPreviewByTier(EntityPlayer player, MultiblockControllerBase controller,

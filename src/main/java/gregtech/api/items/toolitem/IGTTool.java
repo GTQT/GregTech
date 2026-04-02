@@ -451,6 +451,17 @@ public interface IGTTool extends ItemUIFactory, IAEWrench, IToolWrench, IToolHam
         return true;
     }
 
+    default boolean definition$itemInteractionForEntity(ItemStack stack, EntityPlayer player, EntityLivingBase entity,
+                                                        EnumHand hand) {
+        for (IToolBehavior behavior : getToolStats().getBehaviors()) {
+            if (behavior.onEntityInteract(stack, player, entity, hand)) {
+                damageItem(stack, player, getToolStats().getToolDamagePerAttack(stack));
+                return true;
+            }
+        }
+        return false;
+    }
+
     default boolean definition$onBlockStartBreak(ItemStack stack, BlockPos pos, EntityPlayer player) {
         if (player.world.isRemote) return false;
         getBehaviors(stack).forEach(behavior -> behavior.onBlockStartBreak(stack, pos, player));

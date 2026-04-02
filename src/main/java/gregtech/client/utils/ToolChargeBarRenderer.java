@@ -49,7 +49,6 @@ public final class ToolChargeBarRenderer {
             right = colorBarRightDepleted;
         }
 
-        GlStateManager.enableLighting();
         GlStateManager.disableLighting();
         GlStateManager.disableDepth();
         GlStateManager.disableTexture2D();

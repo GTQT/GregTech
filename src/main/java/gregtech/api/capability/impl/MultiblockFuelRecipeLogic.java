@@ -22,7 +22,7 @@ import java.util.List;
 public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
     protected long totalContinuousRunningTime;
-    FuelMultiblockController metaTileEntity;
+    public FuelMultiblockController metaTileEntity;
     private int previousDuration = 0;
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity) {

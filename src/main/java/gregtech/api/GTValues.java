@@ -2,8 +2,8 @@ package gregtech.api;
 
 import gregtech.api.util.random.XoShiRo256PlusPlusRandom;
 import gregtech.common.ConfigHolder;
-
 import gregtech.loaders.recipe.CraftingComponent;
+
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.oredict.OreDictionary;
@@ -166,6 +166,13 @@ public class GTValues {
      */
     public static final int[] VC = new int[] { 0xC80000, 0xDCDCDC, 0xFF6400, 0xFFFF1E, 0x808080, 0xF0F0F5, 0xE99797,
             0x7EC3C4, 0x7EB07E, 0xBF74C0, 0x0B5CFE, 0x914E91, 0x488748, 0x8C0000, 0x2828F5 };
+
+    public static final int[] TIER_COLORS = {
+            0x555555, 0xAAAAAA, 0x55FFFF, 0xFFAA00,
+            0xAA00AA, 0x5555FF, 0xFF55FF, 0xFF5555,
+            0x00AAAA, 0xAA0000, 0x00AA00, 0x006600,
+            0xFFFF55, 0x5555FF, 0xFF5555,
+    };
 
     /**
      * The long names for the voltages

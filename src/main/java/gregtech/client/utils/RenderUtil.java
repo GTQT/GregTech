@@ -788,4 +788,11 @@ public class RenderUtil {
         handleSlotOverlay(jeiGhostIngredientSlot, themeEntry);
         return false;
     }
+
+    public static void clearTextureCache() {
+        for (int id : textureMap.values()) {
+            TextureUtil.deleteTexture(id);
+        }
+        textureMap.clear();
+    }
 }

@@ -229,7 +229,10 @@ public class ToolRecipeHandler {
                     'I', ingot,
                     'P', plate);
 
-
+            addToolRecipe(material, ToolItems.CLUB, true,
+                    " II", "III", "SI ",
+                    'I', ingot,
+                    'S', stick);
         }
         if (material.hasFlag(GENERATE_ROD)) {
             UnificationEntry rod = new UnificationEntry(OrePrefix.stick, material);

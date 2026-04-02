@@ -17,6 +17,7 @@ import gregtech.client.renderer.handler.ToolbeltRenderer;
 import gregtech.common.items.tool.BlockRotatingBehavior;
 import gregtech.common.items.tool.DisableShieldBehavior;
 import gregtech.common.items.tool.EntityDamageBehavior;
+import gregtech.common.items.tool.EntityShearBehavior;
 import gregtech.common.items.tool.FlintAndSteelToolBehavior;
 import gregtech.common.items.tool.GrassPathBehavior;
 import gregtech.common.items.tool.HarvestCropsBehavior;
@@ -72,6 +73,7 @@ public final class ToolItems {
     public static IGTTool KNIFE;
     public static IGTTool SHEARS;
     public static IGTTool BUTCHERY_KNIFE;
+    public static IGTTool CLUB;
     public static IGTTool TREE_TAP;
 
     public static IGTTool DRILL_LV;
@@ -297,7 +299,8 @@ public final class ToolItems {
 
         SHEARS = register(ItemGTTool.Builder.of(GTValues.MODID, "shears")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
-                        .attackDamage(2.0F).attackSpeed(-2.4F))
+                        .attackDamage(2.0F).attackSpeed(-2.4F)
+                        .behaviors(EntityShearBehavior.INSTANCE))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolShears)
                 .secondaryOreDicts("craftingToolShears")
@@ -309,6 +312,15 @@ public final class ToolItems {
                 .oreDict(ToolOreDict.toolButcheryKnife)
                 .secondaryOreDicts("craftingToolButcheryKnife")
                 .toolClasses(ToolClasses.BUTCHERY_KNIFE));
+
+        CLUB = register(ItemGTSword.Builder.of(GTValues.MODID, "club")
+                .toolStats(b -> b.attacking().blockBreaking()
+                        .attackDamage(6.0F).attackSpeed(-3.0F)
+                        .efficiencyMultiplier(0.5F)
+                        .behaviors(new EntityDamageBehavior(2.0F, EntityGolem.class)))
+                .sound(SoundEvents.BLOCK_ANVIL_LAND)
+                .oreDict(ToolOreDict.toolClub)
+                .toolClasses(ToolClasses.CLUB, ToolClasses.HARD_HAMMER));
 
         TREE_TAP = register(ItemGTTool.Builder.of(GTValues.MODID, "tree_tap")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()

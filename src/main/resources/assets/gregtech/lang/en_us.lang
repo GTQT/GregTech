@@ -56,6 +56,8 @@ death.attack.screwdriver_iv=%s had their screws removed by %s
 
 enchantment.disjunction=Disjunction
 
+gregtech.jei.overclock.title=超频数据
+
 gregtech.jei.remove_recipe.tooltip=Copies a %s Snippet to Remove this Recipe
 gregtech.jei.ct_recipe.tooltip=CraftTweaker Recipe
 gregtech.jei.gs_recipe.tooltip=GroovyScript Recipe
@@ -1149,6 +1151,7 @@ gt.tool.class.scythe=Scythe
 gt.tool.class.shears=Shears
 gt.tool.class.knife=Knife
 gt.tool.class.butchery_knife=Butchery Knife
+gt.tool.class.club=Club
 gt.tool.class.grafter=Grafter
 gt.tool.class.plunger=Plunger
 gt.tool.class.flint_and_steel=Flint
@@ -1177,6 +1180,9 @@ item.gt.tool.knife.name=%s Knife
 item.gt.tool.shears.name=%s Branch Cutter
 item.gt.tool.butchery_knife.name=%s Butchery Knife
 item.gt.tool.butchery_knife.tooltip=§8Has a slow Attack Rate
+death.attack.club=§8Has a slow Attack Rate
+item.gt.tool.club.name=%s Club
+item.gt.tool.club.tooltip=§8Heavy weapon that crushes stone
 item.gt.tool.scythe.name=%s Scythe
 item.gt.tool.scythe.tooltip=§8Because a Scythe doesn't make Sense
 item.gt.tool.rolling_pin.name=%s Rolling Pin
