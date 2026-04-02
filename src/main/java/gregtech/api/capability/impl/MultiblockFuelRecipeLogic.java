@@ -3,9 +3,7 @@ package gregtech.api.capability.impl;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
@@ -24,24 +22,27 @@ import java.util.List;
 public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
     protected long totalContinuousRunningTime;
+    FuelMultiblockController metaTileEntity;
     private int previousDuration = 0;
 
-    public MultiblockFuelRecipeLogic(RecipeMapMultiblockController tileEntity) {
-        this(tileEntity,ParallelLogicType.MULTIPLY);
+    public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity) {
+        this(tileEntity, ParallelLogicType.MULTIPLY);
     }
-    public MultiblockFuelRecipeLogic(RecipeMapMultiblockController tileEntity,ParallelLogicType type) {
+
+    public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity, ParallelLogicType type) {
         super(tileEntity);
+        this.metaTileEntity = tileEntity;
     }
 
     @Override
     protected void performMufflerOperations() {
-        if (metaTileEntity instanceof FuelMultiblockController generator) {
-            // output muffler items
-            if (generator.hasMufflerMechanics()) {
-                generator.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
-                generator.outputRecoveryFluid(progressTime);
-            }
+
+        // output muffler items
+        if (metaTileEntity.hasMufflerMechanics()) {
+            metaTileEntity.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
+            metaTileEntity.outputRecoveryFluid(progressTime);
         }
+
     }
 
     @Override
@@ -94,8 +95,7 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     }
 
     /**
-     * Boost the energy production.
-     * Should not change the state of the workable logic. Only read current values.
+     * Boost the energy production. Should not change the state of the workable logic. Only read current values.
      *
      * @param production the energy amount to boost
      * @return the boosted energy amount
@@ -122,12 +122,8 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     }
 
     public String getRecipeFluidInputInfo() {
-        IRotorHolder rotorHolder = null;
-
-        if (metaTileEntity instanceof MultiblockWithDisplayBase multiblockWithDisplayBase) {
-            List<IRotorHolder> abilities = multiblockWithDisplayBase.getAbilities(MultiblockAbility.ROTOR_HOLDER);
-            rotorHolder = abilities.size() > 0 ? abilities.get(0) : null;
-        }
+        List<IRotorHolder> abilities = metaTileEntity.getAbilities(MultiblockAbility.ROTOR_HOLDER);
+        IRotorHolder rotorHolder = abilities.size() > 0 ? abilities.get(0) : null;
 
         // Previous Recipe is always null on first world load, so try to acquire a new recipe
         Recipe recipe;
@@ -171,6 +167,11 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     @Override
     public boolean isAllowOverclocking() {
         return false;
+    }
+
+    @Override
+    public boolean shouldWorking() {
+        return workingEnabled && (metaTileEntity.isEnergyOverFlow() || !metaTileEntity.isDynamoFull());
     }
 
     // generators always run recipes

@@ -2,7 +2,7 @@ package gregtech.integration.theoneprobe.provider;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IBatch;
-import gregtech.api.capability.IRecipeLock;
+import gregtech.api.capability.IRecipeControl;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 
@@ -45,7 +45,7 @@ public class MultiblockModeProvider implements IProbeInfoProvider {
                             TextStyleClass.INFO + (iBatch.isBatchEnable() ? "{*gregtech.top.batch_enable*}" :
                                     "{*gregtech.top.batch_disable*}"));
                 }
-                if (mte instanceof IRecipeLock recipeLock) {
+                if (mte instanceof IRecipeControl recipeLock) {
                     if (recipeLock.enableExtendControl()) iProbeInfo.text(
                             TextStyleClass.INFO + (recipeLock.isRecipeLocked() ? "{*gregtech.top.lock_enable*}" :
                                     "{*gregtech.top.lock_disable*}"));

@@ -3,7 +3,8 @@ package gregtech.api.metatileentity.multiblock.ui;
 import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
-import gregtech.api.capability.IRecipeLock;
+import gregtech.api.capability.IGenerator;
+import gregtech.api.capability.IRecipeControl;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.mui.GTGuiTextures;
@@ -536,6 +537,7 @@ public class MultiblockUIFactory {
                 .child(createBatchButton(mainPanel, panelSyncManager))
                 .child(lockRecipesButton(mainPanel, panelSyncManager))
                 .child(lackEnergyWarningButton(mainPanel, panelSyncManager))
+                .child(overFlowButton(mainPanel, panelSyncManager))
                 .child(gcymButton)
                 .child(parallelButton)
                 .child(threadButton);
@@ -566,7 +568,7 @@ public class MultiblockUIFactory {
 
     //lockRecipesButton
     protected IWidget lockRecipesButton(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager) {
-        if (!(mte instanceof IRecipeLock controllable) || !controllable.enableExtendControl()) {
+        if (!(mte instanceof IRecipeControl controllable) || !controllable.enableExtendControl()) {
             return new ToggleButton()
                     .name("lock_none")
                     .size(18)
@@ -587,7 +589,7 @@ public class MultiblockUIFactory {
     }
 
     protected IWidget lackEnergyWarningButton(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager) {
-        if (!(mte instanceof IRecipeLock controllable) || !controllable.enableExtendControl()) {
+        if (!(mte instanceof IRecipeControl controllable) || !controllable.enableExtendControl()) {
             return new ToggleButton()
                     .name("lack_energy_none")
                     .size(18)
@@ -597,7 +599,7 @@ public class MultiblockUIFactory {
         }
 
         return new ToggleButton()
-                .name("lack_energy_none")
+                .name("lack_energy")
                 .size(18)
                 .value(new BooleanSyncValue(controllable::isEnergyLackWarningEnabled, controllable::setEnergyLackWarningEnabled))
                 .disableHoverBackground()
@@ -605,6 +607,27 @@ public class MultiblockUIFactory {
                 .overlay(false, GTGuiTextures.OVERLAY_LACK_ENERGY[0])
                 .addTooltip(true, IKey.lang("gregtech.multiblock.universal.lack_energy_enabled"))
                 .addTooltip(false, IKey.lang("gregtech.multiblock.universal.lack_energy_disabled"));
+    }
+
+    protected IWidget overFlowButton(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager) {
+        if (!(mte instanceof IGenerator controllable)) {
+            return new ToggleButton()
+                    .name("over_flow_none")
+                    .size(18)
+                    .value(ALWAYS_ON)
+                    .overlay(GTGuiTextures.OVERLAY_LACK_ENERGY[0])
+                    .addTooltipLine(IKey.lang("gregtech.gui.multiblock_over_flow_not_supported"));
+        }
+
+        return new ToggleButton()
+                .name("over_flow")
+                .size(18)
+                .value(new BooleanSyncValue(controllable::isEnergyOverFlow, controllable::setEnergyOverFlowMode))
+                .disableHoverBackground()
+                .overlay(true, GTGuiTextures.OVERLAY_LACK_ENERGY[1])
+                .overlay(false, GTGuiTextures.OVERLAY_LACK_ENERGY[0])
+                .addTooltip(true, IKey.lang("gregtech.multiblock.universal.over_flow_enabled"))
+                .addTooltip(false, IKey.lang("gregtech.multiblock.universal.over_flow_disabled"));
     }
 
 

@@ -2,6 +2,7 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IGenerator;
 import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.EnergyContainerList;
@@ -12,6 +13,7 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.ConfigHolder;
@@ -34,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class FuelMultiblockController extends RecipeMapMultiblockController {
+public abstract class FuelMultiblockController extends RecipeMapMultiblockController implements IGenerator {
 
     public FuelMultiblockController(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap, int tier) {
         super(metaTileEntityId, recipeMap);
@@ -92,6 +94,12 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
         builder.addLowDynamoTierLine(isDynamoTierTooLow());
         if (hasMaintenanceMechanics())
             builder.addMaintenanceProblemLines(getMaintenanceProblems(), true);
+        builder.addCustom((manager, syncer) -> {
+            if (syncer.syncBoolean(this::isDynamoFull)) {
+                manager.add(KeyUtil.lang(TextFormatting.YELLOW,
+                        "gregtech.multiblock.large_combustion_engine.dynamo_hatch_full"));
+            }
+        });
     }
 
     protected long getMaxVoltage() {
@@ -228,5 +236,20 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
         } else {
             tooltip.addLine(IKey.lang("gregtech.multiblock.invalid_structure"));
         }
+    }
+
+    @Override
+    public boolean isDynamoFull() {
+        return getEnergyContainer().getEnergyCanBeInserted() < recipeMapWorkable.getRecipeEUt();
+    }
+
+    @Override
+    public boolean isEnergyOverFlow() {
+        return recipeMapWorkable.isOverflowMode();
+    }
+
+    @Override
+    public void setEnergyOverFlowMode(boolean enable) {
+        recipeMapWorkable.setOverflowMode(enable);
     }
 }

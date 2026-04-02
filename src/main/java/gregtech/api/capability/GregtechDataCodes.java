@@ -153,6 +153,7 @@ public class GregtechDataCodes {
     public static final int WORKING_ENABLED = assignId();
     public static final int WORKING_BATCH = assignId();
     public static final int WORKING_RECIPE_LOCK = assignId();
+    public static final int OVERFLOW_MODE = assignId();
     public static final int LACK_ENERGY_WARNING = assignId();
 
     // Creative Energy

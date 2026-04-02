@@ -105,7 +105,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private long overclockVoltage;
     private boolean enableBatch = false;
     private boolean lockRecipe = false;
+    private boolean overflowMode = false;
     private boolean lackEnergyWarning = false;
+
     /**
      * DO NOT use the parallelLimit field directly, EVER use {@link AbstractRecipeLogic#setParallelLimit(int)} instead
      */
@@ -329,7 +331,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     public void update() {
         World world = getMetaTileEntity().getWorld();
         if (world != null && !world.isRemote) {
-            if (workingEnabled) {
+            if (shouldWorking()) {
                 if (getMetaTileEntity().getOffsetTimer() % 20 == 0)
                     this.canRecipeProgress = canProgressRecipe();
 
@@ -346,6 +348,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 setActive(false);
             }
         }
+    }
+
+    public boolean shouldWorking() {
+        return workingEnabled;
     }
 
     /**
@@ -1387,6 +1393,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
     }
 
+    public boolean isOverflowMode() {
+        return overflowMode;
+    }
+
+    public void setOverflowMode(boolean enable) {
+        overflowMode = enable;
+        metaTileEntity.markDirty();
+        World world = metaTileEntity.getWorld();
+        if (world != null && !world.isRemote) {
+            writeCustomData(GregtechDataCodes.OVERFLOW_MODE, buf -> buf.writeBoolean(overflowMode));
+        }
+    }
+
     public boolean isEnergyLackWarningEnable() {
         return lackEnergyWarning;
     }
@@ -1531,6 +1550,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
         } else if (dataId == GregtechDataCodes.WORKING_RECIPE_LOCK) {
             this.lockRecipe = buf.readBoolean();
             getMetaTileEntity().scheduleRenderUpdate();
+        } else if (dataId == GregtechDataCodes.OVERFLOW_MODE) {
+            this.overflowMode = buf.readBoolean();
+            getMetaTileEntity().scheduleRenderUpdate();
         }
     }
 
@@ -1539,6 +1561,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         buf.writeBoolean(this.isActive);
         buf.writeBoolean(this.workingEnabled);
         buf.writeBoolean(this.enableBatch);
+        buf.writeBoolean(this.lockRecipe);
+        buf.writeBoolean(this.overflowMode);
     }
 
     @Override
@@ -1546,6 +1570,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         this.isActive = buf.readBoolean();
         this.workingEnabled = buf.readBoolean();
         this.enableBatch = buf.readBoolean();
+        this.lockRecipe = buf.readBoolean();
+        this.overflowMode = buf.readBoolean();
     }
 
     @NotNull
@@ -1556,6 +1582,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         //compound.setInteger("parallelLimit",this.parallelLimit);
         compound.setBoolean("Batch", enableBatch);
         compound.setBoolean("LockRecipe", lockRecipe);
+        compound.setBoolean("overflowMode", overflowMode);
         compound.setBoolean("lackEnergyWarning", lackEnergyWarning);
         compound.setBoolean("WorkEnabled", workingEnabled);
         compound.setBoolean("CanRecipeProgress", canRecipeProgress);
@@ -1593,6 +1620,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         //this.parallelLimit = compound.getInteger("parallelLimit");
         this.enableBatch = compound.getBoolean("Batch");
         this.lockRecipe = compound.getBoolean("LockRecipe");
+        this.overflowMode = compound.getBoolean("overflowMode");
         this.lackEnergyWarning = compound.getBoolean("lackEnergyWarning");
         this.workingEnabled = compound.getBoolean("WorkEnabled");
         this.canRecipeProgress = compound.getBoolean("CanRecipeProgress");

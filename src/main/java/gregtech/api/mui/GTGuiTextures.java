@@ -632,6 +632,8 @@ public class GTGuiTextures {
             18, 36, 18, 18);
     public static final UITexture[] OVERLAY_LACK_ENERGY = slice("textures/gui/widget/button_lack_energy.png",
             18, 36, 18, 18);
+    public static final UITexture[] OVERLAY_OVER_FLOW = slice("textures/gui/widget/button_over_flow.png",
+            18, 36, 18, 18);
     public static final UITexture BUTTON_STRUCTURE = fullImage("textures/gui/widget/button_structure.png",  ColorType.DEFAULT);
 
     public static final UITexture OVERLAY_NO_FLEX = fullImage("textures/gui/widget/button_no_flex.png");

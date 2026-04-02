@@ -6,7 +6,7 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
-import gregtech.api.capability.IRecipeLock;
+import gregtech.api.capability.IRecipeControl;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -52,7 +52,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                                                                                                  ICleanroomReceiver,
                                                                                                  IDistinctBusController,
                                                                                                  IControllable, IBatch,
-                                                                                                 IRecipeLock {
+                                                                                                 IRecipeControl {
 
     public final RecipeMap<?> recipeMap;
     protected MultiblockRecipeLogic recipeMapWorkable;

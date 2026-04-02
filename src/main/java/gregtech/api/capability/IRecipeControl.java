@@ -1,6 +1,6 @@
 package gregtech.api.capability;
 
-public interface IRecipeLock {
+public interface IRecipeControl {
 
     boolean enableExtendControl();
 
