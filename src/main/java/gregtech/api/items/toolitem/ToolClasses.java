@@ -29,6 +29,7 @@ public class ToolClasses {
     public static final String PLUNGER = "plunger";
     public static final String FLINT_AND_STEEL = "flint_and_steel";
     public static final String PINCERS = "pincers";
+    public static final String BENDING_CYLINDER = "bending_cylinder";
     public static final String TREE_TAP = "tree_tap";
     public static final Set<String> DRILL = ImmutableSet.of(PICKAXE, SHOVEL);
 

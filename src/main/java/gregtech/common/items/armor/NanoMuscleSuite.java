@@ -149,7 +149,7 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
 
     @Override
     public float getHeatResistance() {
-        return 0.75f;
+        return 0.5f;
     }
 
     @Override

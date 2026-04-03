@@ -602,6 +602,11 @@ public final class MetaItems {
 
     public static ArmorMetaItem<?>.ArmorMetaValueItem NIGHTVISION_GOGGLES;
 
+    public static ArmorMetaItem<?>.ArmorMetaValueItem HAZMAT_CHESTPLATE;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem HAZMAT_LEGGINGS;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem HAZMAT_BOOTS;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem HAZMAT_HELMET;
+
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_CHESTPLATE;
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_LEGGINGS;
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_BOOTS;

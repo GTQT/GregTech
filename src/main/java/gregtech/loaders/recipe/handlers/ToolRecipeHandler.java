@@ -233,6 +233,14 @@ public class ToolRecipeHandler {
                     " II", "III", "SI ",
                     'I', ingot,
                     'S', stick);
+
+            addToolRecipe(material, ToolItems.BENDING_CYLINDER, false,
+                    "sfh", "III", "III",
+                    'I', ingot);
+
+            addToolRecipe(material, ToolItems.BENDING_CYLINDER_SMALL, false,
+                    "sfh", "III",
+                    'I', ingot);
         }
         if (material.hasFlag(GENERATE_ROD)) {
             UnificationEntry rod = new UnificationEntry(OrePrefix.stick, material);

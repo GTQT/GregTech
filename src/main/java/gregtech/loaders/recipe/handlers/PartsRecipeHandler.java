@@ -38,6 +38,7 @@ public class PartsRecipeHandler {
         OrePrefix.plate.addProcessingHandler(PropertyKey.DUST, PartsRecipeHandler::processPlate);
         OrePrefix.plateDouble.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processPlateDouble);
         OrePrefix.plateDense.addProcessingHandler(PropertyKey.DUST, PartsRecipeHandler::processPlateDense);
+        OrePrefix.plateCurved.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processPlateCurved);
 
         OrePrefix.turbineBlade.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processTurbine);
         OrePrefix.rotor.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processRotor);
@@ -113,6 +114,11 @@ public class PartsRecipeHandler {
             ModHandler.addShapedRecipe(String.format("foil_%s", material),
                     OreDictUnifier.get(foilPrefix, material, 2),
                     "hP ", 'P', new UnificationEntry(plate, material));
+
+            ModHandler.addShapedRecipe(String.format("bending_foil_%s", material),
+                    OreDictUnifier.get(OrePrefix.foil, material, 2),
+                    "hPe",
+                    'P', new UnificationEntry(OrePrefix.plate, material));
         }
 
         RecipeMaps.BENDER_RECIPES.recipeBuilder()
@@ -377,6 +383,35 @@ public class PartsRecipeHandler {
         }
     }
 
+    public static void processPlateCurved(OrePrefix curvedPrefix, Material material, IngotProperty property) {
+        int workingTier = material.getWorkingTier();
+
+        // Bender: plate → curved plate
+        BENDER_RECIPES.recipeBuilder()
+                .input(plate, material)
+                .output(curvedPrefix, material)
+                .circuitMeta(3)
+                .duration((int) Math.max(material.getMass(), 1L))
+                .EUt(GTUtility.scaleVoltage(24, workingTier))
+                .buildAndRegister();
+
+        // Forge Hammer: curved plate → plate (reversing)
+        RecipeMaps.FORGE_HAMMER_RECIPES.recipeBuilder()
+                .input(curvedPrefix, material)
+                .output(plate, material)
+                .duration((int) Math.max(material.getMass(), 1L))
+                .EUt(GTUtility.scaleVoltage(24, workingTier))
+                .buildAndRegister();
+
+        // Hand-crafting for low-tier materials: hammer + plate → curved plate
+        if (workingTier <= HV && !material.hasFlag(NO_SMASHING)) {
+            ModHandler.addShapedRecipe(String.format("plate_curved_%s", material),
+                    OreDictUnifier.get(curvedPrefix, material),
+                    "h", "P", "b",
+                    'P', new UnificationEntry(OrePrefix.plate, material));
+        }
+    }
+
     public static void processRing(OrePrefix ringPrefix, Material material, IngotProperty property) {
         int workingTier = material.getWorkingTier();
 
@@ -394,6 +429,11 @@ public class PartsRecipeHandler {
                         OreDictUnifier.get(ringPrefix, material),
                         "h ", " X",
                         'X', new UnificationEntry(OrePrefix.stick, material));
+
+                ModHandler.addShapedRecipe(String.format("bending_ring_%s", material),
+                        OreDictUnifier.get(OrePrefix.ring, material),
+                        "h", "S", "e",
+                        'S', new UnificationEntry(OrePrefix.stick, material));
             }
         } else {
             RecipeMaps.EXTRUDER_RECIPES.recipeBuilder()
@@ -410,9 +450,14 @@ public class PartsRecipeHandler {
         int workingTier = material.getWorkingTier();
 
         if (workingTier <= HV) {
-            ModHandler.addShapedRecipe(String.format("spring_small_%s", material.toString()),
+            ModHandler.addShapedRecipe(String.format("spring_small_%s", material),
                     OreDictUnifier.get(springSmall, material),
                     " s ", "fRx", 'R', new UnificationEntry(stick, material));
+
+            ModHandler.addShapedRecipe(String.format("bending_small_spring_%s", material),
+                    OreDictUnifier.get(OrePrefix.springSmall, material),
+                    "hSe",
+                    'S', new UnificationEntry(OrePrefix.stick, material));
         }
 
         BENDER_RECIPES.recipeBuilder()
@@ -436,9 +481,14 @@ public class PartsRecipeHandler {
                 .buildAndRegister();
 
         if (workingTier <= HV) {
-            ModHandler.addShapedRecipe(String.format("spring_%s", material.toString()),
+            ModHandler.addShapedRecipe(String.format("spring_%s", material),
                     OreDictUnifier.get(spring, material),
                     " s ", "fRx", " R ", 'R', new UnificationEntry(stickLong, material));
+
+            ModHandler.addShapedRecipe(String.format("bending_spring_%s", material),
+                    OreDictUnifier.get(OrePrefix.spring, material),
+                    "hSb",
+                    'S', new UnificationEntry(OrePrefix.stickLong, material));
         }
     }
 

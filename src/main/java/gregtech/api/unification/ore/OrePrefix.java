@@ -163,12 +163,12 @@ public class OrePrefix {
     public static final OrePrefix plateDouble = new OrePrefix("plateDouble", M * 2, null, MaterialIconType.plateDouble,
             ENABLE_UNIFICATION, hasIngotProperty
             .and(mat -> mat.hasFlags(GENERATE_PLATE, GENERATE_DOUBLE_PLATE) && !mat.hasFlag(NO_SMASHING)));
-    // Curved Plate made of one Plate
-    public static final OrePrefix plateCurved = new OrePrefix("plateCurved", M, null, MaterialIconType.plateCurved,
-            ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_CURVED_PLATE));
     // Regular Plate made of one Ingot/Dust. Introduced by Calclavia
     public static final OrePrefix plate = new OrePrefix("plate", M, null, MaterialIconType.plate, ENABLE_UNIFICATION,
             mat -> mat.hasFlag(GENERATE_PLATE));
+    // Curved Plate made of one Plate
+    public static final OrePrefix plateCurved = new OrePrefix("plateCurved", M, null, MaterialIconType.plateCurved,
+            ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_CURVED_PLATE));
 
     // Round made of 1 Nugget
     public static final OrePrefix round = new OrePrefix("round", M / 9, null, MaterialIconType.round,

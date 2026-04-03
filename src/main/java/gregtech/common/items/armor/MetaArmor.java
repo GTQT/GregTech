@@ -25,6 +25,15 @@ public class MetaArmor extends ArmorMetaItem<ArmorMetaItem<?>.ArmorMetaValueItem
                         ConfigHolder.tools.voltageTierAdvImpeller))
                 .setRarity(EnumRarity.RARE);
 
+        MetaItems.HAZMAT_HELMET = addItem(5, "hazmat.helmet")
+                .setArmorLogic(new HazmatSuit(EntityEquipmentSlot.HEAD));
+        MetaItems.HAZMAT_CHESTPLATE = addItem(6, "hazmat.chestplate")
+                .setArmorLogic(new HazmatSuit(EntityEquipmentSlot.CHEST));
+        MetaItems.HAZMAT_LEGGINGS = addItem(7, "hazmat.leggings")
+                .setArmorLogic(new HazmatSuit(EntityEquipmentSlot.LEGS));
+        MetaItems.HAZMAT_BOOTS = addItem(8, "hazmat.boots")
+                .setArmorLogic(new HazmatSuit(EntityEquipmentSlot.FEET));
+
         int energyPerUse = 512;
         int tier = ConfigHolder.tools.voltageTierNanoSuit;
         long maxCapacity = 6_400_000L * (long) Math.max(1, Math.pow(4, tier - 3));

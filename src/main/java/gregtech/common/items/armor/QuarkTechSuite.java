@@ -296,12 +296,12 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
 
     @Override
     public float getHeatResistance() {
-        return 0.5f;
+        return 0.0f;
     }
 
     @Override
     public float getRadiationResistance() {
-        return 0.5f;
+        return 0.0f;
     }
 
     @SideOnly(Side.CLIENT)

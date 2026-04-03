@@ -29,8 +29,7 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(933))
                 .color(0x80C8F0)
-                .flags(EXT2_METAL, GENERATE_GEAR, GENERATE_SMALL_GEAR, GENERATE_RING, GENERATE_FRAME, GENERATE_SPRING,
-                        GENERATE_SPRING_SMALL, GENERATE_FINE_WIRE, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL)
                 .element(Elements.Al)
                 .toolStats(MaterialToolProperty.Builder.of(6.0F, 7.5F, 768, 2)
                         .enchantability(14).build())
@@ -45,7 +44,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1449))
                 .plasma()
                 .color(0x287869).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_FOIL, GENERATE_FINE_WIRE, GENERATE_DOUBLE_PLATE)
+                .flags(EXT_METAL)
                 .element(Elements.Am)
                 .itemPipeProperties(64, 64)
                 .build();
@@ -106,7 +105,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1560))
 
                 .color(0x64B464).iconSet(METALLIC)
-                .flags(STD_METAL, GENERATE_DOUBLE_PLATE)
+                .flags(STD_METAL)
                 .element(Elements.Be)
                 .build();
 
@@ -194,7 +193,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(2180))
                 .plasma()
                 .color(0xEAC4D8).iconSet(SHINY)
-                .flags(EXT_METAL, GENERATE_ROTOR, GENERATE_DOUBLE_PLATE)
+                .flags(EXT_METAL)
                 .element(Elements.Cr)
                 .rotorStats(12.0f, 3.0f, 512)
                 .fluidPipeProperties(2180, 35, true, true, false, false)
@@ -206,7 +205,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1768))
                 // leave for TiCon ore processing
                 .color(0x5050FA).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_DOUBLE_PLATE, GENERATE_FINE_WIRE)
+                .flags(EXT_METAL)
                 .element(Elements.Co)
                 .cableProperties(V[LV], 2, 2)
                 .itemPipeProperties(2560, 2.0f)
@@ -223,8 +222,7 @@ public class ElementMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(1358))
                 .color(0xFF6400).iconSet(SHINY)
-                .flags(EXT_METAL, MORTAR_GRINDABLE, GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FINE_WIRE,
-                        GENERATE_DOUBLE_PLATE, GENERATE_RING)
+                .flags(EXT_METAL, MORTAR_GRINDABLE, GENERATE_CURVED_PLATE)
                 .element(Elements.Cu)
                 .cableProperties(V[MV], 1, 2)
                 .fluidPipeProperties(1696, 6, true)
@@ -241,7 +239,7 @@ public class ElementMaterials {
         Darmstadtium = Material.builder(27, gregtechId("darmstadtium"))
                 .ingot().fluid()
                 .color(0x578062)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE, GENERATE_ROTOR, GENERATE_DENSE, GENERATE_SMALL_GEAR)
+                .flags(EXT2_METAL)
                 .fluidPipeProperties(9600, 300, true, true, false, false)
                 .element(Elements.Ds)
                 .build();
@@ -284,8 +282,7 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1099))
                 .color(0x20FFFF).iconSet(METALLIC)
-                .flags(STD_METAL, GENERATE_LONG_ROD, GENERATE_FINE_WIRE, GENERATE_SPRING, GENERATE_FOIL, GENERATE_FRAME,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(STD_METAL)
                 .element(Elements.Eu)
                 .cableProperties(GTValues.V[GTValues.UHV], 2, 32)
                 .fluidPipeProperties(7750, 300, true)
@@ -353,9 +350,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1337))
 
                 .color(0xFFE650).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_RING, MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,
-                        GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FINE_WIRE, GENERATE_FOIL,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL , MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES)
                 .element(Elements.Au)
                 .cableProperties(V[HV], 3, 2)
                 .fluidPipeProperties(1671, 25, true, true, false, false)
@@ -422,7 +417,7 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(430))
                 .color(0x400080).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE, GENERATE_FINE_WIRE, GENERATE_GEAR, GENERATE_FRAME)
+                .flags(EXT2_METAL)
                 .element(Elements.In)
                 .build();
 
@@ -437,7 +432,7 @@ public class ElementMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(2719))
                 .color(0xA1E4E4).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE, GENERATE_FINE_WIRE, GENERATE_GEAR, GENERATE_FRAME)
+                .flags(EXT2_METAL)
                 .element(Elements.Ir)
                 .rotorStats(7.0f, 3.0f, 2560)
                 .fluidPipeProperties(3398, 250, true, false, true, false)
@@ -451,11 +446,8 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1811))
                 .plasma()
-
                 .color(0xC8C8C8).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_SMALL_GEAR, GENERATE_GEAR,
-                        GENERATE_SPRING_SMALL, GENERATE_SPRING, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,
-                        BLAST_FURNACE_CALCITE_TRIPLE)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE,EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,GENERATE_CURVED_PLATE)
                 .element(Elements.Fe)
                 .toolStats(MaterialToolProperty.Builder.of(2.0F, 2.0F, 256, 2)
                         .enchantability(14).build())
@@ -498,8 +490,7 @@ public class ElementMaterials {
                 .plasma()
 
                 .color(0x8C648C)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_SPRING, GENERATE_SPRING_SMALL,
-                        GENERATE_FINE_WIRE, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE)
                 .element(Elements.Pb)
                 .cableProperties(V[ULV], 2, 2)
                 .fluidPipeProperties(1200, 32, true)
@@ -546,7 +537,7 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1519))
                 .color(0xCDE1B9)
-                .flags(STD_METAL, GENERATE_FOIL, GENERATE_BOLT_SCREW)
+                .flags(STD_METAL)
                 .element(Elements.Mn)
                 .rotorStats(7.0f, 2.0f, 512)
                 .build();
@@ -569,7 +560,6 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(2896))
                 .color(0xB4B4DC).iconSet(SHINY)
                 .element(Elements.Mo)
-                .flags(GENERATE_FOIL, GENERATE_BOLT_SCREW)
                 .rotorStats(7.0f, 2.0f, 512)
                 .build();
 
@@ -583,7 +573,7 @@ public class ElementMaterials {
         Neodymium = Material.builder(66, gregtechId("neodymium"))
                 .ingot().fluid()
                 .color(0x646464).iconSet(METALLIC)
-                .flags(STD_METAL, GENERATE_ROD, GENERATE_BOLT_SCREW)
+                .flags(STD_METAL)
                 .element(Elements.Nd)
                 .rotorStats(7.0f, 2.0f, 512)
                 .blast(1297, GasTier.MID)
@@ -615,7 +605,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1728))
                 .plasma()
                 .color(0xC8C8FA).iconSet(METALLIC)
-                .flags(STD_METAL, MORTAR_GRINDABLE, GENERATE_DOUBLE_PLATE)
+                .flags(STD_METAL, MORTAR_GRINDABLE)
                 .element(Elements.Ni)
                 .cableProperties(GTValues.V[GTValues.LV], 3, 3)
                 .itemPipeProperties(2048, 1.0f)
@@ -670,7 +660,7 @@ public class ElementMaterials {
                 .ingot(4)
                 .liquid(new FluidBuilder().temperature(3306))
                 .color(0x3232FF).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_FOIL, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL)
                 .element(Elements.Os)
                 .rotorStats(16.0f, 4.0f, 1280)
                 .cableProperties(V[LuV], 4, 2)
@@ -697,7 +687,7 @@ public class ElementMaterials {
         Palladium = Material.builder(77, gregtechId("palladium"))
                 .ingot().fluid()
                 .color(0x808080).iconSet(SHINY)
-                .flags(EXT_METAL, GENERATE_FOIL, GENERATE_FINE_WIRE)
+                .flags(EXT_METAL)
                 .element(Elements.Pd)
                 .blast(b -> b
                         .temp(1828, GasTier.LOW)
@@ -725,7 +715,7 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(2041))
                 .color(0xFFFFC8).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_FOIL, GENERATE_FINE_WIRE, GENERATE_RING, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL)
                 .element(Elements.Pt)
                 .cableProperties(V[IV], 2, 1)
                 .itemPipeProperties(512, 4.0f)
@@ -743,7 +733,6 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(913))
                 .plasma()
                 .color(0xFA4646).iconSet(SHINY)
-                .flags(GENERATE_DOUBLE_PLATE)
                 .element(Elements.Pu241)
                 .build();
 
@@ -765,7 +754,6 @@ public class ElementMaterials {
 
         Promethium = Material.builder(85, gregtechId("promethium"))
                 .dust().ingot().fluid()
-                .flags(GENERATE_FINE_WIRE)
                 .color(0x74E0A0).iconSet(SHINY)
                 .element(Elements.Pm)
                 .build();
@@ -808,7 +796,7 @@ public class ElementMaterials {
         Rhodium = Material.builder(90, gregtechId("rhodium"))
                 .ingot().fluid()
                 .color(0xDC0C58).iconSet(BRIGHT)
-                .flags(EXT2_METAL, GENERATE_GEAR, GENERATE_FINE_WIRE)
+                .flags(EXT2_METAL)
                 .element(Elements.Rh)
                 .blast(b -> b
                         .temp(2237, GasTier.MID)
@@ -833,7 +821,6 @@ public class ElementMaterials {
         Ruthenium = Material.builder(93, gregtechId("ruthenium"))
                 .ingot().fluid()
                 .color(0x50ACCD).iconSet(SHINY)
-                .flags(GENERATE_FOIL, GENERATE_GEAR)
                 .element(Elements.Ru)
                 .blast(b -> b
                         .temp(2607, GasTier.MID)
@@ -852,7 +839,6 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1345))
                 .color(0xFFFFCC).iconSet(METALLIC)
-                .flags(GENERATE_LONG_ROD)
                 .element(Elements.Sm)
                 .blast(b -> b
                         .temp(5400, GasTier.HIGH)
@@ -895,7 +881,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1235))
                 .plasma()
                 .color(0xDCDCFF).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE, MORTAR_GRINDABLE, GENERATE_FINE_WIRE, GENERATE_RING)
+                .flags(EXT2_METAL)
                 .element(Elements.Ag)
                 .cableProperties(V[HV], 1, 1)
                 .build();
@@ -928,7 +914,7 @@ public class ElementMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(3290))
                 .color(0x69B7FF).iconSet(METALLIC)
-                .flags(STD_METAL, GENERATE_FOIL, GENERATE_FINE_WIRE)
+                .flags(STD_METAL)
                 .element(Elements.Ta)
                 .build();
 
@@ -941,7 +927,7 @@ public class ElementMaterials {
 
         Tellurium = Material.builder(106, gregtechId("tellurium"))
                 .dust().ingot().fluid()
-                .flags(STD_METAL, GENERATE_FOIL)
+                .flags(STD_METAL)
                 .color(0xEFDDED).iconSet(METALLIC)
                 .element(Elements.Te)
                 .build();
@@ -965,7 +951,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(2023))
                 .plasma()
                 .color(0x001E00).iconSet(SHINY)
-                .flags(STD_METAL, GENERATE_ROD)
+                .flags(STD_METAL)
                 .element(Elements.Th)
                 .build();
 
@@ -990,8 +976,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(505))
                 .plasma()
                 .color(0xDCDCDC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_SPRING, GENERATE_SPRING_SMALL,
-                        GENERATE_FINE_WIRE, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE)
                 .element(Elements.Sn)
                 .cableProperties(V[LV], 1, 1)
                 .itemPipeProperties(4096, 0.5f)
@@ -1003,8 +988,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1668))
                 .plasma()
                 .color(0xDCA0F0).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE, GENERATE_ROTOR, GENERATE_SMALL_GEAR, GENERATE_GEAR,
-                        GENERATE_FRAME)
+                .flags(EXT2_METAL)
                 .element(Elements.Ti)
                 .toolStats(MaterialToolProperty.Builder.of(8.0F, 6.0F, 1536, 3)
                         .enchantability(14).build())
@@ -1027,8 +1011,7 @@ public class ElementMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(3695))
                 .color(0x323232).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FOIL, GENERATE_GEAR,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL)
                 .element(Elements.W)
                 .rotorStats(7.0f, 3.0f, 2560)
                 .cableProperties(V[IV], 2, 2)
@@ -1092,7 +1075,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(693))
                 .plasma()
                 .color(0xEBEBFA).iconSet(METALLIC)
-                .flags(STD_METAL, MORTAR_GRINDABLE, GENERATE_FOIL, GENERATE_RING, GENERATE_FINE_WIRE)
+                .flags(STD_METAL, MORTAR_GRINDABLE)
                 .element(Elements.Zn)
                 .build();
 
@@ -1109,8 +1092,7 @@ public class ElementMaterials {
                 .ingot(4)
                 .liquid(new FluidBuilder().customStill())
                 .color(0x323232).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_FOIL, GENERATE_SPRING, GENERATE_FINE_WIRE, GENERATE_BOLT_SCREW,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(EXT_METAL)
                 .element(Elements.Nq)
                 .rotorStats(6.0f, 4.0f, 1280)
                 .cableProperties(V[ZPM], 2, 2)
@@ -1125,7 +1107,7 @@ public class ElementMaterials {
                 .ingot(4)
                 .liquid(new FluidBuilder().customStill())
                 .color(0x3C3C3C).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_FOIL)
+                .flags(EXT_METAL)
                 .element(Elements.Nq1)
                 .blast(b -> b
                         .temp(7000, GasTier.HIGH)
@@ -1137,8 +1119,7 @@ public class ElementMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().customStill())
                 .color(0x1E1E1E).iconSet(SHINY)
-                .flags(EXT_METAL, GENERATE_DOUBLE_PLATE, GENERATE_FOIL, GENERATE_GEAR, GENERATE_FINE_WIRE,
-                        GENERATE_BOLT_SCREW)
+                .flags(EXT_METAL)
                 .element(Elements.Nq2)
                 .blast(b -> b
                         .temp(9000, GasTier.HIGH)
@@ -1150,8 +1131,7 @@ public class ElementMaterials {
                 .ingot(6)
                 .liquid(new FluidBuilder().temperature(100_000))
                 .color(0xFAFAFA)
-                .flags(EXT_METAL, GENERATE_BOLT_SCREW, GENERATE_FRAME, GENERATE_GEAR, GENERATE_LONG_ROD,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(EXT_METAL)
                 .element(Elements.Nt)
                 .toolStats(MaterialToolProperty.Builder.of(180.0F, 100.0F, 65535, 6)
                         .attackSpeed(0.5F).enchantability(33).magnetic().unbreakable().build())
@@ -1163,8 +1143,7 @@ public class ElementMaterials {
                 .ingot(6)
                 .liquid(new FluidBuilder().temperature(25_000))
                 .color(0x600000).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_FRAME, GENERATE_RING, GENERATE_SMALL_GEAR, GENERATE_ROUND, GENERATE_FOIL,
-                        GENERATE_FINE_WIRE, GENERATE_GEAR)
+                .flags(EXT2_METAL)
                 .element(Elements.Tr)
                 .cableProperties(V[UV], 1, 8)
                 .rotorStats(20.0f, 6.0f, 10240)
@@ -1174,7 +1153,7 @@ public class ElementMaterials {
                 .ingot(5)
                 .liquid(new FluidBuilder().temperature(7500))
                 .color(0x4BAFAF).iconSet(BRIGHT)
-                .flags(EXT_METAL, GENERATE_FOIL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(EXT_METAL)
                 .element(Elements.Dr)
                 .toolStats(MaterialToolProperty.Builder.of(14.0F, 12.0F, 8192, 5)
                         .attackSpeed(0.3F).enchantability(33).magnetic().build())
@@ -1184,7 +1163,6 @@ public class ElementMaterials {
         Trinium = Material.builder(130, gregtechId("trinium"))
                 .ingot(7).fluid()
                 .color(0x9973BD).iconSet(SHINY)
-                .flags(GENERATE_FOIL, GENERATE_BOLT_SCREW, GENERATE_GEAR)
                 .element(Elements.Ke)
                 .cableProperties(V[ZPM], 6, 4)
                 .blast(b -> b

@@ -65,7 +65,6 @@ public class HigherDegreeMaterials {
                 .dust(1).ore()
                 .color(0x283C3C).iconSet(SAND)
                 .components(Magnetite, 1, GraniteBlack, 1)
-                .flags(BLAST_FURNACE_CALCITE_DOUBLE)
                 .build();
 
         Redrock = Material.builder(2514, gregtechId("redrock"))
@@ -109,7 +108,6 @@ public class HigherDegreeMaterials {
                 .dust(1).ore()
                 .color(0x283228).iconSet(SAND)
                 .components(Magnetite, 1, Basalt, 1)
-                .flags(BLAST_FURNACE_CALCITE_DOUBLE)
                 .build();
 
         HSSE = Material.builder(2519, gregtechId("hsse"))

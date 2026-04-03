@@ -127,6 +127,8 @@ public final class ToolItems {
     public static IGTTool UNIVERSAL_SPADE;
     public static IGTTool FLINT_AND_STEEL;
     public static IGTTool PINCERS;
+    public static IGTTool BENDING_CYLINDER;
+    public static IGTTool BENDING_CYLINDER_SMALL;
 
     //万能工具
     public static IGTTool UNIVERSAL_TOOL;
@@ -749,6 +751,22 @@ public final class ToolItems {
                 .toolStats(b -> b.crafting().cannotAttack().attackSpeed(-2.4F))
                 .oreDict(ToolOreDict.toolPincers)
                 .toolClasses(ToolClasses.PINCERS));
+
+        BENDING_CYLINDER = register(ItemGTTool.Builder.of(GTValues.MODID, "bending_cylinder")
+                .toolStats(b -> b.crafting().damagePerCraftingAction(2)
+                        .attackDamage(2.0F).attackSpeed(-2.8F))
+                .oreDict(ToolOreDict.toolBendingCylinder)
+                .secondaryOreDicts("craftingToolBendingCylinder")
+                .symbol('b')
+                .toolClasses(ToolClasses.BENDING_CYLINDER));
+
+        BENDING_CYLINDER_SMALL = register(ItemGTTool.Builder.of(GTValues.MODID, "bending_cylinder_small")
+                .toolStats(b -> b.crafting().damagePerCraftingAction(1)
+                        .attackDamage(1.5F).attackSpeed(-2.6F))
+                .oreDict(ToolOreDict.toolBendingCylinderSmall)
+                .secondaryOreDicts("craftingToolBendingCylinderSmall")
+                .symbol('e')
+                .toolClasses(ToolClasses.BENDING_CYLINDER));
 
         UNIVERSAL_TOOL = register(ItemGTTool.Builder.of(GTValues.MODID, "universal_tool")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()

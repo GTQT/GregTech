@@ -176,7 +176,7 @@ public class MetaPrefixItem extends StandardMetaItem {
                     if(entity instanceof EntityPlayer entityPlayer){
                         ItemStack heldItem = entityPlayer.getHeldItemMainhand();
                         if(heldItem.getItem().getToolClasses(itemStack).contains(ToolClasses.PINCERS)){
-                            heldItem.damageItem(1, entityPlayer);
+                            if (entityIn.ticksExisted % 80 == 0)heldItem.damageItem(1, entityPlayer);
                             return;
                         }
                     }

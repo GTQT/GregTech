@@ -111,7 +111,7 @@ public class FirstDegreeMaterials {
         BrownLimonite = Material.builder(261, gregtechId("brown_limonite"))
                 .dust(1).ore()
                 .color(0xC86400).iconSet(METALLIC)
-                .flags(DECOMPOSITION_BY_CENTRIFUGING, BLAST_FURNACE_CALCITE_TRIPLE)
+                .flags(DECOMPOSITION_BY_CENTRIFUGING)
                 .components(Iron, 1, Hydrogen, 1, Oxygen, 2)
                 .build();
 
@@ -476,7 +476,6 @@ public class FirstDegreeMaterials {
         Pyrite = Material.builder(306, gregtechId("pyrite"))
                 .dust(1).ore()
                 .color(0x967828).iconSet(ROUGH)
-                .flags(BLAST_FURNACE_CALCITE_DOUBLE)
                 .components(Iron, 1, Sulfur, 2)
                 .build();
 
@@ -711,7 +710,7 @@ public class FirstDegreeMaterials {
                 .liquid(new FluidBuilder().temperature(2011))
                 .color(0xC8B4B4).iconSet(METALLIC)
                 .flags(EXT_METAL, GENERATE_GEAR, GENERATE_FOIL, MORTAR_GRINDABLE, GENERATE_RING, GENERATE_LONG_ROD,
-                        GENERATE_BOLT_SCREW, DISABLE_DECOMPOSITION, BLAST_FURNACE_CALCITE_TRIPLE, GENERATE_DOUBLE_PLATE)
+                        GENERATE_BOLT_SCREW, DISABLE_DECOMPOSITION, GENERATE_DOUBLE_PLATE)
                 .components(Iron, 1)
                 .toolStats(MaterialToolProperty.Builder.of(2.0F, 2.0F, 384, 2)
                         .attackSpeed(-0.2F).enchantability(5).build())
@@ -729,7 +728,7 @@ public class FirstDegreeMaterials {
         YellowLimonite = Material.builder(337, gregtechId("yellow_limonite"))
                 .dust().ore()
                 .color(0xC8C800).iconSet(METALLIC)
-                .flags(DECOMPOSITION_BY_CENTRIFUGING, BLAST_FURNACE_CALCITE_DOUBLE)
+                .flags(DECOMPOSITION_BY_CENTRIFUGING)
                 .components(Iron, 1, Hydrogen, 1, Oxygen, 2)
                 .build();
 
