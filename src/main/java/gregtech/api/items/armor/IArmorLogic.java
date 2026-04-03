@@ -79,4 +79,8 @@ public interface IArmorLogic {
     default float getHeatResistance() {
         return 1.0f;
     }
+
+    default float getRadiationResistance() {
+        return 1.0f;
+    }
 }

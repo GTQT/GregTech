@@ -126,6 +126,7 @@ public final class ToolItems {
     public static IGTTool COMBINATION_WRENCH;
     public static IGTTool UNIVERSAL_SPADE;
     public static IGTTool FLINT_AND_STEEL;
+    public static IGTTool PINCERS;
 
     //万能工具
     public static IGTTool UNIVERSAL_TOOL;
@@ -743,6 +744,11 @@ public final class ToolItems {
                 .toolStats(b -> b.behaviors(FlintAndSteelToolBehavior.INSTANCE))
                 .oreDict(ToolOreDict.toolFlintAndSteel)
                 .toolClasses(ToolClasses.FLINT_AND_STEEL));
+
+        PINCERS = register(ItemGTTool.Builder.of(GTValues.MODID, "pincers")
+                .toolStats(b -> b.crafting().cannotAttack().attackSpeed(-2.4F))
+                .oreDict(ToolOreDict.toolPincers)
+                .toolClasses(ToolClasses.PINCERS));
 
         UNIVERSAL_TOOL = register(ItemGTTool.Builder.of(GTValues.MODID, "universal_tool")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()

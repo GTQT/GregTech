@@ -292,6 +292,14 @@ public class ToolRecipeHandler {
                     'D', new UnificationEntry(OrePrefix.dye, MarkerMaterials.Color.Blue));
         }
 
+        if (material.hasFlag(GENERATE_CURVED_PLATE) && material.hasFlag(GENERATE_BOLT_SCREW)) {
+            addToolRecipe(material, ToolItems.PINCERS, false,
+                    "XhX", " T ", "SdS",
+                    'X', new UnificationEntry(OrePrefix.plateCurved, material),
+                    'T', new UnificationEntry(OrePrefix.screw, material),
+                    'S', stick);
+        }
+
         if (material.hasFlags(GENERATE_PLATE) && material.hasFlags(GENERATE_ROD)) {
             // Universal Spade
             addToolRecipe(material, ToolItems.UNIVERSAL_SPADE, true,

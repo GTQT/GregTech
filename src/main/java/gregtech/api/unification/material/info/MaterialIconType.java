@@ -52,6 +52,7 @@ public class MaterialIconType {
     public static final MaterialIconType plateQuadruple = new MaterialIconType("plateQuadruple");
     public static final MaterialIconType plateQuintuple = new MaterialIconType("plateQuintuple");
     public static final MaterialIconType plateDense = new MaterialIconType("plateDense");
+    public static final MaterialIconType plateCurved = new MaterialIconType("plateCurved");
 
     public static final MaterialIconType stick = new MaterialIconType("stick");
     public static final MaterialIconType lens = new MaterialIconType("lens");

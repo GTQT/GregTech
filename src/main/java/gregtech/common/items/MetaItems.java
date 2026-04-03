@@ -655,6 +655,7 @@ public final class MetaItems {
         orePrefixes.add(OrePrefix.plate);
         orePrefixes.add(OrePrefix.plateDouble);
         orePrefixes.add(OrePrefix.plateDense);
+        orePrefixes.add(OrePrefix.plateCurved);
         orePrefixes.add(OrePrefix.foil);
         orePrefixes.add(OrePrefix.stick);
         orePrefixes.add(OrePrefix.stickLong);

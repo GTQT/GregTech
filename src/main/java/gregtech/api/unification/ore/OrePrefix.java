@@ -163,6 +163,9 @@ public class OrePrefix {
     public static final OrePrefix plateDouble = new OrePrefix("plateDouble", M * 2, null, MaterialIconType.plateDouble,
             ENABLE_UNIFICATION, hasIngotProperty
             .and(mat -> mat.hasFlags(GENERATE_PLATE, GENERATE_DOUBLE_PLATE) && !mat.hasFlag(NO_SMASHING)));
+    // Curved Plate made of one Plate
+    public static final OrePrefix plateCurved = new OrePrefix("plateCurved", M, null, MaterialIconType.plateCurved,
+            ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_CURVED_PLATE));
     // Regular Plate made of one Ingot/Dust. Introduced by Calclavia
     public static final OrePrefix plate = new OrePrefix("plate", M, null, MaterialIconType.plate, ENABLE_UNIFICATION,
             mat -> mat.hasFlag(GENERATE_PLATE));
@@ -385,6 +388,14 @@ public class OrePrefix {
         public static final Predicate<Material> hasRotorProperty = mat -> mat.hasProperty(PropertyKey.ROTOR);
     }
 
+    private static void setRadiationDamageFunction(OrePrefix prefix, Function<Double, Double> function) {
+        prefix.radiationDamageFunction = function;
+    }
+
+    private void setHeatDamageFunction(OrePrefix prefix, Function<Integer, Float> function) {
+        prefix.heatDamageFunction = function;
+    }
+
     public static void init() {
         ingotHot.heatDamageFunction = (temp) -> ((temp - 1750) / 1000.0F) + 2;
         gemFlawless.maxStackSize = 32;
@@ -567,6 +578,7 @@ public class OrePrefix {
     public byte maxStackSize = 64;
     public final List<MaterialStack> secondaryMaterials = new ArrayList<>();
     public Function<Integer, Float> heatDamageFunction = null; // Negative for Frost Damage
+    public Function<Double, Double> radiationDamageFunction = null;
     public Function<Material, List<String>> tooltipFunc;
 
     private String alternativeOreName = null;

@@ -70,6 +70,11 @@ public class Element {
         return protons + neutrons;
     }
 
+    @ZenGetter("halfLifeSeconds")
+    public double getHalfLiveSeconds() {
+        return halfLifeSeconds;
+    }
+
     @Override
     @ZenMethod
     public String toString() {

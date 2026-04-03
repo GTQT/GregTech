@@ -571,6 +571,20 @@ public class Material implements Comparable<Material> {
         return GregTechAPI.materialManager.getRegistry(getModid());
     }
 
+    public double getDecaysPerSecond() {
+        if (!isRadioactive()) {
+            return 0;
+        }
+        if (getElement() != null) {
+            return 6e23 * (Math.log(2) *
+                    Math.exp(-Math.log(2) / getElement().getHalfLiveSeconds()));
+        }
+        double decaysPerSecond = 0;
+        for (MaterialStack stack : getMaterialComponents())
+            decaysPerSecond += stack.material.getDecaysPerSecond();
+        return decaysPerSecond;
+    }
+
     /**
      * @since GTCEu 2.0.0
      */

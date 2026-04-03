@@ -111,6 +111,11 @@ public class MaterialFlags {
             .requireProps(PropertyKey.INGOT)
             .build();
 
+    public static final MaterialFlag GENERATE_CURVED_PLATE = new MaterialFlag.Builder("generate_curved_plate")
+            .requireFlags(GENERATE_PLATE)
+            .requireProps(PropertyKey.INGOT)
+            .build();
+
     public static final MaterialFlag GENERATE_DENSE = new MaterialFlag.Builder("generate_dense")
             .requireFlags(GENERATE_PLATE)
             .requireProps(PropertyKey.DUST)

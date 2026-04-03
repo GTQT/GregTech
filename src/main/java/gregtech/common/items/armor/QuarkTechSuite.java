@@ -299,6 +299,11 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
         return 0.5f;
     }
 
+    @Override
+    public float getRadiationResistance() {
+        return 0.5f;
+    }
+
     @SideOnly(Side.CLIENT)
     @Override
     public void drawHUD(ItemStack item) {

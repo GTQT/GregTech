@@ -4,7 +4,8 @@ public class PropertyKey<T extends IMaterialProperty> {
 
     public static final PropertyKey<BlastProperty> BLAST = new PropertyKey<>("blast", BlastProperty.class);
     public static final PropertyKey<MixProperty> MIX = new PropertyKey<>("mix", MixProperty.class);
-
+    public static final PropertyKey<FissionFuelProperty> FISSION_FUEL = new PropertyKey<>("fission_fuel",
+            FissionFuelProperty.class);
     public static final PropertyKey<DustProperty> DUST = new PropertyKey<>("dust", DustProperty.class);
     public static final PropertyKey<FluidPipeProperties> FLUID_PIPE = new PropertyKey<>("fluid_pipe",
             FluidPipeProperties.class);

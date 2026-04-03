@@ -22,7 +22,7 @@ public class RecyclingRecipeHandler {
             OrePrefix.frameGt, OrePrefix.plateDense, OrePrefix.spring,
             OrePrefix.springSmall, OrePrefix.block, OrePrefix.wireFine,
             OrePrefix.rotor, OrePrefix.lens, OrePrefix.turbineBlade,
-            OrePrefix.round, OrePrefix.plateDouble, OrePrefix.dust,
+            OrePrefix.round, OrePrefix.plateDouble,OrePrefix.plateCurved, OrePrefix.dust,
             (Predicate<OrePrefix>) orePrefix -> orePrefix.name().startsWith("toolHead"),
             (Predicate<OrePrefix>) orePrefix -> orePrefix.name().startsWith("gem"),
             (Predicate<OrePrefix>) orePrefix -> orePrefix.name().startsWith("cableGt"),
