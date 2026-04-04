@@ -35,10 +35,18 @@ public class PartsRecipeHandler {
     public static void register() {
         OrePrefix.stick.addProcessingHandler(PropertyKey.DUST, PartsRecipeHandler::processStick);
         OrePrefix.stickLong.addProcessingHandler(PropertyKey.DUST, PartsRecipeHandler::processLongStick);
+
+        OrePrefix.plateCurved.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processPlateCurved);
         OrePrefix.plate.addProcessingHandler(PropertyKey.DUST, PartsRecipeHandler::processPlate);
         OrePrefix.plateDouble.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processPlateDouble);
-        OrePrefix.plateDense.addProcessingHandler(PropertyKey.DUST, PartsRecipeHandler::processPlateDense);
-        OrePrefix.plateCurved.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processPlateCurved);
+        OrePrefix.plateTriple.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processPlateMultiple(p, m, 3));
+        OrePrefix.plateQuadruple.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processPlateMultiple(p, m, 4));
+        OrePrefix.plateQuintuple.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processPlateMultiple(p, m, 5));
+        OrePrefix.plateDense.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processPlateMultiple(p, m, 9));
 
         OrePrefix.turbineBlade.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processTurbine);
         OrePrefix.rotor.addProcessingHandler(PropertyKey.INGOT, PartsRecipeHandler::processRotor);
@@ -352,45 +360,40 @@ public class PartsRecipeHandler {
                         OreDictUnifier.get(doublePrefix, material),
                         "h", "P", "P", 'P', new UnificationEntry(plate, material));
             }
-
-            BENDER_RECIPES.recipeBuilder()
-                    .input(plate, material, 2)
-                    .output(doublePrefix, material)
-                    .circuitMeta(2)
-                    .duration((int) material.getMass() * 2)
-                    .EUt(GTUtility.scaleVoltage(96, workingTier))
-                    .buildAndRegister();
-
-            BENDER_RECIPES.recipeBuilder()
-                    .input(ingot, material, 2)
-                    .circuitMeta(2)
-                    .output(doublePrefix, material)
-                    .duration((int) material.getMass() * 2)
-                    .EUt(GTUtility.scaleVoltage(96, workingTier))
-                    .buildAndRegister();
+            processPlateMultiple(doublePrefix, material, 2);
         }
     }
 
-    public static void processPlateDense(OrePrefix orePrefix, Material material, DustProperty property) {
+    static OrePrefix[] INGOT_PREFIXES = new OrePrefix[]{OrePrefix.ingotDouble, OrePrefix.ingotTriple, OrePrefix.ingotQuadruple, OrePrefix.ingotQuintuple};
+
+    public static void processPlateMultiple(OrePrefix orePrefix, Material material, int multiplier) {
+        if(!material.hasFlag(GENERATE_EXTRA))return;
         int workingTier = material.getWorkingTier();
 
+        if(multiplier <= 5) {
+            RecipeMaps.BENDER_RECIPES.recipeBuilder()
+                    .input(INGOT_PREFIXES[multiplier - 2], material)
+                    .circuitMeta(multiplier)
+                    .output(orePrefix, material)
+                    .duration((int) Math.max(material.getMass() * multiplier, 1L))
+                    .EUt(GTUtility.scaleVoltage(48, workingTier))
+                    .buildAndRegister();
+        }
+
         RecipeMaps.BENDER_RECIPES.recipeBuilder()
-                .input(OrePrefix.plate, material, 9)
-                .circuitMeta(9)
+                .input(OrePrefix.plate, material, multiplier)
+                .circuitMeta(multiplier)
                 .output(orePrefix, material)
-                .duration((int) Math.max(material.getMass() * 9L, 1L))
+                .duration((int) Math.max(material.getMass() * multiplier, 1L))
                 .EUt(GTUtility.scaleVoltage(96, workingTier))
                 .buildAndRegister();
 
-        if (material.hasProperty(PropertyKey.INGOT)) {
-            RecipeMaps.BENDER_RECIPES.recipeBuilder()
-                    .input(OrePrefix.ingot, material, 9)
-                    .circuitMeta(9)
-                    .output(orePrefix, material)
-                    .duration((int) Math.max(material.getMass() * 9L, 1L))
-                    .EUt(GTUtility.scaleVoltage(96, workingTier))
-                    .buildAndRegister();
-        }
+        RecipeMaps.UNPACKER_RECIPES.recipeBuilder()
+                .input(orePrefix, material)
+                .output(plate, material, multiplier)
+                .duration((int) Math.max(material.getMass() * (long) multiplier, 1L))
+                .EUt(GTUtility.scaleVoltage(36, workingTier))
+                .buildAndRegister();
     }
 
     public static void processPlateCurved(OrePrefix curvedPrefix, Material material, IngotProperty property) {

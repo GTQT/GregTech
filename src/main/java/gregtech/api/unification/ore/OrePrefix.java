@@ -118,6 +118,18 @@ public class OrePrefix {
     // A regular Ingot. Introduced by Eloraam
     public static final OrePrefix ingot = new OrePrefix("ingot", M, null, MaterialIconType.ingot, ENABLE_UNIFICATION,
             hasIngotProperty);
+    // 2 Ingots combined in one Item
+    public static final OrePrefix ingotDouble = new OrePrefix("ingotDouble", M * 2, null,
+            MaterialIconType.ingotDouble, ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_EXTRA));
+    // 3 Ingots combined in one Item
+    public static final OrePrefix ingotTriple = new OrePrefix("ingotTriple", M * 3, null,
+            MaterialIconType.ingotTriple, ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_EXTRA));
+    // 4 Ingots combined in one Item
+    public static final OrePrefix ingotQuadruple = new OrePrefix("ingotQuadruple", M * 4, null,
+            MaterialIconType.ingotQuadruple, ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_EXTRA));
+    // 5 Ingots combined in one Item
+    public static final OrePrefix ingotQuintuple = new OrePrefix("ingotQuintuple", M * 5, null,
+            MaterialIconType.ingotQuintuple, ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_EXTRA));
 
     // A regular Gem worth one Dust. Introduced by Eloraam
     public static final OrePrefix gem = new OrePrefix("gem", M, null, MaterialIconType.gem, ENABLE_UNIFICATION,
@@ -159,19 +171,33 @@ public class OrePrefix {
     public static final OrePrefix nugget = new OrePrefix("nugget", M / 9, null, MaterialIconType.nugget,
             ENABLE_UNIFICATION, hasIngotProperty);
 
-    // 9 Plates combined in one Item.
-    public static final OrePrefix plateDense = new OrePrefix("plateDense", M * 9, null, MaterialIconType.plateDense,
-            ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_DENSE));
-    // 2 Plates combined in one Item
-    public static final OrePrefix plateDouble = new OrePrefix("plateDouble", M * 2, null, MaterialIconType.plateDouble,
-            ENABLE_UNIFICATION, hasIngotProperty
-            .and(mat -> mat.hasFlags(GENERATE_PLATE, GENERATE_DOUBLE_PLATE) && !mat.hasFlag(NO_SMASHING)));
+
     // Regular Plate made of one Ingot/Dust. Introduced by Calclavia
     public static final OrePrefix plate = new OrePrefix("plate", M, null, MaterialIconType.plate, ENABLE_UNIFICATION,
             mat -> mat.hasFlag(GENERATE_PLATE));
     // Curved Plate made of one Plate
     public static final OrePrefix plateCurved = new OrePrefix("plateCurved", M, null, MaterialIconType.plateCurved,
             ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_CURVED_PLATE));
+    // 2 Plates combined in one Item
+    public static final OrePrefix plateDouble = new OrePrefix("plateDouble", M * 2, null, MaterialIconType.plateDouble,
+            ENABLE_UNIFICATION, hasIngotProperty
+            .and(mat -> mat.hasFlags(GENERATE_PLATE, GENERATE_DOUBLE_PLATE) && !mat.hasFlag(NO_SMASHING)));
+    // 3 Plates combined in one Item
+    public static final OrePrefix plateTriple = new OrePrefix("plateTriple", M * 3, null, MaterialIconType.plateTriple,
+            ENABLE_UNIFICATION, hasIngotProperty
+            .and(mat -> mat.hasFlags(GENERATE_EXTRA) && !mat.hasFlag(NO_SMASHING)));
+    // 4 Plates combined in one Item
+    public static final OrePrefix plateQuadruple = new OrePrefix("plateQuadruple", M * 4, null,
+            MaterialIconType.plateQuadruple, ENABLE_UNIFICATION, hasIngotProperty
+            .and(mat -> mat.hasFlags(GENERATE_EXTRA) && !mat.hasFlag(NO_SMASHING)));
+    // 5 Plates combined in one Item
+    public static final OrePrefix plateQuintuple = new OrePrefix("plateQuintuple", M * 5, null,
+            MaterialIconType.plateQuintuple, ENABLE_UNIFICATION, hasIngotProperty
+            .and(mat -> mat.hasFlags(GENERATE_EXTRA) && !mat.hasFlag(NO_SMASHING)));
+    // 9 Plates combined in one Item.
+    public static final OrePrefix plateDense = new OrePrefix("plateDense", M * 9, null, MaterialIconType.plateDense,
+            ENABLE_UNIFICATION, mat -> mat.hasFlag(GENERATE_DENSE));
+
 
     // Round made of 1 Nugget
     public static final OrePrefix round = new OrePrefix("round", M / 9, null, MaterialIconType.round,
@@ -405,8 +431,17 @@ public class OrePrefix {
         gemExquisite.maxStackSize = 16;
         gemLegendary.maxStackSize = 8;
 
+        ingotDouble.maxStackSize = 32;
+        ingotTriple.maxStackSize = 24;
+        ingotQuadruple.maxStackSize = 16;
+        ingotQuintuple.maxStackSize = 12;
+
         plateDouble.maxStackSize = 32;
-        plateDense.maxStackSize = 7;
+        plateTriple.maxStackSize = 24;
+        plateQuadruple.maxStackSize = 16;
+        plateQuintuple.maxStackSize = 12;
+        plateDense.maxStackSize = 8;
+
         rotor.maxStackSize = 16;
         gear.maxStackSize = 16;
 

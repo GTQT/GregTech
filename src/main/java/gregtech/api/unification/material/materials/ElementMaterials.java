@@ -222,7 +222,7 @@ public class ElementMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(1358))
                 .color(0xFF6400).iconSet(SHINY)
-                .flags(EXT_METAL, MORTAR_GRINDABLE, GENERATE_CURVED_PLATE)
+                .flags(EXT_METAL, MORTAR_GRINDABLE, GENERATE_CURVED_PLATE, GENERATE_EXTRA)
                 .element(Elements.Cu)
                 .cableProperties(V[MV], 1, 2)
                 .fluidPipeProperties(1696, 6, true)
@@ -447,7 +447,8 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1811))
                 .plasma()
                 .color(0xC8C8C8).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE,EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,GENERATE_CURVED_PLATE)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE,EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,GENERATE_CURVED_PLATE,
+                        GENERATE_EXTRA)
                 .element(Elements.Fe)
                 .toolStats(MaterialToolProperty.Builder.of(2.0F, 2.0F, 256, 2)
                         .enchantability(14).build())

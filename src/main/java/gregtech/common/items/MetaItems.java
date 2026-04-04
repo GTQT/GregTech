@@ -658,8 +658,15 @@ public final class MetaItems {
         orePrefixes.add(OrePrefix.gemLegendary);
         orePrefixes.add(OrePrefix.ingot);
         orePrefixes.add(OrePrefix.ingotHot);
+        orePrefixes.add(OrePrefix.ingotDouble);
+        orePrefixes.add(OrePrefix.ingotTriple);
+        orePrefixes.add(OrePrefix.ingotQuadruple);
+        orePrefixes.add(OrePrefix.ingotQuintuple);
         orePrefixes.add(OrePrefix.plate);
         orePrefixes.add(OrePrefix.plateDouble);
+        orePrefixes.add(OrePrefix.plateTriple);
+        orePrefixes.add(OrePrefix.plateQuadruple);
+        orePrefixes.add(OrePrefix.plateQuintuple);
         orePrefixes.add(OrePrefix.plateDense);
         orePrefixes.add(OrePrefix.plateCurved);
         orePrefixes.add(OrePrefix.foil);

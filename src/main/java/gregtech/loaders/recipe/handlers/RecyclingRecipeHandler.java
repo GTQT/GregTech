@@ -16,13 +16,13 @@ import java.util.function.Predicate;
 public class RecyclingRecipeHandler {
 
     private static final List<Object> CRUSHING_PREFIXES = Arrays.asList(
-            OrePrefix.ingot, OrePrefix.gem, OrePrefix.stick, OrePrefix.plate, OrePrefix.plank,
-            OrePrefix.ring, OrePrefix.stickLong, OrePrefix.foil, OrePrefix.bolt,
+            OrePrefix.ingot,OrePrefix.ingotDouble, OrePrefix.ingotTriple, OrePrefix.ingotQuadruple, OrePrefix.ingotQuintuple,
+            OrePrefix.gem, OrePrefix.stick,
+            OrePrefix.plateCurved,OrePrefix.plate,OrePrefix.plateDouble, OrePrefix.plateTriple, OrePrefix.plateQuadruple, OrePrefix.plateQuintuple,OrePrefix.plateDense,
+            OrePrefix.plank, OrePrefix.ring, OrePrefix.stickLong, OrePrefix.foil, OrePrefix.bolt,
             OrePrefix.screw, OrePrefix.nugget, OrePrefix.gearSmall, OrePrefix.gear,
-            OrePrefix.frameGt, OrePrefix.plateDense, OrePrefix.spring,
-            OrePrefix.springSmall, OrePrefix.block, OrePrefix.wireFine,
-            OrePrefix.rotor, OrePrefix.lens, OrePrefix.turbineBlade,
-            OrePrefix.round, OrePrefix.plateDouble,OrePrefix.plateCurved, OrePrefix.dust,
+            OrePrefix.frameGt,  OrePrefix.spring, OrePrefix.springSmall, OrePrefix.block, OrePrefix.wireFine,
+            OrePrefix.rotor, OrePrefix.lens, OrePrefix.turbineBlade, OrePrefix.round,  OrePrefix.dust,
             (Predicate<OrePrefix>) orePrefix -> orePrefix.name().startsWith("toolHead"),
             (Predicate<OrePrefix>) orePrefix -> orePrefix.name().startsWith("gem"),
             (Predicate<OrePrefix>) orePrefix -> orePrefix.name().startsWith("cableGt"),

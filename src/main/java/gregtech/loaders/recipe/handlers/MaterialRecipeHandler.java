@@ -56,6 +56,14 @@ public class MaterialRecipeHandler {
 
     public static void register() {
         OrePrefix.ingot.addProcessingHandler(PropertyKey.INGOT, MaterialRecipeHandler::processIngot);
+        OrePrefix.ingotDouble.addProcessingHandler(PropertyKey.INGOT, MaterialRecipeHandler::processDoubleIngot);
+        OrePrefix.ingotTriple.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processMultiIngot(p, m, 3));
+        OrePrefix.ingotQuadruple.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processMultiIngot(p, m, 4));
+        OrePrefix.ingotQuintuple.addProcessingHandler(PropertyKey.INGOT,
+                (p, m, prop) -> processMultiIngot(p, m, 5));
+
         OrePrefix.nugget.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processNugget);
 
         OrePrefix.block.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processBlock);
@@ -481,6 +489,36 @@ public class MaterialRecipeHandler {
                 }
             }
         }
+    }
+    private static void processDoubleIngot(OrePrefix ingotPrefix, Material material, IngotProperty property) {
+        int workingTier = material.getWorkingTier();
+
+        if (workingTier <= HV) {
+            ModHandler.addShapedRecipe(String.format("ingot_double_%s", material),
+                    OreDictUnifier.get(ingotPrefix, material),
+                    "h", "I", "I", 'I', new UnificationEntry(ingot, material));
+        }
+
+        processMultiIngot(ingotPrefix, material, 2);
+    }
+    private static void processMultiIngot(OrePrefix ingotPrefix, Material material, int multiplier) {
+        int workingTier = material.getWorkingTier();
+
+        RecipeMaps.BENDER_RECIPES.recipeBuilder()
+                .input(ingot, material, multiplier)
+                .circuitMeta(multiplier)
+                .output(ingotPrefix, material)
+                .duration((int) Math.max(material.getMass() * (long) multiplier, 1L))
+                .EUt(GTUtility.scaleVoltage(48, workingTier))
+                .buildAndRegister();
+
+
+        RecipeMaps.UNPACKER_RECIPES.recipeBuilder()
+                .input(ingotPrefix, material)
+                .output(ingot, material, multiplier)
+                .duration((int) Math.max(material.getMass() * (long) multiplier, 1L))
+                .EUt(GTUtility.scaleVoltage(36, workingTier))
+                .buildAndRegister();
     }
 
     public static void processGemConversion(OrePrefix gemPrefix, @Nullable OrePrefix prevPrefix, Material material) {
