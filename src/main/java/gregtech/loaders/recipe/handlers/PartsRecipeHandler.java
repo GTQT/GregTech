@@ -304,6 +304,16 @@ public class PartsRecipeHandler {
                     .buildAndRegister();
         }
 
+        if (!OreDictUnifier.get(gemLegendary, material).isEmpty()) {
+            POLISHER_RECIPES.recipeBuilder()
+                    .input(gemLegendary, material)
+                    .output(lens, material,2)
+                    .output(dust, material, 4)
+                    .duration(2400)
+                    .EUt(GTUtility.scaleVoltage(VA[LV], workingTier))
+                    .buildAndRegister();
+        }
+
         if (material == Materials.Diamond) { // override Diamond Lens to be LightBlue
             OreDictUnifier.registerOre(stack, OrePrefix.craftingLens, MarkerMaterials.Color.LightBlue);
         } else if (material == Materials.Ruby) { // override Ruby Lens to be Red
@@ -598,6 +608,10 @@ public class PartsRecipeHandler {
                         "sf", "G ",
                         'G', new UnificationEntry(OrePrefix.gemExquisite, material));
 
+                ModHandler.addShapedRecipe(String.format("stick_long_gem_legendary_%s", material),
+                        GTUtility.copy(4, stickStack),
+                        " f", "Gs",
+                        'G', new UnificationEntry(OrePrefix.gemLegendary, material));
             }
 
             ModHandler.addShapedRecipe(String.format("stick_long_stick_%s", material), stack,

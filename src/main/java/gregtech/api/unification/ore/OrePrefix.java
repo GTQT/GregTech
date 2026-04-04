@@ -134,6 +134,9 @@ public class OrePrefix {
     // A regular Gem worth four Dusts. Introduced by TerraFirmaCraft
     public static final OrePrefix gemExquisite = new OrePrefix("gemExquisite", M * 4, null,
             MaterialIconType.gemExquisite, ENABLE_UNIFICATION, hasGemProperty);
+    // A regular Gem worth eight Dusts. Introduced by TerraFirmaCraft
+    public static final OrePrefix gemLegendary = new OrePrefix("gemLegendary", M * 8, null,
+            MaterialIconType.gemLegendary, ENABLE_UNIFICATION, hasGemProperty);
 
     // 1/4th of a Dust.
     public static final OrePrefix dustSmall = new OrePrefix("dustSmall", M / 4, null, MaterialIconType.dustSmall,
@@ -400,6 +403,7 @@ public class OrePrefix {
         ingotHot.heatDamageFunction = (temp) -> ((temp - 1750) / 1000.0F) + 2;
         gemFlawless.maxStackSize = 32;
         gemExquisite.maxStackSize = 16;
+        gemLegendary.maxStackSize = 8;
 
         plateDouble.maxStackSize = 32;
         plateDense.maxStackSize = 7;
@@ -417,8 +421,8 @@ public class OrePrefix {
         battery.setMarkerPrefix(true);
         circuit.setMarkerPrefix(true);
 
+        gemLegendary.setIgnored(Materials.Sugar);
         gemExquisite.setIgnored(Materials.Sugar);
-
         gemFlawless.setIgnored(Materials.Sugar);
 
         gem.setIgnored(Materials.Diamond);
@@ -548,6 +552,7 @@ public class OrePrefix {
         gemFlawed.setIgnored(material);
         gemFlawless.setIgnored(material);
         gemExquisite.setIgnored(material);
+        gemLegendary.setIgnored(material);
     }
 
     public final String name;

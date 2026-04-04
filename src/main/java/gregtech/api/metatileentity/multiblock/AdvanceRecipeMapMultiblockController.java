@@ -1,6 +1,7 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IThreadController;
 import gregtech.api.capability.impl.EnergyContainerList;
@@ -199,8 +200,20 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setThread(int thread) {
+        markDirty();
+        if (getWorld() != null && !getWorld().isRemote) {
+            writeCustomData(GregtechDataCodes.UPDATE_THREAD_STATE, buf -> buf.writeInt(thread));
+        }
         if (!this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty()) {
             this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).setCurrentThread(thread);
+        }
+    }
+
+    @Override
+    public void receiveCustomData(int dataId, @NotNull PacketBuffer buf) {
+        super.receiveCustomData(dataId, buf);
+        if (dataId == GregtechDataCodes.UPDATE_THREAD_STATE) {
+            this.thread = buf.readInt();
         }
     }
 
@@ -257,7 +270,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         if (!isStructureFormed()) return;
-        int syncsParallel = builder.syncsInteger(recipeMapWorkable.size());
+        int syncsParallel = builder.syncsInteger(thread);
         if (syncsParallel == 1) {
             builder.setWorkingStatus(recipeMapWorkable.get(0).isWorkingEnabled(), recipeMapWorkable.get(0).isActive())
                     .addEnergyUsageLine(this.getEnergyContainer())
@@ -286,14 +299,6 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                                 recipeMapWorkable.get(i).getMaxProgress())
                         .addEmptyLine();
             }
-            if (syncsParallel != recipeMapWorkable.size()) {
-                if (!isActive()) refreshThread(syncsParallel);
-                builder.addCustom((list, syncer) -> list.add(
-                        KeyUtil.lang(TextFormatting.RED, "线程服务器同步失败，但不会影响实际使用！")));
-                builder.addCustom(
-                        (list, syncer) -> list.add(KeyUtil.lang(TextFormatting.RED, "将会在下次待机刷新线程！")));
-            }
-
         }
     }
 

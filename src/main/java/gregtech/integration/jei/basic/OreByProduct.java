@@ -12,7 +12,6 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.common.metatileentities.MetaTileEntities;
-
 import gregtech.integration.jei.utils.JeiInteractableText;
 
 import net.minecraft.client.Minecraft;
@@ -270,7 +269,6 @@ public class OreByProduct implements IRecipeWrapper {
         // sifter
         if (hasSifter) {
             boolean highOutput = material.hasFlag(MaterialFlags.HIGH_SIFTER_OUTPUT);
-
             addToOutputs(material, OrePrefix.gemExquisite, 1);
             addGemChance(300, 100, 500, 150, highOutput);
             addToOutputs(material, OrePrefix.gemFlawless, 1);

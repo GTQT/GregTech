@@ -46,11 +46,13 @@ public class MaterialRecipeHandler {
                     OrePrefix.gemFlawed,
                     OrePrefix.gem,
                     OrePrefix.gemFlawless,
-                    OrePrefix.gemExquisite) :
+                    OrePrefix.gemExquisite,
+                    OrePrefix.gemLegendary) :
             Arrays.asList(
                     OrePrefix.gem,
                     OrePrefix.gemFlawless,
-                    OrePrefix.gemExquisite);
+                    OrePrefix.gemExquisite,
+                    OrePrefix.gemLegendary);
 
     public static void register() {
         OrePrefix.ingot.addProcessingHandler(PropertyKey.INGOT, MaterialRecipeHandler::processIngot);

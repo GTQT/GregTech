@@ -655,6 +655,7 @@ public final class MetaItems {
         orePrefixes.add(OrePrefix.gemFlawed);
         orePrefixes.add(OrePrefix.gemFlawless);
         orePrefixes.add(OrePrefix.gemExquisite);
+        orePrefixes.add(OrePrefix.gemLegendary);
         orePrefixes.add(OrePrefix.ingot);
         orePrefixes.add(OrePrefix.ingotHot);
         orePrefixes.add(OrePrefix.plate);
