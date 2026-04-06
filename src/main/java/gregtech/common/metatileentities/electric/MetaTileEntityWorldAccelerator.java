@@ -193,6 +193,10 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
             MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(world, pos.offset(facing));
 
             if (metaTileEntity != null) {
+                if(metaTileEntity instanceof MetaTileEntityWorldAccelerator)
+                {
+                    continue;
+                }
                 for (int i = 0; i < speed; i++) {
                     metaTileEntity.update();
                 }
