@@ -7,6 +7,7 @@ import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.recipes.RecipeMap;
@@ -36,10 +37,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class FuelMultiblockController extends RecipeMapMultiblockController implements IGenerator {
+public abstract class FuelMultiblockController extends RecipeMapMultiblockController implements IGenerator,
+                                                                                                ITieredMetaTileEntity {
+
+    public int tier;
 
     public FuelMultiblockController(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap, int tier) {
         super(metaTileEntityId, recipeMap);
+        this.tier = tier;
         this.recipeMapWorkable = new MultiblockFuelRecipeLogic(this);
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
     }
@@ -251,5 +256,11 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
     @Override
     public void setEnergyOverFlowMode(boolean enable) {
         recipeMapWorkable.setOverflowMode(enable);
+    }
+
+
+    @Override
+    public int getTier() {
+        return tier;
     }
 }

@@ -9,21 +9,21 @@ import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_FOIL
 
 public class WireProperties implements IMaterialProperty {
 
-    private int voltage;
+    private long voltage;
     private int amperage;
     private int lossPerBlock;
     private int superconductorCriticalTemperature;
     private boolean isSuperconductor;
 
-    public WireProperties(int voltage, int baseAmperage, int lossPerBlock) {
+    public WireProperties(long voltage, int baseAmperage, int lossPerBlock) {
         this(voltage, baseAmperage, lossPerBlock, false);
     }
 
-    public WireProperties(int voltage, int baseAmperage, int lossPerBlock, boolean isSuperCon) {
+    public WireProperties(long voltage, int baseAmperage, int lossPerBlock, boolean isSuperCon) {
         this(voltage, baseAmperage, lossPerBlock, isSuperCon, 0);
     }
 
-    public WireProperties(int voltage, int baseAmperage, int lossPerBlock, boolean isSuperCon,
+    public WireProperties(long voltage, int baseAmperage, int lossPerBlock, boolean isSuperCon,
                           int criticalTemperature) {
         this.voltage = voltage;
         this.amperage = baseAmperage;
@@ -44,7 +44,7 @@ public class WireProperties implements IMaterialProperty {
      *
      * @return The current wire voltage
      */
-    public int getVoltage() {
+    public long getVoltage() {
         return voltage;
     }
 

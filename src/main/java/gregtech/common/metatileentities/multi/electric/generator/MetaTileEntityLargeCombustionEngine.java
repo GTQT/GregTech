@@ -54,13 +54,11 @@ import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockController implements ProgressBarMultiblock {
 
-    private final int tier;
     private final boolean isExtreme;
     private boolean boostAllowed;
 
     public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, RecipeMaps.COMBUSTION_GENERATOR_FUELS, tier);
-        this.tier = tier;
         this.isExtreme = tier > GTValues.EV;
         this.recipeMapWorkable = new LargeCombustionEngineWorkableHandler(this, isExtreme);
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);

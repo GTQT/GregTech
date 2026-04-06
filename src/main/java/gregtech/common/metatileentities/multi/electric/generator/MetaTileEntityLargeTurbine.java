@@ -47,8 +47,6 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
-    public final int tier;
-
     public final IBlockState casingState;
     public final IBlockState gearboxState;
     public final ICubeRenderer casingRenderer;

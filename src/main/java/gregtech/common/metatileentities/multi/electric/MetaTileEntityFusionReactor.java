@@ -7,6 +7,7 @@ import gregtech.api.capability.impl.EnergyContainerHandler;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.IFastRenderMetaTileEntity;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -86,7 +87,7 @@ import static gregtech.api.recipes.logic.OverclockingLogic.PERFECT_HALF_VOLTAGE_
 import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
-        implements IFastRenderMetaTileEntity, IBloomEffect, ProgressBarMultiblock {
+        implements IFastRenderMetaTileEntity, IBloomEffect, ProgressBarMultiblock, ITieredMetaTileEntity {
 
     protected static final int NO_COLOR = 0;
 
@@ -432,6 +433,11 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                 })
                 .progress(() -> capacity.getLongValue() > 0 ?
                         1.0 * heat.getLongValue() / capacity.getLongValue() : 0));
+    }
+
+    @Override
+    public int getTier() {
+        return tier;
     }
 
     private class FusionRecipeLogic extends MultiblockRecipeLogic {
