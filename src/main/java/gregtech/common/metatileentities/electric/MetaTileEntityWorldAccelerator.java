@@ -165,10 +165,16 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
         return 6L;
     }
 
+    long cacheWorldTime = 0L;
     @Override
     public void update() {
         super.update();
         if (!getWorld().isRemote) {
+            if(getWorld().getWorldTime() == cacheWorldTime)
+            {
+                return;
+            }
+            cacheWorldTime = getWorld().getWorldTime();
             if (isPaused && isActive) {
                 setActive(false);
             } else if (!isPaused) {
