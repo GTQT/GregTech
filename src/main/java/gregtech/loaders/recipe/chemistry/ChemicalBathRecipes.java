@@ -12,7 +12,8 @@ import net.minecraft.init.Items;
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
-import static gregtech.api.unification.ore.OrePrefix.*;
+import static gregtech.api.unification.ore.OrePrefix.dust;
+import static gregtech.api.unification.ore.OrePrefix.ingotHot;
 
 public class ChemicalBathRecipes {
 
@@ -96,7 +97,7 @@ public class ChemicalBathRecipes {
                 .duration(200)
                 .EUt(VA[MV]).buildAndRegister();
 
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
+        BATH_CONDENSER_RECIPES.recipeBuilder()
                 .fluidInputs(HotWaterCoolant.getFluid(100))
                 .fluidOutputs(WaterCoolant.getFluid(100))
                 .duration(200)

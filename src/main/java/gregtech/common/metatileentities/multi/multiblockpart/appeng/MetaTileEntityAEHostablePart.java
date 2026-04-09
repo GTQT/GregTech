@@ -35,6 +35,7 @@ import appeng.me.helpers.BaseActionSource;
 import appeng.me.helpers.IGridProxyable;
 import appeng.me.helpers.MachineSource;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +53,7 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
     public final static String WORKING_TAG = "WorkingEnabled";
     private boolean workingEnabled = true;
 
+    @Getter
     private AENetworkProxy aeProxy;
     private int refreshRate = ConfigHolder.compat.ae2.updateIntervals;
     protected boolean isOnline;
@@ -203,16 +205,15 @@ public abstract class MetaTileEntityAEHostablePart extends MetaTileEntityMultibl
     @Nullable
     @Override
     public AENetworkProxy getProxy() {
-        if (aeProxy == null) {
-            return aeProxy = createProxy();
+        if (this.aeProxy == null) {
+            return this.aeProxy = this.createProxy();
         }
-
-        if (!aeProxy.isReady() && getWorld() != null) {
-            aeProxy.onReady();
+        if (!this.aeProxy.isReady() && this.getWorld() != null) {
+            this.aeProxy.onReady();
         }
-
-        return aeProxy;
+        return this.aeProxy;
     }
+
 
     protected IActionSource getActionSource() {
         if (this.getHolder() instanceof IActionHost holder) {

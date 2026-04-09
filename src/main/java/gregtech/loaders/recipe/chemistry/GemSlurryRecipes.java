@@ -4,7 +4,8 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.CENTRIFUGE_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.MIXER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
-import static gregtech.api.unification.ore.OrePrefix.*;
+import static gregtech.api.unification.ore.OrePrefix.crushed;
+import static gregtech.api.unification.ore.OrePrefix.dust;
 
 public class GemSlurryRecipes {
 

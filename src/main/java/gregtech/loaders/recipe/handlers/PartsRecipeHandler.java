@@ -403,7 +403,7 @@ public class PartsRecipeHandler {
         BENDER_RECIPES.recipeBuilder()
                 .input(plate, material)
                 .output(curvedPrefix, material)
-                .circuitMeta(3)
+                .circuitMeta(10)
                 .duration((int) Math.max(material.getMass(), 1L))
                 .EUt(GTUtility.scaleVoltage(24, workingTier))
                 .buildAndRegister();

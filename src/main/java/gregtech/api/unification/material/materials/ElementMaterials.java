@@ -5,6 +5,7 @@ import gregtech.api.fluids.FluidBuilder;
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.unification.Elements;
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.BlastProperty.GasTier;
 import gregtech.api.unification.material.properties.MaterialToolProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
@@ -14,6 +15,7 @@ import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.material.info.MaterialIconSet.*;
 import static gregtech.api.util.GTUtility.gregtechId;
+import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class ElementMaterials {
 
@@ -36,7 +38,9 @@ public class ElementMaterials {
                 .rotorStats(10.0f, 2.0f, 128)
                 .cableProperties(V[EV], 1, 1)
                 .fluidPipeProperties(1166, 100, true)
-                .blast(1700, GasTier.LOW)
+                .blast(b -> b
+                        .temp(isModLoaded("gtqtcore") ? 2054 : 1700, BlastProperty.GasTier.LOW)
+                        .blastStats(isModLoaded("gtqtcore") ? VA[EV] : VA[MV], 1200))
                 .build();
 
         Americium = Material.builder(3, gregtechId("americium"))
@@ -350,7 +354,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1337))
 
                 .color(0xFFE650).iconSet(SHINY)
-                .flags(EXT2_METAL , MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES)
                 .element(Elements.Au)
                 .cableProperties(V[HV], 3, 2)
                 .fluidPipeProperties(1671, 25, true, true, false, false)
@@ -447,7 +451,7 @@ public class ElementMaterials {
                 .liquid(new FluidBuilder().temperature(1811))
                 .plasma()
                 .color(0xC8C8C8).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE,EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,GENERATE_CURVED_PLATE,
+                .flags(EXT2_METAL, MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES, GENERATE_CURVED_PLATE,
                         GENERATE_EXTRA)
                 .element(Elements.Fe)
                 .toolStats(MaterialToolProperty.Builder.of(2.0F, 2.0F, 256, 2)

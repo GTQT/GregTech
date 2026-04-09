@@ -30,7 +30,6 @@ import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.items.MetaItems;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -59,7 +58,6 @@ import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
 import appeng.api.networking.IGridNode;
-import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
@@ -122,7 +120,7 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
 import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
-public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePart
+public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IGhostSlotConfigurable,
                    ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
                    IGridProxyable, IPowerChannelState {
@@ -266,49 +264,53 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePar
     @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote && getOffsetTimer() % 5 == 0) {
-
-            if (isExportHatch) {
-                pushItemsIntoNearbyHandlers(getFrontFacing());
-                pushFluidsIntoNearbyHandlers(getFrontFacing());
-            } else {
-                pullItemsFromNearbyHandlers(getFrontFacing());
-                pullFluidsFromNearbyHandlers(getFrontFacing());
+        if(!getWorld().isRemote)
+        {
+            if (isWorkingEnabled() && isOnline && shouldSyncME()) {
+                if (isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
+                if (isExport()) returnToNet();
             }
 
-            if (isAutoCollapse()) {
-                IItemHandlerModifiable itemHandler = importItems;
-                if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
-                        getNotifiedItemInputList().contains(itemHandler))) {
-                    GTUtility.collapseInventorySlotContents(itemHandler);
+            if(getOffsetTimer() % 5 == 0)
+            {
+                if (isExportHatch) {
+                    pushItemsIntoNearbyHandlers(getFrontFacing());
+                    pushFluidsIntoNearbyHandlers(getFrontFacing());
+                } else {
+                    pullItemsFromNearbyHandlers(getFrontFacing());
+                    pullFluidsFromNearbyHandlers(getFrontFacing());
+                }
+
+                if (isAutoCollapse()) {
+                    IItemHandlerModifiable itemHandler = importItems;
+                    if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
+                            getNotifiedItemInputList().contains(itemHandler))) {
+                        GTUtility.collapseInventorySlotContents(itemHandler);
+                    }
                 }
             }
-        }
 
-        if (isPatternDeal() && getOffsetTimer() % 20 == 0) {
-            if (isAttachedToMultiBlock()) {
-                MultiblockControllerBase controllerBase = getController();
-                if (controllerBase instanceof RecipeMapMultiblockController controller) {
-                    if (controller.getRecipeMapWorkable().getParallelLimit() != 0 && lastParallel != parallel) {
+            if (isPatternDeal() && getOffsetTimer() % 20 == 0) {
+                if (isAttachedToMultiBlock()) {
+                    MultiblockControllerBase controllerBase = getController();
+                    if (controllerBase instanceof RecipeMapMultiblockController controller) {
+                        if (controller.getRecipeMapWorkable().getParallelLimit() != 0 && lastParallel != parallel) {
 
-                        lastParallel = parallel;
-                        parallel = controller.getRecipeMapWorkable().getParallelLimit();
+                            lastParallel = parallel;
+                            parallel = controller.getRecipeMapWorkable().getParallelLimit();
 
-                        if (lastParallel != 1 || parallel != 1) {
-                            for (int i = 0; i < patternSlot.getSlots(); i++) {
-                                ItemStack pattern = patternSlot.getStackInSlot(i);
-                                if (pattern.getItem() instanceof ICraftingPatternItem) {
-                                    PatternUtils.adjustPatternMultipliers(pattern, lastParallel, parallel);
+                            if (lastParallel != 1 || parallel != 1) {
+                                for (int i = 0; i < patternSlot.getSlots(); i++) {
+                                    ItemStack pattern = patternSlot.getStackInSlot(i);
+                                    if (pattern.getItem() instanceof ICraftingPatternItem) {
+                                        PatternUtils.adjustPatternMultipliers(pattern, lastParallel, parallel);
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        if (!getWorld().isRemote && isWorkingEnabled() && isOnline && shouldSyncME()) {
-            if(isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
-            if (isExport()) returnToNet();
         }
     }
 
@@ -346,28 +348,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePar
         abilityInstances.add(dualHandler);
     }
 
-    public void pushToGridCache() {
-        if (isUseProxy()) {
-            try {
-                if (getProxy() != null && getProxy().getGrid() != null)
-                    getProxy().getGrid().getCache(ICraftingGrid.class).addNode(getProxy().getNode(), this);
-            } catch (GridAccessException ignored) {
-
-            }
-        }
-    }
-
-    public void removeFromGridCache() {
-        if (isUseProxy()) {
-            try {
-                if (getProxy() != null && getProxy().getGrid() != null)
-                    getProxy().getGrid().getCache(ICraftingGrid.class).removeNode(getProxy().getNode(), this);
-            } catch (GridAccessException ignored) {
-
-            }
-        }
-    }
-
     private void returnToNet() {
         Utils.returnItems(getItemMonitor(), getImportItems(), getActionSource());
         Utils.returnFluids(getFluidMonitor(), getImportFluids(), getActionSource());
@@ -376,6 +356,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePar
     private boolean MEPatternChange() {
         // don't post until it's active
         if (getProxy() == null || !getProxy().isActive()) return true;
+
+        // remove from grid cache
+        pushToGridCache();
 
         try {
             getProxy().getGrid().postEvent(new MENetworkCraftingPatternChange(this, getProxy().getNode()));
@@ -498,14 +481,15 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePar
     public void provideCrafting(ICraftingProviderHelper iCraftingProviderHelper) {
         if (!isActive() || patternDetails == null) return;
         for (int i = 0; i < getItemSize(); i++) {
-            if (patternDetails.get(i) != null) iCraftingProviderHelper.addCraftingOption(this, patternDetails.get(i));
+            if (patternDetails.get(i) != null)
+                iCraftingProviderHelper.addCraftingOption(this, patternDetails.get(i));
         }
     }
 
     private void setPatternDetails() {
         for (int i = 0; i < getItemSize(); i++) {
             ItemStack pattern = patternSlot.getStackInSlot(i);
-            if (pattern.isEmpty()) {
+            if (pattern == ItemStack.EMPTY) {
                 patternDetails.set(i, null);
                 continue;
             }
@@ -514,19 +498,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAEHostablePar
                 patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
             }
         }
-        if (isUseProxy()) {
-            removeFromGridCache();
-            pushToGridCache();
-        }
     }
 
     @Override
     public void onRemoval() {
-        if (isUseProxy()) {
-            removeFromGridCache();
-            setUseProxy(false);
-            getProxy();
-        }
+        removeFromGridCache();
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
