@@ -3,9 +3,6 @@ package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.DualHandler;
-import gregtech.api.capability.GregtechDataCodes;
-import gregtech.api.capability.IDataStickIntractable;
-import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -14,14 +11,10 @@ import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.AbilityInstances;
-import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
-import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.info.MaterialFlag;
@@ -29,27 +22,18 @@ import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.items.MetaItems;
 import gregtech.common.mui.widget.GTFluidSlot;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
-import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -61,34 +45,16 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.AEApi;
-import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
-import appeng.api.implementations.IPowerChannelState;
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.networking.crafting.ICraftingProvider;
-import appeng.api.networking.crafting.ICraftingProviderHelper;
-import appeng.api.networking.events.MENetworkCraftingPatternChange;
-import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.util.AEPartLocation;
-import appeng.api.util.DimensionalCoord;
-import appeng.fluids.util.IAEFluidInventory;
-import appeng.fluids.util.IAEFluidTank;
-import appeng.me.GridAccessException;
-import appeng.me.helpers.AENetworkProxy;
-import appeng.me.helpers.IGridProxyable;
 import appeng.tile.grid.AENetworkPowerTile;
 import appeng.util.item.AEItemStack;
-import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiTextures;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -113,12 +79,9 @@ import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.glodblock.github.common.item.fake.FakeFluids;
-import com.glodblock.github.common.item.fake.FakeItemRegister;
 import com.glodblock.github.loader.FCItems;
 import com.glodblock.github.util.FluidPatternDetails;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -129,33 +92,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
-import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
-import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
-import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
-public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart
-        implements IMultiblockAbilityPart<IItemHandlerModifiable>, IGhostSlotConfigurable,
-                   ICraftingProvider, IAEFluidInventory, IDataStickIntractable,
-                   IGridProxyable, IPowerChannelState {
+public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart {
 
-    private static final IDrawable CHEST = new ItemDrawable(Blocks.CHEST)
-            .asIcon().size(16);
-    private final IDrawable HATCH = new ItemDrawable(getStackForm())
-            .asIcon().size(16);
-    private final IDrawable FILTER = new ItemDrawable(Items.PAPER)
-            .asIcon().size(16);
-    private final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
-            .asIcon().size(16);
-    @Nullable
-    protected GhostCircuitItemStackHandler circuitInventory;
-    // AE
-    BlockPos AEProxy_pos = new BlockPos(0, 0, 0);
-    @Setter
-    @Getter
-    boolean useProxy;
-    @Setter
-    @Getter
-    boolean export = false;
     String input = "null";
     String output = "null";
     ArrayList<String> blackList = new ArrayList<>();
@@ -165,26 +104,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     int outputNumber = 0;
     ItemStackHandler extraInput = new ItemStackHandler(8);
     ItemStackHandler extraOutput = new ItemStackHandler(2);
-    @Nullable
-    private List<ICraftingPatternDetails> patternDetails;
-    @Getter
-    private IItemHandlerModifiable actualImportItems;
-    @Nullable
-    private ItemStackHandler extraItem;
-    @Nullable
-    @Getter
-    private DualHandler dualHandler;
-    @Setter
-    @Getter
-    private boolean needPatternSync = true;
-    @Getter
-    private boolean autoCollapse;
-    @Setter
-    @Getter
-    private boolean blockedMode = true;
-    @Setter
-    @Getter
-    private boolean advancedCircuit = false;
 
     public MetaTileEntityMEOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
@@ -282,76 +201,22 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     @Override
     public void update() {
         super.update();
-        if(!getWorld().isRemote){
+        if (!getWorld().isRemote) {
             if (getOffsetTimer() % 5 == 0) {
                 if (isAutoCollapse()) {
                     IItemHandlerModifiable itemHandler = importItems;
-                    if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
-                            getNotifiedItemInputList().contains(itemHandler))) {
+                    if (!isAttachedToMultiBlock() ||
+                            (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
+                                    getNotifiedItemInputList().contains(itemHandler))) {
                         GTUtility.collapseInventorySlotContents(itemHandler);
                     }
                 }
             }
             if (isWorkingEnabled() && isOnline && shouldSyncME()) {
-                if(isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
+                if (isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
                 if (isExport()) returnToNet();
             }
         }
-    }
-
-    @Override
-    public boolean hasGhostCircuitInventory() {
-        return true;
-    }
-
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
-    }
-
-    @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-
-    @Override
-    public @Nullable MultiblockAbility<IItemHandlerModifiable> getAbility() {
-        return MultiblockAbility.IMPORT_ITEMS;
-    }
-
-    @Override
-    public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        abilityInstances.add(dualHandler);
-    }
-
-    private void returnToNet() {
-        Utils.returnItems(getItemMonitor(), getImportItems(), getActionSource());
-        Utils.returnFluids(getFluidMonitor(), getImportFluids(), getActionSource());
-    }
-
-    private boolean MEPatternChange() {
-        // don't post until it's active
-        if (getProxy() == null || !getProxy().isActive()) return true;
-
-        // remove from grid cache
-        pushToGridCache();
-
-        try {
-            getProxy().getGrid().postEvent(new MENetworkCraftingPatternChange(this, getProxy().getNode()));
-        } catch (Exception ignored) {
-            return true;
-        }
-
-        return false;
     }
 
     @Override
@@ -361,22 +226,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
             SimpleOverlayRenderer overlay = Textures.ME_BUFFER_HATCH_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
-    }
-
-    @Override
-    public void writeInitialSyncData(PacketBuffer buf) {
-        super.writeInitialSyncData(buf);
-        buf.writeBoolean(isBlockedMode());
-        buf.writeBoolean(this.export);
-        buf.writeBoolean(isAutoCollapse());
-    }
-
-    @Override
-    public void receiveInitialSyncData(PacketBuffer buf) {
-        super.receiveInitialSyncData(buf);
-        setBlockedMode(buf.readBoolean());
-        setExport(buf.readBoolean());
-        setAutoCollapse(buf.readBoolean());
     }
 
     @Override
@@ -457,41 +306,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     }
 
     @Override
-    public void receiveCustomData(int dataId, PacketBuffer buf) {
-        super.receiveCustomData(dataId, buf);
-        if (dataId == UPDATE_ACTIVE) {
-            setBlockedMode(buf.readBoolean());
-        }
-    }
-
-    @Override
-    public AENetworkProxy getProxy() {
-        if (isUseProxy()) {
-            if (this.getWorld() != null) {
-                TileEntity tileEntity = this.getWorld().getTileEntity(AEProxy_pos);
-                if (tileEntity instanceof AENetworkPowerTile proxy) {
-                    return proxy.getProxy();
-                }
-            }
-        }
-        return super.getProxy();
-    }
-
-    @Override
-    public DimensionalCoord getLocation() {
-        return new DimensionalCoord(getWorld(), getPos());
-    }
-
-    @Override
-    public void provideCrafting(ICraftingProviderHelper iCraftingProviderHelper) {
-        setPatternDetails();
-        if (!isActive() || patternDetails == null) return;
-        for (ICraftingPatternDetails patternDetail : patternDetails) {
-            if (patternDetail != null) iCraftingProviderHelper.addCraftingOption(this, patternDetail);
-        }
-    }
-
-    private void setPatternDetails() {
+    public void setPatternDetails() {
         patternDetails = new ArrayList<>();
         List<ItemStack> patternSlot = createPatterns();
         for (int i = 0; i < patternSlot.size(); i++) {
@@ -668,11 +483,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
 
     @Override
     public void onRemoval() {
-        if (useProxy) {
-            removeFromGridCache();
-            useProxy = false;
-            getProxy();
-        }
+        removeFromGridCache();
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
     }
@@ -1475,43 +1286,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     }
 
     @Override
-    public boolean onScrewdriverClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
-                                      CuboidRayTraceResult hitResult) {
-        setAutoCollapse(!this.autoCollapse);
-
-        if (!getWorld().isRemote) {
-            if (this.autoCollapse) {
-                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_true"), true);
-            } else {
-                playerIn.sendStatusMessage(new TextComponentTranslation("gregtech.bus.collapse_false"), true);
-            }
-        }
-        return true;
-    }
-
-    public void setAutoCollapse(boolean inverted) {
-        autoCollapse = inverted;
-        if (!getWorld().isRemote) {
-            if (autoCollapse) {
-                addNotifiedInput(super.getImportItems());
-                addNotifiedInput(this.getImportFluids());
-            }
-            writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
-                    packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
-            notifyBlockUpdate();
-            markDirty();
-        }
-    }
-
-    @Override
-    public void addToolUsages(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
-        tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
-        tooltip.add(I18n.format("gregtech.tool_action.screwdriver.auto_collapse"));
-        tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
-        super.addToolUsages(stack, world, tooltip, advanced);
-    }
-
-    @Override
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
         // override here is gross, but keeps things in order despite
         // IDs being out of order, due to UEV+ being added later
@@ -1523,220 +1297,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
             // let subclasses fall through this override
             super.getSubItems(creativeTab, subItems);
         }
-    }
-
-    @Override
-    public void gridChanged() {
-        setNeedPatternSync(true);
-    }
-
-    @Override
-    public boolean isPowered() {
-        return getProxy() != null && getProxy().isPowered();
-    }
-
-    @Override
-    public boolean isActive() {
-        return getProxy() != null && getProxy().isActive();
-    }
-
-    public boolean addItemAndFluid(InventoryCrafting inventoryCrafting) throws GridAccessException {
-        // 第一阶段：模拟检查所有物品是否可插入
-        for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
-            //实际插入的物品
-            ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
-            if (itemStack.isEmpty()) continue;
-
-            //处理流体
-
-            // 处理假流体/气体物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
-                if (fluid != null) {
-                    if (getImportFluids().fill(fluid, false) < fluid.amount) {
-                        return false;
-                    }
-                    continue;
-                }
-            }
-
-            //处理物品
-
-            // 处理集成电路 - 模拟阶段
-            if (isAdvancedCircuit() && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
-                IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
-                if (aeStack != null) {
-                    // 模拟注入网络，检查是否可返还
-                    IAEItemStack remaining = getItemMonitor().injectItems(aeStack, Actionable.SIMULATE,
-                            getActionSource());
-                    //大于0代表无法返回网络（可能是网络满了）
-                    if (remaining != null && remaining.getStackSize() > 0) {
-                        return false;
-                    }
-                }
-                continue; // 跳过容器插入检查
-            }
-
-            //普通物品模拟插入检查
-            //样板转化会ItemStack
-            ItemStack simulated = itemStack.copy();
-            //如果开了自动整理
-            if (isAutoCollapse()) {
-                //轮插 simulated轮询所有槽位，直到装填完毕
-                for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
-                    ItemStack remaining = importItems.insertItem(slot, simulated, true);
-                    if (remaining.getCount() < simulated.getCount()) {
-                        simulated.shrink(simulated.getCount() - remaining.getCount());
-                    }
-                }
-            } else {
-                //simulated只会去填充空槽，用于装配线非64自动化
-                //如果没有空槽再去轮询
-
-                // 步骤1: 先尝试填充空槽
-                for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
-                    // 检查是否是空槽
-                    if (importItems.getStackInSlot(slot).isEmpty()) {
-                        ItemStack remaining = importItems.insertItem(slot, simulated, true);
-                        if (remaining.getCount() < simulated.getCount()) {
-                            simulated.shrink(simulated.getCount() - remaining.getCount());
-                        }
-                    }
-                }
-
-                // 步骤2: 如果没有空槽或者空槽装不完，再轮询所有槽位
-                if (!simulated.isEmpty()) {
-                    for (int slot = 0; slot < importItems.getSlots() && !simulated.isEmpty(); slot++) {
-                        ItemStack remaining = importItems.insertItem(slot, simulated, true);
-                        if (remaining.getCount() < simulated.getCount()) {
-                            simulated.shrink(simulated.getCount() - remaining.getCount());
-                        }
-                    }
-                }
-            }
-
-            if (!simulated.isEmpty()) {
-                return false;
-            }
-        }
-
-        // 第二阶段：实际执行插入操作
-        for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
-            ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
-            if (itemStack.isEmpty()) continue;
-
-            // 处理假流体/气体物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
-                if (fluid != null) {
-                    getImportFluids().fill(fluid, true);
-                    continue;
-                }
-            }
-
-            // 处理集成电路 - 实际执行阶段
-            if (isAdvancedCircuit() && isOnline && MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
-                IMEMonitor<IAEItemStack> monitor = getItemMonitor();
-                IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
-                if (aeStack != null) {
-                    // 实际注入网络返还物品
-                    monitor.injectItems(aeStack, Actionable.MODULATE, getActionSource());
-                    // 设置机器电路配置
-                    this.setGhostCircuitConfig(IntCircuitIngredient.getCircuitConfiguration(itemStack));
-                }
-                continue; // 跳过容器插入
-            }
-
-            // 普通物品实际插入 - 根据是否自动整理采用不同策略
-            ItemStack toInsert = itemStack.copy();
-
-            if (isAutoCollapse()) {
-                // 自动整理模式：轮询所有槽位
-                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
-                    toInsert = importItems.insertItem(slot, toInsert, false);
-                }
-            } else {
-                // 非自动整理模式：先尝试空槽，再尝试所有槽位
-
-                // 阶段1: 只填充空槽
-                for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
-                    if (importItems.getStackInSlot(slot).isEmpty()) {
-                        toInsert = importItems.insertItem(slot, toInsert, false);
-                    }
-                }
-
-                // 阶段2: 如果还有剩余，再尝试所有槽位
-                if (!toInsert.isEmpty()) {
-                    for (int slot = 0; slot < importItems.getSlots() && !toInsert.isEmpty(); slot++) {
-                        toInsert = importItems.insertItem(slot, toInsert, false);
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean pushPattern(ICraftingPatternDetails patternDetails, InventoryCrafting inventoryCrafting) {
-        if (!isActive()) {
-            GTLog.logger.debug("Machine is not active, rejecting pattern");
-            return false;
-        }
-
-        boolean isEmpty = isInventoryEmpty(getImportItems()) && isFluidTankListEmpty(getImportFluids());
-
-        // 如果不是空容器且处于阻塞模式，进行兼容性检查
-        if (!isEmpty && isBlockedMode()) {
-            if (!checkBlockedModeCompatibility(inventoryCrafting)) {
-                GTLog.logger.debug("Pattern rejected by blocked mode compatibility check");
-                return false;
-            }
-        }
-
-        try {
-            return addItemAndFluid(inventoryCrafting);
-        } catch (GridAccessException e) {
-            GTLog.logger.warn("Grid access failed while pushing pattern", e);
-            return false;
-        }
-    }
-
-    private boolean checkBlockedModeCompatibility(InventoryCrafting inventoryCrafting) {
-        for (int i = 0; i < inventoryCrafting.getSizeInventory(); ++i) {
-            ItemStack itemStack = inventoryCrafting.getStackInSlot(i);
-            if (itemStack.isEmpty()) continue;
-
-            // 集成电路特殊处理
-            if (MetaItems.INTEGRATED_CIRCUIT.isItemEqual(itemStack)) {
-                continue;
-            }
-
-            // 处理流体假物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
-                if (fluid == null || !GTUtility.hasMatchingFluid(fluid, getImportFluids())) {
-                    return false;
-                }
-            }
-            // 处理普通物品
-            else {
-                if (!GTUtility.hasMatchingItem(itemStack, importItems)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean isBusy() {
-        return export;
-    }
-
-    @Override
-    public void onFluidInventoryChanged(IAEFluidTank iaeFluidTank, int i) {
-        markDirty();
     }
 
     @Override
@@ -1755,53 +1315,5 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                 getTankCapacity()));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
-    }
-
-    @Override
-    public void onDataStickLeftClick(EntityPlayer player, ItemStack dataStick) {
-        NBTTagCompound tag = new NBTTagCompound();
-
-        tag.setTag("BudgetCRIB", writeLocationToTag());
-        dataStick.setTagCompound(tag);
-        dataStick.setTranslatableName("gregtech.machine.budget_crib.data_stick_name");
-        player.sendStatusMessage(new TextComponentTranslation("gregtech.machine.budget_crib.data_stick_use"), true);
-    }
-
-    private NBTTagCompound writeLocationToTag() {
-        NBTTagCompound tag = new NBTTagCompound();
-
-        tag.setInteger("MainX", getPos().getX());
-        tag.setInteger("MainY", getPos().getY());
-        tag.setInteger("MainZ", getPos().getZ());
-
-        return tag;
-    }
-
-    @Override
-    public boolean onDataStickRightClick(EntityPlayer player, ItemStack dataStick) {
-        NBTTagCompound tag = dataStick.getTagCompound();
-        if (tag == null) return false;
-        if (tag.hasKey("CommonPos")) {
-            useProxy = false;
-            readLocationFromTag(tag.getCompoundTag("CommonPos"));
-            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
-            useProxy = true;
-            return true;
-        }
-        return false;
-    }
-
-    private void readLocationFromTag(NBTTagCompound tag) {
-        AEProxy_pos = new BlockPos(tag.getInteger("MainX"), tag.getInteger("MainY"), tag.getInteger("MainZ"));
-    }
-
-    @Override
-    public IGridNode getGridNode(@NotNull AEPartLocation aePartLocation) {
-        return getProxy().getNode();
-    }
-
-    @Override
-    public void securityBreak() {
-
     }
 }
