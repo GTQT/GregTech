@@ -31,6 +31,14 @@ public class CircuitRecipes {
     }
 
     private static void waferRecipes() {
+        // Gallium arsenide
+        BLAST_RECIPES.recipeBuilder()
+                .input(dust, Gallium)
+                .input(dust, Arsenic)
+                .output(dust, GalliumArsenide, 2)
+                .blastFurnaceTemp(1511)
+                .duration(1200).EUt(VA[MV]).buildAndRegister();
+
         if (!Loader.isModLoaded(GTQT_CORE)) {
             // Boules
             BLAST_RECIPES.recipeBuilder()

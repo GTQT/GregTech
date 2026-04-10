@@ -172,13 +172,6 @@ public class MixerRecipes {
                 .buildAndRegister();
 
         MIXER_RECIPES.recipeBuilder().duration(200).EUt(VA[ULV])
-                .input(dust, Gallium)
-                .input(dust, Arsenic)
-                .circuitMeta(1)
-                .output(dust, GalliumArsenide, 2)
-                .buildAndRegister();
-
-        MIXER_RECIPES.recipeBuilder().duration(200).EUt(VA[ULV])
                 .input(dust, Gold)
                 .input(dust, Silver)
                 .circuitMeta(1)
