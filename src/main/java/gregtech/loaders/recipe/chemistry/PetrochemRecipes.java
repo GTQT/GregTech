@@ -427,7 +427,7 @@ public class PetrochemRecipes {
                 .duration(32).EUt(24).buildAndRegister();
     }
 
-    private static void lightlyCrack(Material raw, Material hydroCracked, Material steamCracked) {
+    public static void lightlyCrack(Material raw, Material hydroCracked, Material steamCracked) {
         CRACKING_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidInputs(raw.getFluid(1000))
@@ -443,7 +443,7 @@ public class PetrochemRecipes {
                 .duration(80).EUt(240).buildAndRegister();
     }
 
-    private static void moderatelyCrack(Material raw, Material hydroCracked, Material steamCracked) {
+    public static void moderatelyCrack(Material raw, Material hydroCracked, Material steamCracked) {
         CRACKING_RECIPES.recipeBuilder()
                 .circuitMeta(2)
                 .fluidInputs(raw.getFluid(1000))
@@ -459,7 +459,7 @@ public class PetrochemRecipes {
                 .duration(120).EUt(360).buildAndRegister();
     }
 
-    private static void severelyCrack(Material raw, Material hydroCracked, Material steamCracked) {
+    public static void severelyCrack(Material raw, Material hydroCracked, Material steamCracked) {
         CRACKING_RECIPES.recipeBuilder()
                 .circuitMeta(2)
                 .fluidInputs(raw.getFluid(1000))
