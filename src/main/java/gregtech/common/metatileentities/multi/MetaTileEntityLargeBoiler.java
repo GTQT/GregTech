@@ -28,6 +28,7 @@ import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.api.util.tooltips.AbstractTooltipComponent;
 import gregtech.api.util.tooltips.TooltipBuilder;
+import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.core.sound.GTSoundEvents;
@@ -129,6 +130,29 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         } else {
             return TextFormatting.GREEN;
         }
+    }
+
+    @Override
+    public void update() {
+        super.update();
+
+        if (this.isActive()) {
+            if (getWorld().isRemote) {
+                VanillaParticleEffects.PBF_SMOKE.runEffect(this);
+            } else {
+                pollution(this.getPollutionAmount(), this.getPollutionTicks());
+            }
+        }
+    }
+
+    @Override
+    public double getPollutionAmount() {
+        return switch (boilerType) {
+            case BRONZE -> 0.01;
+            case STEEL -> 0.012;
+            case TITANIUM -> 0.015;
+            case TUNGSTENSTEEL -> 0.02;
+        };
     }
 
     @Override

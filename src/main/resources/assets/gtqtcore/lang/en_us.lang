@@ -422,27 +422,42 @@ gregtech.machine.dust_collector.max.name=MAX Dust Collector
 gregtech.machine.dust_collector.tooltip.1=Collect ashes from the Muffler Hatch
 gregtech.machine.dust_collector.tooltip.2=It is allowed to be installed in front of the anechoic chamber without affecting the detection of the Muffler Hatch
 
-gregtech.machine.heat_input_hatch.ulv.name=§8ULV§r Heat Sink Hatch
-gregtech.machine.heat_input_hatch.lv.name=§7LV§r Heat Sink Hatch
-gregtech.machine.heat_input_hatch.mv.name=§bMV§r Heat Sink Hatch
-gregtech.machine.heat_input_hatch.hv.name=§6HV§r Heat Sink Hatch
-gregtech.machine.heat_input_hatch.ev.name=§5EV§r Heat Sink Hatch
+gregtech.machine.heat_input_hatch.ulv.name=ULV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.lv.name=LV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.mv.name=MV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.hv.name=HV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.ev.name=EV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.iv.name=IV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.luv.name=LuV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.zpm.name=ZPM Heat Sink Hatch
+gregtech.machine.heat_input_hatch.uv.name=UV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.uhv.name=UHV Heat Sink Hatch
 
 gregtech.machine.heat_hatch.input.tooltip=Inputs heat for multiblock structures
 
-gregtech.machine.heat_output_hatch.ulv.name=§8ULV§r Heat Source Hatch
-gregtech.machine.heat_output_hatch.lv.name=§7LV§r Heat Source Hatch
-gregtech.machine.heat_output_hatch.mv.name=§bMV§r Heat Source Hatch
-gregtech.machine.heat_output_hatch.hv.name=§6HV§r Heat Source Hatch
-gregtech.machine.heat_output_hatch.ev.name=§5EV§r Heat Source Hatch
+gregtech.machine.heat_output_hatch.ulv.name=ULV Heat Source Hatch
+gregtech.machine.heat_output_hatch.lv.name=HV Heat Source Hatch
+gregtech.machine.heat_output_hatch.mv.name=MV Heat Source Hatch
+gregtech.machine.heat_output_hatch.hv.name=HV Heat Source Hatch
+gregtech.machine.heat_output_hatch.ev.name=EV Heat Source Hatch
+gregtech.machine.heat_output_hatch.iv.name=IV Heat Source Hatch
+gregtech.machine.heat_output_hatch.luv.name=LuV Heat Source Hatch
+gregtech.machine.heat_output_hatch.zpm.name=ZPM Heat Source Hatch
+gregtech.machine.heat_output_hatch.uv.name=UV Heat Source Hatch
+gregtech.machine.heat_output_hatch.uhv.name=UHV Heat Source Hatch
 
 gregtech.machine.heat_hatch.output.tooltip=Outputs heat from multiblock structures
 
-gregtech.machine.electric_heater.ulv.name=§8ULV§r Electric Heater
-gregtech.machine.electric_heater.lv.name=§7LV§r Electric Heater
-gregtech.machine.electric_heater.mv.name=§bMV§r Electric Heater
-gregtech.machine.electric_heater.hv.name=§6HV§r Electric Heater
-gregtech.machine.electric_heater.ev.name=§5EV§r Electric Heater
+gregtech.machine.electric_heater.ulv.name=ULV Electric Heater
+gregtech.machine.electric_heater.lv.name=LV Electric Heater
+gregtech.machine.electric_heater.mv.name=MV Electric Heater
+gregtech.machine.electric_heater.hv.name=HV Electric Heater
+gregtech.machine.electric_heater.ev.name=EV Electric Heater
+gregtech.machine.electric_heater.iv.name=IV Electric Heater
+gregtech.machine.electric_heater.luv.name=LuV Electric Heater
+gregtech.machine.electric_heater.zpm.name=ZPM Electric Heater
+gregtech.machine.electric_heater.uv.name=UV Electric Heater
+gregtech.machine.electric_heater.uhv.name=UHV Electric Heater
 
 gregtech.machine.electric_heater.tooltip=Converts electrical energy into thermal energy
 

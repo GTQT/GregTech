@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalComputationProvider;
@@ -31,25 +30,26 @@ import java.util.Collection;
 import java.util.List;
 
 import static gregtech.api.GTValues.CWT;
-import static gregtech.api.GTValues.VA;
 
-public class MetaTileEntityComputationHatch extends MetaTileEntityMultiblockPart implements
-                                            IMultiblockAbilityPart<IOpticalComputationHatch>, IOpticalComputationHatch {
+public class MetaTileEntityComputationHatch extends MetaTileEntityMultiblockPart
+        implements IMultiblockAbilityPart<IOpticalComputationHatch>, IOpticalComputationHatch {
 
     private final boolean isTransmitter;
     int tier;
 
-    public MetaTileEntityComputationHatch(ResourceLocation metaTileEntityId,int tier, boolean isTransmitter) {
-        super(metaTileEntityId,tier);
+    public MetaTileEntityComputationHatch(ResourceLocation metaTileEntityId, int tier, boolean isTransmitter) {
+        super(metaTileEntityId, tier);
         this.isTransmitter = isTransmitter;
         this.tier = tier;
     }
+
     public int maxComputation() {
         return CWT[tier];
     }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityComputationHatch(metaTileEntityId,tier, isTransmitter);
+        return new MetaTileEntityComputationHatch(metaTileEntityId, tier, isTransmitter);
     }
 
     @Override
@@ -175,7 +175,8 @@ public class MetaTileEntityComputationHatch extends MetaTileEntityMultiblockPart
     public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
-        tooltip.add(I18n.format(this.isTransmitter ? "gregtech.machine.computation_hatch.transmitter.tooltip" : "gregtech.machine.computation_hatch.receiver.tooltip"));
+        tooltip.add(I18n.format(this.isTransmitter ? "gregtech.machine.computation_hatch.transmitter.tooltip" :
+                "gregtech.machine.computation_hatch.receiver.tooltip"));
         tooltip.add(I18n.format("gregtech.machine.computation_hatch.tier", this.tier));
         tooltip.add(I18n.format("gregtech.machine.computation_hatch.computation", this.maxComputation()));
         tooltip.add(I18n.format("gregtech.universal.disabled"));

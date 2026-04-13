@@ -67,9 +67,9 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
     public static final MetaTileEntityMEGasHatch[] ME_GAS_HATCH = new MetaTileEntityMEGasHatch[GTValues.V.length - 1];
     public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[GTValues.V.length - 1];
-    public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[5];
-    public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[5];
-    public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[5];
+    public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[10];
+    public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[10];
+    public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[10];
     public static MetaTileEntityHeatSensor HEAT_SENSOR;
 
     public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
@@ -243,21 +243,22 @@ public class GTQTMetaTileEntities {
         for (int i = 0; i < HEAT_INPUT_HATCH.length; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
             HEAT_INPUT_HATCH[i] = new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false);
-            registerMetaTileEntity(2910 + i, HEAT_INPUT_HATCH[i]);
+            registerMetaTileEntity(2905 + i, HEAT_INPUT_HATCH[i]);
             HEAT_OUTPUT_HATCH[i] = new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true);
             registerMetaTileEntity(2915 + i, HEAT_OUTPUT_HATCH[i]);
             ELECTRIC_HEATER[i] = new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i);
-            registerMetaTileEntity(2920 + i, ELECTRIC_HEATER[i]);
+            registerMetaTileEntity(2925 + i, ELECTRIC_HEATER[i]);
         }
 
-        HEAT_SENSOR = registerMetaTileEntity(2925, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));
+        HEAT_SENSOR = registerMetaTileEntity(2936, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));
 
+        // 引蜂器，IDs 2940-2955
         if(isModLoaded(FORESTRY))
         {
             //引蜂器
             for (int i = 0; i < 15; i++) {
                 String tier = VN[i].toLowerCase();
-                BEE_ATTRACTORS[i] = registerMetaTileEntity(2930 + i,
+                BEE_ATTRACTORS[i] = registerMetaTileEntity(2940 + i,
                         new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),
                                 RecipeMaps.ATTRACTOR_RECIPES,
                                 Textures.BEE_ATTRACTOR_OVERLAY, i, false));
@@ -265,12 +266,12 @@ public class GTQTMetaTileEntities {
         }
 
         //
-        // Huge Buffers, IDs 2945-2950
-        HUGE_BUFFER[0] = registerMetaTileEntity(2945, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.lv"), 1));
-        HUGE_BUFFER[1] = registerMetaTileEntity(2946, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.mv"), 2));
-        HUGE_BUFFER[2] = registerMetaTileEntity(2947, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.hv"), 3));
-        HUGE_BUFFER[3] = registerMetaTileEntity(2948, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.ev"), 4));
-        HUGE_BUFFER[4] = registerMetaTileEntity(2949, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
+        // Huge Buffers, IDs 2960-2964
+        HUGE_BUFFER[0] = registerMetaTileEntity(2960, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.lv"), 1));
+        HUGE_BUFFER[1] = registerMetaTileEntity(2961, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.mv"), 2));
+        HUGE_BUFFER[2] = registerMetaTileEntity(2962, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.hv"), 3));
+        HUGE_BUFFER[3] = registerMetaTileEntity(2963, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.ev"), 4));
+        HUGE_BUFFER[4] = registerMetaTileEntity(2964, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
 
         //无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {

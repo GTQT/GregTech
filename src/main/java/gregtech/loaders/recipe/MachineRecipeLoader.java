@@ -1396,7 +1396,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[LV])
                 .fluidInputs(Water.getFluid(6))
-                .circuitMeta(1)
+                .circuitMeta(2)
                 .fluidOutputs(Steam.getFluid(960))
                 .buildAndRegister();
 
@@ -1404,7 +1404,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[LV])
                 .fluidInputs(DistilledWater.getFluid(6))
-                .circuitMeta(1)
+                .circuitMeta(2)
                 .fluidOutputs(Steam.getFluid(960))
                 .buildAndRegister();
 
@@ -1420,7 +1420,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[EV])
                 .fluidInputs(Water.getFluid(6))
-                .circuitMeta(2)
+                .circuitMeta(3)
                 .fluidOutputs(HighPressureSteam.getFluid(480))
                 .buildAndRegister();
 
@@ -1428,7 +1428,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[EV])
                 .fluidInputs(DistilledWater.getFluid(6))
-                .circuitMeta(2)
+                .circuitMeta(3)
                 .fluidOutputs(HighPressureSteam.getFluid(480))
                 .buildAndRegister();
 
@@ -1444,7 +1444,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[LuV])
                 .fluidInputs(Water.getFluid(6))
-                .circuitMeta(3)
+                .circuitMeta(4)
                 .fluidOutputs(SupercriticalSteam.getFluid(240))
                 .buildAndRegister();
 
@@ -1452,7 +1452,7 @@ public class MachineRecipeLoader {
                 .duration(30)
                 .EUt(VA[LuV])
                 .fluidInputs(DistilledWater.getFluid(6))
-                .circuitMeta(3)
+                .circuitMeta(4)
                 .fluidOutputs(SupercriticalSteam.getFluid(240))
                 .buildAndRegister();
     }

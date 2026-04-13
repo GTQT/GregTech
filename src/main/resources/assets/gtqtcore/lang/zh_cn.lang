@@ -429,6 +429,11 @@ gregtech.machine.heat_input_hatch.lv.name=§7LV§r 热阱仓
 gregtech.machine.heat_input_hatch.mv.name=§bMV§r 热阱仓
 gregtech.machine.heat_input_hatch.hv.name=§6HV§r 热阱仓
 gregtech.machine.heat_input_hatch.ev.name=§5EV§r 热阱仓
+gregtech.machine.heat_input_hatch.iv.name=§1IV§r 热阱仓
+gregtech.machine.heat_input_hatch.luv.name=§dLuV§r 热阱仓
+gregtech.machine.heat_input_hatch.zpm.name=§cZPM§r 热阱仓
+gregtech.machine.heat_input_hatch.uv.name=§3UV§r 热阱仓
+gregtech.machine.heat_input_hatch.uhv.name=§4UHV§r 热阱仓
 
 gregtech.machine.heat_hatch.input.tooltip=为多方块结构输入热量
 
@@ -437,6 +442,11 @@ gregtech.machine.heat_output_hatch.lv.name=§7LV§r 热源仓
 gregtech.machine.heat_output_hatch.mv.name=§bMV§r 热源仓
 gregtech.machine.heat_output_hatch.hv.name=§6HV§r 热源仓
 gregtech.machine.heat_output_hatch.ev.name=§5EV§r 热源仓
+gregtech.machine.heat_output_hatch.iv.name=§1IV§r 热源仓
+gregtech.machine.heat_output_hatch.luv.name=§dLuV§r 热源仓
+gregtech.machine.heat_output_hatch.zpm.name=§cZPM§r 热源仓
+gregtech.machine.heat_output_hatch.uv.name=§3UV§r 热源仓
+gregtech.machine.heat_output_hatch.uhv.name=§4UHV§r 热源仓
 
 gregtech.machine.heat_hatch.output.tooltip=从多方块结构输出热量
 
@@ -445,6 +455,11 @@ gregtech.machine.electric_heater.lv.name=§7LV§r 电加热器
 gregtech.machine.electric_heater.mv.name=§bMV§r 电加热器
 gregtech.machine.electric_heater.hv.name=§6HV§r 电加热器
 gregtech.machine.electric_heater.ev.name=§5EV§r 电加热器
+gregtech.machine.electric_heater.iv.name=§1IV§r 电加热器
+gregtech.machine.electric_heater.luv.name=§dLuV§r 电加热器
+gregtech.machine.electric_heater.zpm.name=§cZPM§r 电加热器
+gregtech.machine.electric_heater.uv.name=§3UV§r 电加热器
+gregtech.machine.electric_heater.uhv.name=§4UHV§r 电加热器
 
 gregtech.machine.electric_heater.tooltip=将电能转化为热能
 
