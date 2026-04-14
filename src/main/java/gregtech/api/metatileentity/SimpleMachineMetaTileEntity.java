@@ -541,7 +541,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
 
         Flow flowRow = Flow.row()
                 .name("col:extra.buttons")
-                .left(8).bottom(18 * 4 + 12);
+                .left(7).bottom(18 * 4 + 14);
 
         int s = 1;
         var throttle = panelSyncManager.panel("mte_setting", this::makeThrottlePanel, true);

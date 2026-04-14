@@ -38,6 +38,7 @@ import com.cleanroommc.modularui.value.sync.SyncHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,6 +63,13 @@ public class MultiblockUIBuilder {
     private static final int DEFAULT_MAX_RECIPE_LINES = 25;
     private final List<Operation> operations = new ArrayList<>();
     private final InternalSyncHandler syncHandler = new InternalSyncHandler();
+    /**
+     * -- SETTER --
+     *  Set the action for this builder. Called on server and client.
+     *
+     * @param action the action to apply to this builder
+     */
+    @Setter
     private Consumer<MultiblockUIBuilder> action;
     @Nullable
     private InternalSyncer syncer;
@@ -130,10 +138,10 @@ public class MultiblockUIBuilder {
     public MultiblockUIBuilder structureFormed(boolean structureFormed) {
         updateFormed(structureFormed);
         if (!this.isStructureFormed) {
-            IKey base = KeyUtil.lang(TextFormatting.RED, "gregtech.multiblock.invalid_structure");
-            var hover = KeyUtil.lang(TextFormatting.GRAY,
-                    "gregtech.multiblock.invalid_structure.tooltip");
-            addHoverableKey(base, hover);
+            addKey(KeyUtil.lang(TextFormatting.RED,
+                    "gregtech.multiblock.invalid_structure"));
+            addKey(KeyUtil.lang(TextFormatting.GRAY,
+                    "gregtech.multiblock.invalid_structure.tooltip"));
         }
         return this;
     }
@@ -190,15 +198,12 @@ public class MultiblockUIBuilder {
         long maxVoltage = Math.max(inV, outV);
         int tier = GTUtility.getFloorTierByVoltage(maxVoltage);
 
-        IKey bodyText = KeyUtil.lang(TextFormatting.GRAY,
+        addKey(KeyUtil.lang(TextFormatting.GRAY,
                 "gregtech.multiblock.max_energy_per_tick",
                 KeyUtil.number(maxVoltage),
-                KeyUtil.string(GTValues.VOCNF[tier]));
-
-        var hoverText = KeyUtil.lang(TextFormatting.GRAY,
-                "gregtech.multiblock.max_energy_per_tick_hover");
-
-        addHoverableKey(bodyText, hoverText);
+                KeyUtil.string(GTValues.VOCNF[tier])));
+        addKey(KeyUtil.lang(TextFormatting.GRAY,
+                "gregtech.multiblock.max_energy_per_tick_hover"));
         return this;
     }
 
@@ -212,11 +217,10 @@ public class MultiblockUIBuilder {
         tier = getSyncer().syncInt(tier);
         if (tier < GTValues.ULV || tier > GTValues.MAX_TRUE) return this;
 
-        var bodyText = KeyUtil.lang(TextFormatting.GRAY,
-                "gregtech.multiblock.max_recipe_tier", GTValues.VOCNF[tier]);
-        var hoverText = KeyUtil.lang(TextFormatting.GRAY,
-                "gregtech.multiblock.max_recipe_tier_hover");
-        addHoverableKey(bodyText, hoverText);
+        addKey(KeyUtil.lang(TextFormatting.GRAY,
+                "gregtech.multiblock.max_recipe_tier", GTValues.VOCNF[tier]));
+        addKey(KeyUtil.lang(TextFormatting.GRAY,
+                "gregtech.multiblock.max_recipe_tier_hover"));
         return this;
     }
 
@@ -898,15 +902,6 @@ public class MultiblockUIBuilder {
         if (this.action != null) {
             this.action.accept(this);
         }
-    }
-
-    /**
-     * Set the action for this builder. Called on server and client.
-     *
-     * @param action the action to apply to this builder
-     */
-    public void setAction(Consumer<MultiblockUIBuilder> action) {
-        this.action = action;
     }
 
     /**
