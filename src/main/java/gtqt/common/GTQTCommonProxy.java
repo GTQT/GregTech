@@ -1,5 +1,6 @@
 package gtqt.common;
 
+import gregtech.api.worldgen.vein.VeinSystemInit;
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.creativetab.CreativeTabs;
@@ -46,6 +47,7 @@ public class GTQTCommonProxy {
         GTQTMetaTileEntities.initialization();
         GTQTMetaItems.initialization();
         NetworkHandler.registerMessages();
+        VeinSystemInit.init();
     }
 
     public static void registerRecipes() {
