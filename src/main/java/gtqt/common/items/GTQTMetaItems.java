@@ -94,6 +94,7 @@ public class GTQTMetaItems {
     public static MetaItem<?>.MetaValueItem DISPOSABLE_KNIFE;
     public static MetaItem<?>.MetaValueItem DISPOSABLE_BUTCHERY_KNIFE;
     public static MetaItem<?>.MetaValueItem DISPOSABLE_ROLLING_PIN;
+    public static MetaItem<?>.MetaValueItem VEIN_SCANNER;
 
     public static GTQTMetaItem1 GTQT_META_ITEM;
 

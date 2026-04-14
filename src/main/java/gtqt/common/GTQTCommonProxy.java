@@ -47,7 +47,6 @@ public class GTQTCommonProxy {
         GTQTMetaTileEntities.initialization();
         GTQTMetaItems.initialization();
         NetworkHandler.registerMessages();
-        VeinSystemInit.init();
     }
 
     public static void registerRecipes() {
