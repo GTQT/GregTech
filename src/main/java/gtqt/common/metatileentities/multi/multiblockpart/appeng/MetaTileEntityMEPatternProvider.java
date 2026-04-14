@@ -59,7 +59,6 @@ import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
@@ -572,7 +571,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(Flow.row()
-                        .debugName("tab row")
+                        .name("tab row")
                         .widthRel(1f)
                         .leftRel(0.5f)
                         .margin(3, 0)
@@ -621,7 +620,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                         .leftRel(0.5f)
                                         .matrix(widgetsItem))
                         .addPage(// 代理模式页面
-                                Column.column() // 使用列布局
+                                Flow.column() // 使用列布局
                                         .top(0)
                                         .widthRel(1f)
                                         .leftRel(0.5f)
@@ -633,7 +632,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                                         .minRowHeight(18)
                                                         .matrix(weightsPos)
                                         )
-                                        .childIf(isUseProxy(), () -> Column.column() // 创建多行文本列
+                                        .childIf(isUseProxy(), () -> Flow.column() // 创建多行文本列
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
@@ -641,7 +640,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                                 .childIf(isUseProxy(), () -> {
                                                     TileEntity tileEntity = this.getWorld().getTileEntity(AEProxy_pos);
                                                     if (tileEntity instanceof AENetworkPowerTile proxy) {
-                                                        return Column.column()
+                                                        return Flow.column()
                                                                 .widthRel(1f)
                                                                 .child(new TextWidget<>(IKey.str("连接至无线网络")))
                                                                 .child(new TextWidget<>(IKey.dynamic(() ->
@@ -652,7 +651,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                                                                 proxy.getBlockType().getLocalizedName()
                                                                 )));
                                                     } else {
-                                                        return Column.column()
+                                                        return Flow.column()
                                                                 .widthRel(1f)
                                                                 .child(new TextWidget<>(IKey.str("未找到无线网络代理")))
                                                                 .child(new TextWidget<>(IKey.dynamic(() ->
@@ -663,7 +662,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                                     }
                                                 })
                                         )
-                                        .childIf(!isUseProxy(), () -> Column.column() // 创建多行文本列
+                                        .childIf(!isUseProxy(), () -> Flow.column() // 创建多行文本列
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
@@ -671,7 +670,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                         )
                         )
                         .addPage(// 终端设置
-                                Column.column()
+                                Flow.column()
                                         .child(new TextWidget<>(IKey.str("终端设置")))
                                         .child(new ToggleButton()
                                                 .size(18, 18)

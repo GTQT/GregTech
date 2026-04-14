@@ -19,10 +19,10 @@ public class BoundRectangle extends Rectangle {
     private final List<Pair<IntConsumer, BooleanSupplier>> colorSetters = new ArrayList<>();
 
     @Override
-    public BoundRectangle setColor(int color) {
+    public BoundRectangle color(int color) {
         getCircle().setColor(color, color);
         getRing().setColor(color);
-        super.setColor(color);
+        super.color(color);
         if (colorSetters != null) {
             for (int i = 0; i < colorSetters.size(); i++) {
                 var setterPair = colorSetters.get(i);

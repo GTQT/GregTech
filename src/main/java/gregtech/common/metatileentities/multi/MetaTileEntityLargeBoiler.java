@@ -266,7 +266,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                         .margin(4, 0)
                         .coverChildrenHeight()
                         .child(new SliderWidget()
-                                .background(new Rectangle().setColor(Color.BLACK.brighter(2)).asIcon()
+                                .background(new Rectangle().color(Color.BLACK.brighter(2)).asIcon()
                                         .height(8))
                                 .bounds(0.2, 1)
                                 .setAxis(GuiAxis.X)

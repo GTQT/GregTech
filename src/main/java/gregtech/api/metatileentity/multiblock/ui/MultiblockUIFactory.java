@@ -304,16 +304,16 @@ public class MultiblockUIFactory {
 
         var playerInv = SlotGroupWidget.playerInventory(false);
         if (disableButtons) {
-            playerInv.alignX(0.5f);
+            playerInv.posRel(Alignment.TopCenter);
         } else {
             playerInv.left(4);
         }
 
         return panel
-                .childIf(mte.hasSideUI(), Flow.column()
+                .childIf(mte.hasSideUI(), () -> Flow.column()
                         .name("side_row")
-                        .bottom(18*4+14)
-                        .coverChildrenHeight()
+                        .bottom(18 * 4 + 14)
+                        .height(18)
                         .margin(4, 0)
                         .crossAxisAlignment(Alignment.CrossAxis.CENTER)
                         .childIf(!disableButtons, () -> createSideButtons(panel, panelSyncManager, guiData))
@@ -379,7 +379,7 @@ public class MultiblockUIFactory {
                 } else {
                     widget = new ProgressWidget()
                             .addTooltipLine("Error! no bar for index: " + i)
-                            .background(new Rectangle().setColor(Color.RED.main));
+                            .background(new Rectangle().color(Color.RED.main));
                 }
 
                 row.child(widget.size(barWidth, Bars.HEIGHT)
@@ -445,7 +445,7 @@ public class MultiblockUIFactory {
                 .child(createDistinctButton(mainPanel, panelSyncManager))
                 .child(createVoidingButton(mainPanel, panelSyncManager))
                 .child(flexButton)
-                .childIf(powerButton != null, powerButton);
+                .childIf(powerButton != null, () -> powerButton);
     }
     protected IWidget createDistinctButton(@NotNull ModularPanel mainPanel,
                                            @NotNull PanelSyncManager panelSyncManager) {
@@ -532,7 +532,7 @@ public class MultiblockUIFactory {
         return Flow.row()
                 .name("side_col")
                 .coverChildren()
-                .align(Alignment.CenterLeft)
+                .posRel(Alignment.CenterLeft)
                 .child(createStructureDelayCheckButton(mainPanel, panelSyncManager))
                 .child(createBatchButton(mainPanel, panelSyncManager))
                 .child(lockRecipesButton(mainPanel, panelSyncManager))

@@ -10,7 +10,6 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTUtility;
 
-import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -146,8 +145,7 @@ public abstract class MultiMapMultiblockController extends RecipeMapMultiblockCo
                             .length(recipeMaps.length)
                             .tooltipBuilder(t -> {
                                 RecipeMap<?> map = recipeMaps[activeMapIndex.getIntValue()];
-                                String name = I18n.format(map.getTranslationKey());
-                                t.addLine(IKey.lang("gregtech.multiblock.multiple_recipemaps.value", name));
+                                t.addLine(IKey.lang("gregtech.multiblock.multiple_recipemaps.value", IKey.lang(map.getTranslationKey())));
                             });
                 });
     }

@@ -6,12 +6,8 @@ import gregtech.api.capability.impl.EnergyContainerHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.FuelRecipeLogic;
 import gregtech.api.capability.impl.RecipeLogicEnergy;
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.ModularUI;
-import gregtech.api.gui.widgets.LabelWidget;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
@@ -19,7 +15,6 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.PipelineUtil;
 
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -107,26 +102,6 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
         return super.getCapability(capability, side);
     }
 
-    protected ModularUI.Builder createGuiTemplate(EntityPlayer player) {
-        RecipeMap<?> workableRecipeMap = workable.getRecipeMap();
-        int yOffset = 0;
-        if (workableRecipeMap.getMaxInputs() >= 6 || workableRecipeMap.getMaxFluidInputs() >= 6 ||
-                workableRecipeMap.getMaxOutputs() >= 6 || workableRecipeMap.getMaxFluidOutputs() >= 6)
-            yOffset = FONT_HEIGHT;
-
-        ModularUI.Builder builder;
-        if (handlesRecipeOutputs)
-            builder = workableRecipeMap.getRecipeMapUI().createUITemplate(workable::getProgressPercent,
-                    importItems, exportItems, importFluids, exportFluids, yOffset);
-        else builder = workableRecipeMap.getRecipeMapUI().createUITemplateNoOutputs(workable::getProgressPercent,
-                importItems,
-                exportItems, importFluids, exportFluids, yOffset);
-        builder.widget(new LabelWidget(6, 6, getMetaFullName()))
-                .bindPlayerInventory(player.inventory, GuiTextures.SLOT, yOffset);
-
-        return builder;
-    }
-
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
@@ -162,35 +137,30 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     }
 
     @Override
-    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         RecipeMap<?> workableRecipeMap = Objects.requireNonNull(workable.getRecipeMap(), "recipe map is null");
-        int yOffset = 0;
-        if (workableRecipeMap.getMaxInputs() >= 6 || workableRecipeMap.getMaxFluidInputs() >= 6 ||
-                workableRecipeMap.getMaxOutputs() >= 6 || workableRecipeMap.getMaxFluidOutputs() >= 6) {
-            yOffset = FONT_HEIGHT;
-        }
 
-        ModularPanel panel = GTGuis.createPanel(this, 176, 166 + yOffset);
-        Widget<?> widget = workableRecipeMap.getRecipeMapUI().buildWidget(workable::getProgressPercent, importItems,
-                exportItems, importFluids, exportFluids, yOffset, guiSyncManager);
-
-        panel.child(widget)
+        return workableRecipeMap.getRecipeMapUI()
+                .constructPanel(this, builder -> builder
+                        .calculateOffset()
+                        .setInputs(importItems, importFluids)
+                        .setOutputs(exportItems, exportFluids)
+                        .inventorySlotGroups()
+                        .progressWidget(workable::getProgressPercent)
+                        .extraWidgets((panel1, yoffset) -> {
+                            if (exportItems.getSlots() + exportFluids.getTanks() <= 9) {
+                                panel1.child(new Widget<>()
+                                        .size(17)
+                                        .right(7)
+                                        .top(45 + yoffset)
+                                        .background(GTGuiTextures.getLogo(getUITheme())));
+                            }
+                        }))
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .bindPlayerInventory();
-
-        if (exportItems.getSlots() + exportFluids.getTanks() <= 9) {
-            panel.child(new Widget<>()
-                    .size(17)
-                    .pos(152, 63 + yOffset)
-                    .background(GTGuiTextures.getLogo(getUITheme())));
-        }
-        return panel;
     }
 
-    @Override
-    protected ModularUI createUI(EntityPlayer entityPlayer) {
-        return createGuiTemplate(entityPlayer).build(getHolder(), entityPlayer);
-    }
+
 
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,

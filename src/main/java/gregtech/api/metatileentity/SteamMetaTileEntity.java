@@ -1,7 +1,6 @@
 package gregtech.api.metatileentity;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.ISteamMachine;
 import gregtech.api.capability.impl.CommonFluidFilters;
 import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.FluidTankList;
@@ -9,8 +8,8 @@ import gregtech.api.capability.impl.RecipeLogicSteam;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.widgets.ImageWidget;
+import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -42,12 +41,15 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
@@ -55,7 +57,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class SteamMetaTileEntity extends MetaTileEntity implements ISteamMachine {
+public abstract class SteamMetaTileEntity extends MetaTileEntity {
 
     // todo quick and dirty fix to not show input tank in ui, find better solution
     protected static final FluidTankList EMPTY = new FluidTankList(false);
@@ -150,21 +152,36 @@ public abstract class SteamMetaTileEntity extends MetaTileEntity implements ISte
     }
 
     @Override
-    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         RecipeMap<?> map = Objects.requireNonNull(getRecipeMap());
 
-        ModularPanel modularPanel = GTGuis.defaultPanel(this);
+        BooleanSyncValue hasNoSteam = new BooleanSyncValue(workableHandler::isHasNotEnoughEnergy);
+        panelSyncManager.syncValue("has_energy", hasNoSteam);
 
-        // todo this method needs options to ignore certain handlers
-        // actually, steam machines manually construct their ui instead of using the recipe map ui
-        Widget<?> widget = map.getRecipeMapUI().buildWidget(workableHandler::getProgressPercent, importItems,
-                exportItems, EMPTY, exportFluids, 0, guiSyncManager);
+        ModularPanel panel = map.getRecipeMapUI()
+                .constructPanel(this, builder -> builder
+                        .setMaxSize(176, 170)
+                        .setInputs(importItems, EMPTY)
+                        .setOutputs(exportItems, exportFluids)
+                        .inventorySlotGroups()
+                        .progressWidget(workableHandler::getProgressPercent, widget -> {
+                            // todo add tooltip for no steam?
+                            widget.overlay(new DynamicDrawable(() -> hasNoSteam.getBoolValue() ?
+                                    getIndicator() : IDrawable.NONE)
+                                    .asIcon().size(18).marginTop(50));
+                        }));
+        return panel.child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
+                .child(getUITheme().getLogo().asWidget()
+                        .size(16)
+                        .right(7)
+                        .top(46))
+                .child(SlotGroupWidget.playerInventory((index, widgetSlot) -> widgetSlot
+                                .background(GTGuiTextures.SLOT))
+                        .horizontalCenter().bottom(7));
+    }
 
-        modularPanel.child(widget)
-                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .bindPlayerInventory();
-
-        return modularPanel;
+    public IDrawable getIndicator() {
+        return isHighPressure ? GTGuiTextures.INDICATOR_NO_STEAM_STEEL : GTGuiTextures.INDICATOR_NO_STEAM_BRONZE;
     }
 
     @Override

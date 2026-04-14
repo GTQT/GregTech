@@ -130,7 +130,7 @@ public class MultiblockUIBuilder {
     public MultiblockUIBuilder structureFormed(boolean structureFormed) {
         updateFormed(structureFormed);
         if (!this.isStructureFormed) {
-            var base = KeyUtil.lang(TextFormatting.RED, "gregtech.multiblock.invalid_structure");
+            IKey base = KeyUtil.lang(TextFormatting.RED, "gregtech.multiblock.invalid_structure");
             var hover = KeyUtil.lang(TextFormatting.GRAY,
                     "gregtech.multiblock.invalid_structure.tooltip");
             addHoverableKey(base, hover);

@@ -267,7 +267,7 @@ public interface CoverWithUI extends Cover, IGuiHolder<SidedPosGuiData>, gregtec
             }
 
             if (this.lang != null && !this.lang.isEmpty())
-                row.child(IKey.lang(this.lang).asWidget().align(Alignment.CenterRight).height(18));
+                row.child(IKey.lang(this.lang).asWidget().posRel(Alignment.CenterRight).height(18));
 
             return row;
         }

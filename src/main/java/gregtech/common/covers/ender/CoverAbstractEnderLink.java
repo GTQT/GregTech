@@ -197,7 +197,7 @@ public abstract class CoverAbstractEnderLink<T extends VirtualEntry> extends Cov
 
     protected IWidget createColorIcon() {
         return new DynamicDrawable(() -> new Rectangle()
-                .setColor(this.activeEntry.getColor())
+                .color(this.activeEntry.getColor())
                 .asIcon().size(16))
                 .asWidget()
                 .background(GTGuiTextures.SLOT)
@@ -372,7 +372,7 @@ public abstract class CoverAbstractEnderLink<T extends VirtualEntry> extends Cov
                 .widthRel(0.98f)
                 .setEnabledIf(row -> VirtualEnderRegistry.hasEntry(getOwner(), type, name))
                 .child(new Rectangle()
-                        .setColor(entry.getColor())
+                        .color(entry.getColor())
                         .asWidget()
                         .marginRight(4)
                         .size(16)

@@ -44,10 +44,10 @@ public class RecipeProgressWidget extends ProgressWidget implements Interactable
                 List<String> categoryID = new ArrayList<>();
                 if (recipeMap == RecipeMaps.FURNACE_RECIPES) {
                     categoryID.add("minecraft.smelting");
-                }
-
-                for (RecipeMapCategory category : categories) {
-                    categoryID.add(category.getUid());
+                } else {
+                    for (RecipeMapCategory category : categories) {
+                        categoryID.add(category.getUid());
+                    }
                 }
 
                 if (JustEnoughItemsModule.jeiRuntime == null) {

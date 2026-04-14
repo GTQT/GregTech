@@ -78,7 +78,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
-import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
@@ -355,7 +354,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityAEHostablePart
             });
         }
 
-        return Column.column()
+        return Flow.column()
                 .pos(7 + 18 * 5, 25)
                 .size(18 * 4, 18 * 4 + 4 + 18 * 4)
                 .child(itemGrid)
@@ -390,7 +389,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityAEHostablePart
                                 .syncHandler(SYNC_HANDLER_NAME + "fluid", 0)
                                 .name("Fluid Index " + index)));
 
-        return Column.column()
+        return Flow.column()
                 .pos(7 + 18 * 5, 25)
                 .size(18 * 4, 18 * 4 + 4 + 18 * 4)
                 .child(itemGrid)

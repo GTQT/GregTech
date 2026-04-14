@@ -32,7 +32,7 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.layout.Column;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
@@ -236,7 +236,7 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityAEHostablePart
                 .child(IKey.lang(getMetaFullName())
                         .asWidget()
                         .top(7).left(7))
-                .child(Column.column()
+                .child(Flow.column()
                         .leftRel(0.5f)
                         .top(18)
                         .widthRel(0.9f)

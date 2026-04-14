@@ -218,7 +218,7 @@ public class MetaTileEntityCreativeEnergy extends MetaTileEntity implements ILas
                                                 "gregtech.creative.activity.off")))
                                 .child(new ToggleButton()
                                         .size(77, 20)
-                                        .align(Alignment.CenterRight)
+                                        .posRel(Alignment.CenterRight)
                                         .value(sourceSync)
                                         .overlay(IKey.lang(() -> sourceSync.getBoolValue() ?
                                                 "gregtech.creative.energy.source" :

@@ -150,7 +150,7 @@ public class CoverMachineController extends CoverBase implements CoverWithUI {
                                         .heightRel(1.0f).left(20)))
 
                         // Separating line
-                        .child(new Rectangle().setColor(UI_TEXT_COLOR).asWidget()
+                        .child(new Rectangle().color(UI_TEXT_COLOR).asWidget()
                                 .height(1).widthRel(0.9f).alignX(0.5f).marginBottom(4).marginTop(4))
 
                         // Controlling selector

@@ -3416,6 +3416,7 @@ gregtech.machine.steam_boiler_lava_steel.name=高压蒸汽液体燃料锅炉
 gregtech.machine.steam_boiler_lava_steel.tooltip=比小型液体燃料锅炉要快
 
 gregtech.machine.steam_boiler.heat_amount=热容：%s %%
+gregtech.machine.steam_boiler.heat_tooltip=热量: %,d°C / %,d°C
 
 gregtech.machine.steam_extractor_bronze.name=蒸汽提取机
 gregtech.machine.steam_extractor_bronze.tooltip=提取你的第一块橡胶

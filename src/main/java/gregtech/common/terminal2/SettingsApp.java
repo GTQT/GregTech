@@ -51,7 +51,7 @@ public class SettingsApp implements ITerminalApp {
                 .child(new ButtonWidget<>()
                         .overlay(IKey.dynamic(() -> Terminal2Theme.currentBackground))
                         .size(140, 18)
-                        .align(Alignment.CenterRight)
+                        .posRel(Alignment.CenterRight)
                         .onMousePressed(i -> {
                             if (backgroundSelectPanel.isPanelOpen()) {
                                 backgroundSelectPanel.closePanel();
@@ -91,7 +91,7 @@ public class SettingsApp implements ITerminalApp {
                             .background(GuiTextures.CHECKBOARD)
                             .disableHoverOverlay()
                             .disableHoverBackground()
-                            .align(Alignment.CenterRight)
+                            .posRel(Alignment.CenterRight)
                             .onMousePressed(i -> {
                                 colorPanel.openPanel();
                                 return true;

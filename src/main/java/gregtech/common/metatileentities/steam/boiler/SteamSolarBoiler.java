@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.steam.boiler;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
@@ -14,6 +12,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
@@ -31,7 +30,7 @@ public class SteamSolarBoiler extends SteamBoiler {
 
     @Override
     protected int getBaseSteamOutput() {
-        return isHighPressure ? 320 : 160;
+        return isHighPressure ? 360 : 120;
     }
 
     @Override
@@ -52,8 +51,8 @@ public class SteamSolarBoiler extends SteamBoiler {
     }
 
     @Override
-    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        return super.buildUI(guiData, guiSyncManager,settings)
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
+        return super.buildUI(guiData, panelSyncManager, settings)
                 .child(new ProgressWidget()
                         .value(new DoubleSyncValue(() -> GTUtility.canSeeSunClearly(getWorld(), getPos()) ? 1.0 : 0.0))
                         .pos(114, 44)

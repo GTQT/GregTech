@@ -26,8 +26,7 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
 
     private final String unlocalizedName;
     private final B defaultRecipeBuilder;
-    @Deprecated
-    private final Byte2ObjectMap<TextureArea> slotOverlays = new Byte2ObjectArrayMap<>();
+
     private int itemInputs;
     private boolean modifyItemInputs = true;
     private int itemOutputs;
@@ -36,8 +35,12 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     private boolean modifyFluidInputs = true;
     private int fluidOutputs;
     private boolean modifyFluidOutputs = true;
+
     private boolean jeiOverclockButton = true;
     private boolean isGenerator = false;
+
+    private RecipeMapUIFunction recipeMapUIFunction = this::buildUI;
+
     private SoundEvent sound;
     private boolean allowEmptyOutputs;
 
@@ -46,6 +49,9 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     private boolean sortToBack;
 
     /* *********************** MUI 1 *********************** */
+
+    @Deprecated
+    private final Byte2ObjectMap<TextureArea> slotOverlays = new Byte2ObjectArrayMap<>();
     @Deprecated
     private @Nullable TextureArea progressBar;
     @Deprecated
@@ -54,12 +60,13 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     private @Nullable TextureArea specialTexture;
     @Deprecated
     private int @Nullable [] specialTextureLocation;
+
+    /* *********************** MUI 2 *********************** */
+
     @ApiStatus.Experimental
     private boolean usesMui2 = false;
 
-    /* *********************** MUI 2 *********************** */
     private @Nullable Consumer<RecipeMapUIBuilder> mapUIBuilder;
-    private RecipeMapUIFunction recipeMapUIFunction = this::buildUI;
 
     /**
      * @param unlocalizedName      the name of the recipemap
@@ -153,9 +160,9 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
+     * @deprecated in favor of the MUI2 method.
      * @param progressBar the progress bar texture to use
      * @return this
-     * @deprecated in favor of the MUI2 method.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
@@ -165,10 +172,10 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
+     * @deprecated in favor of the MUI2 method.
      * @param progressBar the progress bar texture to use
      * @param moveType    the progress bar move type to use
      * @return this
-     * @deprecated in favor of the MUI2 method.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
@@ -180,10 +187,10 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
+     * @deprecated in favor of the MUI2 method.
      * @param texture  the texture to use
      * @param isOutput if the slot is an output slot
      * @return this
-     * @deprecated in favor of the MUI2 method.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
@@ -194,11 +201,11 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
+     * @deprecated in favor of the MUI2 method.
      * @param texture    the texture to use
      * @param isOutput   if the slot is an output slot
      * @param isLastSlot if the slot is the last slot
      * @return this
-     * @deprecated in favor of the MUI2 method.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
@@ -209,10 +216,10 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
+     * @deprecated in favor of the MUI2 method.
      * @param texture  the texture to use
      * @param isOutput if the slot is an output slot
      * @return this
-     * @deprecated in favor of the MUI2 method.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
@@ -223,11 +230,11 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
+     * @deprecated in favor of the MUI2 method.
      * @param texture    the texture to use
      * @param isOutput   if the slot is an output slot
      * @param isLastSlot if the slot is the last slot
      * @return this
-     * @deprecated in favor of the MUI2 method.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
@@ -256,8 +263,8 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
 
     /**
      * @apiNote Only needed if you do not set textures using MUI2 methods, i.e. the ones that accept{@link UITexture}.
-     * <br>
-     * Marked experimental since this method will disappear once MUI2 is fully supported by all GTCEu UIs.
+     *          <br>
+     *          Marked experimental since this method will disappear once MUI2 is fully supported by all GTCEu UIs.
      */
     @ApiStatus.Experimental
     public @NotNull RecipeMapBuilder<B> usesMui2() {
@@ -344,8 +351,8 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
     }
 
     /**
-     * Have the primary {@link gregtech.api.recipes.category.GTRecipeCategory} for the RecipeMap be sorted to the end of
-     * the JEI recipe category list.
+     * Have the primary {@link gregtech.api.recipes.category.GTRecipeCategory} for the RecipeMap be sorted to the end
+     * of the JEI recipe category list.
      *
      * @param sortToBack if it should be sorted to the back
      * @return this

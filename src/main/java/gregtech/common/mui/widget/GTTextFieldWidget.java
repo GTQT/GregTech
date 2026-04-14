@@ -6,12 +6,12 @@ import net.minecraft.util.math.MathHelper;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.value.IStringValue;
+import com.cleanroommc.modularui.api.value.ISyncOrValue;
 import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.utils.MathUtils;
 import com.cleanroommc.modularui.utils.ParseResult;
 import com.cleanroommc.modularui.value.StringValue;
-import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.cleanroommc.modularui.value.sync.ValueSyncHandler;
 import com.cleanroommc.modularui.widgets.textfield.BaseTextFieldWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldHandler;
@@ -48,9 +48,9 @@ public class GTTextFieldWidget extends BaseTextFieldWidget<GTTextFieldWidget> {
 
     public double parse(String num) {
         ParseResult result = MathUtils.parseExpression(num, this.defaultNumber, true);
-        double value = result.getResult();
+        double value = result.getResult().getNumberValue().doubleValue();
         if (result.isFailure()) {
-            String mathFailMessage = result.getError();
+            String mathFailMessage = result.getErrorMessage();
             GTLog.logger.error("Math expression error in {}: {}", this, mathFailMessage);
         }
         return value;
@@ -70,7 +70,7 @@ public class GTTextFieldWidget extends BaseTextFieldWidget<GTTextFieldWidget> {
     }
 
     @Override
-    public boolean isValidSyncHandler(SyncHandler syncHandler) {
+    public boolean isValidSyncOrValue(@NotNull ISyncOrValue syncHandler) {
         if (syncHandler instanceof IStringValue<?>iStringValue &&
                 syncHandler instanceof ValueSyncHandler<?>valueSyncHandler) {
             this.stringValue = iStringValue;
@@ -253,7 +253,7 @@ public class GTTextFieldWidget extends BaseTextFieldWidget<GTTextFieldWidget> {
 
     public GTTextFieldWidget value(IStringValue<?> stringValue) {
         this.stringValue = stringValue;
-        setValue(stringValue);
+        setSyncOrValue(stringValue);
         return this;
     }
 

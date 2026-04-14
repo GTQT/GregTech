@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.steam.boiler;
 
-import com.cleanroommc.modularui.screen.UISettings;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IFilter;
 import gregtech.api.capability.impl.CommonFluidFilters;
@@ -28,6 +26,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
@@ -60,6 +59,8 @@ public class SteamLavaBoiler extends SteamBoiler {
     private static void init() {
         setBoilerFuelToConsumption(Materials.Lava.getFluid(), 100);
         setBoilerFuelToConsumption(Materials.Creosote.getFluid(), 250);
+        setBoilerFuelToConsumption(Materials.NaturalGas.getFluid(), 300);
+        setBoilerFuelToConsumption(Materials.Biomass.getFluid(), 500);
     }
 
     @NotNull
@@ -90,7 +91,7 @@ public class SteamLavaBoiler extends SteamBoiler {
 
     @Override
     protected int getBaseSteamOutput() {
-        return isHighPressure ? 640 : 320;
+        return isHighPressure ? 600 : 240;
     }
 
     @Override
@@ -124,8 +125,8 @@ public class SteamLavaBoiler extends SteamBoiler {
     }
 
     @Override
-    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        return super.buildUI(guiData, guiSyncManager,settings)
+    public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
+        return super.buildUI(guiData, panelSyncManager, settings)
                 .child(new GTFluidSlot()
                         .syncHandler(GTFluidSlot.sync(fuelFluidTank)
                                 .showAmountOnSlot(false))

@@ -73,7 +73,6 @@ import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
@@ -1077,7 +1076,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(Flow.row()
-                        .debugName("tab row")
+                        .name("tab row")
                         .widthRel(1f)
                         .leftRel(0.5f)
                         .margin(3, 0)
@@ -1108,7 +1107,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                         .widthRel(1f) // 宽度设为父容器的 100%
                         .controller(controller)
                         .addPage(// 样板模式页面
-                                Column.column() // 使用列布局
+                                Flow.column() // 使用列布局
                                         .top(0)
                                         .widthRel(0.8f)
                                         .leftRel(0.5f)
@@ -1129,7 +1128,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
 
                         )
                         .addPage(
-                                Column.column() // 使用列布局
+                                Flow.column() // 使用列布局
                                         .top(0)
                                         .widthRel(0.8f)
                                         .leftRel(0.5f)
@@ -1171,7 +1170,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                                         .leftRel(0.5f)
                                         .matrix(widgetsItem))
                         .addPage(// 代理模式页面
-                                Column.column() // 使用列布局
+                                Flow.column() // 使用列布局
                                         .top(0)
                                         .widthRel(1f)
                                         .leftRel(0.5f)
@@ -1183,7 +1182,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                                                         .minRowHeight(18)
                                                         .matrix(weightsPos)
                                         )
-                                        .childIf(useProxy, () -> Column.column() // 创建多行文本列
+                                        .childIf(useProxy, () -> Flow.column() // 创建多行文本列
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)
@@ -1192,7 +1191,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                                                     TileEntity tileEntity = this.getWorld().getTileEntity(
                                                             AEProxy_pos);
                                                     if (tileEntity instanceof AENetworkPowerTile proxy) {
-                                                        return Column.column()
+                                                        return Flow.column()
                                                                 .widthRel(1f)
                                                                 .child(new TextWidget<>(IKey.lang("连接至无线网络")))
                                                                 .child(new TextWidget<>(IKey.dynamic(() ->
@@ -1203,7 +1202,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                                                                                 proxy.getBlockType().getLocalizedName()
                                                                 )));
                                                     } else {
-                                                        return Column.column()
+                                                        return Flow.column()
                                                                 .widthRel(1f)
                                                                 .child(new TextWidget<>(IKey.str("未找到无线网络代理")))
                                                                 .child(new TextWidget<>(IKey.dynamic(() ->
@@ -1214,7 +1213,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
                                                     }
                                                 })
                                         )
-                                        .childIf(!useProxy, () -> Column.column() // 创建多行文本列
+                                        .childIf(!useProxy, () -> Flow.column() // 创建多行文本列
                                                 .widthRel(1f)
                                                 .top(30)
                                                 .margin(5, 0)

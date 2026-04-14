@@ -115,7 +115,7 @@ public class GTGuis {
 
         private PopupPanel(@NotNull String name, boolean addCloseButton) {
             super(name);
-            align(Alignment.Center);
+            posRel(Alignment.Center);
             background(GTGuiTextures.BACKGROUND_POPUP);
             childIf(addCloseButton, () -> ButtonWidget.panelCloseButton()
                     .top(5).right(5)

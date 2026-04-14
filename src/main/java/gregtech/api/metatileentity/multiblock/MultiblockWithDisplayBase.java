@@ -707,8 +707,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     protected void addErrorText(List<ITextComponent> textList) {
         if(hasMufflerMechanics()) {
             MultiblockDisplayText.builder(textList, isStructureFormed())
-                    .addMufflerObstructedLine(!isMufflerFaceFree());
-            MultiblockDisplayText.builder(textList, isStructureFormed())
+                    .addMufflerObstructedLine(!isMufflerFaceFree())
                     .addMufflerFullLine(!isMufflerEmpty());
         }
 

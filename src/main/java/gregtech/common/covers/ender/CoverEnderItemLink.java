@@ -339,7 +339,7 @@ public class CoverEnderItemLink extends CoverBase implements CoverWithUI, ITicka
                                 .marginRight(2)
                                 .value(isPrivate))
                         .child(new DynamicDrawable(() -> new Rectangle()
-                                .setColor(this.color)
+                                .color(this.color)
                                 .asIcon().size(16))
                                 .asWidget()
                                 .background(GTGuiTextures.SLOT)
