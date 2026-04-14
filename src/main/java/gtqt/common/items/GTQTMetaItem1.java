@@ -15,6 +15,7 @@ import gregtech.common.creativetab.GTCreativeTabs;
 import gtqt.common.GTQTCommonProxy;
 import gtqt.common.items.behaviors.OrderBehavior;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
+import gtqt.common.items.behaviors.VeinScanBehavior;
 import gtqt.common.items.behaviors.WindRotorBehavior;
 
 import static gregtech.api.GTValues.M;
@@ -351,5 +352,6 @@ public class GTQTMetaItem1 extends StandardMetaItem {
         GTQTMetaItems.DISPOSABLE_ROLLING_PIN = addItem(231, "tool.disposable.rolling_pin").addOreDict("toolRollingPin")
                 .addOreDict("craftingToolRollingPin").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
+        GTQTMetaItems.VEIN_SCANNER = addItem(232,"tool.scanner").addComponents(new VeinScanBehavior());
     }
 }

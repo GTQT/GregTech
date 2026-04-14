@@ -35,6 +35,7 @@ import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinSaveData;
 import gregtech.api.worldgen.config.WorldGenRegistry;
+import gregtech.api.worldgen.vein.VeinSystemInit;
 import gregtech.common.CommonProxy;
 import gregtech.common.ConfigHolder;
 import gregtech.common.MetaEntities;
@@ -231,6 +232,10 @@ public class CoreModule implements IGregTechModule {
         /* End API Block Registration */
 
         proxy.onPreLoad();
+
+        // 虚拟矿脉系统：注册 Capability + ChunkLoad 事件监听
+        // 必须在 preInit 完成，WorldGen 数据在 init() 阶段加载
+        VeinSystemInit.init();
     }
 
     @Override
@@ -297,6 +302,11 @@ public class CoreModule implements IGregTechModule {
     public void postInit(FMLPostInitializationEvent event) {
         proxy.onPostLoad();
         BedrockFluidVeinHandler.recalculateChances(true);
+
+        // 虚拟矿脉系统：WorldGenRegistry 已在 init() 阶段完成 JSON 解析，
+        // 此处读取所有 GT 矿脉定义并同步注册为虚拟矿脉
+        VeinSystemInit.postInit();
+
         // registers coil types for the BlastTemperatureProperty used in Blast Furnace Recipes
         // runs AFTER craftTweaker
         for (Map.Entry<IBlockState, IHeatingCoilBlockStats> entry : GregTechAPI.HEATING_COILS.entrySet()) {
