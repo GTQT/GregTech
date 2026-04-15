@@ -382,6 +382,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                         }
                     }
                 }
+
+                // 缓冲区清理：当物品和流体全部被配方消耗后，清空电路槽和签名使缓冲区可复用
+                for (PatternBuffer buffer : bufferPool) {
+                    if (buffer.getSignature() != null && buffer.isItemAndFluidEmpty()) {
+                        buffer.clear();
+                    }
+                }
             }
 
             if (isPatternDeal() && getOffsetTimer() % 20 == 0) {
@@ -1201,6 +1208,21 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             // 检查电路
             if (!circuitSlot.getStackInSlot(0).isEmpty()) return false;
 
+            return true;
+        }
+
+        /**
+         * 判断缓冲区的物品和流体是否全部为空（不检查电路槽）。
+         * 用于判断配方是否已消耗完毕，即使电路槽还有值也算"消耗完成"。
+         */
+        public boolean isItemAndFluidEmpty() {
+            for (int i = 0; i < itemHandler.getSlots(); i++) {
+                if (!itemHandler.getStackInSlot(i).isEmpty()) return false;
+            }
+            for (int i = 0; i < fluidHandler.getTanks(); i++) {
+                IFluidTank tank = fluidHandler.getTankAt(i);
+                if (tank.getFluid() != null && tank.getFluidAmount() > 0) return false;
+            }
             return true;
         }
 
