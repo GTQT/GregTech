@@ -19,6 +19,15 @@ metaitem.programming_toolkit.gui_title=Programming Toolkit
 metaitem.programming_toolkit.input=Input
 metaitem.programming_toolkit.output=Output
 metaitem.programming_toolkit.hint=§7Insert item and take programmable circuit from output slot
+
+# Programming Provider
+gregtech.machine.programming_provider.name=Programming Provider
+gregtech.machine.programming_provider.hint=§7Insert items to add corresponding programmable circuits
+gregtech.machine.programming_provider.tooltip.1=§7Provides blank and circuit 1~32 programmable circuits by default
+gregtech.machine.programming_provider.tooltip.2=§7Insert any item to add its corresponding programmable circuit
+gregtech.machine.programming_provider.tooltip.3=§7Connect AE Storage Bus for infinite ME network supply
+gregtech.machine.programming_provider.tooltip.4=§7Incoming programmable circuits will be destroyed
+
 #  Universal Circuit Boards
 metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
 metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)

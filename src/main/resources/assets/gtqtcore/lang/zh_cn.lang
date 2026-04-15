@@ -20,6 +20,14 @@ metaitem.programming_toolkit.input=输入
 metaitem.programming_toolkit.output=输出
 metaitem.programming_toolkit.hint=§7放入物品后从输出槽取出可编程电路
 
+# 可编程提供器
+gregtech.machine.programming_provider.name=可编程提供器
+gregtech.machine.programming_provider.hint=§7放入物品以追加对应的可编程电路
+gregtech.machine.programming_provider.tooltip.1=§7默认提供空白可编程电路及数字电路 1~32
+gregtech.machine.programming_provider.tooltip.2=§7放入任意物品可追加对应的可编程电路
+gregtech.machine.programming_provider.tooltip.3=§7连接 AE 存储总线可向 ME 网络无限供应
+gregtech.machine.programming_provider.tooltip.4=§7输入的可编程电路会被自动销毁
+
 #  通用电路板s
 metaitem.general_circuit.ulv.name=通用电路板 (§8ULV§r)
 metaitem.general_circuit.lv.name=通用电路板 (§7LV§r)

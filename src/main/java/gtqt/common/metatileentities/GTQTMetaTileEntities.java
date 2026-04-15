@@ -36,6 +36,7 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityME
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternManager;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
+import gtqt.common.metatileentities.electric.MetaTileEntityProgrammingProvider;
 import gtqt.common.metatileentities.store.MetaTileEntityHugeBuffer;
 
 import static gregtech.api.GTValues.VN;
@@ -114,6 +115,7 @@ public class GTQTMetaTileEntities {
 
     public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
     public static MetaTileEntityHugeTransformer HUGE_TRANSFORMER;
+    public static MetaTileEntityProgrammingProvider PROGRAMMING_PROVIDER;
 
     //从2500开始写 与gtceu本体共用一个注册表
     //任务：GTQT内不方便写的内容转移到这里来写
@@ -355,5 +357,9 @@ public class GTQTMetaTileEntities {
 
         HUGE_TRANSFORMER = registerMetaTileEntity(5001,
                 new MetaTileEntityHugeTransformer(gregtechId("huge_transformer")));
+
+        // 可编程提供器, ID 5002
+        PROGRAMMING_PROVIDER = registerMetaTileEntity(5002,
+                new MetaTileEntityProgrammingProvider(gregtechId("programming_provider"), GTValues.HV));
     }
 }
