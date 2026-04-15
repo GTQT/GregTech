@@ -35,6 +35,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.config.Actionable;
+import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
@@ -131,13 +132,6 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
     @Getter
     @Nullable
     protected DualHandler dualHandler;
-
-    protected int parallel;
-    protected int lastParallel;
-
-    @Setter
-    @Getter
-    protected boolean patternDeal = false;
 
     @Getter
     @Setter
@@ -272,8 +266,37 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
         }
     }
 
-    public void setPatternDetails() {
+    /**
+     * 获取样板槽位数量，子类应覆盖以提供实际的槽位数量。
+     *
+     * @return 样板槽位数量，默认返回 0
+     */
+    protected int getPatternSlotCount() {
+        return 0;
+    }
 
+    /**
+     * 设置样板详情。遍历所有样板槽位，将有效的样板物品转换为样板详情。
+     * 子类只需覆盖 {@link #getPatternSlotCount()} 提供正确的槽位数量即可复用此方法。
+     * 如果子类有不同的样板生成逻辑，可以直接覆盖本方法。
+     */
+    public void setPatternDetails() {
+        if (patternSlot == null || patternDetails == null) {
+            return;
+        }
+
+        int slotCount = getPatternSlotCount();
+        for (int i = 0; i < slotCount; i++) {
+            ItemStack pattern = patternSlot.getStackInSlot(i);
+            if (pattern == ItemStack.EMPTY) {
+                patternDetails.set(i, null);
+                continue;
+            }
+
+            if (pattern.getItem() instanceof ICraftingPatternItem patternItem) {
+                patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
+            }
+        }
     }
 
     public boolean addItemAndFluid(InventoryCrafting inventoryCrafting) throws GridAccessException {

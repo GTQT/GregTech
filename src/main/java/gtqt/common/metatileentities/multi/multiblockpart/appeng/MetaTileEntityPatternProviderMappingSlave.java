@@ -308,21 +308,6 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
     }
 
     @Override
-    public void setPatternDetails() {
-        for (int i = 0; i < getPatternSlotCount(); i++) {
-            ItemStack pattern = patternSlot.getStackInSlot(i);
-            if (pattern == ItemStack.EMPTY) {
-                patternDetails.set(i, null);
-                continue;
-            }
-
-            if (pattern.getItem() instanceof ICraftingPatternItem patternItem) {
-                patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
-            }
-        }
-    }
-
-    @Override
     public void onRemoval() {
         removeFromGridCache();
         super.onRemoval();

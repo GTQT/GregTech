@@ -904,9 +904,11 @@ gregtech.machine.complex_dual_hatch.tooltip.2=If the IO function is enabled, the
 
 gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders machines after marking recipes with patterns
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items
-gregtech.machine.me_pattern.tooltip.3=Pattern Optimization: Automatically multiplies patterns according to current thread count, adjusts dynamically with multiblock parallel changes
+gregtech.machine.me_pattern.tooltip.3=Buffer capacity raised to maximum, supports cumulative pattern pushing
 gregtech.machine.me_pattern.tooltip.4=Advanced Template Circuit: In Template Reading, if a virtual circuit (without programmable circuits) is read, the value of the current virtual circuit is automatically set to the circuit in the template and the virtual circuit is sent back to the network
 gregtech.machine.me_pattern.tooltip.buffer=Buffer Pool: Has %d independent buffers, same item combinations share a buffer, supports programmable circuit auto-unwrapping
+gregtech.machine.me_pattern.tooltip.refund=Refund: Automatically returns buffered items and fluids to AE network on removal, drops to ground if return fails
+gregtech.machine.me_pattern.tooltip.lock=Buffer Lock: Delays buffer release after recipe consumption, prevents recipe conflicts
 
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=Use standard mining to fuzz batch generation of recipes (e.g. input:ingot x1,output:plate x1 will automatically register all material ingots to plate 1:1 templates, and fill in fluid for the fluid corresponding to the material in MB)
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=Allows marking other constant inputs or outputs (not recommended to mark constant output items)

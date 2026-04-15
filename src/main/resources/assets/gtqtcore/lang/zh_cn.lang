@@ -898,9 +898,11 @@ gregtech.machine.complex_dual_hatch.tooltip.2=若开启IO功能，则会在奇�
 
 gregtech.machine.me_pattern.tooltip.1=内置样板供应器，使用样板标记配方后可直接下单至机器
 gregtech.machine.me_pattern.tooltip.2=阻挡模式：只允许与总成缓存的相同配方物品流进入总成，其他配方的物品流将被阻挡
-gregtech.machine.me_pattern.tooltip.3=样板优化：将样板自动倍乘到当前并行数量，多方块并行变更也会导致样板倍乘自动变更
+gregtech.machine.me_pattern.tooltip.3=缓冲区容量已提升至最大值，支持累积推送
 gregtech.machine.me_pattern.tooltip.4=高级样板电路：在样板读取中如果读取到虚拟电路（不包含可编程电路）则自动设置当前虚拟电路为样板中电路的值并将虚拟电路发送回网络
 gregtech.machine.me_pattern.tooltip.buffer=缓冲区池：拥有 %d 个独立缓冲区，相同物品组合共享缓冲区，支持可编程电路自动解包
+gregtech.machine.me_pattern.tooltip.refund=退还机制：拆除时自动将缓冲区中的物品和流体退还到AE网络，退还失败的掉落到地面
+gregtech.machine.me_pattern.tooltip.lock=缓冲区锁定：配方消耗完毕后延迟释放缓冲区，防止不同配方抢占
 
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=使用标准矿辞写法模糊批量生成配方（例如input:ingot x 1,output:plate x 1将自动注册所有材料锭到板1：1的样板，同时，填写fluid则为材料对应的流体，单位为mb）
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=允许标注其他不变输入物或者输出物品（不推荐标注不变输出物品）

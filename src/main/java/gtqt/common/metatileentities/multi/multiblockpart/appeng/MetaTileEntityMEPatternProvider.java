@@ -6,12 +6,9 @@ import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
@@ -22,7 +19,6 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
@@ -41,9 +37,16 @@ import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
+import appeng.api.AEApi;
+import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.storage.IMEMonitor;
+import appeng.api.storage.channels.IFluidStorageChannel;
+import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.tile.grid.AENetworkPowerTile;
+import appeng.util.item.AEItemStack;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
@@ -60,6 +63,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.PageButton;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
@@ -71,7 +75,6 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.glodblock.github.common.item.fake.FakeFluids;
 import com.glodblock.github.common.item.fake.FakeItemRegister;
-import gtqt.api.util.PatternUtils;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -103,7 +106,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     // ==================== 固定参数 ====================
     private static final int PATTERN_SLOTS = 36;
     private static final int TANK_COUNT = 6;
-    private static final int TANK_CAPACITY = 64_000;
+    private static final int TANK_CAPACITY = Integer.MAX_VALUE;
+    // 缓冲区配方消耗后延迟释放的 tick 数（防止不同配方抢占同一缓冲区）
+    private static final int DEFAULT_UNLOCK_DELAY = 10;
+    // 缓冲区物品槽堆叠上限
+    private static final int ITEM_STACK_LIMIT = Integer.MAX_VALUE;
 
     public MetaTileEntityMEPatternProvider(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 5, false);
@@ -273,29 +280,30 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     /**
      * 找到一个与签名匹配的缓冲区，或者分配一个空的缓冲区。
-     * 相同签名的物品进入同一个缓冲区。
+     * 相同签名的物品进入同一个缓冲区（前提是缓冲区未满）。
      */
     @Nullable
     private PatternBuffer findOrAllocateBuffer(BufferSignature signature) {
-        // 第一步：查找已有的与签名匹配的缓冲区
+        // 第一步：查找已有的与签名匹配且未满的缓冲区
         for (PatternBuffer buffer : bufferPool) {
-            if (!buffer.isEmpty() && buffer.matchesSignature(signature)) {
+            if (!buffer.isEmpty() && buffer.matchesSignature(signature) && !buffer.full()) {
                 return buffer;
             }
         }
         // 第二步：分配一个空缓冲区
         for (PatternBuffer buffer : bufferPool) {
-            if (buffer.isEmpty()) {
+            if (buffer.isEmpty() && !buffer.isRecipeLocked()) {
                 return buffer;
             }
         }
-        // 所有缓冲区都满了
+        // 所有缓冲区都满了或没有空闲缓冲区
         return null;
     }
 
     /**
      * 将 AE 推送的材料分配到缓冲区中。
-     * 相同物品组合进入同一个缓冲区，不同物品组合分配新缓冲区。
+     * 相同物品组合进入同一个缓冲区并累积数量，不同物品组合分配新缓冲区。
+     * 实现类似 PH-Mod pushPatternMulti 的累积效果。
      */
     public boolean pushToBuffer(net.minecraft.inventory.InventoryCrafting inventoryCrafting) {
         BufferSignature signature = extractSignature(inventoryCrafting);
@@ -305,11 +313,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         }
 
         // 将签名记录到缓冲区（如果是空缓冲区则首次记录）
-        if (buffer.isEmpty()) {
+        if (buffer.isEmpty() && !buffer.isRecipeLocked()) {
             buffer.setSignature(signature);
         }
 
-        // 将物品和流体实际插入缓冲区
+        // 将物品和流体实际插入缓冲区（累积模式：相同签名直接增加数量）
         for (int i = 0; i < inventoryCrafting.getSizeInventory(); i++) {
             ItemStack stack = inventoryCrafting.getStackInSlot(i);
             if (stack.isEmpty()) continue;
@@ -335,21 +343,17 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 continue;
             }
 
-            // 普通物品：插入缓冲区的物品槽
+            // 普通物品：累积插入缓冲区的物品槽
             ItemStack toInsert = stack.copy();
             IItemHandlerModifiable itemHandler = buffer.getItemHandler();
+            // 先尝试合并到已有相同物品的槽位
             for (int slot = 0; slot < itemHandler.getSlots() && !toInsert.isEmpty(); slot++) {
-                if (itemHandler.getStackInSlot(slot).isEmpty()) {
-                    toInsert = itemHandler.insertItem(slot, toInsert, false);
-                }
-            }
-            // 如果空槽不够，再尝试所有槽位
-            if (!toInsert.isEmpty()) {
-                for (int slot = 0; slot < itemHandler.getSlots() && !toInsert.isEmpty(); slot++) {
-                    toInsert = itemHandler.insertItem(slot, toInsert, false);
-                }
+                toInsert = itemHandler.insertItem(slot, toInsert, false);
             }
         }
+
+        // 标记缓冲区已绑定配方
+        buffer.setRecipeLocked(true);
 
         return true;
     }
@@ -383,33 +387,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                     }
                 }
 
-                // 缓冲区清理：当物品和流体全部被配方消耗后，清空电路槽和签名使缓冲区可复用
+                // 缓冲区清理：使用锁定/延迟解锁机制
                 for (PatternBuffer buffer : bufferPool) {
-                    if (buffer.getSignature() != null && buffer.isItemAndFluidEmpty()) {
-                        buffer.clear();
-                    }
-                }
-            }
-
-            if (isPatternDeal() && getOffsetTimer() % 20 == 0) {
-                if (isAttachedToMultiBlock()) {
-                    MultiblockControllerBase controllerBase = getController();
-                    if (controllerBase instanceof RecipeMapMultiblockController controller) {
-                        if (controller.getRecipeMapWorkable().getParallelLimit() != 0 && lastParallel != parallel) {
-
-                            lastParallel = parallel;
-                            parallel = controller.getRecipeMapWorkable().getParallelLimit();
-
-                            if (lastParallel != 1 || parallel != 1) {
-                                for (int i = 0; i < patternSlot.getSlots(); i++) {
-                                    ItemStack pattern = patternSlot.getStackInSlot(i);
-                                    if (pattern.getItem() instanceof ICraftingPatternItem) {
-                                        PatternUtils.adjustPatternMultipliers(pattern, lastParallel, parallel);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    buffer.clearRecipeIfNeeded();
                 }
             }
         }
@@ -450,9 +430,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
         data.setBoolean("BlockingEnabled", isBlockedMode());
         data.setBoolean("Export", isExport());
-        data.setBoolean("patternDeal", isPatternDeal());
-        data.setInteger("parallel", this.parallel);
-        data.setInteger("lastParallel", this.lastParallel);
 
         data.setBoolean("useProxy", isUseProxy());
         data.setInteger("aeProxy_x", AEProxy_pos.getX());
@@ -485,9 +462,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
         setBlockedMode(data.getBoolean("BlockingEnabled"));
         setExport(data.getBoolean("Export"));
-        setPatternDeal(data.getBoolean("patternDeal"));
-        this.parallel = data.getInteger("parallel");
-        this.lastParallel = data.getInteger("lastParallel");
         setUseProxy(data.getBoolean("useProxy"));
         AEProxy_pos = new BlockPos(data.getInteger("aeProxy_x"), data.getInteger("aeProxy_y"),
                 data.getInteger("aeProxy_z"));
@@ -509,30 +483,158 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     }
 
     @Override
-    public void setPatternDetails() {
-        for (int i = 0; i < PATTERN_SLOTS; i++) {
-            ItemStack pattern = patternSlot.getStackInSlot(i);
-            if (pattern == ItemStack.EMPTY) {
-                patternDetails.set(i, null);
-                continue;
-            }
-
-            if (pattern.getItem() instanceof ICraftingPatternItem patternItem) {
-                patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
-            }
-        }
+    protected int getPatternSlotCount() {
+        return PATTERN_SLOTS;
     }
 
     @Override
     public void onRemoval() {
+        // 先尝试退还所有缓冲区物品到 AE 网络
+        refundAll();
         removeFromGridCache();
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
-        // 掉落所有缓冲区中的物品
+        // 退还失败后，将缓冲区中剩余的物品掉落到地面
         for (PatternBuffer buffer : bufferPool) {
             GTTransferUtils.dropInventoryItems(getWorld(), getPos(), buffer.getItemHandler());
         }
+    }
+
+    // ==================== 退还机制（refundAll） ====================
+
+    /**
+     * 将所有缓冲区中的物品和流体退还到 AE 网络。
+     * 移植自 PH-Mod 的 PatternDualInputHatch.refundAll()。
+     * 退还失败的物品保留在缓冲区中，后续由 onRemoval() 掉落到地面。
+     */
+    public void refundAll() {
+        IMEMonitor<IAEItemStack> itemMonitor = getItemMonitor();
+        IMEMonitor<IAEFluidStack> fluidMonitor = getFluidMonitor();
+
+        for (PatternBuffer buffer : bufferPool) {
+            // 退还物品
+            if (itemMonitor != null) {
+                IItemHandlerModifiable itemHandler = buffer.getItemHandler();
+                for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
+                    ItemStack itemStack = itemHandler.getStackInSlot(slot);
+                    if (itemStack.isEmpty()) continue;
+
+                    IAEItemStack aeStack = AEItemStack.fromItemStack(itemStack);
+                    if (aeStack == null) continue;
+
+                    IAEItemStack notInserted = itemMonitor.injectItems(aeStack, Actionable.MODULATE, getActionSource());
+                    if (notInserted != null && notInserted.getStackSize() > 0) {
+                        // 退还失败：更新剩余数量
+                        itemStack.setCount((int) notInserted.getStackSize());
+                    } else {
+                        // 全部退还成功
+                        itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
+                    }
+                }
+            }
+
+            // 退还流体
+            if (fluidMonitor != null) {
+                FluidTankList fluidHandler = buffer.getFluidHandler();
+                for (int tank = 0; tank < fluidHandler.getTanks(); tank++) {
+                    FluidStack fluidStack = fluidHandler.getTankAt(tank).getFluid();
+                    if (fluidStack == null || fluidStack.amount <= 0) continue;
+
+                    IAEFluidStack aeFluid = AEApi.instance().storage()
+                            .getStorageChannel(IFluidStorageChannel.class)
+                            .createStack(fluidStack);
+                    if (aeFluid == null) continue;
+
+                    IAEFluidStack remaining = fluidMonitor.injectItems(aeFluid, Actionable.MODULATE, getActionSource());
+                    if (remaining != null && remaining.getStackSize() > 0) {
+                        // 退还部分成功
+                        fluidHandler.getTankAt(tank).drain(
+                                (int) (aeFluid.getStackSize() - remaining.getStackSize()), true);
+                    } else {
+                        // 全部退还成功
+                        fluidHandler.getTankAt(tank).drain(fluidStack.amount, true);
+                    }
+                }
+            }
+
+            // 退还电路槽
+            if (itemMonitor != null) {
+                ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(0);
+                if (!circuit.isEmpty()) {
+                    buffer.getCircuitSlot().setStackInSlot(0, ItemStack.EMPTY);
+                }
+            }
+
+            // 清空缓冲区状态
+            buffer.clear();
+        }
+    }
+
+    // ==================== 缓冲区状态文本构建 ====================
+
+    /**
+     * 构建缓冲区状态文本，用于 GUI 显示。
+     * 显示每个非空缓冲区的编号、物品种类数量、流体种类数量和电路状态。
+     */
+    private String buildBufferStatusText() {
+        StringBuilder sb = new StringBuilder();
+        int usedCount = 0;
+        for (int i = 0; i < bufferPool.size(); i++) {
+            PatternBuffer buffer = bufferPool.get(i);
+            if (buffer.isEmpty() && buffer.getSignature() == null) continue;
+            usedCount++;
+
+            sb.append("§e#").append(i + 1).append("§r ");
+
+            // 统计物品种类和总数量
+            int itemTypes = 0;
+            long itemTotal = 0;
+            for (int s = 0; s < buffer.getItemHandler().getSlots(); s++) {
+                ItemStack stack = buffer.getItemHandler().getStackInSlot(s);
+                if (!stack.isEmpty()) {
+                    itemTypes++;
+                    itemTotal += stack.getCount();
+                }
+            }
+
+            // 统计流体种类和总数量
+            int fluidTypes = 0;
+            long fluidTotal = 0;
+            for (int t = 0; t < buffer.getFluidHandler().getTanks(); t++) {
+                IFluidTank tank = buffer.getFluidHandler().getTankAt(t);
+                if (tank.getFluid() != null && tank.getFluidAmount() > 0) {
+                    fluidTypes++;
+                    fluidTotal += tank.getFluidAmount();
+                }
+            }
+
+            // 电路状态
+            ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(0);
+
+            if (itemTypes > 0) {
+                sb.append("§b物品:").append(itemTypes).append("种/").append(itemTotal).append("个§r ");
+            }
+            if (fluidTypes > 0) {
+                sb.append("§9流体:").append(fluidTypes).append("种/").append(fluidTotal).append("mB§r ");
+            }
+            if (!circuit.isEmpty()) {
+                sb.append("§d电路:").append(circuit.getDisplayName()).append("§r");
+            }
+            if (buffer.isRecipeLocked()) {
+                sb.append(" §c[锁定]§r");
+            }
+            if (buffer.full()) {
+                sb.append(" §4[满]§r");
+            }
+            sb.append("\n");
+        }
+
+        if (usedCount == 0) {
+            sb.append("§7所有缓冲区空闲§r\n");
+        }
+        sb.append("§f已用: ").append(usedCount).append("/").append(BUFFER_COUNT).append("§r");
+        return sb.toString();
     }
 
     // ==================== GUI ====================
@@ -579,32 +681,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                     );
         }
 
-        // 物品检索页面（显示原始 importItems 和 fluids）
-        List<List<IWidget>> widgetsItem = new ArrayList<>();
-        for (int i = 0; i < rowSize; i++) {
-            widgetsItem.add(new ArrayList<>());
-            for (int j = 0; j < rowSize; j++) {
-                int index = i * rowSize + j;
-
-                IItemHandlerModifiable handler = importItems;
-                widgetsItem.get(i)
-                        .add(new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(handler, index)
-                                        .slotGroup("item_inv")
-                                        .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                                            if (onlyAmountChanged &&
-                                                    handler instanceof GTItemStackHandler gtHandler) {
-                                                gtHandler.onContentsChanged(index);
-                                            }
-                                        })
-                                        .accessibility(true, true)));
-            }
-            IFluidTank tankHandler = dualHandler.getTankAt(i);
-            widgetsItem.get(i).add(new GTFluidSlot()
-                    .syncHandler(GTFluidSlot.sync(tankHandler)
-                            .accessibility(true, true))
-            );
-        }
+        // 缓冲区状态页面（替代原物品检索页面）
+        StringSyncValue bufferStatusValue = new StringSyncValue(
+                () -> buildBufferStatusText(),
+                str -> {}
+        );
+        guiSyncManager.syncValue("buffer_status", bufferStatusValue);
 
         // 创建用于显示的值（带前缀）和用于存储的值（纯数字）
         StringSyncValue displayXValue = new StringSyncValue(
@@ -787,9 +869,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         BooleanSyncValue exportStateValue = new BooleanSyncValue(this::isExport, this::setExport);
         guiSyncManager.syncValue("export_state", exportStateValue);
 
-        BooleanSyncValue patternStateValue = new BooleanSyncValue(this::isPatternDeal, this::setPatternDeal);
-        guiSyncManager.syncValue("pattern_state", patternStateValue);
-
         BooleanSyncValue showInfoStateValue = new BooleanSyncValue(this::isHideInfo, this::setHideInfo);
         guiSyncManager.syncValue("hide_info", showInfoStateValue);
 
@@ -812,7 +891,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                 .overlay(HATCH))
                         .child(new PageButton(1, controller)
                                 .tab(GuiTextures.TAB_TOP, 0)
-                                .addTooltipLine(IKey.lang("物品检索"))
+                                .addTooltipLine(IKey.lang("缓冲区状态"))
                                 .overlay(CHEST))
                         .child(new PageButton(2, controller)
                                 .tab(GuiTextures.TAB_TOP, 0)
@@ -839,15 +918,16 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                         .minRowHeight(18)
                                         .leftRel(0.5f) // 水平居中
                                         .matrix(widgetsPattern))
-                        .addPage(// 物品模式页面
-                                new Grid()
+                        .addPage(// 缓冲区状态页面
+                                Flow.column()
                                         .top(0)
-                                        .height(rowSize * 18)
-                                        .minElementMargin(0, 0)
-                                        .minColWidth(18)
-                                        .minRowHeight(18)
+                                        .widthRel(1f)
                                         .leftRel(0.5f)
-                                        .matrix(widgetsItem))
+                                        .margin(5, 0)
+                                        .child(new TextWidget<>(
+                                                IKey.dynamic(() -> bufferStatusValue.getValue()))
+                                                .widthRel(1f)
+                                                .height(rowSize * 18)))
                         .addPage(// 代理模式页面
                                 Flow.column() // 使用列布局
                                         .top(0)
@@ -967,12 +1047,17 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                         IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))
                         )
 
-                        .child(new ToggleButton()
+                        // 退还按钮：将所有缓冲区中的物品和流体退还到 AE 网络
+                        .child(new ButtonWidget<>()
                                 .top(0)
-                                .value(new BoolValue.Dynamic(patternStateValue::getBoolValue,
-                                        patternStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.PATTERN_OVERLAY)
-                                .tooltip(tooltip -> tooltip.addLine(IKey.str("样板优化"))))
+                                .onMousePressed(mouseButton -> {
+                                    if (!getWorld().isRemote) {
+                                        refundAll();
+                                    }
+                                    return true;
+                                })
+                                .overlay(GTGuiTextures.EXPORT_OVERLAY)
+                                .tooltip(tooltip -> tooltip.addLine(IKey.str("退还所有缓冲区物品到AE网络"))))
 
                 );
     }
@@ -991,10 +1076,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.3"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.buffer", BUFFER_COUNT));
+        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.refund"));
+        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.lock"));
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", PATTERN_SLOTS));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", TANK_COUNT,
-                TANK_CAPACITY));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
@@ -1107,6 +1192,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
      * 类似 Programmable-Hatches-Mod 的 DualInvBuffer。
      * <p>
      * 每个缓冲区包装为一个 DualHandler，供多方块配方系统独立匹配。
+     * <p>
+     * 锁定机制（移植自 PH-Mod）：
+     * <ul>
+     *   <li>recipeLocked：当缓冲区接收到 AE 推送的物品后设为 true，表示已绑定到某配方</li>
+     *   <li>lock：由 GUI 控制，为 true 时即使缓冲区清空也不释放签名（手动锁定）</li>
+     *   <li>unlockDelay：配方消耗完毕后延迟若干 tick 才释放，防止不同配方抢占</li>
+     * </ul>
      */
     public static class PatternBuffer {
         private final NotifiableItemStackHandler itemHandler;
@@ -1121,8 +1213,22 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         private final DualHandler dualHandler;
         private BufferSignature signature;
 
+        // ==================== 缓冲区锁定字段 ====================
+        /** 当缓冲区接收到 AE 推送物品后设为 true */
+        private boolean recipeLocked;
+        /** 手动锁定：为 true 时缓冲区即使清空也不释放签名 */
+        private boolean lock;
+        /** 配方消耗完毕后延迟释放的倒计时 */
+        private int unlockDelay;
+
         public PatternBuffer(int itemSlots, int fluidSlots, int tankCapacity) {
-            this.itemHandler = new NotifiableItemStackHandler(null, itemSlots, null, false);
+            this.itemHandler = new NotifiableItemStackHandler(null, itemSlots, null, false) {
+
+                @Override
+                public int getSlotLimit(int slot) {
+                    return ITEM_STACK_LIMIT;
+                }
+            };
             IFluidTank[] tanks = new IFluidTank[fluidSlots];
             for (int i = 0; i < fluidSlots; i++) {
                 tanks[i] = new NotifiableFluidTank(tankCapacity, null, false);
@@ -1185,6 +1291,43 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             this.signature = signature;
         }
 
+        public boolean isRecipeLocked() {
+            return recipeLocked;
+        }
+
+        public void setRecipeLocked(boolean recipeLocked) {
+            this.recipeLocked = recipeLocked;
+        }
+
+        public boolean isLock() {
+            return lock;
+        }
+
+        public void setLock(boolean lock) {
+            this.lock = lock;
+        }
+
+        /**
+         * 判断缓冲区是否已满（物品或流体达到上限）。
+         * 移植自 PH-Mod 的 DualInvBuffer.full()。
+         * 当任何一个槽位的数量达到上限时返回 true，防止无限累积。
+         */
+        public boolean full() {
+            for (int i = 0; i < itemHandler.getSlots(); i++) {
+                ItemStack stack = itemHandler.getStackInSlot(i);
+                if (!stack.isEmpty() && stack.getCount() >= ITEM_STACK_LIMIT) {
+                    return true;
+                }
+            }
+            for (int i = 0; i < fluidHandler.getTanks(); i++) {
+                IFluidTank tank = fluidHandler.getTankAt(i);
+                if (tank.getFluid() != null && tank.getFluidAmount() >= TANK_CAPACITY) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         /**
          * 判断缓冲区是否与给定签名匹配。
          */
@@ -1227,6 +1370,46 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         }
 
         /**
+         * 缓冲区清理逻辑 — 移植自 PH-Mod 的 DualInvBuffer.clearRecipeIfNeeded()。
+         * <p>
+         * 返回值：
+         * <ul>
+         *   <li>0 → 缓冲区还未就绪（正在延迟解锁或仍有内容物）</li>
+         *   <li>1 → 缓冲区已就绪，可以重新使用</li>
+         * </ul>
+         */
+        public int clearRecipeIfNeeded() {
+            // 手动锁定模式：永不释放签名
+            if (lock) {
+                unlockDelay = 0;
+                return !recipeLocked ? 1 : 0;
+            }
+
+            if (isItemAndFluidEmpty()) {
+                if (!recipeLocked) {
+                    return 1;
+                }
+
+                // 延迟解锁机制：防止不同配方抢占同一缓冲区
+                if (unlockDelay == 0) {
+                    unlockDelay = DEFAULT_UNLOCK_DELAY;
+                    return 0;
+                }
+                if (unlockDelay > 0) {
+                    unlockDelay--;
+                    if (unlockDelay != 0) return 0;
+                }
+
+                // 延迟结束，释放缓冲区
+                clear();
+                return 1;
+            } else {
+                unlockDelay = 0;
+            }
+            return 0;
+        }
+
+        /**
          * 清空缓冲区（配方消耗完毕后调用）。
          */
         public void clear() {
@@ -1239,6 +1422,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             }
             circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
             this.signature = null;
+            this.recipeLocked = false;
+            this.unlockDelay = 0;
         }
 
         /**
@@ -1272,6 +1457,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 tag.setTag("Signature", signature.writeToNBT());
             }
 
+            // 序列化锁定状态
+            tag.setBoolean("recipeLocked", recipeLocked);
+            tag.setBoolean("lock", lock);
+            tag.setInteger("unlockDelay", unlockDelay);
+
             return tag;
         }
 
@@ -1304,6 +1494,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (tag.hasKey("Signature", Constants.NBT.TAG_COMPOUND)) {
                 this.signature = BufferSignature.readFromNBT(tag.getCompoundTag("Signature"));
             }
+
+            // 反序列化锁定状态
+            this.recipeLocked = tag.getBoolean("recipeLocked");
+            this.lock = tag.getBoolean("lock");
+            this.unlockDelay = tag.getInteger("unlockDelay");
         }
     }
 }
