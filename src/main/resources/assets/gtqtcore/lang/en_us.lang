@@ -250,37 +250,7 @@ gregtech.machine.huge_dual_hatch.export.uxv.name=§eUXV§r Huge  Dual Output Hat
 gregtech.machine.huge_dual_hatch.export.opv.name=§9OpV§r Huge  Dual Output Hatch
 gregtech.machine.huge_dual_hatch.export.max.name=§c§lMAX§r Huge  Dual Output Hatch
 
-gregtech.machine.me_pattern_provider.ulv.name=§8ULV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.lv.name=§7LV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.mv.name=§bMV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.hv.name=§6HV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.ev.name=§5EV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.iv.name=§1IV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.luv.name=§dLuV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.zpm.name=§cZPM§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uv.name=§3UV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uhv.name=§4UHV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uev.name=§aUEV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uiv.name=§2UIV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uxv.name=§eUXV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.opv.name=§9OpV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.max.name=§c§lMAX§r Dual Pattern Hatch
-
-gregtech.machine.huge_me_pattern_provider.ulv.name=§8ULV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.lv.name=§7LV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.mv.name=§bMV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.hv.name=§6HV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.ev.name=§5EV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.iv.name=§1IV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.luv.name=§dLuV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.zpm.name=§cZPM§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uv.name=§3UV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uhv.name=§4UHV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uev.name=§aUEV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uiv.name=§2UIV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§r Huge  Dual Pattern Hatch
+gregtech.machine.me_pattern_provider.name=Pattern Provider
 
 gregtech.machine.me_ore_prefix_pattern_provider.ulv.name=§8ULV§r Dual Ore Prefix Pattern Hatch
 gregtech.machine.me_ore_prefix_pattern_provider.lv.name=§7LV§r Dual Ore Prefix Pattern Hatch
@@ -466,8 +436,11 @@ gregtech.universal.tooltip.max_temperature=§eMax Temperature: §f%,d K
 
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
-gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy
-gregtech.machine.huge_me_pattern_provider_proxy.name=Huge ME Pattern Provider Proxy
+gregtech.machine.me_pattern_provider_proxy.name=Pattern Provider Mirror
+gregtech.machine.huge_me_pattern_provider_proxy.name=Huge Pattern Mapping Slave
+gregtech.machine.huge_pattern_mapping_slave.name=Huge Pattern Mapping Slave
+gregtech.machine.huge_pattern_mapping_slave.tooltip.1=Huge Pattern Mapping Slave: Has 144 independent pattern slots and AE network connection
+gregtech.machine.pattern_mapping_slave.name=Pattern Mapping Slave
 gregtech.machine.me_ore_prefix_pattern_provider_proxy.name=Ore Prefix Pattern Provider Proxy
 gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=Huge Ore Prefix Pattern Provider Proxy
 
@@ -933,6 +906,7 @@ gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items
 gregtech.machine.me_pattern.tooltip.3=Pattern Optimization: Automatically multiplies patterns according to current thread count, adjusts dynamically with multiblock parallel changes
 gregtech.machine.me_pattern.tooltip.4=Advanced Template Circuit: In Template Reading, if a virtual circuit (without programmable circuits) is read, the value of the current virtual circuit is automatically set to the circuit in the template and the virtual circuit is sent back to the network
+gregtech.machine.me_pattern.tooltip.buffer=Buffer Pool: Has %d independent buffers, same item combinations share a buffer, supports programmable circuit auto-unwrapping
 
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=Use standard mining to fuzz batch generation of recipes (e.g. input:ingot x1,output:plate x1 will automatically register all material ingots to plate 1:1 templates, and fill in fluid for the fluid corresponding to the material in MB)
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=Allows marking other constant inputs or outputs (not recommended to mark constant output items)
@@ -962,6 +936,11 @@ gtqt.machine.me_pattern_proxy.tooltip.function=Provides remote item and fluid in
 gtqt.machine.me_pattern_proxy.tooltip.features=Shares inventory with the main bus, supports one-to-many proxy connections, and direct access to the main bus GUI
 gtqt.machine.me_pattern_proxy.tooltip.usage=Use a data stick to bind by right-clicking the main bus, then apply the binding data by right-clicking the proxy bus. Reform the multiblock to activate the proxy function
 gtqt.machine.me_pattern_proxy.tooltip.requirements=Can only bind to the main bus in the same dimension. Please ensure the corresponding chunks are loaded!
+
+gregtech.machine.pattern_mapping_slave.data_stick_use=Linked to Pattern Provider at [%s, %s, %s]
+gregtech.machine.pattern_mapping_slave.tooltip.1=Pattern Mapping Slave: Has 36 independent pattern slots and AE network connection
+gregtech.machine.pattern_mapping_slave.tooltip.2=Links to a Pattern Provider (master) via data stick, forwards AE-pushed materials to master's buffer pool
+gregtech.machine.pattern_mapping_slave.tooltip.3=Right-click the Pattern Provider with a data stick to write coordinates, then right-click this block to link
 #item group
 itemGroup.gtqt_programmable=GTQT | Programmable Hatch
 #Villager

@@ -86,11 +86,13 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        DualHandler dualHandler;
         if (getMain() == null) {
-            dualHandler = new DualHandler(this.getImportItems(), this.getImportFluids(), false);
-        } else dualHandler = getMain().getDualHandler();
-        abilityInstances.add(dualHandler);
+            DualHandler dualHandler = new DualHandler(this.getImportItems(), this.getImportFluids(), false);
+            abilityInstances.add(dualHandler);
+        } else {
+            // 委托 master 注册所有缓冲区的 DualHandler
+            getMain().registerAbilities(abilityInstances);
+        }
     }
 
     private MetaTileEntityMEPatternProvider getMain() {

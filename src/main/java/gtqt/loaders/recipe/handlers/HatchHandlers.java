@@ -68,15 +68,6 @@ public class HatchHandlers {
                     .output(COMPLEX_DUAL_HATCH[i])
                     .duration(100).EUt(VA[ULV + i]).buildAndRegister();
 
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(DUAL_IMPORT_HATCH[i])
-                    .inputs(normalInterface)
-                    .inputs(fluidInterface)
-                    .input(circuit, MarkerMaterial.create(GTValues.VN[i + 1].toLowerCase()), 8)
-                    .fluidInputs(Plastic.get(i).getFluid(L * 4))
-                    .output(ME_PATTERN_PROVIDER[i])
-                    .duration(100).EUt(VA[ULV + i]).buildAndRegister();
-
             //巨型 普通仓+一堆超级缸超级箱
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(DUAL_IMPORT_HATCH[i])
@@ -102,15 +93,6 @@ public class HatchHandlers {
                     .input(circuit, MarkerMaterial.create(GTValues.VN[i + 1].toLowerCase()), 16)
                     .fluidInputs(Plastic.get(i).getFluid(L * 4))
                     .output(HUGE_COMPLEX_DUAL_HATCH[i])
-                    .duration(400).EUt(VA[ULV + i]).buildAndRegister();
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(ME_PATTERN_PROVIDER[i])
-                    .input(QUANTUM_CHEST[9], (int) Math.pow(i + 1, 2))
-                    .input(QUANTUM_TANK[9], i+1)
-                    .input(circuit, MarkerMaterial.create(GTValues.VN[i + 1].toLowerCase()), 32)
-                    .fluidInputs(Plastic.get(i).getFluid(L * 4))
-                    .output(HUGE_ME_PATTERN_PROVIDER[i])
                     .duration(400).EUt(VA[ULV + i]).buildAndRegister();
 
             //巨型
@@ -147,6 +129,17 @@ public class HatchHandlers {
                 .output(ME_DUAL_EXPORT_HATCH)
                 .duration(100).EUt(VA[IV]).buildAndRegister();
 
+        // 样板总成配方
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(DUAL_IMPORT_HATCH[LuV])
+                .inputs(normalInterface)
+                .inputs(fluidInterface)
+                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 8)
+                .fluidInputs(Plastic.get(LuV - 1).getFluid(L * 4))
+                .output(ME_PATTERN_PROVIDER)
+                .duration(200).EUt(VA[LuV]).buildAndRegister();
+
+        // 样板总成镜像配方
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(DUAL_IMPORT_HATCH[LuV])
                 .input(COVER_ENDER_ITEM_LINK)
@@ -157,6 +150,7 @@ public class HatchHandlers {
                 .output(ME_PATTERN_PROVIDER_PROXY)
                 .duration(200).EUt(VA[LuV]).buildAndRegister();
 
+        // 巨型样板映射区配方
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(DUAL_IMPORT_HATCH[UHV])
                 .input(COVER_ENDER_ITEM_LINK)
@@ -164,7 +158,7 @@ public class HatchHandlers {
                 .input(MetaItems.EMITTER_UHV,4)
                 .input(MetaItems.SENSOR_UHV,4)
                 .input(circuit, MarkerMaterial.create(GTValues.VN[UHV].toLowerCase()), 8)
-                .output(HUGE_ME_PATTERN_PROVIDER_PROXY)
+                .output(HUGE_PATTERN_MAPPING_SLAVE)
                 .duration(200).EUt(VA[UHV]).buildAndRegister();
     }
 }

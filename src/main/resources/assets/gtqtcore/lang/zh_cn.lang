@@ -251,37 +251,7 @@ gregtech.machine.huge_dual_hatch.export.uxv.name=§eUXV§r巨型输出总成
 gregtech.machine.huge_dual_hatch.export.opv.name=§9OpV§r巨型输出总成
 gregtech.machine.huge_dual_hatch.export.max.name=§c§lMAX§r巨型输出总成
 
-gregtech.machine.me_pattern_provider.ulv.name=§8ULV§r样板总成
-gregtech.machine.me_pattern_provider.lv.name=§7LV§r样板总成
-gregtech.machine.me_pattern_provider.mv.name=§bMV§r样板总成
-gregtech.machine.me_pattern_provider.hv.name=§6HV§r样板总成
-gregtech.machine.me_pattern_provider.ev.name=§5EV§r样板总成
-gregtech.machine.me_pattern_provider.iv.name=§1IV§r样板总成
-gregtech.machine.me_pattern_provider.luv.name=§dLuV§r样板总成
-gregtech.machine.me_pattern_provider.zpm.name=§cZPM§r样板总成
-gregtech.machine.me_pattern_provider.uv.name=§3UV§r样板总成
-gregtech.machine.me_pattern_provider.uhv.name=§4UHV§r样板总成
-gregtech.machine.me_pattern_provider.uev.name=§aUEV§r样板总成
-gregtech.machine.me_pattern_provider.uiv.name=§2UIV§r样板总成
-gregtech.machine.me_pattern_provider.uxv.name=§eUXV§r样板总成
-gregtech.machine.me_pattern_provider.opv.name=§9OpV§r样板总成
-gregtech.machine.me_pattern_provider.max.name=§c§lMAX§r样板总成
-
-gregtech.machine.huge_me_pattern_provider.ulv.name=§8ULV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.lv.name=§7LV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.mv.name=§bMV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.hv.name=§6HV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.ev.name=§5EV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.iv.name=§1IV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.luv.name=§dLuV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.zpm.name=§cZPM§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.uv.name=§3UV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.uhv.name=§4UHV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.uev.name=§aUEV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.uiv.name=§2UIV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§r巨型样板总成
-gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§r巨型样板总成
+gregtech.machine.me_pattern_provider.name=样板总成
 
 gregtech.machine.me_ore_prefix_pattern_provider.ulv.name=§8ULV§r矿辞前缀样板总成
 gregtech.machine.me_ore_prefix_pattern_provider.lv.name=§7LV§r矿辞前缀样板总成
@@ -467,8 +437,11 @@ gregtech.universal.tooltip.max_temperature=§e最大热容：§f%,d K
 
 gregtech.machine.me_dual_hatch.import.name=ME输入总成
 gregtech.machine.me_dual_hatch.export.name=ME输出总成
-gregtech.machine.me_pattern_provider_proxy.name=ME代理样板总成
-gregtech.machine.huge_me_pattern_provider_proxy.name=巨型ME代理样板总成
+gregtech.machine.me_pattern_provider_proxy.name=样板总成镜像
+gregtech.machine.huge_me_pattern_provider_proxy.name=巨型样板映射区
+gregtech.machine.huge_pattern_mapping_slave.name=巨型样板映射区
+gregtech.machine.huge_pattern_mapping_slave.tooltip.1=巨型样板映射区：拥有 144 个独立样板槽位和 AE 网络连接
+gregtech.machine.pattern_mapping_slave.name=样板映射区
 gregtech.machine.me_ore_prefix_pattern_provider_proxy.name=ME矿辞前缀代理样板总成
 gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=巨型ME矿辞前缀代理样板总成
 
@@ -927,6 +900,7 @@ gregtech.machine.me_pattern.tooltip.1=内置样板供应器，使用样板标记
 gregtech.machine.me_pattern.tooltip.2=阻挡模式：只允许与总成缓存的相同配方物品流进入总成，其他配方的物品流将被阻挡
 gregtech.machine.me_pattern.tooltip.3=样板优化：将样板自动倍乘到当前并行数量，多方块并行变更也会导致样板倍乘自动变更
 gregtech.machine.me_pattern.tooltip.4=高级样板电路：在样板读取中如果读取到虚拟电路（不包含可编程电路）则自动设置当前虚拟电路为样板中电路的值并将虚拟电路发送回网络
+gregtech.machine.me_pattern.tooltip.buffer=缓冲区池：拥有 %d 个独立缓冲区，相同物品组合共享缓冲区，支持可编程电路自动解包
 
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=使用标准矿辞写法模糊批量生成配方（例如input:ingot x 1,output:plate x 1将自动注册所有材料锭到板1：1的样板，同时，填写fluid则为材料对应的流体，单位为mb）
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=允许标注其他不变输入物或者输出物品（不推荐标注不变输出物品）
@@ -956,6 +930,11 @@ gtqt.machine.me_pattern_proxy.tooltip.function=为多方块结构提供远程物
 gtqt.machine.me_pattern_proxy.tooltip.features=与主仓共享物品和流体库存，支持一对多代理连接，可直接访问主仓控制界面
 gtqt.machine.me_pattern_proxy.tooltip.usage=使用闪存右键点击主仓进行绑定，右键点击代理仓应用绑定数据，重新成型多方块结构以激活代理功能
 gtqt.machine.me_pattern_proxy.tooltip.requirements=只可绑定处于同一维度的仓口，请保证对应区块的加载！
+
+gregtech.machine.pattern_mapping_slave.data_stick_use=已链接到样板总成 [%s, %s, %s]
+gregtech.machine.pattern_mapping_slave.tooltip.1=样板映射区：拥有 36 个独立样板槽位和 AE 网络连接
+gregtech.machine.pattern_mapping_slave.tooltip.2=通过数据棒链接到样板总成（master），AE 推送的材料转发到 master 的缓冲区池
+gregtech.machine.pattern_mapping_slave.tooltip.3=使用闪存右键点击样板总成写入坐标，再右键点击此方块进行链接
 #item group
 itemGroup.gtqt_programmable=量子跃迁 | 可编程舱室
 #村民
