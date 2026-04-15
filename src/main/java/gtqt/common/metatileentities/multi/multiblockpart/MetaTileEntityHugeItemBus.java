@@ -384,6 +384,18 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
             markDirty();
         }
     }
+
+    @Override
+    public void setGhostCustomStack(@NotNull ItemStack stack) {
+        if (this.circuitInventory == null) {
+            return;
+        }
+        this.circuitInventory.setCustomStack(stack);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
     @Override
     public int getGhostCircuitConfig() {
         if (this.circuitInventory == null) {

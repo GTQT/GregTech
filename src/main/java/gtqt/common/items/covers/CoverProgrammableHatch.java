@@ -9,8 +9,6 @@ import gregtech.api.gui.ModularUI;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
-import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 
@@ -29,8 +27,13 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 
-import java.util.Collections;
+import java.util.Optional;
 
+/**
+ * 可编程覆盖板。
+ * 检测输入总线中的可编程电路，从 NBT 中读取被包裹的物品，
+ * 并将其设置到对应机器的虚拟电路槽位中。
+ */
 public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, ITickable {
 
     public CoverProgrammableHatch(CoverDefinition definition, CoverableView coverableView, EnumFacing attachedSide) {
@@ -47,52 +50,36 @@ public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, IT
         TileEntity tileEntity = getCoverableView().getWorld().getTileEntity(getCoverableView().getPos());
         if (tileEntity instanceof IGregTechTileEntity igtte) {
             MetaTileEntity mte = igtte.getMetaTileEntity();
+            // 处理单方块机器
             if (mte instanceof SimpleMachineMetaTileEntity machineMetaTile) {
-
-                IItemHandlerModifiable importItems = machineMetaTile.getImportItems();
-
-                for (int i = 0; i < importItems.getSlots(); i++) {
-                    ItemStack itemStack = importItems.getStackInSlot(i);
-                    if (itemStack != ItemStack.EMPTY && isItemValid(itemStack)) {
-                        if (getProgrammableCircuit(itemStack).getName().equals("programmable_circuit")) {
-                            machineMetaTile.setGhostCircuitConfig(getProgrammableCircuit(itemStack).getType());
-                            importItems.extractItem(i, 1, false);
-                            GTTransferUtils.addItemsToItemHandler(machineMetaTile.getExportItems(), false,
-                                    Collections.singletonList(itemStack));
-                        }
-                    }
-                }
+                processImportItems(machineMetaTile.getImportItems(), machineMetaTile);
             }
-            if(mte instanceof MetaTileEntityMultiblockNotifiablePart hatch && mte instanceof IGhostSlotConfigurable configurable)
-            {
-                IItemHandlerModifiable importItems = hatch.getImportItems();
-                for (int i = 0; i < importItems.getSlots(); i++) {
-                    ItemStack itemStack = importItems.getStackInSlot(i);
-                    if (itemStack != ItemStack.EMPTY && isItemValid(itemStack)) {
-                        if (getProgrammableCircuit(itemStack).getName().equals("programmable_circuit")) {
-
-                            configurable.setGhostCircuitConfig(getProgrammableCircuit(itemStack).getType());
-                            importItems.extractItem(i, 1, false);
-                            if (hatch.getController() instanceof MultiblockWithDisplayBase controller) {
-                                if (controller.getExportItems() == null) return;
-
-                                GTTransferUtils.addItemsToItemHandler(controller.getExportItems(), false,
-                                        Collections.singletonList(itemStack));
-
-                            }
-                        }
-                    }
-                }
+            // 处理多方块仓室
+            if (mte instanceof MetaTileEntityMultiblockNotifiablePart hatch
+                    && mte instanceof IGhostSlotConfigurable configurable) {
+                processImportItems(hatch.getImportItems(), configurable);
             }
         }
     }
 
-    public boolean isItemValid(ItemStack stack) {
-        return getProgrammableCircuit(stack) != null;
-    }
+    /**
+     * 处理输入物品，将可编程电路中的被包裹物品设置到虚拟电路槽。
+     */
+    private void processImportItems(IItemHandlerModifiable importItems,
+                                    IGhostSlotConfigurable configurable) {
+        for (int i = 0; i < importItems.getSlots(); i++) {
+            ItemStack itemStack = importItems.getStackInSlot(i);
+            if (itemStack.isEmpty()) continue;
+            if (!ProgrammableCircuit.hasWrappedItem(itemStack)) continue;
 
-    public ProgrammableCircuit getProgrammableCircuit(ItemStack stack) {
-        return ProgrammableCircuit.getInstanceFor(stack);
+            Optional<ItemStack> wrappedItem = ProgrammableCircuit.getWrappedItem(itemStack);
+            if (wrappedItem.isPresent()) {
+                // 将被包裹的物品设置到虚拟电路槽
+                configurable.setGhostCustomStack(wrappedItem.get());
+                // 消耗可编程电路（不回收）
+                importItems.extractItem(i, 1, false);
+            }
+        }
     }
 
     @Override

@@ -25,6 +25,12 @@ public class GhostCircuitItemStackHandler extends GTItemStackHandler
      */
     public static final int NO_CONFIG = -1;
 
+    /**
+     * Special circuit value indicating a custom (non-int-circuit) item is set.
+     * 用于标识当前 ghost slot 中存放的是任意自定义物品而非标准 int circuit。
+     */
+    public static final int CUSTOM_ITEM_CONFIG = -2;
+
     private final List<MetaTileEntity> notifiableEntities = new ArrayList<>();
 
     private int circuitValue = NO_CONFIG;
@@ -58,6 +64,16 @@ public class GhostCircuitItemStackHandler extends GTItemStackHandler
      */
     public boolean hasCircuitValue() {
         return this.circuitValue != NO_CONFIG;
+    }
+
+    /**
+     * Returns whether this instance contains a custom (non-int-circuit) item.
+     * 判断当前 ghost slot 是否存放了自定义物品。
+     *
+     * @return Whether this instance contains a custom item.
+     */
+    public boolean hasCustomStack() {
+        return this.circuitValue == CUSTOM_ITEM_CONFIG && !this.circuitStack.isEmpty();
     }
 
     /**
@@ -110,6 +126,29 @@ public class GhostCircuitItemStackHandler extends GTItemStackHandler
         if (hasCircuitValue()) {
             setCircuitValue(MathHelper.clamp(getCircuitValue() + configDelta,
                     IntCircuitIngredient.CIRCUIT_MIN, IntCircuitIngredient.CIRCUIT_MAX));
+        }
+    }
+
+    /**
+     * 设置任意自定义物品到 ghost slot 中。
+     * 此方法不会修改原有的 int circuit 选择 UI 行为。
+     * 配方系统会把此物品当作虚拟输入参与匹配。
+     *
+     * @param stack 要设置的自定义物品，传入 EMPTY 则清空
+     */
+    public void setCustomStack(@NotNull ItemStack stack) {
+        if (stack.isEmpty()) {
+            this.circuitValue = NO_CONFIG;
+            this.circuitStack = ItemStack.EMPTY;
+        } else {
+            this.circuitValue = CUSTOM_ITEM_CONFIG;
+            this.circuitStack = stack.copy();
+            this.circuitStack.setCount(1);
+        }
+        for (MetaTileEntity mte : notifiableEntities) {
+            if (mte != null && mte.isValid()) {
+                addToNotifiedList(mte, this, false);
+            }
         }
     }
 
@@ -171,12 +210,24 @@ public class GhostCircuitItemStackHandler extends GTItemStackHandler
     }
 
     public void write(@NotNull NBTTagCompound tag) {
-        if (this.circuitValue != NO_CONFIG) {
+        if (this.circuitValue == CUSTOM_ITEM_CONFIG && !this.circuitStack.isEmpty()) {
+            // 存储自定义物品
+            tag.setTag("GhostCustomItem", this.circuitStack.writeToNBT(new NBTTagCompound()));
+        } else if (this.circuitValue != NO_CONFIG) {
             tag.setByte("GhostCircuit", (byte) this.circuitValue);
         }
     }
 
     public void read(@NotNull NBTTagCompound tag) {
+        // 优先读取自定义物品
+        if (tag.hasKey("GhostCustomItem", Constants.NBT.TAG_COMPOUND)) {
+            ItemStack customStack = new ItemStack(tag.getCompoundTag("GhostCustomItem"));
+            if (!customStack.isEmpty()) {
+                setCustomStack(customStack);
+                return;
+            }
+        }
+        // 回退到标准 int circuit
         int circuitValue = tag.hasKey("GhostCircuit", Constants.NBT.TAG_ANY_NUMERIC) ? tag.getInteger("GhostCircuit") :
                 NO_CONFIG;
         if (circuitValue < IntCircuitIngredient.CIRCUIT_MIN || circuitValue > IntCircuitIngredient.CIRCUIT_MAX)

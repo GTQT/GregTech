@@ -2,39 +2,23 @@
 metaitem.cover.programmable_circuit.name=可编程电路覆盖板
 #item
 metaitem.order.name=订单
-metaitem.programmable_circuit_0.name=可编程电路卡（0）
-metaitem.programmable_circuit_1.name=可编程电路卡（1）
-metaitem.programmable_circuit_2.name=可编程电路卡（2）
-metaitem.programmable_circuit_3.name=可编程电路卡（3）
-metaitem.programmable_circuit_4.name=可编程电路卡（4）
-metaitem.programmable_circuit_5.name=可编程电路卡（5）
-metaitem.programmable_circuit_6.name=可编程电路卡（6）
-metaitem.programmable_circuit_7.name=可编程电路卡（7）
-metaitem.programmable_circuit_8.name=可编程电路卡（8）
-metaitem.programmable_circuit_9.name=可编程电路卡（9）
-metaitem.programmable_circuit_10.name=可编程电路卡（10）
-metaitem.programmable_circuit_11.name=可编程电路卡（11）
-metaitem.programmable_circuit_12.name=可编程电路卡（12）
-metaitem.programmable_circuit_13.name=可编程电路卡（13）
-metaitem.programmable_circuit_14.name=可编程电路卡（14）
-metaitem.programmable_circuit_15.name=可编程电路卡（15）
-metaitem.programmable_circuit_16.name=可编程电路卡（16）
-metaitem.programmable_circuit_17.name=可编程电路卡（17）
-metaitem.programmable_circuit_18.name=可编程电路卡（18）
-metaitem.programmable_circuit_19.name=可编程电路卡（19）
-metaitem.programmable_circuit_20.name=可编程电路卡（20）
-metaitem.programmable_circuit_21.name=可编程电路卡（21）
-metaitem.programmable_circuit_22.name=可编程电路卡（22）
-metaitem.programmable_circuit_23.name=可编程电路卡（23）
-metaitem.programmable_circuit_24.name=可编程电路卡（24）
-metaitem.programmable_circuit_25.name=可编程电路卡（25）
-metaitem.programmable_circuit_26.name=可编程电路卡（26）
-metaitem.programmable_circuit_27.name=可编程电路卡（27）
-metaitem.programmable_circuit_28.name=可编程电路卡（28）
-metaitem.programmable_circuit_29.name=可编程电路卡（29）
-metaitem.programmable_circuit_30.name=可编程电路卡（30）
-metaitem.programmable_circuit_31.name=可编程电路卡（31）
-metaitem.programmable_circuit_32.name=可编程电路卡（32）
+# 通用可编程电路
+metaitem.programmable_circuit.name=可编程电路卡
+# 可编程工具箱
+metaitem.programming_toolkit.name=可编程工具箱
+# 可编程电路 Tooltip
+metaitem.programmable_circuit.wrapped=§b已包裹: %s
+metaitem.programmable_circuit.empty=§7空白（请使用可编程工具箱包裹物品）
+metaitem.programmable_circuit.tooltip.1=§7可以包裹任意物品
+metaitem.programmable_circuit.tooltip.2=§7放入输入总线后配合可编程覆盖板使用
+metaitem.programmable_circuit.tooltip.3=§7会自动设置虚拟电路槽
+# 可编程工具箱 Tooltip 和 GUI
+metaitem.programming_toolkit.tooltip.1=§7右键打开 GUI
+metaitem.programming_toolkit.tooltip.2=§7放入任意物品生成对应的可编程电路卡
+metaitem.programming_toolkit.gui_title=可编程工具箱
+metaitem.programming_toolkit.input=输入
+metaitem.programming_toolkit.output=输出
+metaitem.programming_toolkit.hint=§7放入物品后从输出槽取出可编程电路
 
 #  通用电路板s
 metaitem.general_circuit.ulv.name=通用电路板 (§8ULV§r)

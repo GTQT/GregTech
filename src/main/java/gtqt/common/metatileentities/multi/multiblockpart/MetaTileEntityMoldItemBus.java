@@ -411,6 +411,18 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
             markDirty();
         }
     }
+
+    @Override
+    public void setGhostCustomStack(@NotNull ItemStack stack) {
+        if (this.moldInventory == null) {
+            return;
+        }
+        this.moldInventory.setCustomStack(stack);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
     @Override
     public int getGhostCircuitConfig() {
         if (this.moldInventory == null) {
