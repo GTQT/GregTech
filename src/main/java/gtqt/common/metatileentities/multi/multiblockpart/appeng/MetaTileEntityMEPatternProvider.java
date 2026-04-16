@@ -382,7 +382,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     /**
      * 批量推送多份相同样板的材料到缓冲区中。
      * 由 AE2 的 CraftingCPUCluster.executeBatchPush() 调用。
-     * 利用 space() 方法计算缓冲区剩余容量，避免无效的循环尝试。
+     * 性能优化：只做一次签名提取和缓冲区匹配，然后按倍数直接插入。
+     * 移植自 PH-Mod 的 classifyForce() 批量插入模式。
      *
      * @param patternDetails 合成样板详情
      * @param table          单份材料的 InventoryCrafting
@@ -393,29 +394,66 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     public int[] pushPatternMulti(ICraftingPatternDetails patternDetails,
                                    net.minecraft.inventory.InventoryCrafting table,
                                    int maxTodo) {
-        // 提取签名用于匹配已有缓冲区
+        // 第一步：一次性提取签名（避免重复创建对象）
         BufferSignature signature = extractSignature(table);
 
-        // 通过 space() 预估当前匹配缓冲区还能容纳多少份
-        int effectiveMax = maxTodo;
-        for (PatternBuffer buffer : bufferPool) {
-            if (!buffer.isEmpty() && buffer.matchesSignature(signature) && !buffer.full()) {
-                int bufferSpace = buffer.space();
-                if (bufferSpace < effectiveMax) {
-                    effectiveMax = bufferSpace;
+        // 第二步：一次性查找或分配缓冲区
+        PatternBuffer buffer = findOrAllocateBuffer(signature);
+        if (buffer == null) return new int[]{0};
+
+        // 第三步：通过 space() 计算缓冲区剩余容量，确定实际推送份数
+        int effectiveMax;
+        if (buffer.isEmpty()) {
+            // 空缓冲区：设置签名后再计算
+            buffer.setSignature(signature);
+            effectiveMax = maxTodo;
+        } else {
+            effectiveMax = Math.min(maxTodo, buffer.space());
+        }
+        if (effectiveMax <= 0) {
+            return new int[]{0};
+        }
+
+        // 第四步：按倍数直接插入物品和流体（不重复提取签名和查找缓冲区）
+        for (int s = 0; s < table.getSizeInventory(); s++) {
+            ItemStack ingredient = table.getStackInSlot(s);
+            if (ingredient.isEmpty()) continue;
+
+            // 检测 FakeFluid — 流体编码为假物品
+            if (FakeFluids.isFluidFakeItem(ingredient)) {
+                FluidStack fluid = FakeItemRegister.getStack(ingredient);
+                if (fluid != null) {
+                    FluidStack toFill = fluid.copy();
+                    toFill.amount *= effectiveMax;
+                    buffer.getFluidHandler().fill(toFill, true);
                 }
-                break;
+                continue;
+            }
+
+            // 检测可编程电路 — 解包到电路槽
+            if (ProgrammableCircuit.hasWrappedItem(ingredient)) {
+                ProgrammableCircuit.getWrappedItem(ingredient).ifPresent(buffer::setCustomCircuit);
+                continue;
+            }
+
+            // 普通物品 — 按倍数插入
+            ItemStack toInsert = ingredient.copy();
+            toInsert.setCount(ingredient.getCount() * effectiveMax);
+            for (int slot = 0; slot < buffer.getItemHandler().getSlots(); slot++) {
+                toInsert = buffer.getItemHandler().insertItem(slot, toInsert, false);
+                if (toInsert.isEmpty()) break;
             }
         }
 
-        int pushed = 0;
-        for (int i = 0; i < effectiveMax; i++) {
-            if (!pushToBuffer(table)) {
-                break;
-            }
-            pushed++;
-        }
-        return new int[]{pushed};
+        // 标记缓冲区已绑定配方
+        buffer.setRecipeLocked(true);
+
+        // 记录配方匹配事件
+        long worldTick = getWorld() != null ? getWorld().getTotalWorldTime() : 0;
+        int signatureHash = signature.hashCode();
+        buffer.recordRecipeMatch(worldTick, signatureHash);
+
+        return new int[]{effectiveMax};
     }
 
     // ==================== update 主循环 ====================

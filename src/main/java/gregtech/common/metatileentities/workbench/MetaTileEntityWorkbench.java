@@ -24,8 +24,10 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -68,14 +70,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 
 public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
+
+    /** BFS 库存扫描的最大距离（方块数），可配置 */
+    private static final int MAX_SCAN_RANGE = 24;
 
     private final IDrawable WORKSTATION = new ItemDrawable(getStackForm())
             .asIcon().size(16);
@@ -175,16 +184,63 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         return this.combinedInventory = new ItemHandlerList(handlers);
     }
 
-    // this should only be called server-side
+    /**
+     * 使用 BFS 搜索周围可达的库存方块。
+     * 搜索从工作台位置开始，通过有 IItemHandler 能力的方块级联扩展。
+     * 最大搜索距离（曼哈顿距离的平方）由 {@link #MAX_SCAN_RANGE} 控制。
+     */
     private ItemHandlerList computeConnectedInventory() {
         ArrayList<IItemHandler> handlers = new ArrayList<>();
-        for (var facing : EnumFacing.VALUES) {
-            var neighbor = getNeighbor(facing);
-            if (neighbor == null) continue;
-            var handler = neighbor.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, facing.getOpposite());
-            if (handler != null) handlers.add(handler);
+        // 用 IdentityHashSet 去重，防止同一个 IItemHandler 实例被多次添加（如大箱子的两个方块位置）
+        Set<IItemHandler> seenHandlers = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        BlockPos origin = getPos();
+        int maxRangeSq = MAX_SCAN_RANGE * MAX_SCAN_RANGE;
+
+        Queue<BlockPos> toCheck = new ArrayDeque<>();
+        Set<BlockPos> visited = new HashSet<>();
+        toCheck.add(origin);
+        visited.add(origin);
+
+        while (!toCheck.isEmpty()) {
+            BlockPos current = toCheck.poll();
+            for (EnumFacing facing : EnumFacing.VALUES) {
+                BlockPos neighbor = current.offset(facing);
+                if (visited.contains(neighbor)) continue;
+                if (neighbor.distanceSq(origin) > maxRangeSq) continue;
+                visited.add(neighbor);
+
+                TileEntity te = getWorld().getTileEntity(neighbor);
+                if (te == null) continue;
+                IItemHandler handler = te.getCapability(
+                        CapabilityItemHandler.ITEM_HANDLER_CAPABILITY,
+                        facing.getOpposite());
+                if (handler == null) continue;
+
+                if (seenHandlers.add(handler)) {
+                    handlers.add(handler);
+                }
+                // 通过有库存的方块继续扩展搜索
+                toCheck.add(neighbor);
+            }
         }
+
         return this.connectedInventory = new ItemHandlerList(handlers);
+    }
+
+    /** BFS 库存扫描定期执行间隔（tick），用于检测远处库存变化 */
+    private static final int SCAN_INTERVAL = 20;
+
+    @Override
+    public void update() {
+        super.update();
+        if (!getWorld().isRemote) {
+            // 定期重扫描，使用坐标哈希错开执行时机（参考 Tom's Simple Storage）
+            long time = getWorld().getTotalWorldTime();
+            if (time % SCAN_INTERVAL == Math.abs(getPos().hashCode()) % SCAN_INTERVAL) {
+                getCraftingRecipeLogic().updateInventory(getAvailableHandlers());
+                writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
+            }
+        }
     }
 
     @Override

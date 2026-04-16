@@ -87,6 +87,12 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     private final CachedRecipeData cachedRecipeData;
     private final CraftingInputSlot[] inputSlots = new CraftingInputSlot[9];
 
+    // ==================== 库存快照（增量变化检测） ====================
+    /** 上一次的库存快照，用于增量比较判断库存是否变化 */
+    private ItemStack[] lastSnapshot = new ItemStack[0];
+    /** 标记快照是否已被外部操作（如库存结构变化）强制失效 */
+    private boolean snapshotDirty = true;
+
     public CraftingRecipeLogic(World world, IItemHandlerModifiable handlers, IItemHandlerModifiable craftingMatrix) {
         this.world = world;
         this.availableHandlers = handlers;
@@ -112,8 +118,9 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     public void updateInventory(IItemHandlerModifiable handler) {
         this.availableHandlers = handler;
-        // 库存结构变化时清空替代品缓存
+        // 库存结构变化时清空替代品缓存并强制快照失效
         this.replaceAttemptMap.clear();
+        this.snapshotDirty = true;
     }
 
     public void clearCraftingGrid() {
@@ -404,23 +411,50 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     /**
      * Searches available handlers and
-     * adds the stack and slots the stack lookup map
+     * adds the stack and slots the stack lookup map.
+     * 使用增量变化检测：通过快照比较判断库存是否变化，未变化时跳过重建。
      */
     public void refreshStackMap() {
-        // the stack lookup map is a pain to do "correctly"
-        // so just clear and reset every tick in detectAndSendChanges()
+        int slots = this.availableHandlers.getSlots();
+
+        // 检查库存是否发生了变化
+        boolean changed = snapshotDirty;
+        if (!changed) {
+            if (lastSnapshot.length != slots) {
+                changed = true;
+            } else {
+                for (int i = 0; i < slots; i++) {
+                    ItemStack current = this.availableHandlers.getStackInSlot(i);
+                    ItemStack last = lastSnapshot[i];
+                    if (!ItemStack.areItemStacksEqual(current, last)) {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!changed) return;
+
+        // 库存发生了变化，更新快照并重建 stackLookupMap
+        snapshotDirty = false;
+        if (lastSnapshot.length != slots) {
+            lastSnapshot = new ItemStack[slots];
+        }
+
         stackLookupMap.clear();
-        for (int i = 0; i < this.availableHandlers.getSlots(); i++) {
+        for (int i = 0; i < slots; i++) {
             var curStack = this.availableHandlers.getStackInSlot(i);
+            lastSnapshot[i] = curStack.isEmpty() ? ItemStack.EMPTY : curStack.copy();
             if (curStack.isEmpty()) continue;
 
-            IntSet slots;
+            IntSet slotSet;
             if (stackLookupMap.containsKey(curStack)) {
-                slots = stackLookupMap.get(curStack);
+                slotSet = stackLookupMap.get(curStack);
             } else {
-                stackLookupMap.put(GTUtility.copy(1, curStack), slots = new IntArraySet());
+                stackLookupMap.put(GTUtility.copy(1, curStack), slotSet = new IntArraySet());
             }
-            slots.add(i);
+            slotSet.add(i);
         }
     }
 
