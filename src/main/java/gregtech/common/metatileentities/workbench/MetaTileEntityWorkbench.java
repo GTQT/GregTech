@@ -254,6 +254,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         Preconditions.checkState(getWorld() != null, "getRecipeResolver called too early");
         if (this.recipeLogic == null) {
             this.recipeLogic = new CraftingRecipeLogic(getWorld(), getAvailableHandlers(), getCraftingGrid());
+            this.recipeLogic.setRecipeMemory(this.recipeMemory);
             writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
         }
         return this.recipeLogic;

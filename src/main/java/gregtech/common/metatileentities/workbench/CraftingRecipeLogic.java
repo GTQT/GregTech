@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.workbench;
 
+import gregtech.api.items.toolitem.IGTTool;
 import gregtech.api.items.toolitem.ItemGTToolbelt;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.mui.sync.RecipeSyncHandler;
@@ -92,6 +93,10 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     private ItemStack[] lastSnapshot = new ItemStack[0];
     /** 标记快照是否已被外部操作（如库存结构变化）强制失效 */
     private boolean snapshotDirty = true;
+    /** 配方记忆引用，用于在合成网格填充时自动记忆配方 */
+    private CraftingRecipeMemory recipeMemory;
+    /** 合成链执行中临时禁止自动记忆 */
+    private boolean suppressAutoMemorize = false;
 
     public CraftingRecipeLogic(World world, IItemHandlerModifiable handlers, IItemHandlerModifiable craftingMatrix) {
         this.world = world;
@@ -106,6 +111,14 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     public InventoryCrafting getCraftingMatrix() {
         return this.craftingMatrix;
+    }
+
+    public IItemHandlerModifiable getAvailableHandlers() {
+        return this.availableHandlers;
+    }
+
+    public void setRecipeMemory(CraftingRecipeMemory memory) {
+        this.recipeMemory = memory;
     }
 
     public void updateSlotMap(int offset, int slot) {
@@ -141,6 +154,60 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     public boolean performRecipe() {
         return isRecipeValid() && attemptMatchRecipe() && consumeRecipeItems();
+    }
+
+    /**
+     * 执行合成链中的一个步骤：临时将指定配方加载到合成网格中，执行合成，
+     * 产物放入库存，然后恢复原来的合成网格内容。
+     *
+     * @param step 合成链步骤
+     * @return 是否成功
+     */
+    public boolean executeChainStep(CraftingChainSolver.ChainStep step) {
+        // 保存当前合成网格
+        ItemStack[] savedGrid = new ItemStack[9];
+        for (int i = 0; i < 9; i++) {
+            savedGrid[i] = craftingMatrix.getStackInSlot(i).copy();
+        }
+
+        boolean success = false;
+        try {
+            // 合成链执行中禁止自动记忆，避免临时网格内容污染记忆列表
+            suppressAutoMemorize = true;
+
+            // 加载子配方到合成网格
+            for (int i = 0; i < 9; i++) {
+                craftingMatrix.setInventorySlotContents(i, step.recipe.getCraftingMatrixSlot(i).copy());
+            }
+            updateCurrentRecipe();
+
+            if (!isRecipeValid()) return false;
+
+            // 强制刷新 stackLookupMap、requiredItems、compactedIndexes
+            snapshotDirty = true;
+            updateInputSlots();
+
+            // 尝试消耗材料
+            if (!consumeRecipeItems()) return false;
+
+            // 产物放入库存
+            ItemStack result = step.matchedRecipe.getCraftingResult(craftingMatrix);
+            if (!result.isEmpty()) {
+                ItemStack remainder = GTTransferUtils.insertItem(availableHandlers, result.copy(), false);
+                success = remainder.isEmpty();
+            }
+        } finally {
+            // 恢复原来的合成网格
+            for (int i = 0; i < 9; i++) {
+                craftingMatrix.setInventorySlotContents(i, savedGrid[i]);
+            }
+            suppressAutoMemorize = false;
+            updateCurrentRecipe();
+            // 恢复后强制刷新
+            snapshotDirty = true;
+        }
+
+        return success;
     }
 
     public boolean isRecipeValid() {
@@ -187,16 +254,23 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             var stack = availableHandlers.getStackInSlot(slot);
             boolean hasContainer = stack.getItem().hasContainerItem(stack);
 
+            // GT 工具耐久检查：确保工具有足够的耐久完成合成
+            if (hasContainer && stack.getItem() instanceof IGTTool) {
+                int damagePerCraft = ((IGTTool) stack.getItem()).getToolStats()
+                        .getToolDamagePerCraft(stack);
+                int remaining = stack.getMaxDamage() - stack.getItemDamage();
+                if (remaining < damagePerCraft) {
+                    return false;
+                }
+            }
+
             if (!hasContainer) {
-                // not a transmutable item (damagable tool, etc), extract normally
                 availableHandlers.extractItem(slot, amount, false);
             } else if (stack.getCount() > 1) {
-                // only some stacks are transmuted, try insert non-empty stacks
                 ItemStack newStack = ForgeHooks.getContainerItem(stack.splitStack(1));
                 if (!newStack.isEmpty())
                     GTTransferUtils.insertItem(this.availableHandlers, newStack, false);
             } else {
-                // all stacks are transmuted, just replace
                 availableHandlers.setStackInSlot(slot, ForgeHooks.getContainerItem(stack));
             }
         }
@@ -222,32 +296,22 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
         var recipe = getCachedRecipe();
         int index = compactedIndexes.get(craftingIndex);
 
-        // iterate stored items to find equivalent
-        for (int i = 0; i < this.availableHandlers.getSlots(); i++) {
-            var itemStack = availableHandlers.getStackInSlot(i);
+        // 遍历 stackLookupMap 的物品类型集合而非所有库存槽位，减少重复检查
+        for (var entry : stackLookupMap.entrySet()) {
+            var itemStack = entry.getKey();
             if (itemStack.isEmpty() || this.strategy.equals(itemStack, stack)) continue;
 
             boolean matchedPreviously = false;
             if (map.containsKey(itemStack)) {
                 if (map.getBoolean(itemStack)) {
-                    // cant return here before checking if:
-                    // The item is available for extraction
-                    // The recipe output is still the same, as depending on
-                    // the ingredient, the output NBT may change
                     matchedPreviously = true;
+                } else {
+                    // 已确认不匹配，跳过
+                    continue;
                 }
             }
 
-            // this is also every tick
-            if (itemStack.getItem() instanceof ItemGTToolbelt) {
-                // we need to do this here because of ingredient apply
-                ItemGTToolbelt.setCraftingSlot(slotMap.get(i), (EntityPlayerMP) getSyncManager().getPlayer());
-            }
-
             if (!matchedPreviously) {
-                // Matching shapeless recipes actually is very bad for performance, as it checks the entire
-                // recipe ingredients recursively, so we fail early here if none of the recipes ingredients can
-                // take the stack
                 boolean matched = false;
                 if (!(recipe instanceof IShapedRecipe)) {
                     for (Ingredient ing : recipe.getIngredients()) {
@@ -257,8 +321,6 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
                         }
                     }
                 } else {
-                    // for shaped recipes, check the exact ingredient instead
-                    // ingredients should be in the correct order
                     matched = cachedRecipeData.canIngredientApply(index, itemStack);
                 }
                 if (!matched) {
@@ -269,14 +331,11 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
             ItemStack previousResult = recipe.getCraftingResult(craftingMatrix);
 
-            // update item in slot, and check that recipe matches and output item is equal to the expected one
             craftingMatrix.setInventorySlotContents(craftingIndex, itemStack);
             var newResult = recipe.getCraftingResult(craftingMatrix);
-            // this will send packets every tick for the toolbelt, not sure what can be done
             if ((cachedRecipeData.matches(craftingMatrix, world) &&
                     ItemStack.areItemStacksEqual(newResult, previousResult)) ||
                     recipe instanceof ShapedOreEnergyTransferRecipe) {
-                // ingredient matched, return the substitute
                 craftingMatrix.setInventorySlotContents(craftingIndex, stack);
                 map.put(GTUtility.copy(1, itemStack), true);
                 substitute = itemStack;
@@ -327,6 +386,10 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             this.cachedRecipeData.setRecipe(newRecipe);
             // 配方变化时清空替代品缓存，防止内存泄漏和缓存过期
             this.replaceAttemptMap.clear();
+            // 合成网格填充时自动记忆配方（无需等到合成成功）
+            if (recipeMemory != null && !resultStack.isEmpty() && !suppressAutoMemorize) {
+                recipeMemory.notifyRecipePerformed(craftingMatrix, resultStack);
+            }
         }
     }
 

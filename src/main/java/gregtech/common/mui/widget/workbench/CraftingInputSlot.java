@@ -7,6 +7,7 @@ import gregtech.common.metatileentities.workbench.CraftingRecipeLogic;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemHandlerHelper;
 
@@ -42,6 +43,12 @@ public class CraftingInputSlot extends Widget<CraftingOutputSlot> implements Int
             ItemStack stack = this.syncHandler.getStack();
             if (stack.isEmpty()) return;
             tooltip.addFromItem(stack);
+            // 缺失材料提示
+            if (!this.hasIngredients) {
+                tooltip.addLine(TextFormatting.RED + "✘ " +
+                        net.minecraft.client.resources.I18n.format(
+                                "gregtech.workbench.missing_ingredient"));
+            }
         });
 
         // for hovering with items in hand

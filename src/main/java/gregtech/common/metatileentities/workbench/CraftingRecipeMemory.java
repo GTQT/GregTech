@@ -2,6 +2,7 @@ package gregtech.common.metatileentities.workbench;
 
 import gregtech.api.util.ItemStackHashStrategy;
 
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -19,6 +20,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class CraftingRecipeMemory extends SyncHandler {
@@ -70,6 +73,17 @@ public class CraftingRecipeMemory extends SyncHandler {
     @SuppressWarnings("DataFlowIssue")
     public @NotNull ItemStack getRecipeOutputAtIndex(int index) {
         return hasRecipe(index) ? getRecipeAtIndex(index).getRecipeResult() : ItemStack.EMPTY;
+    }
+
+    /** 获取所有非空的记忆配方（临时 + 锁定） */
+    public List<MemorizedRecipe> getAllRecipes() {
+        List<MemorizedRecipe> result = new ArrayList<>();
+        for (MemorizedRecipe recipe : memorizedRecipes) {
+            if (recipe != null) {
+                result.add(recipe);
+            }
+        }
+        return result;
     }
 
     /**
@@ -287,6 +301,20 @@ public class CraftingRecipeMemory extends SyncHandler {
             this.index = index;
         }
 
+        /**
+         * 创建一个虚拟的 MemorizedRecipe，用于合成链求解。
+         * 虚拟配方的 index 为 -1，不属于任何记忆槽位。
+         */
+        public static MemorizedRecipe createVirtual(IInventory craftingGrid, ItemStack result) {
+            MemorizedRecipe recipe = new MemorizedRecipe(-1);
+            recipe.recipeResult = result.copy();
+            for (int i = 0; i < Math.min(9, craftingGrid.getSizeInventory()); i++) {
+                ItemStack stack = craftingGrid.getStackInSlot(i);
+                recipe.craftingMatrix.setStackInSlot(i, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
+            }
+            return recipe;
+        }
+
         private NBTTagCompound serializeNBT() {
             NBTTagCompound result = new NBTTagCompound();
             result.setTag("Result", recipeResult.serializeNBT());
@@ -338,6 +366,16 @@ public class CraftingRecipeMemory extends SyncHandler {
 
         public ItemStack getRecipeResult() {
             return recipeResult;
+        }
+
+        /** 获取合成网格中指定槽位的物品 */
+        public ItemStack getCraftingMatrixSlot(int slot) {
+            return craftingMatrix.getStackInSlot(slot);
+        }
+
+        /** 获取合成网格 handler */
+        public ItemStackHandler getCraftingMatrix() {
+            return craftingMatrix;
         }
 
         public boolean isRecipeLocked() {

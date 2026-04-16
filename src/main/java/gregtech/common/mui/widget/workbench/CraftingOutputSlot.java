@@ -1,6 +1,7 @@
 package gregtech.common.mui.widget.workbench;
 
 import gregtech.client.utils.RenderUtil;
+import gregtech.common.metatileentities.workbench.CraftingChainSolver;
 import gregtech.common.metatileentities.workbench.CraftingRecipeLogic;
 import gregtech.common.metatileentities.workbench.CraftingRecipeMemory;
 import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
@@ -31,6 +32,7 @@ import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -94,6 +96,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
 
         private final CraftingRecipeLogic recipeLogic;
         private final CraftingOutputMS slot;
+        private final CraftingChainSolver chainSolver = new CraftingChainSolver();
 
         private final List<ModularSlot> shiftClickSlots = new ArrayList<>();
 
@@ -133,25 +136,78 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
                     } else {
                         hasSpace = this.slot.canTakeStack(player);
                     }
-                    if (hasSpace && recipeLogic.performRecipe()) {
-                        handleItemCraft(outputStack, player);
+                    if (hasSpace) {
+                        // 尝试执行合成链（如果需要中间产物，先合成中间产物）
+                        executeChainDependencies();
 
-                        if (data.shift) {
-                            ItemStack finalStack = outputStack.copy();
-                            while (quickTransfer(finalStack, true) &&
-                                    canStack(finalStack, outputStack) &&
-                                    recipeLogic.performRecipe()) {
-                                finalStack.setCount(finalStack.getCount() + outputStack.getCount());
-                                handleItemCraft(outputStack, player);
+                        if (recipeLogic.performRecipe()) {
+                            handleItemCraft(outputStack, player);
+
+                            if (data.shift) {
+                                ItemStack finalStack = outputStack.copy();
+                                while (quickTransfer(finalStack, true) &&
+                                        canStack(finalStack, outputStack)) {
+                                    // 每次循环都尝试执行合成链
+                                    executeChainDependencies();
+                                    if (!recipeLogic.performRecipe()) break;
+                                    finalStack.setCount(finalStack.getCount() + outputStack.getCount());
+                                    handleItemCraft(outputStack, player);
+                                }
+                                quickTransfer(finalStack, false);
+                            } else {
+                                syncToClient(SYNC_STACK, this::syncCursorStack);
                             }
-                            quickTransfer(finalStack, false);
-                        } else {
-                            syncToClient(SYNC_STACK, this::syncCursorStack);
                         }
                     }
                 }
                 ForgeHooks.setCraftingPlayer(null);
             }
+        }
+
+        /**
+         * 求解并执行合成链中的所有前置依赖步骤。
+         * 从当前合成网格的目标配方出发，查找所有记忆配方中可以提供中间产物的配方，
+         * 按拓扑序执行。
+         */
+        private void executeChainDependencies() {
+            // 构建当前配方为虚拟 MemorizedRecipe
+            var allRecipes = this.slot.recipeMemory.getAllRecipes();
+            if (allRecipes.isEmpty()) return;
+
+            // 创建代表当前合成网格的虚拟配方
+            var currentRecipe = createCurrentRecipe();
+            if (currentRecipe == null) return;
+
+            // 求解合成链
+            var result = chainSolver.solve(
+                    currentRecipe, allRecipes,
+                    recipeLogic.getAvailableHandlers(),
+                    getSyncManager().getPlayer().world);
+
+            if (result.steps.isEmpty()) return;
+
+            // 按拓扑序执行所有前置步骤（最后一步是目标配方本身，不在这里执行）
+            for (int i = 0; i < result.steps.size() - 1; i++) {
+                var step = result.steps.get(i);
+                for (int t = 0; t < step.count; t++) {
+                    if (!recipeLogic.executeChainStep(step)) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        /**
+         * 根据当前合成网格内容创建一个虚拟 MemorizedRecipe。
+         */
+        @Nullable
+        private CraftingRecipeMemory.MemorizedRecipe createCurrentRecipe() {
+            ItemStack outputStack = getOutputStack();
+            if (outputStack.isEmpty()) return null;
+
+            var recipe = CraftingRecipeMemory.MemorizedRecipe.createVirtual(
+                    recipeLogic.getCraftingMatrix(), outputStack);
+            return recipe;
         }
 
         private static boolean canStack(ItemStack a, ItemStack b) {
