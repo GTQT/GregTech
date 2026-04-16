@@ -132,6 +132,7 @@ metaitem.tool.disposable.butchery_knife.name=Disposable Butchery Knife
 metaitem.tool.disposable.butchery_knife.tooltip=Disposable Tool for crafting recipes
 metaitem.tool.disposable.rolling_pin.name=Disposable Rolling Pin
 metaitem.tool.disposable.rolling_pin.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.scanner.name=Rock Formation Scanner
 #hatch
 gregtech.machine.multi_super_tank.ulv.name=Multi Base Tank I
 gregtech.machine.multi_super_tank.lv.name=Multi Super Tank I

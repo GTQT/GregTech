@@ -242,4 +242,67 @@ public final class VeinHelper {
 
         return result;
     }
+
+    /**
+     * 获取指定维度下所有可能的矿物及其权重。
+     *
+     * <p>结果已按矿物名去重：若同一矿物出现在多个矿脉类型中，权重会累加。
+     * <p>返回顺序与 VeinRegistry 注册顺序一致，便于调试和展示。
+     *
+     * <h4>使用示例</h4>
+     * <pre>
+     * List&lt;OreWeightEntry&gt; ores = VeinHelper.getOresWithWeightsInDimension(0);
+     * for (OreWeightEntry entry : ores) {
+     *     // entry.stack.getItem() 获取物品
+     *     // entry.weight 获取相对权重（用于概率计算）
+     * }
+     * </pre>
+     *
+     * @param dimensionId 维度 ID（0=主世界, -1=下界, 1=末地, 其他=模组维度）
+     * @return List of OreWeightEntry，空列表表示该维度无可用矿物
+     */
+    public static List<OreWeightEntry> getOresWithWeightsInDimension(int dimensionId) {
+        // 使用 LinkedHashMap 保持插入顺序，同时按矿物名合并权重
+        Map<String, Integer> weightMap = new LinkedHashMap<>();
+
+        for (VeinType type : VeinRegistry.getList()) {
+            // 过滤：仅保留允许在当前维度生成的矿脉类型
+            if (!type.isAllowedInDimension(dimensionId)) continue;
+
+            // 累加该类型矿物池中每个矿物的权重
+            for (OreEntry ore : type.getOrePool()) {
+                weightMap.merge(ore.oreName, ore.weight, Integer::sum);
+            }
+        }
+
+        // 转换为 ItemStack 并构建结果列表
+        List<OreWeightEntry> result = new ArrayList<>(weightMap.size());
+        for (Map.Entry<String, Integer> entry : weightMap.entrySet()) {
+            ItemStack stack = oreNameToItemStack(entry.getKey());
+            if (!stack.isEmpty()) {
+                result.add(new OreWeightEntry(entry.getValue(), stack));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 矿物权重条目：用于返回矿物 ItemStack 及其对应权重。
+     */
+    public static class OreWeightEntry {
+        public final int weight;
+        public final ItemStack stack;
+
+        public OreWeightEntry(int weight, ItemStack stack) {
+            this.weight = weight;
+            this.stack = stack;
+        }
+
+        public String toString() {
+            return "OreWeightEntry{" +
+                "weight=" + weight +
+                ", stack=" + stack.getDisplayName() +
+                '}';
+        }
+    }
 }

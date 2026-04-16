@@ -133,6 +133,7 @@ metaitem.tool.disposable.butchery_knife.name=一次性屠刀
 metaitem.tool.disposable.butchery_knife.tooltip=仅用于合成的一次性工具
 metaitem.tool.disposable.rolling_pin.name=一次性擀面杖
 metaitem.tool.disposable.rolling_pin.tooltip=仅用于合成的一次性工具
+metaitem.tool.scanner.name=基岩矿脉探测器
 #仓口
 gregtech.machine.multi_super_tank.ulv.name=多重初级缸 I
 gregtech.machine.multi_super_tank.lv.name=多重超级缸 I
