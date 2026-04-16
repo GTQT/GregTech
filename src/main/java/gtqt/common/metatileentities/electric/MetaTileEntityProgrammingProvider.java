@@ -47,6 +47,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -73,7 +74,6 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     public MetaTileEntityProgrammingProvider(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId);
         this.tier = tier;
-        rebuildVirtualHandler();
     }
 
     @Override
@@ -97,6 +97,10 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
      * 构建所有需要提供的可编程电路列表（默认 + 自定义）。
      */
     private List<ItemStack> buildProvidedCircuits() {
+        if (!isProgrammableCircuitReady()) {
+            return Collections.emptyList();
+        }
+
         List<ItemStack> circuits = new ArrayList<>();
 
         // 空白可编程电路
@@ -128,6 +132,17 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     private void rebuildVirtualHandler() {
         List<ItemStack> circuits = buildProvidedCircuits();
         this.virtualItemHandler = new VirtualInfiniteItemHandler(circuits);
+    }
+
+    private boolean isProgrammableCircuitReady() {
+        return GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null;
+    }
+
+    private @NotNull VirtualInfiniteItemHandler getVirtualItemHandler() {
+        if (virtualItemHandler == null || (virtualItemHandler.isEmpty() && isProgrammableCircuitReady())) {
+            rebuildVirtualHandler();
+        }
+        return virtualItemHandler;
     }
 
     // ==================== GUI ====================
@@ -187,7 +202,7 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(virtualItemHandler);
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(getVirtualItemHandler());
         }
         return super.getCapability(capability, side);
     }
@@ -330,6 +345,10 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
 
         VirtualInfiniteItemHandler(List<ItemStack> providedCircuits) {
             this.providedCircuits = providedCircuits;
+        }
+
+        public boolean isEmpty() {
+            return this.providedCircuits.isEmpty();
         }
 
         @Override

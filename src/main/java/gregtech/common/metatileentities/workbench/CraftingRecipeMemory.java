@@ -187,6 +187,16 @@ public class CraftingRecipeMemory extends SyncHandler {
         }
     }
 
+    public void notifyRecipePerformed(IInventory craftingGrid, ItemStack resultStack) {
+        MemorizedRecipe recipe = findOrCreateRecipe(resultStack);
+        if (recipe != null) {
+            recipe.updateCraftingMatrix(craftingGrid);
+            recipe.timesUsed++;
+            invalidateRecipeCache();
+            syncToClient(SYNC_RECIPE, recipe::writeToBuffer);
+        }
+    }
+
     public NBTTagCompound serializeNBT() {
         NBTTagCompound tagCompound = new NBTTagCompound();
         NBTTagList resultList = new NBTTagList();
@@ -215,6 +225,13 @@ public class CraftingRecipeMemory extends SyncHandler {
 
     private static void copyInventoryItems(IItemHandler src, IItemHandlerModifiable dest) {
         for (int i = 0; i < src.getSlots(); i++) {
+            ItemStack itemStack = src.getStackInSlot(i);
+            dest.setStackInSlot(i, itemStack.isEmpty() ? ItemStack.EMPTY : itemStack.copy());
+        }
+    }
+
+    private static void copyInventoryItems(IInventory src, IItemHandlerModifiable dest) {
+        for (int i = 0; i < Math.min(src.getSizeInventory(), dest.getSlots()); i++) {
             ItemStack itemStack = src.getStackInSlot(i);
             dest.setStackInSlot(i, itemStack.isEmpty() ? ItemStack.EMPTY : itemStack.copy());
         }
@@ -339,10 +356,7 @@ public class CraftingRecipeMemory extends SyncHandler {
         public static MemorizedRecipe createVirtual(IInventory craftingGrid, ItemStack result) {
             MemorizedRecipe recipe = new MemorizedRecipe(-1);
             recipe.recipeResult = result.copy();
-            for (int i = 0; i < Math.min(9, craftingGrid.getSizeInventory()); i++) {
-                ItemStack stack = craftingGrid.getStackInSlot(i);
-                recipe.craftingMatrix.setStackInSlot(i, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
-            }
+            copyInventoryItems(craftingGrid, recipe.craftingMatrix);
             return recipe;
         }
 
@@ -390,6 +404,12 @@ public class CraftingRecipeMemory extends SyncHandler {
 
         private void updateCraftingMatrix(IItemHandler craftingGrid) {
             // do not modify crafting grid for locked recipes
+            if (!recipeLocked) {
+                copyInventoryItems(craftingGrid, craftingMatrix);
+            }
+        }
+
+        private void updateCraftingMatrix(IInventory craftingGrid) {
             if (!recipeLocked) {
                 copyInventoryItems(craftingGrid, craftingMatrix);
             }

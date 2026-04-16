@@ -11,7 +11,9 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 
@@ -110,6 +112,11 @@ public class WrappedFluidStack implements IAEFluidStack {
     }
 
     @Override
+    public String getDisplayName() {
+        return this.delegate.getLocalizedName();
+    }
+
+    @Override
     public void incStackSize(long l) {
         this.delegate.amount += l;
     }
@@ -137,6 +144,22 @@ public class WrappedFluidStack implements IAEFluidStack {
     @Override
     public boolean fuzzyComparison(IAEFluidStack stack, FuzzyMode fuzzyMode) {
         return this.delegate.getFluid() == stack.getFluid();
+    }
+
+    @Override
+    public boolean isSameType(IAEFluidStack stack) {
+        return stack != null && this.delegate.getFluid() == stack.getFluid();
+    }
+
+    @Override
+    public boolean isSameType(Object other) {
+        if (other instanceof IAEFluidStack) {
+            return isSameType((IAEFluidStack) other);
+        }
+        if (other instanceof FluidStack) {
+            return ((FluidStack) other).isFluidEqual(this.delegate);
+        }
+        return false;
     }
 
     @Override
@@ -172,6 +195,11 @@ public class WrappedFluidStack implements IAEFluidStack {
     @Override
     public IStorageChannel<IAEFluidStack> getChannel() {
         return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+    }
+
+    @Override
+    public IAEStackType<IAEFluidStack> getStackType() {
+        return AEFluidStackType.INSTANCE;
     }
 
     @Override

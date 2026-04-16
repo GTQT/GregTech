@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -190,13 +191,13 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
          * 求解合成链并返回缺失材料 Map（不执行任何合成）。
          */
         private Map<ItemStack, Integer> solveChainMissingItems() {
-            if (!recipeLogic.isRecipeValid()) return Map.of();
+            if (!recipeLogic.isRecipeValid()) return Collections.emptyMap();
 
             var allRecipes = this.slot.recipeMemory.getAllRecipes();
-            if (allRecipes.isEmpty()) return Map.of();
+            if (allRecipes.isEmpty()) return Collections.emptyMap();
 
             var currentRecipe = createCurrentRecipe();
-            if (currentRecipe == null) return Map.of();
+            if (currentRecipe == null) return Collections.emptyMap();
 
             var result = chainSolver.solve(
                     currentRecipe, allRecipes,
@@ -231,7 +232,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
          */
         @SideOnly(Side.CLIENT)
         public Map<ItemStack, Integer> getClientMissingItems() {
-            return clientMissingItems != null ? clientMissingItems : Map.of();
+            return clientMissingItems != null ? clientMissingItems : Collections.emptyMap();
         }
 
         @Override
@@ -289,17 +290,17 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
          */
         private List<CraftingChainSolver.ChainStep> solveChainDependencies() {
             var allRecipes = this.slot.recipeMemory.getAllRecipes();
-            if (allRecipes.isEmpty()) return List.of();
+            if (allRecipes.isEmpty()) return Collections.emptyList();
 
             var currentRecipe = createCurrentRecipe();
-            if (currentRecipe == null) return List.of();
+            if (currentRecipe == null) return Collections.emptyList();
 
             var result = chainSolver.solve(
                     currentRecipe, allRecipes,
                     recipeLogic.getAvailableHandlers(),
                     getSyncManager().getPlayer().world);
 
-            if (result.steps.size() <= 1) return List.of();
+            if (result.steps.size() <= 1) return Collections.emptyList();
 
             // 返回前置步骤（排除最后一步，即目标配方本身）
             return result.steps.subList(0, result.steps.size() - 1);
