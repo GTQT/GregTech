@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,14 @@ public class CraftingRecipeMemory extends SyncHandler {
 
     private final MemorizedRecipe[] memorizedRecipes;
     private final IItemHandlerModifiable craftingMatrix;
+
+    // ==================== 配方列表缓存 ====================
+    /** 缓存的非空配方列表，避免每次调用 getAllRecipes 都重新创建 */
+    private List<MemorizedRecipe> cachedAllRecipes;
+    /** 配方列表是否需要重建 */
+    private boolean recipeListDirty = true;
+    /** 配方内容或列表变化的全局版本号，供外部检测变化使用 */
+    private int recipeVersion = 0;
 
     public CraftingRecipeMemory(int memorySize, IItemHandlerModifiable craftingMatrix) {
         this.memorizedRecipes = new MemorizedRecipe[memorySize];
@@ -75,15 +84,30 @@ public class CraftingRecipeMemory extends SyncHandler {
         return hasRecipe(index) ? getRecipeAtIndex(index).getRecipeResult() : ItemStack.EMPTY;
     }
 
-    /** 获取所有非空的记忆配方（临时 + 锁定） */
+    /** 获取所有非空的记忆配方（临时 + 锁定），结果已缓存 */
     public List<MemorizedRecipe> getAllRecipes() {
-        List<MemorizedRecipe> result = new ArrayList<>();
-        for (MemorizedRecipe recipe : memorizedRecipes) {
-            if (recipe != null) {
-                result.add(recipe);
+        if (recipeListDirty || cachedAllRecipes == null) {
+            List<MemorizedRecipe> result = new ArrayList<>();
+            for (MemorizedRecipe recipe : memorizedRecipes) {
+                if (recipe != null) {
+                    result.add(recipe);
+                }
             }
+            cachedAllRecipes = Collections.unmodifiableList(result);
+            recipeListDirty = false;
         }
-        return result;
+        return cachedAllRecipes;
+    }
+
+    /** 标记配方列表需要重建，并递增版本号 */
+    private void invalidateRecipeCache() {
+        recipeListDirty = true;
+        recipeVersion++;
+    }
+
+    /** 获取配方变化版本号，供外部检测变化使用 */
+    public int getRecipeVersion() {
+        return recipeVersion;
     }
 
     /**
@@ -158,6 +182,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             // notify slot and sync to client
             recipe.updateCraftingMatrix(craftingGrid);
             recipe.timesUsed++;
+            invalidateRecipeCache();
             syncToClient(SYNC_RECIPE, recipe::writeToBuffer);
         }
     }
@@ -185,6 +210,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             MemorizedRecipe recipe = MemorizedRecipe.deserializeNBT(entryComponent.getCompoundTag("Recipe"), slotIndex);
             this.memorizedRecipes[slotIndex] = recipe;
         }
+        invalidateRecipeCache();
     }
 
     private static void copyInventoryItems(IItemHandler src, IItemHandlerModifiable dest) {
@@ -198,6 +224,7 @@ public class CraftingRecipeMemory extends SyncHandler {
         if (hasRecipe(index)) {
             MemorizedRecipe removed = memorizedRecipes[index];
             memorizedRecipes[index] = null;
+            invalidateRecipeCache();
             return removed;
         }
         return null;
@@ -219,6 +246,7 @@ public class CraftingRecipeMemory extends SyncHandler {
     public void readOnClient(int id, PacketBuffer buf) {
         if (id == UPDATE_RECIPES) {
             this.readRecipes(buf);
+            invalidateRecipeCache();
         } else if (id == REMOVE_RECIPE) {
             this.removeRecipe(buf.readByte());
         } else if (id == MAKE_RECIPE) {
@@ -228,11 +256,14 @@ public class CraftingRecipeMemory extends SyncHandler {
             recipe.recipeResult = NetworkUtils.readItemStack(buf);
             recipe.index = index;
             memorizedRecipes[index] = recipe;
+            invalidateRecipeCache();
         } else if (id == SYNC_RECIPE) {
             var recipe = MemorizedRecipe.fromBuffer(buf);
             memorizedRecipes[recipe.index] = recipe;
+            invalidateRecipeCache();
         } else if (id == OFFSET_RECIPE) {
             this.offsetRecipe(buf.readByte());
+            invalidateRecipeCache();
         } else if (id == UPDATE_LOGIC) {
             getRecipeLogic().updateCurrentRecipe();
         }

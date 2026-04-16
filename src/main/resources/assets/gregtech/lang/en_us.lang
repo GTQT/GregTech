@@ -3257,6 +3257,7 @@ gregtech.machine.workbench.tab.item_list=Storage
 gregtech.machine.workbench.storage_note=(Available items from connected\ninventories usable for crafting)
 gregtech.machine.workbench.clear_grid=Clear Crafting Grid
 gregtech.workbench.missing_ingredient=Missing ingredient in connected inventories
+gregtech.workbench.chain_missing_header=§l[Chain] Missing materials:
 gregtech.item_list.item_stored=§7Stored: %,d
 
 gregtech.machine.workbench.tab.crafting=Crafting
