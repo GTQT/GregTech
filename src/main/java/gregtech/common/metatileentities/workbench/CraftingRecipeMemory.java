@@ -34,7 +34,7 @@ public class CraftingRecipeMemory extends SyncHandler {
     public static final int UPDATE_LOGIC = 6;
 
     // server only
-    public static final int MOUSE_CLICK = 2;
+    public static final int MOUSE_CLICK = 7;
 
     private final Hash.Strategy<ItemStack> strategy = ItemStackHashStrategy.builder()
             .compareItem(true)

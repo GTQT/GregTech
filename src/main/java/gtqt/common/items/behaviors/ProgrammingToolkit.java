@@ -15,14 +15,12 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.world.World;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.HandGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.ItemSlotSH;
-import com.cleanroommc.modularui.widgets.ItemSlot;
-import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.value.sync.SyncHandlers;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 
 import gtqt.common.items.GTQTMetaItems;
 
@@ -55,49 +53,24 @@ public class ProgrammingToolkit implements ItemUIFactory, IItemBehaviour {
 
         // 输入槽 - 玩家放入要包裹的物品
         ItemStackHandler inputHandler = new ItemStackHandler(1);
-        // 输出槽 - 显示包裹后的可编程电路（只读，自动更新）
+        // 输出槽 - 显示包裹后的可编程电路（无限供应，取出不减少）
         ItemStackHandler outputHandler = new ItemStackHandler(1) {
             @Override
             public boolean isItemValid(int slot, @NotNull ItemStack stack) {
                 return false;
             }
-        };
 
-        // 输入槽同步处理器
-        guiSyncManager.syncValue("input", 0, new ItemSlotSH(inputHandler, 0) {
+            @NotNull
             @Override
-            public void onSlotChange(@NotNull ItemStack newItem, boolean onlyAmountChanged) {
-                super.onSlotChange(newItem, onlyAmountChanged);
-                updateOutput(inputHandler, outputHandler);
-            }
-        });
-
-        // 输出槽同步处理器（无限供应，不消耗输入槽物品）
-        guiSyncManager.syncValue("output", 0, new ItemSlotSH(outputHandler, 0) {
-            @Override
-            public boolean canTakeStack(EntityPlayer player) {
-                return true;
-            }
-
-            @Override
-            public @NotNull ItemStack extractItem(int amount, boolean simulate) {
-                ItemStack outputStack = outputHandler.getStackInSlot(0);
+            public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                // 无限供应：返回一份副本，不修改输出槽内容
+                ItemStack outputStack = getStackInSlot(0);
                 if (outputStack.isEmpty()) return ItemStack.EMPTY;
-
-                // 无限供应：返回一份副本，不修改输出槽内容，一次供应64个
                 ItemStack extracted = outputStack.copy();
                 extracted.setCount(Math.min(amount, 64));
                 return extracted;
             }
-
-            @Override
-            public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-                return false;
-            }
-        });
-
-        // 预览图标
-        ItemDrawable previewIcon = new ItemDrawable(ItemStack.EMPTY);
+        };
 
         return panel
                 .child(IKey.str(I18n.format("metaitem.programming_toolkit.gui_title"))
@@ -107,8 +80,13 @@ public class ProgrammingToolkit implements ItemUIFactory, IItemBehaviour {
                         .asWidget().pos(30, 30))
                 // 输入槽
                 .child(new ItemSlot()
-                        .slot(inputHandler, 0)
-                        .syncHandler("input", 0)
+                        .slot(SyncHandlers.itemSlot(inputHandler, 0)
+                                .changeListener((newItem, onlyAmountChanged, client, init) -> {
+                                    if (!client) {
+                                        updateOutput(inputHandler, outputHandler);
+                                    }
+                                })
+                                .accessibility(true, true))
                         .background(GTGuiTextures.SLOT)
                         .pos(35, 45))
                 // 箭头标签
@@ -118,8 +96,8 @@ public class ProgrammingToolkit implements ItemUIFactory, IItemBehaviour {
                         .asWidget().pos(80, 30))
                 // 输出槽
                 .child(new ItemSlot()
-                        .slot(outputHandler, 0)
-                        .syncHandler("output", 0)
+                        .slot(SyncHandlers.itemSlot(outputHandler, 0)
+                                .accessibility(false, true))
                         .background(GTGuiTextures.SLOT)
                         .pos(85, 45))
                 // 提示信息

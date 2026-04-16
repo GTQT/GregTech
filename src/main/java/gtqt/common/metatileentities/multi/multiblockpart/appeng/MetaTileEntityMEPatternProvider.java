@@ -24,6 +24,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
@@ -32,6 +33,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -75,6 +77,7 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.glodblock.github.common.item.fake.FakeFluids;
 import com.glodblock.github.common.item.fake.FakeItemRegister;
+import appeng.api.networking.crafting.IMultiplePatternPushable;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,13 +98,14 @@ import java.util.List;
  *   <li>可编程电路适配：推送的物品中如果有可编程电路，自动解包并设置到缓冲区的虚拟电路槽</li>
  * </ul>
  */
-public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPart {
+public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPart
+        implements IMultiplePatternPushable {
 
     // ==================== 缓冲区池常量 ====================
     public static final int BUFFER_COUNT = 24;
 
     // ==================== 缓冲区池 ====================
-    private final List<PatternBuffer> bufferPool = new ArrayList<>();
+    private List<PatternBuffer> bufferPool;
 
     // ==================== 固定参数 ====================
     private static final int PATTERN_SLOTS = 36;
@@ -111,6 +115,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     private static final int DEFAULT_UNLOCK_DELAY = 10;
     // 缓冲区物品槽堆叠上限
     private static final int ITEM_STACK_LIMIT = Integer.MAX_VALUE;
+    // 缓冲区额外电路槽数量（移植自 PH-Mod 的 v=4）
+    private static final int CIRCUIT_SLOT_COUNT = 4;
 
     public MetaTileEntityMEPatternProvider(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 5, false);
@@ -162,9 +168,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     /**
      * 初始化缓冲区池，创建固定数量的缓冲区实例。
+     * 注意：由于父类 MetaTileEntity 构造函数会先于子类字段初始化器执行，
+     * 此方法在首次调用时 bufferPool 可能为 null，需要在此处创建列表。
      */
     private void initBufferPool() {
-        bufferPool.clear();
+        bufferPool = new ArrayList<>();
         for (int i = 0; i < BUFFER_COUNT; i++) {
             bufferPool.add(new PatternBuffer(PATTERN_SLOTS, TANK_COUNT, TANK_CAPACITY));
         }
@@ -204,14 +212,20 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        // 注册所有非空缓冲区的 DualHandler，使多方块 distinct 模式可以逐个匹配
+        // 收集所有非空缓冲区，并按最近匹配时间降序排列（最近使用的在前）
+        // 移植自 PH-Mod 的 PiorityBuffer 排序机制，优化配方缓存命中率
+        List<PatternBuffer> activeBuffers = new ArrayList<>();
         for (PatternBuffer buffer : bufferPool) {
             if (!buffer.isEmpty()) {
-                abilityInstances.add(buffer.getDualHandler());
+                activeBuffers.add(buffer);
             }
         }
+        activeBuffers.sort((a, b) -> Long.compare(b.getLastMatchTick(), a.getLastMatchTick()));
+        for (PatternBuffer buffer : activeBuffers) {
+            abilityInstances.add(buffer.getDualHandler());
+        }
         // 如果所有缓冲区都空，注册一个空的 DualHandler 以保持兼容
-        if (bufferPool.stream().allMatch(PatternBuffer::isEmpty)) {
+        if (activeBuffers.isEmpty()) {
             abilityInstances.add(dualHandler);
         }
     }
@@ -355,7 +369,53 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         // 标记缓冲区已绑定配方
         buffer.setRecipeLocked(true);
 
+        // 记录配方匹配事件（移植自 PH-Mod 的 recordRecipe）
+        long worldTick = getWorld() != null ? getWorld().getTotalWorldTime() : 0;
+        int signatureHash = signature.hashCode();
+        buffer.recordRecipeMatch(worldTick, signatureHash);
+
         return true;
+    }
+
+    // ==================== 批量推送（移植自 PH-Mod IMultiplePatternPushable）====================
+
+    /**
+     * 批量推送多份相同样板的材料到缓冲区中。
+     * 由 AE2 的 CraftingCPUCluster.executeBatchPush() 调用。
+     * 利用 space() 方法计算缓冲区剩余容量，避免无效的循环尝试。
+     *
+     * @param patternDetails 合成样板详情
+     * @param table          单份材料的 InventoryCrafting
+     * @param maxTodo        最大允许推送的份数
+     * @return [0] = 实际成功推送的份数
+     */
+    @Override
+    public int[] pushPatternMulti(ICraftingPatternDetails patternDetails,
+                                   net.minecraft.inventory.InventoryCrafting table,
+                                   int maxTodo) {
+        // 提取签名用于匹配已有缓冲区
+        BufferSignature signature = extractSignature(table);
+
+        // 通过 space() 预估当前匹配缓冲区还能容纳多少份
+        int effectiveMax = maxTodo;
+        for (PatternBuffer buffer : bufferPool) {
+            if (!buffer.isEmpty() && buffer.matchesSignature(signature) && !buffer.full()) {
+                int bufferSpace = buffer.space();
+                if (bufferSpace < effectiveMax) {
+                    effectiveMax = bufferSpace;
+                }
+                break;
+            }
+        }
+
+        int pushed = 0;
+        for (int i = 0; i < effectiveMax; i++) {
+            if (!pushToBuffer(table)) {
+                break;
+            }
+            pushed++;
+        }
+        return new int[]{pushed};
     }
 
     // ==================== update 主循环 ====================
@@ -389,6 +449,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
                 // 缓冲区清理：使用锁定/延迟解锁机制
                 for (PatternBuffer buffer : bufferPool) {
+                    // 先清理零数量的物品和流体（移植自 PH-Mod DualInvBuffer.updateSlots()）
+                    buffer.updateSlots();
                     buffer.clearRecipeIfNeeded();
                 }
             }
@@ -558,11 +620,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
             }
 
-            // 退还电路槽
+            // 退还电路槽（所有电路槽都清空，电路是虚拟的无需退还到网络）
             if (itemMonitor != null) {
-                ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(0);
-                if (!circuit.isEmpty()) {
-                    buffer.getCircuitSlot().setStackInSlot(0, ItemStack.EMPTY);
+                for (int s = 0; s < buffer.getCircuitSlot().getSlots(); s++) {
+                    ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(s);
+                    if (!circuit.isEmpty()) {
+                        buffer.getCircuitSlot().setStackInSlot(s, ItemStack.EMPTY);
+                    }
                 }
             }
 
@@ -609,8 +673,15 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
             }
 
-            // 电路状态
-            ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(0);
+            // 电路状态（多电路槽）
+            StringBuilder circuitInfo = new StringBuilder();
+            for (int c = 0; c < buffer.getCircuitSlot().getSlots(); c++) {
+                ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(c);
+                if (!circuit.isEmpty()) {
+                    if (circuitInfo.length() > 0) circuitInfo.append(",");
+                    circuitInfo.append(circuit.getDisplayName());
+                }
+            }
 
             if (itemTypes > 0) {
                 sb.append("§b物品:").append(itemTypes).append("种/").append(itemTotal).append("个§r ");
@@ -618,8 +689,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (fluidTypes > 0) {
                 sb.append("§9流体:").append(fluidTypes).append("种/").append(fluidTotal).append("mB§r ");
             }
-            if (!circuit.isEmpty()) {
-                sb.append("§d电路:").append(circuit.getDisplayName()).append("§r");
+            if (circuitInfo.length() > 0) {
+                sb.append("§d电路:").append(circuitInfo).append("§r");
             }
             if (buffer.isRecipeLocked()) {
                 sb.append(" §c[锁定]§r");
@@ -1138,6 +1209,26 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         }
 
         /**
+         * 基于内容的哈希值，用于配方 ID 跟踪。
+         */
+        @Override
+        public int hashCode() {
+            int hash = 1;
+            for (ItemStack stack : itemTypes) {
+                hash = 31 * hash + Item.getIdFromItem(stack.getItem());
+                hash = 31 * hash + stack.getMetadata();
+            }
+            for (FluidStack fluid : fluidTypes) {
+                hash = 31 * hash + FluidRegistry.getFluidName(fluid.getFluid()).hashCode();
+            }
+            if (!circuitStack.isEmpty()) {
+                hash = 31 * hash + Item.getIdFromItem(circuitStack.getItem());
+                hash = 31 * hash + circuitStack.getMetadata();
+            }
+            return hash;
+        }
+
+        /**
          * 将签名序列化为 NBT。
          */
         public NBTTagCompound writeToNBT() {
@@ -1206,7 +1297,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         /**
          * 缓冲区电路槽 — 用简单的 ItemStackHandler 代替 GhostCircuitItemStackHandler，
          * 避免传入 null MetaTileEntity 导致的潜在 NPE。
-         * 槽位 0 存储电路 ItemStack（集成电路或自定义物品）。
+         * 支持多个电路槽（移植自 PH-Mod 的 v=4），可同时绑定多种编程电路。
          */
         private final ItemStackHandler circuitSlot;
         private final IItemHandlerModifiable combinedItemHandler;
@@ -1221,6 +1312,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         /** 配方消耗完毕后延迟释放的倒计时 */
         private int unlockDelay;
 
+        // ==================== 配方跟踪字段（移植自 PH-Mod PID 机制）====================
+        /** 最后一次被配方系统匹配到的 tick，用于 registerAbilities 排序优化 */
+        private long lastMatchTick;
+        /** 配方身份标识 ID，用于缓冲区排序和配方缓存优化 */
+        private int recipeId;
+
         public PatternBuffer(int itemSlots, int fluidSlots, int tankCapacity) {
             this.itemHandler = new NotifiableItemStackHandler(null, itemSlots, null, false) {
 
@@ -1234,7 +1331,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 tanks[i] = new NotifiableFluidTank(tankCapacity, null, false);
             }
             this.fluidHandler = new FluidTankList(false, tanks);
-            this.circuitSlot = new ItemStackHandler(1);
+            this.circuitSlot = new ItemStackHandler(CIRCUIT_SLOT_COUNT);
             this.combinedItemHandler = new ItemHandlerList(
                     java.util.Arrays.asList(this.itemHandler, this.circuitSlot));
             this.dualHandler = new DualHandler(this.combinedItemHandler, this.fluidHandler, false);
@@ -1255,6 +1352,32 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             return circuitSlot;
         }
 
+        // ==================== 配方跟踪方法 ====================
+
+        /**
+         * 获取最后一次匹配到配方的 tick。
+         * 用于 registerAbilities 排序，使最近使用的缓冲区排在前面。
+         */
+        public long getLastMatchTick() {
+            return lastMatchTick;
+        }
+
+        /**
+         * 记录配方匹配事件（移植自 PH-Mod 的 recordRecipe）。
+         * 在缓冲区被配方系统消耗物品后调用。
+         */
+        public void recordRecipeMatch(long worldTick, int recipeId) {
+            this.lastMatchTick = worldTick;
+            this.recipeId = recipeId;
+        }
+
+        /**
+         * 获取配方身份 ID。
+         */
+        public int getRecipeId() {
+            return recipeId;
+        }
+
         /**
          * 设置电路值（集成电路 0-32）到缓冲区。
          */
@@ -1268,14 +1391,29 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
         /**
          * 设置自定义电路物品（可编程电路解包后的物品）到缓冲区。
+         * 支持多电路槽：找到第一个空槽位放入，如果已有相同电路则跳过。
+         * 移植自 PH-Mod 的 programLocal() 多电路解包逻辑。
          */
         public void setCustomCircuit(@NotNull ItemStack stack) {
-            if (stack.isEmpty()) {
-                circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
-            } else {
-                ItemStack copy = stack.copy();
-                copy.setCount(1);
-                circuitSlot.setStackInSlot(0, copy);
+            if (stack.isEmpty()) return;
+
+            ItemStack copy = stack.copy();
+            copy.setCount(1);
+
+            // 检查是否已有相同电路
+            for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                ItemStack existing = circuitSlot.getStackInSlot(i);
+                if (ItemStack.areItemStacksEqual(existing, copy)) {
+                    return;
+                }
+            }
+
+            // 找到第一个空槽位放入
+            for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                if (circuitSlot.getStackInSlot(i).isEmpty()) {
+                    circuitSlot.setStackInSlot(i, copy);
+                    return;
+                }
             }
         }
 
@@ -1308,6 +1446,26 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         }
 
         /**
+         * 清理零数量的物品和流体。
+         * 移植自 PH-Mod 的 DualInvBuffer.updateSlots()。
+         * 防止配方系统消耗后留下 count=0 的 ItemStack 或 amount=0 的 FluidStack。
+         */
+        public void updateSlots() {
+            for (int i = 0; i < itemHandler.getSlots(); i++) {
+                ItemStack stack = itemHandler.getStackInSlot(i);
+                if (!stack.isEmpty() && stack.getCount() <= 0) {
+                    itemHandler.setStackInSlot(i, ItemStack.EMPTY);
+                }
+            }
+            for (int i = 0; i < fluidHandler.getTanks(); i++) {
+                IFluidTank tank = fluidHandler.getTankAt(i);
+                if (tank.getFluid() != null && tank.getFluidAmount() <= 0) {
+                    tank.drain(Integer.MAX_VALUE, true);
+                }
+            }
+        }
+
+        /**
          * 判断缓冲区是否已满（物品或流体达到上限）。
          * 移植自 PH-Mod 的 DualInvBuffer.full()。
          * 当任何一个槽位的数量达到上限时返回 true，防止无限累积。
@@ -1326,6 +1484,65 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
             }
             return false;
+        }
+
+        /**
+         * 计算缓冲区还能容纳多少"份"相同签名的材料。
+         * 移植自 PH-Mod 的 DualInvBuffer.space()。
+         * 遍历每种已有物品和流体，计算 (上限 - 当前数量) / 单份数量，取最小值。
+         *
+         * @return 还能容纳的份数；空缓冲区或无签名时返回 0
+         */
+        public int space() {
+            if (signature == null) return 0;
+
+            long ret = Long.MAX_VALUE;
+            boolean found = false;
+
+            // 物品维度：对每种已有物品计算剩余可容纳份数
+            for (int i = 0; i < signature.getItemTypes().size(); i++) {
+                ItemStack singleStack = signature.getItemTypes().get(i);
+                if (singleStack.isEmpty() || singleStack.getCount() <= 0) continue;
+
+                long currentAmount = 0;
+                for (int s = 0; s < itemHandler.getSlots(); s++) {
+                    ItemStack slot = itemHandler.getStackInSlot(s);
+                    if (!slot.isEmpty() && slot.getItem() == singleStack.getItem()
+                            && slot.getMetadata() == singleStack.getMetadata()) {
+                        currentAmount += slot.getCount();
+                    }
+                }
+
+                long canFit = ((long) ITEM_STACK_LIMIT - currentAmount) / singleStack.getCount();
+                if (canFit < ret) {
+                    ret = canFit;
+                    found = true;
+                }
+            }
+
+            // 流体维度：对每种已有流体计算剩余可容纳份数
+            for (int i = 0; i < signature.getFluidTypes().size(); i++) {
+                FluidStack singleFluid = signature.getFluidTypes().get(i);
+                if (singleFluid == null || singleFluid.amount <= 0) continue;
+
+                long currentAmount = 0;
+                for (int t = 0; t < fluidHandler.getTanks(); t++) {
+                    IFluidTank tank = fluidHandler.getTankAt(t);
+                    if (tank.getFluid() != null
+                            && tank.getFluid().getFluid() == singleFluid.getFluid()) {
+                        currentAmount += tank.getFluidAmount();
+                    }
+                }
+
+                long canFit = ((long) TANK_CAPACITY - currentAmount) / singleFluid.amount;
+                if (canFit < ret) {
+                    ret = canFit;
+                    found = true;
+                }
+            }
+
+            if (found) return (int) Math.min(ret, Integer.MAX_VALUE);
+            return 0;
         }
 
         /**
@@ -1348,8 +1565,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 IFluidTank tank = fluidHandler.getTankAt(i);
                 if (tank.getFluid() != null && tank.getFluidAmount() > 0) return false;
             }
-            // 检查电路
-            if (!circuitSlot.getStackInSlot(0).isEmpty()) return false;
+            // 检查电路（所有电路槽）
+            for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                if (!circuitSlot.getStackInSlot(i).isEmpty()) return false;
+            }
 
             return true;
         }
@@ -1420,10 +1639,14 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 IFluidTank tank = fluidHandler.getTankAt(i);
                 tank.drain(Integer.MAX_VALUE, true);
             }
-            circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
+            // 清空所有电路槽
+            for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                circuitSlot.setStackInSlot(i, ItemStack.EMPTY);
+            }
             this.signature = null;
             this.recipeLocked = false;
             this.unlockDelay = 0;
+            this.recipeId = 0;
         }
 
         /**
@@ -1446,11 +1669,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             }
             tag.setTag("Fluids", fluidList);
 
-            // 序列化电路
-            ItemStack circuit = circuitSlot.getStackInSlot(0);
-            if (!circuit.isEmpty()) {
-                tag.setTag("CircuitItem", circuit.writeToNBT(new NBTTagCompound()));
+            // 序列化电路（多电路槽）
+            NBTTagList circuitList = new NBTTagList();
+            for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                ItemStack circuit = circuitSlot.getStackInSlot(i);
+                circuitList.appendTag(circuit.writeToNBT(new NBTTagCompound()));
             }
+            tag.setTag("CircuitSlots", circuitList);
 
             // 序列化签名
             if (signature != null) {
@@ -1461,6 +1686,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             tag.setBoolean("recipeLocked", recipeLocked);
             tag.setBoolean("lock", lock);
             tag.setInteger("unlockDelay", unlockDelay);
+
+            // 序列化配方跟踪字段
+            tag.setLong("lastMatchTick", lastMatchTick);
+            tag.setInteger("recipeId", recipeId);
 
             return tag;
         }
@@ -1484,8 +1713,15 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
             }
 
-            // 反序列化电路
-            if (tag.hasKey("CircuitItem", Constants.NBT.TAG_COMPOUND)) {
+            // 反序列化电路（多电路槽，兼容旧格式）
+            if (tag.hasKey("CircuitSlots", Constants.NBT.TAG_LIST)) {
+                NBTTagList circuitList = tag.getTagList("CircuitSlots", Constants.NBT.TAG_COMPOUND);
+                for (int i = 0; i < Math.min(circuitList.tagCount(), circuitSlot.getSlots()); i++) {
+                    ItemStack circuit = new ItemStack(circuitList.getCompoundTagAt(i));
+                    circuitSlot.setStackInSlot(i, circuit);
+                }
+            } else if (tag.hasKey("CircuitItem", Constants.NBT.TAG_COMPOUND)) {
+                // 兼容旧版单电路槽格式
                 ItemStack circuit = new ItemStack(tag.getCompoundTag("CircuitItem"));
                 circuitSlot.setStackInSlot(0, circuit);
             }
@@ -1499,6 +1735,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             this.recipeLocked = tag.getBoolean("recipeLocked");
             this.lock = tag.getBoolean("lock");
             this.unlockDelay = tag.getInteger("unlockDelay");
+
+            // 反序列化配方跟踪字段
+            this.lastMatchTick = tag.getLong("lastMatchTick");
+            this.recipeId = tag.getInteger("recipeId");
         }
     }
 }

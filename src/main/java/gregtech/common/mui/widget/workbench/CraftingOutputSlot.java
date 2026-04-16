@@ -182,7 +182,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
                 return fromStack.isEmpty();
             } else if (toStack.isEmpty()) {
                 if (simulate) return true;
-                int maxSize = Math.max(toSlot.getSlotStackLimit(), fromStack.getCount());
+                int maxSize = Math.min(toSlot.getSlotStackLimit(), fromStack.getCount());
                 toSlot.putStack(fromStack.splitStack(maxSize));
                 return fromStack.isEmpty();
             }

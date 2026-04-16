@@ -112,6 +112,8 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     public void updateInventory(IItemHandlerModifiable handler) {
         this.availableHandlers = handler;
+        // 库存结构变化时清空替代品缓存
+        this.replaceAttemptMap.clear();
     }
 
     public void clearCraftingGrid() {
@@ -165,7 +167,8 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
             for (int slot : slotList) {
                 var extracted = availableHandlers.extractItem(slot, requestedAmount, true);
-                gatheredItems.put(slot, extracted.getCount());
+                // 使用 merge 进行累加，避免同一 slot 被多种物品匹配时覆盖
+                gatheredItems.merge(slot, extracted.getCount(), Integer::sum);
                 requestedAmount -= extracted.getCount();
             }
             // not enough to satisfy the recipe, return false
@@ -315,6 +318,8 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             }
             this.craftingResultInventory.setInventorySlotContents(0, resultStack);
             this.cachedRecipeData.setRecipe(newRecipe);
+            // 配方变化时清空替代品缓存，防止内存泄漏和缓存过期
+            this.replaceAttemptMap.clear();
         }
     }
 
