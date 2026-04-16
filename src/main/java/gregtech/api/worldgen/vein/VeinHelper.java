@@ -15,6 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,8 +85,8 @@ public final class VeinHelper {
      *   <li>资源点尚未被其他钻机占用（{@code !isBound()}）</li>
      * </ul>
      *
-     * @param world    世界
-     * @param drillPos 钻机自身的 BlockPos（用作绑定凭证）
+     * @param world     世界
+     * @param drillPos  钻机自身的 BlockPos（用作绑定凭证）
      * @param targetPos 钻机正下方对应区块的任意坐标（通常就是 drillPos）
      * @return true 表示绑定成功
      */
@@ -99,8 +101,8 @@ public final class VeinHelper {
     /**
      * 解除绑定（钻机被破坏时调用）。
      *
-     * @param world    世界
-     * @param drillPos 钻机自身的 BlockPos
+     * @param world     世界
+     * @param drillPos  钻机自身的 BlockPos
      * @param targetPos 目标区块坐标
      */
     public static void unbind(World world, BlockPos drillPos, BlockPos targetPos) {
@@ -134,8 +136,7 @@ public final class VeinHelper {
     // ── 探测器扫描 ───────────────────────────────────────────────
 
     /**
-     * 以给定坐标所在区块为中心，扫描 (2r+1)×(2r+1) 范围内是否存在资源点。
-     * 默认 radius=3，即 7×7 区块。
+     * 以给定坐标所在区块为中心，扫描 (2r+1)×(2r+1) 范围内是否存在资源点。 默认 radius=3，即 7×7 区块。
      *
      * @param world  世界
      * @param center 探测器所在坐标
@@ -155,9 +156,9 @@ public final class VeinHelper {
         }
         return count;
     }
+
     /**
-     * 将 oreName（如 "minecraft:iron_ore"）转为 ItemStack。
-     * 支持带 metadata 的格式："minecraft:stone:1"（石头变种）
+     * 将 oreName（如 "minecraft:iron_ore"）转为 ItemStack。 支持带 metadata 的格式："minecraft:stone:1"（石头变种）
      *
      * @return 对应 ItemStack，解析失败返回 ItemStack.EMPTY
      */
@@ -169,12 +170,11 @@ public final class VeinHelper {
 
         if (parts.length == 3) {
             domain = parts[0];
-            path   = parts[1];
-            try { meta = Integer.parseInt(parts[2]); }
-            catch (NumberFormatException e) { meta = 0; }
+            path = parts[1];
+            try {meta = Integer.parseInt(parts[2]);} catch (NumberFormatException e) {meta = 0;}
         } else if (parts.length == 2) {
             domain = parts[0];
-            path   = parts[1];
+            path = parts[1];
         } else {
             return ItemStack.EMPTY;
         }
@@ -198,12 +198,13 @@ public final class VeinHelper {
 
         return ItemStack.EMPTY;
     }
+
     /**
      * 按权重随机抽取矿物，返回 List<ItemStack>。
      *
-     * @param data       区块矿脉数据
-     * @param count      本次抽取总数（钻机每周期产出量）
-     * @param rand       随机源，传入 world.rand 保证可重现
+     * @param data  区块矿脉数据
+     * @param count 本次抽取总数（钻机每周期产出量）
+     * @param rand  随机源，传入 world.rand 保证可重现
      * @return 按矿物归并后的 ItemStack 列表（相同矿物合并为一个 stack）
      */
     public static List<ItemStack> extractOres(ChunkVeinData data, int count, Random rand) {
@@ -229,7 +230,7 @@ public final class VeinHelper {
             if (template.isEmpty()) continue;
 
             int remaining = entry.getValue();
-            int maxStack  = template.getMaxStackSize();
+            int maxStack = template.getMaxStackSize();
 
             while (remaining > 0) {
                 int batch = Math.min(remaining, maxStack);
@@ -287,22 +288,129 @@ public final class VeinHelper {
     }
 
     /**
-     * 矿物权重条目：用于返回矿物 ItemStack 及其对应权重。
+     * 从加权矿物列表中按权重随机抽取 n 个 ItemStack。
+     * <p>同一矿物可能被多次抽中，结果会自动合并堆叠。
+     *
+     * @param oreWeights 加权矿物列表（来自 VeinHelper.getOresWithWeightsInDimension）
+     * @param count      抽取数量
+     * @param rand       随机源（建议传入 world.rand 保证确定性）
+     * @return 合并堆叠后的 ItemStack 列表
      */
-    public static class OreWeightEntry {
-        public final int weight;
-        public final ItemStack stack;
-
-        public OreWeightEntry(int weight, ItemStack stack) {
-            this.weight = weight;
-            this.stack = stack;
+    public static List<ItemStack> pickOresByWeight(List<VeinHelper.OreWeightEntry> oreWeights,
+                                                   int count, Random rand) {
+        if (oreWeights == null || oreWeights.isEmpty() || count <= 0) {
+            return Collections.emptyList();
         }
+
+        // 1. 计算总权重
+        int totalWeight = oreWeights.stream().mapToInt(e -> e.weight).sum();
+        if (totalWeight <= 0) return Collections.emptyList();
+
+        // 2. 统计每种矿物被抽中的次数（按 oreName 去重合并）
+        Map<String, Integer> tally = new LinkedHashMap<>();
+        for (int i = 0; i < count; i++) {
+            int roll = rand.nextInt(totalWeight);
+            int cursor = 0;
+            for (VeinHelper.OreWeightEntry entry : oreWeights) {
+                cursor += entry.weight;
+                if (roll < cursor) {
+                    tally.merge(entry.stack.getItem().getRegistryName().toString(), 1, Integer::sum);
+                    break;
+                }
+            }
+        }
+
+        // 3. 转换为 ItemStack 列表，处理堆叠上限
+        return buildStacksFromTally(tally, oreWeights);
+    }
+
+    /**
+     * 将 "矿物名→数量" 的统计结果转换为 ItemStack 列表（自动拆分超堆叠部分）
+     */
+    private static List<ItemStack> buildStacksFromTally(Map<String, Integer> tally,
+                                                        List<VeinHelper.OreWeightEntry> source) {
+        // 构建 oreName → OreWeightEntry 映射，便于快速查模板
+        Map<String, VeinHelper.OreWeightEntry> templateMap = new HashMap<>();
+        for (VeinHelper.OreWeightEntry e : source) {
+            String key = e.stack.getItem().getRegistryName().toString();
+            if (!templateMap.containsKey(key)) {
+                templateMap.put(key, e);
+            }
+        }
+
+        List<ItemStack> result = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : tally.entrySet()) {
+            VeinHelper.OreWeightEntry template = templateMap.get(entry.getKey());
+            if (template == null) continue;
+
+            int remaining = entry.getValue();
+            int maxStack = template.stack.getMaxStackSize();
+
+            while (remaining > 0) {
+                int batch = Math.min(remaining, maxStack);
+                ItemStack stack = template.stack.copy();
+                stack.setCount(batch);
+                result.add(stack);
+                remaining -= batch;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 从加权列表中随机抽取 n 种**不同**的矿物（每种最多 1 个 stack）。
+     * <p>若 n > 可用矿物种类数，则返回全部。
+     *
+     * @param oreWeights 加权矿物列表
+     * @param count      期望抽取的种类数
+     * @param rand       随机源
+     * @return 每种矿物 1 个 ItemStack（数量=1）
+     */
+    public static List<ItemStack> pickDistinctOresByWeight(List<VeinHelper.OreWeightEntry> oreWeights,
+                                                           int count, Random rand) {
+        if (oreWeights == null || oreWeights.isEmpty() || count <= 0) {
+            return Collections.emptyList();
+        }
+
+        // 1. 复制列表并洗牌（加权版：用别名法或简单轮盘+移除）
+        List<VeinHelper.OreWeightEntry> pool = new ArrayList<>(oreWeights);
+        List<ItemStack> result = new ArrayList<>(Math.min(count, pool.size()));
+
+        for (int i = 0; i < count && !pool.isEmpty(); i++) {
+            int total = pool.stream().mapToInt(e -> e.weight).sum();
+            if (total <= 0) break;
+
+            int roll = rand.nextInt(total);
+            int cursor = 0;
+            VeinHelper.OreWeightEntry picked = null;
+            for (Iterator<OreWeightEntry> it = pool.iterator(); it.hasNext(); ) {
+                VeinHelper.OreWeightEntry e = it.next();
+                cursor += e.weight;
+                if (roll < cursor) {
+                    picked = e;
+                    it.remove(); // 移除已选，确保不重复
+                    break;
+                }
+            }
+            if (picked != null) {
+                ItemStack stack = picked.stack.copy();
+                stack.setCount(1); // 每种只给 1 个
+                result.add(stack);
+            }
+        }
+        return result;
+    }
+
+    /**
+         * 矿物权重条目：用于返回矿物 ItemStack 及其对应权重。
+         */
+        public record OreWeightEntry(int weight, ItemStack stack) {
 
         public String toString() {
-            return "OreWeightEntry{" +
-                "weight=" + weight +
-                ", stack=" + stack.getDisplayName() +
-                '}';
+                return "OreWeightEntry{" +
+                        "weight=" + weight +
+                        ", stack=" + stack.getDisplayName() +
+                        '}';
+            }
         }
-    }
 }
