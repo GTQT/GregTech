@@ -402,15 +402,22 @@ public final class VeinHelper {
     }
 
     /**
-         * 矿物权重条目：用于返回矿物 ItemStack 及其对应权重。
-         */
-        public record OreWeightEntry(int weight, ItemStack stack) {
+     * 矿物权重条目：用于返回矿物 ItemStack 及其对应权重。
+     */
+    public static class OreWeightEntry {
+        public final int weight;
+        public final ItemStack stack;
+
+        public OreWeightEntry(int weight, ItemStack stack) {
+            this.weight = weight;
+            this.stack = stack;
+        }
 
         public String toString() {
-                return "OreWeightEntry{" +
-                        "weight=" + weight +
-                        ", stack=" + stack.getDisplayName() +
-                        '}';
-            }
+            return "OreWeightEntry{" +
+                    "weight=" + weight +
+                    ", stack=" + stack.getDisplayName() +
+                    '}';
         }
+    }
 }
