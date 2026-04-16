@@ -83,7 +83,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
             .asIcon().size(16);
 
-    /** BFS 库存扫描的最大距离（方块数），可配置 */
+    /** BFS 库存扫描的最大搜索方块数量，可配置 */
     private static final int MAX_SCAN_RANGE = 24;
 
     private final IDrawable WORKSTATION = new ItemDrawable(getStackForm())
@@ -187,26 +187,24 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     /**
      * 使用 BFS 搜索周围可达的库存方块。
      * 搜索从工作台位置开始，通过有 IItemHandler 能力的方块级联扩展。
-     * 最大搜索距离（曼哈顿距离的平方）由 {@link #MAX_SCAN_RANGE} 控制。
+     * 最多搜索 {@link #MAX_SCAN_RANGE} 个方块（不含起始位置）。
      */
     private ItemHandlerList computeConnectedInventory() {
         ArrayList<IItemHandler> handlers = new ArrayList<>();
         // 用 IdentityHashSet 去重，防止同一个 IItemHandler 实例被多次添加（如大箱子的两个方块位置）
         Set<IItemHandler> seenHandlers = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-        BlockPos origin = getPos();
-        int maxRangeSq = MAX_SCAN_RANGE * MAX_SCAN_RANGE;
 
         Queue<BlockPos> toCheck = new ArrayDeque<>();
         Set<BlockPos> visited = new HashSet<>();
-        toCheck.add(origin);
-        visited.add(origin);
+        toCheck.add(getPos());
+        visited.add(getPos());
 
-        while (!toCheck.isEmpty()) {
+        while (!toCheck.isEmpty() && visited.size() <= MAX_SCAN_RANGE) {
             BlockPos current = toCheck.poll();
             for (EnumFacing facing : EnumFacing.VALUES) {
                 BlockPos neighbor = current.offset(facing);
                 if (visited.contains(neighbor)) continue;
-                if (neighbor.distanceSq(origin) > maxRangeSq) continue;
+                if (visited.size() > MAX_SCAN_RANGE) break;
                 visited.add(neighbor);
 
                 TileEntity te = getWorld().getTileEntity(neighbor);

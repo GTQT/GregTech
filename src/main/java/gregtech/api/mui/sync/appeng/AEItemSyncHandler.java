@@ -123,11 +123,9 @@ public class AEItemSyncHandler extends AESyncHandler<IAEItemStack> {
         EntityPlayer player = getSyncManager().getPlayer();
         if (player == null) return false;
 
-        ItemStack toolkitStack = GTQTMetaItems.PROGRAMMING_TOOLKIT.getStackForm();
         for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
             ItemStack invStack = player.inventory.getStackInSlot(i);
-            if (!invStack.isEmpty() && invStack.getItem() == toolkitStack.getItem()
-                    && invStack.getMetadata() == toolkitStack.getMetadata()) {
+            if (!invStack.isEmpty() && GTQTMetaItems.PROGRAMMING_TOOLKIT.isItemEqual(invStack)) {
                 return true;
             }
         }
