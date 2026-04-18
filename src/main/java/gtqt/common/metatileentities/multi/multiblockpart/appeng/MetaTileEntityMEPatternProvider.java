@@ -47,6 +47,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.fluids.items.ItemFluidDrop;
 import appeng.tile.grid.AENetworkPowerTile;
 import appeng.util.item.AEItemStack;
 import codechicken.lib.render.CCRenderState;
@@ -75,8 +76,6 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
-import com.glodblock.github.common.item.fake.FakeFluids;
-import com.glodblock.github.common.item.fake.FakeItemRegister;
 import appeng.api.networking.crafting.IMultiplePatternPushable;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import org.jetbrains.annotations.NotNull;
@@ -85,6 +84,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static gtqt.api.util.AE2PatternCompat.getFluidStack;
 
 /**
  * 可编程样板总成 — 带缓冲区池机制。
@@ -267,8 +268,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (stack.isEmpty()) continue;
 
             // 处理假流体物品
-            if (FakeFluids.isFluidFakeItem(stack)) {
-                FluidStack fluid = FakeItemRegister.getStack(stack);
+            if (ItemFluidDrop.isFluidDrop(stack)) {
+                FluidStack fluid = getFluidStack(stack);
                 if (fluid != null) {
                     FluidStack type = fluid.copy();
                     type.amount = 0;
@@ -337,8 +338,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (stack.isEmpty()) continue;
 
             // 处理假流体物品
-            if (FakeFluids.isFluidFakeItem(stack)) {
-                FluidStack fluid = FakeItemRegister.getStack(stack);
+            if (ItemFluidDrop.isFluidDrop(stack)) {
+                FluidStack fluid = getFluidStack(stack);
                 if (fluid != null) {
                     buffer.getFluidHandler().fill(fluid, true);
                     continue;
@@ -420,8 +421,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (ingredient.isEmpty()) continue;
 
             // 检测 FakeFluid — 流体编码为假物品
-            if (FakeFluids.isFluidFakeItem(ingredient)) {
-                FluidStack fluid = FakeItemRegister.getStack(ingredient);
+            if (ItemFluidDrop.isFluidDrop(ingredient)) {
+                FluidStack fluid = getFluidStack(ingredient);
                 if (fluid != null) {
                     FluidStack toFill = fluid.copy();
                     toFill.amount *= effectiveMax;

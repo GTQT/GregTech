@@ -47,6 +47,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
+import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.IAEFluidInventory;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
@@ -57,8 +58,6 @@ import appeng.util.item.AEItemStack;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
-import com.glodblock.github.common.item.fake.FakeFluids;
-import com.glodblock.github.common.item.fake.FakeItemRegister;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -67,6 +66,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
+import static gtqt.api.util.AE2PatternCompat.getFluidStack;
 import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
@@ -309,8 +309,8 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             //处理流体
 
             // 处理假流体/气体物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+                FluidStack fluid = getFluidStack(itemStack);
                 if (fluid != null) {
                     if (getImportFluids().fill(fluid, false) < fluid.amount) {
                         return false;
@@ -385,8 +385,8 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             if (itemStack.isEmpty()) continue;
 
             // 处理假流体/气体物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+                FluidStack fluid = getFluidStack(itemStack);
                 if (fluid != null) {
                     getImportFluids().fill(fluid, true);
                     continue;
@@ -475,8 +475,8 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             }
 
             // 处理流体假物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+                FluidStack fluid = getFluidStack(itemStack);
                 if (fluid == null || !GTUtility.hasMatchingFluid(fluid, getImportFluids())) {
                     return false;
                 }
