@@ -43,6 +43,5 @@ public class MetaTileEntityHugePatternProviderMappingSlave extends MetaTileEntit
         tooltip.add(I18n.format("gregtech.machine.huge_pattern_mapping_slave.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.3"));
-        tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
     }
 }

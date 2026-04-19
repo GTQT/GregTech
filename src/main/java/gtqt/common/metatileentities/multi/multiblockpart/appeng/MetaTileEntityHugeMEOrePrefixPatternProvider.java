@@ -97,7 +97,8 @@ import static gtqt.api.util.AE2PatternCompat.createProcessingPattern;
 import static gtqt.api.util.AE2PatternCompat.toFluidDrop;
 import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart {
+public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart
+        implements IMEPatternProviderPart {
 
     String input = "null";
     String output = "null";

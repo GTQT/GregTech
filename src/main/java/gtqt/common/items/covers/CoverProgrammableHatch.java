@@ -47,6 +47,8 @@ public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, IT
 
     @Override
     public void update() {
+        if (getCoverableView().getWorld().isRemote) return;
+
         TileEntity tileEntity = getCoverableView().getWorld().getTileEntity(getCoverableView().getPos());
         if (tileEntity instanceof IGregTechTileEntity igtte) {
             MetaTileEntity mte = igtte.getMetaTileEntity();
@@ -67,6 +69,8 @@ public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, IT
      */
     private void processImportItems(IItemHandlerModifiable importItems,
                                     IGhostSlotConfigurable configurable) {
+        if (!configurable.hasGhostCircuitInventory()) return;
+
         for (int i = 0; i < importItems.getSlots(); i++) {
             ItemStack itemStack = importItems.getStackInSlot(i);
             if (itemStack.isEmpty()) continue;

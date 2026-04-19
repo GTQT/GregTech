@@ -92,7 +92,8 @@ import static gtqt.api.util.AE2PatternCompat.createPatternIngredientTag;
 import static gtqt.api.util.AE2PatternCompat.createProcessingPattern;
 import static gtqt.api.util.AE2PatternCompat.toFluidDrop;
 
-public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart {
+public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart
+        implements IMEPatternProviderPart {
 
     String input = "null";
     String output = "null";

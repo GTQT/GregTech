@@ -576,15 +576,18 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
     @Override
     public boolean onDataStickRightClick(EntityPlayer player, ItemStack dataStick) {
         NBTTagCompound tag = dataStick.getTagCompound();
-        if (tag == null) return false;
-        if (tag.hasKey("CommonPos")) {
+        if (player.isSneaking() && tag != null && tag.hasKey("CommonPos")) {
             useProxy = false;
             readLocationFromTag(tag.getCompoundTag("CommonPos"));
-            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
             useProxy = true;
+            player.sendStatusMessage(new TextComponentTranslation("gregtech.machine.me.proxy.data_stick_loaded"), true);
             return true;
         }
-        return false;
+
+        // Keep right-click behavior aligned with mapping/proxy tooltip:
+        // right-click provider writes master position to data stick.
+        onDataStickLeftClick(player, dataStick);
+        return true;
     }
 
     private void readLocationFromTag(NBTTagCompound tag) {

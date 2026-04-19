@@ -897,7 +897,8 @@ gregtech.machine.me.dual_export.tooltip.2=Can cache unlimited quantities of item
 
 gregtech.machine.me_bus.ore_dict.tooltip=After entering the regular expression of the term in the text box, you can pull the item of the specified phrase
 
-gregtech.machine.me.data_stick_proxy=Allows the use of a data stick to write directly to the saved wireless access point coordinates
+gregtech.machine.me.data_stick_proxy=Sneak-right-click to load saved wireless access point coordinates; normal right-click writes this provider location to the data stick
+gregtech.machine.me.proxy.data_stick_loaded=Wireless access point coordinates loaded
 
 gregtech.machine.complex_dual_hatch.tooltip.1=Input items and fluids for multiblock structures and output items and fluids at the same time
 gregtech.machine.complex_dual_hatch.tooltip.2=If the IO function is enabled, the assembly pull will be performed at odd times, and the assembly push operation will be performed at even times
@@ -943,10 +944,17 @@ gregtech.machine.pattern_mapping_slave.data_stick_use=Linked to Pattern Provider
 gregtech.machine.pattern_mapping_slave.tooltip.1=Pattern Mapping Slave: Has 36 independent pattern slots and AE network connection
 gregtech.machine.pattern_mapping_slave.tooltip.2=Links to a Pattern Provider (master) via data stick, forwards AE-pushed materials to master's buffer pool
 gregtech.machine.pattern_mapping_slave.tooltip.3=Right-click the Pattern Provider with a data stick to write coordinates, then right-click this block to link
+gregtech.machine.pattern_mapping_slave.ui.tab.patterns=Patterns
+gregtech.machine.pattern_mapping_slave.ui.tab.status=Status
+gregtech.machine.pattern_mapping_slave.ui.title=Pattern Mapping
+gregtech.machine.pattern_mapping_slave.ui.status.linked=Linked to: %s, %s, %s
+gregtech.machine.pattern_mapping_slave.ui.status.waiting=Master pos set, waiting: %s, %s, %s
+gregtech.machine.pattern_mapping_slave.ui.status.none=No master position written
+gregtech.machine.pattern_mapping_slave.ui.status.buffers=Master buffers: %s/%s
+gregtech.machine.pattern_mapping_slave.ui.hint=Use data stick on master first, then right-click this block to link.
 #item group
 itemGroup.gtqt_programmable=GTQT | Programmable Hatch
 #Villager
 entity.Villager.level_lv=Folk Scientist
 entity.Villager.level_mv=Villager Craftsmen
 entity.Villager.level_hv=Villager Engineer
-

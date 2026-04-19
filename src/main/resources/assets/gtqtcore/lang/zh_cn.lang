@@ -891,7 +891,8 @@ gregtech.machine.me.dual_export.tooltip.2=可以缓存无限数量的物品与�
 
 gregtech.machine.me_bus.ore_dict.tooltip=在文本框输入矿辞正则表达后可拉取指定矿辞的物品
 
-gregtech.machine.me.data_stick_proxy=允许使用数据棒直接写入保存的无线接入点坐标
+gregtech.machine.me.data_stick_proxy=潜行右键载入已保存的无线接入点坐标；普通右键将当前总成坐标写入闪存
+gregtech.machine.me.proxy.data_stick_loaded=无线接入点坐标已载入
 
 gregtech.machine.complex_dual_hatch.tooltip.1=为多方块结构输入物品与流体的同时输出物品与流体
 gregtech.machine.complex_dual_hatch.tooltip.2=若开启IO功能，则会在奇数时刻执行总成拉，偶数时刻执行总成推操作
@@ -937,6 +938,14 @@ gregtech.machine.pattern_mapping_slave.data_stick_use=已链接到样板总成 [
 gregtech.machine.pattern_mapping_slave.tooltip.1=样板映射区：拥有 36 个独立样板槽位和 AE 网络连接
 gregtech.machine.pattern_mapping_slave.tooltip.2=通过数据棒链接到样板总成（master），AE 推送的材料转发到 master 的缓冲区池
 gregtech.machine.pattern_mapping_slave.tooltip.3=使用闪存右键点击样板总成写入坐标，再右键点击此方块进行链接
+gregtech.machine.pattern_mapping_slave.ui.tab.patterns=样板
+gregtech.machine.pattern_mapping_slave.ui.tab.status=状态
+gregtech.machine.pattern_mapping_slave.ui.title=样板映射区
+gregtech.machine.pattern_mapping_slave.ui.status.linked=已链接到：%s, %s, %s
+gregtech.machine.pattern_mapping_slave.ui.status.waiting=已写入总成坐标，等待连接：%s, %s, %s
+gregtech.machine.pattern_mapping_slave.ui.status.none=未写入总成坐标
+gregtech.machine.pattern_mapping_slave.ui.status.buffers=总成缓冲区：%s/%s
+gregtech.machine.pattern_mapping_slave.ui.hint=先用闪存右键样板总成写入坐标，再右键本方块完成链接
 #item group
 itemGroup.gtqt_programmable=量子跃迁 | 可编程舱室
 #村民

@@ -12,7 +12,6 @@ import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
-import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
@@ -62,10 +61,10 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.PageButton;
 import com.cleanroommc.modularui.widgets.PagedWidget;
@@ -100,7 +99,7 @@ import static gtqt.api.util.AE2PatternCompat.getFluidStack;
  * </ul>
  */
 public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPart
-        implements IMultiplePatternPushable {
+        implements IMultiplePatternPushable, IMEPatternProviderPart {
 
     // ==================== 缓冲区池常量 ====================
     public static final int BUFFER_COUNT = 24;
@@ -151,12 +150,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 setPatternDetails();
             }
         };
-        this.extraItem = new NotifiableItemStackHandler(this, TANK_COUNT + 1, null, false);
-
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
         this.circuitInventory.addNotifiableMetaTileEntity(this);
         this.actualImportItems = new ItemHandlerList(
-                java.util.Arrays.asList(this.importItems, this.circuitInventory, extraItem));
+                java.util.Arrays.asList(this.importItems, this.circuitInventory));
 
         dualHandler = new DualHandler(
                 this.actualImportItems,
@@ -175,7 +172,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     private void initBufferPool() {
         bufferPool = new ArrayList<>();
         for (int i = 0; i < BUFFER_COUNT; i++) {
-            bufferPool.add(new PatternBuffer(PATTERN_SLOTS, TANK_COUNT, TANK_CAPACITY));
+            bufferPool.add(new PatternBuffer(this, PATTERN_SLOTS, TANK_COUNT, TANK_CAPACITY));
         }
     }
 
@@ -527,7 +524,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setTag("Pattern", this.patternSlot.serializeNBT());
-        data.setTag("ExtraItem", this.extraItem.serializeNBT());
 
         data.setBoolean("BlockingEnabled", isBlockedMode());
         data.setBoolean("Export", isExport());
@@ -559,7 +555,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         super.readFromNBT(data);
         this.patternSlot.deserializeNBT(data.getCompoundTag("Pattern"));
         setPatternDetails();
-        this.extraItem.deserializeNBT(data.getCompoundTag("ExtraItem"));
 
         setBlockedMode(data.getBoolean("BlockingEnabled"));
         setExport(data.getBoolean("Export"));
@@ -595,7 +590,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         removeFromGridCache();
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
-        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
         // 退还失败后，将缓冲区中剩余的物品掉落到地面
         for (PatternBuffer buffer : bufferPool) {
             GTTransferUtils.dropInventoryItems(getWorld(), getPos(), buffer.getItemHandler());
@@ -659,18 +653,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
             }
 
-            // 退还电路槽（所有电路槽都清空，电路是虚拟的无需退还到网络）
-            if (itemMonitor != null) {
-                for (int s = 0; s < buffer.getCircuitSlot().getSlots(); s++) {
-                    ItemStack circuit = buffer.getCircuitSlot().getStackInSlot(s);
-                    if (!circuit.isEmpty()) {
-                        buffer.getCircuitSlot().setStackInSlot(s, ItemStack.EMPTY);
-                    }
-                }
+            // 仅在物品/流体都成功退空后，才重置缓冲区状态。
+            // 若 AE 无法接收全部内容，剩余物品应保留在缓冲区中（避免吞物）。
+            if (buffer.isItemAndFluidEmpty()) {
+                buffer.clear();
             }
-
-            // 清空缓冲区状态
-            buffer.clear();
         }
     }
 
@@ -761,7 +748,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
         int backgroundWidth = Math.max(
                 9 * 18 + 18 + 14 + 5 + 18,   // Player Inv width
-                (rowSize + 1) * 18 + 14 + 18); // Bus Inv width
+                rowSize * 18 + 14 + 18); // Bus Inv width
         int backgroundHeight = 18 + 18 * Math.max(4, rowSize) + 94;
 
         // 样板模式页面
@@ -781,14 +768,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                         );
             }
 
-            widgetsPattern.get(i)
-                    .add(new ItemSlot()
-                            .slot(SyncHandlers.itemSlot(extraItem, i)
-                                    .slotGroup("item_inv")
-                                    .accessibility(true, true)
-                            )
-                            .background(GTGuiTextures.SLOT, GTGuiTextures.EXTRA_SLOT_OVERLAY)
-                    );
         }
 
         // 缓冲区状态页面（替代原物品检索页面）
@@ -970,19 +949,23 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
         );
 
-        BooleanSyncValue blockStateValue = new BooleanSyncValue(this::isBlockedMode, this::setBlockedMode);
-        guiSyncManager.syncValue("block_state", blockStateValue);
-
         BooleanSyncValue collapseStateValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
         guiSyncManager.syncValue("collapse_state", collapseStateValue);
-
-        BooleanSyncValue exportStateValue = new BooleanSyncValue(this::isExport, this::setExport);
-        guiSyncManager.syncValue("export_state", exportStateValue);
 
         BooleanSyncValue showInfoStateValue = new BooleanSyncValue(this::isHideInfo, this::setHideInfo);
         guiSyncManager.syncValue("hide_info", showInfoStateValue);
 
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
+        // One-shot refund action. Client button increments this value; server setter executes refundAll().
+        IntSyncValue refundActionValue = new IntSyncValue(
+                () -> 0,
+                value -> {
+                    if (value <= 0 || getWorld() == null || getWorld().isRemote) {
+                        return;
+                    }
+                    refundAll();
+                    markDirty();
+                });
+        guiSyncManager.syncValue("refund_action", refundActionValue);
 
         var controller = new PagedWidget.Controller();
         guiSyncManager.syncValue("page_controller", new PagedWidgetSyncHandler(controller));
@@ -1115,27 +1098,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                         )
                 )
                 .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 36, backgroundHeight - 18 * 4 - 7 - 5)
-                        .width(18).height(18 * 4 + 5)
-
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget()
-                                .top(18 * 3 + 5)
-                                .size(17)
-                        )
-
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(new BoolValue.Dynamic(blockStateValue::getBoolValue,
-                                        blockStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                                .tooltip(tooltip -> tooltip.addLine(IKey.str("阻挡模式"))))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .left(18)
-                                .value(new BoolValue.Dynamic(exportStateValue::getBoolValue,
-                                        exportStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.EXPORT_OVERLAY)
-                                .tooltip(tooltip -> tooltip.addLine(IKey.str("返回模式"))))
+                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 2 - 7)
+                        .width(18).height(18 * 2)
 
                         .child(new ToggleButton()
                                 .top(18)
@@ -1144,26 +1108,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                                 .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
                                 .tooltip(tooltip -> tooltip.addLine(IKey.str("自动整理"))))
 
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .top(18)
-                                .left(18)
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .top(18)
-                                .left(18)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))
-                        )
-
                         // 退还按钮：将所有缓冲区中的物品和流体退还到 AE 网络
                         .child(new ButtonWidget<>()
                                 .top(0)
                                 .onMousePressed(mouseButton -> {
-                                    if (!getWorld().isRemote) {
-                                        refundAll();
-                                    }
+                                    refundActionValue.setIntValue(refundActionValue.getIntValue() + 1);
                                     return true;
                                 })
                                 .overlay(GTGuiTextures.EXPORT_OVERLAY)
@@ -1357,8 +1306,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         /** 配方身份标识 ID，用于缓冲区排序和配方缓存优化 */
         private int recipeId;
 
-        public PatternBuffer(int itemSlots, int fluidSlots, int tankCapacity) {
-            this.itemHandler = new NotifiableItemStackHandler(null, itemSlots, null, false) {
+        public PatternBuffer(MetaTileEntity owner, int itemSlots, int fluidSlots, int tankCapacity) {
+            this.itemHandler = new NotifiableItemStackHandler(owner, itemSlots, null, false) {
 
                 @Override
                 public int getSlotLimit(int slot) {

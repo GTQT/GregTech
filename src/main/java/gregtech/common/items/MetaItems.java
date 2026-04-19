@@ -12,6 +12,8 @@ import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.common.items.armor.MetaArmor;
+import gtqt.client.renderer.handler.ProgrammableCircuitRenderer;
+import gtqt.common.items.GTQTMetaItems;
 
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -743,6 +745,15 @@ public final class MetaItems {
     public static void registerBakedModels(ModelBakeEvent event) {
         GTLog.logger.info("Registering special item models");
         registerSpecialItemModel(event, COVER_FACADE, new FacadeRenderer());
+        if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null) {
+            ResourceLocation modelPath = ((MetaItem) GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getMetaItem())
+                    .createItemModelPath(GTQTMetaItems.PROGRAMMABLE_CIRCUIT, "");
+            ModelResourceLocation mrl = new ModelResourceLocation(modelPath, "inventory");
+            IBakedModel bakedModel = event.getModelRegistry().getObject(mrl);
+            if (bakedModel != null) {
+                event.getModelRegistry().putObject(mrl, new ProgrammableCircuitRenderer(bakedModel));
+            }
+        }
     }
 
     @SideOnly(Side.CLIENT)

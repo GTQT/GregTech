@@ -15,6 +15,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
@@ -295,8 +296,15 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
         private final MetaTileEntityProgrammingProvider provider;
 
         ConfigSlotHandler(MetaTileEntityProgrammingProvider provider, int size) {
-            super(size);
+            // ItemStackHandler(int) uses NonNullList.withSize(), which is fixed-size and
+            // throws UnsupportedOperationException on add/remove.
+            // This handler needs dynamic slot growth/shrink, so use a mutable backing list.
+            super(0);
             this.provider = provider;
+            this.stacks = NonNullList.create();
+            for (int i = 0; i < Math.max(1, size); i++) {
+                this.stacks.add(ItemStack.EMPTY);
+            }
         }
 
         @Override

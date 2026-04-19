@@ -63,22 +63,23 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 样板映射区 — 有自己的样板槽位和 AE 网络连接，通过数据棒链接到样板总成 master。
+ * Pattern mapping slave with its own pattern slots and AE connection.
  * <p>
- * 核心功能（移植自 Programmable-Hatches-Mod 的 PatternDualInputHatchInventoryMappingSlave）：
- * <ul>
- *   <li>拥有 36 个样板槽位，向 AE 网络注册自己的样板</li>
- *   <li>通过数据棒与一个 MetaTileEntityMEPatternProvider（master）建立连接</li>
- *   <li>AE 推送材料时，转发到 master 的缓冲区池</li>
- *   <li>isBusy() 委托给 master</li>
- * </ul>
+ * Linked via data stick to a master provider and forwards injected items to master.
+ * Main behavior:
+ * - Owns local pattern slots and registers patterns to AE.
+ * - Links to MetaTileEntityMEPatternProvider (or a proxy target).
+ * - Forwards push operations to master buffer pool.
+ * - Delegates isBusy() to master.
+ *
  */
-public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAECraftingPart {
+public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAECraftingPart
+        implements IMEPatternProviderPart {
 
-    // ==================== 样板槽位 ====================
+    // ==================== Pattern slots ====================
     private static final int DEFAULT_PATTERN_SLOT_COUNT = 36;
 
-    // ==================== 与 master 的链接 ====================
+    // ==================== Link to master ====================
     private MetaTileEntityMEPatternProvider master;
     private BlockPos masterPos;
     private boolean masterSet = false;
@@ -91,7 +92,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
     }
 
     /**
-     * 获取样板槽位数量，子类可 override 以增加容量。
+     * Pattern slot count. Subclasses can override to increase capacity.
      */
     protected int getPatternSlotCount() {
         return DEFAULT_PATTERN_SLOT_COUNT;
@@ -124,7 +125,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
             }
         };
 
-        // 映射区不需要自己的物品/流体槽，材料转发给 master
+        // Mapping slave does not keep local input buffers; materials are forwarded to master.
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
         this.circuitInventory.addNotifiableMetaTileEntity(this);
         this.actualImportItems = new ItemHandlerList(
@@ -143,41 +144,64 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
                 new IFluidTank[] { new NotifiableFluidTank(8000, null, false) });
     }
 
-    // ==================== Master 链接 ====================
+    // ==================== Master link ====================
 
     @Nullable
     private MetaTileEntityMEPatternProvider getMaster() {
         return master;
     }
 
+    @Nullable
+    private MetaTileEntityMEPatternProvider getResolvedMasterForLink() {
+        if ((master == null || !master.isValid()) && masterPos != null) {
+            tryToSetMaster();
+        }
+        return master != null && master.isValid() ? master : null;
+    }
+
     private boolean hasMaster() {
-        return master != null && master.isValid();
+        return getResolvedMasterForLink() != null;
     }
 
     private void tryToSetMaster() {
-        if (getWorld() == null || masterPos == null) return;
+        if (getWorld() == null || masterPos == null) {
+            this.master = null;
+            this.checkForMaster = true;
+            return;
+        }
 
         TileEntity tileEntity = getWorld().getTileEntity(masterPos);
         if (!(tileEntity instanceof IGregTechTileEntity iGregTechTileEntity)) {
+            this.master = null;
             this.checkForMaster = true;
             return;
         }
 
         MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
-        if (!(metaTileEntity instanceof MetaTileEntityMEPatternProvider provider)) {
-            this.checkForMaster = true;
+        if (metaTileEntity instanceof MetaTileEntityMEPatternProvider provider) {
+            this.master = provider;
+            this.checkForMaster = false;
             return;
         }
 
-        this.master = provider;
-        this.checkForMaster = false;
+        if (metaTileEntity instanceof MetaTileEntityMEPatternProviderProxy proxy) {
+            MetaTileEntityMEPatternProvider resolvedMain = proxy.getResolvedMainForLink();
+            if (resolvedMain != null) {
+                this.master = resolvedMain;
+                this.checkForMaster = false;
+                return;
+            }
+        }
+
+        this.master = null;
+        this.checkForMaster = true;
     }
 
-    // ==================== 数据棒交互 ====================
+    // ==================== Data stick interaction ====================
 
     @Override
     public void onDataStickLeftClick(EntityPlayer player, ItemStack dataStick) {
-        // 映射区不写数据棒，只读
+        // Mapping slave does not write data stick content.
     }
 
     @Override
@@ -191,6 +215,8 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
                 cribTag.getInteger("MainY"),
                 cribTag.getInteger("MainZ"));
         this.masterSet = true;
+        this.master = null;
+        this.checkForMaster = true;
 
         player.sendStatusMessage(new TextComponentTranslation(
                 "gregtech.machine.pattern_mapping_slave.data_stick_use",
@@ -202,28 +228,30 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
         return true;
     }
 
-    // ==================== AE2 推送 — 转发给 master ====================
+    // ==================== AE2 push forwarding to master ====================
 
     @Override
     public boolean pushPattern(ICraftingPatternDetails patternDetails, InventoryCrafting inventoryCrafting) {
         if (!isActive()) {
             return false;
         }
-        if (!hasMaster()) {
+        MetaTileEntityMEPatternProvider resolvedMaster = getResolvedMasterForLink();
+        if (resolvedMaster == null) {
             GTLog.logger.debug("Mapping slave has no master, rejecting pattern");
             return false;
         }
-        // 将材料转发到 master 的缓冲区池
-        return master.pushToBuffer(inventoryCrafting);
+        // Forward materials to the master buffer pool.
+        return resolvedMaster.pushToBuffer(inventoryCrafting);
     }
 
     @Override
     public boolean isBusy() {
-        if (!hasMaster()) return true;
-        return master.isBusy();
+        MetaTileEntityMEPatternProvider resolvedMaster = getResolvedMasterForLink();
+        if (resolvedMaster == null) return true;
+        return resolvedMaster.isBusy();
     }
 
-    // ==================== 不注册多方块能力 ====================
+    // ==================== No multiblock ability registration ====================
 
     @Override
     public @Nullable MultiblockAbility<IItemHandlerModifiable> getAbility() {
@@ -232,7 +260,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        // 映射区不作为多方块的输入总线，不注册任何能力
+        // Mapping slave is not exposed as a multiblock input ability.
     }
 
     // ==================== update ====================
@@ -240,20 +268,20 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
     @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote) {
+        if (getWorld() != null && !getWorld().isRemote) {
             if (isWorkingEnabled() && isOnline && shouldSyncME()) {
                 if (isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
             }
+        }
 
-            if (getOffsetTimer() % 100 == 0) {
-                if (checkForMaster && !hasMaster()) {
-                    tryToSetMaster();
-                }
+        if (getWorld() != null && getOffsetTimer() % 20 == 0) {
+            if (checkForMaster && !hasMaster()) {
+                tryToSetMaster();
             }
         }
     }
 
-    // ==================== 渲染 ====================
+    // ==================== Rendering ====================
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
@@ -316,7 +344,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
         }
     }
 
-    // ==================== 同步 ====================
+    // ==================== Sync ====================
 
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
@@ -356,7 +384,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
         int backgroundWidth = Math.max(9 * 18 + 18 + 14 + 5 + 18, (rowSize + 1) * 18 + 14 + 18);
         int backgroundHeight = 18 + 18 * Math.max(4, rowSize) + 94;
 
-        // 样板槽页面
+        // Pattern page
         List<List<IWidget>> widgetsPattern = new ArrayList<>();
         for (int i = 0; i < rowSize; i++) {
             widgetsPattern.add(new ArrayList<>());
@@ -384,11 +412,11 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
                         .topRel(0f, 3, 1f)
                         .child(new PageButton(0, controller)
                                 .tab(GuiTextures.TAB_TOP, 0)
-                                .addTooltipLine(IKey.lang("样板"))
+                                .addTooltipLine(IKey.lang("gregtech.machine.pattern_mapping_slave.ui.tab.patterns"))
                                 .overlay(HATCH))
                         .child(new PageButton(1, controller)
                                 .tab(GuiTextures.TAB_TOP, 0)
-                                .addTooltipLine(IKey.lang("状态"))
+                                .addTooltipLine(IKey.lang("gregtech.machine.pattern_mapping_slave.ui.tab.status"))
                                 .overlay(TERMINAL))
                 )
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
@@ -398,7 +426,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
                         .margin(0)
                         .widthRel(1f)
                         .controller(controller)
-                        // 样板页面
+                        // Pattern page
                         .addPage(
                                 new Grid()
                                         .top(0)
@@ -408,34 +436,40 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
                                         .minRowHeight(18)
                                         .leftRel(0.5f)
                                         .matrix(widgetsPattern))
-                        // 状态页面
+                        // Status page
                         .addPage(
                                 Flow.column()
                                         .top(0)
                                         .widthRel(1f)
                                         .leftRel(0.5f)
                                         .margin(5, 0)
-                                        .child(new TextWidget<>(IKey.str("样板映射区")))
+                                        .child(new TextWidget<>(IKey.lang("gregtech.machine.pattern_mapping_slave.ui.title")))
                                         .child(new TextWidget<>(IKey.dynamic(() -> {
                                             if (hasMaster() && masterPos != null) {
-                                                return "已链接到: " + masterPos.getX() + ", " +
-                                                        masterPos.getY() + ", " + masterPos.getZ();
+                                                return I18n.format("gregtech.machine.pattern_mapping_slave.ui.status.linked",
+                                                        masterPos.getX(), masterPos.getY(), masterPos.getZ());
                                             }
-                                            return "未链接到样板总成";
+                                            if (masterSet && masterPos != null) {
+                                                return I18n.format("gregtech.machine.pattern_mapping_slave.ui.status.waiting",
+                                                        masterPos.getX(), masterPos.getY(), masterPos.getZ());
+                                            }
+                                            return I18n.format("gregtech.machine.pattern_mapping_slave.ui.status.none");
                                         })))
                                         .child(new TextWidget<>(IKey.dynamic(() -> {
-                                            if (hasMaster()) {
+                                            MetaTileEntityMEPatternProvider resolvedMaster = getResolvedMasterForLink();
+                                            if (resolvedMaster != null) {
                                                 int usedBuffers = 0;
                                                 for (MetaTileEntityMEPatternProvider.PatternBuffer buffer :
-                                                        master.getBufferPool()) {
+                                                        resolvedMaster.getBufferPool()) {
                                                     if (!buffer.isEmpty()) usedBuffers++;
                                                 }
-                                                return "Master 缓冲区: " + usedBuffers + "/" +
-                                                        MetaTileEntityMEPatternProvider.BUFFER_COUNT;
+                                                return I18n.format("gregtech.machine.pattern_mapping_slave.ui.status.buffers",
+                                                        usedBuffers, MetaTileEntityMEPatternProvider.BUFFER_COUNT);
                                             }
                                             return "";
                                         })))
-                                        .child(new TextWidget<>(IKey.str("使用数据棒右击样板总成写入坐标，再右击此方块进行链接")))
+                                        .child(new TextWidget<>(
+                                                IKey.lang("gregtech.machine.pattern_mapping_slave.ui.hint")))
                         )
                 )
                 .child(Flow.column()
@@ -455,6 +489,6 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.3"));
-        tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
     }
 }
+
