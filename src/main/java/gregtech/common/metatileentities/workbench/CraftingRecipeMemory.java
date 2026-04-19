@@ -16,16 +16,18 @@ import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.utils.MouseData;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import it.unimi.dsi.fastutil.Hash;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class CraftingRecipeMemory extends SyncHandler {
+
+    public static final int TEMP_RECIPE_SLOTS = 9;
+    public static final int LOCKED_RECIPE_SLOTS = 45;
 
     // client and server
     public static final int UPDATE_RECIPES = 1;
@@ -62,6 +64,7 @@ public class CraftingRecipeMemory extends SyncHandler {
     }
 
     public void loadRecipe(int index) {
+        if (index < 0 || index >= memorizedRecipes.length) return;
         MemorizedRecipe recipe = memorizedRecipes[index];
         if (recipe != null) {
             copyInventoryItems(recipe.craftingMatrix, this.craftingMatrix);
@@ -76,12 +79,25 @@ public class CraftingRecipeMemory extends SyncHandler {
 
     @Nullable
     public MemorizedRecipe getRecipeAtIndex(int index) {
+        if (index < 0 || index >= memorizedRecipes.length) return null;
         return memorizedRecipes[index];
     }
 
     @SuppressWarnings("DataFlowIssue")
     public @NotNull ItemStack getRecipeOutputAtIndex(int index) {
         return hasRecipe(index) ? getRecipeAtIndex(index).getRecipeResult() : ItemStack.EMPTY;
+    }
+
+    public int getTemporaryRecipeIndex(int displayIndex) {
+        return displayIndex;
+    }
+
+    public int getLockedRecipeIndex(int displayIndex) {
+        return getLockedStart() + displayIndex;
+    }
+
+    public int getLockedRecipeSlots() {
+        return getLockedCapacity();
     }
 
     /** 获取所有非空的记忆配方（临时 + 锁定），结果已缓存 */
@@ -110,80 +126,127 @@ public class CraftingRecipeMemory extends SyncHandler {
         return recipeVersion;
     }
 
-    /**
-     * Offsets recipes from {@code startIndex} to the right, skipping locked recipes
-     *
-     * @param startIndex the index to start offsetting recipes
-     */
-    private void offsetRecipe(int startIndex) {
-        MemorizedRecipe previousRecipe = removeRecipe(startIndex);
-        if (previousRecipe == null) return;
-        for (int i = startIndex + 1; i < memorizedRecipes.length; i++) {
-            MemorizedRecipe recipe = memorizedRecipes[i];
-            if (recipe != null && recipe.recipeLocked) continue;
-            memorizedRecipes[i] = previousRecipe;
-            memorizedRecipes[i].index = i;
+    private static final class RecipeBuckets {
 
-            // we found a null recipe and there's no more recipes to check,
-            if (recipe == null) return;
+        private final List<MemorizedRecipe> temporary = new ArrayList<>();
+        private final List<MemorizedRecipe> locked = new ArrayList<>();
+    }
 
-            previousRecipe = recipe;
+    private int getTemporaryCapacity() {
+        return Math.min(TEMP_RECIPE_SLOTS, memorizedRecipes.length);
+    }
+
+    private int getLockedStart() {
+        return getTemporaryCapacity();
+    }
+
+    private int getLockedCapacity() {
+        return Math.max(0, Math.min(LOCKED_RECIPE_SLOTS, memorizedRecipes.length - getLockedStart()));
+    }
+
+    private RecipeBuckets collectBuckets() {
+        RecipeBuckets buckets = new RecipeBuckets();
+        for (MemorizedRecipe recipe : memorizedRecipes) {
+            if (recipe == null) continue;
+            if (recipe.recipeLocked) {
+                buckets.locked.add(recipe);
+            } else {
+                buckets.temporary.add(recipe);
+            }
         }
+        return buckets;
+    }
+
+    private void applyBuckets(RecipeBuckets buckets) {
+        Arrays.fill(memorizedRecipes, null);
+
+        int tempCount = Math.min(getTemporaryCapacity(), buckets.temporary.size());
+        for (int i = 0; i < tempCount; i++) {
+            MemorizedRecipe recipe = buckets.temporary.get(i);
+            recipe.index = i;
+            recipe.recipeLocked = false;
+            memorizedRecipes[i] = recipe;
+        }
+
+        int lockedStart = getLockedStart();
+        int lockedCount = Math.min(getLockedCapacity(), buckets.locked.size());
+        for (int i = 0; i < lockedCount; i++) {
+            MemorizedRecipe recipe = buckets.locked.get(i);
+            int index = lockedStart + i;
+            recipe.index = index;
+            recipe.recipeLocked = true;
+            memorizedRecipes[index] = recipe;
+        }
+    }
+
+    private void normalizeRecipeBuckets() {
+        applyBuckets(collectBuckets());
+    }
+
+    private void syncRecipesToClient() {
+        syncToClient(UPDATE_RECIPES, this::writeRecipes);
+    }
+
+    private boolean toggleRecipeLock(int index) {
+        MemorizedRecipe recipe = getRecipeAtIndex(index);
+        if (recipe == null) return false;
+
+        RecipeBuckets buckets = collectBuckets();
+        if (recipe.recipeLocked) {
+            if (!buckets.locked.remove(recipe)) return false;
+            recipe.recipeLocked = false;
+            buckets.temporary.add(0, recipe);
+            applyBuckets(buckets);
+            invalidateRecipeCache();
+            return true;
+        }
+
+        if (buckets.locked.size() >= getLockedCapacity()) {
+            return false;
+        }
+        if (!buckets.temporary.remove(recipe)) return false;
+        recipe.recipeLocked = true;
+        buckets.locked.add(0, recipe);
+        applyBuckets(buckets);
+        invalidateRecipeCache();
+        return true;
     }
 
     @Nullable
     private MemorizedRecipe findOrCreateRecipe(ItemStack resultItemStack) {
-        // search preexisting recipe with identical recipe result
-        MemorizedRecipe existing = null;
-        for (MemorizedRecipe memorizedRecipe : memorizedRecipes) {
-            if (memorizedRecipe != null &&
-                    strategy.equals(memorizedRecipe.recipeResult, resultItemStack)) {
-                existing = memorizedRecipe;
-                break;
+        RecipeBuckets buckets = collectBuckets();
+
+        for (int i = 0; i < buckets.temporary.size(); i++) {
+            MemorizedRecipe existing = buckets.temporary.get(i);
+            if (!strategy.equals(existing.recipeResult, resultItemStack)) continue;
+            if (i == 0) return existing;
+            buckets.temporary.remove(i);
+            buckets.temporary.add(0, existing);
+            applyBuckets(buckets);
+            return existing;
+        }
+
+        for (MemorizedRecipe existing : buckets.locked) {
+            if (strategy.equals(existing.recipeResult, resultItemStack)) {
+                return existing;
             }
         }
 
-        // we already have a recipe that matches
-        // move it to the front
-        if (existing != null) {
-            // it's already at the front or it's locked
-            if (existing.index == 0 || existing.recipeLocked) return existing;
-
-            int removed = existing.index;
-            removeRecipe(existing.index);
-            syncToClient(REMOVE_RECIPE, buffer -> buffer.writeByte(removed));
-            offsetRecipe(0);
-            syncToClient(OFFSET_RECIPE, buffer -> buffer.writeByte(0));
-            existing.index = 0;
-            return memorizedRecipes[0] = existing;
-        }
-
-        // put new memorized recipe into array
-        for (int i = 0; i < memorizedRecipes.length; i++) {
-            MemorizedRecipe memorizedRecipe;
-            if (memorizedRecipes[i] == null) {
-                memorizedRecipe = new MemorizedRecipe(i);
-            } else if (memorizedRecipes[i].recipeLocked) {
-                continue;
-            } else {
-                offsetRecipe(i);
-                memorizedRecipe = new MemorizedRecipe(i);
-                syncToClient(OFFSET_RECIPE, buffer -> buffer.writeByte(memorizedRecipe.index));
-            }
-            memorizedRecipe.initialize(resultItemStack);
-            return memorizedRecipes[i] = memorizedRecipe;
-        }
-        return null;
+        if (getTemporaryCapacity() <= 0) return null;
+        MemorizedRecipe recipe = new MemorizedRecipe(-1);
+        recipe.initialize(resultItemStack);
+        buckets.temporary.add(0, recipe);
+        applyBuckets(buckets);
+        return recipe;
     }
 
     public void notifyRecipePerformed(IItemHandler craftingGrid, ItemStack resultStack) {
         MemorizedRecipe recipe = findOrCreateRecipe(resultStack);
         if (recipe != null) {
-            // notify slot and sync to client
             recipe.updateCraftingMatrix(craftingGrid);
             recipe.timesUsed++;
             invalidateRecipeCache();
-            syncToClient(SYNC_RECIPE, recipe::writeToBuffer);
+            syncRecipesToClient();
         }
     }
 
@@ -193,7 +256,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             recipe.updateCraftingMatrix(craftingGrid);
             recipe.timesUsed++;
             invalidateRecipeCache();
-            syncToClient(SYNC_RECIPE, recipe::writeToBuffer);
+            syncRecipesToClient();
         }
     }
 
@@ -213,13 +276,16 @@ public class CraftingRecipeMemory extends SyncHandler {
     }
 
     public void deserializeNBT(NBTTagCompound tagCompound) {
+        Arrays.fill(this.memorizedRecipes, null);
         NBTTagList resultList = tagCompound.getTagList("Memory", NBT.TAG_COMPOUND);
         for (int i = 0; i < resultList.tagCount(); i++) {
             NBTTagCompound entryComponent = resultList.getCompoundTagAt(i);
             int slotIndex = entryComponent.getInteger("Slot");
+            if (slotIndex < 0 || slotIndex >= this.memorizedRecipes.length) continue;
             MemorizedRecipe recipe = MemorizedRecipe.deserializeNBT(entryComponent.getCompoundTag("Recipe"), slotIndex);
             this.memorizedRecipes[slotIndex] = recipe;
         }
+        normalizeRecipeBuckets();
         invalidateRecipeCache();
     }
 
@@ -238,16 +304,21 @@ public class CraftingRecipeMemory extends SyncHandler {
     }
 
     public final MemorizedRecipe removeRecipe(int index) {
-        if (hasRecipe(index)) {
-            MemorizedRecipe removed = memorizedRecipes[index];
-            memorizedRecipes[index] = null;
-            invalidateRecipeCache();
-            return removed;
+        if (!hasRecipe(index)) return null;
+        MemorizedRecipe removed = memorizedRecipes[index];
+        RecipeBuckets buckets = collectBuckets();
+        if (removed.recipeLocked) {
+            buckets.locked.remove(removed);
+        } else {
+            buckets.temporary.remove(removed);
         }
-        return null;
+        applyBuckets(buckets);
+        invalidateRecipeCache();
+        return removed;
     }
 
     public final boolean hasRecipe(int index) {
+        if (index < 0 || index >= memorizedRecipes.length) return false;
         return memorizedRecipes[index] != null;
     }
 
@@ -263,11 +334,14 @@ public class CraftingRecipeMemory extends SyncHandler {
     public void readOnClient(int id, PacketBuffer buf) {
         if (id == UPDATE_RECIPES) {
             this.readRecipes(buf);
-            invalidateRecipeCache();
         } else if (id == REMOVE_RECIPE) {
             this.removeRecipe(buf.readByte());
         } else if (id == MAKE_RECIPE) {
             int index = buf.readByte();
+            if (index < 0 || index >= memorizedRecipes.length) {
+                NetworkUtils.readItemStack(buf);
+                return;
+            }
             var recipe = memorizedRecipes[index];
             if (recipe == null) recipe = new MemorizedRecipe(index);
             recipe.recipeResult = NetworkUtils.readItemStack(buf);
@@ -276,10 +350,11 @@ public class CraftingRecipeMemory extends SyncHandler {
             invalidateRecipeCache();
         } else if (id == SYNC_RECIPE) {
             var recipe = MemorizedRecipe.fromBuffer(buf);
+            if (recipe.index < 0 || recipe.index >= memorizedRecipes.length) return;
             memorizedRecipes[recipe.index] = recipe;
             invalidateRecipeCache();
         } else if (id == OFFSET_RECIPE) {
-            this.offsetRecipe(buf.readByte());
+            buf.readByte();
             invalidateRecipeCache();
         } else if (id == UPDATE_LOGIC) {
             getRecipeLogic().updateCurrentRecipe();
@@ -287,15 +362,16 @@ public class CraftingRecipeMemory extends SyncHandler {
     }
 
     public void writeRecipes(PacketBuffer buf) {
-        Map<Integer, ItemStack> written = new Int2ObjectOpenHashMap<>();
+        int written = 0;
         for (int i = 0; i < memorizedRecipes.length; i++) {
-            var stack = getRecipeOutputAtIndex(i);
-            if (stack.isEmpty()) continue;
-            written.put(i, stack);
+            if (memorizedRecipes[i] != null) {
+                written++;
+            }
         }
-        buf.writeByte(written.size());
-        for (var entry : written.entrySet()) {
-            var recipe = memorizedRecipes[entry.getKey()];
+        buf.writeByte(written);
+        for (int i = 0; i < memorizedRecipes.length; i++) {
+            var recipe = memorizedRecipes[i];
+            if (recipe == null) continue;
             buf.writeByte(recipe.index);
             NetworkUtils.writeItemStack(buf, recipe.recipeResult);
             buf.writeInt(recipe.timesUsed);
@@ -304,16 +380,24 @@ public class CraftingRecipeMemory extends SyncHandler {
     }
 
     public void readRecipes(PacketBuffer buf) {
+        Arrays.fill(memorizedRecipes, null);
         int size = buf.readByte();
         for (int i = 0; i < size; i++) {
             int index = buf.readByte();
-            if (!hasRecipe(index))
-                memorizedRecipes[index] = new MemorizedRecipe(index);
+            if (index < 0 || index >= memorizedRecipes.length) {
+                NetworkUtils.readItemStack(buf);
+                buf.readInt();
+                buf.readBoolean();
+                continue;
+            }
+            memorizedRecipes[index] = new MemorizedRecipe(index);
 
             memorizedRecipes[index].recipeResult = NetworkUtils.readItemStack(buf);
             memorizedRecipes[index].timesUsed = buf.readInt();
             memorizedRecipes[index].recipeLocked = buf.readBoolean();
         }
+        normalizeRecipeBuckets();
+        invalidateRecipeCache();
     }
 
     @Override
@@ -328,11 +412,15 @@ public class CraftingRecipeMemory extends SyncHandler {
             if (recipe == null) return;
 
             if (data.shift && data.mouseButton == 0) {
-                recipe.setRecipeLocked(!recipe.isRecipeLocked());
+                if (toggleRecipeLock(index)) {
+                    syncRecipesToClient();
+                }
             } else if (data.mouseButton == 0) {
                 loadRecipe(index);
             } else if (data.mouseButton == 1 && !recipe.isRecipeLocked()) {
-                removeRecipe(index);
+                if (removeRecipe(index) != null) {
+                    syncRecipesToClient();
+                }
             }
         }
     }

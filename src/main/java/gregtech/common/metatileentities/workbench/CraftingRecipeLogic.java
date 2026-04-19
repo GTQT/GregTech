@@ -153,7 +153,11 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     public boolean performRecipe() {
-        return isRecipeValid() && attemptMatchRecipe() && consumeRecipeItems();
+        if (!isRecipeValid()) return false;
+        // Chain crafting temporarily swaps the crafting matrix, so recompute inputs right before consuming.
+        snapshotDirty = true;
+        updateInputSlots();
+        return attemptMatchRecipe() && consumeRecipeItems();
     }
 
     /**

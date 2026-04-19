@@ -85,12 +85,6 @@ public class RecipeMemorySlot extends Widget<RecipeMemorySlot> implements Intera
             data.writeToPacket(buffer);
         });
 
-        if (data.shift && data.mouseButton == 0) {
-            recipe.setRecipeLocked(!recipe.isRecipeLocked());
-        } else if (data.mouseButton == 1 && !recipe.isRecipeLocked()) {
-            this.memory.removeRecipe(index);
-        }
-
         return Result.ACCEPT;
     }
 

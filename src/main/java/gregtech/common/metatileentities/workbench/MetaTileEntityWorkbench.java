@@ -96,7 +96,8 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     private ItemHandlerList combinedInventory;
     private ItemHandlerList connectedInventory;
 
-    private final CraftingRecipeMemory recipeMemory = new CraftingRecipeMemory(9, this.craftingGrid);
+    private final CraftingRecipeMemory recipeMemory = new CraftingRecipeMemory(
+            CraftingRecipeMemory.TEMP_RECIPE_SLOTS + CraftingRecipeMemory.LOCKED_RECIPE_SLOTS, this.craftingGrid);
     private CraftingRecipeLogic recipeLogic = null;
     private int itemsCrafted = 0;
 
@@ -323,7 +324,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
                                         // crafting output slot
                                         .child(createCraftingOutput(guiData, syncManager))
                                         // recipe memory
-                                        .child(createRecipeMemoryGrid(syncManager)))
+                                        .child(createRecipeMemoryPanel(syncManager)))
                                 // tool inventory
                                 .child(createToolInventory(syncManager))
                                 // internal inventory
@@ -407,14 +408,57 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
                         }));
     }
 
-    public IWidget createRecipeMemoryGrid(PanelSyncManager syncManager) {
+    public IWidget createRecipeMemoryPanel(PanelSyncManager syncManager) {
+        var memoryController = new PagedWidget.Controller();
+        syncManager.syncValue("recipe_memory_page_controller", 0, new PagedWidgetSyncHandler(memoryController));
+
+        return Flow.column()
+                .right(0)
+                .coverChildrenWidth()
+                .child(Flow.row()
+                        .name("recipe memory tabs")
+                        .width(18 * 3 + 4)
+                        .coverChildrenHeight()
+                        .marginBottom(2)
+                        .child(new PageButton(0, memoryController)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .overlay(IKey.str("T").asIcon())
+                                .addTooltipLine(IKey.str("Temporary Recipes")))
+                        .child(new PageButton(1, memoryController)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .overlay(GTGuiTextures.RECIPE_LOCK_WHITE)
+                                .addTooltipLine(IKey.str("Locked Recipes"))))
+                .child(new PagedWidget<>()
+                        .controller(memoryController)
+                        .coverChildrenWidth()
+                        .coverChildrenHeight()
+                        .addPage(createTemporaryRecipeMemoryGrid())
+                        .addPage(createLockedRecipeMemoryGrid()));
+    }
+
+    private IWidget createTemporaryRecipeMemoryGrid() {
         return SlotGroupWidget.builder()
                 .matrix("XXX",
                         "XXX",
                         "XXX")
-                .key('X', i -> new RecipeMemorySlot(this.recipeMemory, i)
+                .key('X', i -> new RecipeMemorySlot(this.recipeMemory, this.recipeMemory.getTemporaryRecipeIndex(i))
                         .background(GTGuiTextures.SLOT))
                 .build().right(0);
+    }
+
+    private IWidget createLockedRecipeMemoryGrid() {
+        List<RecipeMemorySlot> list = new ArrayList<>(this.recipeMemory.getLockedRecipeSlots());
+        for (int i = 0; i < this.recipeMemory.getLockedRecipeSlots(); i++) {
+            int recipeIndex = this.recipeMemory.getLockedRecipeIndex(i);
+            list.add(new RecipeMemorySlot(this.recipeMemory, recipeIndex)
+                    .background(GTGuiTextures.SLOT));
+        }
+
+        return new Grid()
+                .scrollable(new VerticalScrollData())
+                .width(18 * 3 + 4)
+                .height(18 * 3)
+                .mapTo(3, list);
     }
 
     public IWidget createInventoryPage(PanelSyncManager syncManager) {

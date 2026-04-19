@@ -240,47 +240,52 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
             if (id == MOUSE_CLICK) {
                 EntityPlayer player = getSyncManager().getPlayer();
                 ForgeHooks.setCraftingPlayer(player);
-                var data = MouseData.readPacket(buf);
+                try {
+                    var data = MouseData.readPacket(buf);
 
-                if (recipeLogic.isRecipeValid()) {
-                    ItemStack outputStack = getOutputStack();
-                    boolean hasSpace;
-                    if (data.shift) {
-                        hasSpace = quickTransfer(getOutputStack(), true);
-                    } else {
-                        hasSpace = this.slot.canTakeStack(player);
-                    }
-                    if (hasSpace) {
-                        // 求解合成链（只求解一次，shift 连续合成时复用结果）
-                        var chainSteps = solveChainDependencies();
+                    if (recipeLogic.isRecipeValid()) {
+                        ItemStack outputStack = getOutputStack();
+                        boolean hasSpace;
+                        if (data.shift) {
+                            hasSpace = quickTransfer(getOutputStack(), true);
+                        } else {
+                            hasSpace = this.slot.canTakeStack(player);
+                        }
+                        if (hasSpace) {
+                            var chainResult = solveChainResult();
+                            if (chainResult == null) {
+                                return;
+                            }
 
-                        // 执行前置合成链
-                        executeChainSteps(chainSteps);
+                            var chainSteps = solveChainDependencies(chainResult);
+                            if (!executeChainSteps(chainSteps)) {
+                                return;
+                            }
 
-                        if (recipeLogic.performRecipe()) {
-                            handleItemCraft(outputStack, player);
+                            if (recipeLogic.performRecipe()) {
+                                handleItemCraft(outputStack, player);
 
-                            if (data.shift) {
-                                ItemStack finalStack = outputStack.copy();
-                                int crafted = 1;
-                                while (crafted < MAX_SHIFT_CRAFT &&
-                                        quickTransfer(finalStack, true) &&
-                                        canStack(finalStack, outputStack)) {
-                                    // 复用已求解的合成链，只执行前置步骤
-                                    executeChainSteps(chainSteps);
-                                    if (!recipeLogic.performRecipe()) break;
-                                    finalStack.setCount(finalStack.getCount() + outputStack.getCount());
-                                    handleItemCraft(outputStack, player);
-                                    crafted++;
+                                if (data.shift) {
+                                    ItemStack finalStack = outputStack.copy();
+                                    int crafted = 1;
+                                    while (crafted < MAX_SHIFT_CRAFT &&
+                                            quickTransfer(finalStack, true) &&
+                                            canStack(finalStack, outputStack)) {
+                                        if (!executeChainSteps(chainSteps) || !recipeLogic.performRecipe()) break;
+                                        finalStack.setCount(finalStack.getCount() + outputStack.getCount());
+                                        handleItemCraft(outputStack, player);
+                                        crafted++;
+                                    }
+                                    quickTransfer(finalStack, false);
+                                } else {
+                                    syncToClient(SYNC_STACK, this::syncCursorStack);
                                 }
-                                quickTransfer(finalStack, false);
-                            } else {
-                                syncToClient(SYNC_STACK, this::syncCursorStack);
                             }
                         }
                     }
+                } finally {
+                    ForgeHooks.setCraftingPlayer(null);
                 }
-                ForgeHooks.setCraftingPlayer(null);
             }
         }
 
@@ -288,37 +293,35 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
          * 求解合成链，返回前置步骤列表（不包含目标配方本身）。
          * 此方法只做求解，不执行任何合成，结果可在 shift 连续合成中复用。
          */
-        private List<CraftingChainSolver.ChainStep> solveChainDependencies() {
-            var allRecipes = this.slot.recipeMemory.getAllRecipes();
-            if (allRecipes.isEmpty()) return Collections.emptyList();
-
+        @Nullable
+        private CraftingChainSolver.ChainResult solveChainResult() {
             var currentRecipe = createCurrentRecipe();
-            if (currentRecipe == null) return Collections.emptyList();
-
-            var result = chainSolver.solve(
-                    currentRecipe, allRecipes,
+            if (currentRecipe == null) return null;
+            return chainSolver.solve(
+                    currentRecipe, this.slot.recipeMemory.getAllRecipes(),
                     recipeLogic.getAvailableHandlers(),
                     getSyncManager().getPlayer().world);
-
-            if (result.steps.size() <= 1) return Collections.emptyList();
-
-            // 返回前置步骤（排除最后一步，即目标配方本身）
-            return result.steps.subList(0, result.steps.size() - 1);
         }
 
+        private List<CraftingChainSolver.ChainStep> solveChainDependencies(CraftingChainSolver.ChainResult result) {
+            if (result.steps.size() <= 1) return Collections.emptyList();
+
+            // Exclude the last step (the target recipe itself), keep only dependency steps.
+            return result.steps.subList(0, result.steps.size() - 1);
+        }
         /**
          * 执行已求解的合成链前置步骤。
          */
-        private void executeChainSteps(List<CraftingChainSolver.ChainStep> chainSteps) {
+        private boolean executeChainSteps(List<CraftingChainSolver.ChainStep> chainSteps) {
             for (var step : chainSteps) {
                 for (int t = 0; t < step.count; t++) {
                     if (!recipeLogic.executeChainStep(step)) {
-                        break;
+                        return false;
                     }
                 }
             }
+            return true;
         }
-
         /**
          * 根据当前合成网格内容创建一个虚拟 MemorizedRecipe。
          */
