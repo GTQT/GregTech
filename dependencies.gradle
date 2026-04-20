@@ -69,7 +69,14 @@ dependencies {
 
     implementation rfg.deobf("curse.maven:lolasm-460609:7267368")
 
-    implementation rfg.deobf(files("libs/appliedenergistics2-v1.0.5-gtqt.jar"))
+    // gt-ae2-api: 共享 API 模块，提供 GT-AE2 桥接接口和能量 API
+    def localApiJar = file("../gt-ae2-api/build/libs/gt-ae2-api-1.0.0.jar")
+    api files(localApiJar.exists() ? localApiJar : "libs/gt-ae2-api-1.0.0.jar")
+
+    // AE2: compileOnly 依赖（编译时可见，运行时由 Forge 加载）
+    def localAE2Jar = file("../Applied-Energistics-2.5/build/libs/appliedenergistics2-v1.0.5-gtqt.jar")
+    compileOnly rfg.deobf(files(localAE2Jar.exists() ? localAE2Jar : "libs/appliedenergistics2-v1.0.5-gtqt.jar"))
+
     compileOnly("curse.maven:better-questing-unofficial-629629:5875712")
     // Mods with Soft compat but which have no need to be in code, such as isModLoaded() checks and getModItem() recipes.
     // Uncomment any of these to test them in-game.

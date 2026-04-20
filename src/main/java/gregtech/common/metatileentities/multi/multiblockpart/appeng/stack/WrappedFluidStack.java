@@ -197,7 +197,7 @@ public class WrappedFluidStack implements IAEFluidStack {
         return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
     }
 
-    @Override
+    // @Override — 旧版 IAEStack 接口不含 getStackType()，此处暂不标注 @Override
     public IAEStackType<IAEFluidStack> getStackType() {
         return AEFluidStackType.INSTANCE;
     }

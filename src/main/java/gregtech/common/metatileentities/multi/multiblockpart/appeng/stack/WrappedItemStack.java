@@ -228,7 +228,7 @@ public class WrappedItemStack implements IAEItemStack {
         return this.delegate;
     }
 
-    @Override
+    // @Override — 旧版 IAEStack 接口不含 getStackType()，此处暂不标注 @Override
     public IAEStackType<IAEItemStack> getStackType() {
         return AEItemStackType.INSTANCE;
     }

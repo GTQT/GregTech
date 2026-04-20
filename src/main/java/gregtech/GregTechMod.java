@@ -2,6 +2,9 @@ package gregtech;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.impl.GTItemHelperImpl;
+import gregtech.api.bridge.impl.GTMachineHelperImpl;
 import gregtech.api.modules.ModuleContainerRegistryEvent;
 import gregtech.api.persistence.PersistentData;
 import gregtech.client.utils.BloomEffectUtil;
@@ -74,6 +77,10 @@ public class GregTechMod {
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        // 注册 GT-AE2 桥接服务
+        GTBridge.setMachineHelper(new GTMachineHelperImpl());
+        GTBridge.setItemHelper(new GTItemHelperImpl());
+
         moduleManager.onPreInit(event);
     }
 
