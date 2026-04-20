@@ -74,15 +74,18 @@ public class CoverProgrammableHatch extends CoverBase implements CoverWithUI, IT
         for (int i = 0; i < importItems.getSlots(); i++) {
             ItemStack itemStack = importItems.getStackInSlot(i);
             if (itemStack.isEmpty()) continue;
-            if (!ProgrammableCircuit.hasWrappedItem(itemStack)) continue;
+            if (ProgrammableCircuit.getInstanceFor(itemStack) == null) continue;
 
-            Optional<ItemStack> wrappedItem = ProgrammableCircuit.getWrappedItem(itemStack);
-            if (wrappedItem.isPresent()) {
-                // 将被包裹的物品设置到虚拟电路槽
-                configurable.setGhostCustomStack(wrappedItem.get());
-                // 消耗可编程电路（不回收）
-                importItems.extractItem(i, 1, false);
+            if (ProgrammableCircuit.hasWrappedItem(itemStack)) {
+                // 有包裹物品：解包并设置到虚拟电路槽
+                Optional<ItemStack> wrappedItem = ProgrammableCircuit.getWrappedItem(itemStack);
+                wrappedItem.ifPresent(configurable::setGhostCustomStack);
+            } else {
+                // 空白可编程电路：重置虚拟电路槽为空
+                configurable.setGhostCustomStack(ItemStack.EMPTY);
             }
+            // 消耗可编程电路（不回收）
+            importItems.extractItem(i, 1, false);
         }
     }
 

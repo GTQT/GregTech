@@ -350,7 +350,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                     ProgrammableCircuit.getWrappedItem(stack).ifPresent(
                             wrappedItem -> buffer.setCustomCircuit(wrappedItem));
                 } else {
-                    // 空白可编程电路：不做处理
+                    // 空白可编程电路：清空缓冲区电路槽
+                    buffer.clearCircuit();
                 }
                 continue;
             }
@@ -428,9 +429,15 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 continue;
             }
 
-            // 检测可编程电路 — 解包到电路槽
-            if (ProgrammableCircuit.hasWrappedItem(ingredient)) {
-                ProgrammableCircuit.getWrappedItem(ingredient).ifPresent(buffer::setCustomCircuit);
+            // 处理可编程电路 — 解包并设置到缓冲区的虚拟电路槽
+            if (ProgrammableCircuit.getInstanceFor(ingredient) != null) {
+                if (ProgrammableCircuit.hasWrappedItem(ingredient)) {
+                    // 有包裹物品：解包并设置为自定义电路
+                    ProgrammableCircuit.getWrappedItem(ingredient).ifPresent(buffer::setCustomCircuit);
+                } else {
+                    // 空白可编程电路：清空缓冲区电路槽
+                    buffer.clearCircuit();
+                }
                 continue;
             }
 
@@ -1402,6 +1409,16 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                     circuitSlot.setStackInSlot(i, copy);
                     return;
                 }
+            }
+        }
+
+        /**
+         * 清空缓冲区的所有电路槽。
+         * 用于空白可编程电路重置虚拟电路槽。
+         */
+        public void clearCircuit() {
+            for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                circuitSlot.setStackInSlot(i, ItemStack.EMPTY);
             }
         }
 
