@@ -404,6 +404,17 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     public void updateCurrentRecipe() {
+        // Fast-path: avoid global recipe scan when the 3x3 matrix is empty.
+        if (isCraftingMatrixEmpty()) {
+            if (this.cachedRecipeData.getRecipe() != null ||
+                    !this.craftingResultInventory.getStackInSlot(0).isEmpty()) {
+                this.craftingResultInventory.setInventorySlotContents(0, ItemStack.EMPTY);
+                this.cachedRecipeData.setRecipe(null);
+                this.replaceAttemptMap.clear();
+            }
+            return;
+        }
+
         if (!cachedRecipeData.matches(craftingMatrix, world)) {
             IRecipe newRecipe = CraftingManager.findMatchingRecipe(craftingMatrix, world);
             ItemStack resultStack = ItemStack.EMPTY;
@@ -415,10 +426,19 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             // 配方变化时清空替代品缓存，防止内存泄漏和缓存过期
             this.replaceAttemptMap.clear();
             // 合成网格填充时自动记忆配方（无需等到合成成功）
-            if (recipeMemory != null && !resultStack.isEmpty() && !suppressAutoMemorize) {
+            if (recipeMemory != null && !resultStack.isEmpty() && !suppressAutoMemorize && isValid()) {
                 recipeMemory.notifyRecipePerformed(craftingMatrix, resultStack);
             }
         }
+    }
+
+    private boolean isCraftingMatrixEmpty() {
+        for (int i = 0; i < craftingMatrix.getSizeInventory(); i++) {
+            if (!craftingMatrix.getStackInSlot(i).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public IRecipe getCachedRecipe() {

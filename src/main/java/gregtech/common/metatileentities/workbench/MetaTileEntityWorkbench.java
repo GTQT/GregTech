@@ -105,6 +105,8 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     private final CraftingRecipeMemory recipeMemory = new CraftingRecipeMemory(
             CraftingRecipeMemory.TEMP_RECIPE_SLOTS + CraftingRecipeMemory.LOCKED_RECIPE_SLOTS, this.craftingGrid);
     private CraftingRecipeLogic recipeLogic = null;
+    /** One-shot server warmup to move lazy UI init cost out of first right-click. */
+    private boolean uiWarmupDone = false;
     private int itemsCrafted = 0;
 
     public MetaTileEntityWorkbench(ResourceLocation metaTileEntityId) {
@@ -180,6 +182,8 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         this.internalInventory.deserializeNBT(data.getCompoundTag("InternalInventory"));
         this.itemsCrafted = data.getInteger("ItemsCrafted");
         this.recipeMemory.deserializeNBT(data.getCompoundTag("RecipeMemory"));
+        this.uiWarmupDone = false;
+        this.inventoryCacheDirty = true;
     }
 
     public IItemHandlerModifiable getAvailableHandlers() {
@@ -259,6 +263,14 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     public void update() {
         super.update();
         if (!getWorld().isRemote) {
+            if (!uiWarmupDone) {
+                // Warm up expensive lazy state once on server tick to reduce first-open UI latency.
+                if (inventoryCacheDirty || this.connectedInventory == null || this.combinedInventory == null) {
+                    rebuildInventoryCache();
+                }
+                initializeRecipeLogic(false);
+                uiWarmupDone = true;
+            }
             // 定期重扫描，使用坐标哈希错开执行时机（参考 Tom's Simple Storage）
             long time = getWorld().getTotalWorldTime();
             if (time % SCAN_INTERVAL == Math.abs(getPos().hashCode()) % SCAN_INTERVAL) {
@@ -289,13 +301,19 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     // this is called on client and server
     public @NotNull CraftingRecipeLogic getCraftingRecipeLogic() {
+        initializeRecipeLogic(true);
+        return this.recipeLogic;
+    }
+
+    private void initializeRecipeLogic(boolean syncClientHandlerSize) {
         Preconditions.checkState(getWorld() != null, "getRecipeResolver called too early");
         if (this.recipeLogic == null) {
             this.recipeLogic = new CraftingRecipeLogic(getWorld(), getAvailableHandlers(), getCraftingGrid());
             this.recipeLogic.setRecipeMemory(this.recipeMemory);
-            writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
+            if (syncClientHandlerSize && !getWorld().isRemote) {
+                writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
+            }
         }
-        return this.recipeLogic;
     }
 
     @Override
