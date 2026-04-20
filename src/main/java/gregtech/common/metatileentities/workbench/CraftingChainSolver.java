@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
@@ -79,10 +80,12 @@ public class CraftingChainSolver {
      * @param allRecipes        所有可用的记忆配方（临时 + 锁定）
      * @param availableHandlers 可用的物品库存
      * @param world             世界实例
+     * @param countItemFunc     利用 stackLookupMap 索引快速统计库存中物品数量的函数
      * @return 合成链求解结果
      */
     public ChainResult solve(MemorizedRecipe targetRecipe, List<MemorizedRecipe> allRecipes,
-                             IItemHandlerModifiable availableHandlers, World world) {
+                             IItemHandlerModifiable availableHandlers, World world,
+                             ToIntFunction<ItemStack> countItemFunc) {
         List<ChainStep> steps = new ArrayList<>();
         Map<ItemStack, Integer> missingItems = new LinkedHashMap<>();
         // 使用 identity-based Set 防止循环引用（兼容虚拟配方的 index=-1）
@@ -100,7 +103,7 @@ public class CraftingChainSolver {
         Map<ItemStack, Integer> availableCache = new Object2ObjectOpenCustomHashMap<>(strategy);
 
         resolveRecipe(targetRecipe, 1, availableHandlers, world,
-                steps, missingItems, visiting, outputIndex, availableCache);
+                steps, missingItems, visiting, outputIndex, availableCache, countItemFunc);
 
         boolean canExecute = missingItems.isEmpty();
         return new ChainResult(steps, missingItems, canExecute);
@@ -108,16 +111,20 @@ public class CraftingChainSolver {
 
     /**
      * 递归求解一个配方的所有依赖。
+     * availableCache 在求解过程中会被修改：预定材料时扣除、子配方产出时增加。
+     *
+     * @return true 如果配方成功求解（matchedRecipe 有效），false 如果配方无效
      */
-    private void resolveRecipe(MemorizedRecipe recipe, int requiredCount,
-                               IItemHandlerModifiable availableHandlers,
-                               World world,
-                               List<ChainStep> steps,
-                               Map<ItemStack, Integer> missingItems,
-                               Set<MemorizedRecipe> visiting,
-                               Map<ItemStack, MemorizedRecipe> outputIndex,
-                               Map<ItemStack, Integer> availableCache) {
-        if (!visiting.add(recipe)) return;
+    private boolean resolveRecipe(MemorizedRecipe recipe, int requiredCount,
+                                  IItemHandlerModifiable availableHandlers,
+                                  World world,
+                                  List<ChainStep> steps,
+                                  Map<ItemStack, Integer> missingItems,
+                                  Set<MemorizedRecipe> visiting,
+                                  Map<ItemStack, MemorizedRecipe> outputIndex,
+                                  Map<ItemStack, Integer> availableCache,
+                                  ToIntFunction<ItemStack> countItemFunc) {
+        if (!visiting.add(recipe)) return false;
 
         // 构建该配方的临时合成网格
         InventoryCrafting tempMatrix = new InventoryCrafting(
@@ -130,7 +137,7 @@ public class CraftingChainSolver {
         IRecipe matchedRecipe = CraftingManager.findMatchingRecipe(tempMatrix, world);
         if (matchedRecipe == null) {
             visiting.remove(recipe);
-            return;
+            return false;
         }
 
         // 计算该配方的产出数量和需要的执行次数
@@ -145,28 +152,45 @@ public class CraftingChainSolver {
 
             int totalNeeded = ingredient.getCount() * timesToCraft;
 
-            // 先检查库存中是否有足够的材料（使用缓存避免重复扫描）
+            // 查询库存可用量（首次查询使用索引 O(1) 查找并缓存）
             int available = availableCache.computeIfAbsent(ingredient,
-                    k -> countAvailable(k, availableHandlers));
-            if (available >= totalNeeded) continue;
+                    countItemFunc::applyAsInt);
 
-            int deficit = totalNeeded - available;
+            // 从库存中预定材料（扣除可用量）
+            int fromInventory = Math.min(available, totalNeeded);
+            if (fromInventory > 0) {
+                updateAvailable(availableCache, ingredient, -fromInventory);
+            }
+
+            int deficit = totalNeeded - fromInventory;
+            if (deficit <= 0) continue;
 
             // 查找是否有记忆配方可以生产这个材料（使用索引 O(1) 查找）
             MemorizedRecipe subRecipe = outputIndex.get(ingredient);
             if (subRecipe != null && !visiting.contains(subRecipe)) {
-                resolveRecipe(subRecipe, deficit, availableHandlers,
-                        world, steps, missingItems, visiting, outputIndex, availableCache);
-            } else {
-                if (deficit > 0) {
+                // 递归求解子配方，如果子配方无效则回退为缺失材料
+                boolean subResolved = resolveRecipe(subRecipe, deficit, availableHandlers,
+                        world, steps, missingItems, visiting, outputIndex, availableCache, countItemFunc);
+                if (!subResolved) {
                     addMissing(missingItems, ingredient, deficit);
                 }
+            } else {
+                addMissing(missingItems, ingredient, deficit);
             }
+        }
+
+        // 子配方产出的中间产品加入可用缓存
+        int totalProduced = outputCount * timesToCraft;
+        // 被父配方消耗的量 = requiredCount，多余的可供其他步骤使用
+        int surplus = totalProduced - requiredCount;
+        if (surplus > 0) {
+            updateAvailable(availableCache, output, surplus);
         }
 
         // 后序添加（子配方在前，父配方在后 → 拓扑序）
         steps.add(new ChainStep(recipe, matchedRecipe, timesToCraft));
         visiting.remove(recipe);
+        return true;
     }
 
     /**
@@ -196,6 +220,15 @@ public class CraftingChainSolver {
             }
         }
         return count;
+    }
+
+    /**
+     * 更新 availableCache 中某种物品的可用数量。
+     * delta 为正数表示增加（子配方产出），负数表示扣除（预定材料）。
+     */
+    private void updateAvailable(Map<ItemStack, Integer> availableCache, ItemStack stack, int delta) {
+        int current = availableCache.getOrDefault(stack, 0);
+        availableCache.put(stack, Math.max(0, current + delta));
     }
 
     /**

@@ -202,7 +202,8 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
             var result = chainSolver.solve(
                     currentRecipe, allRecipes,
                     recipeLogic.getAvailableHandlers(),
-                    getSyncManager().getPlayer().world);
+                    getSyncManager().getPlayer().world,
+                    recipeLogic::countItemInInventory);
 
             return result.missingItems;
         }
@@ -253,7 +254,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
                         }
                         if (hasSpace) {
                             var chainResult = solveChainResult();
-                            if (chainResult == null) {
+                            if (chainResult == null || !chainResult.canExecute) {
                                 return;
                             }
 
@@ -271,7 +272,12 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
                                     while (crafted < MAX_SHIFT_CRAFT &&
                                             quickTransfer(finalStack, true) &&
                                             canStack(finalStack, outputStack)) {
-                                        if (!executeChainSteps(chainSteps) || !recipeLogic.performRecipe()) break;
+                                        // 每次循环重新求解合成链，避免中间产品过度产出
+                                        var loopChainResult = solveChainResult();
+                                        if (loopChainResult == null || !loopChainResult.canExecute) break;
+                                        var loopChainSteps = solveChainDependencies(loopChainResult);
+                                        if (!executeChainSteps(loopChainSteps) ||
+                                                !recipeLogic.performRecipe()) break;
                                         finalStack.setCount(finalStack.getCount() + outputStack.getCount());
                                         handleItemCraft(outputStack, player);
                                         crafted++;
@@ -300,7 +306,8 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
             return chainSolver.solve(
                     currentRecipe, this.slot.recipeMemory.getAllRecipes(),
                     recipeLogic.getAvailableHandlers(),
-                    getSyncManager().getPlayer().world);
+                    getSyncManager().getPlayer().world,
+                    recipeLogic::countItemInInventory);
         }
 
         private List<CraftingChainSolver.ChainStep> solveChainDependencies(CraftingChainSolver.ChainResult result) {

@@ -21,12 +21,16 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Efficiently delegates calls into multiple item handlers
+ * Efficiently delegates calls into multiple item handlers.
+ * 使用惰性构建策略：构造时仅记录 handler 列表和偏移量，
+ * handlerBySlotIndex 延迟到首次按 slot 访问时才填充。
  */
 public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifiableHandler {
 
-    private final Int2ObjectMap<IItemHandler> handlerBySlotIndex = new Int2ObjectOpenHashMap<>();
+    private Int2ObjectMap<IItemHandler> handlerBySlotIndex;
     private final Object2IntMap<IItemHandler> baseIndexOffset = new Object2IntArrayMap<>();
+    /** 缓存的总槽位数，在构造函数中计算 */
+    private final int totalSlots;
 
     public ItemHandlerList(@NotNull IItemHandler @NotNull... handlers) {
         this(Arrays.asList(handlers));
@@ -40,11 +44,24 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
                 throw new IllegalArgumentException("Attempted to add item handler " + itemHandler + " twice");
             }
             baseIndexOffset.put(itemHandler, currentSlotIndex);
-            int slotsCount = itemHandler.getSlots();
+            currentSlotIndex += itemHandler.getSlots();
+        }
+        this.totalSlots = currentSlotIndex;
+    }
+
+    /**
+     * 惰性构建 handlerBySlotIndex，仅在首次按 slot 访问时执行。
+     */
+    private void ensureSlotIndexBuilt() {
+        if (handlerBySlotIndex != null) return;
+        handlerBySlotIndex = new Int2ObjectOpenHashMap<>(totalSlots);
+        for (var entry : baseIndexOffset.entrySet()) {
+            IItemHandler handler = entry.getKey();
+            int baseIndex = entry.getValue();
+            int slotsCount = handler.getSlots();
             for (int slotIndex = 0; slotIndex < slotsCount; slotIndex++) {
-                handlerBySlotIndex.put(currentSlotIndex + slotIndex, itemHandler);
+                handlerBySlotIndex.put(baseIndex + slotIndex, handler);
             }
-            currentSlotIndex += slotsCount;
         }
     }
 
@@ -54,12 +71,13 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
 
     @Override
     public int getSlots() {
-        return handlerBySlotIndex.size();
+        return totalSlots;
     }
 
     @Override
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         if (invalidSlot(slot)) return;
+        ensureSlotIndexBuilt();
         IItemHandler itemHandler = handlerBySlotIndex.get(slot);
         int actualSlot = slot - baseIndexOffset.get(itemHandler);
         if (itemHandler instanceof IItemHandlerModifiable modifiable) {
@@ -74,6 +92,7 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
     @Override
     public ItemStack getStackInSlot(int slot) {
         if (invalidSlot(slot)) return ItemStack.EMPTY;
+        ensureSlotIndexBuilt();
         IItemHandler itemHandler = handlerBySlotIndex.get(slot);
         return itemHandler.getStackInSlot(slot - baseIndexOffset.get(itemHandler));
     }
@@ -81,6 +100,7 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
     @Override
     public int getSlotLimit(int slot) {
         if (invalidSlot(slot)) return 0;
+        ensureSlotIndexBuilt();
         IItemHandler itemHandler = handlerBySlotIndex.get(slot);
         return itemHandler.getSlotLimit(slot - baseIndexOffset.get(itemHandler));
     }
@@ -89,6 +109,7 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
     @Override
     public ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
         if (invalidSlot(slot)) return stack;
+        ensureSlotIndexBuilt();
         IItemHandler itemHandler = handlerBySlotIndex.get(slot);
         return itemHandler.insertItem(slot - baseIndexOffset.get(itemHandler), stack, simulate);
     }
@@ -97,6 +118,7 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
     @Override
     public ItemStack extractItem(int slot, int amount, boolean simulate) {
         if (invalidSlot(slot)) return ItemStack.EMPTY;
+        ensureSlotIndexBuilt();
         IItemHandler itemHandler = handlerBySlotIndex.get(slot);
         return itemHandler.extractItem(slot - baseIndexOffset.get(itemHandler), amount, simulate);
     }
@@ -121,6 +143,6 @@ public class ItemHandlerList implements IItemHandlerModifiable, IMultipleNotifia
 
 
     private boolean invalidSlot(int slot) {
-        return slot < 0 && slot >= this.getSlots();
+        return slot < 0 || slot >= this.getSlots();
     }
 }

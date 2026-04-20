@@ -67,6 +67,8 @@ public class CraftingRecipeMemory extends SyncHandler {
         if (index < 0 || index >= memorizedRecipes.length) return;
         MemorizedRecipe recipe = memorizedRecipes[index];
         if (recipe != null) {
+            // 手动加载配方时清除保护标志
+            recipe.matrixProtected = false;
             copyInventoryItems(recipe.craftingMatrix, this.craftingMatrix);
             getRecipeLogic().updateCurrentRecipe();
             syncToClient(UPDATE_LOGIC);
@@ -193,19 +195,23 @@ public class CraftingRecipeMemory extends SyncHandler {
 
         RecipeBuckets buckets = collectBuckets();
         if (recipe.recipeLocked) {
+            // 解锁：从锁定区移到临时区，保护 craftingMatrix 不被自动记忆覆盖
             if (!buckets.locked.remove(recipe)) return false;
             recipe.recipeLocked = false;
+            recipe.matrixProtected = true;
             buckets.temporary.add(0, recipe);
             applyBuckets(buckets);
             invalidateRecipeCache();
             return true;
         }
 
+        // 加锁：从临时区移到锁定区，清除保护标志
         if (buckets.locked.size() >= getLockedCapacity()) {
             return false;
         }
         if (!buckets.temporary.remove(recipe)) return false;
         recipe.recipeLocked = true;
+        recipe.matrixProtected = false;
         buckets.locked.add(0, recipe);
         applyBuckets(buckets);
         invalidateRecipeCache();
@@ -376,6 +382,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             NetworkUtils.writeItemStack(buf, recipe.recipeResult);
             buf.writeInt(recipe.timesUsed);
             buf.writeBoolean(recipe.isRecipeLocked());
+            buf.writeBoolean(recipe.matrixProtected);
         }
     }
 
@@ -388,6 +395,7 @@ public class CraftingRecipeMemory extends SyncHandler {
                 NetworkUtils.readItemStack(buf);
                 buf.readInt();
                 buf.readBoolean();
+                buf.readBoolean();
                 continue;
             }
             memorizedRecipes[index] = new MemorizedRecipe(index);
@@ -395,6 +403,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             memorizedRecipes[index].recipeResult = NetworkUtils.readItemStack(buf);
             memorizedRecipes[index].timesUsed = buf.readInt();
             memorizedRecipes[index].recipeLocked = buf.readBoolean();
+            memorizedRecipes[index].matrixProtected = buf.readBoolean();
         }
         normalizeRecipeBuckets();
         invalidateRecipeCache();
@@ -430,6 +439,12 @@ public class CraftingRecipeMemory extends SyncHandler {
         private final ItemStackHandler craftingMatrix = new ItemStackHandler(9);
         private ItemStack recipeResult = ItemStack.EMPTY;
         private boolean recipeLocked = false;
+        /**
+         * 保护标志：当配方从锁定区解锁到临时区时设置为 true，
+         * 防止自动记忆覆盖 craftingMatrix 中的原始数据。
+         * 在配方被手动加载或重新锁定时清除。
+         */
+        private boolean matrixProtected = false;
         public int timesUsed = 0;
         public int index;
 
@@ -453,6 +468,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             result.setTag("Result", recipeResult.serializeNBT());
             result.setTag("Matrix", craftingMatrix.serializeNBT());
             result.setBoolean("Locked", recipeLocked);
+            result.setBoolean("MatrixProtected", matrixProtected);
             result.setInteger("TimesUsed", timesUsed);
             return result;
         }
@@ -462,6 +478,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             recipe.recipeResult = new ItemStack(tagCompound.getCompoundTag("Result"));
             recipe.craftingMatrix.deserializeNBT(tagCompound.getCompoundTag("Matrix"));
             recipe.recipeLocked = tagCompound.getBoolean("Locked");
+            recipe.matrixProtected = tagCompound.getBoolean("MatrixProtected");
             recipe.timesUsed = tagCompound.getInteger("TimesUsed");
             return recipe;
         }
@@ -470,6 +487,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             buffer.writeByte(this.index);
             buffer.writeInt(this.timesUsed);
             buffer.writeBoolean(this.recipeLocked);
+            buffer.writeBoolean(this.matrixProtected);
             NetworkUtils.writeItemStack(buffer, this.recipeResult);
         }
 
@@ -477,6 +495,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             var recipe = new MemorizedRecipe(buffer.readByte());
             recipe.timesUsed = buffer.readInt();
             recipe.recipeLocked = buffer.readBoolean();
+            recipe.matrixProtected = buffer.readBoolean();
             recipe.recipeResult = NetworkUtils.readItemStack(buffer);
             return recipe;
         }
@@ -487,18 +506,19 @@ public class CraftingRecipeMemory extends SyncHandler {
                 this.craftingMatrix.setStackInSlot(i, ItemStack.EMPTY);
             }
             this.recipeLocked = false;
+            this.matrixProtected = false;
             this.timesUsed = 0;
         }
 
         private void updateCraftingMatrix(IItemHandler craftingGrid) {
-            // do not modify crafting grid for locked recipes
-            if (!recipeLocked) {
+            // do not modify crafting grid for locked or protected recipes
+            if (!recipeLocked && !matrixProtected) {
                 copyInventoryItems(craftingGrid, craftingMatrix);
             }
         }
 
         private void updateCraftingMatrix(IInventory craftingGrid) {
-            if (!recipeLocked) {
+            if (!recipeLocked && !matrixProtected) {
                 copyInventoryItems(craftingGrid, craftingMatrix);
             }
         }
@@ -530,6 +550,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             recipe.initialize(this.recipeResult);
             recipe.updateCraftingMatrix(this.craftingMatrix);
             recipe.recipeLocked = this.recipeLocked;
+            recipe.matrixProtected = this.matrixProtected;
             recipe.timesUsed = this.timesUsed;
             return recipe;
         }

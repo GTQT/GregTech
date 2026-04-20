@@ -117,6 +117,24 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
         return this.availableHandlers;
     }
 
+    /**
+     * 利用 stackLookupMap 索引快速统计库存中指定物品的总数量。
+     * 时间复杂度 O(匹配的 slot 数) 而非 O(全部 slot 数)。
+     */
+    public int countItemInInventory(ItemStack target) {
+        if (target.isEmpty()) return 0;
+        IntSet slots = stackLookupMap.get(target);
+        if (slots == null) return 0;
+        int count = 0;
+        for (int slot : slots) {
+            ItemStack stack = availableHandlers.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                count += stack.getCount();
+            }
+        }
+        return count;
+    }
+
     public void setRecipeMemory(CraftingRecipeMemory memory) {
         this.recipeMemory = memory;
     }
@@ -191,11 +209,17 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             snapshotDirty = true;
             updateInputSlots();
 
+            // 先计算产物并模拟插入，确认库存有空间后再消耗材料
+            ItemStack result = step.matchedRecipe.getCraftingResult(craftingMatrix);
+            if (!result.isEmpty()) {
+                ItemStack simRemainder = GTTransferUtils.insertItem(availableHandlers, result.copy(), true);
+                if (!simRemainder.isEmpty()) return false;
+            }
+
             // 尝试消耗材料
             if (!consumeRecipeItems()) return false;
 
-            // 产物放入库存
-            ItemStack result = step.matchedRecipe.getCraftingResult(craftingMatrix);
+            // 产物放入库存（已确认有空间）
             if (!result.isEmpty()) {
                 ItemStack remainder = GTTransferUtils.insertItem(availableHandlers, result.copy(), false);
                 success = remainder.isEmpty();
@@ -493,6 +517,8 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
                 for (int i = 0; i < slots; i++) {
                     ItemStack current = this.availableHandlers.getStackInSlot(i);
                     ItemStack last = lastSnapshot[i];
+                    // 快速路径：两者都为空时跳过昂贵的 areItemStacksEqual 比较
+                    if (current.isEmpty() && last.isEmpty()) continue;
                     if (!ItemStack.areItemStacksEqual(current, last)) {
                         changed = true;
                         break;

@@ -15,6 +15,9 @@ import gregtech.common.inventory.handlers.SingleItemStackHandler;
 import gregtech.common.inventory.handlers.ToolItemStackHandler;
 import gregtech.common.mui.widget.workbench.CraftingInputSlot;
 import gregtech.common.mui.widget.workbench.CraftingOutputSlot;
+import gregtech.common.mui.widget.workbench.InventoryViewHandler;
+import gregtech.common.mui.widget.workbench.InventoryViewSyncHandler;
+import gregtech.common.mui.widget.workbench.InventoryViewWidget;
 import gregtech.common.mui.widget.workbench.RecipeMemorySlot;
 
 import net.minecraft.block.SoundType;
@@ -53,6 +56,7 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.PageButton;
@@ -95,6 +99,8 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     private ItemHandlerList combinedInventory;
     private ItemHandlerList connectedInventory;
+    /** 标记缓存的 connectedInventory/combinedInventory 是否需要重建 */
+    private boolean inventoryCacheDirty = true;
 
     private final CraftingRecipeMemory recipeMemory = new CraftingRecipeMemory(
             CraftingRecipeMemory.TEMP_RECIPE_SLOTS + CraftingRecipeMemory.LOCKED_RECIPE_SLOTS, this.craftingGrid);
@@ -136,7 +142,11 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
             NetworkUtils.writeItemStack(buf, craftingGrid.getStackInSlot(i));
         }
         this.recipeMemory.writeInitialSyncData(buf);
-        buf.writeVarInt(computeConnectedInventory().getSlots());
+        // 使用已缓存的 connectedInventory，避免重复 BFS
+        if (this.connectedInventory == null) {
+            computeConnectedInventory();
+        }
+        buf.writeVarInt(this.connectedInventory.getSlots());
     }
 
     @Override
@@ -173,12 +183,28 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     }
 
     public IItemHandlerModifiable getAvailableHandlers() {
+        if (!getWorld().isRemote && inventoryCacheDirty) {
+            rebuildInventoryCache();
+        }
+        if (this.combinedInventory != null) {
+            return this.combinedInventory;
+        }
+        // 首次调用或缓存尚未建立时，构建并缓存
+        return rebuildInventoryCache();
+    }
+
+    /**
+     * 重建库存缓存（BFS + ItemHandlerList 构造），仅在结构变化时调用。
+     */
+    private ItemHandlerList rebuildInventoryCache() {
+        inventoryCacheDirty = false;
         ArrayList<IItemHandler> handlers = new ArrayList<>();
         handlers.add(this.internalInventory);
         handlers.add(this.toolInventory);
         if (getWorld().isRemote) {
-            // this might be called on client, so just return the existing inventory instead
-            handlers.add(this.connectedInventory);
+            if (this.connectedInventory != null) {
+                handlers.add(this.connectedInventory);
+            }
         } else {
             handlers.add(computeConnectedInventory());
         }
@@ -236,14 +262,25 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
             // 定期重扫描，使用坐标哈希错开执行时机（参考 Tom's Simple Storage）
             long time = getWorld().getTotalWorldTime();
             if (time % SCAN_INTERVAL == Math.abs(getPos().hashCode()) % SCAN_INTERVAL) {
-                getCraftingRecipeLogic().updateInventory(getAvailableHandlers());
-                writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
+                // 记录旧的 slot 数用于比较
+                int oldSlots = this.connectedInventory != null ? this.connectedInventory.getSlots() : -1;
+                // 标记缓存脏，下次 getAvailableHandlers() 时重建
+                inventoryCacheDirty = true;
+                IItemHandlerModifiable newHandlers = getAvailableHandlers();
+                int newSlots = this.connectedInventory != null ? this.connectedInventory.getSlots() : 0;
+                getCraftingRecipeLogic().updateInventory(newHandlers);
+                // 只在 slot 数量变化时才发包给客户端，避免不必要的网络开销
+                if (newSlots != oldSlots) {
+                    writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
+                }
             }
         }
     }
 
     @Override
     public void onNeighborChanged() {
+        // 邻居变化时立即标记缓存脏
+        inventoryCacheDirty = true;
         getCraftingRecipeLogic().updateInventory(getAvailableHandlers());
         if (!getWorld().isRemote) {
             writeCustomData(GregtechDataCodes.UPDATE_CLIENT_HANDLER, this::sendHandlerToClient);
@@ -410,24 +447,34 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     public IWidget createRecipeMemoryPanel(PanelSyncManager syncManager) {
         var memoryController = new PagedWidget.Controller();
-        syncManager.syncValue("recipe_memory_page_controller", 0, new PagedWidgetSyncHandler(memoryController));
+        var memorySyncHandler = new PagedWidgetSyncHandler(memoryController);
+        syncManager.syncValue("recipe_memory_page_controller", 0, memorySyncHandler);
 
+        // 配方记忆切换按钮（临时/锁定）
         return Flow.column()
                 .right(0)
                 .coverChildrenWidth()
                 .child(Flow.row()
                         .name("recipe memory tabs")
-                        .width(18 * 3 + 4)
+                        .width(18 * 3)
                         .coverChildrenHeight()
-                        .marginBottom(2)
-                        .child(new PageButton(0, memoryController)
-                                .tab(GuiTextures.TAB_TOP, 0)
-                                .overlay(IKey.str("T").asIcon())
-                                .addTooltipLine(IKey.str("Temporary Recipes")))
-                        .child(new PageButton(1, memoryController)
-                                .tab(GuiTextures.TAB_TOP, 0)
-                                .overlay(GTGuiTextures.RECIPE_LOCK_WHITE)
-                                .addTooltipLine(IKey.str("Locked Recipes"))))
+                        .marginBottom(1)
+                        .child(new ButtonWidget<>()
+                                .size(12)
+                                .overlay(IKey.str("T").asIcon().size(10))
+                                .addTooltipLine(IKey.str("Temporary Recipes"))
+                                .onMousePressed(mouseButton -> {
+                                    memorySyncHandler.setPage(0);
+                                    return true;
+                                }))
+                        .child(new ButtonWidget<>()
+                                .size(12)
+                                .overlay(GTGuiTextures.RECIPE_LOCK_WHITE.asIcon().size(10))
+                                .addTooltipLine(IKey.str("Locked Recipes"))
+                                .onMousePressed(mouseButton -> {
+                                    memorySyncHandler.setPage(1);
+                                    return true;
+                                })))
                 .child(new PagedWidget<>()
                         .controller(memoryController)
                         .coverChildrenWidth()
@@ -467,40 +514,37 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
                     .name("inventory page - empty")
                     .leftRel(0.5f)
                     .padding(2)
-                    .height(18 * 6)
-                    .width(18 * 8 + 4)
+                    .height(18 * InventoryViewWidget.ROWS)
+                    .width(18 * InventoryViewWidget.COLS + 4)
                     .background(GTGuiTextures.DISPLAY);
         }
 
-        // this is actually supposed to include the tool and storage inventory
-        // but that causes problems
-        List<ItemSlot> list = new ArrayList<>(this.connectedInventory.getSlots());
+        // 虚拟滚动视图：固定 48 个 widget（8×6），通过 InventoryViewHandler 动态映射到实际 slot
+        // 使用 Supplier 确保库存结构变化时（箱子放置/移除）viewHandler 始终引用最新的 connectedInventory
+        var viewHandler = new InventoryViewHandler(
+                () -> this.connectedInventory,
+                InventoryViewWidget.VIEWPORT_SIZE,
+                InventoryViewWidget.COLS);
 
-        int rowSize = Math.min(this.connectedInventory.getSlots(), 8);
-        var connected = new SlotGroup("connected_inventory", rowSize, true)
+        // 搜索文本同步：客户端输入 → 服务端过滤 → slot 映射更新 → Container 自动同步 slot 内容
+        var searchSyncValue = new StringSyncValue(
+                viewHandler::getSearchText,
+                viewHandler::setSearchText);
+        syncManager.syncValue("inventory_search", searchSyncValue);
+
+        var viewSyncHandler = new InventoryViewSyncHandler(
+                viewHandler,
+                InventoryViewWidget.VIEWPORT_SIZE,
+                InventoryViewWidget.COLS);
+        syncManager.syncValue("inventory_view", viewSyncHandler);
+
+        var connected = new SlotGroup("connected_inventory", InventoryViewWidget.COLS, true)
                 .setAllowSorting(false);
         syncManager.registerSlotGroup(connected);
 
-        for (int i = 0; i < this.connectedInventory.getSlots(); i++) {
-            list.add(new ItemSlot()
-                    .setEnabledIf(itemSlot -> {
-                        int slot = itemSlot.getSlot().getSlotIndex();
-                        return slot < this.connectedInventory.getSlots();
-                    })
-                    .slot(trackSlot(this.connectedInventory, i)
-                            .slotGroup(connected)));
-        }
-
-        // sort list
-        list.sort((o1, o2) -> {
-            var left = o1.getSlot().getStack();
-            var right = o2.getSlot().getStack();
-
-            if (!left.isEmpty() && !right.isEmpty()) return 0;
-            if (left.isEmpty() && right.isEmpty()) return 0;
-
-            return right.isEmpty() ? -1 : 1;
-        });
+        var viewWidget = new InventoryViewWidget()
+                .syncHandler(viewSyncHandler)
+                .buildContent(viewHandler, connected, searchSyncValue);
 
         return Flow.column()
                 .name("inventory page")
@@ -508,11 +552,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
                 .leftRel(0.5f)
                 .coverChildren()
                 .background(GTGuiTextures.DISPLAY)
-                .child(new Grid()
-                        .scrollable(new VerticalScrollData())
-                        .width(18 * 8 + 4)
-                        .height(18 * 6)
-                        .mapTo(rowSize, list));
+                .child(viewWidget);
     }
 
     public void sendHandlerToClient(PacketBuffer buffer) {
