@@ -75,7 +75,7 @@ dependencies {
 
     // AE2: compileOnly 依赖（编译时可见，运行时由 Forge 加载）
     def localAE2Jar = file("../Applied-Energistics-2.5/build/libs/appliedenergistics2-v1.0.5-gtqt.jar")
-    compileOnly rfg.deobf(files(localAE2Jar.exists() ? localAE2Jar : "libs/appliedenergistics2-v1.0.5-gtqt.jar"))
+    devOnlyNonPublishable  rfg.deobf(files(localAE2Jar.exists() ? localAE2Jar : "libs/appliedenergistics2-v1.0.5-gtqt.jar"))
 
     compileOnly("curse.maven:better-questing-unofficial-629629:5875712")
     // Mods with Soft compat but which have no need to be in code, such as isModLoaded() checks and getModItem() recipes.

@@ -453,6 +453,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         // 配方记忆切换按钮（临时/锁定）
         return Flow.column()
                 .right(0)
+                .top(-15)
                 .coverChildrenWidth()
                 .child(Flow.row()
                         .name("recipe memory tabs")
