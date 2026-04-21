@@ -18,7 +18,9 @@ import gregtech.common.mui.widget.workbench.CraftingOutputSlot;
 import gregtech.common.mui.widget.workbench.InventoryViewHandler;
 import gregtech.common.mui.widget.workbench.InventoryViewSyncHandler;
 import gregtech.common.mui.widget.workbench.InventoryViewWidget;
+import gregtech.common.mui.widget.workbench.RecipeMemoryGridWidget;
 import gregtech.common.mui.widget.workbench.RecipeMemorySlot;
+import gregtech.common.mui.widget.GTTextFieldWidget;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -54,16 +56,15 @@ import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Alignment;
+import com.cleanroommc.modularui.value.StringValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
-import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.PageButton;
 import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
@@ -468,7 +469,13 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         var memorySyncHandler = new PagedWidgetSyncHandler(memoryController);
         syncManager.syncValue("recipe_memory_page_controller", 0, memorySyncHandler);
 
-        // 配方记忆切换按钮（临时/锁定）
+        // 锁定配方搜索框（纯客户端过滤，不需要服务端同步）
+        var searchField = new GTTextFieldWidget()
+                .setMaxLength(64)
+                .value(new StringValue(""));
+        searchField.size(18 * 3 - 24 - 2, 12);
+
+        // 配方记忆切换按钮（临时/锁定）+ 搜索框
         return Flow.column()
                 .right(0)
                 .top(-15)
@@ -493,13 +500,14 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
                                 .onMousePressed(mouseButton -> {
                                     memorySyncHandler.setPage(1);
                                     return true;
-                                })))
+                                }))
+                        .child(searchField))
                 .child(new PagedWidget<>()
                         .controller(memoryController)
                         .coverChildrenWidth()
                         .coverChildrenHeight()
                         .addPage(createTemporaryRecipeMemoryGrid())
-                        .addPage(createLockedRecipeMemoryGrid()));
+                        .addPage(createLockedRecipeMemoryGrid(searchField)));
     }
 
     private IWidget createTemporaryRecipeMemoryGrid() {
@@ -512,19 +520,9 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
                 .build().right(0);
     }
 
-    private IWidget createLockedRecipeMemoryGrid() {
-        List<RecipeMemorySlot> list = new ArrayList<>(this.recipeMemory.getLockedRecipeSlots());
-        for (int i = 0; i < this.recipeMemory.getLockedRecipeSlots(); i++) {
-            int recipeIndex = this.recipeMemory.getLockedRecipeIndex(i);
-            list.add(new RecipeMemorySlot(this.recipeMemory, recipeIndex)
-                    .background(GTGuiTextures.SLOT));
-        }
-
-        return new Grid()
-                .scrollable(new VerticalScrollData())
-                .width(18 * 3 + 4)
-                .height(18 * 3)
-                .mapTo(3, list);
+    private IWidget createLockedRecipeMemoryGrid(GTTextFieldWidget searchField) {
+        return new RecipeMemoryGridWidget(this.recipeMemory)
+                .setSearchField(searchField);
     }
 
     public IWidget createInventoryPage(PanelSyncManager syncManager) {

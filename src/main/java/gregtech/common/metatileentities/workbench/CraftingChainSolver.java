@@ -150,11 +150,21 @@ public class CraftingChainSolver {
             ItemStack ingredient = recipe.getCraftingMatrixSlot(i);
             if (ingredient.isEmpty()) continue;
 
-            int totalNeeded = ingredient.getCount() * timesToCraft;
+            // 工具类物品（有 containerItem）合成后不会被消耗，只需要1个即可复用
+            boolean isTool = ingredient.getItem().hasContainerItem(ingredient);
+
+            int totalNeeded = isTool ? 1 : ingredient.getCount() * timesToCraft;
 
             // 查询库存可用量（首次查询使用索引 O(1) 查找并缓存）
             int available = availableCache.computeIfAbsent(ingredient,
                     countItemFunc::applyAsInt);
+
+            if (isTool) {
+                // 工具只需检查库存中是否存在，不从 availableCache 扣除（合成后仍在）
+                if (available >= 1) continue;
+                addMissing(missingItems, ingredient, 1);
+                continue;
+            }
 
             // 从库存中预定材料（扣除可用量）
             int fromInventory = Math.min(available, totalNeeded);

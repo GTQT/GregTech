@@ -27,7 +27,7 @@ import java.util.List;
 public class CraftingRecipeMemory extends SyncHandler {
 
     public static final int TEMP_RECIPE_SLOTS = 9;
-    public static final int LOCKED_RECIPE_SLOTS = 45;
+    public static final int LOCKED_RECIPE_SLOTS = 500;
 
     // client and server
     public static final int UPDATE_RECIPES = 1;
@@ -341,9 +341,9 @@ public class CraftingRecipeMemory extends SyncHandler {
         if (id == UPDATE_RECIPES) {
             this.readRecipes(buf);
         } else if (id == REMOVE_RECIPE) {
-            this.removeRecipe(buf.readByte());
+            this.removeRecipe(buf.readVarInt());
         } else if (id == MAKE_RECIPE) {
-            int index = buf.readByte();
+            int index = buf.readVarInt();
             if (index < 0 || index >= memorizedRecipes.length) {
                 NetworkUtils.readItemStack(buf);
                 return;
@@ -360,7 +360,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             memorizedRecipes[recipe.index] = recipe;
             invalidateRecipeCache();
         } else if (id == OFFSET_RECIPE) {
-            buf.readByte();
+            buf.readVarInt();
             invalidateRecipeCache();
         } else if (id == UPDATE_LOGIC) {
             getRecipeLogic().updateCurrentRecipe();
@@ -374,11 +374,11 @@ public class CraftingRecipeMemory extends SyncHandler {
                 written++;
             }
         }
-        buf.writeByte(written);
+        buf.writeVarInt(written);
         for (int i = 0; i < memorizedRecipes.length; i++) {
             var recipe = memorizedRecipes[i];
             if (recipe == null) continue;
-            buf.writeByte(recipe.index);
+            buf.writeVarInt(recipe.index);
             NetworkUtils.writeItemStack(buf, recipe.recipeResult);
             buf.writeInt(recipe.timesUsed);
             buf.writeBoolean(recipe.isRecipeLocked());
@@ -388,9 +388,9 @@ public class CraftingRecipeMemory extends SyncHandler {
 
     public void readRecipes(PacketBuffer buf) {
         Arrays.fill(memorizedRecipes, null);
-        int size = buf.readByte();
+        int size = buf.readVarInt();
         for (int i = 0; i < size; i++) {
-            int index = buf.readByte();
+            int index = buf.readVarInt();
             if (index < 0 || index >= memorizedRecipes.length) {
                 NetworkUtils.readItemStack(buf);
                 buf.readInt();
@@ -415,7 +415,7 @@ public class CraftingRecipeMemory extends SyncHandler {
             syncToClient(UPDATE_RECIPES, this::writeRecipes);
         } else if (id == MOUSE_CLICK) {
             // read mouse data
-            int index = buf.readByte();
+            int index = buf.readVarInt();
             var data = MouseData.readPacket(buf);
             var recipe = getRecipeAtIndex(index);
             if (recipe == null) return;
@@ -484,7 +484,7 @@ public class CraftingRecipeMemory extends SyncHandler {
         }
 
         private void writeToBuffer(PacketBuffer buffer) {
-            buffer.writeByte(this.index);
+            buffer.writeVarInt(this.index);
             buffer.writeInt(this.timesUsed);
             buffer.writeBoolean(this.recipeLocked);
             buffer.writeBoolean(this.matrixProtected);
@@ -492,7 +492,7 @@ public class CraftingRecipeMemory extends SyncHandler {
         }
 
         private static @NotNull MemorizedRecipe fromBuffer(PacketBuffer buffer) {
-            var recipe = new MemorizedRecipe(buffer.readByte());
+            var recipe = new MemorizedRecipe(buffer.readVarInt());
             recipe.timesUsed = buffer.readInt();
             recipe.recipeLocked = buffer.readBoolean();
             recipe.matrixProtected = buffer.readBoolean();

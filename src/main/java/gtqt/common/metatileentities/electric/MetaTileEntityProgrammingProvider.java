@@ -69,7 +69,7 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     private final List<ItemStack> customTemplates = new ArrayList<>();
     // 内部配置槽位处理器（用于 GUI 中放入模板物品）
     private ConfigSlotHandler configSlotHandler;
-    // 对外暴露的虚拟无限物品处理器
+    // 对外暴露的虚拟无限物品处理器（保持单一实例，AE 存储总线缓存引用）
     private VirtualInfiniteItemHandler virtualItemHandler;
 
     public MetaTileEntityProgrammingProvider(ResourceLocation metaTileEntityId, int tier) {
@@ -128,11 +128,17 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     }
 
     /**
-     * 重建虚拟物品处理器。
+     * 重建虚拟物品处理器内容。
+     * 保持同一个 handler 实例不变，只更新内容列表，
+     * 避免 AE 存储总线缓存的旧引用失效。
      */
     private void rebuildVirtualHandler() {
         List<ItemStack> circuits = buildProvidedCircuits();
-        this.virtualItemHandler = new VirtualInfiniteItemHandler(circuits);
+        if (this.virtualItemHandler == null) {
+            this.virtualItemHandler = new VirtualInfiniteItemHandler(circuits);
+        } else {
+            this.virtualItemHandler.updateCircuits(circuits);
+        }
     }
 
     private boolean isProgrammableCircuitReady() {
@@ -152,7 +158,8 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         // 确保 configSlotHandler 已初始化
         if (configSlotHandler == null) {
-            configSlotHandler = new ConfigSlotHandler(this, Math.max(customTemplates.size() + 1, 1));
+            configSlotHandler = new ConfigSlotHandler(this,
+                    customTemplates.size() + ConfigSlotHandler.TRAILING_EMPTY_SLOTS);
             for (int i = 0; i < customTemplates.size(); i++) {
                 configSlotHandler.setStackInSlot(i, customTemplates.get(i).copy());
             }
@@ -281,6 +288,8 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
         rebuildVirtualHandler();
         if (getWorld() != null && !getWorld().isRemote) {
             markDirty();
+            // 通知邻居方块（AE 存储总线）内容变更，使其重新读取 IItemHandler
+            notifyBlockUpdate();
         }
     }
 
@@ -319,21 +328,34 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
             provider.onConfigChanged();
         }
 
+        /** 尾部始终保留的空槽位数量 */
+        private static final int TRAILING_EMPTY_SLOTS = 8;
+
         /**
          * 动态调整槽位数量：
-         * - 如果最后一个槽位被填满，追加一个空槽位
-         * - 移除末尾多余的空槽位（保留至少一个空槽位）
+         * - 确保尾部始终有 {@link #TRAILING_EMPTY_SLOTS} 个空槽位
+         * - 移除多余的空槽位，补充不足的空槽位
          */
         private void adjustSlots() {
-            // 移除末尾多余空槽位（保留最后一个空的）
-            while (stacks.size() > 1
-                    && stacks.get(stacks.size() - 1).isEmpty()
-                    && stacks.get(stacks.size() - 2).isEmpty()) {
+            // 找到最后一个非空槽位的 index
+            int lastNonEmpty = -1;
+            for (int i = stacks.size() - 1; i >= 0; i--) {
+                if (!stacks.get(i).isEmpty()) {
+                    lastNonEmpty = i;
+                    break;
+                }
+            }
+
+            // 期望的总槽位数 = 最后一个非空物品 + 1 + TRAILING_EMPTY_SLOTS
+            int desiredSize = lastNonEmpty + 1 + TRAILING_EMPTY_SLOTS;
+
+            // 收缩多余的空槽位
+            while (stacks.size() > desiredSize) {
                 stacks.remove(stacks.size() - 1);
             }
 
-            // 如果最后一个槽位不为空，追加一个空槽位
-            if (!stacks.get(stacks.size() - 1).isEmpty()) {
+            // 扩展不足的空槽位
+            while (stacks.size() < desiredSize) {
                 stacks.add(ItemStack.EMPTY);
             }
         }
@@ -346,13 +368,21 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
      * 每个槽位返回对应的可编程电路，数量为 Integer.MAX_VALUE（约 2.1G）模拟无限。
      * 提取物品时返回副本，不修改内部状态。
      * 插入物品时（insertItem）直接吞噬（返回 EMPTY 表示接受成功），实现可编程电路销毁。
+     * <p>
+     * 保持单一实例，通过 {@link #updateCircuits(List)} 原地更新内容，
+     * 避免 AE 存储总线缓存的旧引用失效。
      */
     static class VirtualInfiniteItemHandler implements IItemHandler {
 
-        private final List<ItemStack> providedCircuits;
+        private List<ItemStack> providedCircuits;
 
         VirtualInfiniteItemHandler(List<ItemStack> providedCircuits) {
             this.providedCircuits = providedCircuits;
+        }
+
+        /** 原地更新内容列表（不创建新实例） */
+        void updateCircuits(List<ItemStack> newCircuits) {
+            this.providedCircuits = newCircuits;
         }
 
         public boolean isEmpty() {

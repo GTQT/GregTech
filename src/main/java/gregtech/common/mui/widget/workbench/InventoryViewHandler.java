@@ -90,27 +90,38 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
      * 获取过滤后的总 slot 数。
      */
     public int getTotalFilteredSlots() {
-        return filteredSlots != null ? filteredSlots.size() : backing().getSlots();
+        return filteredSlots.size();
     }
 
     /**
      * 重建过滤列表和 slot 映射。
+     * 有物品的 slot 排在前面，空 slot 排在后面。
      */
     private void rebuildView() {
         IItemHandlerModifiable backing = backing();
-        if (searchText.isEmpty()) {
-            // 无搜索：直接使用所有 slot
-            filteredSlots = null;
-        } else {
-            // 过滤：遍历 backing 找匹配的 slot
-            filteredSlots = new IntArrayList();
-            for (int i = 0; i < backing.getSlots(); i++) {
-                ItemStack stack = backing.getStackInSlot(i);
-                if (!stack.isEmpty() && stack.getDisplayName().toLowerCase().contains(searchText)) {
+        int totalSlots = backing.getSlots();
+
+        filteredSlots = new IntArrayList();
+        IntList emptySlots = new IntArrayList();
+
+        for (int i = 0; i < totalSlots; i++) {
+            ItemStack stack = backing.getStackInSlot(i);
+            if (!stack.isEmpty()) {
+                // 有搜索文本时额外检查名字匹配
+                if (searchText.isEmpty() || stack.getDisplayName().toLowerCase().contains(searchText)) {
                     filteredSlots.add(i);
+                }
+            } else {
+                // 空 slot 只在无搜索时才收集（搜索时只显示匹配的有物品槽位）
+                if (searchText.isEmpty()) {
+                    emptySlots.add(i);
                 }
             }
         }
+
+        // 有物品的在前，空 slot 在后
+        filteredSlots.addAll(emptySlots);
+
         // 确保 scrollRow 不超出范围
         int maxRow = getMaxScrollRow();
         if (scrollRow > maxRow) {
@@ -124,16 +135,13 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
      */
     private void rebuildSlotMapping() {
         int startIndex = scrollRow * columns;
-        int totalFiltered = getTotalFilteredSlots();
+        int totalFiltered = filteredSlots.size();
         visibleCount = 0;
 
         for (int i = 0; i < viewportSize; i++) {
             int filteredIndex = startIndex + i;
             if (filteredIndex < totalFiltered) {
-                int backingSlot = filteredSlots != null
-                        ? filteredSlots.getInt(filteredIndex)
-                        : filteredIndex;
-                slotMapping[i] = backingSlot;
+                slotMapping[i] = filteredSlots.getInt(filteredIndex);
                 visibleCount++;
             } else {
                 slotMapping[i] = -1;
