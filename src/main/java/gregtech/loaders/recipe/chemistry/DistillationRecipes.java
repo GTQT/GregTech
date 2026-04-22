@@ -2,22 +2,24 @@ package gregtech.loaders.recipe.chemistry;
 
 import gregtech.common.items.MetaItems;
 
-import net.minecraftforge.fml.common.Loader;
-
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.DISTILLATION_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.MIXER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
+import static gregtech.api.util.Mods.Names.GTFO;
 import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class DistillationRecipes {
 
     public static void init() {
-        DISTILLATION_RECIPES.recipeBuilder()
-                .fluidInputs(Creosote.getFluid(24))
-                .fluidOutputs(Lubricant.getFluid(12))
-                .duration(16).EUt(96).buildAndRegister();
+        if(!isModLoaded(GTFO)) {
+            DISTILLATION_RECIPES.recipeBuilder()
+                    .fluidInputs(Creosote.getFluid(24))
+                    .fluidOutputs(Lubricant.getFluid(12))
+                    .duration(16).EUt(96).buildAndRegister();
+        }
 
         DISTILLATION_RECIPES.recipeBuilder()
                 .fluidInputs(DilutedHydrochloricAcid.getFluid(2000))
@@ -138,7 +140,7 @@ public class DistillationRecipes {
                 .duration(80).EUt(VA[MV])
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!isModLoaded(GTQT_CORE)) {
             DISTILLATION_RECIPES.recipeBuilder()
                     .fluidInputs(CoalTar.getFluid(1000))
                     .chancedOutput(dust, Coke, 2500, 0)
