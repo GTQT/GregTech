@@ -2,13 +2,12 @@ package gregtech;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.impl.GTItemHelperImpl;
-import gregtech.api.bridge.impl.GTMachineHelperImpl;
 import gregtech.api.modules.ModuleContainerRegistryEvent;
 import gregtech.api.persistence.PersistentData;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.common.ConfigHolder;
+import gregtech.api.util.Mods;
+import gregtech.integration.ae2.GTCircuitHelper;
 import gregtech.modules.GregTechModules;
 import gregtech.modules.ModuleManager;
 
@@ -77,11 +76,11 @@ public class GregTechMod {
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        // 注册 GT-AE2 桥接服务
-        GTBridge.setMachineHelper(new GTMachineHelperImpl());
-        GTBridge.setItemHelper(new GTItemHelperImpl());
-
         moduleManager.onPreInit(event);
+        // 注册 AE2 集成的 CircuitHelper
+        if (Mods.AppliedEnergistics2.isModLoaded()) {
+            appeng.integration.modules.gregtech.CircuitHelper.setInstance(new GTCircuitHelper());
+        }
     }
 
     @EventHandler
