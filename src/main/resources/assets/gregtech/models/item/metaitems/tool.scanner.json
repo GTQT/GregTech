@@ -1,3 +1,6 @@
 {
-  "parent": "gregtech:item/metaitems/tricorder_scanner"
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "gregtech:items/metaitems/tool.scanner"
+  }
 }

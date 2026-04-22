@@ -304,7 +304,7 @@ public class MultiblockUIFactory {
 
         var playerInv = SlotGroupWidget.playerInventory(false);
         if (disableButtons) {
-            playerInv.posRel(Alignment.TopCenter);
+            playerInv.leftRel(0.5f).anchorLeft(0.5f);
         } else {
             playerInv.left(4);
         }

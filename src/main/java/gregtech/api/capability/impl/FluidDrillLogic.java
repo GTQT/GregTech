@@ -108,6 +108,7 @@ public class FluidDrillLogic {
         int chance = metaTileEntity.getDepletionChance();
 
         // chance to deplete based on the rig
+        if (chance == 0) return;
         if (chance == 1 || GTValues.RNG.nextInt(chance) == 0)
             BedrockFluidVeinHandler.depleteVein(metaTileEntity.getWorld(), getChunkX(), getChunkZ(), 0, false);
     }
