@@ -25,6 +25,7 @@ public class GhostMoldItemStackHandler extends GTItemStackHandler
      *特殊电路值表示不设置电路值。
      * */
     public static final int NO_CONFIG = -1;
+    public static final int CUSTOM_ITEM_CONFIG = -2;
 
     private final List<MetaTileEntity> notifiableEntities = new ArrayList<>();
 
@@ -51,6 +52,10 @@ public class GhostMoldItemStackHandler extends GTItemStackHandler
      */
     public boolean hasCircuitValue() {
         return this.circuitValue != NO_CONFIG;
+    }
+
+    public boolean hasCustomStack() {
+        return this.circuitValue == CUSTOM_ITEM_CONFIG && !this.circuitStack.isEmpty();
     }
 
     /**
@@ -108,6 +113,22 @@ public class GhostMoldItemStackHandler extends GTItemStackHandler
         }else
         {
             setCircuitValue(NO_CONFIG);
+        }
+    }
+
+    public void setCustomStack(@NotNull ItemStack stack) {
+        if (stack.isEmpty()) {
+            this.circuitValue = NO_CONFIG;
+            this.circuitStack = ItemStack.EMPTY;
+        } else {
+            this.circuitValue = CUSTOM_ITEM_CONFIG;
+            this.circuitStack = stack.copy();
+            this.circuitStack.setCount(1);
+        }
+        for (MetaTileEntity mte : notifiableEntities) {
+            if (mte != null && mte.isValid()) {
+                addToNotifiedList(mte, this, false);
+            }
         }
     }
 
@@ -182,12 +203,21 @@ public class GhostMoldItemStackHandler extends GTItemStackHandler
     }
 
     public void write(@NotNull NBTTagCompound tag) {
-        if (this.circuitValue != NO_CONFIG) {
+        if (this.circuitValue == CUSTOM_ITEM_CONFIG && !this.circuitStack.isEmpty()) {
+            tag.setTag("GhostCustomItem", this.circuitStack.writeToNBT(new NBTTagCompound()));
+        } else if (this.circuitValue != NO_CONFIG) {
             tag.setByte("GhostMould", (byte) this.circuitValue);
         }
     }
 
     public void read(@NotNull NBTTagCompound tag) {
+        if (tag.hasKey("GhostCustomItem", Constants.NBT.TAG_COMPOUND)) {
+            ItemStack customStack = new ItemStack(tag.getCompoundTag("GhostCustomItem"));
+            if (!customStack.isEmpty()) {
+                setCustomStack(customStack);
+                return;
+            }
+        }
         int circuitValue = tag.hasKey("GhostMould", Constants.NBT.TAG_ANY_NUMERIC) ? tag.getInteger("GhostMould") :
                 NO_CONFIG;
         if (circuitValue < 0 || circuitValue > MetaItems.SHAPE_MOLDS.length)

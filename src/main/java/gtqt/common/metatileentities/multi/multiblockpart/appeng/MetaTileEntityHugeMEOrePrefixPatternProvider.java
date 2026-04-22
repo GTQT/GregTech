@@ -81,9 +81,6 @@ import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
-import com.glodblock.github.common.item.fake.FakeFluids;
-import com.glodblock.github.loader.FCItems;
-import com.glodblock.github.util.FluidPatternDetails;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,9 +92,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
+import static gtqt.api.util.AE2PatternCompat.createPatternIngredientTag;
+import static gtqt.api.util.AE2PatternCompat.createProcessingPattern;
+import static gtqt.api.util.AE2PatternCompat.toFluidDrop;
 import static net.minecraft.util.text.TextFormatting.GREEN;
 
-public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart {
+public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart
+        implements IMEPatternProviderPart {
 
     String input = "null";
     String output = "null";
@@ -385,7 +386,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
             if (input.equals("fluid")) {
                 if (!material.hasFluid()) continue;
                 FluidStack fluid = material.getFluid(inputNumber);
-                inputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
+                inputStack = fluid == null ? ItemStack.EMPTY : toFluidDrop(fluid);
             } else {
                 inputStack = OreDictUnifier.get(inputPrefix, material, inputNumber);
             }
@@ -393,7 +394,7 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
             if (output.equals("fluid")) {
                 if (!material.hasFluid()) continue;
                 FluidStack fluid = material.getFluid(outputNumber);
-                outputStack = fluid == null ? ItemStack.EMPTY : FakeFluids.packFluid2Drops(fluid);
+                outputStack = fluid == null ? ItemStack.EMPTY : toFluidDrop(fluid);
             } else {
                 outputStack = OreDictUnifier.get(outputPrefix, material, outputNumber);
             }
@@ -435,21 +436,17 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
 
         // 2. 无条件执行决策
         return isFluidPattern ?
-                createFluidPattern(inputs, outputs) :
+                createFluidPattern(inputs, outputs, substitute) :
                 createStandardPattern(inputs, outputs, substitute);
     }
 
     // 创建流体样板 (处理模式)
-    private ItemStack createFluidPattern(ItemStack[] inputs, ItemStack[] outputs) {
+    private ItemStack createFluidPattern(ItemStack[] inputs, ItemStack[] outputs, boolean substitute) {
         // 1. 创建流体样板
-        ItemStack patternStack = new ItemStack(FCItems.DENSE_ENCODED_PATTERN);
-        FluidPatternDetails pattern = new FluidPatternDetails(patternStack);
+        return createProcessingPattern(inputs, outputs, substitute, true);
 
         // 2. 设置槽位数据
-        pattern.setInputs(collectInventory(inputs));
-        pattern.setOutputs(collectInventory(outputs));
 
-        return pattern.writeToStack();
     }
 
     // 创建标准物品样板
@@ -490,14 +487,8 @@ public class MetaTileEntityHugeMEOrePrefixPatternProvider extends MetaTileEntity
     }
 
     NBTBase createItemTag(final ItemStack i) {
-        final NBTTagCompound c = new NBTTagCompound();
-
-        if (i == null) return c;
-        if (!i.isEmpty()) {
-            stackWriteToNBT(i, c);
-        }
-
-        return c;
+        if (i == null) return new NBTTagCompound();
+        return createPatternIngredientTag(i);
     }
 
     @Override

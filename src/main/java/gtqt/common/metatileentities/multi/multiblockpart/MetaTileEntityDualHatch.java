@@ -206,6 +206,17 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
     }
 
     @Override
+    public void setGhostCustomStack(@NotNull ItemStack stack) {
+        if (this.circuitInventory == null) {
+            return;
+        }
+        this.circuitInventory.setCustomStack(stack);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
+    @Override
     public @Nullable MultiblockAbility<IItemHandlerModifiable> getAbility() {
         return isExportHatch ? MultiblockAbility.EXPORT_ITEMS : MultiblockAbility.IMPORT_ITEMS;
     }

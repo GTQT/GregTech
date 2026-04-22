@@ -35,6 +35,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.config.Actionable;
+import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
@@ -46,6 +47,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
+import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.IAEFluidInventory;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
@@ -56,8 +58,6 @@ import appeng.util.item.AEItemStack;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
-import com.glodblock.github.common.item.fake.FakeFluids;
-import com.glodblock.github.common.item.fake.FakeItemRegister;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -66,6 +66,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_ACTIVE;
+import static gtqt.api.util.AE2PatternCompat.getFluidStack;
 import static gtqt.api.util.GTQTUtility.isFluidTankListEmpty;
 import static gtqt.api.util.GTQTUtility.isInventoryEmpty;
 
@@ -131,13 +132,6 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
     @Getter
     @Nullable
     protected DualHandler dualHandler;
-
-    protected int parallel;
-    protected int lastParallel;
-
-    @Setter
-    @Getter
-    protected boolean patternDeal = false;
 
     @Getter
     @Setter
@@ -272,8 +266,37 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
         }
     }
 
-    public void setPatternDetails() {
+    /**
+     * 获取样板槽位数量，子类应覆盖以提供实际的槽位数量。
+     *
+     * @return 样板槽位数量，默认返回 0
+     */
+    protected int getPatternSlotCount() {
+        return 0;
+    }
 
+    /**
+     * 设置样板详情。遍历所有样板槽位，将有效的样板物品转换为样板详情。
+     * 子类只需覆盖 {@link #getPatternSlotCount()} 提供正确的槽位数量即可复用此方法。
+     * 如果子类有不同的样板生成逻辑，可以直接覆盖本方法。
+     */
+    public void setPatternDetails() {
+        if (patternSlot == null || patternDetails == null) {
+            return;
+        }
+
+        int slotCount = getPatternSlotCount();
+        for (int i = 0; i < slotCount; i++) {
+            ItemStack pattern = patternSlot.getStackInSlot(i);
+            if (pattern == ItemStack.EMPTY) {
+                patternDetails.set(i, null);
+                continue;
+            }
+
+            if (pattern.getItem() instanceof ICraftingPatternItem patternItem) {
+                patternDetails.set(i, patternItem.getPatternForItem(pattern, getWorld()));
+            }
+        }
     }
 
     public boolean addItemAndFluid(InventoryCrafting inventoryCrafting) throws GridAccessException {
@@ -286,8 +309,8 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             //处理流体
 
             // 处理假流体/气体物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+                FluidStack fluid = getFluidStack(itemStack);
                 if (fluid != null) {
                     if (getImportFluids().fill(fluid, false) < fluid.amount) {
                         return false;
@@ -362,8 +385,8 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             if (itemStack.isEmpty()) continue;
 
             // 处理假流体/气体物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+                FluidStack fluid = getFluidStack(itemStack);
                 if (fluid != null) {
                     getImportFluids().fill(fluid, true);
                     continue;
@@ -452,8 +475,8 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             }
 
             // 处理流体假物品
-            if (FakeFluids.isFluidFakeItem(itemStack)) {
-                FluidStack fluid = FakeItemRegister.getStack(itemStack);
+            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+                FluidStack fluid = getFluidStack(itemStack);
                 if (fluid == null || !GTUtility.hasMatchingFluid(fluid, getImportFluids())) {
                     return false;
                 }
@@ -553,15 +576,18 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
     @Override
     public boolean onDataStickRightClick(EntityPlayer player, ItemStack dataStick) {
         NBTTagCompound tag = dataStick.getTagCompound();
-        if (tag == null) return false;
-        if (tag.hasKey("CommonPos")) {
+        if (player.isSneaking() && tag != null && tag.hasKey("CommonPos")) {
             useProxy = false;
             readLocationFromTag(tag.getCompoundTag("CommonPos"));
-            player.sendStatusMessage(new TextComponentTranslation("无线接入点坐标已载入"), true);
             useProxy = true;
+            player.sendStatusMessage(new TextComponentTranslation("gregtech.machine.me.proxy.data_stick_loaded"), true);
             return true;
         }
-        return false;
+
+        // Keep right-click behavior aligned with mapping/proxy tooltip:
+        // right-click provider writes master position to data stick.
+        onDataStickLeftClick(player, dataStick);
+        return true;
     }
 
     private void readLocationFromTag(NBTTagCompound tag) {

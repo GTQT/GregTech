@@ -282,7 +282,7 @@ public class MetaTileEntityMEPatternManager extends MetaTileEntityAEHostablePart
                 }
             } catch (Exception ignored) {}
             try {
-                for (IGridNode grid : getProxy().getGrid().getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
+                for (IGridNode grid : getProxy().getGrid().getMachineNodes(MetaTileEntityPatternProviderMappingSlave.class)) {
                     pos.add(grid.getGridBlock().getLocation().getPos());
                 }
             } catch (Exception ignored) {}

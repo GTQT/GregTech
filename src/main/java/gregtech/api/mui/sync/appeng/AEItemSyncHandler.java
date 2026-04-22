@@ -16,7 +16,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.util.item.AEItemStack;
 import com.cleanroommc.modularui.utils.serialization.IByteBufAdapter;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import org.jetbrains.annotations.NotNull;
@@ -64,9 +63,9 @@ public class AEItemSyncHandler extends AESyncHandler<IAEItemStack> {
                                               boolean simulate) {
         if (simulate) return null;
 
-        Int2ObjectMap<ItemStack> originalItemInputs = JEIUtil.getDisplayedInputItemStacks(recipeLayout.getItemStacks(),
-                false, true);
-        List<ItemStack> itemInputs = new ArrayList<>(originalItemInputs.values());
+        List<ItemStack> itemInputs = new ArrayList<>(JEIUtil
+                .getDisplayedInputItemStacks(recipeLayout.getItemStacks(), false, true)
+                .values());
         GTUtility.collapseItemList(itemInputs);
 
         int circuitValue = GhostCircuitItemStackHandler.NO_CONFIG;
@@ -80,6 +79,7 @@ public class AEItemSyncHandler extends AESyncHandler<IAEItemStack> {
                 break;
             }
         }
+
         ghostCircuitConfig.accept(circuitValue);
 
         int lastSlotIndex;

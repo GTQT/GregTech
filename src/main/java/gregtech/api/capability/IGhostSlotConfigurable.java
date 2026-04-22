@@ -1,5 +1,9 @@
 package gregtech.api.capability;
 
+import net.minecraft.item.ItemStack;
+
+import org.jetbrains.annotations.NotNull;
+
 public interface IGhostSlotConfigurable {
 
     /**
@@ -18,4 +22,15 @@ public interface IGhostSlotConfigurable {
     void setGhostCircuitConfig(int config);
 
     int getGhostCircuitConfig();
+
+    /**
+     * 设置任意自定义物品到 ghost slot 中。
+     * 这允许可编程电路覆盖板将包裹的任意物品放入虚拟槽位。
+     * 默认实现为空操作，子类需要自行覆盖。
+     *
+     * @param stack 要设置的自定义物品
+     */
+    default void setGhostCustomStack(@NotNull ItemStack stack) {
+        // 默认空操作
+    }
 }

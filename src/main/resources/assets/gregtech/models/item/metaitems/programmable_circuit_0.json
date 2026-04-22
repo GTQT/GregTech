@@ -1,7 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.integrated/1",
+    "layer0": "gtqtcore:items/metaitems/defaultcircuit",
     "layer1": "gtqtcore:items/metaitems/programmable_circuit_overlay"
   }
 }

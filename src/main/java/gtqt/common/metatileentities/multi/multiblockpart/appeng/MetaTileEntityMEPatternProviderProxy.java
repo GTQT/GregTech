@@ -56,16 +56,22 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     }
 
     private void tryToSetMain() {
-        if (getWorld() == null || mainPos == null) return;
+        if (getWorld() == null || mainPos == null) {
+            this.main = null;
+            this.checkForMain = true;
+            return;
+        }
 
         TileEntity tileEntity = getWorld().getTileEntity(mainPos);
         if (!(tileEntity instanceof IGregTechTileEntity iGregTechTileEntity)) {
+            this.main = null;
             this.checkForMain = true;
             return;
         }
 
         MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
         if (!(metaTileEntity instanceof MetaTileEntityMEPatternProvider budgetCRIB)) {
+            this.main = null;
             this.checkForMain = true;
             return;
         }
@@ -86,19 +92,30 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        DualHandler dualHandler;
-        if (getMain() == null) {
-            dualHandler = new DualHandler(this.getImportItems(), this.getImportFluids(), false);
-        } else dualHandler = getMain().getDualHandler();
-        abilityInstances.add(dualHandler);
+        MetaTileEntityMEPatternProvider resolvedMain = getResolvedMainForLink();
+        if (resolvedMain == null) {
+            DualHandler dualHandler = new DualHandler(this.getImportItems(), this.getImportFluids(), false);
+            abilityInstances.add(dualHandler);
+        } else {
+            // 委托 master 注册所有缓冲区的 DualHandler
+            resolvedMain.registerAbilities(abilityInstances);
+        }
     }
 
     private MetaTileEntityMEPatternProvider getMain() {
         return main;
     }
 
+    @Nullable
+    MetaTileEntityMEPatternProvider getResolvedMainForLink() {
+        if ((main == null || !main.isValid()) && mainPos != null) {
+            tryToSetMain();
+        }
+        return main != null && main.isValid() ? main : null;
+    }
+
     public boolean hasMain() {
-        return main != null && main.isValid();
+        return getResolvedMainForLink() != null;
     }
 
     @Override
@@ -162,7 +179,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
 
-        if (main != null) {
+        if (mainPos != null) {
             buf.writeBoolean(true);
             buf.writeBlockPos(mainPos);
         } else {
@@ -190,34 +207,45 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     public void update() {
         super.update();
 
-        if (!getWorld().isRemote && getOffsetTimer() % 100 == 0) {
-            if (checkForMain && !hasMain()) tryToSetMain();
+        if (getWorld() != null && getOffsetTimer() % 20 == 0) {
+            if (checkForMain && !hasMain()) {
+                tryToSetMain();
+            }
         }
     }
 
     @Override
     public IItemHandlerModifiable getImportItems() {
-        return getMain() == null ? super.getImportItems() : getMain().getImportItems();
+        MetaTileEntityMEPatternProvider resolvedMain = getResolvedMainForLink();
+        return resolvedMain == null ? super.getImportItems() : resolvedMain.getImportItems();
     }
 
     public FluidTankList getImportFluids() {
-        return getMain() == null ? super.getImportFluids() : getMain().getImportFluids();
+        MetaTileEntityMEPatternProvider resolvedMain = getResolvedMainForLink();
+        return resolvedMain == null ? super.getImportFluids() : resolvedMain.getImportFluids();
     }
 
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        MetaTileEntityMEPatternProvider resolvedMain = getResolvedMainForLink();
         if (capability.equals(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)) {
-            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(getMain().getImportItems());
+            if (resolvedMain != null) {
+                return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(resolvedMain.getImportItems());
+            }
+            return super.getCapability(capability, side);
         }
         if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
-            return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(getMain());
+            if (resolvedMain != null) {
+                return GregtechTileCapabilities.CAPABILITY_CONTROLLABLE.cast(resolvedMain);
+            }
+            return super.getCapability(capability, side);
         }
         return super.getCapability(capability, side);
     }
 
     @Override
     protected boolean openGUIOnRightClick() {
-        return getMain() != null;
+        return hasMain();
     }
 
     @Override
@@ -228,10 +256,11 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     public boolean onRightClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                 CuboidRayTraceResult hitResult) {
 
-        if (!playerIn.isSneaking() && openGUIOnRightClick()) {
+        MetaTileEntityMEPatternProvider resolvedMain = getResolvedMainForLink();
+        if (!playerIn.isSneaking() && resolvedMain != null) {
             if (getWorld() != null && !getWorld().isRemote) {
                 if (usesMui2()) {
-                    MetaTileEntityGuiFactory.open(playerIn, getMain());
+                    MetaTileEntityGuiFactory.open(playerIn, resolvedMain);
                 }
             }
             return true;

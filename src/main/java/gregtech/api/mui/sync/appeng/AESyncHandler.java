@@ -1,6 +1,6 @@
 package gregtech.api.mui.sync.appeng;
 
-import gregtech.api.mui.IJEIRecipeReceiver;
+import gregtech.api.mui.sync.RecipeSyncHandler;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.IConfigurableSlot;
 
 import net.minecraft.network.PacketBuffer;
@@ -9,7 +9,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.storage.data.IAEStack;
 import com.cleanroommc.modularui.utils.serialization.IByteBufAdapter;
-import com.cleanroommc.modularui.value.sync.SyncHandler;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
@@ -19,8 +18,7 @@ import java.io.IOException;
 import java.util.function.IntConsumer;
 import java.util.function.LongBinaryOperator;
 
-public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> extends SyncHandler
-        implements IJEIRecipeReceiver {
+public abstract class AESyncHandler<AEStackType extends IAEStack<AEStackType>> extends RecipeSyncHandler {
 
     public static final int slotSyncID = 0;
     public static final int setConfigID = 1;

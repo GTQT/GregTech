@@ -2,6 +2,9 @@ package gregtech;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.impl.GTItemHelperImpl;
+import gregtech.api.bridge.impl.GTMachineHelperImpl;
 import gregtech.api.modules.ModuleContainerRegistryEvent;
 import gregtech.api.persistence.PersistentData;
 import gregtech.client.utils.BloomEffectUtil;
@@ -39,7 +42,7 @@ import static gtqt.common.Difficulty.fromLevel;
      version = GTInternalTags.VERSION,
      dependencies = "required:forge@[14.23.5.2847,);" + "required-after:codechickenlib@[3.2.3,);" +
              "required-after:modularui@[3.0.4,);" + "required-after:mixinbooter@[8.0,);" +
-             "after:appliedenergistics2;" +
+             "required-after:appliedenergistics2;" +
              "after:forestry;" + "after:extrabees;" + "after:extratrees;" + "after:genetics;" + "after:magicbees;" +
              "after:jei@[4.15.0,);" + "after:crafttweaker@[4.1.20,);" + "after:groovyscript@[1.2.0,);" +
              "after:theoneprobe;" + "after:hwyla;")
@@ -74,6 +77,10 @@ public class GregTechMod {
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        // 注册 GT-AE2 桥接服务
+        GTBridge.setMachineHelper(new GTMachineHelperImpl());
+        GTBridge.setItemHelper(new GTItemHelperImpl());
+
         moduleManager.onPreInit(event);
     }
 

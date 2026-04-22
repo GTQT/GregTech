@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.workbench;
 
+import gregtech.api.items.toolitem.IGTTool;
 import gregtech.api.items.toolitem.ItemGTToolbelt;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.mui.sync.RecipeSyncHandler;
@@ -87,6 +88,16 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     private final CachedRecipeData cachedRecipeData;
     private final CraftingInputSlot[] inputSlots = new CraftingInputSlot[9];
 
+    // ==================== 库存快照（增量变化检测） ====================
+    /** 上一次的库存快照，用于增量比较判断库存是否变化 */
+    private ItemStack[] lastSnapshot = new ItemStack[0];
+    /** 标记快照是否已被外部操作（如库存结构变化）强制失效 */
+    private boolean snapshotDirty = true;
+    /** 配方记忆引用，用于在合成网格填充时自动记忆配方 */
+    private CraftingRecipeMemory recipeMemory;
+    /** 合成链执行中临时禁止自动记忆 */
+    private boolean suppressAutoMemorize = false;
+
     public CraftingRecipeLogic(World world, IItemHandlerModifiable handlers, IItemHandlerModifiable craftingMatrix) {
         this.world = world;
         this.availableHandlers = handlers;
@@ -102,6 +113,32 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
         return this.craftingMatrix;
     }
 
+    public IItemHandlerModifiable getAvailableHandlers() {
+        return this.availableHandlers;
+    }
+
+    /**
+     * 利用 stackLookupMap 索引快速统计库存中指定物品的总数量。
+     * 时间复杂度 O(匹配的 slot 数) 而非 O(全部 slot 数)。
+     */
+    public int countItemInInventory(ItemStack target) {
+        if (target.isEmpty()) return 0;
+        IntSet slots = stackLookupMap.get(target);
+        if (slots == null) return 0;
+        int count = 0;
+        for (int slot : slots) {
+            ItemStack stack = availableHandlers.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                count += stack.getCount();
+            }
+        }
+        return count;
+    }
+
+    public void setRecipeMemory(CraftingRecipeMemory memory) {
+        this.recipeMemory = memory;
+    }
+
     public void updateSlotMap(int offset, int slot) {
         slotMap.put(offset + slot, slotMap.size());
     }
@@ -112,6 +149,9 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     public void updateInventory(IItemHandlerModifiable handler) {
         this.availableHandlers = handler;
+        // 库存结构变化时清空替代品缓存并强制快照失效
+        this.replaceAttemptMap.clear();
+        this.snapshotDirty = true;
     }
 
     public void clearCraftingGrid() {
@@ -131,7 +171,71 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     public boolean performRecipe() {
-        return isRecipeValid() && attemptMatchRecipe() && consumeRecipeItems();
+        if (!isRecipeValid()) return false;
+        // Chain crafting temporarily swaps the crafting matrix, so recompute inputs right before consuming.
+        snapshotDirty = true;
+        updateInputSlots();
+        return attemptMatchRecipe() && consumeRecipeItems();
+    }
+
+    /**
+     * 执行合成链中的一个步骤：临时将指定配方加载到合成网格中，执行合成，
+     * 产物放入库存，然后恢复原来的合成网格内容。
+     *
+     * @param step 合成链步骤
+     * @return 是否成功
+     */
+    public boolean executeChainStep(CraftingChainSolver.ChainStep step) {
+        // 保存当前合成网格
+        ItemStack[] savedGrid = new ItemStack[9];
+        for (int i = 0; i < 9; i++) {
+            savedGrid[i] = craftingMatrix.getStackInSlot(i).copy();
+        }
+
+        boolean success = false;
+        try {
+            // 合成链执行中禁止自动记忆，避免临时网格内容污染记忆列表
+            suppressAutoMemorize = true;
+
+            // 加载子配方到合成网格
+            for (int i = 0; i < 9; i++) {
+                craftingMatrix.setInventorySlotContents(i, step.recipe.getCraftingMatrixSlot(i).copy());
+            }
+            updateCurrentRecipe();
+
+            if (!isRecipeValid()) return false;
+
+            // 强制刷新 stackLookupMap、requiredItems、compactedIndexes
+            snapshotDirty = true;
+            updateInputSlots();
+
+            // 先计算产物并模拟插入，确认库存有空间后再消耗材料
+            ItemStack result = step.matchedRecipe.getCraftingResult(craftingMatrix);
+            if (!result.isEmpty()) {
+                ItemStack simRemainder = GTTransferUtils.insertItem(availableHandlers, result.copy(), true);
+                if (!simRemainder.isEmpty()) return false;
+            }
+
+            // 尝试消耗材料
+            if (!consumeRecipeItems()) return false;
+
+            // 产物放入库存（已确认有空间）
+            if (!result.isEmpty()) {
+                ItemStack remainder = GTTransferUtils.insertItem(availableHandlers, result.copy(), false);
+                success = remainder.isEmpty();
+            }
+        } finally {
+            // 恢复原来的合成网格
+            for (int i = 0; i < 9; i++) {
+                craftingMatrix.setInventorySlotContents(i, savedGrid[i]);
+            }
+            suppressAutoMemorize = false;
+            updateCurrentRecipe();
+            // 恢复后强制刷新
+            snapshotDirty = true;
+        }
+
+        return success;
     }
 
     public boolean isRecipeValid() {
@@ -165,7 +269,8 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
             for (int slot : slotList) {
                 var extracted = availableHandlers.extractItem(slot, requestedAmount, true);
-                gatheredItems.put(slot, extracted.getCount());
+                // 使用 merge 进行累加，避免同一 slot 被多种物品匹配时覆盖
+                gatheredItems.merge(slot, extracted.getCount(), Integer::sum);
                 requestedAmount -= extracted.getCount();
             }
             // not enough to satisfy the recipe, return false
@@ -177,16 +282,23 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             var stack = availableHandlers.getStackInSlot(slot);
             boolean hasContainer = stack.getItem().hasContainerItem(stack);
 
+            // GT 工具耐久检查：确保工具有足够的耐久完成合成
+            if (hasContainer && stack.getItem() instanceof IGTTool) {
+                int damagePerCraft = ((IGTTool) stack.getItem()).getToolStats()
+                        .getToolDamagePerCraft(stack);
+                int remaining = stack.getMaxDamage() - stack.getItemDamage();
+                if (remaining < damagePerCraft) {
+                    return false;
+                }
+            }
+
             if (!hasContainer) {
-                // not a transmutable item (damagable tool, etc), extract normally
                 availableHandlers.extractItem(slot, amount, false);
             } else if (stack.getCount() > 1) {
-                // only some stacks are transmuted, try insert non-empty stacks
                 ItemStack newStack = ForgeHooks.getContainerItem(stack.splitStack(1));
                 if (!newStack.isEmpty())
                     GTTransferUtils.insertItem(this.availableHandlers, newStack, false);
             } else {
-                // all stacks are transmuted, just replace
                 availableHandlers.setStackInSlot(slot, ForgeHooks.getContainerItem(stack));
             }
         }
@@ -212,32 +324,22 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
         var recipe = getCachedRecipe();
         int index = compactedIndexes.get(craftingIndex);
 
-        // iterate stored items to find equivalent
-        for (int i = 0; i < this.availableHandlers.getSlots(); i++) {
-            var itemStack = availableHandlers.getStackInSlot(i);
+        // 遍历 stackLookupMap 的物品类型集合而非所有库存槽位，减少重复检查
+        for (var entry : stackLookupMap.entrySet()) {
+            var itemStack = entry.getKey();
             if (itemStack.isEmpty() || this.strategy.equals(itemStack, stack)) continue;
 
             boolean matchedPreviously = false;
             if (map.containsKey(itemStack)) {
                 if (map.getBoolean(itemStack)) {
-                    // cant return here before checking if:
-                    // The item is available for extraction
-                    // The recipe output is still the same, as depending on
-                    // the ingredient, the output NBT may change
                     matchedPreviously = true;
+                } else {
+                    // 已确认不匹配，跳过
+                    continue;
                 }
             }
 
-            // this is also every tick
-            if (itemStack.getItem() instanceof ItemGTToolbelt) {
-                // we need to do this here because of ingredient apply
-                ItemGTToolbelt.setCraftingSlot(slotMap.get(i), (EntityPlayerMP) getSyncManager().getPlayer());
-            }
-
             if (!matchedPreviously) {
-                // Matching shapeless recipes actually is very bad for performance, as it checks the entire
-                // recipe ingredients recursively, so we fail early here if none of the recipes ingredients can
-                // take the stack
                 boolean matched = false;
                 if (!(recipe instanceof IShapedRecipe)) {
                     for (Ingredient ing : recipe.getIngredients()) {
@@ -247,8 +349,6 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
                         }
                     }
                 } else {
-                    // for shaped recipes, check the exact ingredient instead
-                    // ingredients should be in the correct order
                     matched = cachedRecipeData.canIngredientApply(index, itemStack);
                 }
                 if (!matched) {
@@ -259,14 +359,11 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
             ItemStack previousResult = recipe.getCraftingResult(craftingMatrix);
 
-            // update item in slot, and check that recipe matches and output item is equal to the expected one
             craftingMatrix.setInventorySlotContents(craftingIndex, itemStack);
             var newResult = recipe.getCraftingResult(craftingMatrix);
-            // this will send packets every tick for the toolbelt, not sure what can be done
             if ((cachedRecipeData.matches(craftingMatrix, world) &&
                     ItemStack.areItemStacksEqual(newResult, previousResult)) ||
                     recipe instanceof ShapedOreEnergyTransferRecipe) {
-                // ingredient matched, return the substitute
                 craftingMatrix.setInventorySlotContents(craftingIndex, stack);
                 map.put(GTUtility.copy(1, itemStack), true);
                 substitute = itemStack;
@@ -307,6 +404,17 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     public void updateCurrentRecipe() {
+        // Fast-path: avoid global recipe scan when the 3x3 matrix is empty.
+        if (isCraftingMatrixEmpty()) {
+            if (this.cachedRecipeData.getRecipe() != null ||
+                    !this.craftingResultInventory.getStackInSlot(0).isEmpty()) {
+                this.craftingResultInventory.setInventorySlotContents(0, ItemStack.EMPTY);
+                this.cachedRecipeData.setRecipe(null);
+                this.replaceAttemptMap.clear();
+            }
+            return;
+        }
+
         if (!cachedRecipeData.matches(craftingMatrix, world)) {
             IRecipe newRecipe = CraftingManager.findMatchingRecipe(craftingMatrix, world);
             ItemStack resultStack = ItemStack.EMPTY;
@@ -315,7 +423,22 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             }
             this.craftingResultInventory.setInventorySlotContents(0, resultStack);
             this.cachedRecipeData.setRecipe(newRecipe);
+            // 配方变化时清空替代品缓存，防止内存泄漏和缓存过期
+            this.replaceAttemptMap.clear();
+            // 合成网格填充时自动记忆配方（无需等到合成成功）
+            if (recipeMemory != null && !resultStack.isEmpty() && !suppressAutoMemorize && isValid()) {
+                recipeMemory.notifyRecipePerformed(craftingMatrix, resultStack);
+            }
         }
+    }
+
+    private boolean isCraftingMatrixEmpty() {
+        for (int i = 0; i < craftingMatrix.getSizeInventory(); i++) {
+            if (!craftingMatrix.getStackInSlot(i).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public IRecipe getCachedRecipe() {
@@ -399,23 +522,52 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
     /**
      * Searches available handlers and
-     * adds the stack and slots the stack lookup map
+     * adds the stack and slots the stack lookup map.
+     * 使用增量变化检测：通过快照比较判断库存是否变化，未变化时跳过重建。
      */
     public void refreshStackMap() {
-        // the stack lookup map is a pain to do "correctly"
-        // so just clear and reset every tick in detectAndSendChanges()
+        int slots = this.availableHandlers.getSlots();
+
+        // 检查库存是否发生了变化
+        boolean changed = snapshotDirty;
+        if (!changed) {
+            if (lastSnapshot.length != slots) {
+                changed = true;
+            } else {
+                for (int i = 0; i < slots; i++) {
+                    ItemStack current = this.availableHandlers.getStackInSlot(i);
+                    ItemStack last = lastSnapshot[i];
+                    // 快速路径：两者都为空时跳过昂贵的 areItemStacksEqual 比较
+                    if (current.isEmpty() && last.isEmpty()) continue;
+                    if (!ItemStack.areItemStacksEqual(current, last)) {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!changed) return;
+
+        // 库存发生了变化，更新快照并重建 stackLookupMap
+        snapshotDirty = false;
+        if (lastSnapshot.length != slots) {
+            lastSnapshot = new ItemStack[slots];
+        }
+
         stackLookupMap.clear();
-        for (int i = 0; i < this.availableHandlers.getSlots(); i++) {
+        for (int i = 0; i < slots; i++) {
             var curStack = this.availableHandlers.getStackInSlot(i);
+            lastSnapshot[i] = curStack.isEmpty() ? ItemStack.EMPTY : curStack.copy();
             if (curStack.isEmpty()) continue;
 
-            IntSet slots;
+            IntSet slotSet;
             if (stackLookupMap.containsKey(curStack)) {
-                slots = stackLookupMap.get(curStack);
+                slotSet = stackLookupMap.get(curStack);
             } else {
-                stackLookupMap.put(GTUtility.copy(1, curStack), slots = new IntArraySet());
+                stackLookupMap.put(GTUtility.copy(1, curStack), slotSet = new IntArraySet());
             }
-            slots.add(i);
+            slotSet.add(i);
         }
     }
 

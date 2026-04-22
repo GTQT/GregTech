@@ -1,55 +1,25 @@
 package gtqt.loaders.recipe.handlers;
 
-import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 
+import gtqt.common.metatileentities.GTQTMetaTileEntities;
+
 import static gregtech.api.GTValues.*;
 import static gregtech.api.GTValues.VA;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
-import static gregtech.api.recipes.RecipeMaps.FORMING_PRESS_RECIPES;
-import static gregtech.api.unification.material.Materials.Stone;
-import static gregtech.api.unification.ore.OrePrefix.plate;
 import static gregtech.common.items.MetaItems.*;
+import static gregtech.api.unification.ore.OrePrefix.plate;
 import static gtqt.common.items.GTQTMetaItems.*;
 
+/**
+ * 可编程电路及工具箱的配方注册。
+ */
 public class ProgrammableCircuit {
-    public static void init() {
-        ProgrameCircuit(0, PROGRAMMABLE_CIRCUIT_0);
-        ProgrameCircuit(1, PROGRAMMABLE_CIRCUIT_1);
-        ProgrameCircuit(2, PROGRAMMABLE_CIRCUIT_2);
-        ProgrameCircuit(3, PROGRAMMABLE_CIRCUIT_3);
-        ProgrameCircuit(4, PROGRAMMABLE_CIRCUIT_4);
-        ProgrameCircuit(5, PROGRAMMABLE_CIRCUIT_5);
-        ProgrameCircuit(6, PROGRAMMABLE_CIRCUIT_6);
-        ProgrameCircuit(7, PROGRAMMABLE_CIRCUIT_7);
-        ProgrameCircuit(8, PROGRAMMABLE_CIRCUIT_8);
-        ProgrameCircuit(9, PROGRAMMABLE_CIRCUIT_9);
-        ProgrameCircuit(10, PROGRAMMABLE_CIRCUIT_10);
-        ProgrameCircuit(11, PROGRAMMABLE_CIRCUIT_11);
-        ProgrameCircuit(12, PROGRAMMABLE_CIRCUIT_12);
-        ProgrameCircuit(13, PROGRAMMABLE_CIRCUIT_13);
-        ProgrameCircuit(14, PROGRAMMABLE_CIRCUIT_14);
-        ProgrameCircuit(15, PROGRAMMABLE_CIRCUIT_15);
-        ProgrameCircuit(16, PROGRAMMABLE_CIRCUIT_16);
-        ProgrameCircuit(17, PROGRAMMABLE_CIRCUIT_17);
-        ProgrameCircuit(18, PROGRAMMABLE_CIRCUIT_18);
-        ProgrameCircuit(19, PROGRAMMABLE_CIRCUIT_19);
-        ProgrameCircuit(20, PROGRAMMABLE_CIRCUIT_20);
-        ProgrameCircuit(21, PROGRAMMABLE_CIRCUIT_21);
-        ProgrameCircuit(22, PROGRAMMABLE_CIRCUIT_22);
-        ProgrameCircuit(23, PROGRAMMABLE_CIRCUIT_23);
-        ProgrameCircuit(24, PROGRAMMABLE_CIRCUIT_24);
-        ProgrameCircuit(25, PROGRAMMABLE_CIRCUIT_25);
-        ProgrameCircuit(26, PROGRAMMABLE_CIRCUIT_26);
-        ProgrameCircuit(27, PROGRAMMABLE_CIRCUIT_27);
-        ProgrameCircuit(28, PROGRAMMABLE_CIRCUIT_28);
-        ProgrameCircuit(29, PROGRAMMABLE_CIRCUIT_29);
-        ProgrameCircuit(30, PROGRAMMABLE_CIRCUIT_30);
-        ProgrameCircuit(31, PROGRAMMABLE_CIRCUIT_31);
-        ProgrameCircuit(32, PROGRAMMABLE_CIRCUIT_32);
 
+    public static void init() {
+        // 可编程覆盖板配方
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(ROBOT_ARM_HV)
                 .input(CONVEYOR_MODULE_HV)
@@ -59,15 +29,40 @@ public class ProgrammableCircuit {
                 .output(COVER_PROGRAMMABLE_CIRCUIT)
                 .EUt(VA[HV]).duration(20)
                 .buildAndRegister();
-    }
-    public static void ProgrameCircuit(int id, MetaItem<?>.MetaValueItem circuit)
-    {
-        FORMING_PRESS_RECIPES.recipeBuilder()
-                .input(plate,Stone)
-                .circuitMeta(id)
-                .output(circuit)
-                .EUt(VA[0])
-                .duration(1)
+
+        // 可编程工具箱配方
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(ROBOT_ARM_MV)
+                .input(OrePrefix.circuit, MarkerMaterials.Tier.MV)
+                .input(plate, Materials.Steel, 4)
+                .circuitMeta(8)
+                .fluidInputs(Materials.Tin.getFluid(L))
+                .output(PROGRAMMING_TOOLKIT)
+                .EUt(VA[MV]).duration(200)
+                .buildAndRegister();
+
+        // 可编程提供器配方
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(ROBOT_ARM_HV)
+                .input(CONVEYOR_MODULE_HV, 2)
+                .input(OrePrefix.circuit, MarkerMaterials.Tier.HV, 2)
+                .input(plate, Materials.Aluminium, 4)
+                .circuitMeta(9)
+                .fluidInputs(Materials.Tin.getFluid(L * 2))
+                .outputs(GTQTMetaTileEntities.PROGRAMMING_PROVIDER.getStackForm())
+                .EUt(VA[HV]).duration(400)
+                .buildAndRegister();
+
+        // 样板映射区配方
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(ROBOT_ARM_IV)
+                .input(CONVEYOR_MODULE_IV, 2)
+                .input(OrePrefix.circuit, MarkerMaterials.Tier.IV, 2)
+                .input(plate, Materials.TungstenSteel, 4)
+                .circuitMeta(10)
+                .fluidInputs(Materials.SolderingAlloy.getFluid(L * 4))
+                .outputs(GTQTMetaTileEntities.PATTERN_MAPPING_SLAVE.getStackForm())
+                .EUt(VA[IV]).duration(600)
                 .buildAndRegister();
     }
 }

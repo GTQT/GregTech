@@ -148,6 +148,7 @@ public class GhostCircuitSlotWidget extends Widget<GhostCircuitSlotWidget> imple
 
         private final IItemHandlerModifiable handler;
         private final int index;
+        private ItemStack lastSyncedStack = ItemStack.EMPTY;
 
         public GhostCircuitSyncHandler(IItemHandlerModifiable handler, int index) {
             if (!(handler instanceof GhostCircuitItemStackHandler)) {
@@ -160,8 +161,10 @@ public class GhostCircuitSlotWidget extends Widget<GhostCircuitSlotWidget> imple
 
         @Override
         public void detectAndSendChanges(boolean init) {
-            if (init) {
-                syncToClient(SYNC_CIRCUIT, buffer -> buffer.writeItemStack(getCircuitStack()));
+            ItemStack currentStack = getCircuitStack();
+            if (init || !ItemStack.areItemStacksEqual(currentStack, lastSyncedStack)) {
+                lastSyncedStack = currentStack.copy();
+                syncToClient(SYNC_CIRCUIT, buffer -> buffer.writeItemStack(currentStack));
             }
         }
 
@@ -201,7 +204,15 @@ public class GhostCircuitSlotWidget extends Widget<GhostCircuitSlotWidget> imple
         @Override
         public void readOnClient(int id, PacketBuffer buf) throws IOException {
             if (id == SYNC_CIRCUIT) {
-                this.handler.setStackInSlot(this.index, buf.readItemStack());
+                ItemStack syncedStack = buf.readItemStack();
+                GhostCircuitItemStackHandler handler = getGhostCircuitHandler();
+                if (syncedStack.isEmpty()) {
+                    handler.setCircuitValue(GhostCircuitItemStackHandler.NO_CONFIG);
+                } else if (IntCircuitIngredient.isIntegratedCircuit(syncedStack)) {
+                    handler.setCircuitValueFromStack(syncedStack);
+                } else {
+                    handler.setCustomStack(syncedStack);
+                }
             }
         }
 

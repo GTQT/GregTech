@@ -19,17 +19,22 @@ import com.cleanroommc.modularui.widget.Widget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.IntSupplier;
+
 public class RecipeMemorySlot extends Widget<RecipeMemorySlot> implements Interactable, RecipeViewerIngredientProvider {
 
     private final CraftingRecipeMemory memory;
-    private final int index;
+    /** 静态 index（当 dynamicIndex 为 null 时使用） */
+    private final int staticIndex;
+    /** 动态 index 供给器（由滚动容器提供），优先于 staticIndex */
+    private IntSupplier dynamicIndex;
 
     public RecipeMemorySlot(CraftingRecipeMemory memory, int index) {
         this.memory = memory;
-        this.index = index;
+        this.staticIndex = index;
         tooltipAutoUpdate(true);
         tooltipBuilder(tooltip -> {
-            var recipe = memory.getRecipeAtIndex(this.index);
+            var recipe = memory.getRecipeAtIndex(getIndex());
             if (recipe == null) return;
 
             tooltip.addFromItem(recipe.getRecipeResult());
@@ -43,9 +48,21 @@ public class RecipeMemorySlot extends Widget<RecipeMemorySlot> implements Intera
         });
     }
 
+    /** 设置动态 index 供给器（由滚动容器调用） */
+    public RecipeMemorySlot dynamicIndex(IntSupplier indexSupplier) {
+        this.dynamicIndex = indexSupplier;
+        return this;
+    }
+
+    /** 获取当前实际的 index */
+    public int getIndex() {
+        return dynamicIndex != null ? dynamicIndex.getAsInt() : staticIndex;
+    }
+
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-        ItemStack itemStack = this.memory.getRecipeOutputAtIndex(this.index);
+        int currentIndex = getIndex();
+        ItemStack itemStack = this.memory.getRecipeOutputAtIndex(currentIndex);
 
         if (!itemStack.isEmpty()) {
             int cachedCount = itemStack.getCount();
@@ -54,7 +71,7 @@ public class RecipeMemorySlot extends Widget<RecipeMemorySlot> implements Intera
             itemStack.setCount(cachedCount);
 
             // noinspection DataFlowIssue
-            if (this.memory.getRecipeAtIndex(this.index).isRecipeLocked()) {
+            if (this.memory.getRecipeAtIndex(currentIndex).isRecipeLocked()) {
                 GlStateManager.disableDepth();
                 GTGuiTextures.RECIPE_LOCK.draw(context, 10, 1, 8, 8, widgetTheme.getTheme());
                 GlStateManager.enableDepth();
@@ -68,35 +85,31 @@ public class RecipeMemorySlot extends Widget<RecipeMemorySlot> implements Intera
     public void drawForeground(ModularGuiContext context) {
         RichTooltip tooltip = getTooltip();
         if (tooltip != null && isHoveringFor(tooltip.getShowUpTimer())) {
-            tooltip.draw(getContext(), this.memory.getRecipeOutputAtIndex(this.index));
+            tooltip.draw(getContext(), this.memory.getRecipeOutputAtIndex(getIndex()));
         }
     }
 
     @NotNull
     @Override
     public Result onMousePressed(int mouseButton) {
-        var recipe = memory.getRecipeAtIndex(this.index);
+        int currentIndex = getIndex();
+        var recipe = memory.getRecipeAtIndex(currentIndex);
         if (recipe == null)
             return Result.IGNORE;
 
         var data = MouseData.create(mouseButton);
         this.memory.syncToServer(CraftingRecipeMemory.MOUSE_CLICK, buffer -> {
-            buffer.writeByte(this.index);
+            buffer.writeVarInt(currentIndex);
             data.writeToPacket(buffer);
         });
-
-        if (data.shift && data.mouseButton == 0) {
-            recipe.setRecipeLocked(!recipe.isRecipeLocked());
-        } else if (data.mouseButton == 1 && !recipe.isRecipeLocked()) {
-            this.memory.removeRecipe(index);
-        }
 
         return Result.ACCEPT;
     }
 
     @Override
     public @Nullable Object getIngredient() {
-        if (!this.memory.hasRecipe(this.index)) return null;
-        return this.memory.getRecipeOutputAtIndex(this.index);
+        int currentIndex = getIndex();
+        if (!this.memory.hasRecipe(currentIndex)) return null;
+        return this.memory.getRecipeOutputAtIndex(currentIndex);
     }
 }

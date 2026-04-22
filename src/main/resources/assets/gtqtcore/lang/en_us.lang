@@ -2,39 +2,32 @@
 metaitem.cover.programmable_circuit.name=Programmable Circuit Cover
 #item
 metaitem.order.name=Order
-metaitem.programmable_circuit_0.name=Programmable Circuit（0）
-metaitem.programmable_circuit_1.name=Programmable Circuit（1）
-metaitem.programmable_circuit_2.name=Programmable Circuit（2）
-metaitem.programmable_circuit_3.name=Programmable Circuit（3）
-metaitem.programmable_circuit_4.name=Programmable Circuit（4）
-metaitem.programmable_circuit_5.name=Programmable Circuit（5）
-metaitem.programmable_circuit_6.name=Programmable Circuit（6）
-metaitem.programmable_circuit_7.name=Programmable Circuit（7）
-metaitem.programmable_circuit_8.name=Programmable Circuit（8）
-metaitem.programmable_circuit_9.name=Programmable Circuit（9）
-metaitem.programmable_circuit_10.name=Programmable Circuit（10）
-metaitem.programmable_circuit_11.name=Programmable Circuit（11）
-metaitem.programmable_circuit_12.name=Programmable Circuit（12）
-metaitem.programmable_circuit_13.name=Programmable Circuit（13）
-metaitem.programmable_circuit_14.name=Programmable Circuit（14）
-metaitem.programmable_circuit_15.name=Programmable Circuit（15）
-metaitem.programmable_circuit_16.name=Programmable Circuit（16）
-metaitem.programmable_circuit_17.name=Programmable Circuit（17）
-metaitem.programmable_circuit_18.name=Programmable Circuit（18）
-metaitem.programmable_circuit_19.name=Programmable Circuit（19）
-metaitem.programmable_circuit_20.name=Programmable Circuit（20）
-metaitem.programmable_circuit_21.name=Programmable Circuit（21）
-metaitem.programmable_circuit_22.name=Programmable Circuit（22）
-metaitem.programmable_circuit_23.name=Programmable Circuit（23）
-metaitem.programmable_circuit_24.name=Programmable Circuit（24）
-metaitem.programmable_circuit_25.name=Programmable Circuit（25）
-metaitem.programmable_circuit_26.name=Programmable Circuit（26）
-metaitem.programmable_circuit_27.name=Programmable Circuit（27）
-metaitem.programmable_circuit_28.name=Programmable Circuit（28）
-metaitem.programmable_circuit_29.name=Programmable Circuit（29）
-metaitem.programmable_circuit_30.name=Programmable Circuit（30）
-metaitem.programmable_circuit_31.name=Programmable Circuit（31）
-metaitem.programmable_circuit_32.name=Programmable Circuit（32）
+# Universal Programmable Circuit
+metaitem.programmable_circuit.name=Programmable Circuit Card
+# Programming Toolkit
+metaitem.programming_toolkit.name=Programming Toolkit
+# Programmable Circuit Tooltip
+metaitem.programmable_circuit.wrapped=§bWrapped: %s
+metaitem.programmable_circuit.empty=§7Empty (Use Programming Toolkit to wrap items)
+metaitem.programmable_circuit.tooltip.1=§7Can wrap any item
+metaitem.programmable_circuit.tooltip.2=§7Place in input bus with Programmable Cover
+metaitem.programmable_circuit.tooltip.3=§7Automatically sets ghost circuit slot
+# Programming Toolkit Tooltip and GUI
+metaitem.programming_toolkit.tooltip.1=§7Right-click to open GUI
+metaitem.programming_toolkit.tooltip.2=§7Insert any item to generate corresponding programmable circuit
+metaitem.programming_toolkit.gui_title=Programming Toolkit
+metaitem.programming_toolkit.input=Input
+metaitem.programming_toolkit.output=Output
+metaitem.programming_toolkit.hint=§7Insert item and take programmable circuit from output slot
+
+# Programming Provider
+gregtech.machine.programming_provider.name=Programming Provider
+gregtech.machine.programming_provider.hint=§7Insert items to add corresponding programmable circuits
+gregtech.machine.programming_provider.tooltip.1=§7Provides blank and circuit 1~32 programmable circuits by default
+gregtech.machine.programming_provider.tooltip.2=§7Insert any item to add its corresponding programmable circuit
+gregtech.machine.programming_provider.tooltip.3=§7Connect AE Storage Bus for infinite ME network supply
+gregtech.machine.programming_provider.tooltip.4=§7Incoming programmable circuits will be destroyed
+
 #  Universal Circuit Boards
 metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
 metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)
@@ -258,37 +251,7 @@ gregtech.machine.huge_dual_hatch.export.uxv.name=§eUXV§r Huge  Dual Output Hat
 gregtech.machine.huge_dual_hatch.export.opv.name=§9OpV§r Huge  Dual Output Hatch
 gregtech.machine.huge_dual_hatch.export.max.name=§c§lMAX§r Huge  Dual Output Hatch
 
-gregtech.machine.me_pattern_provider.ulv.name=§8ULV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.lv.name=§7LV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.mv.name=§bMV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.hv.name=§6HV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.ev.name=§5EV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.iv.name=§1IV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.luv.name=§dLuV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.zpm.name=§cZPM§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uv.name=§3UV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uhv.name=§4UHV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uev.name=§aUEV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uiv.name=§2UIV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.uxv.name=§eUXV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.opv.name=§9OpV§r Dual Pattern Hatch
-gregtech.machine.me_pattern_provider.max.name=§c§lMAX§r Dual Pattern Hatch
-
-gregtech.machine.huge_me_pattern_provider.ulv.name=§8ULV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.lv.name=§7LV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.mv.name=§bMV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.hv.name=§6HV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.ev.name=§5EV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.iv.name=§1IV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.luv.name=§dLuV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.zpm.name=§cZPM§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uv.name=§3UV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uhv.name=§4UHV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uev.name=§aUEV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uiv.name=§2UIV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.uxv.name=§eUXV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.opv.name=§9OpV§r Huge  Dual Pattern Hatch
-gregtech.machine.huge_me_pattern_provider.max.name=§c§lMAX§r Huge  Dual Pattern Hatch
+gregtech.machine.me_pattern_provider.name=Pattern Provider
 
 gregtech.machine.me_ore_prefix_pattern_provider.ulv.name=§8ULV§r Dual Ore Prefix Pattern Hatch
 gregtech.machine.me_ore_prefix_pattern_provider.lv.name=§7LV§r Dual Ore Prefix Pattern Hatch
@@ -474,8 +437,11 @@ gregtech.universal.tooltip.max_temperature=§eMax Temperature: §f%,d K
 
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
-gregtech.machine.me_pattern_provider_proxy.name=ME Pattern Provider Proxy
-gregtech.machine.huge_me_pattern_provider_proxy.name=Huge ME Pattern Provider Proxy
+gregtech.machine.me_pattern_provider_proxy.name=Pattern Provider Mirror
+gregtech.machine.huge_me_pattern_provider_proxy.name=Huge Pattern Mapping Slave
+gregtech.machine.huge_pattern_mapping_slave.name=Huge Pattern Mapping Slave
+gregtech.machine.huge_pattern_mapping_slave.tooltip.1=Huge Pattern Mapping Slave: Has 144 independent pattern slots and AE network connection
+gregtech.machine.pattern_mapping_slave.name=Pattern Mapping Slave
 gregtech.machine.me_ore_prefix_pattern_provider_proxy.name=Ore Prefix Pattern Provider Proxy
 gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=Huge Ore Prefix Pattern Provider Proxy
 
@@ -932,15 +898,19 @@ gregtech.machine.me.dual_export.tooltip.2=Can cache unlimited quantities of item
 
 gregtech.machine.me_bus.ore_dict.tooltip=After entering the regular expression of the term in the text box, you can pull the item of the specified phrase
 
-gregtech.machine.me.data_stick_proxy=Allows the use of a data stick to write directly to the saved wireless access point coordinates
+gregtech.machine.me.data_stick_proxy=Sneak-right-click to load saved wireless access point coordinates; normal right-click writes this provider location to the data stick
+gregtech.machine.me.proxy.data_stick_loaded=Wireless access point coordinates loaded
 
 gregtech.machine.complex_dual_hatch.tooltip.1=Input items and fluids for multiblock structures and output items and fluids at the same time
 gregtech.machine.complex_dual_hatch.tooltip.2=If the IO function is enabled, the assembly pull will be performed at odd times, and the assembly push operation will be performed at even times
 
 gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders machines after marking recipes with patterns
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items
-gregtech.machine.me_pattern.tooltip.3=Pattern Optimization: Automatically multiplies patterns according to current thread count, adjusts dynamically with multiblock parallel changes
+gregtech.machine.me_pattern.tooltip.3=Buffer capacity raised to maximum, supports cumulative pattern pushing
 gregtech.machine.me_pattern.tooltip.4=Advanced Template Circuit: In Template Reading, if a virtual circuit (without programmable circuits) is read, the value of the current virtual circuit is automatically set to the circuit in the template and the virtual circuit is sent back to the network
+gregtech.machine.me_pattern.tooltip.buffer=Buffer Pool: Has %d independent buffers, same item combinations share a buffer, supports programmable circuit auto-unwrapping
+gregtech.machine.me_pattern.tooltip.refund=Refund: Automatically returns buffered items and fluids to AE network on removal, drops to ground if return fails
+gregtech.machine.me_pattern.tooltip.lock=Buffer Lock: Delays buffer release after recipe consumption, prevents recipe conflicts
 
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.1=Use standard mining to fuzz batch generation of recipes (e.g. input:ingot x1,output:plate x1 will automatically register all material ingots to plate 1:1 templates, and fill in fluid for the fluid corresponding to the material in MB)
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=Allows marking other constant inputs or outputs (not recommended to mark constant output items)
@@ -970,10 +940,22 @@ gtqt.machine.me_pattern_proxy.tooltip.function=Provides remote item and fluid in
 gtqt.machine.me_pattern_proxy.tooltip.features=Shares inventory with the main bus, supports one-to-many proxy connections, and direct access to the main bus GUI
 gtqt.machine.me_pattern_proxy.tooltip.usage=Use a data stick to bind by right-clicking the main bus, then apply the binding data by right-clicking the proxy bus. Reform the multiblock to activate the proxy function
 gtqt.machine.me_pattern_proxy.tooltip.requirements=Can only bind to the main bus in the same dimension. Please ensure the corresponding chunks are loaded!
+
+gregtech.machine.pattern_mapping_slave.data_stick_use=Linked to Pattern Provider at [%s, %s, %s]
+gregtech.machine.pattern_mapping_slave.tooltip.1=Pattern Mapping Slave: Has 36 independent pattern slots and AE network connection
+gregtech.machine.pattern_mapping_slave.tooltip.2=Links to a Pattern Provider (master) via data stick, forwards AE-pushed materials to master's buffer pool
+gregtech.machine.pattern_mapping_slave.tooltip.3=Right-click the Pattern Provider with a data stick to write coordinates, then right-click this block to link
+gregtech.machine.pattern_mapping_slave.ui.tab.patterns=Patterns
+gregtech.machine.pattern_mapping_slave.ui.tab.status=Status
+gregtech.machine.pattern_mapping_slave.ui.title=Pattern Mapping
+gregtech.machine.pattern_mapping_slave.ui.status.linked=Linked to: %s, %s, %s
+gregtech.machine.pattern_mapping_slave.ui.status.waiting=Master pos set, waiting: %s, %s, %s
+gregtech.machine.pattern_mapping_slave.ui.status.none=No master position written
+gregtech.machine.pattern_mapping_slave.ui.status.buffers=Master buffers: %s/%s
+gregtech.machine.pattern_mapping_slave.ui.hint=Use data stick on master first, then right-click this block to link.
 #item group
 itemGroup.gtqt_programmable=GTQT | Programmable Hatch
 #Villager
 entity.Villager.level_lv=Folk Scientist
 entity.Villager.level_mv=Villager Craftsmen
 entity.Villager.level_hv=Villager Engineer
-
