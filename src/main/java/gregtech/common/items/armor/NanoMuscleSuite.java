@@ -57,8 +57,7 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
                 if (!nightvision && item.getCharge() >= 4) {
                     nightvision = true;
                     if (!world.isRemote)
-                        player.sendStatusMessage(new TextComponentTranslation("metaarmor.nms.nightvision.enabled"),
-                                true);
+                        player.sendStatusMessage(new TextComponentTranslation("metaarmor.nms.nightvision.enabled"), true);
                 } else if (nightvision) {
                     nightvision = false;
                     disableNightVision(world, player, true);
@@ -67,10 +66,7 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
                         player.sendStatusMessage(new TextComponentTranslation("metaarmor.nms.nightvision.error"), true);
                     }
                 }
-
-                if (!world.isRemote) {
-                    nbtData.setBoolean("Nightvision", nightvision);
-                }
+                nbtData.setBoolean("Nightvision", nightvision);
             }
 
             if (nightvision && !world.isRemote && item.getCharge() >= 4) {
@@ -79,10 +75,10 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
                 item.discharge((4), this.tier, true, false, false);
             }
 
-            if (!world.isRemote && toggleTimer > 0) {
+            if (toggleTimer > 0) {
                 --toggleTimer;
-                nbtData.setByte("toggleTimer", toggleTimer);
             }
+            nbtData.setByte("toggleTimer", toggleTimer);
         } else if (SLOT == EntityEquipmentSlot.FEET) {
             updateStepHeight(player);
         }

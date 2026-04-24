@@ -71,7 +71,7 @@ import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
-import com.cleanroommc.modularui.widgets.layout.Column;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -375,7 +375,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                     status.setAction(b -> b.structureFormed(true)
                             .setWorkingStatus(recipeMapWorkable.isWorkingEnabled(), recipeMapWorkable.isActive())
                             .addWorkingStatusLine());
-                    parent.child(new Column()
+                    parent.child(Flow.column()
                             .padding(4)
                             .expanded()
                             .child(title.asWidget()

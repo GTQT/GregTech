@@ -13,7 +13,11 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.*;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -69,23 +73,18 @@ public class AdvancedNanoMuscleSuite extends NanoMuscleSuite implements IJetpack
                     player.sendStatusMessage(new TextComponentTranslation("metaarmor.nms.share.enable"), true);
                 else
                     player.sendStatusMessage(new TextComponentTranslation("metaarmor.nms.share.disable"), true);
+                canShare = canShare && (cont.getCharge() != 0);
             }
-
-            // Only allow for charging to be enabled if charge is nonzero
-            canShare = canShare && (cont.getCharge() != 0);
             data.setBoolean("canShare", canShare);
         }
 
         performFlying(player, hoverMode, false, item);
 
-        // Charging mechanics
         if (canShare && !world.isRemote) {
-            // Check for new things to charge every 5 seconds
             if (timer % 100 == 0)
                 inventoryIndexMap = ArmorUtils.getChargeableItem(player, cont.getTier());
 
             if (inventoryIndexMap != null && !inventoryIndexMap.isEmpty()) {
-                // Charge all inventory slots
                 for (int i = 0; i < inventoryIndexMap.size(); i++) {
                     Pair<NonNullList<ItemStack>, List<Integer>> inventoryMap = inventoryIndexMap.get(i);
                     Iterator<Integer> inventoryIterator = inventoryMap.getValue().iterator();
@@ -94,7 +93,6 @@ public class AdvancedNanoMuscleSuite extends NanoMuscleSuite implements IJetpack
                         IElectricItem chargable = inventoryMap.getKey().get(slot)
                                 .getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
 
-                        // Safety check the null, it should not actually happen. Also don't try and charge itself
                         if (chargable == null || chargable == cont) {
                             inventoryIterator.remove();
                             continue;
@@ -102,7 +100,6 @@ public class AdvancedNanoMuscleSuite extends NanoMuscleSuite implements IJetpack
 
                         long attemptedChargeAmount = chargable.getTransferLimit() * 10;
 
-                        // Accounts for tick differences when charging items
                         if (chargable.getCharge() < chargable.getMaxCharge() && cont.canUse(attemptedChargeAmount) &&
                                 timer % 10 == 0) {
                             long delta = chargable.charge(attemptedChargeAmount, cont.getTier(), true, false);
