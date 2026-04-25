@@ -67,13 +67,6 @@ metaitem.large_fluid_cell.iridium.name=%s Iridium Cell
 metaitem.large_fluid_cell.naquadah_alloy.name=%s Naquadah Alloy Cell
 metaitem.large_fluid_cell.neutronium.name=%s Neutronium Cell
 
-metaitem.wind_rotor.steel.name=Steel Wind Rotor
-metaitem.wind_rotor.aluminium.name=Aluminium Wind Rotor
-metaitem.wind_rotor.stainlesssteel.name=Stainless Steel Wind Rotor
-metaitem.wind_rotor.titanium.name=Titanium Wind Rotor
-metaitem.wind_rotor.tungstensteel.name=Tungstensteel Wind Rotor
-metaitem.wind_rotor.rhodiumplatedpalladium.name=Rhodium-Plated Palladium Wind Rotor
-
 metaitem.shape.mold.vanadium_steel.empty.name=Empty Casting Mold
 metaitem.shape.mold.vanadium_steel.empty.tooltip=Mold for making Casting Molds
 metaitem.shape.mold.vanadium_steel.saw.name=Casting Mold (Saw)

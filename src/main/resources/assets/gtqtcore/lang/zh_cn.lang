@@ -67,13 +67,6 @@ metaitem.large_fluid_cell.iridium.name=%s铱单元
 metaitem.large_fluid_cell.naquadah_alloy.name=%s硅岩合金单元
 metaitem.large_fluid_cell.neutronium.name=%s中子素单元
 
-metaitem.wind_rotor.steel.name=钢风力转子
-metaitem.wind_rotor.aluminium.name=铝风力转子
-metaitem.wind_rotor.stainlesssteel.name=不锈钢风力转子
-metaitem.wind_rotor.titanium.name=钛风力转子
-metaitem.wind_rotor.tungstensteel.name=钨钢风力转子
-metaitem.wind_rotor.rhodiumplatedpalladium.name=镀铑钯风力转子
-
 metaitem.shape.mold.vanadium_steel.empty.name=空铸造模具
 metaitem.shape.mold.vanadium_steel.empty.tooltip=用以制作一次性工具的模具
 metaitem.shape.mold.vanadium_steel.saw.name=铸造模具（锯）

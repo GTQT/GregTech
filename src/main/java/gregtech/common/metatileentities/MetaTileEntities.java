@@ -885,14 +885,6 @@ public class MetaTileEntities {
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.uv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction,1));
 
-
-        // 风机, IDs 970-974
-        for (int i = 0; i < WIND_GENERATOR.length; i++){
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
-            WIND_GENERATOR[i] = registerMetaTileEntity(970 + i,
-                    new MetaTileEntityWindGenerator(gregtechId("wind_generator." + voltageName), i + 1));
-        }
-
         // Magic Energy Absorber, IDs 975-979
         for (int i = 0; i < MAGIC_ENERGY_ABSORBER.length; i++){
             String voltageName = GTValues.VN[i + 1].toLowerCase();

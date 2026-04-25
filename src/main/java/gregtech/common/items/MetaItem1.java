@@ -57,7 +57,6 @@ import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
-import gregtech.common.items.behaviors.WindMeterBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -1058,13 +1057,6 @@ public class MetaItem1 extends StandardMetaItem {
         VAJRA = addItem(511, "vajra")
                 .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
                         new VajraBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        //风力计
-        WIND_METER = addItem(512, "wind_meter")
-                .addComponents(ElectricStats.createElectricItem(400000L, GTValues.MV),
-                        new WindMeterBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 

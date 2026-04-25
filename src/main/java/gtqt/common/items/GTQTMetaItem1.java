@@ -17,7 +17,6 @@ import gtqt.common.items.behaviors.OrderBehavior;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import gtqt.common.items.behaviors.ProgrammingToolkit;
 import gtqt.common.items.behaviors.VeinScanBehavior;
-import gtqt.common.items.behaviors.WindRotorBehavior;
 
 import static gregtech.api.GTValues.M;
 import static gregtech.api.unification.material.Materials.*;
@@ -125,21 +124,7 @@ public class GTQTMetaItem1 extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Neutronium, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        //风力发电机转子
-        GTQTMetaItems.WIND_ROTOR_STEEL = this.addItem(380, "wind_rotor.steel").setMaxStackSize(1)
-                .addComponents(new WindRotorBehavior(2400000, 1, Steel));
-        GTQTMetaItems.WIND_ROTOR_ALUMINIUM = this.addItem(381, "wind_rotor.aluminium").setMaxStackSize(1)
-                .addComponents(new WindRotorBehavior(4800000, 2, Aluminium));
-        GTQTMetaItems.WIND_ROTOR_STAINLESSSTEEL = this.addItem(382, "wind_rotor.stainlesssteel").setMaxStackSize(1)
-                .addComponents(new WindRotorBehavior(9600000, 3, StainlessSteel));
-        GTQTMetaItems.WIND_ROTOR_TITANIUM = this.addItem(383, "wind_rotor.titanium").setMaxStackSize(1)
-                .addComponents(new WindRotorBehavior(19200000, 4, Titanium));
-        GTQTMetaItems.WIND_ROTOR_TUNGSTENSTEEL = this.addItem(384, "wind_rotor.tungstensteel").setMaxStackSize(1)
-                .addComponents(new WindRotorBehavior(38400000, 5, TungstenSteel));
-        GTQTMetaItems.WIND_ROTOR_RHODIUMPLATEDPALLADIUM = this.addItem(385, "wind_rotor.rhodiumplatedpalladium")
-                .setMaxStackSize(1).addComponents(new WindRotorBehavior(76800000, 6, RhodiumPlatedPalladium));
-
-        // 51-70: Vanadium Steel Molds & Extruders.
+        // 200-: Vanadium Steel Molds & Extruders.
         GTQTMetaItems.CASTING_MOLD_EMPTY = addItem(200, "shape.mold.vanadium_steel.empty").setRecyclingData(
                         new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
