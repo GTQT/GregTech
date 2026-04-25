@@ -48,6 +48,7 @@ import gregtech.common.items.behaviors.MiningLaserBehavior;
 import gregtech.common.items.behaviors.MultiblockBuilderBehavior;
 import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
+import gregtech.common.items.behaviors.PipeNetPainterBehavior;
 import gregtech.common.items.behaviors.ProspectorScannerBehavior;
 import gregtech.common.items.behaviors.RenderItemBehavior;
 import gregtech.common.items.behaviors.ScrapBoxBehavior;
@@ -290,12 +291,14 @@ public class MetaItem1 extends StandardMetaItem {
         // out of registry order so it can reference the Empty Spray Can
         SPRAY_SOLVENT = addItem(90, "spray.solvent").setMaxStackSize(1)
                 .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 1024, null))
+                .addComponents(new PipeNetPainterBehavior(1024, SPRAY_EMPTY.getStackForm(), -1))
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         for (EnumDyeColor color : EnumDyeColor.values()) {
             SPRAY_CAN_DYES.put(color, addItem(92 + color.ordinal(), "spray.can.dyes." + color.getName())
                     .setMaxStackSize(1)
                     .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 512, color))
+                    .addComponents(new PipeNetPainterBehavior(512, SPRAY_EMPTY.getStackForm(), color.ordinal()))
                     .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS));
         }
 

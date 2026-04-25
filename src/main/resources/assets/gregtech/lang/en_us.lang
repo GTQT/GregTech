@@ -1134,6 +1134,8 @@ item.gt.tool.behavior.crop_harvesting=§aHarvester: §fHarvests Crops
 item.gt.tool.behavior.plunger=§9Plumber: §fDrains Fluids
 item.gt.tool.behavior.block_rotation=§2Mechanic: §fRotates Blocks
 item.gt.tool.behavior.damage_boost=§4Damage Boost: §fExtra damage against %s
+item.gt.tool.behavior.pipeliner=§6管线工人：§f递归操作相邻的管道
+item.gt.tool.tooltip.pipeliner=§7按住§f[%s]§7以激活§6管线工人§7模式
 
 gt.tool.class.sword=Sword
 gt.tool.class.pickaxe=Pickaxe

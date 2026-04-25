@@ -1133,6 +1133,8 @@ item.gt.tool.behavior.crop_harvesting=§a庄稼收割：§f收获成熟的作物
 item.gt.tool.behavior.plunger=§9水管工人：§f抽干流体
 item.gt.tool.behavior.block_rotation=§2精械师傅：§f旋转方块
 item.gt.tool.behavior.damage_boost=§4伤害增益：§f对%s造成额外伤害
+item.gt.tool.behavior.pipeliner=§6管线工人：§f递归操作相邻的管道
+item.gt.tool.tooltip.pipeliner=§7按住§f[%s]§7以激活§6管线工人§7模式
 
 gt.tool.class.sword=剑
 gt.tool.class.pickaxe=镐

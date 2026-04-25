@@ -18,11 +18,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.items.MetaItems;
 import gregtech.common.items.behaviors.spray.AbstractSprayBehavior;
 import gregtech.integration.ctm.IFacadeWrapper;
-
-import gtqt.common.items.GTQTMetaItems;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
@@ -448,7 +445,7 @@ public abstract class BlockPipe<PipeType extends Enum<PipeType> & IPipeType<Node
         return EnumActionResult.PASS;
     }
 
-    protected boolean isPipeTool(@NotNull ItemStack stack) {
+    public boolean isPipeTool(@NotNull ItemStack stack) {
         return ToolHelper.isTool(stack, ToolClasses.WRENCH);
     }
 

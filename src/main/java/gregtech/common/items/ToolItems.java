@@ -14,6 +14,7 @@ import gregtech.api.items.toolitem.ToolOreDict;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.handler.ToolbeltRenderer;
+import gregtech.common.items.behaviors.PipeNetWalkerBehavior;
 import gregtech.common.items.tool.BlockRotatingBehavior;
 import gregtech.common.items.tool.DisableShieldBehavior;
 import gregtech.common.items.tool.EntityDamageBehavior;
@@ -230,7 +231,7 @@ public final class ToolItems {
         WRENCH = register(ItemGTTool.Builder.of(GTValues.MODID, "wrench")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .attackDamage(1.0F).attackSpeed(-2.8F)
-                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class)))
+                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class),PipeNetWalkerBehavior.INSTANCE))
                 .sound(GTSoundEvents.WRENCH_TOOL, true)
                 .oreDict(ToolOreDict.toolWrench)
                 .secondaryOreDicts("craftingToolWrench")
@@ -277,7 +278,9 @@ public final class ToolItems {
 
         WIRE_CUTTER = register(ItemGTTool.Builder.of(GTValues.MODID, "wire_cutter")
                 .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(4)
-                        .attackDamage(-1.0F).attackSpeed(-2.4F))
+                        .attackDamage(-1.0F).attackSpeed(-2.4F)
+                        .behaviors(PipeNetWalkerBehavior.INSTANCE)
+                )
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolWireCutter)
                 .secondaryOreDicts("craftingToolWireCutter")
@@ -430,7 +433,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .efficiencyMultiplier(2.0F)
                         .attackDamage(1.0F).attackSpeed(-2.8F)
-                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class))
+                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class),PipeNetWalkerBehavior.INSTANCE)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
                 .sound(GTSoundEvents.WRENCH_TOOL, true)
                 .oreDict(ToolOreDict.toolWrench)
@@ -442,7 +445,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(1.0F).attackSpeed(-2.8F)
-                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class))
+                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class),PipeNetWalkerBehavior.INSTANCE)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
                 .sound(GTSoundEvents.WRENCH_TOOL, true)
                 .oreDict(ToolOreDict.toolWrench)
@@ -454,7 +457,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(1.0F).attackSpeed(-2.8F)
-                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class))
+                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class),PipeNetWalkerBehavior.INSTANCE)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
                 .sound(GTSoundEvents.WRENCH_TOOL, true)
                 .oreDict(ToolOreDict.toolWrench)
@@ -540,7 +543,9 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(4)
                         .efficiencyMultiplier(2.0F)
                         .attackDamage(-1.0F).attackSpeed(-2.4F)
-                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV))
+                        .behaviors(PipeNetWalkerBehavior.INSTANCE)
+                        .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_LV)
+                )
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolWireCutter)
                 .secondaryOreDicts("craftingToolWireCutter")
@@ -551,6 +556,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(4)
                         .efficiencyMultiplier(3.0F)
                         .attackDamage(-1.0F).attackSpeed(-2.4F)
+                        .behaviors(PipeNetWalkerBehavior.INSTANCE)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_HV))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolWireCutter)
@@ -562,6 +568,7 @@ public final class ToolItems {
                 .toolStats(b -> b.blockBreaking().crafting().damagePerCraftingAction(4)
                         .efficiencyMultiplier(4.0F)
                         .attackDamage(-1.0F).attackSpeed(-2.4F)
+                        .behaviors(PipeNetWalkerBehavior.INSTANCE)
                         .brokenStack(ToolHelper.SUPPLY_POWER_UNIT_IV))
                 .sound(GTSoundEvents.WIRECUTTER_TOOL, true)
                 .oreDict(ToolOreDict.toolWireCutter)
@@ -723,7 +730,7 @@ public final class ToolItems {
         COMBINATION_WRENCH = register(ItemGTTool.Builder.of(GTValues.MODID, "combination_wrench")
                 .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
                         .attackDamage(1.0F).attackSpeed(-2.8F)
-                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class)))
+                        .behaviors(BlockRotatingBehavior.INSTANCE, new EntityDamageBehavior(3.0F, EntityGolem.class),PipeNetWalkerBehavior.INSTANCE))
                 .oreDict(ToolOreDict.toolWrench)
                 .secondaryOreDicts("toolHammer", "craftingToolWrench", "craftingToolHardHammer")
                 .toolClasses(ToolClasses.WRENCH, ToolClasses.HARD_HAMMER)
@@ -779,6 +786,7 @@ public final class ToolItems {
     }
 
     public static IGTTool register(@NotNull ToolBuilder<?> builder) {
+
         IGTTool tool = builder.build();
         TOOLS.add(tool);
         return tool;
