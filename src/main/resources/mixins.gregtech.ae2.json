@@ -14,6 +14,8 @@
     "MixinAETrack",
     "MixinNonBlockingItems"
   ],
-  "client": [],
+  "client": [
+    "MixinRecipeTransferHandler"
+  ],
   "server": []
 }

@@ -20,16 +20,34 @@ import appeng.util.item.AEItemStack;
  */
 public class GTCircuitHelper extends CircuitHelper {
 
+    private static final ThreadLocal<Boolean> CURRENT_JEI_INGREDIENT_NOT_CONSUMABLE =
+            ThreadLocal.withInitial(() -> false);
+
+    public static void setCurrentJeiIngredientNotConsumable(boolean notConsumable) {
+        CURRENT_JEI_INGREDIENT_NOT_CONSUMABLE.set(notConsumable);
+    }
+
+    public static void clearCurrentJeiIngredientNotConsumable() {
+        CURRENT_JEI_INGREDIENT_NOT_CONSUMABLE.remove();
+    }
+
     @Override
     public boolean isProgrammableCircuit(ItemStack stack) {
         return GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null
+                && stack != null
                 && !stack.isEmpty()
                 && GTQTMetaItems.PROGRAMMABLE_CIRCUIT.isItemEqual(stack);
     }
 
     @Override
     public boolean isIntegratedCircuit(ItemStack stack) {
-        return IntCircuitIngredient.isIntegratedCircuit(stack);
+        if (stack == null) {
+            return false;
+        }
+        return IntCircuitIngredient.isIntegratedCircuit(stack)
+                || Boolean.TRUE.equals(CURRENT_JEI_INGREDIENT_NOT_CONSUMABLE.get())
+                        && !stack.isEmpty()
+                        && !isProgrammableCircuit(stack);
     }
 
     @Nullable

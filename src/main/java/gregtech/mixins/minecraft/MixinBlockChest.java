@@ -15,9 +15,9 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import gtqt.api.util.calculateFacing;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(BlockChest.class)
 public abstract class MixinBlockChest extends BlockContainer {
@@ -36,10 +36,10 @@ public abstract class MixinBlockChest extends BlockContainer {
     public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack)
     {
         // 获取标准化后的yaw角度（0~360）
-        float normalizedYaw = calculateFacing.gregTech$normalizeYaw(placer.rotationYaw);
+        float normalizedYaw = gregtech$normalizeYaw(placer.rotationYaw);
 
         // 使用精确计算替代索引计算
-        EnumFacing enumfacing = calculateFacing.gregTech$calculateFacingFromYaw(normalizedYaw).getOpposite();
+        EnumFacing enumfacing = gregtech$calculateFacingFromYaw(normalizedYaw).getOpposite();
 
         state = state.withProperty(FACING, enumfacing);
         BlockPos blockpos = pos.north();
@@ -93,6 +93,30 @@ public abstract class MixinBlockChest extends BlockContainer {
             {
                 ((TileEntityChest)tileentity).setCustomName(stack.getDisplayName());
             }
+        }
+    }
+
+    @Unique
+    private static float gregtech$normalizeYaw(float yaw) {
+        float normalized = yaw % 360.0F;
+        if (normalized < 0) {
+            normalized += 360.0F;
+        }
+        return normalized;
+    }
+
+    @Unique
+    private static EnumFacing gregtech$calculateFacingFromYaw(float yaw) {
+        float offsetYaw = (yaw + 45.0F) % 360.0F;
+
+        if (offsetYaw < 90.0F) {
+            return EnumFacing.SOUTH;
+        } else if (offsetYaw < 180.0F) {
+            return EnumFacing.WEST;
+        } else if (offsetYaw < 270.0F) {
+            return EnumFacing.NORTH;
+        } else {
+            return EnumFacing.EAST;
         }
     }
 }

@@ -4,6 +4,8 @@ import net.minecraft.network.PacketBuffer;
 
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 
+import java.util.Arrays;
+
 /**
  * 库存虚拟滚动视图的同步器。
  * <p>
@@ -22,8 +24,7 @@ public class InventoryViewSyncHandler extends SyncHandler {
     // ==================== 协议 ID ====================
     /** 客户端→服务端：滚动行变更 */
     private static final int SCROLL_ROW = 1;
-    /** 服务端→客户端：同步总行数（用于客户端滚动条计算） */
-    private static final int SYNC_TOTAL_ROWS = 2;
+    private static final int SYNC_VIEW = 2;
 
     private final InventoryViewHandler viewHandler;
     private final int columns;
@@ -32,6 +33,8 @@ public class InventoryViewSyncHandler extends SyncHandler {
     // ==================== 服务端变化检测缓存 ====================
     /** 上一次同步的总行数 */
     private int lastSyncedTotalRows = -1;
+    private int lastSyncedScrollRow = -1;
+    private int[] lastSyncedSlotMapping = new int[0];
 
     // ==================== 客户端状态 ====================
     /** 客户端缓存的总行数 */
@@ -47,12 +50,23 @@ public class InventoryViewSyncHandler extends SyncHandler {
 
     @Override
     public void detectAndSendChanges(boolean init) {
-        // 同步总行数（用于客户端滚动条）
+        boolean inventoryChanged = viewHandler.refreshFilterIfChanged();
         int totalFiltered = viewHandler.getTotalFilteredSlots();
         int totalRows = (totalFiltered + columns - 1) / columns;
-        if (init || totalRows != lastSyncedTotalRows) {
+        int scrollRow = viewHandler.getScrollRow();
+        int[] slotMapping = viewHandler.copySlotMapping();
+        if (init || inventoryChanged || totalRows != lastSyncedTotalRows || scrollRow != lastSyncedScrollRow ||
+                !Arrays.equals(slotMapping, lastSyncedSlotMapping)) {
             lastSyncedTotalRows = totalRows;
-            syncToClient(SYNC_TOTAL_ROWS, buf -> buf.writeVarInt(totalRows));
+            lastSyncedScrollRow = scrollRow;
+            lastSyncedSlotMapping = slotMapping;
+            syncToClient(SYNC_VIEW, buf -> {
+                buf.writeVarInt(totalRows);
+                buf.writeVarInt(scrollRow);
+                for (int slot : slotMapping) {
+                    buf.writeVarInt(slot);
+                }
+            });
         }
     }
 
@@ -66,8 +80,14 @@ public class InventoryViewSyncHandler extends SyncHandler {
 
     @Override
     public void readOnClient(int id, PacketBuffer buf) {
-        if (id == SYNC_TOTAL_ROWS) {
+        if (id == SYNC_VIEW) {
             clientTotalRows = buf.readVarInt();
+            clientScrollRow = buf.readVarInt();
+            int[] slotMapping = new int[viewportSize];
+            for (int i = 0; i < viewportSize; i++) {
+                slotMapping[i] = buf.readVarInt();
+            }
+            viewHandler.setSlotMapping(slotMapping);
         }
     }
 

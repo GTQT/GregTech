@@ -46,6 +46,10 @@ public class ItemStackTextRenderer extends ItemStackRenderer {
         this.notConsumed = notConsumed;
     }
 
+    public boolean isNotConsumed() {
+        return notConsumed;
+    }
+
     @Override
     public void render(@NotNull Minecraft minecraft, int xPosition, int yPosition, @Nullable ItemStack ingredient) {
         super.render(minecraft, xPosition, yPosition, ingredient);
