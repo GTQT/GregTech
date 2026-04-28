@@ -595,7 +595,7 @@ public class UnknownCompositionMaterials {
                 .fluid().color(0xFFFFFF).build();
 
         ImpureEnrichedNaquadahSolution = Material.builder(1639, gregtechId("impure_enriched_naquadah_solution"))
-                .fluid().color(0x388438).build();
+                .fluid().color(0x388438).build().setFormula("~Nq+?~", true);
 
         EnrichedNaquadahSolution = Material.builder(1640, gregtechId("enriched_naquadah_solution"))
                 .fluid().color(0x3AAD3A).build();
