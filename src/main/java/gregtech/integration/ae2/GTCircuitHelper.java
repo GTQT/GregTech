@@ -35,12 +35,19 @@ public class GTCircuitHelper extends CircuitHelper {
     @Nullable
     @Override
     public IAEStack<?> wrapItemAsProgrammable(ItemStack sourceItem) {
+        ItemStack wrapped = wrapItemAsProgrammableStack(sourceItem);
+        return wrapped == null ? null : toAEStack(wrapped);
+    }
+
+    @Nullable
+    @Override
+    public ItemStack wrapItemAsProgrammableStack(ItemStack sourceItem) {
         if (sourceItem.isEmpty()) {
             return null;
         }
 
         if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT == null) {
-            return toAEStack(sourceItem);
+            return sourceItem.copy();
         }
 
         final ItemStack wrappedItem;
@@ -54,7 +61,7 @@ public class GTCircuitHelper extends CircuitHelper {
 
         final ItemStack programmable = GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
         ProgrammableCircuit.wrap(wrappedItem, programmable);
-        return toAEStack(programmable);
+        return programmable;
     }
 
     @Override

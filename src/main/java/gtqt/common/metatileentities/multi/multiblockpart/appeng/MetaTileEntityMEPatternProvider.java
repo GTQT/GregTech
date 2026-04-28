@@ -46,7 +46,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.fluids.items.ItemFluidDrop;
+import static gtqt.api.util.AE2PatternCompat.isFluidDrop;
 import appeng.tile.grid.AENetworkPowerTile;
 import appeng.util.item.AEItemStack;
 import codechicken.lib.render.CCRenderState;
@@ -265,7 +265,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (stack.isEmpty()) continue;
 
             // 处理假流体物品
-            if (ItemFluidDrop.isFluidDrop(stack)) {
+            if (isFluidDrop(stack)) {
                 FluidStack fluid = getFluidStack(stack);
                 if (fluid != null) {
                     FluidStack type = fluid.copy();
@@ -335,7 +335,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (stack.isEmpty()) continue;
 
             // 处理假流体物品
-            if (ItemFluidDrop.isFluidDrop(stack)) {
+            if (isFluidDrop(stack)) {
                 FluidStack fluid = getFluidStack(stack);
                 if (fluid != null) {
                     buffer.getFluidHandler().fill(fluid, true);
@@ -419,7 +419,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (ingredient.isEmpty()) continue;
 
             // 检测 FakeFluid — 流体编码为假物品
-            if (ItemFluidDrop.isFluidDrop(ingredient)) {
+            if (isFluidDrop(ingredient)) {
                 FluidStack fluid = getFluidStack(ingredient);
                 if (fluid != null) {
                     FluidStack toFill = fluid.copy();

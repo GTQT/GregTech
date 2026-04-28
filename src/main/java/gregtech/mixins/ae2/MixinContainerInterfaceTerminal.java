@@ -6,6 +6,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMulti
 
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.IMEPatternProviderPart;
 
+import java.util.List;
+
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -16,18 +18,23 @@ import appeng.container.implementations.ContainerInterfaceTerminal;
 import appeng.container.implementations.ContainerInterfaceTerminal.ProviderTracker;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
-
-import java.util.List;
+import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(value = ContainerInterfaceTerminal.class, remap = false)
 public abstract class MixinContainerInterfaceTerminal {
 
+    @Shadow
+    private IGrid grid;
+
+    @Shadow
+    private List<ProviderTracker> provider;
+
     /**
      * @author GregTech
-     * @reason 注入 GT 样板提供者变化检测逻辑
+     * @reason Inject GT pattern provider change detection logic
      */
     @Overwrite
-    protected int[] detectGTProviderChanges(IGrid grid, List<ProviderTracker> providerList) {
+    protected int[] checkGTProviderChanges() {
         int total = 0;
         boolean missing = false;
 
@@ -42,7 +49,7 @@ public abstract class MixinContainerInterfaceTerminal {
                     if (mte instanceof IMEPatternProviderPart providerPart
                             && providerPart.getPatternSlot() != null) {
                         ProviderTracker t = null;
-                        for (ProviderTracker pt : providerList) {
+                        for (ProviderTracker pt : provider) {
                             if (pt.pos.equals(pos) && pt.dim == mte.getWorld().provider.getDimension()) {
                                 t = pt;
                                 break;
@@ -68,10 +75,10 @@ public abstract class MixinContainerInterfaceTerminal {
 
     /**
      * @author GregTech
-     * @reason 注入 GT 样板提供者收集逻辑
+     * @reason Inject GT pattern provider collection logic
      */
     @Overwrite
-    protected void collectGTProviders(IGrid grid, List<ProviderTracker> providerList) {
+    protected void collectGTProviders() {
         for (final IGridNode gn : grid.getMachineNodes(IMEPatternProviderPart.class)) {
             BlockPos pos = gn.getGridBlock().getLocation().getPos();
             TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
@@ -80,7 +87,7 @@ public abstract class MixinContainerInterfaceTerminal {
                 if (mte instanceof IMEPatternProviderPart patternProvider
                         && patternProvider.getPatternSlot() != null) {
                     String displayName = getProviderDisplayName(mte, patternProvider);
-                    providerList.add(new ProviderTracker(
+                    provider.add(new ProviderTracker(
                             mte.getPos(),
                             mte.getWorld().provider.getDimension(),
                             patternProvider.getTier(),

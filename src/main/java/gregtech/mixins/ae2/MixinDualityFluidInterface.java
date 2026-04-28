@@ -6,6 +6,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMulti
 
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import appeng.fluids.helper.DualityFluidInterface;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,11 +18,12 @@ public abstract class MixinDualityFluidInterface {
 
     /**
      * @author GregTech
-     * @reason 注入 GT 机器名获取逻辑
+     * @reason Inject GT machine name retrieval logic
      */
     @Overwrite
-    protected String getGTMachineName(TileEntity directedTile, Block directedBlock) {
-        if (directedTile instanceof IGregTechTileEntity igtte) {
+    protected String getGTMachineName(World world, BlockPos pos, Block block) {
+        TileEntity te = world.getTileEntity(pos);
+        if (te instanceof IGregTechTileEntity igtte) {
             MetaTileEntity mte = igtte.getMetaTileEntity();
             if (mte != null) {
                 if (mte instanceof MetaTileEntityMultiblockPart part) {

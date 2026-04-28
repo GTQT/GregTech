@@ -2,9 +2,9 @@ package gtqt.api.util;
 
 import appeng.api.AEApi;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.fluids.items.ItemFluidDrop;
+import com.glodblock.github.common.item.fake.FakeFluids;
+import com.glodblock.github.util.Util;
 import appeng.fluids.util.AEFluidStack;
-import appeng.util.item.AEItemStack;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
@@ -22,15 +22,21 @@ public final class AE2PatternCompat {
     private AE2PatternCompat() {}
 
     public static boolean isFluidDrop(ItemStack stack) {
-        return ItemFluidDrop.isFluidDrop(stack);
+        return FakeFluids.isFluidFakeItem(stack);
     }
 
     public static FluidStack getFluidStack(ItemStack stack) {
-        return ItemFluidDrop.getFluidStack(stack);
+        return Util.getFluidFromItem(stack);
     }
 
     public static ItemStack toFluidDrop(FluidStack fluidStack) {
-        return ItemFluidDrop.newStack(fluidStack);
+        return FakeFluids.packFluid2Drops(fluidStack);
+    }
+
+    private static NBTTagCompound fluidStackToNBT(IAEFluidStack aeFluid) {
+        NBTTagCompound nbt = new NBTTagCompound();
+        aeFluid.writeToNBT(nbt);
+        return nbt;
     }
 
     public static NBTBase createPatternIngredientTag(ItemStack stack) {
@@ -41,9 +47,12 @@ public final class AE2PatternCompat {
         }
 
         if (isFluidDrop(stack)) {
-            IAEFluidStack fluidStack = ItemFluidDrop.getAeFluidStack(AEItemStack.fromItemStack(stack));
-            if (fluidStack != null) {
-                return fluidStack.toNBTGeneric();
+            FluidStack fluid = getFluidStack(stack);
+            if (fluid != null) {
+                IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
+                if (aeFluid != null) {
+                    return fluidStackToNBT(aeFluid);
+                }
             }
         }
 
@@ -52,7 +61,7 @@ public final class AE2PatternCompat {
             IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(containedFluid);
             if (aeFluid != null) {
                 aeFluid.setStackSize((long) containedFluid.amount * stack.getCount());
-                return aeFluid.toNBTGeneric();
+                return fluidStackToNBT(aeFluid);
             }
         }
 
