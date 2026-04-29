@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.bridge.IGTMachineInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -80,11 +79,6 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
             this.controllerTile = null;
         }
         return controllerTile;
-    }
-
-    @Override
-    public IGTMachineInfo getMultiblockController() {
-        return getController();
     }
 
     public ICubeRenderer getBaseTexture() {

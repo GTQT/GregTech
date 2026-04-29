@@ -71,13 +71,14 @@ public class GTTextFieldWidget extends BaseTextFieldWidget<GTTextFieldWidget> {
 
     @Override
     public boolean isValidSyncOrValue(@NotNull ISyncOrValue syncHandler) {
-        if (syncHandler instanceof IStringValue<?>iStringValue &&
-                syncHandler instanceof ValueSyncHandler<?>valueSyncHandler) {
+        if (syncHandler instanceof IStringValue<?> iStringValue) {
             this.stringValue = iStringValue;
-            valueSyncHandler.setChangeListener(() -> {
-                markTooltipDirty();
-                setText(this.stringValue.getValue().toString());
-            });
+            if (syncHandler instanceof ValueSyncHandler<?> valueSyncHandler) {
+                valueSyncHandler.setChangeListener(() -> {
+                    markTooltipDirty();
+                    setText(this.stringValue.getValue().toString());
+                });
+            }
             return true;
         }
         return false;

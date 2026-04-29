@@ -9,6 +9,10 @@ import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportO
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.ExportOnlyAEItemSlot;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.slot.IConfigurableSlot;
 
+import gtqt.common.items.GTQTMetaItems;
+import gtqt.common.items.behaviors.ProgrammableCircuit;
+
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -74,8 +78,17 @@ public class AEItemSyncHandler extends AESyncHandler<IAEItemStack> {
             ItemStack stack = inputsIterator.next();
             if (stack == null) continue;
             if (IntCircuitIngredient.isIntegratedCircuit(stack)) {
-                circuitValue = IntCircuitIngredient.getCircuitConfiguration(stack);
-                inputsIterator.remove();
+                if (hasToolkitInInventory() && GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null) {
+                    int config = IntCircuitIngredient.getCircuitConfiguration(stack);
+                    ItemStack circuitStack = GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
+                    ItemStack intCircuit = IntCircuitIngredient.getIntegratedCircuit(config);
+                    ProgrammableCircuit.wrap(intCircuit, circuitStack);
+                    inputsIterator.remove();
+                    itemInputs.add(circuitStack);
+                } else {
+                    circuitValue = IntCircuitIngredient.getCircuitConfiguration(stack);
+                    inputsIterator.remove();
+                }
                 break;
             }
         }
@@ -95,5 +108,18 @@ public class AEItemSyncHandler extends AESyncHandler<IAEItemStack> {
     @SideOnly(Side.CLIENT)
     public void setConfig(int index, @Nullable ItemStack stack) {
         setConfig(index, stack == null ? null : AEItemStack.fromItemStack(stack));
+    }
+
+    private boolean hasToolkitInInventory() {
+        EntityPlayer player = getSyncManager().getPlayer();
+        if (player == null || GTQTMetaItems.PROGRAMMING_TOOLKIT == null) return false;
+
+        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
+            ItemStack invStack = player.inventory.getStackInSlot(i);
+            if (!invStack.isEmpty() && GTQTMetaItems.PROGRAMMING_TOOLKIT.isItemEqual(invStack)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

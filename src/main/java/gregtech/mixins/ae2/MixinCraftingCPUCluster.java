@@ -30,8 +30,8 @@ public abstract class MixinCraftingCPUCluster {
     @Shadow(remap = false) protected abstract void completeJob();
 
     /**
-     * 在 updateCraftingLogic 返回前注入假合成完成逻辑
-     * 当没有剩余任务、等待列表仅剩纸时，视为合成完成
+     * Inject fake crafting completion logic at the end of updateCraftingLogic.
+     * When no remaining tasks and waitingFor only has paper, treat as crafting complete.
      */
     @Inject(method = "updateCraftingLogic", at = @At("RETURN"), remap = false)
     private void onUpdateCraftingLogic(IGrid grid, IEnergyGrid eg, CraftingGridCache cc, CallbackInfo ci) {
@@ -39,7 +39,7 @@ public abstract class MixinCraftingCPUCluster {
             IAEItemStack only = waitingFor.iterator().next();
             if (only != null) {
                 ItemStack stack = only.getDefinition();
-                Item item = only.getDefinition().getItem();
+                Item item = stack.getItem();
                 if (item == GTQTMetaItems.GTQT_META_ITEM && stack.getMetadata() == GTQTMetaItems.ORDER.getMetaValue()) {
                     completeJob();
                 }

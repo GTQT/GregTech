@@ -3,7 +3,6 @@ package gregtech.api.metatileentity;
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.machines.BlockMachine;
-import gregtech.api.bridge.IGTMachineInfo;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
@@ -124,7 +123,7 @@ import java.util.function.Consumer;
 
 import static gregtech.api.capability.GregtechDataCodes.*;
 
-public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, IVoidable, IPollution, IGuiHolder<PosGuiData>, IGTMachineInfo {
+public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, IVoidable, IPollution, IGuiHolder<PosGuiData> {
 
     public static final IndexedCuboid6 FULL_CUBE_COLLISION = new IndexedCuboid6(null, Cuboid6.full);
 
@@ -385,11 +384,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     public final String getMetaFullName() {
         return getMetaName() + ".name";
-    }
-
-    @Override
-    public IGTMachineInfo getMultiblockController() {
-        return null;
     }
 
     public void addNotifiedInput(Object input) {

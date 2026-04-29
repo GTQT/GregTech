@@ -6,8 +6,16 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "MixinCraftingCPUCluster",
-    "MixinCraftingGridCache"
+    "MixinCraftingGridCache",
+    "MixinWorldHelper",
+    "MixinDualityInterface",
+    "MixinDualityFluidInterface",
+    "MixinContainerInterfaceTerminal",
+    "MixinAETrack",
+    "MixinNonBlockingItems"
   ],
-  "client": [],
+  "client": [
+    "MixinRecipeTransferHandler"
+  ],
   "server": []
 }

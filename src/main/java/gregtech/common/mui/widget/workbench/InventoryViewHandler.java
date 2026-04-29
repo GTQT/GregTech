@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 /**
@@ -38,6 +39,7 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
     private int scrollRow = 0;
     /** 每行的 slot 数量 */
     private final int columns;
+    private ItemStack[] lastSnapshot = new ItemStack[0];
 
     public InventoryViewHandler(Supplier<IItemHandlerModifiable> backingSupplier, int viewportSize, int columns) {
         this.backingSupplier = backingSupplier;
@@ -127,6 +129,7 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
         if (scrollRow > maxRow) {
             scrollRow = maxRow;
         }
+        updateSnapshot(backing, totalSlots);
         rebuildSlotMapping();
     }
 
@@ -157,11 +160,66 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
         return slotMapping[viewportSlot];
     }
 
+    public int[] copySlotMapping() {
+        return Arrays.copyOf(slotMapping, slotMapping.length);
+    }
+
+    public void setSlotMapping(int[] mapping) {
+        int copyLength = Math.min(mapping.length, slotMapping.length);
+        System.arraycopy(mapping, 0, slotMapping, 0, copyLength);
+        Arrays.fill(slotMapping, copyLength, slotMapping.length, -1);
+
+        visibleCount = 0;
+        for (int slot : slotMapping) {
+            if (slot >= 0) {
+                visibleCount++;
+            }
+        }
+    }
+
     /**
      * 刷新搜索过滤（库存内容变化时调用，不改变搜索文本和滚动位置）。
      */
     public void refreshFilter() {
         rebuildView();
+    }
+
+    public boolean refreshFilterIfChanged() {
+        IItemHandlerModifiable backing = backing();
+        int totalSlots = backing.getSlots();
+        if (!hasInventoryChanged(backing, totalSlots)) {
+            return false;
+        }
+
+        rebuildView();
+        return true;
+    }
+
+    private boolean hasInventoryChanged(IItemHandlerModifiable backing, int totalSlots) {
+        if (lastSnapshot.length != totalSlots) {
+            return true;
+        }
+
+        for (int i = 0; i < totalSlots; i++) {
+            ItemStack current = backing.getStackInSlot(i);
+            ItemStack last = lastSnapshot[i];
+            if (current.isEmpty() && last.isEmpty()) continue;
+            if (!ItemStack.areItemStacksEqual(current, last)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateSnapshot(IItemHandlerModifiable backing, int totalSlots) {
+        if (lastSnapshot.length != totalSlots) {
+            lastSnapshot = new ItemStack[totalSlots];
+        }
+
+        for (int i = 0; i < totalSlots; i++) {
+            ItemStack stack = backing.getStackInSlot(i);
+            lastSnapshot[i] = stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
+        }
     }
 
     // ==================== IItemHandlerModifiable 实现 ====================

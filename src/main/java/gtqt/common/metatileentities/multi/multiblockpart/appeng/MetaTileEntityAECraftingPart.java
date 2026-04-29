@@ -47,7 +47,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
-import appeng.fluids.items.ItemFluidDrop;
+import static gtqt.api.util.AE2PatternCompat.isFluidDrop;
 import appeng.fluids.util.IAEFluidInventory;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
@@ -309,7 +309,7 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             //处理流体
 
             // 处理假流体/气体物品
-            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+            if (isFluidDrop(itemStack)) {
                 FluidStack fluid = getFluidStack(itemStack);
                 if (fluid != null) {
                     if (getImportFluids().fill(fluid, false) < fluid.amount) {
@@ -385,7 +385,7 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             if (itemStack.isEmpty()) continue;
 
             // 处理假流体/气体物品
-            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+            if (isFluidDrop(itemStack)) {
                 FluidStack fluid = getFluidStack(itemStack);
                 if (fluid != null) {
                     getImportFluids().fill(fluid, true);
@@ -475,7 +475,7 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
             }
 
             // 处理流体假物品
-            if (ItemFluidDrop.isFluidDrop(itemStack)) {
+            if (isFluidDrop(itemStack)) {
                 FluidStack fluid = getFluidStack(itemStack);
                 if (fluid == null || !GTUtility.hasMatchingFluid(fluid, getImportFluids())) {
                     return false;

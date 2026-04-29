@@ -11,9 +11,7 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.fluids.util.AEFluidStack;
-import appeng.fluids.util.AEFluidStackType;
 import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 
@@ -111,7 +109,6 @@ public class WrappedFluidStack implements IAEFluidStack {
         return this.delegate.amount > 0;
     }
 
-    @Override
     public String getDisplayName() {
         return this.delegate.getLocalizedName();
     }
@@ -146,12 +143,10 @@ public class WrappedFluidStack implements IAEFluidStack {
         return this.delegate.getFluid() == stack.getFluid();
     }
 
-    @Override
     public boolean isSameType(IAEFluidStack stack) {
         return stack != null && this.delegate.getFluid() == stack.getFluid();
     }
 
-    @Override
     public boolean isSameType(Object other) {
         if (other instanceof IAEFluidStack) {
             return isSameType((IAEFluidStack) other);
@@ -195,11 +190,6 @@ public class WrappedFluidStack implements IAEFluidStack {
     @Override
     public IStorageChannel<IAEFluidStack> getChannel() {
         return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
-    }
-
-    // @Override — 旧版 IAEStack 接口不含 getStackType()，此处暂不标注 @Override
-    public IAEStackType<IAEFluidStack> getStackType() {
-        return AEFluidStackType.INSTANCE;
     }
 
     @Override

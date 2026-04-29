@@ -9,10 +9,8 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.core.Api;
 import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -109,7 +107,6 @@ public class WrappedItemStack implements IAEItemStack {
         return !this.delegate.isEmpty();
     }
 
-    @Override
     public String getDisplayName() {
         return this.delegate.getDisplayName();
     }
@@ -212,7 +209,6 @@ public class WrappedItemStack implements IAEItemStack {
         return aeStack.isSameType(itemStack);
     }
 
-    @Override
     public boolean isSameType(Object other) {
         if (other instanceof IAEItemStack) {
             return isSameType((IAEItemStack) other);
@@ -226,11 +222,6 @@ public class WrappedItemStack implements IAEItemStack {
     @Override
     public ItemStack getDefinition() {
         return this.delegate;
-    }
-
-    // @Override — 旧版 IAEStack 接口不含 getStackType()，此处暂不标注 @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
     }
 
     @Override
