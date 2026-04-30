@@ -699,6 +699,22 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         worldSceneRenderer.addRenderedBlocks(world.renderedBlocks);
         worldSceneRenderer.setOnLookingAt(ray -> {});
 
+        // TESR optimization: limit tile entity rendering for large structures
+        int blockCount = world.renderedBlocks.size();
+        if (blockCount > 100) {
+            // Large structures: only render controller TESR, skip all others
+            worldSceneRenderer.setTileEntityFilter(te ->
+                    te instanceof IGregTechTileEntity gtte &&
+                            gtte.getMetaTileEntity() instanceof MultiblockControllerBase);
+            worldSceneRenderer.setHitTestInterval(5);
+        } else if (blockCount > 50) {
+            // Medium structures: cap TESR count and add distance culling
+            worldSceneRenderer.setMaxTileEntityRenderers(8);
+            worldSceneRenderer.setMaxTileEntityRenderDistance(16.0);
+            worldSceneRenderer.setHitTestInterval(3);
+        }
+        // Small structures (<= 50 blocks): no limits
+
         worldSceneRenderer.setAfterWorldRender(renderer -> {
             BlockPos look = worldSceneRenderer.getLastTraceResult() == null ? null :
                     worldSceneRenderer.getLastTraceResult().getBlockPos();

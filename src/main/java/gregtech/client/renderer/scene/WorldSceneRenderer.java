@@ -40,6 +40,7 @@ import java.nio.IntBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import javax.vecmath.Vector3f;
 
@@ -77,6 +78,15 @@ public abstract class WorldSceneRenderer {
     private Vector3f lookAt = new Vector3f(0, 0, 0);
     private Vector3f worldUp = new Vector3f(0, 1, 0);
 
+    // TESR rendering limits
+    private int maxTileEntityRenderers = Integer.MAX_VALUE;
+    private double maxTileEntityRenderDistSq = Double.MAX_VALUE;
+    private Predicate<TileEntity> tileEntityFilter;
+
+    // Hit test throttling: reduce glReadPixels calls
+    private int hitTestInterval = 1;
+    private int frameCount;
+
     public WorldSceneRenderer(World world) {
         this.world = world;
     }
@@ -112,6 +122,57 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
+    /**
+     * Set the maximum number of TileEntity renderers (TESR) that will be processed per frame.
+     * When the structure has more TEs than this limit, excess TEs are skipped.
+     * Default is Integer.MAX_VALUE (no limit).
+     *
+     * @param max maximum number of TESRs to render per frame
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer setMaxTileEntityRenderers(int max) {
+        this.maxTileEntityRenderers = max;
+        return this;
+    }
+
+    /**
+     * Set the maximum distance (squared) from camera at which TESRs are rendered.
+     * TEs beyond this distance are skipped. Default is Double.MAX_VALUE (no limit).
+     *
+     * @param maxDist maximum render distance (not squared)
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer setMaxTileEntityRenderDistance(double maxDist) {
+        this.maxTileEntityRenderDistSq = maxDist * maxDist;
+        return this;
+    }
+
+    /**
+     * Set a custom filter for which TileEntities should have their TESR rendered.
+     * Only TEs that pass this filter will be rendered. Default is null (all TEs rendered).
+     *
+     * @param filter predicate that returns true for TEs that should be rendered
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer setTileEntityFilter(@Nullable Predicate<TileEntity> filter) {
+        this.tileEntityFilter = filter;
+        return this;
+    }
+
+    /**
+     * Set the hit test interval (in frames). The glReadPixels-based mouse hit detection
+     * will only run every N frames, reusing the previous result in between.
+     * This eliminates the GPU pipeline sync stall that occurs every frame.
+     * Default is 1 (every frame). Recommended: 3-5 for large structures.
+     *
+     * @param interval number of frames between hit tests (minimum 1)
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer setHitTestInterval(int interval) {
+        this.hitTestInterval = Math.max(1, interval);
+        return this;
+    }
+
     public void setClearColor(int clearColor) {
         this.clearColor = clearColor;
     }
@@ -129,17 +190,20 @@ public abstract class WorldSceneRenderer {
         setupCamera(positionedRect);
         // render TrackedDummyWorld
         drawWorld();
-        // check lookingAt
-        this.lastTraceResult = null;
-        if (onLookingAt != null && mouseX > positionedRect.position.x &&
-                mouseX < positionedRect.position.x + positionedRect.size.width && mouseY > positionedRect.position.y &&
-                mouseY < positionedRect.position.y + positionedRect.size.height) {
-            Vector3f hitPos = unProject(mouseX, mouseY);
-            RayTraceResult result = rayTrace(hitPos);
-            if (result != null) {
-                this.lastTraceResult = null;
-                this.lastTraceResult = result;
-                onLookingAt.accept(result);
+        // check lookingAt (throttled: only run every hitTestInterval frames)
+        frameCount++;
+        if (frameCount % hitTestInterval == 0) {
+            this.lastTraceResult = null;
+            if (onLookingAt != null && mouseX > positionedRect.position.x &&
+                    mouseX < positionedRect.position.x + positionedRect.size.width &&
+                    mouseY > positionedRect.position.y &&
+                    mouseY < positionedRect.position.y + positionedRect.size.height) {
+                Vector3f hitPos = unProject(mouseX, mouseY);
+                RayTraceResult result = rayTrace(hitPos);
+                if (result != null) {
+                    this.lastTraceResult = result;
+                    onLookingAt.accept(result);
+                }
             }
         }
         // resetCamera
@@ -301,11 +365,29 @@ public abstract class WorldSceneRenderer {
             setDefaultPassRenderState(pass);
 
             int finalPass = pass;
-            TILE_ENTITIES.forEach((pos, tile) -> {
-                if (tile.shouldRenderInPass(finalPass)) {
-                    dispatcher.render(tile, pos.getX(), pos.getY(), pos.getZ(), 0);
+            int rendered = 0;
+            for (Map.Entry<BlockPos, TileEntity> entry : TILE_ENTITIES.entrySet()) {
+                if (rendered >= maxTileEntityRenderers) break;
+
+                BlockPos pos = entry.getKey();
+                TileEntity tile = entry.getValue();
+
+                if (!tile.shouldRenderInPass(finalPass)) continue;
+
+                // Distance culling
+                if (maxTileEntityRenderDistSq < Double.MAX_VALUE) {
+                    double dx = pos.getX() + 0.5 - eyePos.x;
+                    double dy = pos.getY() + 0.5 - eyePos.y;
+                    double dz = pos.getZ() + 0.5 - eyePos.z;
+                    if (dx * dx + dy * dy + dz * dz > maxTileEntityRenderDistSq) continue;
                 }
-            });
+
+                // Custom filter
+                if (tileEntityFilter != null && !tileEntityFilter.test(tile)) continue;
+
+                dispatcher.render(tile, pos.getX(), pos.getY(), pos.getZ(), 0);
+                rendered++;
+            }
         }
         ForgeHooksClient.setRenderPass(-1);
         RenderHelper.disableStandardItemLighting();
