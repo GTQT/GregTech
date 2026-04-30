@@ -1,5 +1,7 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.pattern.MultiPiecePattern;
+
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -7,7 +9,6 @@ import net.minecraft.world.World;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -29,6 +30,9 @@ public class MultiblockWorldData {
 
     /** Controller -> Set of block positions (as longs) belonging to this controller's structure */
     private final Map<MultiblockControllerBase, LongSet> controllerPositions = new ConcurrentHashMap<>();
+
+    /** Controller -> MultiPiecePattern for piece-level dirty marking (P3) */
+    private final Map<MultiblockControllerBase, MultiPiecePattern> controllerPiecePatterns = new ConcurrentHashMap<>();
 
     /** Controllers that have been notified of a block change and need re-validation on next tick */
     private final Set<MultiblockControllerBase> pendingRecheck = ConcurrentHashMap.newKeySet();
@@ -59,6 +63,20 @@ public class MultiblockWorldData {
     }
 
     /**
+     * Register a formed multiblock with multi-piece pattern for piece-level dirty tracking.
+     * The combined positions from all active pieces are used for the chunk index.
+     *
+     * @param controller   the multiblock controller
+     * @param positions    the combined set of block positions (as longs) across all pieces
+     * @param piecePattern the multi-piece pattern for piece-level dirty marking
+     */
+    public void registerMultiblock(MultiblockControllerBase controller, LongSet positions,
+                                   MultiPiecePattern piecePattern) {
+        registerMultiblock(controller, positions);
+        controllerPiecePatterns.put(controller, piecePattern);
+    }
+
+    /**
      * Unregister a multiblock when it invalidates.
      * Called when a multiblock structure breaks.
      *
@@ -79,6 +97,7 @@ public class MultiblockWorldData {
             }
         }
 
+        controllerPiecePatterns.remove(controller);
         pendingRecheck.remove(controller);
     }
 
@@ -86,6 +105,9 @@ public class MultiblockWorldData {
      * Called when a block changes in the world.
      * Checks if any formed multiblock has this position registered
      * and marks it for re-validation.
+     *
+     * For multi-piece controllers, only the affected piece(s) are marked dirty
+     * instead of the entire controller (P3 piece-level dirty tracking).
      *
      * @param pos the position where a block changed
      */
@@ -98,6 +120,13 @@ public class MultiblockWorldData {
         for (MultiblockControllerBase controller : controllers) {
             LongSet positions = controllerPositions.get(controller);
             if (positions != null && positions.contains(posLong)) {
+                // Check if this controller uses multi-piece pattern
+                MultiPiecePattern piecePattern = controllerPiecePatterns.get(controller);
+                if (piecePattern != null) {
+                    // Piece-level dirty marking: only mark the specific piece(s) containing this position
+                    piecePattern.markDirtyByPosition(posLong);
+                }
+                // Always add to pendingRecheck so doStructureCheck() gets triggered
                 pendingRecheck.add(controller);
             }
         }
@@ -140,6 +169,7 @@ public class MultiblockWorldData {
     public void clear() {
         chunkIndex.clear();
         controllerPositions.clear();
+        controllerPiecePatterns.clear();
         pendingRecheck.clear();
     }
 }

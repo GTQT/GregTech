@@ -11,6 +11,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
@@ -104,6 +105,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** Per-instance mutable state for pattern checking (new architecture) */
     @Nullable
     protected MultiblockState multiblockState;
+
+    /** Multi-piece pattern for super-large structures (P3, opt-in) */
+    @Nullable
+    protected MultiPiecePattern multiPiecePattern;
+
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -234,6 +240,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.patternTemplate = this.structurePattern.getTemplate();
             this.multiblockState = this.structurePattern.getState();
         }
+        // Initialize multi-piece pattern if the subclass provides one (P3)
+        this.multiPiecePattern = createMultiPiecePattern();
     }
 
     @Override
@@ -261,7 +269,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
             if (worldData.isRegistered(this)) {
                 if (worldData.hasPendingRecheck(this)) {
-                    checkStructurePattern();
+                    // Multi-piece mode (P3): only check dirty pieces instead of full pattern
+                    if (multiPiecePattern != null) {
+                        checkMultiPieceStructure();
+                    } else {
+                        checkStructurePattern();
+                    }
                 }
                 return;
             }
@@ -289,6 +302,29 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     protected abstract BlockPattern createStructurePattern();
+
+    /**
+     * Override this method to provide a multi-piece pattern for super-large structures.
+     * When this returns non-null, the structure is checked piece-by-piece:
+     * only dirty pieces are re-validated when a block change occurs.
+     *
+     * <p>Standard multiblocks should NOT override this method. It is only useful for
+     * structures with thousands of blocks that benefit from partial re-checking.
+     *
+     * @return the multi-piece pattern, or null to use the standard single-pattern mode
+     */
+    @Nullable
+    protected MultiPiecePattern createMultiPiecePattern() {
+        return null;
+    }
+
+    /**
+     * @return the multi-piece pattern if this controller uses one, or null
+     */
+    @Nullable
+    public MultiPiecePattern getMultiPiecePattern() {
+        return multiPiecePattern;
+    }
 
     public EnumFacing getUpwardsFacing() {
         return upwardsFacing;
@@ -468,10 +504,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             formStructure(context);
 
             // Register with event-driven structure checking system
-            if (structurePattern != null && !structurePattern.cache.isEmpty()
-                    && !(getWorld() instanceof DummyWorld)) {
-                LongSet positions = new LongOpenHashSet(structurePattern.cache.keySet());
-                MultiblockWorldData.get(getWorld()).registerMultiblock(this, positions);
+            if (!(getWorld() instanceof DummyWorld)) {
+                if (multiPiecePattern != null) {
+                    // Multi-piece mode: do a full check of all pieces after initial form
+                    multiPiecePattern.checkAllPieces(getWorld(), getPos(),
+                            getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip());
+                    registerMultiPiecePattern();
+                } else if (structurePattern != null && !structurePattern.cache.isEmpty()) {
+                    LongSet positions = new LongOpenHashSet(structurePattern.cache.keySet());
+                    MultiblockWorldData.get(getWorld()).registerMultiblock(this, positions);
+                }
             }
         } else if (context == null && structureFormed) {
             invalidateStructure();
@@ -505,6 +547,36 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void formStructure(PatternMatchContext context) {}
 
     /**
+     * Multi-piece structure check (P3).
+     * Only re-validates dirty pieces instead of the entire pattern.
+     * If any piece becomes invalid, the entire structure is invalidated.
+     */
+    protected void checkMultiPieceStructure() {
+        if (multiPiecePattern == null) return;
+
+        boolean allValid = multiPiecePattern.checkDirtyPieces(
+                getWorld(), getPos(), getFrontFacing().getOpposite(),
+                getUpwardsFacing(), allowsFlip());
+
+        if (!allValid && structureFormed) {
+            invalidateStructure();
+        }
+    }
+
+    /**
+     * Register a multi-piece pattern with the event-driven system.
+     * Collects all positions from all active, validated pieces and registers them.
+     */
+    protected void registerMultiPiecePattern() {
+        if (multiPiecePattern == null || getWorld() == null || getWorld() instanceof DummyWorld) return;
+
+        LongSet allPositions = multiPiecePattern.getAllPositions();
+        if (!allPositions.isEmpty()) {
+            MultiblockWorldData.get(getWorld()).registerMultiblock(this, allPositions, multiPiecePattern);
+        }
+    }
+
+    /**
      * @return the immutable pattern template, or null if not initialized
      */
     @Nullable
@@ -524,6 +596,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         // Unregister from event-driven structure checking system
         if (getWorld() != null && !getWorld().isRemote) {
             MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
+        }
+
+        // Reset multi-piece pattern state if present (P3)
+        if (multiPiecePattern != null) {
+            multiPiecePattern.resetAll();
         }
 
         this.multiblockParts.forEach(part -> part.removeFromMultiBlock(this));
