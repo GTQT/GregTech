@@ -163,7 +163,7 @@ public class FuelRecipes {
         RecipeMaps.GAS_TURBINE_FUELS.recipeBuilder()
                 .fluidInputs(WoodGas.getFluid(8))
                 .duration(6)
-                .EUt(V[`LV`])
+                .EUt(V[LV])
                 .buildAndRegister();
 
         RecipeMaps.GAS_TURBINE_FUELS.recipeBuilder()

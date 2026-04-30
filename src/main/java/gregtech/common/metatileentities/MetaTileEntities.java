@@ -39,7 +39,6 @@ import gregtech.common.metatileentities.electric.MetaTileEntitySingleCombustion;
 import gregtech.common.metatileentities.electric.MetaTileEntitySingleTurbine;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
-import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
 import gregtech.common.metatileentities.electric.SimpleMachineMetaTileEntityResizable;
 import gregtech.common.metatileentities.multi.BoilerType;
@@ -300,7 +299,6 @@ public class MetaTileEntities {
     public static final MetaTileEntityBuffer[] BUFFER = new MetaTileEntityBuffer[5];
     public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[9];
     public static final MetaTileEntityBlockBreaker[] BLOCK_BREAKER = new MetaTileEntityBlockBreaker[4];
-    public static final MetaTileEntityWindGenerator[] WIND_GENERATOR = new MetaTileEntityWindGenerator[5];
     public static final MetaTileEntityMagicEnergyAbsorber[] MAGIC_ENERGY_ABSORBER = new MetaTileEntityMagicEnergyAbsorber[5];
     public static final MetaTileEntityItemCollector[] ITEM_COLLECTOR = new MetaTileEntityItemCollector[5];
     public static final MetaTileEntityFisher[] FISHER = new MetaTileEntityFisher[4];

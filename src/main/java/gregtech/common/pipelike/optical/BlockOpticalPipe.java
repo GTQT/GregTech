@@ -107,7 +107,7 @@ public class BlockOpticalPipe extends BlockPipe<OpticalPipeType, OpticalPipeProp
     }
 
     @Override
-    protected boolean isPipeTool(@NotNull ItemStack stack) {
+    public boolean isPipeTool(@NotNull ItemStack stack) {
         return ToolHelper.isTool(stack, ToolClasses.WIRE_CUTTER);
     }
 

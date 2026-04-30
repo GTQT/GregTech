@@ -73,7 +73,7 @@ public class BlockHeatConductor extends BlockMaterialPipe<HeatConductorType, Hea
     }
 
     @Override
-    protected boolean isPipeTool(@NotNull ItemStack stack) {
+    public boolean isPipeTool(@NotNull ItemStack stack) {
         return ToolHelper.isTool(stack, ToolClasses.WRENCH);
     }
 
