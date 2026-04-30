@@ -179,20 +179,35 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
 
         MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
         if (metaTileEntity instanceof MetaTileEntityMEPatternProvider provider) {
-            this.master = provider;
-            this.checkForMaster = false;
+            setMasterAndRegister(provider);
             return;
         }
 
         if (metaTileEntity instanceof MetaTileEntityMEPatternProviderProxy proxy) {
             MetaTileEntityMEPatternProvider resolvedMain = proxy.getResolvedMainForLink();
             if (resolvedMain != null) {
-                this.master = resolvedMain;
-                this.checkForMaster = false;
+                setMasterAndRegister(resolvedMain);
                 return;
             }
         }
 
+        this.master = null;
+        this.checkForMaster = true;
+    }
+
+    private void setMasterAndRegister(MetaTileEntityMEPatternProvider newMaster) {
+        if (this.master != null && this.master != newMaster) {
+            this.master.removeMappingSlave(this);
+        }
+        this.master = newMaster;
+        this.master.addMappingSlave(this);
+        this.checkForMaster = false;
+    }
+
+    /**
+     * Called by master when it is being removed from the world.
+     */
+    public void onMasterRemoved() {
         this.master = null;
         this.checkForMaster = true;
     }
@@ -210,6 +225,10 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
         if (tag == null || !tag.hasKey("BudgetCRIB")) return false;
 
         NBTTagCompound cribTag = tag.getCompoundTag("BudgetCRIB");
+        // Unregister from old master before switching
+        if (this.master != null) {
+            this.master.removeMappingSlave(this);
+        }
         this.masterPos = new BlockPos(
                 cribTag.getInteger("MainX"),
                 cribTag.getInteger("MainY"),
@@ -337,6 +356,9 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
 
     @Override
     public void onRemoval() {
+        if (this.master != null) {
+            this.master.removeMappingSlave(this);
+        }
         removeFromGridCache();
         super.onRemoval();
         if (patternSlot != null) {

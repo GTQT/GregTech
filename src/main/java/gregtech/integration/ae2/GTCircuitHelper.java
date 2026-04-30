@@ -1,6 +1,7 @@
 package gregtech.integration.ae2;
 
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
+import gregtech.api.util.GTLog;
 
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
@@ -44,10 +45,13 @@ public class GTCircuitHelper extends CircuitHelper {
         if (stack == null) {
             return false;
         }
-        return IntCircuitIngredient.isIntegratedCircuit(stack)
-                || Boolean.TRUE.equals(CURRENT_JEI_INGREDIENT_NOT_CONSUMABLE.get())
-                        && !stack.isEmpty()
-                        && !isProgrammableCircuit(stack);
+        boolean isCircuit = IntCircuitIngredient.isIntegratedCircuit(stack);
+        boolean notConsumable = Boolean.TRUE.equals(CURRENT_JEI_INGREDIENT_NOT_CONSUMABLE.get());
+        boolean result = isCircuit
+                || notConsumable && !stack.isEmpty() && !isProgrammableCircuit(stack);
+        GTLog.logger.info("[GTCircuitHelper] isIntegratedCircuit: stack={}, isCircuit={}, notConsumable={}, result={}",
+                stack.getDisplayName(), isCircuit, notConsumable, result);
+        return result;
     }
 
     @Nullable
@@ -61,10 +65,12 @@ public class GTCircuitHelper extends CircuitHelper {
     @Override
     public ItemStack wrapItemAsProgrammableStack(ItemStack sourceItem) {
         if (sourceItem.isEmpty()) {
+            GTLog.logger.info("[GTCircuitHelper] wrapItemAsProgrammableStack: sourceItem is empty, returning null");
             return null;
         }
 
         if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT == null) {
+            GTLog.logger.info("[GTCircuitHelper] wrapItemAsProgrammableStack: PROGRAMMABLE_CIRCUIT is null, returning copy");
             return sourceItem.copy();
         }
 
@@ -79,6 +85,9 @@ public class GTCircuitHelper extends CircuitHelper {
 
         final ItemStack programmable = GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
         ProgrammableCircuit.wrap(wrappedItem, programmable);
+        GTLog.logger.info("[GTCircuitHelper] wrapItemAsProgrammableStack: source={}, wrapped={}, hasNBT={}",
+                sourceItem.getDisplayName(), programmable.getDisplayName(),
+                programmable.hasTagCompound() ? programmable.getTagCompound() : "null");
         return programmable;
     }
 

@@ -14,6 +14,8 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 
+import org.jetbrains.annotations.NotNull;
+
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
@@ -59,6 +61,9 @@ public class RecipeMemoryGridWidget extends ParentWidget<RecipeMemoryGridWidget>
     private IntList filteredIndices;
     /** 外部搜索框引用，用于每帧检测文本变化 */
     private GTTextFieldWidget searchField;
+
+    /** 是否正在拖动滚动条 */
+    private boolean draggingScrollbar = false;
 
     private final List<RecipeMemorySlot> slotWidgets = new ArrayList<>(VIEWPORT_SIZE);
 
@@ -179,6 +184,73 @@ public class RecipeMemoryGridWidget extends ParentWidget<RecipeMemoryGridWidget>
             scrollRow = newRow;
         }
         return true;
+    }
+
+    // ==================== 滚动条鼠标拖动 ====================
+
+    /**
+     * 判断鼠标是否在滚动条轨道区域。
+     */
+    private boolean isMouseOnScrollbar(int mouseX, int mouseY) {
+        int absX = getArea().x;
+        int absY = getArea().y;
+        int trackX = absX + COLS * 18;
+        int trackY = absY;
+        int trackHeight = VISIBLE_ROWS * 18;
+        return mouseX >= trackX && mouseX < trackX + SCROLLBAR_WIDTH
+                && mouseY >= trackY && mouseY < trackY + trackHeight;
+    }
+
+    /**
+     * 根据鼠标 Y 坐标计算目标滚动行。
+     */
+    private int getScrollRowFromMouseY(int mouseY) {
+        int trackY = getArea().y;
+        int trackHeight = VISIBLE_ROWS * 18;
+        int maxRow = getMaxScrollRow();
+        if (maxRow == 0) return 0;
+
+        float relativeY = (float) (mouseY - trackY) / trackHeight;
+        relativeY = Math.max(0f, Math.min(1f, relativeY));
+        return Math.round(relativeY * maxRow);
+    }
+
+    @NotNull
+    @Override
+    public Result onMousePressed(int mouseButton) {
+        if (mouseButton == 0) {
+            int mouseX = getContext().getMouseX();
+            int mouseY = getContext().getMouseY();
+            if (isMouseOnScrollbar(mouseX, mouseY)) {
+                draggingScrollbar = true;
+                int newRow = getScrollRowFromMouseY(mouseY);
+                if (newRow != scrollRow) {
+                    scrollRow = newRow;
+                }
+                return Result.STOP;
+            }
+        }
+        return Result.IGNORE;
+    }
+
+    @Override
+    public void onMouseDrag(int mouseButton, long timeSinceClick) {
+        if (draggingScrollbar) {
+            int mouseY = getContext().getMouseY();
+            int newRow = getScrollRowFromMouseY(mouseY);
+            if (newRow != scrollRow) {
+                scrollRow = newRow;
+            }
+        }
+    }
+
+    @Override
+    public boolean onMouseRelease(int mouseButton) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
+        return false;
     }
 
     // ==================== 滚动条渲染 ====================

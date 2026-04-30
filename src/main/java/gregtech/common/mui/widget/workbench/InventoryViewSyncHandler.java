@@ -50,12 +50,15 @@ public class InventoryViewSyncHandler extends SyncHandler {
 
     @Override
     public void detectAndSendChanges(boolean init) {
-        boolean inventoryChanged = viewHandler.refreshFilterIfChanged();
+        // init=true（GUI 首次打开）时强制重建（包括排序）
+        boolean structureChanged = init
+                ? viewHandler.forceRebuild()
+                : viewHandler.refreshFilterIfChanged();
         int totalFiltered = viewHandler.getTotalFilteredSlots();
         int totalRows = (totalFiltered + columns - 1) / columns;
         int scrollRow = viewHandler.getScrollRow();
         int[] slotMapping = viewHandler.copySlotMapping();
-        if (init || inventoryChanged || totalRows != lastSyncedTotalRows || scrollRow != lastSyncedScrollRow ||
+        if (init || structureChanged || totalRows != lastSyncedTotalRows || scrollRow != lastSyncedScrollRow ||
                 !Arrays.equals(slotMapping, lastSyncedSlotMapping)) {
             lastSyncedTotalRows = totalRows;
             lastSyncedScrollRow = scrollRow;

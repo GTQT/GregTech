@@ -82,7 +82,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static gtqt.api.util.AE2PatternCompat.getFluidStack;
 
@@ -106,6 +108,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     // ==================== 缓冲区池 ====================
     private List<PatternBuffer> bufferPool;
+
+    // Signature hash -> list of buffers with that signature, for O(1) lookup
+    private final Map<Integer, List<PatternBuffer>> signatureMap = new HashMap<>();
+
+    // ==================== 双向注册：从属节点列表 ====================
+    private final List<MetaTileEntityPatternProviderMappingSlave> mappingSlaves = new ArrayList<>();
+    private final List<MetaTileEntityMEPatternProviderProxy> proxies = new ArrayList<>();
 
     // ==================== 固定参数 ====================
     private static final int PATTERN_SLOTS = 36;
@@ -296,19 +305,23 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
      */
     @Nullable
     private PatternBuffer findOrAllocateBuffer(BufferSignature signature) {
-        // 第一步：查找已有的与签名匹配且未满的缓冲区
-        for (PatternBuffer buffer : bufferPool) {
-            if (!buffer.isEmpty() && buffer.matchesSignature(signature) && !buffer.full()) {
-                return buffer;
+        // Step 1: Use HashMap for O(1) lookup of buffers with matching signature hash
+        int hash = signature.hashCode();
+        List<PatternBuffer> candidates = signatureMap.get(hash);
+        if (candidates != null) {
+            for (PatternBuffer buffer : candidates) {
+                if (!buffer.isEmpty() && buffer.matchesSignature(signature) && !buffer.full()) {
+                    return buffer;
+                }
             }
         }
-        // 第二步：分配一个空缓冲区
+        // Step 2: Allocate an empty buffer
         for (PatternBuffer buffer : bufferPool) {
             if (buffer.isEmpty() && !buffer.isRecipeLocked()) {
                 return buffer;
             }
         }
-        // 所有缓冲区都满了或没有空闲缓冲区
+        // All buffers are occupied or no free buffer available
         return null;
     }
 
@@ -327,6 +340,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         // 将签名记录到缓冲区（如果是空缓冲区则首次记录）
         if (buffer.isEmpty() && !buffer.isRecipeLocked()) {
             buffer.setSignature(signature);
+            registerBufferInSignatureMap(buffer);
         }
 
         // 将物品和流体实际插入缓冲区（累积模式：相同签名直接增加数量）
@@ -405,6 +419,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         if (buffer.isEmpty()) {
             // 空缓冲区：设置签名后再计算
             buffer.setSignature(signature);
+            registerBufferInSignatureMap(buffer);
             effectiveMax = maxTodo;
         } else {
             effectiveMax = Math.min(maxTodo, buffer.space());
@@ -494,7 +509,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 for (PatternBuffer buffer : bufferPool) {
                     // 先清理零数量的物品和流体（移植自 PH-Mod DualInvBuffer.updateSlots()）
                     buffer.updateSlots();
-                    buffer.clearRecipeIfNeeded();
+                    BufferSignature oldSig = buffer.getSignature();
+                    int result = buffer.clearRecipeIfNeeded();
+                    // Buffer was cleared: remove from signature map
+                    if (result == 1 && oldSig != null && buffer.getSignature() == null) {
+                        unregisterBufferFromSignatureMap(buffer, oldSig);
+                    }
                 }
             }
         }
@@ -583,6 +603,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 bufferPool.get(i).readFromNBT(bufferListTag.getCompoundTagAt(i));
             }
         }
+        // Rebuild signature map after deserialization
+        rebuildSignatureMap();
     }
 
     @Override
@@ -590,11 +612,82 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         return PATTERN_SLOTS;
     }
 
+    // ==================== Signature map maintenance ====================
+
+    private void registerBufferInSignatureMap(PatternBuffer buffer) {
+        BufferSignature sig = buffer.getSignature();
+        if (sig == null) return;
+        int hash = sig.hashCode();
+        signatureMap.computeIfAbsent(hash, k -> new ArrayList<>(2)).add(buffer);
+    }
+
+    private void unregisterBufferFromSignatureMap(PatternBuffer buffer, BufferSignature oldSig) {
+        int hash = oldSig.hashCode();
+        List<PatternBuffer> list = signatureMap.get(hash);
+        if (list != null) {
+            list.remove(buffer);
+            if (list.isEmpty()) {
+                signatureMap.remove(hash);
+            }
+        }
+    }
+
+    /**
+     * Rebuild signature map from scratch (used after NBT deserialization).
+     */
+    private void rebuildSignatureMap() {
+        signatureMap.clear();
+        for (PatternBuffer buffer : bufferPool) {
+            if (buffer.getSignature() != null) {
+                registerBufferInSignatureMap(buffer);
+            }
+        }
+    }
+
+    // ==================== 双向注册 API ====================
+
+    public void addMappingSlave(MetaTileEntityPatternProviderMappingSlave slave) {
+        if (!mappingSlaves.contains(slave)) {
+            mappingSlaves.add(slave);
+        }
+    }
+
+    public void removeMappingSlave(MetaTileEntityPatternProviderMappingSlave slave) {
+        mappingSlaves.remove(slave);
+    }
+
+    public void addProxy(MetaTileEntityMEPatternProviderProxy proxy) {
+        if (!proxies.contains(proxy)) {
+            proxies.add(proxy);
+        }
+    }
+
+    public void removeProxy(MetaTileEntityMEPatternProviderProxy proxy) {
+        proxies.remove(proxy);
+    }
+
+    public List<MetaTileEntityPatternProviderMappingSlave> getMappingSlaves() {
+        return mappingSlaves;
+    }
+
+    public List<MetaTileEntityMEPatternProviderProxy> getProxies() {
+        return proxies;
+    }
+
     @Override
     public void onRemoval() {
         // 先尝试退还所有缓冲区物品到 AE 网络
         refundAll();
         removeFromGridCache();
+        // Notify all linked slaves and proxies that master is gone
+        for (MetaTileEntityPatternProviderMappingSlave slave : new ArrayList<>(mappingSlaves)) {
+            slave.onMasterRemoved();
+        }
+        mappingSlaves.clear();
+        for (MetaTileEntityMEPatternProviderProxy proxy : new ArrayList<>(proxies)) {
+            proxy.onMasterRemoved();
+        }
+        proxies.clear();
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
         // 退还失败后，将缓冲区中剩余的物品掉落到地面
@@ -663,7 +756,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             // 仅在物品/流体都成功退空后，才重置缓冲区状态。
             // 若 AE 无法接收全部内容，剩余物品应保留在缓冲区中（避免吞物）。
             if (buffer.isItemAndFluidEmpty()) {
+                BufferSignature oldSig = buffer.getSignature();
                 buffer.clear();
+                if (oldSig != null) {
+                    unregisterBufferFromSignatureMap(buffer, oldSig);
+                }
             }
         }
     }

@@ -57,32 +57,51 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     private void tryToSetMain() {
         if (getWorld() == null || mainPos == null) {
-            this.main = null;
+            unregisterFromMain();
             this.checkForMain = true;
             return;
         }
 
         TileEntity tileEntity = getWorld().getTileEntity(mainPos);
         if (!(tileEntity instanceof IGregTechTileEntity iGregTechTileEntity)) {
-            this.main = null;
+            unregisterFromMain();
             this.checkForMain = true;
             return;
         }
 
         MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
         if (!(metaTileEntity instanceof MetaTileEntityMEPatternProvider budgetCRIB)) {
-            this.main = null;
+            unregisterFromMain();
             this.checkForMain = true;
             return;
         }
 
+        if (this.main != null && this.main != budgetCRIB) {
+            this.main.removeProxy(this);
+        }
         this.main = budgetCRIB;
+        this.main.addProxy(this);
         this.checkForMain = false;
 
         MultiblockControllerBase controllerBase = getController();
         if (controllerBase != null) {
             addNotifiedInput(getMain().getImportItems());
         }
+    }
+
+    private void unregisterFromMain() {
+        if (this.main != null) {
+            this.main.removeProxy(this);
+            this.main = null;
+        }
+    }
+
+    /**
+     * Called by master when it is being removed from the world.
+     */
+    public void onMasterRemoved() {
+        this.main = null;
+        this.checkForMain = true;
     }
 
     @Override
@@ -212,6 +231,14 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
                 tryToSetMain();
             }
         }
+    }
+
+    @Override
+    public void onRemoval() {
+        if (this.main != null) {
+            this.main.removeProxy(this);
+        }
+        super.onRemoval();
     }
 
     @Override

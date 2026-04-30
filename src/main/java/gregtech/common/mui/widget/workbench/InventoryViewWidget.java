@@ -15,6 +15,8 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +49,10 @@ public class InventoryViewWidget extends ParentWidget<InventoryViewWidget> imple
 
     private InventoryViewSyncHandler viewSyncHandler;
     private final List<ItemSlot> slotWidgets = new ArrayList<>(VIEWPORT_SIZE);
+
+    // ==================== 滚动条拖动状态 ====================
+    /** 是否正在拖动滚动条 */
+    private boolean draggingScrollbar = false;
 
     public InventoryViewWidget() {
         size(COLS * 18 + SCROLLBAR_WIDTH, ROWS * 18 + SEARCH_HEIGHT + 2);
@@ -113,6 +119,76 @@ public class InventoryViewWidget extends ParentWidget<InventoryViewWidget> imple
             viewSyncHandler.sendScrollRow(newRow);
         }
         return true;
+    }
+
+    // ==================== 滚动条鼠标拖动 ====================
+
+    /**
+     * 判断鼠标是否在滚动条轨道区域。
+     */
+    private boolean isMouseOnScrollbar(int mouseX, int mouseY) {
+        int absX = getArea().x;
+        int absY = getArea().y;
+        int trackX = absX + COLS * 18;
+        int trackY = absY + SEARCH_HEIGHT + 2;
+        int trackHeight = ROWS * 18;
+        return mouseX >= trackX && mouseX < trackX + SCROLLBAR_WIDTH
+                && mouseY >= trackY && mouseY < trackY + trackHeight;
+    }
+
+    /**
+     * 根据鼠标 Y 坐标计算目标滚动行。
+     */
+    private int getScrollRowFromMouseY(int mouseY) {
+        if (viewSyncHandler == null) return 0;
+        int trackY = getArea().y + SEARCH_HEIGHT + 2;
+        int trackHeight = ROWS * 18;
+        int totalRows = viewSyncHandler.getClientTotalRows();
+        int viewportRows = viewSyncHandler.getViewportRows();
+        int maxRow = Math.max(0, totalRows - viewportRows);
+        if (maxRow == 0) return 0;
+
+        float relativeY = (float) (mouseY - trackY) / trackHeight;
+        relativeY = Math.max(0f, Math.min(1f, relativeY));
+        return Math.round(relativeY * maxRow);
+    }
+
+    @NotNull
+    @Override
+    public Result onMousePressed(int mouseButton) {
+        if (mouseButton == 0 && viewSyncHandler != null) {
+            int mouseX = getContext().getMouseX();
+            int mouseY = getContext().getMouseY();
+            if (isMouseOnScrollbar(mouseX, mouseY)) {
+                draggingScrollbar = true;
+                int newRow = getScrollRowFromMouseY(mouseY);
+                if (newRow != viewSyncHandler.getClientScrollRow()) {
+                    viewSyncHandler.sendScrollRow(newRow);
+                }
+                return Result.STOP;
+            }
+        }
+        return Result.IGNORE;
+    }
+
+    @Override
+    public void onMouseDrag(int mouseButton, long timeSinceClick) {
+        if (draggingScrollbar && viewSyncHandler != null) {
+            int mouseY = getContext().getMouseY();
+            int newRow = getScrollRowFromMouseY(mouseY);
+            if (newRow != viewSyncHandler.getClientScrollRow()) {
+                viewSyncHandler.sendScrollRow(newRow);
+            }
+        }
+    }
+
+    @Override
+    public boolean onMouseRelease(int mouseButton) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
+        return false;
     }
 
     // ==================== 滚动条渲染 ====================

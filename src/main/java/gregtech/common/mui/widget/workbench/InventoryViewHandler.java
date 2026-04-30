@@ -46,7 +46,26 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
         this.viewportSize = viewportSize;
         this.columns = columns;
         this.slotMapping = new int[viewportSize];
-        rebuildView();
+        // 初始化时使用默认线性映射 [0, 1, 2, ...]
+        // 不执行排序，避免客户端（空壳 backing）和服务端（真实 backing）
+        // 的 slotMapping 不一致导致 Container slot 同步写到错误的 backing slot 位置。
+        // 服务端排序在 detectAndSendChanges(init=true) 中通过 refreshFilterIfChanged() 触发，
+        // 然后通过 InventoryViewSyncHandler 同步正确的 slotMapping 到客户端。
+        initDefaultMapping();
+    }
+
+    /**
+     * 初始化默认线性映射和快照。
+     */
+    private void initDefaultMapping() {
+        IItemHandlerModifiable backing = backing();
+        int totalSlots = backing.getSlots();
+        filteredSlots = new IntArrayList(totalSlots);
+        for (int i = 0; i < totalSlots; i++) {
+            filteredSlots.add(i);
+        }
+        updateSnapshot(backing, totalSlots);
+        rebuildSlotMapping();
     }
 
     private IItemHandlerModifiable backing() {
@@ -178,37 +197,48 @@ public class InventoryViewHandler implements IItemHandlerModifiable {
     }
 
     /**
-     * 刷新搜索过滤（库存内容变化时调用，不改变搜索文本和滚动位置）。
+     * 检查库存内容是否变化，更新快照。
+     * 只在 slot 数量变化时触发完整重建（重新排序），
+     * 内容变化时仅更新快照（不重排 filteredSlots），
+     * 避免排序导致 slotMapping 变化与 Container slot 同步冲突。
+     *
+     * @return true 如果发生了 slot 数量变化（结构变化），需要同步 mapping
      */
-    public void refreshFilter() {
-        rebuildView();
-    }
-
     public boolean refreshFilterIfChanged() {
         IItemHandlerModifiable backing = backing();
         int totalSlots = backing.getSlots();
-        if (!hasInventoryChanged(backing, totalSlots)) {
-            return false;
-        }
 
-        rebuildView();
-        return true;
-    }
-
-    private boolean hasInventoryChanged(IItemHandlerModifiable backing, int totalSlots) {
         if (lastSnapshot.length != totalSlots) {
+            // slot 数量变化（箱子放置/移除）：完整重建
+            rebuildView();
             return true;
         }
 
+        // 只更新快照，不重排
+        boolean contentChanged = false;
         for (int i = 0; i < totalSlots; i++) {
             ItemStack current = backing.getStackInSlot(i);
             ItemStack last = lastSnapshot[i];
             if (current.isEmpty() && last.isEmpty()) continue;
             if (!ItemStack.areItemStacksEqual(current, last)) {
-                return true;
+                contentChanged = true;
             }
         }
+
+        if (contentChanged) {
+            updateSnapshot(backing, totalSlots);
+        }
+
         return false;
+    }
+
+    /**
+     * 强制重建视图（包括排序）。
+     * 在 GUI 首次打开（init）时由 SyncHandler 调用。
+     */
+    public boolean forceRebuild() {
+        rebuildView();
+        return true;
     }
 
     private void updateSnapshot(IItemHandlerModifiable backing, int totalSlots) {

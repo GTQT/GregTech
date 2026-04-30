@@ -331,6 +331,11 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings settings) {
+        // 强制刷新库存缓存，确保 connectedInventory 是最新的
+        // （GUI 关闭期间远处箱子内容可能已变化）
+        inventoryCacheDirty = true;
+        getAvailableHandlers();
+
         getCraftingRecipeLogic().updateCurrentRecipe();
         this.recipeLogic.clearSlotMap();
 
