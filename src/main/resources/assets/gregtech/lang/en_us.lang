@@ -6679,6 +6679,7 @@ gregtech.machine.me.settings.minimum=Minimum stack size:
 gregtech.machine.me.settings.minimum.tooltip=Set to 0 to disable the minimum stack size filtering
 gregtech.machine.me.settings.ore_dict=Input OreDict Restriction
 gregtech.machine.me.settings.ore_dict.tooltip=After entering an OreDict key, only materials with that specific OreDict key will be pulled.
+gregtech.machine.me.settings.precise_mode=Precise Mode
 gregtech.machine.me.multiplier.button=Config multiplier
 # Universal tooltips
 gregtech.universal.tooltip.voltage_in=§aVoltage IN: §f%,d EU/t (%s§f)

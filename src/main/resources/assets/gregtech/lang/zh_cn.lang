@@ -6676,6 +6676,7 @@ gregtech.machine.me.settings.minimum=最小堆叠大小：
 gregtech.machine.me.settings.minimum.tooltip=设为 0 可禁用最小堆叠大小过滤
 gregtech.machine.me.settings.ore_dict=输入限制矿辞
 gregtech.machine.me.settings.ore_dict.tooltip=输入矿辞后，只会拉取带有指定矿辞的材料
+gregtech.machine.me.settings.precise_mode=精准模式
 gregtech.machine.me.multiplier.button=配置倍率
 # Universal tooltips
 gregtech.universal.tooltip.voltage_in=§a输入电压：§f%,d EU/t（%s§f）

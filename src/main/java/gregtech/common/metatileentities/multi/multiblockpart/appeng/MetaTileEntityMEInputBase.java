@@ -40,12 +40,14 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.IntValue;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncHandler;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
@@ -63,6 +65,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
     protected IExportOnlyAEStackList<AEStackType> aeHandler;
     protected GhostCircuitItemStackHandler circuitInventory;
     protected boolean workingEnabled = true;
+    protected boolean preciseMode = false;
 
     public MetaTileEntityMEInputBase(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch,
                                      Class<? extends IStorageChannel<AEStackType>> storageChannel) {
@@ -124,6 +127,17 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
 
             AEStackType requestStack = slot.requestStack();
             if (requestStack == null) continue;
+
+            // Precise mode: only extract if network has enough stock >= config amount
+            if (preciseMode) {
+                AEStackType simRequest = requestStack.copy();
+                simRequest.setStackSize(slot.getConfig() != null ? slot.getConfig().getStackSize() : requestStack.getStackSize());
+                AEStackType simResult = monitor.extractItems(simRequest, Actionable.SIMULATE, getActionSource());
+                if (simResult == null || simResult.getStackSize() < simRequest.getStackSize()) {
+                    continue;
+                }
+            }
+
             AEStackType extracted = monitor.extractItems(requestStack, Actionable.MODULATE, getActionSource());
             if (extracted == null) continue;
             slot.addStack(extracted);
@@ -235,6 +249,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
             .asIcon().size(16);
     protected ModularPanel buildSettingsPopup(PanelSyncManager syncManager, IPanelHandler syncHandler) {
         IntSyncValue refreshRateSync = new IntSyncValue(this::getRefreshRate, this::setRefreshRate);
+        BooleanSyncValue preciseModeSync = new BooleanSyncValue(this::isPreciseMode, this::setPreciseMode);
 
         final int width = 110;
         return GTGuis.createPopupPanel("settings", width, getSettingsPopupHeight())
@@ -257,11 +272,25 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
                         .size(width - 10, 10)
                         .setNumbers(1, Integer.MAX_VALUE)
                         .setDefaultNumber(ConfigHolder.compat.ae2.updateIntervals)
-                        .value(refreshRateSync));
+                        .value(refreshRateSync))
+                .child(new ToggleButton()
+                        .left(5)
+                        .top(15 + 18 + 14)
+                        .size(width - 10, 14)
+                        .value(preciseModeSync)
+                        .overlay(IKey.lang("gregtech.machine.me.settings.precise_mode")));
     }
 
     protected int getSettingsPopupHeight() {
-        return 33 + 14 + 5;
+        return 33 + 14 + 5 + 18;
+    }
+
+    public boolean isPreciseMode() {
+        return preciseMode;
+    }
+
+    public void setPreciseMode(boolean preciseMode) {
+        this.preciseMode = preciseMode;
     }
 
     protected Widget<?> getMultiplierWidget(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager) {
@@ -364,12 +393,14 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
         buf.writeBoolean(this.workingEnabled);
+        buf.writeBoolean(this.preciseMode);
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
         this.workingEnabled = buf.readBoolean();
+        this.preciseMode = buf.readBoolean();
     }
 
     @Override
@@ -381,6 +412,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setBoolean(WORKING_TAG, this.workingEnabled);
+        data.setBoolean("PreciseMode", this.preciseMode);
         this.circuitInventory.write(data);
         return data;
     }
@@ -391,6 +423,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
         if (data.hasKey(WORKING_TAG, Constants.NBT.TAG_BYTE)) {
             this.workingEnabled = data.getBoolean(WORKING_TAG);
         }
+        this.preciseMode = data.getBoolean("PreciseMode");
         this.circuitInventory.read(data);
     }
 

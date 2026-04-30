@@ -442,8 +442,6 @@ gregtech.machine.huge_me_pattern_provider_proxy.name=Huge Pattern Mapping Slave
 gregtech.machine.huge_pattern_mapping_slave.name=Huge Pattern Mapping Slave
 gregtech.machine.huge_pattern_mapping_slave.tooltip.1=Huge Pattern Mapping Slave: Has 144 independent pattern slots and AE network connection
 gregtech.machine.pattern_mapping_slave.name=Pattern Mapping Slave
-gregtech.machine.me_ore_prefix_pattern_provider_proxy.name=Ore Prefix Pattern Provider Proxy
-gregtech.machine.huge_me_ore_prefix_pattern_provider_proxy.name=Huge Ore Prefix Pattern Provider Proxy
 
 gregtech.machine.me_ore_dict_bus.name=ME OreDict Input Bus
 gregtech.machine.me_pattern_manager.name=ME Pattern Manager
@@ -917,6 +915,7 @@ gregtech.machine.me_ore_prefix_pattern_provider.tooltip.2=Allows marking other c
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.3=Features a blacklist system, allowing free addition and removal of operating materials
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.4=Note: Generated patterns may not necessarily match actual machine recipes, please verify carefully
 gregtech.machine.me_ore_prefix_pattern_provider.tooltip.5=MaterialFlag blacklist and whitelist filtering are supported, and the detailed name can be queried in the gregtech.api.unification.material.info.MaterialFlags directory
+gregtech.machine.me_ore_prefix_pattern_provider.tooltip.6=Must be linked to a Pattern Provider (master) via data stick. AE-pushed materials are forwarded to master's buffer pool
 
 gregtech.machine.budget_crib.data_stick_use=Wrote location to data stick
 gregtech.machine.budget_crib.data_stick_name=Budget CRIB Location Data
