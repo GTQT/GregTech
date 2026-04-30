@@ -3182,6 +3182,30 @@ tile.battery_block.cosmic_opv.name=宇宙弦电容（§aOpV§r）
 tile.battery_block.ultimate_max.name=创世电容（§c§lMAX§r）
 tile.battery_block.tooltip_empty=用于填补蓄能变电站的结构空隙
 
+# Forge of the Gods Casings
+tile.godforge_casing.singularity_reinforced_stellar_shielding.name=奇点强化恒星屏蔽外壳
+tile.godforge_casing.celestial_matter_guidance.name=天体物质引导外壳
+tile.godforge_casing.boundless_gravitationally_severed_structure.name=无界重力分离结构外壳
+tile.godforge_casing.transcendentally_amplified_magnetic_confinement.name=超越放大磁约束外壳
+tile.godforge_casing.stellar_energy_siphon.name=恒星能量虹吸外壳
+tile.godforge_casing.remote_graviton_flow_modulator.name=远程引力子流调制器
+tile.godforge_casing.medial_graviton_flow_modulator.name=中间引力子流调制器
+tile.godforge_casing.central_graviton_flow_modulator.name=中心引力子流调制器
+tile.godforge_casing.harmonic_phonon_transmission_conduit.name=谐波声子传输导管
+tile.godforge_casing.singularity_reinforced_stellar_shielding.tooltip=被奇点的事件视界所屏蔽
+tile.godforge_casing.celestial_matter_guidance.tooltip=使用时空畸变引导恒星物质
+tile.godforge_casing.boundless_gravitationally_severed_structure.tooltip=不受引力影响
+tile.godforge_casing.transcendentally_amplified_magnetic_confinement.tooltip=产生能够约束整颗恒星的巨大磁场
+tile.godforge_casing.stellar_energy_siphon.tooltip=从恒星物质流中汲取热能
+tile.godforge_casing.remote_graviton_flow_modulator.tooltip=控制引力子流以操纵引力
+tile.godforge_casing.medial_graviton_flow_modulator.tooltip=控制引力子流以操纵引力
+tile.godforge_casing.central_graviton_flow_modulator.tooltip=控制引力子流以操纵引力
+tile.godforge_casing.harmonic_phonon_transmission_conduit.tooltip=无损传输和存储极端热量
+
+# Forge of the Gods Glass
+tile.godforge_glass.spatially_transcendent_gravitational_lens.name=空间超越引力透镜方块
+tile.godforge_glass.spatially_transcendent_gravitational_lens.tooltip=引力透镜的字面意义
+
 # Long Distance Pipeline Blocks
 tile.long_distance_item_pipeline.name=长距离物品管道
 tile.long_distance_fluid_pipeline.name=长距离流体管道

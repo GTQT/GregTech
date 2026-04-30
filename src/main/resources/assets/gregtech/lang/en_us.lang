@@ -3186,6 +3186,30 @@ tile.battery_block.cosmic_opv.name=Cosmic String Capacitor (§aOpV§r)
 tile.battery_block.ultimate_max.name=Genesis Capacitor (§c§lMAX§r)
 tile.battery_block.tooltip_empty=Used to fill structural gaps in your Power Substation
 
+# Forge of the Gods Casings
+tile.godforge_casing.singularity_reinforced_stellar_shielding.name=Singularity Reinforced Stellar Shielding Casing
+tile.godforge_casing.celestial_matter_guidance.name=Celestial Matter Guidance Casing
+tile.godforge_casing.boundless_gravitationally_severed_structure.name=Boundless Gravitationally Severed Structure Casing
+tile.godforge_casing.transcendentally_amplified_magnetic_confinement.name=Transcendentally Amplified Magnetic Confinement Casing
+tile.godforge_casing.stellar_energy_siphon.name=Stellar Energy Siphon Casing
+tile.godforge_casing.remote_graviton_flow_modulator.name=Remote Graviton Flow Modulator
+tile.godforge_casing.medial_graviton_flow_modulator.name=Medial Graviton Flow Modulator
+tile.godforge_casing.central_graviton_flow_modulator.name=Central Graviton Flow Modulator
+tile.godforge_casing.harmonic_phonon_transmission_conduit.name=Harmonic Phonon Transmission Conduit
+tile.godforge_casing.singularity_reinforced_stellar_shielding.tooltip=Shielded by the event horizon of a singularity
+tile.godforge_casing.celestial_matter_guidance.tooltip=Designed to route stellar matter using spacetime distortion
+tile.godforge_casing.boundless_gravitationally_severed_structure.tooltip=Unaffected by gravitational forces
+tile.godforge_casing.transcendentally_amplified_magnetic_confinement.tooltip=Creates enormous magnetic fields capable of constraining entire stars
+tile.godforge_casing.stellar_energy_siphon.tooltip=Taps into streams of stellar matter to harness their heat energy
+tile.godforge_casing.remote_graviton_flow_modulator.tooltip=Controls the flow of gravitons to manipulate gravity
+tile.godforge_casing.medial_graviton_flow_modulator.tooltip=Controls the flow of gravitons to manipulate gravity
+tile.godforge_casing.central_graviton_flow_modulator.tooltip=Controls the flow of gravitons to manipulate gravity
+tile.godforge_casing.harmonic_phonon_transmission_conduit.tooltip=Transfers and stores extreme amounts of heat without any loss
+
+# Forge of the Gods Glass
+tile.godforge_glass.spatially_transcendent_gravitational_lens.name=Spatially Transcendent Gravitational Lens Block
+tile.godforge_glass.spatially_transcendent_gravitational_lens.tooltip=Gravitational lensing taken literal
+
 # Long Distance Pipeline Blocks
 tile.long_distance_item_pipeline.name=Long Distance Item Pipe
 tile.long_distance_fluid_pipeline.name=Long Distance Fluid Pipe

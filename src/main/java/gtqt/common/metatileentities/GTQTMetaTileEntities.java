@@ -173,8 +173,9 @@ public class GTQTMetaTileEntities {
         registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
         registerMetaTileEntity(2702, ME_PATTERN_PROVIDER_PROXY);
         registerMetaTileEntity(2703, HUGE_PATTERN_MAPPING_SLAVE);
-        registerMetaTileEntity(2704, ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
-        registerMetaTileEntity(2705, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
+        // TODO: ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY and HUGE variant not yet implemented
+        // registerMetaTileEntity(2704, ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
+        // registerMetaTileEntity(2705, HUGE_ME_ORE_PREFIX_PATTERN_PROVIDER_PROXY);
         registerMetaTileEntity(2706, PATTERN_MAPPING_SLAVE);
         registerMetaTileEntity(2707, ME_PATTERN_PROVIDER);
 

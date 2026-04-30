@@ -1,14 +1,19 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
+import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IDataStickIntractable;
+import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.util.GTLog;
+import gregtech.api.util.Mods;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityAEHostablePart;
 import gregtech.integration.ae2.GTCircuitHelper;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -17,8 +22,10 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.implementations.ICraftingPatternItem;
+import appeng.api.implementations.IPowerChannelState;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
@@ -30,9 +37,9 @@ import appeng.api.util.DimensionalCoord;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
-import appeng.api.implementations.IPowerChannelState;
 import appeng.tile.grid.AENetworkPowerTile;
-
+import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import lombok.Getter;
@@ -52,8 +59,21 @@ import java.util.List;
 public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEHostablePart
         implements ICraftingProvider, IGridProxyable, IPowerChannelState, IDataStickIntractable {
 
+    // UI icons for subclass GUI pages
+    protected final IDrawable CHEST = new ItemDrawable(Blocks.CHEST)
+            .asIcon().size(16);
+    protected final IDrawable HATCH = new ItemDrawable(getStackForm())
+            .asIcon().size(16);
+    protected final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
+            .asIcon().size(16);
+    protected final IDrawable FILTER = new ItemDrawable(Items.PAPER)
+            .asIcon().size(16);
+
     @Nullable
     protected List<ICraftingPatternDetails> patternDetails;
+
+    @Nullable
+    protected GhostCircuitItemStackHandler circuitInventory;
 
     // Master connection
     @Nullable
@@ -67,15 +87,65 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
     @Getter
     @Setter
     protected boolean useProxy = false;
-    protected BlockPos aeProxyPos = new BlockPos(0, 0, 0);
+    protected BlockPos AEProxy_pos = new BlockPos(0, 0, 0);
 
     // Pattern sync flag
     @Getter
     @Setter
     protected boolean needPatternSync = true;
 
+    // State flags used by subclass GUIs
+    @Setter
+    @Getter
+    protected boolean blockedMode = true;
+
+    @Setter
+    @Getter
+    protected boolean export = false;
+
+    @Getter
+    protected boolean autoCollapse;
+
+    @Setter
+    @Getter
+    protected boolean advancedCircuit = false;
+
+    // Slots used by subclass GUIs
+    @Getter
+    @Nullable
+    protected DualHandler dualHandler;
+    @Nullable
+    protected ItemStackHandler extraItem;
+
     public MetaTileEntityAEPatternRegistrar(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
+    }
+
+    // ==================== Utility methods for subclass GUIs ====================
+
+    public boolean hasGhostCircuitInventory() {
+        return true;
+    }
+
+    public void setAutoCollapse(boolean value) {
+        this.autoCollapse = value;
+    }
+
+    protected int getTankSize() {
+        return (int) Math.sqrt(getInventorySize());
+    }
+
+    protected int getItemSize() {
+        return getInventorySize();
+    }
+
+    protected int getTankCapacity() {
+        return 8000 * (1 << Math.min(9, getTier()));
+    }
+
+    private int getInventorySize() {
+        int sizeRoot = 1 + Math.min(9, getTier());
+        return sizeRoot * sizeRoot;
     }
 
     // ==================== Master connection ====================
@@ -251,7 +321,7 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
     public AENetworkProxy getProxy() {
         if (isUseProxy()) {
             if (this.getWorld() != null) {
-                TileEntity tileEntity = this.getWorld().getTileEntity(aeProxyPos);
+                TileEntity tileEntity = this.getWorld().getTileEntity(AEProxy_pos);
                 if (tileEntity instanceof AENetworkPowerTile proxy) {
                     return proxy.getProxy();
                 }
@@ -371,9 +441,9 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
             data.setInteger("MasterZ", masterPos.getZ());
         }
         data.setBoolean("useProxy", useProxy);
-        data.setInteger("aeProxy_x", aeProxyPos.getX());
-        data.setInteger("aeProxy_y", aeProxyPos.getY());
-        data.setInteger("aeProxy_z", aeProxyPos.getZ());
+        data.setInteger("aeProxy_x", AEProxy_pos.getX());
+        data.setInteger("aeProxy_y", AEProxy_pos.getY());
+        data.setInteger("aeProxy_z", AEProxy_pos.getZ());
         return data;
     }
 
@@ -388,7 +458,7 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
                     data.getInteger("MasterZ"));
         }
         this.useProxy = data.getBoolean("useProxy");
-        this.aeProxyPos = new BlockPos(
+        this.AEProxy_pos = new BlockPos(
                 data.getInteger("aeProxy_x"),
                 data.getInteger("aeProxy_y"),
                 data.getInteger("aeProxy_z"));

@@ -1,0 +1,125 @@
+{
+  "forge_marker": 1,
+  "variants": {
+    "active=false,variant=singularity_reinforced_stellar_shielding": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_trim"
+      }
+    },
+    "active=true,variant=singularity_reinforced_stellar_shielding": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_trim"
+      }
+    },
+    "active=false,variant=celestial_matter_guidance": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_inner"
+      }
+    },
+    "active=true,variant=celestial_matter_guidance": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_inner"
+      }
+    },
+    "active=false,variant=boundless_gravitationally_severed_structure": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_support"
+      }
+    },
+    "active=true,variant=boundless_gravitationally_severed_structure": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_support"
+      }
+    },
+    "active=false,variant=transcendentally_amplified_magnetic_confinement": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_outer"
+      }
+    },
+    "active=true,variant=transcendentally_amplified_magnetic_confinement": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_outer"
+      }
+    },
+    "active=false,variant=stellar_energy_siphon": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_energy"
+      }
+    },
+    "active=true,variant=stellar_energy_siphon": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_energy"
+      }
+    },
+    "active=false,variant=remote_graviton_flow_modulator": {
+      "model": "minecraft:cube_bottom_top",
+      "textures": {
+        "top": "gregtech:blocks/casings/godforge/godforge_outer",
+        "bottom": "gregtech:blocks/casings/godforge/godforge_outer",
+        "side": "gregtech:blocks/casings/godforge/graviton_casing_2"
+      }
+    },
+    "active=true,variant=remote_graviton_flow_modulator": {
+      "model": "minecraft:cube_bottom_top",
+      "textures": {
+        "top": "gregtech:blocks/casings/godforge/godforge_outer",
+        "bottom": "gregtech:blocks/casings/godforge/godforge_outer",
+        "side": "gregtech:blocks/casings/godforge/graviton_casing_2"
+      }
+    },
+    "active=false,variant=medial_graviton_flow_modulator": {
+      "model": "minecraft:cube_bottom_top",
+      "textures": {
+        "top": "gregtech:blocks/casings/godforge/godforge_outer",
+        "bottom": "gregtech:blocks/casings/godforge/godforge_outer",
+        "side": "gregtech:blocks/casings/godforge/graviton_casing_1"
+      }
+    },
+    "active=true,variant=medial_graviton_flow_modulator": {
+      "model": "minecraft:cube_bottom_top",
+      "textures": {
+        "top": "gregtech:blocks/casings/godforge/godforge_outer",
+        "bottom": "gregtech:blocks/casings/godforge/godforge_outer",
+        "side": "gregtech:blocks/casings/godforge/graviton_casing_1"
+      }
+    },
+    "active=false,variant=central_graviton_flow_modulator": {
+      "model": "minecraft:cube_bottom_top",
+      "textures": {
+        "top": "gregtech:blocks/casings/godforge/godforge_outer",
+        "bottom": "gregtech:blocks/casings/godforge/godforge_outer",
+        "side": "gregtech:blocks/casings/godforge/graviton_casing_0"
+      }
+    },
+    "active=true,variant=central_graviton_flow_modulator": {
+      "model": "minecraft:cube_bottom_top",
+      "textures": {
+        "top": "gregtech:blocks/casings/godforge/godforge_outer",
+        "bottom": "gregtech:blocks/casings/godforge/godforge_outer",
+        "side": "gregtech:blocks/casings/godforge/graviton_casing_0"
+      }
+    },
+    "active=false,variant=harmonic_phonon_transmission_conduit": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/phonon_conduit"
+      }
+    },
+    "active=true,variant=harmonic_phonon_transmission_conduit": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/phonon_conduit"
+      }
+    }
+  }
+}

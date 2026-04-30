@@ -1,6 +1,6 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
-import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 
 import net.minecraftforge.items.IItemHandler;
 
@@ -16,5 +16,5 @@ public interface IMEPatternProviderPart {
     String getShowName();
 
     @Nullable
-    MetaTileEntity getController();
+    MultiblockControllerBase getController();
 }

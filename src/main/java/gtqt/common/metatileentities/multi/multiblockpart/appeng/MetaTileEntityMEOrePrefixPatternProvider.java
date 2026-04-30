@@ -11,6 +11,7 @@ import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
@@ -402,7 +403,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
 
     @Override
     @Nullable
-    public MetaTileEntity getController() {
+    public MultiblockControllerBase getController() {
         return super.getController();
     }
 

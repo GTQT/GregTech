@@ -1,0 +1,17 @@
+{
+  "forge_marker": 1,
+  "variants": {
+    "active=false,variant=spatially_transcendent_gravitational_lens": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_glass"
+      }
+    },
+    "active=true,variant=spatially_transcendent_gravitational_lens": {
+      "model": "minecraft:cube_all",
+      "textures": {
+        "all": "gregtech:blocks/casings/godforge/godforge_glass"
+      }
+    }
+  }
+}

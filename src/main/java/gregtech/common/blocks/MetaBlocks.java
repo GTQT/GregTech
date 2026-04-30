@@ -145,6 +145,10 @@ public class MetaBlocks {
     public static BlockComputerCasing COMPUTER_CASING;
     public static BlockBatteryPart BATTERY_BLOCK;
 
+    // Forge of the Gods blocks
+    public static BlockGodforgeCasing GODFORGE_CASING;
+    public static BlockGodforgeGlass GODFORGE_GLASS;
+
     public static final EnumMap<EnumDyeColor, BlockLamp> LAMPS = new EnumMap<>(EnumDyeColor.class);
     public static final EnumMap<EnumDyeColor, BlockLamp> BORDERLESS_LAMPS = new EnumMap<>(EnumDyeColor.class);
 
@@ -276,6 +280,12 @@ public class MetaBlocks {
         COMPUTER_CASING.setRegistryName("computer_casing");
         BATTERY_BLOCK = new BlockBatteryPart();
         BATTERY_BLOCK.setRegistryName("battery_block");
+
+        // Forge of the Gods blocks
+        GODFORGE_CASING = new BlockGodforgeCasing();
+        GODFORGE_CASING.setRegistryName("godforge_casing");
+        GODFORGE_GLASS = new BlockGodforgeGlass();
+        GODFORGE_GLASS.setRegistryName("godforge_glass");
 
         for (EnumDyeColor color : EnumDyeColor.values()) {
             BlockLamp block = new BlockLamp(color);
@@ -484,6 +494,8 @@ public class MetaBlocks {
         registerItemModel(CLEANROOM_CASING);
         registerItemModel(COMPUTER_CASING);
         registerItemModel(BATTERY_BLOCK);
+        GODFORGE_CASING.onModelRegister();
+        GODFORGE_GLASS.onModelRegister();
         registerItemModel(ASPHALT);
         for (StoneVariantBlock block : STONE_BLOCKS.values())
             registerItemModel(block);

@@ -177,6 +177,9 @@ public class CommonProxy {
         registry.register(CLEANROOM_CASING);
         registry.register(COMPUTER_CASING);
         registry.register(BATTERY_BLOCK);
+        // Forge of the Gods blocks
+        registry.register(GODFORGE_CASING);
+        registry.register(GODFORGE_GLASS);
         registry.register(FOAM);
         registry.register(REINFORCED_FOAM);
         registry.register(PETRIFIED_FOAM);
@@ -323,6 +326,9 @@ public class CommonProxy {
         registry.register(createItemBlock(CLEANROOM_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(COMPUTER_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(BATTERY_BLOCK, VariantItemBlock::new));
+        // Forge of the Gods blocks
+        registry.register(createItemBlock(GODFORGE_CASING, VariantItemBlock::new));
+        registry.register(createItemBlock(GODFORGE_GLASS, VariantItemBlock::new));
         registry.register(createItemBlock(BOILER_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(BOILER_FIREBOX_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(METAL_CASING, VariantItemBlock::new));
