@@ -1,6 +1,7 @@
 package gregtech.common.event;
 
 import gregtech.api.GTValues;
+import gregtech.api.metatileentity.multiblock.AsyncStructureChecker;
 import gregtech.api.metatileentity.multiblock.MultiblockWorldData;
 
 import net.minecraft.util.EnumFacing;
@@ -10,10 +11,15 @@ import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 /**
  * Listens for block changes in the world and notifies the multiblock registry.
  * This enables event-driven structure checking instead of periodic polling.
+ *
+ * Also drives the async structure checker lifecycle (P2):
+ * - Starts/stops with server
+ * - Prepares snapshots and processes results each tick
  *
  * Covers the following scenarios:
  * - Player breaking blocks (BreakEvent)
@@ -59,5 +65,32 @@ public class BlockChangeListener {
         World world = (World) event.getWorld();
         if (world.isRemote) return;
         MultiblockWorldData.remove(world);
+        AsyncStructureChecker.getInstance().clearWorld(world);
+    }
+
+    @SubscribeEvent
+    public static void onWorldLoad(WorldEvent.Load event) {
+        World world = (World) event.getWorld();
+        if (world.isRemote) return;
+        // Ensure async checker is running when a world loads
+        AsyncStructureChecker.getInstance().start();
+    }
+
+    /**
+     * Server tick handler for async structure checking (P2).
+     * Prepares snapshots at the start of each tick and processes results at the end.
+     */
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
+        if (!checker.isRunning()) return;
+
+        if (event.phase == TickEvent.Phase.START) {
+            // Prepare block state snapshots for async checking on main thread
+            checker.prepareSnapshots();
+        } else {
+            // Process results from async checks on main thread
+            checker.processResults();
+        }
     }
 }

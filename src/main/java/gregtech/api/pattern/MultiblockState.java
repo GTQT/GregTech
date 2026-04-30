@@ -840,4 +840,125 @@ public class MultiblockState {
         });
         return result;
     }
+
+    /**
+     * Perform pattern checking against a snapshot (IBlockAccess) instead of a live World.
+     * Used by the async structure checker (P2) for thread-safe pattern matching.
+     *
+     * <p>This is a simplified version that only checks IBlockState matches (no TileEntity checks).
+     * If this returns non-null, a confirmatory check should be done on the main thread.
+     *
+     * @param blockAccess    the snapshot to check against
+     * @param centerPos      the center position of the pattern
+     * @param frontFacing    the front facing direction
+     * @param upwardsFacing  the upwards facing direction
+     * @param allowsFlip     whether flipping is allowed
+     * @return the match context if the pattern matches, or null
+     */
+    public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                                          BlockPos centerPos, EnumFacing frontFacing,
+                                                          EnumFacing upwardsFacing, boolean allowsFlip) {
+        // For snapshot checks, we skip the cache fast-path and do a full pattern check
+        PatternMatchContext pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, false);
+        if (allowsFlip) {
+            if (pmc != null) {
+                return pmc;
+            }
+            pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, true);
+        }
+        return pmc;
+    }
+
+    /**
+     * Internal pattern check against a snapshot.
+     * Simplified version that uses IBlockAccess instead of World.
+     */
+    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                                       BlockPos centerPos, EnumFacing frontFacing,
+                                                       EnumFacing upwardsFacing, boolean isFlipped) {
+        TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
+        int[][] aisleRepetitions = template.getAisleRepetitions();
+        RelativeDirection[] structureDir = template.getStructureDir();
+        int[] centerOffset = template.getCenterOffset();
+        int fingerLength = template.getFingerLength();
+        int thumbLength = template.getThumbLength();
+        int palmLength = template.getPalmLength();
+
+        boolean findFirstAisle = false;
+        int minZ = -centerOffset[4];
+
+        this.matchContext.reset();
+        this.globalCount.clear();
+        this.layerCount.clear();
+
+        // Checking aisles
+        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
+            // Checking repeatable slices
+            int validRepetitions = 0;
+            loop:
+            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset[3]); r++) {
+                // Checking single slice
+                this.layerCount.clear();
+
+                for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+                        TraceabilityPredicate predicate = blockMatches[c][b][a];
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
+                                isFlipped, structureDir)
+                                .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+
+                        // Use snapshot-aware update
+                        worldState.updateFromBlockAccess(blockAccess, pos, matchContext, globalCount, layerCount,
+                                predicate);
+
+                        if (!predicate.test(worldState)) {
+                            if (findFirstAisle) {
+                                if (r < aisleRepetitions[c][0]) {
+                                    r = c = 0;
+                                    z = minZ++;
+                                    matchContext.reset();
+                                    findFirstAisle = false;
+                                }
+                            } else {
+                                z++;
+                            }
+                            continue loop;
+                        }
+                    }
+                }
+                findFirstAisle = true;
+                z++;
+
+                // Check layer-local matcher predicate
+                for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : layerCount.entrySet()) {
+                    if (entry.getValue() < entry.getKey().minLayerCount) {
+                        worldState.setError(new TraceabilityPredicate.SinglePredicateError(entry.getKey(), 3));
+                        return null;
+                    }
+                }
+                validRepetitions++;
+            }
+            // Repetitions out of range
+            if (r < aisleRepetitions[c][0]) {
+                if (!worldState.hasError()) {
+                    worldState.setError(new PatternError());
+                }
+                return null;
+            }
+            formedRepetitionCount[c] = validRepetitions;
+        }
+
+        // Check count matches amount
+        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : globalCount.entrySet()) {
+            if (entry.getValue() < entry.getKey().minGlobalCount) {
+                worldState.setError(new TraceabilityPredicate.SinglePredicateError(entry.getKey(), 1));
+                return null;
+            }
+        }
+
+        worldState.setError(null);
+        matchContext.setNeededFlip(isFlipped);
+        return matchContext;
+    }
 }
+

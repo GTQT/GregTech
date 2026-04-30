@@ -258,7 +258,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void doStructureCheck() {
-        // First tick always performs a full structure check
+        // First tick always performs a full structure check on main thread
         if (isFirstTick()) {
             checkStructurePattern();
             return;
@@ -280,7 +280,17 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
         }
 
-        // Fallback: periodic polling for unformed multiblocks or unregistered controllers
+        // Unformed multiblocks: register for async checking (P2)
+        if (!structureFormed && getWorld() != null && !getWorld().isRemote
+                && !(getWorld() instanceof DummyWorld)) {
+            AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
+            if (checker.isRunning()) {
+                checker.registerForAsyncCheck(this);
+                return;
+            }
+        }
+
+        // Fallback: periodic polling (when async checker is not running or DummyWorld)
         if (isDelayCheck()) {
             if (getOffsetTimer() % getDelayStructureCheckStandby() == 0) {
                 checkStructurePattern();
@@ -503,6 +513,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
             formStructure(context);
 
+            // Unregister from async checker since we're now formed (P2)
+            AsyncStructureChecker.getInstance().unregister(this);
+
             // Register with event-driven structure checking system
             if (!(getWorld() instanceof DummyWorld)) {
                 if (multiPiecePattern != null) {
@@ -614,8 +627,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @Override
     public void onRemoval() {
         super.onRemoval();
-        if (!getWorld().isRemote && structureFormed) {
-            invalidateStructure();
+        if (!getWorld().isRemote) {
+            if (structureFormed) {
+                invalidateStructure();
+            }
+            // Unregister from async checker (P2)
+            AsyncStructureChecker.getInstance().unregister(this);
         }
     }
 
