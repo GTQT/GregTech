@@ -16,7 +16,8 @@
     "MinecraftMixin",
     "MixinBlockChest",
     "MixinEntity",
-    "RecipeRepairItemMixin"
+    "RecipeRepairItemMixin",
+    "WorldBlockStateMixin"
   ],
   "client": [
     "BlockFluidBaseMixin",

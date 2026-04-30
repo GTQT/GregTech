@@ -28,6 +28,9 @@ import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.MetaBlocks;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -226,13 +229,24 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void doStructureCheck() {
-        // 如果是首次tick，直接进行检测
+        // First tick always performs a full structure check
         if (isFirstTick()) {
             checkStructurePattern();
             return;
         }
 
-        // 检查是否启用延迟检测
+        // Event-driven mode: formed multiblocks only re-check when a block change is detected
+        if (structureFormed && getWorld() != null && !(getWorld() instanceof DummyWorld)) {
+            MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
+            if (worldData.isRegistered(this)) {
+                if (worldData.hasPendingRecheck(this)) {
+                    checkStructurePattern();
+                }
+                return;
+            }
+        }
+
+        // Fallback: periodic polling for unformed multiblocks or unregistered controllers
         if (isDelayCheck()) {
             if (getOffsetTimer() % getDelayStructureCheckStandby() == 0) {
                 checkStructurePattern();
@@ -272,6 +286,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 markDirty();
                 writeCustomData(UPDATE_UPWARDS_FACING, buf -> buf.writeByte(upwardsFacing.getIndex()));
                 if (structurePattern != null) {
+                    // Unregister before clearing cache so positions can be properly cleaned up
+                    MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
                     structurePattern.clearCache();
                     checkStructurePattern();
                 }
@@ -429,12 +445,29 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.structureFormed = true;
             writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
             formStructure(context);
+
+            // Register with event-driven structure checking system
+            if (structurePattern != null && !structurePattern.cache.isEmpty()
+                    && !(getWorld() instanceof DummyWorld)) {
+                LongSet positions = new LongOpenHashSet(structurePattern.cache.keySet());
+                MultiblockWorldData.get(getWorld()).registerMultiblock(this, positions);
+            }
         } else if (context == null && structureFormed) {
             invalidateStructure();
         } else if (context != null) {
             // ensure flip is ok, possibly not necessary but good to check just in case
             if (context.neededFlip() != isFlipped()) {
                 setFlipped(context.neededFlip());
+            }
+
+            // Re-register if cache was refreshed (e.g. after facing change + clearCache)
+            if (structurePattern != null && !structurePattern.cache.isEmpty()
+                    && !(getWorld() instanceof DummyWorld)) {
+                MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
+                if (!worldData.isRegistered(this)) {
+                    LongSet positions = new LongOpenHashSet(structurePattern.cache.keySet());
+                    worldData.registerMultiblock(this, positions);
+                }
             }
         }
     }
@@ -451,6 +484,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void formStructure(PatternMatchContext context) {}
 
     public void invalidateStructure() {
+        // Unregister from event-driven structure checking system
+        if (getWorld() != null && !getWorld().isRemote) {
+            MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
+        }
+
         this.multiblockParts.forEach(part -> part.removeFromMultiBlock(this));
         this.multiblockAbilities.clear();
         this.multiblockParts.clear();
@@ -585,6 +623,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         if (getWorld() != null && !getWorld().isRemote && structurePattern != null) {
+            // Unregister before clearing cache so positions can be properly cleaned up
+            MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
             // clear cache since the cache has no concept of pre-existing facing
             // for the controller block (or any block) in the structure
             structurePattern.clearCache();
