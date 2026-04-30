@@ -92,7 +92,7 @@ import static gtqt.api.util.AE2PatternCompat.createPatternIngredientTag;
 import static gtqt.api.util.AE2PatternCompat.createProcessingPattern;
 import static gtqt.api.util.AE2PatternCompat.toFluidDrop;
 
-public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECraftingPart
+public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPatternRegistrar
         implements IMEPatternProviderPart {
 
     String input = "null";
@@ -106,8 +106,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     ItemStackHandler extraOutput = new ItemStackHandler(2);
 
     public MetaTileEntityMEOrePrefixPatternProvider(ResourceLocation metaTileEntityId, int tier) {
-        super(metaTileEntityId, tier, false);
-        initializeInventory();
+        super(metaTileEntityId, tier);
     }
 
     private static IAEItemStack[] collectInventory(ItemStack[] slots) {
@@ -148,75 +147,8 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     }
 
     @Override
-    protected void initializeInventory() {
-        super.initializeInventory();
-        this.extraItem = new NotifiableItemStackHandler(this, getTankSize() + 1, null, false);
-
-        this.circuitInventory = new GhostCircuitItemStackHandler(this);
-        this.actualImportItems = new ItemHandlerList(
-                Arrays.asList(this.importItems, this.circuitInventory, extraItem));
-
-        dualHandler = new DualHandler(
-                this.actualImportItems,
-                getImportFluids(),
-                isExportHatch);
-    }
-
-    @Override
-    public IItemHandlerModifiable getImportItems() {
-        return dualHandler;
-    }
-
-    protected IFluidTank[] createTanks() {
-        int size = getTankSize();
-        IFluidTank[] tanks = new IFluidTank[size];
-        for (int index = 0; index < tanks.length; index++) {
-            tanks[index] = new NotifiableFluidTank(getTankCapacity(), null, isExportHatch);
-        }
-        return tanks;
-    }
-
-    protected int getTankSize() {
-        return 1 + Math.min(GTValues.UHV, getTier());
-    }
-
-    protected int getItemSize() {
-        return getTankSize() * getTankSize();
-    }
-
-    protected int getTankCapacity() {
-        return 8_000 * Math.min(Integer.MAX_VALUE, 1 << getTier());
-    }
-
-    @Override
-    protected IItemHandlerModifiable createImportItemHandler() {
-        return new NotifiableItemStackHandler(this, getItemSize(), null, false);
-    }
-
-    @Override
-    protected FluidTankList createImportFluidHandler() {
-        return new FluidTankList(false, createTanks());
-    }
-
-    @Override
     public void update() {
         super.update();
-        if (!getWorld().isRemote) {
-            if (getOffsetTimer() % 5 == 0) {
-                if (isAutoCollapse()) {
-                    IItemHandlerModifiable itemHandler = importItems;
-                    if (!isAttachedToMultiBlock() ||
-                            (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
-                                    getNotifiedItemInputList().contains(itemHandler))) {
-                        GTUtility.collapseInventorySlotContents(itemHandler);
-                    }
-                }
-            }
-            if (isWorkingEnabled() && isOnline && shouldSyncME()) {
-                if (isNeedPatternSync()) setNeedPatternSync(MEPatternChange());
-                if (isExport()) returnToNet();
-            }
-        }
     }
 
     @Override
@@ -231,7 +163,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
-        data.setTag("ExtraItem", this.extraItem.serializeNBT());
         data.setTag("ExtraInput", this.extraInput.serializeNBT());
         data.setTag("ExtraOutput", this.extraOutput.serializeNBT());
 
@@ -253,25 +184,12 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
             data.setString("blackTagList" + i, blackTagList.get(i));
         }
 
-        data.setBoolean("BlockingEnabled", isBlockedMode());
-        data.setBoolean("Export", isExport());
-        data.setBoolean("advancedCircuit", isAdvancedCircuit());
-
-        data.setBoolean("useProxy", isUseProxy());
-        data.setInteger("aeProxy_x", AEProxy_pos.getX());
-        data.setInteger("aeProxy_y", AEProxy_pos.getY());
-        data.setInteger("aeProxy_z", AEProxy_pos.getZ());
-
-        if (this.circuitInventory != null) {
-            this.circuitInventory.write(data);
-        }
         return data;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
-        this.extraItem.deserializeNBT(data.getCompoundTag("ExtraItem"));
         this.extraInput.deserializeNBT(data.getCompoundTag("ExtraInput"));
         this.extraOutput.deserializeNBT(data.getCompoundTag("ExtraOutput"));
 
@@ -280,28 +198,20 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
         this.input = data.getString("input");
         this.output = data.getString("output");
 
+        blackList.clear();
         int size = data.getInteger("blackListSize");
         for (int i = 0; i < size; i++) {
             blackList.add(data.getString("blackList" + i));
         }
+        whiteTagList.clear();
         size = data.getInteger("whiteTagListSize");
         for (int i = 0; i < size; i++) {
             whiteTagList.add(data.getString("whiteTagList" + i));
         }
+        blackTagList.clear();
         size = data.getInteger("blackTagListSize");
         for (int i = 0; i < size; i++) {
             blackTagList.add(data.getString("blackTagList" + i));
-        }
-
-        setBlockedMode(data.getBoolean("BlockingEnabled"));
-        setExport(data.getBoolean("Export"));
-        setAdvancedCircuit(data.getBoolean("advancedCircuit"));
-        setUseProxy(data.getBoolean("useProxy"));
-        AEProxy_pos = new BlockPos(data.getInteger("aeProxy_x"), data.getInteger("aeProxy_y"),
-                data.getInteger("aeProxy_z"));
-
-        if (this.circuitInventory != null) {
-            this.circuitInventory.read(data);
         }
     }
 
@@ -322,6 +232,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
         }
     }
 
+    @Override
     public List<ItemStack> createPatterns() {
         ArrayList<ItemStack> patterns = new ArrayList<>();
 
@@ -473,9 +384,26 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAECr
 
     @Override
     public void onRemoval() {
-        removeFromGridCache();
         super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), extraItem);
+    }
+
+    // ==================== IMEPatternProviderPart ====================
+
+    @Override
+    @Nullable
+    public net.minecraftforge.items.IItemHandler getPatternSlot() {
+        return null;
+    }
+
+    @Override
+    public String getShowName() {
+        return getMetaFullName();
+    }
+
+    @Override
+    @Nullable
+    public MetaTileEntity getController() {
+        return super.getController();
     }
 
     @Override

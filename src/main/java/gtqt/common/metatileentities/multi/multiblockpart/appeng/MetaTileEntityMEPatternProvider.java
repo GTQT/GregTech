@@ -115,6 +115,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     // ==================== 双向注册：从属节点列表 ====================
     private final List<MetaTileEntityPatternProviderMappingSlave> mappingSlaves = new ArrayList<>();
     private final List<MetaTileEntityMEPatternProviderProxy> proxies = new ArrayList<>();
+    private final List<MetaTileEntityAEPatternRegistrar> orePrefixRegistrars = new ArrayList<>();
 
     // ==================== 固定参数 ====================
     private static final int PATTERN_SLOTS = 36;
@@ -674,6 +675,20 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         return proxies;
     }
 
+    public void addOrePrefixRegistrar(MetaTileEntityAEPatternRegistrar registrar) {
+        if (!orePrefixRegistrars.contains(registrar)) {
+            orePrefixRegistrars.add(registrar);
+        }
+    }
+
+    public void removeOrePrefixRegistrar(MetaTileEntityAEPatternRegistrar registrar) {
+        orePrefixRegistrars.remove(registrar);
+    }
+
+    public List<MetaTileEntityAEPatternRegistrar> getOrePrefixRegistrars() {
+        return orePrefixRegistrars;
+    }
+
     @Override
     public void onRemoval() {
         // 先尝试退还所有缓冲区物品到 AE 网络
@@ -688,6 +703,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             proxy.onMasterRemoved();
         }
         proxies.clear();
+        for (MetaTileEntityAEPatternRegistrar registrar : new ArrayList<>(orePrefixRegistrars)) {
+            registrar.onMasterRemoved();
+        }
+        orePrefixRegistrars.clear();
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), patternSlot);
         // 退还失败后，将缓冲区中剩余的物品掉落到地面
