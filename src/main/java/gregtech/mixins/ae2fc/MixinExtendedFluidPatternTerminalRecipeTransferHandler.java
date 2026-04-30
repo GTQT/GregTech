@@ -5,6 +5,7 @@ import gregtech.integration.ae2.GTCircuitHelper;
 import net.minecraft.entity.player.EntityPlayer;
 
 import com.glodblock.github.client.container.ContainerExtendedFluidPatternTerminal;
+import com.glodblock.github.integration.jei.ExtendedFluidPatternTerminalRecipeTransferHandler;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,8 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * the programmable circuit transfer context (player + enabled flag) before
  * RecipeTransferBuilder is constructed, and clean it up afterwards.
  */
-@Mixin(targets = "com.glodblock.github.integration.jei.ExtendedFluidPatternTerminalRecipeTransferHandler",
-        remap = false)
+@Mixin(value = ExtendedFluidPatternTerminalRecipeTransferHandler.class, remap = false)
 public abstract class MixinExtendedFluidPatternTerminalRecipeTransferHandler {
 
     @Inject(method = "transferRecipe", at = @At("HEAD"), remap = false)

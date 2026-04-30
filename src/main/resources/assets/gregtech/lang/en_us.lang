@@ -5907,6 +5907,11 @@ gregtech.multiblock.active_transformer.max_in=Max Input: %s
 gregtech.multiblock.active_transformer.max_out=Max Output: %s
 gregtech.multiblock.active_transformer.average_io=Average I/O: %s
 
+# Forge of the Gods
+gregtech.machine.forge_of_gods.name=Forge of the Gods
+gregtech.machine.forge_of_gods.tooltip1=Harnesses the power of a star
+gregtech.machine.forge_of_gods.tooltip2=An ancient stellar forge, capable of manipulating matter at the most fundamental level
+
 gregtech.machine.research_station.name=Research Station
 gregtech.machine.research_station.tooltip.1=More than just a Multiblock Scanner
 gregtech.machine.research_station.tooltip.2=Used to scan onto §fData Orbs§7 and §fData Modules§7.

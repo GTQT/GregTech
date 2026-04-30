@@ -54,6 +54,7 @@ import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
+import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAssemblyLine;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCleanroom;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCrackingUnit;
@@ -435,6 +436,9 @@ public class MetaTileEntities {
     public static MetaTileEntityNetworkSwitch NETWORK_SWITCH;
     public static MetaTileEntityPowerSubstation POWER_SUBSTATION;
     public static MetaTileEntityActiveTransformer ACTIVE_TRANSFORMER;
+
+    // FORGE OF THE GODS
+    public static MetaTileEntityForgeOfGods FORGE_OF_GODS;
 
     // STORAGE SECTION
     public static MetaTileEntityTankValve WOODEN_TANK_VALVE;
@@ -1014,6 +1018,10 @@ public class MetaTileEntities {
                 new MetaTileEntityPowerSubstation(gregtechId("power_substation")));
         ACTIVE_TRANSFORMER = registerMetaTileEntity(1042,
                 new MetaTileEntityActiveTransformer(gregtechId("active_transformer")));
+
+        // Forge of the Gods
+        FORGE_OF_GODS = registerMetaTileEntity(2100,
+                new MetaTileEntityForgeOfGods(gregtechId("forge_of_gods")));
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
 

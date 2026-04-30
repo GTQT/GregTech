@@ -5903,6 +5903,11 @@ gregtech.multiblock.active_transformer.max_in=最大输入：%s
 gregtech.multiblock.active_transformer.max_out=最大输出：%s
 gregtech.multiblock.active_transformer.average_io=平均I/O：%s
 
+# Forge of the Gods
+gregtech.machine.forge_of_gods.name=诸神之锻炉
+gregtech.machine.forge_of_gods.tooltip1=驾驭恒星之力
+gregtech.machine.forge_of_gods.tooltip2=一座古老的恒星熔炉，能够在最基本的层面上操纵物质
+
 gregtech.machine.research_station.name=研究站
 gregtech.machine.research_station.tooltip.1=不仅仅是一个多方块扫描仪
 gregtech.machine.research_station.tooltip.2=用于扫描§f数据球§7和§f数据模块§7。
