@@ -19,10 +19,11 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -312,24 +313,26 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start(RIGHT, FRONT, UP)
+        return DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
                 .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                 .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
-                .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG").setRepeatable(1, MAX_BATTERY_LAYERS)
+                .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
                 .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
                 .where('S', selfPredicate())
                 .where('C', states(getCasingState()))
-                .where('X', states(getCasingState()).setMinGlobalLimited(MIN_CASINGS)
-                        .or(maintenancePredicate())
-
-                        .or(abilities(MultiblockAbility.WIRELESS_CONTROLLER).setMaxGlobalLimited(1))
-
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY,
-                                MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1))
-                        .or(abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
-                                MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1)))
                 .where('G', states(getGlassState()))
                 .where('B', BATTERY_PREDICATE.get())
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.palladium_substation"))
+                    .withCustomHatches(maintenancePredicate(), 1)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.WIRELESS_CONTROLLER).setMaxGlobalLimited(1), 1)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY,
+                                    MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
+                                    MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
                 .build();
     }
 

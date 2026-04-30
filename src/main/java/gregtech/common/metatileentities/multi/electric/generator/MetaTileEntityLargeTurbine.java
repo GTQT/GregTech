@@ -16,8 +16,9 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -191,7 +192,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
                 .aisle("CCCC", "CSHC", "CCCC")
@@ -206,7 +207,12 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                         .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[tier])
                         .setExactLimit(1)
                         .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
-                .where('H', states(getCasingState()).or(autoAbilities(false, true, false, false, true, true, true)))
+                .casing('H', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.turbine"))
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, hasMufflerHatch ? 1 : 0)
                 .build();
     }
 

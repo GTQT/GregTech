@@ -17,8 +17,9 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.KeyUtil;
@@ -131,16 +132,13 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
 
     @Override
     protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XDX", "XXX")
                 .aisle("XCX", "CGC", "XCX")
                 .aisle("XCX", "CGC", "XCX")
                 .aisle("AAA", "AYA", "AAA")
                 .where('X', states(getCasingState()))
                 .where('G', states(getGearboxState()))
-                .where('C',
-                        states(getCasingState()).setMinGlobalLimited(3)
-                                .or(autoAbilities(false, true, true, true, true, true, true)))
                 .where('D', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
                         .filter(mte -> {
                             IEnergyContainer container = mte
@@ -152,6 +150,14 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                         .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[tier]))
                 .where('A', states(getIntakeState()).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
                 .where('Y', selfPredicate())
+                .casing('C', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing." + (isExtreme ? "tungstensteel_robust" : "titanium_stable")))
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
                 .build();
     }
 

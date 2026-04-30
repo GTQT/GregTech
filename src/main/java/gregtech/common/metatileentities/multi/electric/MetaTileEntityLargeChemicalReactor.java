@@ -4,11 +4,13 @@ import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
@@ -50,18 +52,25 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
 
     @Override
     protected BlockPattern createStructurePattern() {
-        TraceabilityPredicate casing = states(getCasingState()).setMinGlobalLimited(10);
         TraceabilityPredicate abilities = autoAbilities();
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XCX", "XXX")
                 .aisle("XCX", "CPC", "XCX")
                 .aisle("XXX", "XSX", "XXX")
                 .where('S', selfPredicate())
-                .where('X', casing.or(abilities))
                 .where('P', states(getPipeCasingState()))
                 .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
                         .or(abilities)
-                        .or(casing))
+                        .or(states(getCasingState())))
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.ptfe_inert"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
                 .build();
     }
 

@@ -10,8 +10,9 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -163,25 +164,33 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        FactoryBlockPattern pattern = FactoryBlockPattern.start(FRONT, UP, RIGHT)
+        return DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                 .aisle("XXX", "XXX", "XXX")
-                .aisle("CDD", "CAD", "CDD").setRepeatable(1, 3)
+                .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
                 .aisle("CDD", "SAD", "CDD")
-                .aisle("CDD", "CAD", "CDD").setRepeatable(1, 3)
+                .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
                 .aisle("XXX", "XXX", "XXX")
                 .where('S', selfPredicate())
                 .where('X', states(getOuterState()))
-                .where('D', states(getInnerState()).setMinGlobalLimited(3)
-                        .or(abilities(MultiblockAbility.DATA_ACCESS_HATCH).setPreviewCount(3))
-                        .or(abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION).setMinGlobalLimited(1, 1))
-                        .or(abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1)))
                 .where('A', states(getInnerState()))
-                .where('C', states(getFrontState())
-                        .setMinGlobalLimited(4)
-                        .or(autoAbilities())
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY)
-                                .setMinGlobalLimited(1).setMaxGlobalLimited(2).setPreviewCount(1)));
-        return pattern.build();
+                .casing('D', CasingDefinition.simple(getInnerState(),
+                        "gregtech.machine.casing.computer"))
+                    .withOptionalHatches(MultiblockAbility.DATA_ACCESS_HATCH, 9)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
+                                    .setMinGlobalLimited(1, 1), 1)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
+                .casing('C', CasingDefinition.simple(getFrontState(),
+                        "gregtech.machine.casing.high_power"))
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                .build();
     }
 
     @NotNull

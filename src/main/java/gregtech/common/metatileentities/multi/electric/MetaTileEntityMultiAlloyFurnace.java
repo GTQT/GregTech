@@ -9,8 +9,12 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTCasingGroups;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
@@ -96,7 +100,13 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
     @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
-        IHeatingCoilBlockStats coilType = context.getOrDefault("CoilType", CoilType.CUPRONICKEL);
+        ICasing matchedCoil = GTStructureChannels.HEATING_COIL.getMatchedCasing(context);
+        IHeatingCoilBlockStats coilType;
+        if (matchedCoil instanceof GTCasingGroups.HeatingCoilCasing) {
+            coilType = ((GTCasingGroups.HeatingCoilCasing) matchedCoil).getCoilStats();
+        } else {
+            coilType = CoilType.CUPRONICKEL;
+        }
         this.heatingCoilLevel = coilType.getLevel();
         this.heatingCoilDiscount = coilType.getEnergyDiscount();
     }
@@ -111,17 +121,23 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "CCC", "XXX")
                 .aisle("XXX", "C#C", "XMX")
                 .aisle("XSX", "CCC", "XXX")
                 .where('S', selfPredicate())
-                .where('X',
-                        states(getCasingState()).setMinGlobalLimited(9)
-                                .or(autoAbilities(true, true, true, true, true, true, false)))
                 .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                .where('C', heatingCoils())
                 .where('#', air())
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.invar_heatproof"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                .tieredCasing('C', GTCasingGroups.heatingCoils())
+                    .withChannel(GTStructureChannels.HEATING_COIL)
                 .build();
     }
 

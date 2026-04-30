@@ -8,7 +8,7 @@ import net.minecraft.item.ItemStack;
 
 import appeng.integration.modules.gregtech.CircuitHelper;
 import com.glodblock.github.integration.jei.RecipeTransferBuilder;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import mezz.jei.api.gui.IGuiIngredient;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.ingredients.IIngredientRenderer;
@@ -37,7 +37,7 @@ public abstract class MixinRecipeTransferBuilder {
 
     @Shadow
     @Final
-    private Int2ObjectMap<ItemStack[]> in;
+    private Int2ObjectArrayMap<ItemStack[]> in;
 
     @Inject(method = "build", at = @At("RETURN"), remap = false)
     private void gregtech$injectProgrammableCircuits(CallbackInfoReturnable<RecipeTransferBuilder> cir) {

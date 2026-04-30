@@ -9,8 +9,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
@@ -81,20 +82,13 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        FactoryBlockPattern pattern = FactoryBlockPattern.start(FRONT, UP, RIGHT)
+        return DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                 .aisle("FIF", "RTR", "SAG", " Y ")
-                .aisle("FIF", "RTR", "DAG", " Y ").setRepeatable(3, 15)
+                .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
                 .aisle("FOF", "RTR", "DAG", " Y ")
                 .where('S', selfPredicate())
-                .where('F', states(getCasingState())
-                        .or(autoAbilities(false, true, false, false, false, false, false))
-                        .or(fluidInputPredicate()))
                 .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
                         .addTooltips("gregtech.multiblock.pattern.location_end"))
-                .where('Y', states(getCasingState())
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY)
-                                .setMinGlobalLimited(1)
-                                .setMaxGlobalLimited(3)))
                 .where('I', metaTileEntities(MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV]))
                 .where('G', states(getGrateState()))
                 .where('A',
@@ -105,8 +99,15 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                         states(MetaBlocks.MULTIBLOCK_CASING
                                 .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING)))
                 .where('D', dataHatchPredicate())
-                .where(' ', any());
-        return pattern.build();
+                .where(' ', any())
+                .casing('F', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.solid_steel"))
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withCustomHatches(fluidInputPredicate(), 4)
+                .casing('Y', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.solid_steel"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                .build();
     }
 
     @NotNull

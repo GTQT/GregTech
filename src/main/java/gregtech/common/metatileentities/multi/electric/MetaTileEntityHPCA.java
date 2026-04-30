@@ -14,9 +14,10 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
@@ -207,19 +208,21 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
 
     @Override
     protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("AA", "CC", "CC", "CC", "AA")
-                .aisle("VA", "XV", "XV", "XV", "VA").setRepeatable(3,14)
+                .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
                 .aisle("SA", "CC", "CC", "CC", "AA")
                 .where('S', selfPredicate())
                 .where('A', states(getAdvancedState()))
                 .where('V', states(getVentState()))
                 .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
-                .where('C', states(getCasingState()).setMinGlobalLimited(5)
-                        .or(maintenancePredicate())
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMaxGlobalLimited(1))
-                        .or(abilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION).setExactLimit(1)))
+                .casing('C', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.computer"))
+                    .withCustomHatches(maintenancePredicate(), 1)
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION).setExactLimit(1), 1)
                 .build();
     }
 

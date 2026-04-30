@@ -7,8 +7,9 @@ import gregtech.api.metatileentity.multiblock.IPrimitivePump;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.LocalizationUtils;
 import gregtech.client.renderer.ICubeRenderer;
@@ -133,17 +134,19 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
 
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXXX", "**F*", "**F*")
                 .aisle("XXHX", "F**F", "FFFF")
                 .aisle("SXXX", "**F*", "**F*")
                 .where('S', selfPredicate())
-                .where('X', states(MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK)))
                 .where('F', frames(Materials.TreatedWood))
                 .where('H',
                         abilities(MultiblockAbility.PUMP_FLUID_HATCH).or(metaTileEntities(
                                 MetaTileEntities.FLUID_EXPORT_HATCH[0], MetaTileEntities.FLUID_EXPORT_HATCH[1])))
                 .where('*', any())
+                .casing('X', CasingDefinition.simple(
+                        MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK),
+                        "gregtech.machine.casing.pump_deck"))
                 .build();
     }
 

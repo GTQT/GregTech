@@ -10,8 +10,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTTransferUtils;
@@ -96,19 +97,23 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
 
     @Override
     protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start(RIGHT, FRONT, UP)
+        return DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
                 .aisle("YSY", "YYY", "YYY")
-                .aisle("XXX", "X#X", "XXX").setRepeatable(1, 11)
+                .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
                 .aisle("XXX", "XXX", "XXX")
                 .where('S', selfPredicate())
-                .where('Y', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS).setMaxGlobalLimited(1))
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1).setMaxGlobalLimited(3))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(1)))
-                .where('X', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1))
-                        .or(autoAbilities(true, false)))
                 .where('#', air())
+                .casing('Y', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.stainless_clean"))
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(1), 1)
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.stainless_clean"))
+                    .withCustomHatches(
+                            abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
+                    .withCustomHatches(maintenancePredicate(), 1)
                 .build();
     }
 
