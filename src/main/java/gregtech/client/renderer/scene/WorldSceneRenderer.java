@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
@@ -37,6 +38,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -87,6 +89,9 @@ public abstract class WorldSceneRenderer {
     private int hitTestInterval = 1;
     private int frameCount;
 
+    // Internal block culling: remove blocks fully enclosed by other blocks
+    private boolean cullInternal;
+
     public WorldSceneRenderer(World world) {
         this.world = world;
     }
@@ -104,8 +109,20 @@ public abstract class WorldSceneRenderer {
     public WorldSceneRenderer addRenderedBlocks(@Nullable Collection<BlockPos> blocks) {
         if (blocks != null) {
             this.renderedBlocks.addAll(blocks);
+
+            // Internal block culling: remove blocks fully enclosed by 6 non-air neighbors
+            if (cullInternal) {
+                List<BlockPos> toRemove = new ArrayList<>();
+                for (BlockPos pos : this.renderedBlocks) {
+                    if (isFullyEnclosed(pos)) {
+                        toRemove.add(pos);
+                    }
+                }
+                this.renderedBlocks.removeAll(toRemove);
+            }
+
             TILE_ENTITIES.clear();
-            blocks.forEach(pos -> {
+            this.renderedBlocks.forEach(pos -> {
                 TileEntity tile = world.getTileEntity(pos);
                 if (tile != null && (!(tile instanceof IGregTechTileEntity gtte) ||
                         // Put MTEs only when it has FastRenderer
@@ -115,6 +132,21 @@ public abstract class WorldSceneRenderer {
             });
         }
         return this;
+    }
+
+    /**
+     * Check if a block position is fully enclosed by non-air blocks on all 6 faces.
+     * A block is considered enclosed if every neighbor is present in the rendered set
+     * AND is not air in the world.
+     */
+    private boolean isFullyEnclosed(BlockPos pos) {
+        for (EnumFacing facing : EnumFacing.VALUES) {
+            BlockPos neighbor = pos.offset(facing);
+            if (!this.renderedBlocks.contains(neighbor)) return false;
+            IBlockState state = world.getBlockState(neighbor);
+            if (state.getBlock() == Blocks.AIR) return false;
+        }
+        return true;
     }
 
     public WorldSceneRenderer setOnLookingAt(Consumer<RayTraceResult> onLookingAt) {
@@ -170,6 +202,20 @@ public abstract class WorldSceneRenderer {
      */
     public WorldSceneRenderer setHitTestInterval(int interval) {
         this.hitTestInterval = Math.max(1, interval);
+        return this;
+    }
+
+    /**
+     * Enable internal block culling. When enabled, blocks that are fully enclosed
+     * (all 6 neighbors are non-air and present in the rendered set) are removed from
+     * the render list. This significantly reduces vertex count for large solid structures.
+     * Must be called BEFORE {@link #addRenderedBlocks(Collection)}.
+     *
+     * @param cull true to enable internal culling
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer setCullInternalBlocks(boolean cull) {
+        this.cullInternal = cull;
         return this;
     }
 

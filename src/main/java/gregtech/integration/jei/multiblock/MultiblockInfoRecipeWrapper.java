@@ -696,11 +696,17 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         Vector3f minPos = world.getMinPos();
         center = new Vector3f(minPos.x + size.x / 2, minPos.y + size.y / 2, minPos.z + size.z / 2);
 
+        // Internal block culling: remove fully-enclosed blocks for medium/large structures
+        int totalBlocks = world.renderedBlocks.size();
+        if (totalBlocks > 50) {
+            worldSceneRenderer.setCullInternalBlocks(true);
+        }
+
         worldSceneRenderer.addRenderedBlocks(world.renderedBlocks);
         worldSceneRenderer.setOnLookingAt(ray -> {});
 
         // TESR optimization: limit tile entity rendering for large structures
-        int blockCount = world.renderedBlocks.size();
+        int blockCount = worldSceneRenderer.renderedBlocks.size();
         if (blockCount > 100) {
             // Large structures: only render controller TESR, skip all others
             worldSceneRenderer.setTileEntityFilter(te ->
