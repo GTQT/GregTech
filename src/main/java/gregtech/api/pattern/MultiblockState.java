@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MTERegistry;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.common.ConfigHolder;
@@ -371,6 +372,20 @@ public class MultiblockState {
      * Auto-build the structure in the world at the given tier.
      */
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
+        autoBuild(player, controllerBase, tier, null);
+    }
+
+    /**
+     * Auto-build the structure in the world at the given tier with channel values.
+     * Channel values affect which tier of tiered casing is preferred during construction.
+     *
+     * @param player         the player performing the build
+     * @param controllerBase the multiblock controller
+     * @param tier           the repetition tier (0 = max, 1 = min, 2+ = specific)
+     * @param channelValues  optional map of channel name -> desired tier value (null = no preference)
+     */
+    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier,
+                          Map<String, Integer> channelValues) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
@@ -504,6 +519,38 @@ public class MultiblockState {
                                         }
                                     }).collect(Collectors.toList());
                             if (candidates.isEmpty()) continue;
+
+                            // gt_hatch channel check: skip hatch (MetaTileEntity) candidates
+                            // unless the gt_hatch channel is explicitly present in channelValues
+                            boolean placeHatches = channelValues != null &&
+                                    channelValues.containsKey(GTStructureChannels.HATCH.getName());
+                            if (!placeHatches) {
+                                boolean hasNonHatchCandidate = false;
+                                for (BlockInfo info : infos) {
+                                    if (info.getBlockState().getBlock() != Blocks.AIR &&
+                                            !(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                                        hasNonHatchCandidate = true;
+                                        break;
+                                    }
+                                }
+                                if (hasNonHatchCandidate) {
+                                    // Filter out hatch candidates, keep only plain block candidates
+                                    candidates = candidates.stream()
+                                            .filter(stack -> {
+                                                if (stack.getItem() instanceof ItemBlock) {
+                                                    Item item = stack.getItem();
+                                                    return !GregTechAPI.mteManager
+                                                            .containsKey(item.getRegistryName().getNamespace()) ||
+                                                            GregTechAPI.mteManager
+                                                                    .getRegistry(item.getRegistryName().getNamespace())
+                                                                    .getObjectById(stack.getItemDamage()) == null;
+                                                }
+                                                return true;
+                                            })
+                                            .collect(Collectors.toList());
+                                    if (candidates.isEmpty()) continue;
+                                }
+                            }
                             ItemStack found = null;
                             if (!player.isCreative()) {
                                 for (ItemStack itemStack : player.inventory.mainInventory) {
@@ -516,12 +563,33 @@ public class MultiblockState {
                                 }
                                 if (found == null) continue;
                             } else {
-                                for (int i = candidates.size() - 1; i >= 0; i--) {
-                                    found = candidates.get(i).copy();
-                                    if (!found.isEmpty() && found.getItem() instanceof ItemBlock) {
-                                        break;
+                                // Channel-aware creative selection: if channelValues specify a tier,
+                                // pick the corresponding candidate index (tier-1, clamped)
+                                int preferredIndex = -1;
+                                if (channelValues != null && !channelValues.isEmpty() && candidates.size() > 1) {
+                                    // Use the first channel value that applies
+                                    for (Map.Entry<String, Integer> cv : channelValues.entrySet()) {
+                                        int idx = cv.getValue() - 1;
+                                        if (idx >= 0 && idx < candidates.size()) {
+                                            preferredIndex = idx;
+                                            break;
+                                        }
                                     }
-                                    found = null;
+                                }
+                                if (preferredIndex >= 0) {
+                                    found = candidates.get(preferredIndex).copy();
+                                    if (found.isEmpty() || !(found.getItem() instanceof ItemBlock)) {
+                                        found = null;
+                                    }
+                                }
+                                if (found == null) {
+                                    for (int i = candidates.size() - 1; i >= 0; i--) {
+                                        found = candidates.get(i).copy();
+                                        if (!found.isEmpty() && found.getItem() instanceof ItemBlock) {
+                                            break;
+                                        }
+                                        found = null;
+                                    }
                                 }
                                 if (found == null) continue;
                             }

@@ -129,12 +129,12 @@ public class DeclarativePatternBuilder {
      *
      * @param symbol the character representing this tiered casing in the aisle definition
      * @param group  the casing group (contains all valid tier options)
-     * @return this builder
+     * @return a {@link TieredCasingSlot} for optional channel configuration
      */
-    public DeclarativePatternBuilder tieredCasing(char symbol, @NotNull ICasingGroup group) {
+    public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
         TieredSlotInfo info = new TieredSlotInfo(symbol, group);
         tieredSlots.put(symbol, info);
-        return this;
+        return new TieredCasingSlot(this, info);
     }
 
     // --- Build methods ---
@@ -174,7 +174,8 @@ public class DeclarativePatternBuilder {
         for (Map.Entry<Character, TieredSlotInfo> entry : tieredSlots.entrySet()) {
             char symbol = entry.getKey();
             TieredSlotInfo info = entry.getValue();
-            factoryBuilder.where(symbol, createTieredPredicate(info.group));
+            String channelName = info.channel != null ? info.channel.getName() : info.group.getTierChannel();
+            factoryBuilder.where(symbol, createTieredPredicate(info.group, channelName));
         }
 
         return factoryBuilder.build();
@@ -211,7 +212,8 @@ public class DeclarativePatternBuilder {
         for (Map.Entry<Character, TieredSlotInfo> entry : tieredSlots.entrySet()) {
             char symbol = entry.getKey();
             TieredSlotInfo info = entry.getValue();
-            factoryBuilder.where(symbol, createTieredPredicate(info.group));
+            String channelName = info.channel != null ? info.channel.getName() : info.group.getTierChannel();
+            factoryBuilder.where(symbol, createTieredPredicate(info.group, channelName));
         }
 
         return factoryBuilder.buildTemplate();
@@ -240,8 +242,7 @@ public class DeclarativePatternBuilder {
                 () -> new BlockInfo[] { new BlockInfo(state, null) });
     }
 
-    private TraceabilityPredicate createTieredPredicate(@NotNull ICasingGroup group) {
-        String channel = group.getTierChannel();
+    private TraceabilityPredicate createTieredPredicate(@NotNull ICasingGroup group, @NotNull String channelName) {
         boolean requiresUniform = group.requiresUniformTier();
         List<ICasing> casings = group.getCasings();
 
@@ -257,14 +258,18 @@ public class DeclarativePatternBuilder {
             if (matched == null) return false;
 
             if (requiresUniform) {
-                Object existing = blockWorldState.getMatchContext().getOrPut(channel, matched);
+                Object existing = blockWorldState.getMatchContext().getOrPut(channelName, matched);
                 if (!existing.equals(matched)) {
                     blockWorldState.setError(new PatternStringError(
                             "gregtech.multiblock.pattern.error.casing_tier_mismatch"));
                     return false;
                 }
             } else {
-                blockWorldState.getMatchContext().getOrPut(channel, matched);
+                blockWorldState.getMatchContext().getOrPut(channelName, matched);
+            }
+            // Also store the tier as an integer for convenient access via StructureChannel
+            if (matched.isTiered()) {
+                blockWorldState.getMatchContext().set(channelName + ".tier", matched.getTier());
             }
             return true;
         }, () -> casings.stream()
@@ -310,6 +315,19 @@ public class DeclarativePatternBuilder {
         }
 
         /**
+         * Associate a structure channel with this casing slot.
+         * When used with a tiered casing, the channel value will be set
+         * to the casing's tier during pattern matching.
+         *
+         * @param channel the structure channel to associate
+         * @return this CasingSlot for chaining
+         */
+        public CasingSlot withChannel(@NotNull StructureChannel channel) {
+            info.channel = channel;
+            return this;
+        }
+
+        /**
          * Finish declaring hatches for this slot and return to the main builder.
          * (Also allows chaining back to builder methods directly through the CasingSlot.)
          */
@@ -331,7 +349,69 @@ public class DeclarativePatternBuilder {
             return builder.casing(symbol, casing);
         }
 
-        public DeclarativePatternBuilder tieredCasing(char symbol, @NotNull ICasingGroup group) {
+        public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
+            return builder.tieredCasing(symbol, group);
+        }
+
+        public BlockPattern build() {
+            return builder.build();
+        }
+
+        public BlockPatternTemplate buildTemplate() {
+            return builder.buildTemplate();
+        }
+    }
+
+    // --- TieredCasingSlot fluent API ---
+
+    /**
+     * Fluent API for configuring a tiered casing slot (channel override, etc.).
+     */
+    public static class TieredCasingSlot {
+
+        private final DeclarativePatternBuilder builder;
+        private final TieredSlotInfo info;
+
+        TieredCasingSlot(DeclarativePatternBuilder builder, TieredSlotInfo info) {
+            this.builder = builder;
+            this.info = info;
+        }
+
+        /**
+         * Override the default tier channel for this tiered casing slot.
+         * By default, the channel name comes from {@link ICasingGroup#getTierChannel()}.
+         * Use this method to associate an explicit {@link StructureChannel}.
+         *
+         * @param channel the structure channel to use
+         * @return this TieredCasingSlot for chaining
+         */
+        public TieredCasingSlot withChannel(@NotNull StructureChannel channel) {
+            info.channel = channel;
+            return this;
+        }
+
+        /**
+         * Finish configuring this tiered slot and return to the main builder.
+         */
+        public DeclarativePatternBuilder done() {
+            return builder;
+        }
+
+        // --- Pass-through methods for seamless chaining ---
+
+        public DeclarativePatternBuilder aisle(String... aisle) {
+            return builder.aisle(aisle);
+        }
+
+        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
+            return builder.where(symbol, predicate);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull ICasing casing) {
+            return builder.casing(symbol, casing);
+        }
+
+        public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
             return builder.tieredCasing(symbol, group);
         }
 
@@ -351,6 +431,7 @@ public class DeclarativePatternBuilder {
         final char symbol;
         final ICasing casing;
         final List<HatchInfo> hatches = new ArrayList<>();
+        StructureChannel channel;
 
         CasingSlotInfo(char symbol, ICasing casing) {
             this.symbol = symbol;
@@ -362,6 +443,7 @@ public class DeclarativePatternBuilder {
 
         final char symbol;
         final ICasingGroup group;
+        StructureChannel channel;
 
         TieredSlotInfo(char symbol, ICasingGroup group) {
             this.symbol = symbol;

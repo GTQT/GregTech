@@ -26,6 +26,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Rotation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.client.ForgeHooksClient;
@@ -36,6 +37,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +50,15 @@ public class MultiblockPreviewRenderer {
     private static int opList = -1;
     private static int layer;
     private static int tier;
+    private static boolean compareMode = false;
+
+    // Comparison mode data: world positions of missing/wrong blocks for overlay rendering
+    private static final List<BlockPos> missingPositions = new ArrayList<>();
+    private static final List<BlockPos> wrongPositions = new ArrayList<>();
+
+    // Tint colors for comparison mode
+    private static final float MISSING_R = 0.3F, MISSING_G = 0.6F, MISSING_B = 1.0F, MISSING_A = 0.5F;
+    private static final float WRONG_R = 1.0F, WRONG_G = 0.3F, WRONG_B = 0.3F, WRONG_A = 0.6F;
 
     public static void renderWorldLastEvent(RenderWorldLastEvent event) {
         if (mbpPos != null) {
@@ -72,6 +83,11 @@ public class MultiblockPreviewRenderer {
             GlStateManager.enableBlend();
 
             GlStateManager.callList(opList);
+
+            // Render comparison overlay (colored outlines for missing/wrong blocks)
+            if (compareMode && (!missingPositions.isEmpty() || !wrongPositions.isEmpty())) {
+                renderComparisonOverlay();
+            }
 
             GlStateManager.disableBlend();
             GlStateManager.enableLighting();
@@ -100,7 +116,13 @@ public class MultiblockPreviewRenderer {
         }
         try {
             List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
-            if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer);
+            if (!shapes.isEmpty()) {
+                renderControllerInList(controller, shapes.get(0), layer);
+                // Compute comparison data if compare mode is active
+                if (compareMode) {
+                    computeComparisonFromController(controller, shapes.get(0));
+                }
+            }
         } finally {
             GlStateManager.glEndList();
         }
@@ -178,6 +200,200 @@ public class MultiblockPreviewRenderer {
             GlStateManager.glDeleteLists(opList, 1);
             opList = -1;
         }
+        missingPositions.clear();
+        wrongPositions.clear();
+    }
+
+    /**
+     * Enable or disable comparison mode.
+     * In comparison mode, only missing and incorrect blocks are rendered with color tinting.
+     * Correctly placed blocks are skipped.
+     */
+    public static void setCompareMode(boolean enabled) {
+        compareMode = enabled;
+    }
+
+    public static boolean isCompareMode() {
+        return compareMode;
+    }
+
+    /**
+     * Render colored box overlays at missing/wrong block positions.
+     * Called from renderWorldLastEvent when compareMode is active.
+     */
+    private static void renderComparisonOverlay() {
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.depthMask(false);
+        GlStateManager.tryBlendFuncSeparate(
+                GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+
+        Tessellator tes = Tessellator.getInstance();
+        BufferBuilder buff = tes.getBuffer();
+
+        // Render missing blocks (blue)
+        if (!missingPositions.isEmpty()) {
+            buff.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+            for (BlockPos pos : missingPositions) {
+                renderColoredBox(buff, pos, MISSING_R, MISSING_G, MISSING_B, MISSING_A);
+            }
+            tes.draw();
+        }
+
+        // Render wrong blocks (red)
+        if (!wrongPositions.isEmpty()) {
+            buff.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+            for (BlockPos pos : wrongPositions) {
+                renderColoredBox(buff, pos, WRONG_R, WRONG_G, WRONG_B, WRONG_A);
+            }
+            tes.draw();
+        }
+
+        GlStateManager.depthMask(true);
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableLighting();
+    }
+
+    /**
+     * Render a colored box at the given block position.
+     */
+    private static void renderColoredBox(BufferBuilder buff, BlockPos pos,
+                                          float r, float g, float b, float a) {
+        float x0 = pos.getX() + 0.0625F;
+        float y0 = pos.getY() + 0.0625F;
+        float z0 = pos.getZ() + 0.0625F;
+        float x1 = pos.getX() + 0.9375F;
+        float y1 = pos.getY() + 0.9375F;
+        float z1 = pos.getZ() + 0.9375F;
+
+        // Bottom face
+        buff.pos(x0, y0, z0).color(r, g, b, a).endVertex();
+        buff.pos(x1, y0, z0).color(r, g, b, a).endVertex();
+        buff.pos(x1, y0, z1).color(r, g, b, a).endVertex();
+        buff.pos(x0, y0, z1).color(r, g, b, a).endVertex();
+
+        // Top face
+        buff.pos(x0, y1, z0).color(r, g, b, a).endVertex();
+        buff.pos(x0, y1, z1).color(r, g, b, a).endVertex();
+        buff.pos(x1, y1, z1).color(r, g, b, a).endVertex();
+        buff.pos(x1, y1, z0).color(r, g, b, a).endVertex();
+
+        // North face (-Z)
+        buff.pos(x0, y0, z0).color(r, g, b, a).endVertex();
+        buff.pos(x0, y1, z0).color(r, g, b, a).endVertex();
+        buff.pos(x1, y1, z0).color(r, g, b, a).endVertex();
+        buff.pos(x1, y0, z0).color(r, g, b, a).endVertex();
+
+        // South face (+Z)
+        buff.pos(x0, y0, z1).color(r, g, b, a).endVertex();
+        buff.pos(x1, y0, z1).color(r, g, b, a).endVertex();
+        buff.pos(x1, y1, z1).color(r, g, b, a).endVertex();
+        buff.pos(x0, y1, z1).color(r, g, b, a).endVertex();
+
+        // West face (-X)
+        buff.pos(x0, y0, z0).color(r, g, b, a).endVertex();
+        buff.pos(x0, y0, z1).color(r, g, b, a).endVertex();
+        buff.pos(x0, y1, z1).color(r, g, b, a).endVertex();
+        buff.pos(x0, y1, z0).color(r, g, b, a).endVertex();
+
+        // East face (+X)
+        buff.pos(x1, y0, z0).color(r, g, b, a).endVertex();
+        buff.pos(x1, y1, z0).color(r, g, b, a).endVertex();
+        buff.pos(x1, y1, z1).color(r, g, b, a).endVertex();
+        buff.pos(x1, y0, z1).color(r, g, b, a).endVertex();
+    }
+
+    /**
+     * Compute comparison data by comparing expected structure against real world blocks.
+     * Should be called when building the display list to populate missingPositions/wrongPositions.
+     *
+     * @param expectedBlocks map of world positions -> expected block states
+     * @param world          the real world to compare against
+     */
+    public static void computeComparisonData(Map<BlockPos, IBlockState> expectedBlocks, World world) {
+        missingPositions.clear();
+        wrongPositions.clear();
+
+        if (!compareMode || world == null) return;
+
+        for (Map.Entry<BlockPos, IBlockState> entry : expectedBlocks.entrySet()) {
+            BlockPos worldPos = entry.getKey();
+            IBlockState expected = entry.getValue();
+
+            if (expected.getBlock() == Blocks.AIR) continue;
+
+            IBlockState actual = world.getBlockState(worldPos);
+            if (actual.getBlock() == Blocks.AIR || actual.getMaterial().isReplaceable()) {
+                // Position is empty — block is missing
+                missingPositions.add(worldPos);
+            } else if (!actual.equals(expected)) {
+                // Position has a block but it's wrong
+                wrongPositions.add(worldPos);
+            }
+            // else: block matches, skip
+        }
+    }
+
+    /**
+     * Compute comparison data from a controller and its shape info.
+     * Maps virtual block positions to real world positions using the controller's orientation.
+     */
+    private static void computeComparisonFromController(MultiblockControllerBase controller,
+                                                         MultiblockShapeInfo shapeInfo) {
+        World world = Minecraft.getMinecraft().world;
+        if (world == null) return;
+
+        BlockInfo[][][] blocks = shapeInfo.getBlocks();
+        BlockPos controllerPos = BlockPos.ORIGIN;
+        EnumFacing previewFacing = controller.getFrontFacing();
+
+        // Find controller position in the shape
+        for (int x = 0; x < blocks.length; x++) {
+            BlockInfo[][] aisle = blocks[x];
+            for (int y = 0; y < aisle.length; y++) {
+                BlockInfo[] column = aisle[y];
+                for (int z = 0; z < column.length; z++) {
+                    MetaTileEntity metaTE = column[z].getTileEntity() instanceof IGregTechTileEntity ?
+                            ((IGregTechTileEntity) column[z].getTileEntity()).getMetaTileEntity() : null;
+                    if (metaTE instanceof MultiblockControllerBase &&
+                            metaTE.metaTileEntityId.equals(controller.metaTileEntityId)) {
+                        controllerPos = new BlockPos(x, y, z);
+                        previewFacing = metaTE.getFrontFacing();
+                    }
+                }
+            }
+        }
+
+        // Calculate rotation from preview facing to actual facing
+        EnumFacing facing = controller.getFrontFacing();
+        EnumFacing frontFacing = facing.getYOffset() == 0 ? facing :
+                facing.getYOffset() < 0 ? controller.getUpwardsFacing() :
+                        controller.getUpwardsFacing().getOpposite();
+        Rotation rotateBy = Rotation
+                .values()[(4 + frontFacing.getHorizontalIndex() - previewFacing.getHorizontalIndex()) % 4];
+
+        // Build expected blocks map in world coordinates
+        Map<BlockPos, IBlockState> expectedBlocks = new HashMap<>();
+        BlockPos worldControllerPos = controller.getPos();
+
+        for (int x = 0; x < blocks.length; x++) {
+            BlockInfo[][] aisle = blocks[x];
+            for (int y = 0; y < aisle.length; y++) {
+                BlockInfo[] column = aisle[y];
+                for (int z = 0; z < column.length; z++) {
+                    IBlockState state = column[z].getBlockState();
+                    if (state == null || state.getBlock() == Blocks.AIR) continue;
+
+                    BlockPos relPos = new BlockPos(x, y, z).subtract(controllerPos);
+                    BlockPos rotated = relPos.rotate(rotateBy);
+                    BlockPos worldPos = worldControllerPos.add(rotated);
+                    expectedBlocks.put(worldPos, state);
+                }
+            }
+        }
+
+        computeComparisonData(expectedBlocks, world);
     }
 
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,

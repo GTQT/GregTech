@@ -169,6 +169,11 @@ public class BlockPattern {
         state.autoBuild(player, controllerBase, tier);
     }
 
+    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier,
+                          java.util.Map<String, Integer> channelValues) {
+        state.autoBuild(player, controllerBase, tier, channelValues);
+    }
+
     public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
