@@ -12,9 +12,9 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -118,24 +118,21 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
 
     @Override
     protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "XCX", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .where('X', states(getCasingState()).setMinGlobalLimited(12).or(getHatchPredicates()))
                 .where('S', selfPredicate())
                 .where('C', states(MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL)))
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.high_power"))
+                    .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 4)
+                    .withOptionalHatches(MultiblockAbility.OUTPUT_ENERGY, 4)
+                    .withOptionalHatches(MultiblockAbility.SUBSTATION_INPUT_ENERGY, 4)
+                    .withOptionalHatches(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, 4)
+                    .withOptionalHatches(MultiblockAbility.INPUT_LASER, 4)
+                    .withOptionalHatches(MultiblockAbility.OUTPUT_LASER, 4)
                 .build();
-    }
-
-    private TraceabilityPredicate getHatchPredicates() {
-        // preview could be revised
-        return abilities(MultiblockAbility.INPUT_ENERGY).setPreviewCount(1)
-                .or(abilities(MultiblockAbility.OUTPUT_ENERGY).setPreviewCount(2))
-                .or(abilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY).setPreviewCount(1))
-                .or(abilities(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY).setPreviewCount(1))
-                .or(abilities(MultiblockAbility.INPUT_LASER).setPreviewCount(1))
-                .or(abilities(MultiblockAbility.OUTPUT_LASER).setPreviewCount(1));
     }
 
     @Override

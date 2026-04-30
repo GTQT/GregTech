@@ -7,7 +7,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.NoEnergyMultiblockController;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -34,21 +35,22 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
 
     @Override
     protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("PPPPP", "    F", "    F")
                 .aisle("PXXXP", "XX XF", "FFFFF")
                 .aisle("PXXXP", "XX XF", " F  F")
                 .aisle("PXXXP", "XX XF", "FFFFF")
                 .aisle("PSPPP", "    F", "    F")
                 .where('S', selfPredicate())
-                .where('P', states(MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL))
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1).setMaxGlobalLimited(2))
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1).setMaxGlobalLimited(2))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1).setMaxGlobalLimited(2))
-                )
                 .where('F', states(MetaBlocks.FRAMES.get(Materials.TreatedWood).getBlock(Materials.TreatedWood)))
                 .where('X', states(MetaBlocks.PLANKS.getState(BlockGregPlanks.BlockType.TREATED_PLANK)))
                 .where(' ', any())
+                .casing('P', CasingDefinition.simple(
+                        MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL),
+                        "gregtech.machine.casing.wood_wall"))
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 2)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
                 .build();
     }
     @Override

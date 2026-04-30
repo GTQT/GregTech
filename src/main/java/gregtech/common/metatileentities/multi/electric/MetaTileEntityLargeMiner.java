@@ -21,9 +21,10 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
@@ -195,19 +196,19 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .where('S', selfPredicate())
-                .where('X', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS).setMaxGlobalLimited(1).setPreviewCount(1))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(1).setPreviewCount(1))
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1).setMaxGlobalLimited(3)
-                                .setPreviewCount(1)))
                 .where('C', states(getCasingState()))
                 .where('F', getFramePredicate())
                 .where('#', any())
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.large_miner"))
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
                 .build();
     }
 

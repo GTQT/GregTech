@@ -159,12 +159,13 @@ public class DeclarativePatternBuilder {
             TraceabilityPredicate predicate = createCasingPredicate(info.casing)
                     .setMinGlobalLimited(minCasings);
 
-            // Add hatch predicates
+            // Add hatch predicates with JEI preview count
             for (HatchInfo hatch : info.hatches) {
                 predicate = predicate.or(
                         MultiblockControllerBase.abilities(hatch.ability)
                                 .setMinGlobalLimited(hatch.minCount)
-                                .setMaxGlobalLimited(hatch.maxCount));
+                                .setMaxGlobalLimited(hatch.maxCount)
+                                .setPreviewCount(Math.max(1, hatch.minCount)));
             }
 
             factoryBuilder.where(symbol, predicate);
@@ -203,7 +204,8 @@ public class DeclarativePatternBuilder {
                 predicate = predicate.or(
                         MultiblockControllerBase.abilities(hatch.ability)
                                 .setMinGlobalLimited(hatch.minCount)
-                                .setMaxGlobalLimited(hatch.maxCount));
+                                .setMaxGlobalLimited(hatch.maxCount)
+                                .setPreviewCount(Math.max(1, hatch.minCount)));
             }
 
             factoryBuilder.where(symbol, predicate);

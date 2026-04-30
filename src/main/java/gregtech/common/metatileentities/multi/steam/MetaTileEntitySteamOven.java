@@ -5,10 +5,12 @@ import gregtech.api.capability.impl.SteamMultiWorkable;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -49,17 +51,19 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "CCC", "#C#")
                 .aisle("XXX", "C#C", "#C#")
                 .aisle("XXX", "CSC", "#C#")
                 .where('S', selfPredicate())
-                .where('X', states(getFireboxState())
-                        .or(autoAbilities(true, false, false, false,false, false,  false).setMinGlobalLimited(1)
-                                .setMaxGlobalLimited(3)))
-                .where('C', states(getCasingState()).setMinGlobalLimited(6)
-                        .or(autoAbilities(false, false, true, true,false, false,  false)))
                 .where('#', any())
+                .casing('X', CasingDefinition.simple(getFireboxState(),
+                        "gregtech.machine.casing.bronze_firebox"))
+                    .withHatches(MultiblockAbility.STEAM, 1, 3)
+                .casing('C', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.bronze_bricks"))
+                    .withOptionalHatches(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
                 .build();
     }
 

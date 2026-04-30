@@ -10,8 +10,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -99,17 +100,18 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
 
     @Override
     protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "XAX", "XXX")
                 .aisle("XXX", "XSX", "XXX")
                 .where('S', selfPredicate())
                 .where('A', states(getAdvancedState()))
-                .where('X', states(getCasingState()).setMinGlobalLimited(7)
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1, 1))
-                        .or(maintenancePredicate())
-                        .or(abilities(MultiblockAbility.COMPUTATION_DATA_RECEPTION).setMinGlobalLimited(1, 2))
-                        .or(abilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION).setMinGlobalLimited(1, 1)))
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.computer"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
+                    .withHatches(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
                 .build();
     }
 

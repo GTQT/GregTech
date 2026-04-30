@@ -22,7 +22,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -312,19 +313,21 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "CCC", "CCC", "CCC")
                 .aisle("XXX", "CPC", "CPC", "CCC")
                 .aisle("XXX", "CSC", "CCC", "CCC")
                 .where('S', selfPredicate())
                 .where('P', states(boilerType.pipeState))
-                .where('X', states(boilerType.fireboxState).setMinGlobalLimited(4)
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(1, 1))
-                        // setting this to max 2 makes the import fluids max 2 for some reason
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS).setMaxGlobalLimited(2, 1))
-                        .or(autoAbilities())) // muffler, maintenance
-                .where('C', states(boilerType.casingState).setMinGlobalLimited(20)
-                        .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setMinGlobalLimited(1)))
+                .casing('X', CasingDefinition.simple(boilerType.fireboxState,
+                        "gregtech.machine.casing.firebox"))
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .casing('C', CasingDefinition.simple(boilerType.casingState,
+                        "gregtech.machine.casing.boiler"))
+                    .withHatches(MultiblockAbility.EXPORT_FLUIDS, 1, 4)
                 .build();
     }
 

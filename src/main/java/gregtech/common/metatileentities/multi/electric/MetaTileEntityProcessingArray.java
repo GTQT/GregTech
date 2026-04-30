@@ -17,9 +17,10 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.OCParams;
@@ -87,18 +88,23 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
                 .where('L', states(getCasingState()))
                 .where('S', selfPredicate())
-                .where('X', states(getCasingState())
-                        .setMinGlobalLimited(tier == 0 ? 11 : 4)
-                        .or(autoAbilities(false, true, true, true, true, true, true))
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1).setMaxGlobalLimited(4))
-                        .or(abilities(MultiblockAbility.MACHINE_HATCH).setExactLimit(1)))
                 .where('#', air())
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.processing_array"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .withHatches(MultiblockAbility.MACHINE_HATCH, 1, 1)
                 .build();
     }
 
