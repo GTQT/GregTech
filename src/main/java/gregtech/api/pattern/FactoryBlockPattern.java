@@ -135,9 +135,25 @@ public class FactoryBlockPattern {
                 String.format("Symbol \"%s\" is invalid! It must be exactly one character!", symbol));
     }
 
-    public BlockPattern build() {
-        return new BlockPattern(makePredicateArray(), structureDir,
+    /**
+     * Build the immutable template. Use this for new code that separates template from state.
+     *
+     * @return the shared immutable template
+     */
+    public BlockPatternTemplate buildTemplate() {
+        return new BlockPatternTemplate(makePredicateArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]));
+    }
+
+    /**
+     * Build a BlockPattern (template + state combined) for backward compatibility.
+     *
+     * @deprecated Use {@link #buildTemplate()} and create per-instance state via
+     *             {@link BlockPatternTemplate#createState()} for better memory efficiency.
+     */
+    @Deprecated
+    public BlockPattern build() {
+        return new BlockPattern(buildTemplate());
     }
 
     private TraceabilityPredicate[][][] makePredicateArray() {

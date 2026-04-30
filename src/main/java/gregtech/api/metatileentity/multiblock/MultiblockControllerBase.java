@@ -9,8 +9,10 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pipenet.tile.IPipeTile;
@@ -86,8 +88,22 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     private final Map<MultiblockAbility<Object>, AbilityInstances> multiblockAbilities = new HashMap<>();
     private final List<IMultiblockPart> multiblockParts = new ArrayList<>();
+
+    /**
+     * @deprecated Use {@link #patternTemplate} + {@link #multiblockState} for new code.
+     *             Retained for backward compatibility during migration.
+     */
+    @Deprecated
     @Nullable
     public BlockPattern structurePattern;
+
+    /** Shared immutable structure template (new architecture) */
+    @Nullable
+    protected BlockPatternTemplate patternTemplate;
+
+    /** Per-instance mutable state for pattern checking (new architecture) */
+    @Nullable
+    protected MultiblockState multiblockState;
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -213,6 +229,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public void reinitializeStructurePattern() {
         this.structurePattern = createStructurePattern();
+        // Also sync the new architecture fields from the structurePattern
+        if (this.structurePattern != null) {
+            this.patternTemplate = this.structurePattern.getTemplate();
+            this.multiblockState = this.structurePattern.getState();
+        }
     }
 
     @Override
@@ -482,6 +503,22 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     protected void formStructure(PatternMatchContext context) {}
+
+    /**
+     * @return the immutable pattern template, or null if not initialized
+     */
+    @Nullable
+    public BlockPatternTemplate getPatternTemplate() {
+        return patternTemplate;
+    }
+
+    /**
+     * @return the per-instance mutable state, or null if not initialized
+     */
+    @Nullable
+    public MultiblockState getMultiblockState() {
+        return multiblockState;
+    }
 
     public void invalidateStructure() {
         // Unregister from event-driven structure checking system
