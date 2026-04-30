@@ -153,19 +153,25 @@ public class DeclarativePatternBuilder {
             CasingSlotInfo info = entry.getValue();
 
             int totalCount = countCharInAisles(symbol);
-            int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum();
+            int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
+                    + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
             int minCasings = Math.max(0, totalCount - maxHatches);
 
             TraceabilityPredicate predicate = createCasingPredicate(info.casing)
                     .setMinGlobalLimited(minCasings);
 
-            // Add hatch predicates with JEI preview count
+            // Add ability-based hatch predicates with JEI preview count
             for (HatchInfo hatch : info.hatches) {
                 predicate = predicate.or(
                         MultiblockControllerBase.abilities(hatch.ability)
                                 .setMinGlobalLimited(hatch.minCount)
                                 .setMaxGlobalLimited(hatch.maxCount)
                                 .setPreviewCount(Math.max(1, hatch.minCount)));
+            }
+
+            // Add custom hatch predicates
+            for (CustomHatchInfo customHatch : info.customHatches) {
+                predicate = predicate.or(customHatch.predicate);
             }
 
             factoryBuilder.where(symbol, predicate);
@@ -194,7 +200,8 @@ public class DeclarativePatternBuilder {
             CasingSlotInfo info = entry.getValue();
 
             int totalCount = countCharInAisles(symbol);
-            int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum();
+            int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
+                    + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
             int minCasings = Math.max(0, totalCount - maxHatches);
 
             TraceabilityPredicate predicate = createCasingPredicate(info.casing)
@@ -206,6 +213,11 @@ public class DeclarativePatternBuilder {
                                 .setMinGlobalLimited(hatch.minCount)
                                 .setMaxGlobalLimited(hatch.maxCount)
                                 .setPreviewCount(Math.max(1, hatch.minCount)));
+            }
+
+            // Add custom hatch predicates
+            for (CustomHatchInfo customHatch : info.customHatches) {
+                predicate = predicate.or(customHatch.predicate);
             }
 
             factoryBuilder.where(symbol, predicate);
@@ -314,6 +326,23 @@ public class DeclarativePatternBuilder {
          */
         public CasingSlot withOptionalHatches(@NotNull MultiblockAbility<?> ability, int maxCount) {
             return withHatches(ability, 0, maxCount);
+        }
+
+        /**
+         * Add a custom hatch using a raw TraceabilityPredicate.
+         * Useful for non-standard hatches that don't use {@link MultiblockAbility},
+         * such as special hatch MetaTileEntities (e.g. coke oven hatch, tank valve).
+         *
+         * <p>The maxCount contributes to the automatic minimum casing count calculation:
+         * minCasings = totalPositions - sum(allMaxHatches).
+         *
+         * @param predicate the custom predicate for the hatch
+         * @param maxCount  maximum number of positions this predicate can occupy
+         * @return this CasingSlot for chaining
+         */
+        public CasingSlot withCustomHatches(@NotNull TraceabilityPredicate predicate, int maxCount) {
+            info.customHatches.add(new CustomHatchInfo(predicate, maxCount));
+            return this;
         }
 
         /**
@@ -433,6 +462,7 @@ public class DeclarativePatternBuilder {
         final char symbol;
         final ICasing casing;
         final List<HatchInfo> hatches = new ArrayList<>();
+        final List<CustomHatchInfo> customHatches = new ArrayList<>();
         StructureChannel channel;
 
         CasingSlotInfo(char symbol, ICasing casing) {
@@ -462,6 +492,19 @@ public class DeclarativePatternBuilder {
         HatchInfo(MultiblockAbility<?> ability, int minCount, int maxCount) {
             this.ability = ability;
             this.minCount = minCount;
+            this.maxCount = maxCount;
+        }
+    }
+
+    // --- Custom hatch info for non-ability predicates ---
+
+    private static class CustomHatchInfo {
+
+        final TraceabilityPredicate predicate;
+        final int maxCount;
+
+        CustomHatchInfo(TraceabilityPredicate predicate, int maxCount) {
+            this.predicate = predicate;
             this.maxCount = maxCount;
         }
     }

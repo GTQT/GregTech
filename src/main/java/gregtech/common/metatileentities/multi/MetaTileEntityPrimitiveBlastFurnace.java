@@ -10,8 +10,9 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.widget.RecipeProgressWidget;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -82,16 +83,20 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX", "XXX")
                 .aisle("XXX", "X&X", "X#X", "X#X")
                 .aisle("XXX", "XYX", "XXX", "XXX")
-                .where('X', states(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS))
-                        .or(metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH).setMaxGlobalLimited(3)))
+                .where('Y', selfPredicate())
                 .where('#', air())
                 .where('&', air().or(SNOW_PREDICATE)) // this won't stay in the structure, and will be broken while
                 // running
-                .where('Y', selfPredicate())
+                .casing('X', CasingDefinition.simple(
+                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS),
+                        "gregtech.machine.casing.primitive_bricks"))
+                    .withCustomHatches(
+                            metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
+                                    .setMaxGlobalLimited(3), 3)
                 .build();
     }
 

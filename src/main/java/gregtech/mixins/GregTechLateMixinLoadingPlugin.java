@@ -24,6 +24,7 @@ public class GregTechLateMixinLoadingPlugin implements ILateMixinLoader {
         configs.add("mixins.gregtech.forestry.json");
         configs.add("mixins.gregtech.gtmt.json");
         configs.add("mixins.gregtech.ae2.json");
+        configs.add("mixins.gregtech.ae2fc.json");
         return configs;
     }
 
@@ -39,6 +40,7 @@ public class GregTechLateMixinLoadingPlugin implements ILateMixinLoader {
             case "mixins.gregtech.forestry.json" -> Mods.Forestry.isModLoaded();
             case "mixins.gregtech.gtmt.json" -> Mods.GTMT.isModLoaded();
             case "mixins.gregtech.ae2.json" -> Mods.AppliedEnergistics2.isModLoaded();
+            case "mixins.gregtech.ae2fc.json" -> Mods.AE2FluidCraft.isModLoaded();
             default -> true;
         };
     }

@@ -16,8 +16,6 @@ import mezz.jei.api.gui.IGuiIngredient;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,9 +27,6 @@ import java.util.List;
 
 @Mixin(targets = "appeng.integration.modules.jei.RecipeTransferHandler", remap = false)
 public abstract class MixinRecipeTransferHandler {
-
-    @Unique
-    private static final Logger gregtech$logger = LogManager.getLogger("GT-MixinRecipeTransferHandler");
 
     @Unique
     private boolean gregtech$programmableCircuitTransferEnabled;
@@ -52,17 +47,6 @@ public abstract class MixinRecipeTransferHandler {
                 !((ContainerPatternEncoder) container).isCraftingMode() &&
                 circuitHelper.hasToolkitInInventory(player) &&
                 circuitHelper.isProgrammableCircuitAvailable();
-
-        gregtech$logger.info("[HEAD] doTransfer={}, containerClass={}, isPatternEncoder={}, isCraftingMode={}, " +
-                        "hasToolkit={}, pcAvailable={}, enabled={}",
-                doTransfer,
-                container.getClass().getSimpleName(),
-                container instanceof ContainerPatternEncoder,
-                container instanceof ContainerPatternEncoder ?
-                        ((ContainerPatternEncoder) container).isCraftingMode() : "N/A",
-                circuitHelper.hasToolkitInInventory(player),
-                circuitHelper.isProgrammableCircuitAvailable(),
-                gregtech$programmableCircuitTransferEnabled);
     }
 
     @Redirect(
@@ -81,11 +65,7 @@ public abstract class MixinRecipeTransferHandler {
 
         gregtech$currentJeiIngredientNotConsumed = notConsumed;
         GTCircuitHelper.setCurrentJeiIngredientNotConsumable(notConsumed);
-
-        List<ItemStack> allIngredients = ingredient.getAllIngredients();
-        gregtech$logger.info("[getAllIngredients] notConsumed={}, ingredientClass={}, ingredientCount={}",
-                notConsumed, ingredient.getClass().getSimpleName(), allIngredients.size());
-        return allIngredients;
+        return ingredient.getAllIngredients();
     }
 
     @Redirect(
@@ -96,21 +76,13 @@ public abstract class MixinRecipeTransferHandler {
                     ordinal = 1),
             remap = false)
     private NBTTagCompound gregtech$wrapNotConsumedInputStack(ItemStack stack) {
-        gregtech$logger.info("[stackToNBT] enabled={}, notConsumed={}, stack={}, isEmpty={}",
-                gregtech$programmableCircuitTransferEnabled,
-                gregtech$currentJeiIngredientNotConsumed,
-                stack != null ? stack.getDisplayName() : "null",
-                stack != null ? stack.isEmpty() : "null");
         if (gregtech$programmableCircuitTransferEnabled &&
                 gregtech$currentJeiIngredientNotConsumed &&
                 stack != null &&
                 !stack.isEmpty()) {
             CircuitHelper circuitHelper = CircuitHelper.getInstance();
-            boolean isProgrammable = circuitHelper.isProgrammableCircuit(stack);
-            gregtech$logger.info("[stackToNBT] isProgrammable={}", isProgrammable);
-            if (!isProgrammable) {
+            if (!circuitHelper.isProgrammableCircuit(stack)) {
                 ItemStack wrappedStack = circuitHelper.wrapItemAsProgrammableStack(stack);
-                gregtech$logger.info("[stackToNBT] wrappedStack={}", wrappedStack != null ? wrappedStack.getDisplayName() : "null");
                 if (wrappedStack != null && !wrappedStack.isEmpty()) {
                     return ItemStackHelper.stackToNBT(wrappedStack);
                 }

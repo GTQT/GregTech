@@ -12,7 +12,8 @@ import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.mui.widget.RecipeProgressWidget;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
@@ -65,15 +66,16 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
                 .aisle("XXX", "XYX", "XXX")
-                .where('X',
-                        states(getCasingState())
-                                .or(metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5)))
-                .where('#', air())
                 .where('Y', selfPredicate())
+                .where('#', air())
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        "gregtech.machine.casing.coke_bricks"))
+                    .withCustomHatches(
+                            metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5), 5)
                 .build();
     }
 

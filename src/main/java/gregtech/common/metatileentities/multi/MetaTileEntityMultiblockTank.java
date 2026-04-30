@@ -11,7 +11,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
@@ -81,14 +82,17 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     @Override
     @NotNull
     protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
+        return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
                 .where('S', selfPredicate())
-                .where('X', states(getCasingState()).setMinGlobalLimited(23)
-                        .or(metaTileEntities(getValve()).setMaxGlobalLimited(2)))
                 .where(' ', air())
+                .casing('X', CasingDefinition.simple(getCasingState(),
+                        isMetal ? "gregtech.machine.casing.solid_steel"
+                                : "gregtech.machine.casing.wood_wall"))
+                    .withCustomHatches(
+                            metaTileEntities(getValve()).setMaxGlobalLimited(2), 2)
                 .build();
     }
 
