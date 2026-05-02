@@ -268,7 +268,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     private BufferSignature extractSignature(net.minecraft.inventory.InventoryCrafting inventoryCrafting) {
         List<ItemStack> itemTypes = new ArrayList<>();
         List<FluidStack> fluidTypes = new ArrayList<>();
-        ItemStack circuitStack = ItemStack.EMPTY;
+        List<ItemStack> circuitStacks = new ArrayList<>();
 
         for (int i = 0; i < inventoryCrafting.getSizeInventory(); i++) {
             ItemStack stack = inventoryCrafting.getStackInSlot(i);
@@ -287,7 +287,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
             // 处理可编程电路 — 不加入物品签名
             if (ProgrammableCircuit.getInstanceFor(stack) != null) {
-                circuitStack = stack.copy();
+                ItemStack circuitType = stack.copy();
+                circuitType.setCount(1);
+                circuitStacks.add(circuitType);
                 continue;
             }
 
@@ -297,7 +299,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             itemTypes.add(type);
         }
 
-        return new BufferSignature(itemTypes, fluidTypes, circuitStack);
+        return new BufferSignature(itemTypes, fluidTypes, circuitStacks);
     }
 
     /**
@@ -1275,12 +1277,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     public static class BufferSignature {
         private final List<ItemStack> itemTypes;
         private final List<FluidStack> fluidTypes;
-        private final ItemStack circuitStack;
+        private final List<ItemStack> circuitStacks;
 
-        public BufferSignature(List<ItemStack> itemTypes, List<FluidStack> fluidTypes, ItemStack circuitStack) {
+        public BufferSignature(List<ItemStack> itemTypes, List<FluidStack> fluidTypes, List<ItemStack> circuitStacks) {
             this.itemTypes = itemTypes;
             this.fluidTypes = fluidTypes;
-            this.circuitStack = circuitStack;
+            this.circuitStacks = circuitStacks;
         }
 
         public List<ItemStack> getItemTypes() {
@@ -1291,8 +1293,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             return fluidTypes;
         }
 
-        public ItemStack getCircuitStack() {
-            return circuitStack;
+        public List<ItemStack> getCircuitStacks() {
+            return circuitStacks;
         }
 
         /**
@@ -1301,6 +1303,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         public boolean matches(BufferSignature other) {
             if (this.itemTypes.size() != other.itemTypes.size()) return false;
             if (this.fluidTypes.size() != other.fluidTypes.size()) return false;
+            if (this.circuitStacks.size() != other.circuitStacks.size()) return false;
 
             // 比较物品类型（忽略数量）
             for (int i = 0; i < this.itemTypes.size(); i++) {
@@ -1314,7 +1317,9 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             }
 
             // 比较电路
-            if (!ItemStack.areItemStacksEqual(this.circuitStack, other.circuitStack)) return false;
+            for (int i = 0; i < this.circuitStacks.size(); i++) {
+                if (!ItemStack.areItemStacksEqual(this.circuitStacks.get(i), other.circuitStacks.get(i))) return false;
+            }
 
             return true;
         }
@@ -1332,9 +1337,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             for (FluidStack fluid : fluidTypes) {
                 hash = 31 * hash + FluidRegistry.getFluidName(fluid.getFluid()).hashCode();
             }
-            if (!circuitStack.isEmpty()) {
+            for (ItemStack circuitStack : circuitStacks) {
+                if (circuitStack.isEmpty()) continue;
                 hash = 31 * hash + Item.getIdFromItem(circuitStack.getItem());
                 hash = 31 * hash + circuitStack.getMetadata();
+                if (circuitStack.getTagCompound() != null) {
+                    hash = 31 * hash + circuitStack.getTagCompound().hashCode();
+                }
             }
             return hash;
         }
@@ -1357,8 +1366,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             }
             tag.setTag("Fluids", fluidList);
 
-            if (!circuitStack.isEmpty()) {
-                tag.setTag("Circuit", circuitStack.writeToNBT(new NBTTagCompound()));
+            NBTTagList circuitList = new NBTTagList();
+            for (ItemStack circuitStack : circuitStacks) {
+                circuitList.appendTag(circuitStack.writeToNBT(new NBTTagCompound()));
+            }
+            if (circuitList.tagCount() > 0) {
+                tag.setTag("Circuits", circuitList);
             }
 
             return tag;
@@ -1380,10 +1393,17 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 fluids.add(FluidStack.loadFluidStackFromNBT(fluidList.getCompoundTagAt(i)));
             }
 
-            ItemStack circuit = tag.hasKey("Circuit") ?
-                    new ItemStack(tag.getCompoundTag("Circuit")) : ItemStack.EMPTY;
+            List<ItemStack> circuits = new ArrayList<>();
+            if (tag.hasKey("Circuits", Constants.NBT.TAG_LIST)) {
+                NBTTagList circuitList = tag.getTagList("Circuits", Constants.NBT.TAG_COMPOUND);
+                for (int i = 0; i < circuitList.tagCount(); i++) {
+                    circuits.add(new ItemStack(circuitList.getCompoundTagAt(i)));
+                }
+            } else if (tag.hasKey("Circuit")) {
+                circuits.add(new ItemStack(tag.getCompoundTag("Circuit")));
+            }
 
-            return new BufferSignature(items, fluids, circuit);
+            return new BufferSignature(items, fluids, circuits);
         }
     }
 

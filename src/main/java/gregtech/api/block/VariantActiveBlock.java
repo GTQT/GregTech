@@ -112,11 +112,9 @@ public abstract class VariantActiveBlock<T extends IStringSerializable & Compara
 
     @Override
     public int getMetaFromState(IBlockState state) {
-        int meta = 0;
-        if (state.getValue(ACTIVE_DEPRECATED)) {
-            meta += 8;
-        }
-        return meta + state.getValue(VARIANT);
+        // Active state is render-only and is restored through getExtendedState();
+        // storing it in metadata limits active variant blocks to 8 variants.
+        return super.getMetaFromState(state);
     }
 
     @NotNull
