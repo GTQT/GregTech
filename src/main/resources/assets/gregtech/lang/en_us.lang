@@ -706,7 +706,42 @@ metaitem.circuit.integrated.tooltip=Use to open configuration GUI/n/nShift-Right
 metaitem.circuit.integrated.gui=Circuit Configuration
 metaitem.circuit.integrated.jei_description=JEI is only showing recipes for the given configuration.\n\nYou can select a configuration in the Programmed Circuit configuration tab.
 
-metaitem.tool.mutliblock_preview.name=Multiblock Preview
+metaitem.tool.mutliblock_preview.name=Multiblock Projector
+
+# Structure Projector
+gregtech.tool.projector.tooltip1=§7Right-click Controller: Show hologram preview
+gregtech.tool.projector.tooltip2=§7Shift+Right-click Controller: Auto-build structure
+gregtech.tool.projector.tooltip3=§7Right-click Air: Open config GUI for channels
+gregtech.tool.projector.compare_on=§aCompare Mode: ON
+gregtech.tool.projector.no_hatch_on=§cNo Hatch Mode: ON
+gregtech.tool.projector.channels_set=§eChannels: %s set
+gregtech.tool.projector.channel_config_hint=§8Right-click controller to auto-fill channels, right-click air to open GUI
+gregtech.tool.projector.gui_title=Multiblock Projector Config
+gregtech.tool.projector.compare_tooltip=Toggle Compare Mode (highlight missing/wrong blocks)
+gregtech.tool.projector.no_hatch_tooltip=Toggle No Hatch Mode (skip hatch placement during auto-build)
+gregtech.tool.projector.clear=Clear Channels
+gregtech.tool.projector.structure_height=Height
+gregtech.tool.projector.structure_length=Length
+
+# Structure Channels
+gregtech.structure_channel.heating_coil=Heating Coil Tier
+gregtech.structure_channel.wire_coil=Wire Coil Tier
+gregtech.structure_channel.borosilicate_glass=Glass Tier
+gregtech.structure_channel.machine_casing=Machine Casing Tier
+gregtech.structure_channel.solid_casing=Solid Casing Tier
+gregtech.structure_channel.pipe_casing=Pipe Casing Tier
+gregtech.structure_channel.item_pipe_casing=Item Pipe Casing Tier
+gregtech.structure_channel.structure_height=Structure Height
+gregtech.structure_channel.structure_length=Structure Length
+gregtech.structure_channel.hatch_tier=Hatch Tier
+gregtech.structure_channel.energy_casing=Energy Casing Tier
+gregtech.structure_channel.solenoid=Solenoid Tier
+gregtech.structure_channel.battery=Battery Tier
+gregtech.structure_channel.no_hatch=No Hatches
+
+# Casing Groups
+gregtech.casing_group.heating_coils=Heating Coils
+gregtech.casing_group.machine_casings=Machine Casings
 
 item.glass.lens=Glass Lens (White)
 metaitem.glass_lens.orange.name=Glass Lens (Orange)
@@ -7042,6 +7077,12 @@ gregtech.multiblock.universal.over_flow_disabled=Overflow Mode: §cNo§r/nStops 
 gregtech.multiblock.universal.structure_check=Perform a multiblock structure test
 gregtech.multiblock.universal.distinct_not_supported=This Multiblock does not support Distinct Buses
 gregtech.multiblock.universal.no_flex_button=This Multiblock has no additional functionality with this Button.
+
+gregtech.multiblock.tooltip.at_least=at least
+gregtech.multiblock.tooltip.same_tier=all same tier
+gregtech.multiblock.tooltip.optional=optional
+gregtech.multiblock.tooltip.sub_channel=%s§7: §fuse Projector to configure
+gregtech.multiblock.tooltip.sub_channel_purpose=%s§7 (§f%s§7)
 gregtech.multiblock.universal.no_multi_recipemap=This Multiblock does not require recipe switching
 gregtech.multiblock.parallel=Max Parallels: %s
 gregtech.multiblock.multiple_recipemaps.header=Machine Mode:

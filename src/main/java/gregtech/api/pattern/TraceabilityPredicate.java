@@ -275,6 +275,8 @@ public class TraceabilityPredicate {
 
         public int previewCount = -1;
 
+        public String channelName = null;
+
         public SimplePredicate(Predicate<BlockWorldState> predicate, Supplier<BlockInfo[]> candidates) {
             this.predicate = predicate;
             this.candidates = candidates;

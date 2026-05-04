@@ -24,6 +24,8 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -65,6 +67,7 @@ import java.math.BigInteger;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -89,27 +92,34 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     // Match Context Headers
     private static final String PMC_BATTERY_HEADER = "PSSBattery_";
-    protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> new TraceabilityPredicate(
-            blockWorldState -> {
-                IBlockState state = blockWorldState.getBlockState();
-                if (GregTechAPI.PSS_BATTERIES.containsKey(state)) {
-                    IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(state);
-                    // Allow unfilled batteries in the structure, but do not add them to match context.
-                    // This lets you use empty batteries as "filler slots" for convenience if desired.
-                    if (battery.getTier() != -1 && battery.getCapacity() > 0) {
-                        String key = PMC_BATTERY_HEADER + battery.getBatteryName();
-                        BatteryMatchWrapper wrapper = blockWorldState.getMatchContext().get(key);
-                        if (wrapper == null) wrapper = new BatteryMatchWrapper(battery);
-                        blockWorldState.getMatchContext().set(key, wrapper.increment());
+    protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> {
+        TraceabilityPredicate predicate = new TraceabilityPredicate(
+                blockWorldState -> {
+                    IBlockState state = blockWorldState.getBlockState();
+                    if (GregTechAPI.PSS_BATTERIES.containsKey(state)) {
+                        IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(state);
+                        if (battery.getTier() != -1 && battery.getCapacity() > 0) {
+                            String key = PMC_BATTERY_HEADER + battery.getBatteryName();
+                            BatteryMatchWrapper wrapper = blockWorldState.getMatchContext().get(key);
+                            if (wrapper == null) wrapper = new BatteryMatchWrapper(battery);
+                            blockWorldState.getMatchContext().set(key, wrapper.increment());
+                        }
+                        return true;
                     }
-                    return true;
-                }
-                return false;
-            }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
-            .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-            .map(entry -> new BlockInfo(entry.getKey(), null))
-            .toArray(BlockInfo[]::new))
-            .addTooltips("gregtech.multiblock.pattern.error.batteries");
+                    return false;
+                }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
+                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
+                .map(entry -> new BlockInfo(entry.getKey(), null))
+                .toArray(BlockInfo[]::new))
+                .addTooltips("gregtech.multiblock.pattern.error.batteries");
+        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
+            sp.channelName = GTStructureChannels.BATTERY.getName();
+        }
+        for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
+            sp.channelName = GTStructureChannels.BATTERY.getName();
+        }
+        return predicate;
+    };
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
     private PowerStationEnergyBank energyBank;
     private EnergyContainerList inputHatches;
@@ -334,6 +344,12 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                             abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
                                     MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
                 .build();
+    }
+
+    @NotNull
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Collections.singletonList(GTStructureChannels.BATTERY);
     }
 
     @Override

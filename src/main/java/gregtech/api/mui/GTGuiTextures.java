@@ -903,4 +903,211 @@ public class GTGuiTextures {
             }
         };
     }
+
+    // region Godforge Textures
+
+    public static final UITexture BACKGROUND_GLOW_ORANGE = fullImage("textures/gui/background/orange_glow");
+    public static final UITexture BACKGROUND_GLOW_PURPLE = fullImage("textures/gui/background/purple_glow");
+    public static final UITexture BACKGROUND_GLOW_BLUE = fullImage("textures/gui/background/blue_glow");
+    public static final UITexture BACKGROUND_GLOW_GREEN = fullImage("textures/gui/background/green_glow");
+    public static final UITexture BACKGROUND_GLOW_RED = fullImage("textures/gui/background/red_glow");
+    public static final UITexture BACKGROUND_GLOW_WHITE = fullImage("textures/gui/background/white_glow");
+    public static final UITexture BACKGROUND_GLOW_WHITE_HALF = fullImage("textures/gui/background/white_glow_half");
+    public static final UITexture BACKGROUND_GLOW_RAINBOW = fullImage("textures/gui/background/rainbow_glow");
+
+    public static final UITexture PROGRESSBAR_GODFORGE_PLASMA = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_plasma.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_BACKGROUND = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_background.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_BLUE = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_blue.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_RED = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_red.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_PURPLE = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_purple.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_RAINBOW = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_rainbow.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_BLUE_INVERTED = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_blue_inverted.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_RED_INVERTED = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_red_inverted.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_PURPLE_INVERTED = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_purple_inverted.png", 20, 40);
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_RAINBOW_INVERTED = progressBar(
+        "textures/gui/progress_bar/progress_bar_godforge_milestone_rainbow_inverted.png", 20, 40);
+
+    public static final UITexture TT_OVERLAY_BUTTON_POWER_SWITCH_ON = fullImage(
+        "textures/gui/overlay_button/power_switch_on");
+    public static final UITexture TT_OVERLAY_BUTTON_POWER_SWITCH_OFF = fullImage(
+        "textures/gui/overlay_button/power_switch_off");
+    public static final UITexture TT_OVERLAY_BUTTON_POWER_SWITCH_DISABLED = fullImage(
+        "textures/gui/overlay_button/power_switch_disabled");
+    public static final UITexture TT_OVERLAY_BUTTON_ARROW_BLUE_UP = fullImage(
+        "textures/gui/overlay_button/arrow_blue_up");
+    public static final UITexture TT_OVERLAY_BUTTON_BATTERY_ON = fullImage(
+        "textures/gui/overlay_button/battery_on");
+    public static final UITexture TT_OVERLAY_BUTTON_BATTERY_OFF = fullImage(
+        "textures/gui/overlay_button/battery_off");
+    public static final UITexture TT_OVERLAY_BUTTON_FLAG = fullImage("textures/gui/overlay_button/flag");
+    public static final UITexture TT_OVERLAY_BUTTON_HEART = fullImage("textures/gui/overlay_button/heart");
+    public static final UITexture TT_OVERLAY_BUTTON_RAINBOW_SPIRAL = fullImage(
+        "textures/gui/overlay_button/rainbow_spiral");
+    public static final UITexture TT_OVERLAY_BUTTON_STATISTICS = fullImage(
+        "textures/gui/overlay_button/statistics");
+    public static final UITexture TT_OVERLAY_BUTTON_HEAT_ON = fullImage(
+        "textures/gui/overlay_button/heat_on");
+    public static final UITexture TT_OVERLAY_BUTTON_HEAT_OFF = fullImage(
+        "textures/gui/overlay_button/heat_off");
+    public static final UITexture TT_OVERLAY_BUTTON_INPUT_SEPARATION = fullImage(
+        "textures/gui/overlay_button/input_separation");
+    public static final UITexture TT_OVERLAY_BUTTON_INPUT_SEPARATION_OFF = fullImage(
+        "textures/gui/overlay_button/input_separation_off");
+    public static final UITexture TT_OVERLAY_BUTTON_BATCH_MODE = fullImage(
+        "textures/gui/overlay_button/batch_mode");
+    public static final UITexture TT_OVERLAY_BUTTON_BATCH_MODE_OFF = fullImage(
+        "textures/gui/overlay_button/batch_mode_off");
+    public static final UITexture TT_OVERLAY_BUTTON_LOAF_MODE = fullImage(
+        "textures/gui/overlay_button/loaf_mode");
+    public static final UITexture TT_OVERLAY_BUTTON_LOAF_MODE_OFF = fullImage(
+        "textures/gui/overlay_button/loaf_mode_off");
+    public static final UITexture TT_OVERLAY_BUTTON_RECIPE_LOCKED = fullImage(
+        "textures/gui/overlay_button/recipe_locked");
+    public static final UITexture TT_OVERLAY_BUTTON_RECIPE_UNLOCKED = fullImage(
+        "textures/gui/overlay_button/recipe_unlocked");
+    public static final UITexture TT_OVERLAY_BUTTON_VOIDING_OFF = fullImage(
+        "textures/gui/overlay_button/voiding_off");
+    public static final UITexture TT_OVERLAY_BUTTON_VOIDING_ITEMS = fullImage(
+        "textures/gui/overlay_button/voiding_items");
+    public static final UITexture TT_OVERLAY_BUTTON_VOIDING_FLUIDS = fullImage(
+        "textures/gui/overlay_button/voiding_fluids");
+    public static final UITexture TT_OVERLAY_BUTTON_VOIDING_BOTH = fullImage(
+        "textures/gui/overlay_button/voiding_both");
+    public static final UITexture TT_OVERLAY_BUTTON_STRUCTURE_CHECK = fullImage(
+        "textures/gui/overlay_button/structure_check");
+    public static final UITexture TT_OVERLAY_BUTTON_STRUCTURE_CHECK_OFF = fullImage(
+        "textures/gui/overlay_button/structure_check_off");
+    public static final UITexture TT_OVERLAY_BUTTON_FURNACE_MODE = fullImage(
+        "textures/gui/overlay_button/furnace_mode");
+    public static final UITexture TT_OVERLAY_BUTTON_FURNACE_MODE_OFF = fullImage(
+        "textures/gui/overlay_button/furnace_mode_off");
+    public static final UITexture TT_OVERLAY_BUTTON_POWER_PANEL = fullImage(
+        "textures/gui/overlay_button/power_panel");
+    public static final UITexture TT_OVERLAY_CYCLIC_BLUE = fullImage("textures/gui/overlay_button/cyclic_blue");
+    public static final UITexture TT_OVERLAY_EJECTION_LOCKED = fullImage(
+        "textures/gui/overlay_button/ejection_locked");
+    public static final UITexture TT_OVERLAY_EJECTION_ON = fullImage("textures/gui/overlay_button/eject");
+
+    public static final UITexture TT_BUTTON_CELESTIAL_32x32 = fullImage("textures/gui/button/celestial");
+
+    public static final UITexture PICTURE_GODFORGE_LOGO = fullImage("textures/gui/picture/godforge_logo");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_CHARGE = fullImage(
+        "textures/gui/picture/godforge_milestone_charge");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_CONVERSION = fullImage(
+        "textures/gui/picture/godforge_milestone_conversion");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_CATALYST = fullImage(
+        "textures/gui/picture/godforge_milestone_catalyst");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_COMPOSITION = fullImage(
+        "textures/gui/picture/godforge_milestone_composition");
+    public static final UITexture PICTURE_GODFORGE_THANKS = fullImage(
+        "textures/gui/picture/godforge_thanks");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_CHARGE_GLOW = fullImage(
+        "textures/gui/picture/godforge_milestone_charge_glow");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_CONVERSION_GLOW = fullImage(
+        "textures/gui/picture/godforge_milestone_conversion_glow");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_CATALYST_GLOW = fullImage(
+        "textures/gui/picture/godforge_milestone_catalyst_glow");
+    public static final UITexture PICTURE_GODFORGE_MILESTONE_COMPOSITION_GLOW = fullImage(
+        "textures/gui/picture/godforge_milestone_composition_glow");
+
+    public static final UITexture CLOSE_BUTTON_HOLLOW = fullImage("textures/gui/button/transparent_x_10x10");
+    public static final UITexture GODFORGE_SOUND_ON = fullImage("textures/gui/overlay_button/sound_on");
+    public static final UITexture GODFORGE_SOUND_OFF = fullImage("textures/gui/overlay_button/sound_off");
+
+    public static final UITexture BUTTON_OUTLINE_HOLLOW = fullImage("textures/gui/button/outline_hollow");
+    public static final UITexture BUTTON_OUTLINE_HOLLOW_PRESSED = fullImage("textures/gui/button/outline_hollow_pressed");
+    public static final UITexture BUTTON_STANDARD = BUTTON_OUTLINE_HOLLOW;
+    public static final UITexture BUTTON_STANDARD_PRESSED = BUTTON_OUTLINE_HOLLOW_PRESSED;
+    public static final UITexture UNSELECTED_OPTION = fullImage("textures/gui/picture/unselected_option");
+    public static final UITexture BACKGROUND_TEXT_FIELD = fullImage("textures/gui/background/text_field");
+    public static final UITexture PICTURE_INFO = fullImage("textures/gui/picture/information_round");
+    public static final UITexture BACKGROUND_STAR = fullImage("textures/gui/background/star_background");
+    public static final UITexture BACKGROUND_STANDARD = UITexture.builder()
+        .location(GTValues.MODID, "gui/background/singleblock_default")
+        .imageSize(176, 166)
+        .adaptable(4)
+        .canApplyTheme()
+        .build();
+    public static final UITexture BUTTON_SPACE_32x16 = fullImage("textures/gui/button/space_32x16");
+    public static final UITexture BUTTON_SPACE_PRESSED_32x16 = fullImage("textures/gui/button/space_pressed_32x16");
+    public static final UITexture BUTTON_BOXED_CHECKMARK_18x18 = fullImage("textures/gui/button/boxed_checkmark");
+    public static final UITexture BUTTON_BOXED_EXCLAMATION_POINT_18x18 = fullImage(
+        "textures/gui/button/boxed_exclamation_point");
+    public static final UITexture BUTTON_STANDARD_DISABLED = UITexture.builder()
+        .location(GTValues.MODID, "gui/button/standard_disabled")
+        .imageSize(18, 18)
+        .adaptable(1)
+        .canApplyTheme()
+        .build();
+
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_BLUE = fullImage(
+        "textures/gui/picture/upgrade_connector_blue");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_BLUE_OPAQUE = fullImage(
+        "textures/gui/picture/upgrade_connector_blue_opaque");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_RED = fullImage(
+        "textures/gui/picture/upgrade_connector_red");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_RED_OPAQUE = fullImage(
+        "textures/gui/picture/upgrade_connector_red_opaque");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_PURPLE = fullImage(
+        "textures/gui/picture/upgrade_connector_purple");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_PURPLE_OPAQUE = fullImage(
+        "textures/gui/picture/upgrade_connector_purple_opaque");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_ORANGE = fullImage(
+        "textures/gui/picture/upgrade_connector_orange");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_ORANGE_OPAQUE = fullImage(
+        "textures/gui/picture/upgrade_connector_orange_opaque");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_GREEN = fullImage(
+        "textures/gui/picture/upgrade_connector_green");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_GREEN_OPAQUE = fullImage(
+        "textures/gui/picture/upgrade_connector_green_opaque");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_RAINBOW = fullImage(
+        "textures/gui/picture/upgrade_connector_rainbow");
+    public static final UITexture PICTURE_UPGRADE_CONNECTOR_RAINBOW_OPAQUE = fullImage(
+        "textures/gui/picture/upgrade_connector_rainbow_opaque");
+
+    public static final UITexture PICTURE_OVERLAY_BLUE = UITexture.builder()
+        .location(GTValues.MODID, "gui/picture/overlay_blue")
+        .nonOpaque()
+        .build();
+    public static final UITexture PICTURE_OVERLAY_GREEN = UITexture.builder()
+        .location(GTValues.MODID, "gui/picture/overlay_green")
+        .nonOpaque()
+        .build();
+    public static final UITexture PICTURE_OVERLAY_ORANGE = UITexture.builder()
+        .location(GTValues.MODID, "gui/picture/overlay_orange")
+        .nonOpaque()
+        .build();
+    public static final UITexture PICTURE_OVERLAY_PURPLE = UITexture.builder()
+        .location(GTValues.MODID, "gui/picture/overlay_purple")
+        .nonOpaque()
+        .build();
+    public static final UITexture PICTURE_OVERLAY_RED = UITexture.builder()
+        .location(GTValues.MODID, "gui/picture/overlay_red")
+        .nonOpaque()
+        .build();
+    public static final UITexture SLOT_OUTLINE_GREEN = PICTURE_OVERLAY_GREEN;
+
+    public static final UITexture GREEN_CHECKMARK_11x9 = fullImage("textures/gui/picture/green_checkmark");
+    public static final UITexture OVERLAY_BUTTON_CHECKMARK = GREEN_CHECKMARK_11x9;
+    public static final UITexture OVERLAY_BUTTON_CROSS = BUTTON_CROSS;
+
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_ORANGE = progressBar(
+        "textures/gui/progressbar/godforge_milestone_orange");
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_GREEN = progressBar(
+        "textures/gui/progressbar/godforge_milestone_green");
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_ORANGE_INVERTED = progressBar(
+        "textures/gui/progressbar/godforge_milestone_orange_inverted");
+    public static final UITexture PROGRESSBAR_GODFORGE_MILESTONE_GREEN_INVERTED = progressBar(
+        "textures/gui/progressbar/godforge_milestone_green_inverted");
+
+    // endregion
 }

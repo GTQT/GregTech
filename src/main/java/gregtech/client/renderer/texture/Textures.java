@@ -86,6 +86,8 @@ public class Textures {
             "casings/solid/machine_casing_stable_titanium");
     public static final SimpleOverlayRenderer ROBUST_TUNGSTENSTEEL_CASING = new SimpleOverlayRenderer(
             "casings/solid/machine_casing_robust_tungstensteel");
+    public static final SimpleOverlayRenderer GODFORGE_INNER_CASING = new SimpleOverlayRenderer(
+            "casings/godforge/godforge_inner");
 
     public static final SimpleOverlayRenderer TURBINE_STEEL_CASING = new SimpleOverlayRenderer(
             "casings/mechanic/machine_casing_turbine_steel");
@@ -232,6 +234,8 @@ public class Textures {
             "multiblock/network_switch");
     public static final OrientedOverlayRenderer POWER_SUBSTATION_OVERLAY = new OrientedOverlayRenderer(
             "multiblock/power_substation");
+    public static final OrientedOverlayRenderer GODFORGE_CONTROLLER_OVERLAY = new OrientedOverlayRenderer(
+            "iconsets/godforge_controller");
     public static final OrientedOverlayRenderer ALLOY_SMELTER_OVERLAY = new OrientedOverlayRenderer(
             "machines/alloy_smelter");
     public static final OrientedOverlayRenderer FURNACE_OVERLAY = new OrientedOverlayRenderer("machines/furnace");

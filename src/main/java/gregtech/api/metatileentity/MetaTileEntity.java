@@ -129,6 +129,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     public static final String TAG_KEY_PAINTING_COLOR = "PaintingColor";
     public static final String TAG_KEY_MUFFLED = "Muffled";
+    public static final int TOOLTIP_DELAY = 0;
     public final ResourceLocation metaTileEntityId;
     private final MTERegistry registry;
     private final Map<String, MTETrait> mteTraits = new Object2ObjectOpenHashMap<>();
@@ -622,12 +623,12 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing wrenchSide,
                                  CuboidRayTraceResult hitResult) {
         if (!needsSneakToRotate() || playerIn.isSneaking()) {
-            if (wrenchSide == getFrontFacing() || !isValidFrontFacing(wrenchSide) || !hasFrontFacing()) {
+            if (wrenchSide == null || !hasFrontFacing() || wrenchSide == getFrontFacing() ||
+                    !isValidFrontFacing(wrenchSide)) {
                 return false;
             }
-            if (wrenchSide != null && !getWorld().isRemote) {
-                setFrontFacing(wrenchSide);
-            }
+            setFrontFacing(wrenchSide);
+            scheduleRenderUpdate();
             return true;
         }
         return false;

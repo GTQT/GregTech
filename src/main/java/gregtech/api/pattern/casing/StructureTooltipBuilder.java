@@ -97,6 +97,33 @@ public class StructureTooltipBuilder {
     }
 
     /**
+     * Add a sub-channel usage line (e.g. "Heating Coils Tier: use Projector to configure").
+     *
+     * @param channel the structure channel
+     * @return this builder
+     */
+    public StructureTooltipBuilder addSubChannelUsage(@NotNull StructureChannel channel) {
+        lines.add(I18n.format("gregtech.multiblock.tooltip.sub_channel",
+                I18n.format(channel.getDefaultTooltip())));
+        return this;
+    }
+
+    /**
+     * Add a sub-channel usage line with custom purpose description.
+     *
+     * @param channel the structure channel
+     * @param purpose the purpose description translation key
+     * @return this builder
+     */
+    public StructureTooltipBuilder addSubChannelUsage(@NotNull StructureChannel channel,
+                                                      @NotNull String purpose) {
+        lines.add(I18n.format("gregtech.multiblock.tooltip.sub_channel_purpose",
+                I18n.format(channel.getDefaultTooltip()),
+                I18n.format(purpose)));
+        return this;
+    }
+
+    /**
      * @return the built tooltip lines
      */
     public List<String> build() {

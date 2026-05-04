@@ -55,6 +55,10 @@ import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
 import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExoticModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAssemblyLine;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCleanroom;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCrackingUnit;
@@ -439,6 +443,10 @@ public class MetaTileEntities {
 
     // FORGE OF THE GODS
     public static MetaTileEntityForgeOfGods FORGE_OF_GODS;
+    public static MTESmeltingModule GODFORGE_SMELTING_MODULE;
+    public static MTEMoltenModule GODFORGE_MOLTEN_MODULE;
+    public static MTEPlasmaModule GODFORGE_PLASMA_MODULE;
+    public static MTEExoticModule GODFORGE_EXOTIC_MODULE;
 
     // STORAGE SECTION
     public static MetaTileEntityTankValve WOODEN_TANK_VALVE;
@@ -1022,6 +1030,14 @@ public class MetaTileEntities {
         // Forge of the Gods
         FORGE_OF_GODS = registerMetaTileEntity(2100,
                 new MetaTileEntityForgeOfGods(gregtechId("forge_of_gods")));
+        GODFORGE_SMELTING_MODULE = registerMetaTileEntity(2101,
+                new MTESmeltingModule(gregtechId("godforge_smelting_module")));
+        GODFORGE_MOLTEN_MODULE = registerMetaTileEntity(2102,
+                new MTEMoltenModule(gregtechId("godforge_molten_module")));
+        GODFORGE_PLASMA_MODULE = registerMetaTileEntity(2103,
+                new MTEPlasmaModule(gregtechId("godforge_plasma_module")));
+        GODFORGE_EXOTIC_MODULE = registerMetaTileEntity(2104,
+                new MTEExoticModule(gregtechId("godforge_exotic_module")));
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
 

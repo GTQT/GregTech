@@ -1,13 +1,12 @@
 package gregtech.api.pattern;
 
-import gregtech.api.GregTechAPI;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.Mods;
 import gregtech.api.util.RelativeDirection;
 import gregtech.common.ConfigHolder;
 
@@ -15,19 +14,29 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import appeng.api.AEApi;
+import appeng.api.config.Actionable;
+import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.storage.IMEMonitor;
+import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.api.util.PlayerWirelessGridHelper;
+import appeng.me.helpers.BaseActionSource;
+
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -317,75 +326,88 @@ public class MultiblockState {
     }
 
     /**
-     * Calculate repetitions per aisle based on a global tier.
+     * Calculate repetitions per aisle from channel values.
+     * {@code STRUCTURE_HEIGHT} controls the first repeatable aisle,
+     * {@code STRUCTURE_LENGTH} controls the second (if exists).
+     * Value semantics: 0 = max, 1 = min, 2+ = specific (clamped to [min, max]).
+     * If a channel is not set, defaults to max repetition for that aisle.
      *
-     * @param tier global tier:
-     *             <ul>
-     *             <li>{@code tier <= 0} = max scale (all aisles at max)</li>
-     *             <li>{@code tier = 1} = min scale (all aisles at min)</li>
-     *             <li>{@code tier >= 2} = progressively expand</li>
-     *             </ul>
+     * @param channelValues map of channel name -> value (null = all max)
      * @return repetitions array
      */
-    public int[] calculateRepetitionsByTier(int tier) {
+    private int[] calculateRepetitionsFromChannels(Map<String, Integer> channelValues) {
         int[][] aisleRepetitions = template.getAisleRepetitions();
         int[] repetitions = new int[aisleRepetitions.length];
 
-        if (tier <= 0) {
-            for (int i = 0; i < aisleRepetitions.length; i++) {
-                repetitions[i] = aisleRepetitions[i][1];
-            }
-            return repetitions;
-        }
-
-        if (tier == 1) {
-            for (int i = 0; i < aisleRepetitions.length; i++) {
-                repetitions[i] = aisleRepetitions[i][0];
-            }
-            return repetitions;
-        }
-
         for (int i = 0; i < aisleRepetitions.length; i++) {
-            repetitions[i] = aisleRepetitions[i][0];
+            repetitions[i] = aisleRepetitions[i][1];
         }
 
-        int remaining = tier - 1;
-        for (int i = 0; i < aisleRepetitions.length && remaining > 0; i++) {
-            int min = aisleRepetitions[i][0];
-            int max = aisleRepetitions[i][1];
-            int increment = Math.min(max - min, remaining);
-            repetitions[i] += increment;
-            remaining -= increment;
+        if (channelValues == null || channelValues.isEmpty()) {
+            return repetitions;
+        }
+
+        Integer heightVal = channelValues.get(GTStructureChannels.STRUCTURE_HEIGHT.getName());
+        Integer lengthVal = channelValues.get(GTStructureChannels.STRUCTURE_LENGTH.getName());
+
+        int repeatableIdx = 0;
+        for (int i = 0; i < aisleRepetitions.length; i++) {
+            if (aisleRepetitions[i][0] == aisleRepetitions[i][1]) continue;
+            if (repeatableIdx == 0 && heightVal != null) {
+                repetitions[i] = clampRepetitionValue(aisleRepetitions[i], heightVal);
+            } else if (repeatableIdx == 1 && lengthVal != null) {
+                repetitions[i] = clampRepetitionValue(aisleRepetitions[i], lengthVal);
+            }
+            repeatableIdx++;
         }
 
         return repetitions;
     }
 
+    private int clampRepetitionValue(int[] minMax, int value) {
+        if (value <= 0) return minMax[1];
+        if (value == 1) return minMax[0];
+        return Math.min(Math.max(value, minMax[0]), minMax[1]);
+    }
+
     /**
-     * Auto-build the structure in the world.
+     * Auto-build the structure in the world (default: max size, no channel preferences).
      */
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase) {
-        autoBuild(player, controllerBase, 1);
+        autoBuild(player, controllerBase, (Map<String, Integer>) null, false);
     }
 
     /**
      * Auto-build the structure in the world at the given tier.
+     * Converts tier to channelValues internally for backward compatibility.
+     *
+     * @param tier the repetition tier (0 = max, 1 = min, 2+ = specific)
      */
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
-        autoBuild(player, controllerBase, tier, null);
+        Map<String, Integer> channels = new HashMap<>();
+        channels.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), tier);
+        channels.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), tier);
+        autoBuild(player, controllerBase, channels, false);
     }
 
     /**
-     * Auto-build the structure in the world at the given tier with channel values.
-     * Channel values affect which tier of tiered casing is preferred during construction.
+     * Auto-build the structure in the world using channel-based configuration.
+     *
+     * <p>Channel values control two aspects:
+     * <ul>
+     *   <li><b>Structure dimensions</b>: {@code STRUCTURE_HEIGHT} and {@code STRUCTURE_LENGTH}
+     *       control aisle repetition counts (0 = max, 1 = min, 2+ = specific).</li>
+     *   <li><b>Casing tier selection</b>: other channels (e.g. {@code HEATING_COIL})
+     *       control which tier of tiered casing is preferred during construction.</li>
+     * </ul>
      *
      * @param player         the player performing the build
      * @param controllerBase the multiblock controller
-     * @param tier           the repetition tier (0 = max, 1 = min, 2+ = specific)
-     * @param channelValues  optional map of channel name -> desired tier value (null = no preference)
+     * @param channelValues  map of channel name -> desired value (null = max size, no tier preference)
+     * @param skipHatches    if true, skip all hatch placement and only place casing blocks
      */
-    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier,
-                          Map<String, Integer> channelValues) {
+    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,
+                          Map<String, Integer> channelValues, boolean skipHatches) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
@@ -404,7 +426,7 @@ public class MultiblockState {
         Map<BlockPos, Object> blocks = new HashMap<>();
         blocks.put(controllerBase.getPos(), controllerBase);
 
-        int[] repetitions = calculateRepetitionsByTier(tier);
+        int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
         for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
             for (r = 0; r < repetitions[c]; r++) {
@@ -425,6 +447,7 @@ public class MultiblockState {
                         } else {
                             boolean find = false;
                             BlockInfo[] infos = new BlockInfo[0];
+                            TraceabilityPredicate.SimplePredicate matchedPredicate = null;
                             for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
                                 if (limit.minLayerCount > 0) {
                                     if (!cacheLayer.containsKey(limit)) {
@@ -443,6 +466,7 @@ public class MultiblockState {
                                     cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
                                 }
                                 infos = cacheInfos.get(limit);
+                                matchedPredicate = limit;
                                 find = true;
                                 break;
                             }
@@ -466,6 +490,7 @@ public class MultiblockState {
                                                 limit.candidates == null ? null : limit.candidates.get());
                                     }
                                     infos = cacheInfos.get(limit);
+                                    matchedPredicate = limit;
                                     find = true;
                                     break;
                                 }
@@ -500,6 +525,10 @@ public class MultiblockState {
                                                 common.candidates == null ? null : common.candidates.get());
                                     }
                                     infos = ArrayUtils.addAll(infos, cacheInfos.get(common));
+                                    if (common.channelName != null &&
+                                            (matchedPredicate == null || matchedPredicate.channelName == null)) {
+                                        matchedPredicate = common;
+                                    }
                                 }
                             }
 
@@ -520,95 +549,123 @@ public class MultiblockState {
                                     }).collect(Collectors.toList());
                             if (candidates.isEmpty()) continue;
 
-                            // gt_hatch channel check: skip hatch (MetaTileEntity) candidates
-                            // unless the gt_hatch channel is explicitly present in channelValues
-                            boolean placeHatches = channelValues != null &&
-                                    channelValues.containsKey(GTStructureChannels.HATCH.getName());
-                            if (!placeHatches) {
-                                boolean hasNonHatchCandidate = false;
+                            if (skipHatches) {
+                                List<BlockInfo> nonHatchInfos = new ArrayList<>();
+                                List<ItemStack> nonHatchCandidates = new ArrayList<>();
+                                int candidateIdx = 0;
                                 for (BlockInfo info : infos) {
-                                    if (info.getBlockState().getBlock() != Blocks.AIR &&
-                                            !(info.getTileEntity() instanceof IGregTechTileEntity)) {
-                                        hasNonHatchCandidate = true;
-                                        break;
+                                    if (info.getBlockState().getBlock() == Blocks.AIR) continue;
+                                    if (!(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                                        nonHatchInfos.add(info);
+                                        nonHatchCandidates.add(candidates.get(candidateIdx));
                                     }
+                                    candidateIdx++;
                                 }
-                                if (hasNonHatchCandidate) {
-                                    // Filter out hatch candidates, keep only plain block candidates
-                                    candidates = candidates.stream()
-                                            .filter(stack -> {
-                                                if (stack.getItem() instanceof ItemBlock) {
-                                                    Item item = stack.getItem();
-                                                    return !GregTechAPI.mteManager
-                                                            .containsKey(item.getRegistryName().getNamespace()) ||
-                                                            GregTechAPI.mteManager
-                                                                    .getRegistry(item.getRegistryName().getNamespace())
-                                                                    .getObjectById(stack.getItemDamage()) == null;
+                                if (nonHatchInfos.isEmpty()) {
+                                    for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
+                                        if (!cacheInfos.containsKey(common)) {
+                                            cacheInfos.put(common,
+                                                    common.candidates == null ? null : common.candidates.get());
+                                        }
+                                        BlockInfo[] commonInfos = cacheInfos.get(common);
+                                        if (commonInfos != null) {
+                                            for (BlockInfo info : commonInfos) {
+                                                if (info.getBlockState().getBlock() != Blocks.AIR &&
+                                                        !(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                                                    nonHatchInfos.add(info);
                                                 }
-                                                return true;
-                                            })
-                                            .collect(Collectors.toList());
-                                    if (candidates.isEmpty()) continue;
-                                }
-                            }
-                            ItemStack found = null;
-                            if (!player.isCreative()) {
-                                for (ItemStack itemStack : player.inventory.mainInventory) {
-                                    if (candidates.stream().anyMatch(candidate -> candidate.isItemEqual(itemStack)) &&
-                                            !itemStack.isEmpty() && itemStack.getItem() instanceof ItemBlock) {
-                                        found = itemStack.copy();
-                                        itemStack.setCount(itemStack.getCount() - 1);
-                                        break;
+                                            }
+                                        }
                                     }
+                                    if (nonHatchInfos.isEmpty()) {
+                                        continue;
+                                    }
+                                    nonHatchCandidates = nonHatchInfos.stream()
+                                            .map(info -> {
+                                                IBlockState blockState = info.getBlockState();
+                                                return new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
+                                                        blockState.getBlock().damageDropped(blockState));
+                                            }).collect(Collectors.toList());
                                 }
-                                if (found == null) continue;
-                            } else {
-                                // Channel-aware creative selection: if channelValues specify a tier,
-                                // pick the corresponding candidate index (tier-1, clamped)
-                                int preferredIndex = -1;
-                                if (channelValues != null && !channelValues.isEmpty() && candidates.size() > 1) {
-                                    // Use the first channel value that applies
-                                    for (Map.Entry<String, Integer> cv : channelValues.entrySet()) {
-                                        int idx = cv.getValue() - 1;
-                                        if (idx >= 0 && idx < candidates.size()) {
-                                            preferredIndex = idx;
+                                infos = nonHatchInfos.toArray(new BlockInfo[0]);
+                                candidates = nonHatchCandidates;
+                                matchedPredicate = null;
+                            }
+
+                            ItemStack found = null;
+                            BlockInfo matchedInfo = null;
+                            if (!player.isCreative()) {
+                                int preferredIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
+                                if (preferredIdx > 0 && preferredIdx < candidates.size()) {
+                                    ItemStack preferredStack = candidates.get(preferredIdx);
+                                    for (ItemStack itemStack : player.inventory.mainInventory) {
+                                        if (preferredStack.isItemEqual(itemStack) && !itemStack.isEmpty()) {
+                                            found = itemStack.copy();
+                                            itemStack.setCount(itemStack.getCount() - 1);
+                                            matchedInfo = infos[preferredIdx];
                                             break;
                                         }
                                     }
                                 }
-                                if (preferredIndex >= 0) {
-                                    found = candidates.get(preferredIndex).copy();
-                                    if (found.isEmpty() || !(found.getItem() instanceof ItemBlock)) {
-                                        found = null;
+                                if (found == null) {
+                                    for (int i = 0; i < candidates.size(); i++) {
+                                        ItemStack candidate = candidates.get(i);
+                                        for (ItemStack itemStack : player.inventory.mainInventory) {
+                                            if (candidate.isItemEqual(itemStack) && !itemStack.isEmpty()) {
+                                                found = itemStack.copy();
+                                                itemStack.setCount(itemStack.getCount() - 1);
+                                                matchedInfo = infos[i];
+                                                break;
+                                            }
+                                        }
+                                        if (found != null) break;
                                     }
+                                }
+                                if (found == null) {
+                                    found = tryExtractFromAENetwork(player, candidates);
+                                    if (found != null) {
+                                        for (int i = 0; i < candidates.size(); i++) {
+                                            if (candidates.get(i).isItemEqual(found)) {
+                                                matchedInfo = infos[i];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                if (found == null || matchedInfo == null) continue;
+                            } else {
+                                int preferredIndex = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
+                                if (preferredIndex > 0 && preferredIndex < candidates.size()) {
+                                    found = candidates.get(preferredIndex).copy();
+                                    matchedInfo = infos[preferredIndex];
                                 }
                                 if (found == null) {
                                     for (int i = candidates.size() - 1; i >= 0; i--) {
                                         found = candidates.get(i).copy();
-                                        if (!found.isEmpty() && found.getItem() instanceof ItemBlock) {
+                                        if (!found.isEmpty()) {
+                                            matchedInfo = infos[i];
                                             break;
                                         }
                                         found = null;
                                     }
                                 }
-                                if (found == null) continue;
+                                if (found == null || matchedInfo == null) continue;
                             }
-                            ItemBlock itemBlock = (ItemBlock) found.getItem();
-                            IBlockState state = itemBlock.getBlock()
-                                    .getStateFromMeta(itemBlock.getMetadata(found.getMetadata()));
+
+                            IBlockState state = matchedInfo.getBlockState();
                             blocks.put(pos, state);
                             world.setBlockState(pos, state);
-                            TileEntity holder = world.getTileEntity(pos);
-                            if (holder instanceof IGregTechTileEntity igtte) {
-                                MTERegistry registry = GregTechAPI.mteManager
-                                        .getRegistry(found.getItem().getRegistryName().getNamespace());
-                                MetaTileEntity sampleMetaTileEntity = registry.getObjectById(found.getItemDamage());
-                                if (sampleMetaTileEntity != null) {
-                                    MetaTileEntity metaTileEntity = igtte.setMetaTileEntity(sampleMetaTileEntity);
-                                    metaTileEntity.onPlacement(player);
-                                    blocks.put(pos, metaTileEntity);
-                                    if (found.getTagCompound() != null) {
-                                        metaTileEntity.initFromItemStackData(found.getTagCompound());
+                            if (matchedInfo.getTileEntity() instanceof IGregTechTileEntity igtteInfo) {
+                                TileEntity holder = world.getTileEntity(pos);
+                                if (holder instanceof IGregTechTileEntity igtte) {
+                                    MetaTileEntity sampleMetaTileEntity = igtteInfo.getMetaTileEntity();
+                                    if (sampleMetaTileEntity != null) {
+                                        MetaTileEntity metaTileEntity = igtte.setMetaTileEntity(sampleMetaTileEntity);
+                                        metaTileEntity.onPlacement(player);
+                                        blocks.put(pos, metaTileEntity);
+                                        if (found.getTagCompound() != null) {
+                                            metaTileEntity.initFromItemStackData(found.getTagCompound());
+                                        }
                                     }
                                 }
                             }
@@ -644,6 +701,45 @@ public class MultiblockState {
                 }
             }
         });
+    }
+
+    /**
+     * 尝试从玩家的 AE2 无线终端网络中提取物品。
+     * 仅在服务端生效，需要 AE2 已加载且玩家拥有已连接的无线终端。
+     *
+     * @param player     玩家
+     * @param candidates 候选物品列表
+     * @return 提取到的 ItemStack，失败返回 null
+     */
+    @Nullable
+    private static ItemStack tryExtractFromAENetwork(EntityPlayer player, List<ItemStack> candidates) {
+        if (!Mods.AppliedEnergistics2.isModLoaded()) return null;
+        if (player.world.isRemote) return null;
+
+        try {
+            IStorageGrid storageGrid = PlayerWirelessGridHelper.getStorageGrid(player);
+            if (storageGrid == null) return null;
+
+            IItemStorageChannel channel = AEApi.instance().storage()
+                    .getStorageChannel(IItemStorageChannel.class);
+            IMEMonitor<IAEItemStack> monitor = storageGrid.getInventory(channel);
+            if (monitor == null) return null;
+
+            for (ItemStack candidate : candidates) {
+                if (candidate.isEmpty()) continue;
+
+                IAEItemStack request = channel.createStack(candidate);
+                request.setStackSize(1);
+                IAEItemStack extracted = monitor.extractItems(request, Actionable.MODULATE,
+                        new BaseActionSource());
+                if (extracted != null && extracted.getStackSize() > 0) {
+                    return candidate.copy();
+                }
+            }
+        } catch (Exception ignored) {
+            // 无线终端可能超出范围、没电或网络不可用
+        }
+        return null;
     }
 
     /**
@@ -708,6 +804,16 @@ public class MultiblockState {
      * Get the preview blocks for JEI display.
      */
     public BlockInfo[][][] getPreview(int[] repetition) {
+        return getPreview(repetition, null);
+    }
+
+    /**
+     * Get the preview blocks for JEI display with channel value support.
+     *
+     * @param repetition    the aisle repetition counts
+     * @param channelValues map of channel name -> desired tier (1-based, null or 0 = auto)
+     */
+    public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         RelativeDirection[] structureDir = template.getStructureDir();
         int fingerLength = template.getFingerLength();
@@ -731,6 +837,7 @@ public class MultiblockState {
                         TraceabilityPredicate predicate = blockMatches[l][y][z];
                         boolean find = false;
                         BlockInfo[] infos = null;
+                        TraceabilityPredicate.SimplePredicate matchedPredicate = null;
                         for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
                             if (limit.minLayerCount > 0) {
                                 if (!cacheLayer.containsKey(limit)) {
@@ -756,6 +863,7 @@ public class MultiblockState {
                                 cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
                             }
                             infos = cacheInfos.get(limit);
+                            matchedPredicate = limit;
                             find = true;
                             break;
                         }
@@ -785,6 +893,7 @@ public class MultiblockState {
                                     cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
                                 }
                                 infos = cacheInfos.get(limit);
+                                matchedPredicate = limit;
                                 find = true;
                                 break;
                             }
@@ -806,6 +915,7 @@ public class MultiblockState {
                                     cacheInfos.put(common, common.candidates == null ? null : common.candidates.get());
                                 }
                                 infos = cacheInfos.get(common);
+                                matchedPredicate = common;
                                 find = true;
                                 break;
                             }
@@ -818,6 +928,7 @@ public class MultiblockState {
                                                 common.candidates == null ? null : common.candidates.get());
                                     }
                                     infos = cacheInfos.get(common);
+                                    matchedPredicate = common;
                                     find = true;
                                     break;
                                 }
@@ -849,13 +960,14 @@ public class MultiblockState {
                                     cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
                                 }
                                 infos = cacheInfos.get(limit);
+                                matchedPredicate = limit;
                                 break;
                             }
                         }
-                        BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[0];
+                        int candidateIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
+                        BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[candidateIdx];
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(z, y, x, EnumFacing.NORTH,
                                 EnumFacing.UP, false, structureDir);
-                        // TODO
                         if (info.getTileEntity() instanceof MetaTileEntityHolder) {
                             MetaTileEntityHolder holder = new MetaTileEntityHolder();
                             holder.setMetaTileEntity(
@@ -907,6 +1019,22 @@ public class MultiblockState {
             result[pos.getX() - finalMinX][pos.getY() - finalMinY][pos.getZ() - finalMinZ] = info;
         });
         return result;
+    }
+
+    /**
+     * Determine the candidate index based on channel values.
+     * If the predicate has a channel name and channelValues specifies a tier,
+     * use that tier (1-based) as the index. Otherwise use 0 (default).
+     */
+    private static int getChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
+                                                 @Nullable BlockInfo[] infos,
+                                                 @Nullable Map<String, Integer> channelValues) {
+        if (predicate == null || infos == null || infos.length == 0) return 0;
+        if (channelValues == null || predicate.channelName == null) return 0;
+        Integer cv = channelValues.get(predicate.channelName);
+        if (cv == null || cv <= 0) return 0;
+        int idx = cv - 1;
+        return idx < infos.length ? idx : 0;
     }
 
     /**

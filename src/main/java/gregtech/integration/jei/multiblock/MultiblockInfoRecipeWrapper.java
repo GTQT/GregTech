@@ -10,6 +10,7 @@ import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GregFakePlayer;
@@ -92,16 +93,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final MultiblockControllerBase controller;
     private final Map<GuiButton, Runnable> buttons = new HashMap<>();
     private final List<ItemStack> allItemStackInputs = new ArrayList<>();
-    private final GuiButton buttonPreviousPattern;
-    private final GuiButton buttonNextPattern;
     private final GuiButton nextLayerButton;
-    private final GuiButton nextTierButton;
     private final List<TraceabilityPredicate.SimplePredicate> predicates;
+    private final Map<String, Integer> channelValues = new HashMap<>();
+    private final List<StructureChannel> supportedChannels;
+    private final List<GuiButton> channelMinusButtons = new ArrayList<>();
+    private final List<GuiButton> channelPlusButtons = new ArrayList<>();
     private MBPattern[] patterns;
     private RecipeLayout recipeLayout;
     private int layerIndex = -1;
-    private int tierIndex = 0;
-    private int currentRendererPage = 0;
     private int lastMouseX;
     private int lastMouseY;
     private Vector3f center;
@@ -118,30 +118,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @SuppressWarnings("NewExpressionSideOnly")
     public MultiblockInfoRecipeWrapper(@NotNull MultiblockControllerBase controller) {
         this.controller = controller;
+        this.supportedChannels = controller.getSupportedChannels();
         Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
-        this.patterns = controller.getMatchingShapes().stream()
+        this.patterns = controller.getMatchingShapes(channelValues).stream()
                 .map(it -> initializePattern(it, drops))
                 .toArray(MBPattern[]::new);
         allItemStackInputs.addAll(drops);
         this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), 70, ICON_SIZE, ICON_SIZE, "");
 
-        this.buttonPreviousPattern = new GuiButton(0, 176 - ((2 * ICON_SIZE) + RIGHT_PADDING + 1), 90, ICON_SIZE,
-                ICON_SIZE, "<");
-
-        this.buttonNextPattern = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), 90, ICON_SIZE, ICON_SIZE, ">");
-
-        this.nextTierButton = new GuiButton(0, 176 - ((2 * ICON_SIZE) + RIGHT_PADDING + 1), 70, ICON_SIZE, ICON_SIZE,
-                "^");
+        int channelStartY = 90;
+        for (int i = 0; i < supportedChannels.size(); i++) {
+            int rowY = channelStartY + i * 22;
+            GuiButton minusBtn = new GuiButton(0, 176 - 60, rowY, 16, 16, "-");
+            GuiButton plusBtn = new GuiButton(0, 176 - 20, rowY, 16, 16, "+");
+            channelMinusButtons.add(minusBtn);
+            channelPlusButtons.add(plusBtn);
+            final int idx = i;
+            buttons.put(minusBtn, () -> updateChannelValue(idx, -1));
+            buttons.put(plusBtn, () -> updateChannelValue(idx, 1));
+        }
 
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
-        this.buttons.put(buttonPreviousPattern, () -> switchRenderPage(-1));
-        this.buttons.put(buttonNextPattern, () -> switchRenderPage(1));
-        this.buttons.put(nextTierButton, this::toggleNextTier);
-        boolean isPagesDisabled = patterns.length == 1;
-        this.buttonPreviousPattern.visible = !isPagesDisabled;
-        this.buttonNextPattern.visible = !isPagesDisabled;
         this.predicates = new ArrayList<>();
-        this.nextTierButton.visible = controller.getMaxStructureTier() > 0;
         GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
     }
 
@@ -257,16 +255,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             this.father = null;
             lastWrapper = this;
             this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
-            this.buttonPreviousPattern.x = border.getWidth() - ((2 * ICON_SIZE) + RIGHT_PADDING + 1);
-            this.buttonNextPattern.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
-            this.buttonPreviousPattern.enabled = false;
-            this.buttonNextPattern.enabled = patterns.length > 1;
             Vector3f size = ((TrackedDummyWorld) getCurrentRenderer().world).getSize();
             float max = Math.max(Math.max(Math.max(size.x, size.y), size.z), 1);
             this.zoom = (float) (3.5 * Math.sqrt(max));
             this.rotationYaw = 20.0f;
             this.rotationPitch = 50f;
-            this.currentRendererPage = 0;
             setNextLayer(-1);
         } else {
             zoom = (float) MathHelper.clamp(zoom + (Mouse.getEventDWheel() < 0 ? 0.5 : -0.5), 3, 999);
@@ -283,7 +276,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     public WorldSceneRenderer getCurrentRenderer() {
-        return patterns[currentRendererPage].getSceneRenderer();
+        return patterns[0].getSceneRenderer();
     }
 
     public int getLayerIndex() {
@@ -299,18 +292,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             this.layerIndex = -1;
         }
         setNextLayer(layerIndex);
-    }
-
-    private void toggleNextTier() {
-        if (++this.tierIndex > controller.getMaxStructureTier()) {
-            this.tierIndex = 0;
-        }
-        this.controller.setStructureTier(tierIndex);
-        controller.reinitializeStructurePattern();
-        Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
-        this.patterns = controller.getMatchingShapes().stream()
-                .map(it -> initializePattern(it, drops))
-                .toArray(MBPattern[]::new);
     }
 
     private void setNextLayer(int newLayer) {
@@ -340,25 +321,39 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
     }
 
-    private void switchRenderPage(int amount) {
-        int maxIndex = patterns.length - 1;
-        int newIndex = Math.max(0, Math.min(currentRendererPage + amount, maxIndex));
-        if (currentRendererPage != newIndex) {
-            this.currentRendererPage = newIndex;
-            this.buttonNextPattern.enabled = newIndex < maxIndex;
-            this.buttonPreviousPattern.enabled = newIndex > 0;
-            setNextLayer(-1);
-            updateParts();
-            getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch),
-                    Math.toRadians(rotationYaw));
-            if (this.selected != null) {
-                this.selected = null;
-                for (int i = 0; i < predicates.size(); i++) {
-                    recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
-                }
-                predicates.clear();
-                this.father = null;
+    private void updateChannelValue(int channelIndex, int delta) {
+        if (channelIndex < 0 || channelIndex >= supportedChannels.size()) return;
+        String channelName = supportedChannels.get(channelIndex).getName();
+        int current = channelValues.getOrDefault(channelName, 0);
+        int newValue = current + delta;
+        if (newValue < 0) newValue = 0;
+        if (newValue > 5) newValue = 5;
+        if (newValue == 0) {
+            channelValues.remove(channelName);
+        } else {
+            channelValues.put(channelName, newValue);
+        }
+        regeneratePatterns();
+    }
+
+    private void regeneratePatterns() {
+        Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
+        this.patterns = controller.getMatchingShapes(channelValues).stream()
+                .map(it -> initializePattern(it, drops))
+                .toArray(MBPattern[]::new);
+        allItemStackInputs.clear();
+        allItemStackInputs.addAll(drops);
+        setNextLayer(-1);
+        updateParts();
+        getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch),
+                Math.toRadians(rotationYaw));
+        if (this.selected != null) {
+            this.selected = null;
+            for (int i = 0; i < predicates.size(); i++) {
+                recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
             }
+            predicates.clear();
+            this.father = null;
         }
     }
 
@@ -372,7 +367,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void updateParts() {
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        List<ItemStack> parts = this.patterns[currentRendererPage].getParts();
+        List<ItemStack> parts = this.patterns[0].getParts();
         int limit = Math.min(parts.size(), MAX_PARTS);
         for (int i = 0; i < limit; ++i) {
             itemStackGroup.set(i, parts.get(i));
@@ -518,7 +513,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     rayTraceResult.getBlockPos(), minecraft.player
             );
 
-            TraceabilityPredicate predicates = patterns[currentRendererPage].getPredicateMap()
+            TraceabilityPredicate predicates = patterns[0].getPredicateMap()
                     .get(rayTraceResult.getBlockPos());
             if (predicates != null) {
                 BlockWorldState worldState = new BlockWorldState();
@@ -568,11 +563,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void drawMultiblockTier(int recipeWidth) {
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
-        String toShow = "Tier: " + (currentRendererPage + 1) + " / Max: " + (patterns.length);
-        List<String> lines = fontRenderer.listFormattedStringToWidth(toShow, recipeWidth - 10);
-        for (int i = 0; i < lines.size(); i++) {
-            fontRenderer.drawString(lines.get(i), (recipeWidth - fontRenderer.getStringWidth(lines.get(i))) / 2,
-                    8 + fontRenderer.FONT_HEIGHT * i, ConfigHolder.client.multiblockPreviewFontColor);
+        if (supportedChannels.isEmpty()) return;
+        int channelStartY = 90;
+        for (int i = 0; i < supportedChannels.size(); i++) {
+            String channelName = supportedChannels.get(i).getName();
+            int value = channelValues.getOrDefault(channelName, 0);
+            String displayText = channelName + ": " + value;
+            int textWidth = fontRenderer.getStringWidth(displayText);
+            fontRenderer.drawString(displayText, recipeWidth - 60 + (40 - textWidth) / 2,
+                    channelStartY + i * 22 + 4, ConfigHolder.client.multiblockPreviewFontColor);
         }
     }
 
@@ -606,7 +605,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 predicates.clear();
                 this.father = null;
                 this.selected = selected;
-                TraceabilityPredicate predicate = patterns[currentRendererPage].getPredicateMap().get(this.selected);
+                TraceabilityPredicate predicate = patterns[0].getPredicateMap().get(this.selected);
                 if (predicate != null) {
                     predicates.addAll(predicate.common);
                     predicates.addAll(predicate.limited);

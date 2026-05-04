@@ -39,8 +39,10 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @SideOnly(Side.CLIENT)
 public class MultiblockPreviewRenderer {
@@ -64,13 +66,15 @@ public class MultiblockPreviewRenderer {
         if (mbpPos != null) {
             Minecraft mc = Minecraft.getMinecraft();
             long time = System.currentTimeMillis();
-            if (opList == -1 || time > mbpEndTime || !(mc.world.getTileEntity(mbpPos) instanceof IGregTechTileEntity)) {
+            Entity entity = mc.getRenderViewEntity();
+            if (entity == null) entity = mc.player;
+            if (opList == -1 || time > mbpEndTime
+                    || !(mc.world.getTileEntity(mbpPos) instanceof IGregTechTileEntity)
+                    || entity.getDistanceSq(mbpPos) > 1024) {
                 resetMultiblockRender();
                 layer = 0;
                 return;
             }
-            Entity entity = mc.getRenderViewEntity();
-            if (entity == null) entity = mc.player;
             float partialTicks = event.getPartialTicks();
             double tx = entity.lastTickPosX + ((entity.posX - entity.lastTickPosX) * partialTicks);
             double ty = entity.lastTickPosY + ((entity.posY - entity.lastTickPosY) * partialTicks);
@@ -105,6 +109,19 @@ public class MultiblockPreviewRenderer {
             if (mbpEndTime - System.currentTimeMillis() < 200) return;
             layer++;
         }
+        rebuildMultiblockPreview(controller, durTimeMillis);
+    }
+
+    public static void refreshCurrentPreview(MultiblockControllerBase controller) {
+        long remainingTime = mbpEndTime - System.currentTimeMillis();
+        if (controller == null || mbpPos == null || opList == -1 || remainingTime <= 0 ||
+                !controller.getPos().equals(mbpPos)) {
+            return;
+        }
+        rebuildMultiblockPreview(controller, remainingTime);
+    }
+
+    private static void rebuildMultiblockPreview(MultiblockControllerBase controller, long durTimeMillis) {
         resetMultiblockRender();
         mbpPos = controller.getPos();
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
@@ -346,7 +363,7 @@ public class MultiblockPreviewRenderer {
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         BlockPos controllerPos = BlockPos.ORIGIN;
-        EnumFacing previewFacing = controller.getFrontFacing();
+        EnumFacing previewFacing = getStructureFacing(controller);
 
         // Find controller position in the shape
         for (int x = 0; x < blocks.length; x++) {
@@ -359,14 +376,14 @@ public class MultiblockPreviewRenderer {
                     if (metaTE instanceof MultiblockControllerBase &&
                             metaTE.metaTileEntityId.equals(controller.metaTileEntityId)) {
                         controllerPos = new BlockPos(x, y, z);
-                        previewFacing = metaTE.getFrontFacing();
+                        previewFacing = getPreviewStructureFacing(metaTE);
                     }
                 }
             }
         }
 
         // Calculate rotation from preview facing to actual facing
-        EnumFacing facing = controller.getFrontFacing();
+        EnumFacing facing = getStructureFacing(controller);
         EnumFacing frontFacing = facing.getYOffset() == 0 ? facing :
                 facing.getYOffset() < 0 ? controller.getUpwardsFacing() :
                         controller.getUpwardsFacing().getOpposite();
@@ -400,7 +417,7 @@ public class MultiblockPreviewRenderer {
                                               int layer) {
         BlockPos mbpPos = controllerBase.getPos();
         EnumFacing frontFacing, previewFacing;
-        previewFacing = controllerBase.getFrontFacing();
+        previewFacing = getStructureFacing(controllerBase);
         BlockPos controllerPos = BlockPos.ORIGIN;
         MultiblockControllerBase mte = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -418,7 +435,7 @@ public class MultiblockPreviewRenderer {
                     if (metaTE instanceof MultiblockControllerBase &&
                             metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
                         controllerPos = new BlockPos(x, y, z);
-                        previewFacing = metaTE.getFrontFacing();
+                        previewFacing = getPreviewStructureFacing(metaTE);
                         mte = (MultiblockControllerBase) metaTE;
                     }
                 }
@@ -429,7 +446,7 @@ public class MultiblockPreviewRenderer {
         int finalMaxY = layer % (maxY + 1);
         world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
 
-        EnumFacing facing = controllerBase.getFrontFacing();
+        EnumFacing facing = getStructureFacing(controllerBase);
         EnumFacing upwardsFacing = controllerBase.getUpwardsFacing();
 
         frontFacing = facing.getYOffset() == 0 ? facing :
@@ -464,30 +481,31 @@ public class MultiblockPreviewRenderer {
         }
 
         if (mte != null) {
-            mte.checkStructurePattern();
+            // 不在渲染路径中做结构校验，避免大机器卡顿
         }
 
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
 
-        TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
-        for (BlockPos pos : blockMap.keySet()) {
-            targetBA.setPos(pos);
-            GlStateManager.pushMatrix();
-            BlockPos.MutableBlockPos tPos = new BlockPos.MutableBlockPos(pos.subtract(controllerPos));
-            GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
-            GlStateManager.translate(0.125, 0.125, 0.125);
-            GlStateManager.scale(0.75, 0.75, 0.75);
+        Set<BlockPos> surfaceBlocks = computeSurfaceBlocks(blockMap);
 
+        TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
+        for (BlockRenderLayer brl : BlockRenderLayer.values()) {
             buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-            IBlockState state = world.getBlockState(pos);
-            for (BlockRenderLayer brl : BlockRenderLayer.values()) {
-                if (state.getBlock().canRenderInLayer(state, brl)) {
-                    ForgeHooksClient.setRenderLayer(brl);
-                    brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
-                }
+            ForgeHooksClient.setRenderLayer(brl);
+            for (BlockPos pos : surfaceBlocks) {
+                if (pos.equals(controllerPos)) continue;
+                IBlockState state = world.getBlockState(pos);
+                if (!state.getBlock().canRenderInLayer(state, brl)) continue;
+                targetBA.setPos(pos);
+                GlStateManager.pushMatrix();
+                BlockPos.MutableBlockPos tPos = new BlockPos.MutableBlockPos(pos.subtract(controllerPos));
+                GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
+                GlStateManager.translate(0.125, 0.125, 0.125);
+                GlStateManager.scale(0.75, 0.75, 0.75);
+                brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
+                GlStateManager.popMatrix();
             }
             tes.draw();
-            GlStateManager.popMatrix();
         }
         ForgeHooksClient.setRenderLayer(oldLayer);
 
@@ -497,7 +515,7 @@ public class MultiblockPreviewRenderer {
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                               int layer, BlockPos targetPos) {
         EnumFacing frontFacing, previewFacing;
-        previewFacing = controllerBase.getFrontFacing();
+        previewFacing = getStructureFacing(controllerBase);
         BlockPos controllerPos = BlockPos.ORIGIN;
         MultiblockControllerBase mte = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -515,7 +533,7 @@ public class MultiblockPreviewRenderer {
                     if (metaTE instanceof MultiblockControllerBase &&
                             metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
                         controllerPos = new BlockPos(x, y, z);
-                        previewFacing = metaTE.getFrontFacing();
+                        previewFacing = getPreviewStructureFacing(metaTE);
                         mte = (MultiblockControllerBase) metaTE;
                         break;
                     }
@@ -527,7 +545,7 @@ public class MultiblockPreviewRenderer {
         int finalMaxY = layer % (maxY + 1);
         world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
 
-        EnumFacing facing = controllerBase.getFrontFacing();
+        EnumFacing facing = getStructureFacing(controllerBase);
         EnumFacing upwardsFacing = controllerBase.getUpwardsFacing();
 
         frontFacing = facing.getYOffset() == 0 ? facing :
@@ -562,34 +580,60 @@ public class MultiblockPreviewRenderer {
         }
 
         if (mte != null) {
-            mte.checkStructurePattern();
+            // 不在渲染路径中做结构校验，避免大机器卡顿
         }
 
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
 
-        TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
-        for (BlockPos pos : blockMap.keySet()) {
-            targetBA.setPos(pos);
-            GlStateManager.pushMatrix();
-            BlockPos.MutableBlockPos tPos = new BlockPos.MutableBlockPos(pos.subtract(controllerPos));
-            GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
-            GlStateManager.translate(0.125, 0.125, 0.125);
-            GlStateManager.scale(0.75, 0.75, 0.75);
+        Set<BlockPos> surfaceBlocks = computeSurfaceBlocks(blockMap);
 
+        TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
+        for (BlockRenderLayer brl : BlockRenderLayer.values()) {
             buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-            IBlockState state = world.getBlockState(pos);
-            for (BlockRenderLayer brl : BlockRenderLayer.values()) {
-                if (state.getBlock().canRenderInLayer(state, brl)) {
-                    ForgeHooksClient.setRenderLayer(brl);
-                    brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
-                }
+            ForgeHooksClient.setRenderLayer(brl);
+            for (BlockPos pos : surfaceBlocks) {
+                if (pos.equals(controllerPos)) continue;
+                IBlockState state = world.getBlockState(pos);
+                if (!state.getBlock().canRenderInLayer(state, brl)) continue;
+                targetBA.setPos(pos);
+                GlStateManager.pushMatrix();
+                BlockPos.MutableBlockPos tPos = new BlockPos.MutableBlockPos(pos.subtract(controllerPos));
+                GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
+                GlStateManager.translate(0.125, 0.125, 0.125);
+                GlStateManager.scale(0.75, 0.75, 0.75);
+                brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
+                GlStateManager.popMatrix();
             }
             tes.draw();
-            GlStateManager.popMatrix();
         }
         ForgeHooksClient.setRenderLayer(oldLayer);
 
         GlStateManager.popMatrix();
+    }
+
+    /**
+     * 计算结构表面方块集合，跳过完全被遮挡的内部方块以提升渲染性能。
+     * 表面方块：至少有一个相邻位置不在 blockMap 中（即暴露在空气中或结构边界）。
+     */
+    private static Set<BlockPos> computeSurfaceBlocks(Map<BlockPos, BlockInfo> blockMap) {
+        Set<BlockPos> surface = new HashSet<>();
+        for (BlockPos pos : blockMap.keySet()) {
+            for (EnumFacing face : EnumFacing.VALUES) {
+                if (!blockMap.containsKey(pos.offset(face))) {
+                    surface.add(pos);
+                    break;
+                }
+            }
+        }
+        return surface;
+    }
+
+    private static EnumFacing getStructureFacing(MultiblockControllerBase controller) {
+        return controller.getFrontFacing().getOpposite();
+    }
+
+    private static EnumFacing getPreviewStructureFacing(MetaTileEntity metaTileEntity) {
+        return metaTileEntity.getFrontFacing().getOpposite();
     }
 
     @SideOnly(Side.CLIENT)

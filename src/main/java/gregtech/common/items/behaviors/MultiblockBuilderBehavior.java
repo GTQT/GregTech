@@ -9,6 +9,7 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.GTUtility;
 
 import net.minecraft.client.resources.I18n;
@@ -40,16 +41,17 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory {
 
-    int tier = 0;
+    private int tier = 0;
 
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
                                            float hitY, float hitZ, EnumHand hand) {
-        // Initial checks
         TileEntity tileEntity = world.getTileEntity(pos);
         if (!(tileEntity instanceof IGregTechTileEntity)) {
             if (!world.isRemote) {
@@ -63,19 +65,16 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         if (world.isRemote) return EnumActionResult.SUCCESS;
 
         if (player.isSneaking()) {
-            // If sneaking, try to build the multiblock.
-            // Only try to auto-build if the structure is not already formed
             if (!multiblock.isStructureFormed()) {
-                multiblock.structurePattern.autoBuild(player, multiblock,tier);
+                Map<String, Integer> channelValues = tierToChannelValues(tier);
+                multiblock.structurePattern.autoBuild(player, multiblock, channelValues, false);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
         } else {
-            // If not sneaking, try to show structure debug info (if any) in chat.
             if (!multiblock.isStructureFormed()) {
                 PatternError error = multiblock.structurePattern.getError();
                 if (error != null) {
-
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
                             new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
@@ -95,6 +94,17 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         }
     }
 
+    /**
+     * 将旧的全局 tier 转换为信道值映射。
+     * tier=0 → 最大尺寸，tier=1 → 最小尺寸，tier>=2 → 指定尺寸。
+     */
+    private static Map<String, Integer> tierToChannelValues(int tier) {
+        Map<String, Integer> channels = new HashMap<>();
+        channels.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), tier);
+        channels.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), tier);
+        return channels;
+    }
+
     @Override
     public void addPropertyOverride(@NotNull Item item) {
         item.addPropertyOverride(GTUtility.gregtechId("auto_mode"),
@@ -104,9 +114,9 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         lines.add(I18n.format("metaitem.tool.multiblock_builder.tooltip2"));
-        if(tier==0)
+        if (tier == 0)
             lines.add(I18n.format("构建结构：最大等级"));
-        else if(tier==1)
+        else if (tier == 1)
             lines.add(I18n.format("构建结构：最小等级"));
         else
             lines.add(I18n.format("构建结构：" + tier));
@@ -121,8 +131,8 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
                 this::setTier
         );
 
-        StringSyncValue formattedUpdateTime = new StringSyncValue(()->{
-            if(tierValue.getValue()==0)return "等级：MAX";
+        StringSyncValue formattedUpdateTime = new StringSyncValue(() -> {
+            if (tierValue.getValue() == 0) return "等级：MAX";
             return "等级：" + tierValue.getValue();
         });
 
@@ -131,39 +141,41 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         return panel.child(IKey.lang("多方块构建器").asWidget().pos(5, 5))
                 .child(new TextFieldWidget()
                         .widthRel(0.8f)
-                        .pos(15,17)
+                        .pos(15, 17)
                         .height(20)
                         .setTextColor(Color.WHITE.darker(1))
                         .value(formattedUpdateTime)
                         .background(GTGuiTextures.DISPLAY)
                 )
                 .child(Flow.row()
-                        .pos(15,42)
+                        .pos(15, 42)
                         .widthRel(0.8f)
-                        .height(36+9)
+                        .height(36 + 9)
                         .child(new ButtonWidget<>()
                                 .left(0).width(60)
                                 .tooltip(tooltip -> tooltip
-                                        .addLine(IKey.lang("当前可重复的通道重复次数-1（只有当前可重复通道达到最小重复次数时恢复下一个通道）")))
+                                        .addLine(IKey.lang(
+                                                "当前可重复的通道重复次数-1（只有当前可重复通道达到最小重复次数时恢复下一个通道）")))
                                 .onMousePressed(mouseButton -> {
                                     tierValue.setValue(MathHelper.clamp(
-                                            tierValue.getValue() -1, 0,
+                                            tierValue.getValue() - 1, 0,
                                             100));
                                     return true;
                                 })
-                                .onUpdateListener(w-> w.overlay(IKey.str("减小等级")))
+                                .onUpdateListener(w -> w.overlay(IKey.str("减小等级")))
                         )
                         .child(new ButtonWidget<>()
                                 .left(80).width(60)
                                 .tooltip(tooltip -> tooltip
-                                        .addLine(IKey.lang("当前可重复的通道重复次数+1（只有当前可重复通道达到最大重复次数时重复下一个通道）")))
+                                        .addLine(IKey.lang(
+                                                "当前可重复的通道重复次数+1（只有当前可重复通道达到最大重复次数时重复下一个通道）")))
                                 .onMousePressed(mouseButton -> {
                                     tierValue.setValue(MathHelper.clamp(
-                                            tierValue.getValue() +1, 0,
+                                            tierValue.getValue() + 1, 0,
                                             100));
                                     return true;
                                 })
-                                .onUpdateListener(w-> w.overlay(IKey.str("增大等级")))
+                                .onUpdateListener(w -> w.overlay(IKey.str("增大等级")))
                         )
                         .child(new ButtonWidget<>()
                                 .top(27)
@@ -174,7 +186,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
                                     tierValue.setValue(1);
                                     return true;
                                 })
-                                .onUpdateListener(w-> w.overlay(IKey.str("最小等级")))
+                                .onUpdateListener(w -> w.overlay(IKey.str("最小等级")))
                         )
                         .child(new ButtonWidget<>()
                                 .top(27)
@@ -185,7 +197,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
                                     tierValue.setValue(0);
                                     return true;
                                 })
-                                .onUpdateListener(w-> w.overlay(IKey.str("最大等级")))
+                                .onUpdateListener(w -> w.overlay(IKey.str("最大等级")))
                         )
                 );
     }
