@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
+import gregtech.api.util.RelativeDirection;
 import gregtech.client.utils.TrackedDummyWorld;
 
 import net.minecraft.block.state.IBlockState;
@@ -23,7 +24,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.Rotation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -363,7 +363,6 @@ public class MultiblockPreviewRenderer {
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         BlockPos controllerPos = BlockPos.ORIGIN;
-        EnumFacing previewFacing = getStructureFacing(controller);
 
         // Find controller position in the shape
         for (int x = 0; x < blocks.length; x++) {
@@ -376,19 +375,10 @@ public class MultiblockPreviewRenderer {
                     if (metaTE instanceof MultiblockControllerBase &&
                             metaTE.metaTileEntityId.equals(controller.metaTileEntityId)) {
                         controllerPos = new BlockPos(x, y, z);
-                        previewFacing = getPreviewStructureFacing(metaTE);
                     }
                 }
             }
         }
-
-        // Calculate rotation from preview facing to actual facing
-        EnumFacing facing = getStructureFacing(controller);
-        EnumFacing frontFacing = facing.getYOffset() == 0 ? facing :
-                facing.getYOffset() < 0 ? controller.getUpwardsFacing() :
-                        controller.getUpwardsFacing().getOpposite();
-        Rotation rotateBy = Rotation
-                .values()[(4 + frontFacing.getHorizontalIndex() - previewFacing.getHorizontalIndex()) % 4];
 
         // Build expected blocks map in world coordinates
         Map<BlockPos, IBlockState> expectedBlocks = new HashMap<>();
@@ -403,7 +393,7 @@ public class MultiblockPreviewRenderer {
                     if (state == null || state.getBlock() == Blocks.AIR) continue;
 
                     BlockPos relPos = new BlockPos(x, y, z).subtract(controllerPos);
-                    BlockPos rotated = relPos.rotate(rotateBy);
+                    BlockPos rotated = transformPreviewOffset(controller, relPos);
                     BlockPos worldPos = worldControllerPos.add(rotated);
                     expectedBlocks.put(worldPos, state);
                 }
@@ -416,8 +406,6 @@ public class MultiblockPreviewRenderer {
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                               int layer) {
         BlockPos mbpPos = controllerBase.getPos();
-        EnumFacing frontFacing, previewFacing;
-        previewFacing = getStructureFacing(controllerBase);
         BlockPos controllerPos = BlockPos.ORIGIN;
         MultiblockControllerBase mte = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -435,7 +423,6 @@ public class MultiblockPreviewRenderer {
                     if (metaTE instanceof MultiblockControllerBase &&
                             metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
                         controllerPos = new BlockPos(x, y, z);
-                        previewFacing = getPreviewStructureFacing(metaTE);
                         mte = (MultiblockControllerBase) metaTE;
                     }
                 }
@@ -446,39 +433,12 @@ public class MultiblockPreviewRenderer {
         int finalMaxY = layer % (maxY + 1);
         world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
 
-        EnumFacing facing = getStructureFacing(controllerBase);
-        EnumFacing upwardsFacing = controllerBase.getUpwardsFacing();
-
-        frontFacing = facing.getYOffset() == 0 ? facing :
-                facing.getYOffset() < 0 ? upwardsFacing : upwardsFacing.getOpposite();
-        Rotation rotatePreviewBy = Rotation
-                .values()[(4 + frontFacing.getHorizontalIndex() - previewFacing.getHorizontalIndex()) % 4];
-
         Minecraft mc = Minecraft.getMinecraft();
         BlockRendererDispatcher brd = mc.getBlockRendererDispatcher();
         Tessellator tes = Tessellator.getInstance();
         BufferBuilder buff = tes.getBuffer();
         GlStateManager.pushMatrix();
         GlStateManager.translate(mbpPos.getX(), mbpPos.getY(), mbpPos.getZ());
-        GlStateManager.translate(0.5, 0, 0.5);
-        GlStateManager.rotate(rotatePreviewBy.ordinal() * 90, 0, -1, 0);
-        GlStateManager.translate(-0.5, 0, -0.5);
-
-        if (facing == EnumFacing.UP) {
-            GlStateManager.translate(0.5, 0.5, 0.5);
-            GlStateManager.rotate(90, -previewFacing.getZOffset(), 0, previewFacing.getXOffset());
-            GlStateManager.translate(-0.5, -0.5, -0.5);
-        } else if (facing == EnumFacing.DOWN) {
-            GlStateManager.translate(0.5, 0.5, 0.5);
-            GlStateManager.rotate(90, previewFacing.getZOffset(), 0, -previewFacing.getXOffset());
-            GlStateManager.translate(-0.5, -0.5, -0.5);
-        } else {
-            int degree = 90 * (upwardsFacing == EnumFacing.EAST ? -1 :
-                    upwardsFacing == EnumFacing.SOUTH ? 2 : upwardsFacing == EnumFacing.WEST ? 1 : 0);
-            GlStateManager.translate(0.5, 0.5, 0.5);
-            GlStateManager.rotate(degree, previewFacing.getXOffset(), 0, previewFacing.getZOffset());
-            GlStateManager.translate(-0.5, -0.5, -0.5);
-        }
 
         if (mte != null) {
             // 不在渲染路径中做结构校验，避免大机器卡顿
@@ -498,7 +458,7 @@ public class MultiblockPreviewRenderer {
                 if (!state.getBlock().canRenderInLayer(state, brl)) continue;
                 targetBA.setPos(pos);
                 GlStateManager.pushMatrix();
-                BlockPos.MutableBlockPos tPos = new BlockPos.MutableBlockPos(pos.subtract(controllerPos));
+                BlockPos tPos = transformPreviewOffset(controllerBase, pos.subtract(controllerPos));
                 GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
                 GlStateManager.translate(0.125, 0.125, 0.125);
                 GlStateManager.scale(0.75, 0.75, 0.75);
@@ -514,8 +474,6 @@ public class MultiblockPreviewRenderer {
 
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                               int layer, BlockPos targetPos) {
-        EnumFacing frontFacing, previewFacing;
-        previewFacing = getStructureFacing(controllerBase);
         BlockPos controllerPos = BlockPos.ORIGIN;
         MultiblockControllerBase mte = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -533,7 +491,6 @@ public class MultiblockPreviewRenderer {
                     if (metaTE instanceof MultiblockControllerBase &&
                             metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
                         controllerPos = new BlockPos(x, y, z);
-                        previewFacing = getPreviewStructureFacing(metaTE);
                         mte = (MultiblockControllerBase) metaTE;
                         break;
                     }
@@ -545,39 +502,12 @@ public class MultiblockPreviewRenderer {
         int finalMaxY = layer % (maxY + 1);
         world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
 
-        EnumFacing facing = getStructureFacing(controllerBase);
-        EnumFacing upwardsFacing = controllerBase.getUpwardsFacing();
-
-        frontFacing = facing.getYOffset() == 0 ? facing :
-                facing.getYOffset() < 0 ? upwardsFacing : upwardsFacing.getOpposite();
-        Rotation rotatePreviewBy = Rotation
-                .values()[(4 + frontFacing.getHorizontalIndex() - previewFacing.getHorizontalIndex()) % 4];
-
         Minecraft mc = Minecraft.getMinecraft();
         BlockRendererDispatcher brd = mc.getBlockRendererDispatcher();
         Tessellator tes = Tessellator.getInstance();
         BufferBuilder buff = tes.getBuffer();
         GlStateManager.pushMatrix();
         GlStateManager.translate(targetPos.getX(), targetPos.getY(), targetPos.getZ());
-        GlStateManager.translate(0.5, 0, 0.5);
-        GlStateManager.rotate(rotatePreviewBy.ordinal() * 90, 0, -1, 0);
-        GlStateManager.translate(-0.5, 0, -0.5);
-
-        if (facing == EnumFacing.UP) {
-            GlStateManager.translate(0.5, 0.5, 0.5);
-            GlStateManager.rotate(90, -previewFacing.getZOffset(), 0, previewFacing.getXOffset());
-            GlStateManager.translate(-0.5, -0.5, -0.5);
-        } else if (facing == EnumFacing.DOWN) {
-            GlStateManager.translate(0.5, 0.5, 0.5);
-            GlStateManager.rotate(90, previewFacing.getZOffset(), 0, -previewFacing.getXOffset());
-            GlStateManager.translate(-0.5, -0.5, -0.5);
-        } else {
-            int degree = 90 * (upwardsFacing == EnumFacing.EAST ? -1 :
-                    upwardsFacing == EnumFacing.SOUTH ? 2 : upwardsFacing == EnumFacing.WEST ? 1 : 0);
-            GlStateManager.translate(0.5, 0.5, 0.5);
-            GlStateManager.rotate(degree, previewFacing.getXOffset(), 0, previewFacing.getZOffset());
-            GlStateManager.translate(-0.5, -0.5, -0.5);
-        }
 
         if (mte != null) {
             // 不在渲染路径中做结构校验，避免大机器卡顿
@@ -597,7 +527,7 @@ public class MultiblockPreviewRenderer {
                 if (!state.getBlock().canRenderInLayer(state, brl)) continue;
                 targetBA.setPos(pos);
                 GlStateManager.pushMatrix();
-                BlockPos.MutableBlockPos tPos = new BlockPos.MutableBlockPos(pos.subtract(controllerPos));
+                BlockPos tPos = transformPreviewOffset(controllerBase, pos.subtract(controllerPos));
                 GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
                 GlStateManager.translate(0.125, 0.125, 0.125);
                 GlStateManager.scale(0.75, 0.75, 0.75);
@@ -634,6 +564,32 @@ public class MultiblockPreviewRenderer {
 
     private static EnumFacing getPreviewStructureFacing(MetaTileEntity metaTileEntity) {
         return metaTileEntity.getFrontFacing().getOpposite();
+    }
+
+    private static BlockPos transformPreviewOffset(MultiblockControllerBase controller, BlockPos previewOffset) {
+        if (controller.structurePattern == null) {
+            return previewOffset;
+        }
+
+        RelativeDirection[] structureDir = controller.structurePattern.getStructureDir();
+        int[] localOffset = new int[3];
+        for (int i = 0; i < structureDir.length; i++) {
+            localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.NORTH));
+        }
+
+        return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
+                getStructureFacing(controller), controller.getUpwardsFacing(), controller.isFlipped(), structureDir);
+    }
+
+    private static int getAxisComponent(BlockPos pos, EnumFacing axis) {
+        return switch (axis) {
+            case EAST -> pos.getX();
+            case WEST -> -pos.getX();
+            case UP -> pos.getY();
+            case DOWN -> -pos.getY();
+            case SOUTH -> pos.getZ();
+            case NORTH -> -pos.getZ();
+        };
     }
 
     @SideOnly(Side.CLIENT)

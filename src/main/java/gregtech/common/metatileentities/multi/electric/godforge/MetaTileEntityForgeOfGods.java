@@ -18,9 +18,19 @@ import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGods
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
+
+import static gregtech.api.util.RelativeDirection.FRONT;
+import static gregtech.api.util.RelativeDirection.RIGHT;
+import static gregtech.api.util.RelativeDirection.UP;
 
 public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
@@ -45,7 +55,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 ForgeOfGodsStructureString.FIRST_RING_AIR :
                 ForgeOfGodsStructureString.FIRST_RING;
 
-        FactoryBlockPattern builder = FactoryBlockPattern.start();
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
 
         for (String[] layer : beamShaft) {
             builder.aisle(layer);
@@ -59,10 +69,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 // Controller
                 .where('S', selfPredicate())
                 // Hatches (InputBus, InputHatch, OutputBus) or Transcendentally Amplified Magnetic Confinement Casing
-                .where('A', states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS))
+                .where('A', abilities(MultiblockAbility.IMPORT_ITEMS)
                         .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS)))
+                        .or(abilities(MultiblockAbility.EXPORT_ITEMS))
+                        .or(states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))))
                 // Singularity Reinforced Stellar Shielding Casing
                 .where('B', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
                 // Celestial Matter Guidance Casing
@@ -109,9 +119,23 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     // ==================== Rendering ====================
 
+    @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return Textures.SOLID_STEEL_CASING;
+        return Textures.GODFORGE_INNER_CASING;
+    }
+
+    @SideOnly(Side.CLIENT)
+    @NotNull
+    @Override
+    protected ICubeRenderer getFrontOverlay() {
+        return Textures.GODFORGE_CONTROLLER_OVERLAY;
+    }
+
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(), true, true);
     }
 
     @Override
@@ -122,6 +146,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public boolean allowsExtendedFacing() {
         return false;
+    }
+
+    @Override
+    public boolean isValidFrontFacing(EnumFacing facing) {
+        return facing != null && (!hasFrontFacing() || getFrontFacing() != facing);
     }
 
     public ForgeOfGodsData getData() {

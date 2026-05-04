@@ -732,7 +732,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             scheduleRenderUpdate();
         }
 
-        if (dataId == UPDATE_UPWARDS_FACING || dataId == UPDATE_FLIP) {
+        if (dataId == UPDATE_FRONT_FACING || dataId == UPDATE_UPWARDS_FACING || dataId == UPDATE_FLIP) {
             refreshPreviewOnClient();
         }
     }
