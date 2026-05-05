@@ -3,29 +3,20 @@ package gregtech.common.items.behaviors;
 import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IElectricItem;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
+import gregtech.common.entities.GTMiningLaserEntity;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -33,37 +24,32 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Random;
-
-import static gregtech.api.GTValues.*;
 
 public class MiningLaserBehavior implements IItemBehaviour {
 
     private static final String MODE_TAG = "MiningLaserMode";
 
-    // 模式定义
-    private static final int MODE_MINING = 0;        // 采矿模式
-    private static final int MODE_LOW_FOCUS = 1;     // 低聚焦模式
-    private static final int MODE_LONG_RANGE = 2;    // 远距模式
-    private static final int MODE_HORIZONTAL = 3;    // 水平模式
-    private static final int MODE_SUPER_HEAT = 4;    // 超级热线模式
-    private static final int MODE_SCATTER = 5;       // 散射模式
-    private static final int MODE_EXPLOSIVE = 6;     // 爆破模式
-    private static final int MODE_3X3 = 7;           // 3×3模式
+    private static final int MODE_MINING = 0;
+    private static final int MODE_LOW_FOCUS = 1;
+    private static final int MODE_LONG_RANGE = 2;
+    private static final int MODE_HORIZONTAL = 3;
+    private static final int MODE_SUPER_HEAT = 4;
+    private static final int MODE_SCATTER = 5;
+    private static final int MODE_EXPLOSIVE = 6;
+    private static final int MODE_3X3 = 7;
+    private static final int MODE_COUNT = 8;
 
-    // 能量消耗
+    private static final double LASER_SPEED = 1.0D;
     private static final long[] ENERGY_COSTS = {
-            VA[LV] * 10L,    // 采矿模式: 320 EU
-            VA[LV] * 2L,     // 低聚焦模式: 64 EU
-            VA[LV] * 15L,    // 远距模式: 480 EU
-            VA[LV] * 15L,    // 水平模式: 480 EU
-            VA[MV] * 5L,     // 超级热线模式: 2000 EU
-            VA[MV] * 10L,    // 散射模式: 4000 EU
-            VA[HV] * 5L,     // 爆破模式: 8000 EU
-            VA[LV] * 30L     // 3×3模式: 960 EU
+            1250L,
+            100L,
+            5000L,
+            3000L,
+            2500L,
+            10000L,
+            5000L,
+            3000L
     };
-
-    private final Random random = new Random();
 
     public MiningLaserBehavior() {}
 
@@ -73,75 +59,83 @@ public class MiningLaserBehavior implements IItemBehaviour {
         return electricItem.discharge(amount, Integer.MAX_VALUE, true, false, simulate) >= amount;
     }
 
+    private static Vec3d normalize(Vec3d vec) {
+        double length = vec.length();
+        return length < 1.0E-7D ? Vec3d.ZERO : new Vec3d(vec.x / length, vec.y / length, vec.z / length);
+    }
+
     private int getMode(ItemStack stack) {
-        if (!stack.hasTagCompound()) return MODE_MINING;
-        NBTTagCompound tag = stack.getTagCompound();
-        return tag != null ? tag.getInteger(MODE_TAG) : MODE_MINING;
+        if (!stack.hasTagCompound() || stack.getTagCompound() == null) return MODE_MINING;
+        int mode = stack.getTagCompound().getInteger(MODE_TAG);
+        return mode >= 0 && mode < MODE_COUNT ? mode : MODE_MINING;
     }
 
     private void setMode(ItemStack stack, int mode) {
         if (!stack.hasTagCompound()) {
             stack.setTagCompound(new NBTTagCompound());
         }
-        NBTTagCompound tag = stack.getTagCompound();
-        if (tag != null) {
-            tag.setInteger(MODE_TAG, mode % 8); // 8种模式
+        if (stack.getTagCompound() != null) {
+            stack.getTagCompound().setInteger(MODE_TAG, Math.floorMod(mode, MODE_COUNT));
         }
     }
 
     private void nextMode(ItemStack stack, EntityPlayer player) {
-        int currentMode = getMode(stack);
-        int newMode = (currentMode + 1) % 8;
+        int newMode = (getMode(stack) + 1) % MODE_COUNT;
         setMode(stack, newMode);
 
         if (!player.world.isRemote) {
             player.sendMessage(new TextComponentTranslation(
                     "behavior.mining_laser.mode_switched",
-                    getModeName(newMode),
+                    new TextComponentTranslation(getModeTranslationKey(newMode)),
                     ENERGY_COSTS[newMode]
             ));
         }
     }
 
-    private String getModeName(int mode) {
-        return switch (mode) {
-            case MODE_MINING -> I18n.format("behavior.mining_laser.mode.mining");
-            case MODE_LOW_FOCUS -> I18n.format("behavior.mining_laser.mode.low_focus");
-            case MODE_LONG_RANGE -> I18n.format("behavior.mining_laser.mode.long_range");
-            case MODE_HORIZONTAL -> I18n.format("behavior.mining_laser.mode.horizontal");
-            case MODE_SUPER_HEAT -> I18n.format("behavior.mining_laser.mode.super_heat");
-            case MODE_SCATTER -> I18n.format("behavior.mining_laser.mode.scatter");
-            case MODE_EXPLOSIVE -> I18n.format("behavior.mining_laser.mode.explosive");
-            case MODE_3X3 -> I18n.format("behavior.mining_laser.mode.3x3");
-            default -> I18n.format("behavior.mining_laser.mode.unknown");
-        };
-    }
-
-    private String getModeDescription(int mode) {
-        return switch (mode) {
-            case MODE_MINING -> I18n.format("behavior.mining_laser.mode.mining.description");
-            case MODE_LOW_FOCUS -> I18n.format("behavior.mining_laser.mode.low_focus.description");
-            case MODE_LONG_RANGE -> I18n.format("behavior.mining_laser.mode.long_range.description");
-            case MODE_HORIZONTAL -> I18n.format("behavior.mining_laser.mode.horizontal.description");
-            case MODE_SUPER_HEAT -> I18n.format("behavior.mining_laser.mode.super_heat.description");
-            case MODE_SCATTER -> I18n.format("behavior.mining_laser.mode.scatter.description");
-            case MODE_EXPLOSIVE -> I18n.format("behavior.mining_laser.mode.explosive.description");
-            case MODE_3X3 -> I18n.format("behavior.mining_laser.mode.3x3.description");
-            default -> "";
-        };
-    }
-
-    private boolean isUnbreakableBlock(World world, BlockPos pos) {
-        IBlockState state = world.getBlockState(pos);
-        Block block = state.getBlock();
-
-        // 检查黑曜石、防爆石等高硬度方块
-        if (block == Blocks.OBSIDIAN || block == Blocks.BEDROCK || block.getBlockHardness(state, world, pos) < 0) {
-            return true;
+    private String getModeTranslationKey(int mode) {
+        switch (mode) {
+            case MODE_MINING:
+                return "behavior.mining_laser.mode.mining";
+            case MODE_LOW_FOCUS:
+                return "behavior.mining_laser.mode.low_focus";
+            case MODE_LONG_RANGE:
+                return "behavior.mining_laser.mode.long_range";
+            case MODE_HORIZONTAL:
+                return "behavior.mining_laser.mode.horizontal";
+            case MODE_SUPER_HEAT:
+                return "behavior.mining_laser.mode.super_heat";
+            case MODE_SCATTER:
+                return "behavior.mining_laser.mode.scatter";
+            case MODE_EXPLOSIVE:
+                return "behavior.mining_laser.mode.explosive";
+            case MODE_3X3:
+                return "behavior.mining_laser.mode.3x3";
+            default:
+                return "behavior.mining_laser.mode.unknown";
         }
+    }
 
-        // 检查爆炸抗性
-        return block.getExplosionResistance(world, pos, null, null) > 1000;
+    private String getModeDescriptionKey(int mode) {
+        switch (mode) {
+            case MODE_MINING:
+                return "behavior.mining_laser.mode.mining.description";
+            case MODE_LOW_FOCUS:
+                return "behavior.mining_laser.mode.low_focus.description";
+            case MODE_LONG_RANGE:
+                return "behavior.mining_laser.mode.long_range.description";
+            case MODE_HORIZONTAL:
+                return "behavior.mining_laser.mode.horizontal.description";
+            case MODE_SUPER_HEAT:
+                return "behavior.mining_laser.mode.super_heat.description";
+            case MODE_SCATTER:
+                return "behavior.mining_laser.mode.scatter.description";
+            case MODE_EXPLOSIVE:
+                return "behavior.mining_laser.mode.explosive.description";
+            case MODE_3X3:
+                return "behavior.mining_laser.mode.3x3.description";
+            default:
+                return "";
+        }
     }
 
     @Override
@@ -149,527 +143,241 @@ public class MiningLaserBehavior implements IItemBehaviour {
         ItemStack stack = player.getHeldItem(hand);
 
         if (player.isSneaking()) {
-            // Shift+右键切换模式
             nextMode(stack, player);
-            return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
+            return success(stack);
         }
 
         int mode = getMode(stack);
-        long energyCost = ENERGY_COSTS[mode];
-
-        // 检查能量
-        if (!drainEnergy(stack, energyCost, true)) {
-            if (!world.isRemote) {
-                player.sendMessage(new TextComponentTranslation(
-                        "behavior.mining_laser.insufficient_energy",
-                        energyCost
-                ));
-            }
-            return ActionResult.newResult(EnumActionResult.FAIL, stack);
+        if (mode == MODE_HORIZONTAL || mode == MODE_3X3) {
+            return pass(stack);
         }
 
-        // 执行不同模式的功能
-        boolean success = switch (mode) {
-            case MODE_MINING -> useMiningMode(world, player);
-            case MODE_LOW_FOCUS -> useLowFocusMode(world, player);
-            case MODE_LONG_RANGE -> useLongRangeMode(world, player);
-            case MODE_HORIZONTAL -> useHorizontalMode(world, player);
-            case MODE_SUPER_HEAT -> useSuperHeatMode(world, player);
-            case MODE_SCATTER -> useScatterMode(world, player);
-            case MODE_EXPLOSIVE -> useExplosiveMode(world, player);
-            case MODE_3X3 -> use3x3Mode(world, player);
-            default -> false;
-        };
+        if (world.isRemote) {
+            return success(stack);
+        }
 
-        if (success) {
-            // 消耗能量
-            drainEnergy(stack, energyCost, false);
+        if (!drainEnergy(stack, ENERGY_COSTS[mode], true)) {
+            player.sendMessage(new TextComponentTranslation("behavior.mining_laser.insufficient_energy", ENERGY_COSTS[mode]));
+            return fail(stack);
+        }
+
+        boolean shot = false;
+        switch (mode) {
+            case MODE_MINING:
+                shot = shootLaser(world, player, player.getLookVec(), Float.POSITIVE_INFINITY, 5.0F, Integer.MAX_VALUE,
+                        false, false);
+                break;
+            case MODE_LOW_FOCUS:
+                shot = shootLaser(world, player, player.getLookVec(), 4.0F, 5.0F, 1, false, false);
+                break;
+            case MODE_LONG_RANGE:
+                shot = shootLaser(world, player, player.getLookVec(), Float.POSITIVE_INFINITY, 20.0F, Integer.MAX_VALUE,
+                        false, false);
+                break;
+            case MODE_SUPER_HEAT:
+                shot = shootLaser(world, player, player.getLookVec(), Float.POSITIVE_INFINITY, 8.0F, Integer.MAX_VALUE,
+                        false, true);
+                break;
+            case MODE_SCATTER:
+                shootScatter(world, player);
+                shot = true;
+                break;
+            case MODE_EXPLOSIVE:
+                shot = shootLaser(world, player, player.getLookVec(), Float.POSITIVE_INFINITY, 12.0F, Integer.MAX_VALUE,
+                        true, false);
+                break;
+            default:
+                break;
+        }
+
+        if (shot) {
+            drainEnergy(stack, ENERGY_COSTS[mode], false);
             player.swingArm(hand);
-
-            // 播放音效
-            if (!world.isRemote) {
-                world.playSound(null, player.posX, player.posY, player.posZ,
-                        SoundEvents.ENTITY_FIREWORK_BLAST, SoundCategory.PLAYERS, 0.5f, 1.5f);
-            }
+            playShotSound(world, player, mode);
+            return success(stack);
         }
 
-        return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
+        return fail(stack);
     }
 
-    private boolean useMiningMode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 16.0);
-        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) return false;
+    @Override
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
+                                           float hitY, float hitZ, EnumHand hand) {
+        ItemStack stack = player.getHeldItem(hand);
 
-        BlockPos pos = rayTrace.getBlockPos();
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d lookVec = player.getLookVec();
-
-        int maxDistance = 16; // 最大挖掘距离
-        int actualDistance = 0;
-
-        // 沿着视线方向挖掘
-        for (int i = 0; i < maxDistance; i++) {
-            BlockPos currentPos = new BlockPos(
-                    pos.getX() + lookVec.x * i,
-                    pos.getY() + lookVec.y * i,
-                    pos.getZ() + lookVec.z * i
-            );
-
-            if (world.isAirBlock(currentPos)) continue;
-
-            if (isUnbreakableBlock(world, currentPos)) {
-                // 遇到无法破坏的方块就停止
-                actualDistance = i;
-                break;
-            }
-
-            if (breakBlock(world, currentPos, player)) {
-                actualDistance = i + 1;
-            } else {
-                break;
-            }
+        if (player.isSneaking()) {
+            nextMode(stack, player);
+            return EnumActionResult.SUCCESS;
         }
 
-        // 生成激光粒子效果 - 减少粒子数量
-        if (world.isRemote && actualDistance > 0) {
-            spawnLaserBeam(world, startPos, lookVec, actualDistance, EnumParticleTypes.REDSTONE, 0.8f, 0.1f, 0.1f, 2);
+        int mode = getMode(stack);
+        if (mode != MODE_HORIZONTAL && mode != MODE_3X3) {
+            return EnumActionResult.PASS;
         }
 
-        return actualDistance > 0;
-    }
-
-    private boolean useLowFocusMode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 8.0); // 短距离
-        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) return false;
-
-        BlockPos pos = rayTrace.getBlockPos();
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d endPos = rayTrace.hitVec;
-
-        if (breakBlock(world, pos, player)) {
-            // 生成橙色激光粒子效果 - 减少粒子数量
-            if (world.isRemote) {
-                spawnLaserBeam(world, startPos, endPos, EnumParticleTypes.REDSTONE, 1.0f, 0.5f, 0.0f, 1);
-            }
-
-            // 低概率点燃方块
-            if (random.nextFloat() < 0.1f) {
-                BlockPos firePos = pos.offset(rayTrace.sideHit);
-                if (world.isAirBlock(firePos) && world.isSideSolid(pos, rayTrace.sideHit.getOpposite())) {
-                    world.setBlockState(firePos, Blocks.FIRE.getDefaultState());
-
-                    // 生成少量火焰粒子
-                    if (world.isRemote) {
-                        for (int i = 0; i < 3; i++) {
-                            double x = firePos.getX() + 0.5 + (random.nextDouble() - 0.5);
-                            double y = firePos.getY() + 0.5 + (random.nextDouble() - 0.5);
-                            double z = firePos.getZ() + 0.5 + (random.nextDouble() - 0.5);
-                            world.spawnParticle(EnumParticleTypes.FLAME, x, y, z, 0, 0.1, 0);
-                        }
-                    }
-                }
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean useLongRangeMode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 64.0); // 长距离
-        if (rayTrace == null) return false;
-
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d endPos = rayTrace.hitVec;
-
-        if (rayTrace.typeOfHit == RayTraceResult.Type.BLOCK) {
-            BlockPos pos = rayTrace.getBlockPos();
-            if (breakBlock(world, pos, player)) {
-                // 生成红色长距离激光粒子 - 减少粒子数量
-                if (world.isRemote) {
-                    spawnLaserBeam(world, startPos, endPos, EnumParticleTypes.REDSTONE, 1.0f, 0.0f, 0.0f, 1);
-                }
-                return true;
-            }
-        } else if (rayTrace.typeOfHit == RayTraceResult.Type.ENTITY) {
-            // 对实体造成高伤害
-            Entity entity = rayTrace.entityHit;
-            if (entity instanceof EntityLivingBase) {
-                entity.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(player), 19.0f);
-
-                // 生成少量伤害粒子
-                if (world.isRemote) {
-                    spawnLaserBeam(world, startPos, endPos, EnumParticleTypes.CRIT, 1.0f, 0.0f, 0.0f, 1);
-                }
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean useHorizontalMode(World world, EntityPlayer player) {
-        // 检查角度是否过陡
-        if (Math.abs(player.rotationPitch) > 30) {
-            if (!world.isRemote) {
-                player.sendMessage(new TextComponentTranslation(
-                        "behavior.mining_laser.steep_angle"
-                ));
-            }
-            return false;
-        }
-
-        RayTraceResult rayTrace = rayTrace(world, player, false, 64.0);
-        if (rayTrace == null) return false;
-
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d endPos = rayTrace.hitVec;
-
-        // 生成蓝色水平激光粒子 - 减少粒子数量
         if (world.isRemote) {
-            spawnLaserBeam(world, startPos, endPos, EnumParticleTypes.REDSTONE, 0.0f, 0.0f, 1.0f, 1);
+            return EnumActionResult.PASS;
         }
 
-        if (rayTrace.typeOfHit == RayTraceResult.Type.BLOCK) {
-            BlockPos pos = rayTrace.getBlockPos();
-            return breakBlock(world, pos, player);
-        } else if (rayTrace.typeOfHit == RayTraceResult.Type.ENTITY) {
-            Entity entity = rayTrace.entityHit;
-            if (entity instanceof EntityLivingBase) {
-                entity.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(player), 19.0f);
-                return true;
-            }
+        Vec3d direction = normalize(player.getLookVec());
+        if (direction == Vec3d.ZERO) {
+            return EnumActionResult.FAIL;
         }
 
-        return false;
-    }
+        double vertical = Math.abs(direction.y);
+        boolean mostlyHorizontal = vertical < 1.0D / Math.sqrt(2.0D);
+        boolean mostlyVertical = !mostlyHorizontal;
 
-    private boolean useSuperHeatMode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 16.0);
-        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) return false;
-
-        BlockPos pos = rayTrace.getBlockPos();
-        IBlockState state = world.getBlockState(pos);
-        Block block = state.getBlock();
-
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d endPos = rayTrace.hitVec;
-
-        // 获取烧制结果
-        ItemStack smeltingResult = FurnaceRecipes.instance().getSmeltingResult(new ItemStack(block));
-        if (!smeltingResult.isEmpty()) {
-            // 生成火焰激光粒子 - 减少粒子数量
-            if (world.isRemote) {
-                spawnLaserBeam(world, startPos, endPos, EnumParticleTypes.FLAME, 1.0f, 0.5f, 0.0f, 2);
-
-                // 在目标位置生成少量火焰粒子
-                for (int i = 0; i < 4; i++) {
-                    double x = pos.getX() + 0.5 + (random.nextDouble() - 0.5) * 1.5;
-                    double y = pos.getY() + 0.5 + (random.nextDouble() - 0.5) * 1.5;
-                    double z = pos.getZ() + 0.5 + (random.nextDouble() - 0.5) * 1.5;
-                    world.spawnParticle(EnumParticleTypes.FLAME, x, y, z, 0, 0.1, 0);
-                }
-            }
-
-            // 破坏原方块
-            world.setBlockToAir(pos);
-
-            // 给予烧制后的物品
-            if (!world.isRemote) {
-                EntityItem entityItem = new EntityItem(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                        smeltingResult.copy());
-                world.spawnEntity(entityItem);
-            }
-            return true;
+        if (mode == MODE_HORIZONTAL && mostlyVertical) {
+            player.sendMessage(new TextComponentTranslation("behavior.mining_laser.steep_angle"));
+            return EnumActionResult.FAIL;
         }
 
-        return false;
-    }
-
-    private boolean useScatterMode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 16.0);
-        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) return false;
-
-        BlockPos centerPos = rayTrace.getBlockPos();
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d lookVec = player.getLookVec();
-        int range = 2; // 3x3范围
-
-        boolean minedAny = false;
-
-        // 在3x3范围内散射挖掘
-        for (int x = -range; x <= range; x++) {
-            for (int z = -range; z <= range; z++) {
-                for (int distance = 0; distance < 5; distance++) {
-                    BlockPos targetPos = new BlockPos(
-                            centerPos.getX() + x + lookVec.x * distance,
-                            centerPos.getY() + lookVec.y * distance,
-                            centerPos.getZ() + z + lookVec.z * distance
-                    );
-
-                    if (breakBlock(world, targetPos, player)) {
-                        minedAny = true;
-                    } else {
-                        break;
-                    }
-                }
-            }
+        if (!drainEnergy(stack, ENERGY_COSTS[mode], true)) {
+            player.sendMessage(new TextComponentTranslation("behavior.mining_laser.insufficient_energy", ENERGY_COSTS[mode]));
+            return EnumActionResult.FAIL;
         }
 
-        // 生成少量散射粒子效果
-        if (minedAny && world.isRemote) {
-            for (int i = 0; i < 3; i++) {
-                int x = random.nextInt(5) - 2;
-                int z = random.nextInt(5) - 2;
-
-                Vec3d particleStart = new Vec3d(
-                        startPos.x + (x * 0.1),
-                        startPos.y,
-                        startPos.z + (z * 0.1)
-                );
-                Vec3d particleEnd = new Vec3d(
-                        centerPos.getX() + 0.5 + (x * 0.5),
-                        centerPos.getY() + 0.5,
-                        centerPos.getZ() + 0.5 + (z * 0.5)
-                );
-                spawnLaserBeam(world, particleStart, particleEnd,
-                        EnumParticleTypes.REDSTONE, 0.5f, 0.5f, 1.0f, 1);
-            }
-        }
-
-        return minedAny;
-    }
-
-    private boolean useExplosiveMode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 32.0);
-        if (rayTrace == null) return false;
-
-        BlockPos explosionPos;
-        if (rayTrace.typeOfHit == RayTraceResult.Type.BLOCK) {
-            explosionPos = rayTrace.getBlockPos();
+        Vec3d start;
+        if (mostlyHorizontal) {
+            direction = normalize(new Vec3d(direction.x, 0.0D, direction.z));
+            start = new Vec3d(player.posX, pos.getY() + 0.5D, player.posZ).add(direction.scale(0.2D));
         } else {
-            explosionPos = new BlockPos(rayTrace.hitVec);
+            direction = normalize(new Vec3d(0.0D, direction.y, 0.0D));
+            start = new Vec3d(pos.getX() + 0.5D, player.posY + player.getEyeHeight(), pos.getZ() + 0.5D)
+                    .add(direction.scale(0.2D));
         }
 
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d endPos = rayTrace.hitVec;
-
-        // 生成爆炸预兆粒子 - 减少粒子数量
-        if (world.isRemote) {
-            spawnLaserBeam(world, startPos, endPos, EnumParticleTypes.SMOKE_LARGE, 0.3f, 0.3f, 0.3f, 1);
-
-            // 在爆炸位置生成少量警告粒子
-            for (int i = 0; i < 8; i++) {
-                double x = explosionPos.getX() + 0.5 + (random.nextDouble() - 0.5) * 2;
-                double y = explosionPos.getY() + 0.5 + (random.nextDouble() - 0.5) * 2;
-                double z = explosionPos.getZ() + 0.5 + (random.nextDouble() - 0.5) * 2;
-                world.spawnParticle(EnumParticleTypes.FLAME, x, y, z, 0, 0.1, 0);
-            }
-        }
-
-        if (!world.isRemote) {
-            // 创建爆炸
-            world.createExplosion(player, explosionPos.getX(), explosionPos.getY(), explosionPos.getZ(), 4.0f, true);
-
-            // 对附近实体造成伤害（穿甲效果）
-            List<Entity> entities = world.getEntitiesWithinAABB(Entity.class,
-                    new AxisAlignedBB(explosionPos).grow(8.0));
-
-            for (Entity entity : entities) {
-                if (entity instanceof EntityLivingBase && entity != player) {
-                    // 100点伤害，无视部分护甲
-                    entity.attackEntityFrom(net.minecraft.util.DamageSource.causeExplosionDamage(player), 100.0f);
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private boolean use3x3Mode(World world, EntityPlayer player) {
-        RayTraceResult rayTrace = rayTrace(world, player, false, 16.0);
-        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) return false;
-
-        BlockPos centerPos = rayTrace.getBlockPos();
-        Vec3d startPos = getPlayerEyesPos(player);
-        Vec3d lookVec = player.getLookVec();
-        int range = 1; // 3x3范围
-
-        boolean minedAny = false;
-
-        // 向前挖掘3x3的隧道
-        for (int distance = 0; distance < 8; distance++) {
-            for (int x = -range; x <= range; x++) {
-                for (int y = -range; y <= range; y++) {
-                    BlockPos targetPos = new BlockPos(
-                            centerPos.getX() + x + lookVec.x * distance,
-                            centerPos.getY() + y + lookVec.y * distance,
-                            centerPos.getZ() + lookVec.z * distance
-                    );
-
-                    if (breakBlock(world, targetPos, player)) {
-                        minedAny = true;
-                    }
-                }
-            }
-        }
-
-        // 生成少量绿色3x3挖掘粒子
-        if (minedAny && world.isRemote) {
-            for (int i = 0; i < 2; i++) {
-                int x = random.nextInt(3) - 1;
-                int y = random.nextInt(3) - 1;
-
-                Vec3d particleStart = new Vec3d(
-                        startPos.x + (x * 0.2),
-                        startPos.y + (y * 0.2),
-                        startPos.z
-                );
-                Vec3d particleEnd = new Vec3d(
-                        centerPos.getX() + 0.5 + (x * 0.5),
-                        centerPos.getY() + 0.5 + (y * 0.5),
-                        centerPos.getZ() + 0.5
-                );
-                spawnLaserBeam(world, particleStart, particleEnd,
-                        EnumParticleTypes.VILLAGER_HAPPY, 0.0f, 1.0f, 0.0f, 1);
-            }
-        }
-
-        return minedAny;
-    }
-
-    private boolean breakBlock(World world, BlockPos pos, EntityPlayer player) {
-        if (world.isAirBlock(pos)) return false;
-        if (isUnbreakableBlock(world, pos)) return false;
-
-        IBlockState state = world.getBlockState(pos);
-        Block block = state.getBlock();
-
-        // 获取掉落物
-        List<ItemStack> drops = block.getDrops(world, pos, state, 0);
-
-        // 给予玩家掉落物
-        if (!drops.isEmpty() && !world.isRemote) {
-            for (ItemStack drop : drops) {
-                if (!player.inventory.addItemStackToInventory(drop)) {
-                    EntityItem entityItem = new EntityItem(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                            drop);
-                    world.spawnEntity(entityItem);
-                }
-            }
-            player.openContainer.detectAndSendChanges();
-        }
-
-        // 破坏方块
-        if (!world.isRemote) {
-            world.setBlockToAir(pos);
+        boolean shot;
+        if (mode == MODE_HORIZONTAL) {
+            shot = shootLaser(world, start, direction, player, Float.POSITIVE_INFINITY, 5.0F, Integer.MAX_VALUE,
+                    false, false);
         } else {
-            // 客户端破坏粒子效果
-            world.playEvent(2001, pos, Block.getStateId(state));
+            shot = shoot3x3(world, player, start, direction, mostlyHorizontal);
         }
 
-        return true;
+        if (shot) {
+            drainEnergy(stack, ENERGY_COSTS[mode], false);
+            player.swingArm(hand);
+            playShotSound(world, player, mode);
+            return EnumActionResult.SUCCESS;
+        }
+
+        return EnumActionResult.FAIL;
     }
 
-    // 新的粒子效果生成方法 - 只生成1-4条粒子射线
-    private void spawnLaserBeam(World world, Vec3d startPos, Vec3d endPos,
-                                EnumParticleTypes particleType, float r, float g, float b, int beamCount) {
-        Vec3d direction = endPos.subtract(startPos);
-        double distance = direction.length();
+    private void shootScatter(World world, EntityPlayer player) {
+        Vec3d look = normalize(player.getLookVec());
+        Vec3d right = look.crossProduct(new Vec3d(0.0D, 1.0D, 0.0D));
+        if (right.length() < 1.0E-4D) {
+            double yaw = Math.toRadians(player.rotationYaw) - Math.PI / 2.0D;
+            right = new Vec3d(Math.sin(yaw), 0.0D, -Math.cos(yaw));
+        } else {
+            right = normalize(right);
+        }
+        Vec3d up = normalize(right.crossProduct(look));
+        Vec3d base = look.scale(8.0D);
 
-        // 限制光束数量在1-4之间
-        beamCount = Math.min(4, Math.max(1, beamCount));
-
-        for (int beam = 0; beam < beamCount; beam++) {
-            // 每条光束使用3-6个粒子
-            int particleCount = 3 + random.nextInt(4);
-
-            for (int i = 0; i < particleCount; i++) {
-                double progress = (double) i / particleCount;
-                // 添加轻微的随机偏移，让光束看起来更自然
-                double offsetX = (random.nextDouble() - 0.5) * 0.1;
-                double offsetY = (random.nextDouble() - 0.5) * 0.1;
-                double offsetZ = (random.nextDouble() - 0.5) * 0.1;
-
-                double x = startPos.x + direction.x * progress + offsetX;
-                double y = startPos.y + direction.y * progress + offsetY;
-                double z = startPos.z + direction.z * progress + offsetZ;
-
-                if (particleType == EnumParticleTypes.REDSTONE) {
-                    world.spawnParticle(particleType, x, y, z, r, g, b);
-                } else {
-                    world.spawnParticle(particleType, x, y, z, 0, 0, 0);
-                }
+        for (int r = -2; r <= 2; r++) {
+            for (int u = -2; u <= 2; u++) {
+                Vec3d dir = normalize(base.add(right.scale(r)).add(up.scale(u)));
+                shootLaser(world, player, dir, Float.POSITIVE_INFINITY, 12.0F, Integer.MAX_VALUE, false, false);
             }
         }
     }
 
-    private void spawnLaserBeam(World world, Vec3d startPos, Vec3d lookVec, int distance,
-                                EnumParticleTypes particleType, float r, float g, float b, int beamCount) {
-        Vec3d endPos = startPos.add(lookVec.x * distance, lookVec.y * distance, lookVec.z * distance);
-        spawnLaserBeam(world, startPos, endPos, particleType, r, g, b, beamCount);
+    private boolean shoot3x3(World world, EntityPlayer player, Vec3d start, Vec3d direction, boolean horizontal) {
+        Vec3d right;
+        Vec3d up;
+        if (horizontal) {
+            up = new Vec3d(0.0D, 1.0D, 0.0D);
+            EnumFacing facing = player.getHorizontalFacing();
+            right = facing.getAxis() == EnumFacing.Axis.Z ? new Vec3d(1.0D, 0.0D, 0.0D) : new Vec3d(0.0D, 0.0D, 1.0D);
+        } else {
+            right = new Vec3d(1.0D, 0.0D, 0.0D);
+            up = new Vec3d(0.0D, 0.0D, 1.0D);
+        }
+
+        boolean anyShot = false;
+        for (int r = -1; r <= 1; r++) {
+            for (int u = -1; u <= 1; u++) {
+                Vec3d offsetStart = start.add(right.scale(r)).add(up.scale(u));
+                anyShot |= shootLaser(world, offsetStart, direction, player, Float.POSITIVE_INFINITY, 5.0F,
+                        Integer.MAX_VALUE, false, false);
+            }
+        }
+        return anyShot;
     }
 
-    // 获取玩家眼睛位置
-    private Vec3d getPlayerEyesPos(EntityPlayer player) {
-        return new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);
+    private boolean shootLaser(World world, EntityPlayer player, Vec3d direction, float range, float power,
+                               int blockBreaks, boolean explosive, boolean smelt) {
+        Vec3d start = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ)
+                .add(normalize(direction).scale(0.2D));
+        return shootLaser(world, start, direction, player, range, power, blockBreaks, explosive, smelt);
+    }
+
+    private boolean shootLaser(World world, Vec3d start, Vec3d direction, EntityPlayer player, float range, float power,
+                               int blockBreaks, boolean explosive, boolean smelt) {
+        Vec3d normalized = normalize(direction);
+        if (normalized == Vec3d.ZERO) return false;
+        GTMiningLaserEntity entity = new GTMiningLaserEntity(world, start, normalized.scale(LASER_SPEED), player, range,
+                power, blockBreaks, explosive, smelt);
+        return world.spawnEntity(entity);
+    }
+
+    private void playShotSound(World world, EntityPlayer player, int mode) {
+        float pitch;
+        switch (mode) {
+            case MODE_LOW_FOCUS:
+                pitch = 1.8F;
+                break;
+            case MODE_LONG_RANGE:
+                pitch = 0.8F;
+                break;
+            case MODE_EXPLOSIVE:
+                pitch = 0.6F;
+                break;
+            case MODE_SCATTER:
+            case MODE_3X3:
+                pitch = 1.2F;
+                break;
+            default:
+                pitch = 1.0F;
+                break;
+        }
+        world.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_FIREWORK_BLAST,
+                SoundCategory.PLAYERS, 0.5F, pitch);
     }
 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         int mode = getMode(itemStack);
-        String modeName = getModeName(mode);
-        String modeDescription = getModeDescription(mode);
+        String modeName = I18n.format(getModeTranslationKey(mode));
         long energyCost = ENERGY_COSTS[mode];
 
-        // 显示当前模式信息
         lines.add(TextFormatting.GOLD + I18n.format("behavior.mining_laser.tooltip.current_mode", modeName));
-        lines.add(TextFormatting.GRAY + modeDescription);
+        lines.add(TextFormatting.GRAY + I18n.format(getModeDescriptionKey(mode)));
         lines.add(TextFormatting.GREEN + I18n.format("behavior.mining_laser.tooltip.energy_cost", energyCost));
         lines.add(TextFormatting.AQUA + I18n.format("behavior.mining_laser.tooltip.mode_switch"));
 
-        // 显示能量信息
         IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
         if (electricItem != null) {
             long charge = electricItem.getCharge();
             long maxCharge = electricItem.getMaxCharge();
-            double percentage = (double) charge / maxCharge * 100;
+            double percentage = maxCharge <= 0 ? 0.0D : (double) charge / maxCharge * 100.0D;
 
-            TextFormatting chargeColor;
-            if (percentage > 75) chargeColor = TextFormatting.GREEN;
-            else if (percentage > 25) chargeColor = TextFormatting.YELLOW;
-            else chargeColor = TextFormatting.RED;
-
+            TextFormatting chargeColor = percentage > 75.0D ? TextFormatting.GREEN :
+                    percentage > 25.0D ? TextFormatting.YELLOW : TextFormatting.RED;
             lines.add(TextFormatting.BLUE + I18n.format("behavior.mining_laser.tooltip.energy",
-                    chargeColor + String.valueOf(charge),
-                    String.valueOf(maxCharge),
-                    String.format("%.1f", percentage)));
-
-            // 计算可用次数
-            int availableUses = (int) (charge / energyCost);
-            lines.add(TextFormatting.LIGHT_PURPLE + I18n.format("behavior.mining_laser.tooltip.available_uses", availableUses));
+                    chargeColor + String.valueOf(charge), String.valueOf(maxCharge), String.format("%.1f", percentage)));
+            lines.add(TextFormatting.LIGHT_PURPLE + I18n.format("behavior.mining_laser.tooltip.available_uses",
+                    energyCost <= 0 ? 0 : charge / energyCost));
         }
 
-        // 显示所有模式列表
         lines.add(TextFormatting.DARK_GRAY + I18n.format("behavior.mining_laser.tooltip.all_modes"));
-        for (int i = 0; i < 8; i++) {
-            String prefix = i == mode ? TextFormatting.GREEN + "▶ " : TextFormatting.GRAY + "  ";
-            lines.add(prefix + getModeName(i) + TextFormatting.DARK_GRAY + " (" + ENERGY_COSTS[i] + " EU)");
+        for (int i = 0; i < MODE_COUNT; i++) {
+            String prefix = i == mode ? TextFormatting.GREEN + "> " : TextFormatting.GRAY + "  ";
+            lines.add(prefix + I18n.format(getModeTranslationKey(i)) + TextFormatting.DARK_GRAY + " (" + ENERGY_COSTS[i] + " EU)");
         }
-    }
-
-    // 改进的射线追踪方法，支持距离参数
-    private RayTraceResult rayTrace(World worldIn, EntityPlayer playerIn, boolean useLiquids, double distance) {
-        float pitch = playerIn.rotationPitch;
-        float yaw = playerIn.rotationYaw;
-        Vec3d eyesPos = getPlayerEyesPos(playerIn);
-        float f2 = net.minecraft.util.math.MathHelper.cos(-yaw * 0.017453292F - (float) Math.PI);
-        float f3 = net.minecraft.util.math.MathHelper.sin(-yaw * 0.017453292F - (float) Math.PI);
-        float f4 = -net.minecraft.util.math.MathHelper.cos(-pitch * 0.017453292F);
-        float f5 = net.minecraft.util.math.MathHelper.sin(-pitch * 0.017453292F);
-        float f6 = f3 * f4;
-        float f7 = f2 * f4;
-        Vec3d endPos = eyesPos.add((double) f6 * distance, (double) f5 * distance, (double) f7 * distance);
-        return worldIn.rayTraceBlocks(eyesPos, endPos, useLiquids, !useLiquids, false);
     }
 }

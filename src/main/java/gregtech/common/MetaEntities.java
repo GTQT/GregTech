@@ -5,8 +5,10 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.handler.DynamiteRenderer;
 import gregtech.client.renderer.handler.GTBoatRenderer;
 import gregtech.client.renderer.handler.GTExplosiveRenderer;
+import gregtech.client.renderer.handler.MiningLaserRenderer;
 import gregtech.client.renderer.handler.PortalRenderer;
 import gregtech.common.entities.DynamiteEntity;
+import gregtech.common.entities.GTMiningLaserEntity;
 import gregtech.common.entities.GTBoatEntity;
 import gregtech.common.entities.ITNTEntity;
 import gregtech.common.entities.PortalEntity;
@@ -31,6 +33,8 @@ public class MetaEntities {
                 4, GregTechAPI.instance, 64, 3, true);
         EntityRegistry.registerModEntity(GTUtility.gregtechId("itnt"), ITNTEntity.class, "ITNT", 5,
                 GregTechAPI.instance, 64, 3, true);
+        EntityRegistry.registerModEntity(GTUtility.gregtechId("mining_laser"), GTMiningLaserEntity.class,
+                "MiningLaser", 6, GregTechAPI.instance, 64, 1, true);
     }
 
     @SideOnly(Side.CLIENT)
@@ -41,5 +45,6 @@ public class MetaEntities {
         RenderingRegistry.registerEntityRenderingHandler(GTBoatEntity.class, GTBoatRenderer::new);
         RenderingRegistry.registerEntityRenderingHandler(PowderbarrelEntity.class, GTExplosiveRenderer::new);
         RenderingRegistry.registerEntityRenderingHandler(ITNTEntity.class, GTExplosiveRenderer::new);
+        RenderingRegistry.registerEntityRenderingHandler(GTMiningLaserEntity.class, MiningLaserRenderer::new);
     }
 }
