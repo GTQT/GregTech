@@ -1,5 +1,8 @@
 package gregtech.client.renderer.scene;
 
+import gregtech.api.util.Position;
+import gregtech.api.util.PositionedRect;
+import gregtech.api.util.Size;
 import gregtech.api.util.GTLog;
 
 import net.minecraft.client.renderer.BufferBuilder;
@@ -105,6 +108,11 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
         return winPos;
     }
 
+    @Override
+    protected PositionedRect getPositionedRect(int x, int y, int width, int height) {
+        return new PositionedRect(new Position(x, y), new Size(width, height));
+    }
+
     /**
      * Renders the scene. If the FBO is dirty, re-renders the full scene into the FBO.
      * Otherwise, just draws the cached FBO texture as a quad (nearly free).
@@ -113,10 +121,12 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
     public void render(float x, float y, float width, float height, float mouseX, float mouseY) {
         if (fboDirty) {
             // Re-render scene into FBO
+            float localMouseX = mouseX - x;
+            float localMouseY = mouseY - y;
             int lastID = bindFBO();
             super.render(0, 0, this.resolutionWidth, this.resolutionHeight,
-                    (int) (this.resolutionWidth * mouseX / width),
-                    (int) (this.resolutionHeight * (1 - mouseY / height)));
+                    (int) (this.resolutionWidth * localMouseX / width),
+                    (int) (this.resolutionHeight * (1 - localMouseY / height)));
             unbindFBO(lastID);
             fboDirty = false;
         }

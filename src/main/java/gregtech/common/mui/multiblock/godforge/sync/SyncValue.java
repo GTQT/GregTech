@@ -46,7 +46,7 @@ public abstract class SyncValue<T extends ValueSyncHandler<?>> {
 
     public static class ForgeOfGodsSyncValue<T extends ValueSyncHandler<?>> extends SyncValue<T> {
 
-        private final Function<ForgeOfGodsData, T> syncValueSupplier;
+        private final Function<SyncHypervisor, T> syncValueSupplier;
 
         public ForgeOfGodsSyncValue(String syncId) {
             super(syncId, true);
@@ -54,6 +54,11 @@ public abstract class SyncValue<T extends ValueSyncHandler<?>> {
         }
 
         public ForgeOfGodsSyncValue(String syncId, Function<ForgeOfGodsData, T> syncValueSupplier) {
+            super(syncId, false);
+            this.syncValueSupplier = hypervisor -> syncValueSupplier.apply(hypervisor.getData());
+        }
+
+        public ForgeOfGodsSyncValue(String syncId, Function<SyncHypervisor, T> syncValueSupplier, boolean fromHypervisor) {
             super(syncId, false);
             this.syncValueSupplier = syncValueSupplier;
         }
@@ -64,7 +69,7 @@ public abstract class SyncValue<T extends ValueSyncHandler<?>> {
                 throw new IllegalStateException("Cannot create SyncValue for inherited syncer! ID: " + syncId);
             }
 
-            return syncValueSupplier.apply(hypervisor.getData());
+            return syncValueSupplier.apply(hypervisor);
         }
 
         public void registerFor(Panels forPanel, SyncHypervisor hypervisor) {

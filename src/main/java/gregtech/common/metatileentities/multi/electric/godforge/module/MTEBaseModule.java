@@ -96,6 +96,11 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
     }
 
     @Override
+    public boolean hasMaintenanceMechanics() {
+        return false;
+    }
+
+    @Override
     public void connect() {
         isConnected = true;
     }

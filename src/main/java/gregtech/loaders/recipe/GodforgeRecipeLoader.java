@@ -3,11 +3,9 @@ package gregtech.loaders.recipe;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
@@ -63,13 +61,21 @@ public class GodforgeRecipeLoader {
             // Must have dust form (input)
             if (!material.hasProperty(PropertyKey.DUST)) continue;
 
+            // Must have fluid property first, otherwise getFluid(...) may throw
+            if (!material.hasProperty(PropertyKey.FLUID)) continue;
+
             // Must have plasma fluid (output)
-            Fluid plasma = material.getFluid(FluidStorageKeys.PLASMA);
-            if (plasma == null) continue;
+            FluidStack plasmaStack;
+            try {
+                plasmaStack = material.getPlasma(INGOTS);
+            } catch (IllegalArgumentException e) {
+                continue;
+            }
+            if (plasmaStack == null) continue;
 
             GodforgeRecipeMaps.GODFORGE_PLASMA_RECIPES.recipeBuilder()
                     .input(OrePrefix.dust, material)
-                    .fluidOutputs(material.getPlasma(INGOTS))
+                    .fluidOutputs(plasmaStack)
                     .duration(PLASMA_RECIPE_DURATION)
                     .EUt(PLASMA_RECIPE_EUT)
                     .buildAndRegister();

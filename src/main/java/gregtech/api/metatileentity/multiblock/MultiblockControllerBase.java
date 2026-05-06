@@ -1033,6 +1033,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
         }
         List<StructureChannel> result = new ArrayList<>();
+        String[] aisleChannelNames = template.getAisleChannelNames();
+        if (aisleChannelNames != null) {
+            for (String name : aisleChannelNames) {
+                if (name != null && !name.isEmpty()) {
+                    seen.add(name);
+                }
+            }
+        }
         for (String name : seen) {
             StructureChannel channel =
                     gregtech.api.pattern.casing.StructureChannelRegistry.resolve(name);

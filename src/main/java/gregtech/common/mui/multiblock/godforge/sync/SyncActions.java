@@ -56,6 +56,12 @@ public final class SyncActions<T, U> {
             data.setRendererDisabled(newValue);
             if (newValue && data.isRenderActive()) {
                 multiblock.destroyRenderer();
+            } else if (!newValue && data.getInternalBattery() > 0) {
+                if (data.isRenderActive()) {
+                    multiblock.updateRenderer();
+                } else {
+                    multiblock.createRenderer();
+                }
             }
         },
         Side.SERVER);

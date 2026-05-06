@@ -35,6 +35,7 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
 
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings settings) {
         ModularPanel panel = getBasePanel(guiData, syncManager, settings);
+        hypervisor.setSyncManager(hypervisor.getMainPanel(), syncManager);
         registerSyncValues(syncManager);
 
         panel.child(createButtonColumn(panel, syncManager));
