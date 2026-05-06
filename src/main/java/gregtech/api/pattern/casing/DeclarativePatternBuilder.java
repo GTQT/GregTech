@@ -260,13 +260,12 @@ public class DeclarativePatternBuilder {
         boolean requiresUniform = group.requiresUniformTier();
         List<ICasing> casings = group.getCasings();
 
-        // Create a map for quick lookup
         Map<IBlockState, ICasing> stateMap = new HashMap<>();
         for (ICasing c : casings) {
             stateMap.put(c.getBlockState(), c);
         }
 
-        return new TraceabilityPredicate(blockWorldState -> {
+        TraceabilityPredicate predicate = new TraceabilityPredicate(blockWorldState -> {
             IBlockState blockState = blockWorldState.getBlockState();
             ICasing matched = stateMap.get(blockState);
             if (matched == null) return false;
@@ -281,7 +280,6 @@ public class DeclarativePatternBuilder {
             } else {
                 blockWorldState.getMatchContext().getOrPut(channelName, matched);
             }
-            // Also store the tier as an integer for convenient access via StructureChannel
             if (matched.isTiered()) {
                 blockWorldState.getMatchContext().set(channelName + ".tier", matched.getTier());
             }
@@ -291,6 +289,15 @@ public class DeclarativePatternBuilder {
                 .map(c -> new BlockInfo(c.getBlockState(), null))
                 .toArray(BlockInfo[]::new))
                 .addTooltips("gregtech.multiblock.pattern.error.casing_tier_mismatch");
+
+        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
+            sp.channelName = channelName;
+        }
+        for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
+            sp.channelName = channelName;
+        }
+
+        return predicate;
     }
 
     // --- CasingSlot fluent API ---
@@ -342,19 +349,6 @@ public class DeclarativePatternBuilder {
          */
         public CasingSlot withCustomHatches(@NotNull TraceabilityPredicate predicate, int maxCount) {
             info.customHatches.add(new CustomHatchInfo(predicate, maxCount));
-            return this;
-        }
-
-        /**
-         * Associate a structure channel with this casing slot.
-         * When used with a tiered casing, the channel value will be set
-         * to the casing's tier during pattern matching.
-         *
-         * @param channel the structure channel to associate
-         * @return this CasingSlot for chaining
-         */
-        public CasingSlot withChannel(@NotNull StructureChannel channel) {
-            info.channel = channel;
             return this;
         }
 
@@ -463,7 +457,6 @@ public class DeclarativePatternBuilder {
         final ICasing casing;
         final List<HatchInfo> hatches = new ArrayList<>();
         final List<CustomHatchInfo> customHatches = new ArrayList<>();
-        StructureChannel channel;
 
         CasingSlotInfo(char symbol, ICasing casing) {
             this.symbol = symbol;

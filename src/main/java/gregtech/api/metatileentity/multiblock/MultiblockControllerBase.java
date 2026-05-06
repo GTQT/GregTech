@@ -16,6 +16,7 @@ import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
@@ -359,6 +360,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     checkStructurePattern();
                 }
             }
+            refreshPreviewOnClient();
         }
     }
 
@@ -727,6 +729,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             scheduleRenderUpdate();
         } else if (dataId == UPDATE_FLIP) {
             this.isFlipped = buf.readBoolean();
+            scheduleRenderUpdate();
+        }
+
+        if (dataId == UPDATE_FRONT_FACING || dataId == UPDATE_UPWARDS_FACING || dataId == UPDATE_FLIP) {
+            refreshPreviewOnClient();
         }
     }
 
@@ -762,6 +769,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             // recheck structure pattern immediately to avoid a slight "lag"
             // on deforming when rotating a multiblock controller
             checkStructurePattern();
+        }
+        if (oldFrontFacing != frontFacing) {
+            refreshPreviewOnClient();
         }
     }
 
@@ -806,12 +816,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing wrenchSide,
                                  CuboidRayTraceResult hitResult) {
         if (wrenchSide == getFrontFacing() && allowsExtendedFacing()) {
-            if (!getWorld().isRemote) {
-                setUpwardsFacing(playerIn.isSneaking() ? upwardsFacing.rotateYCCW() : upwardsFacing.rotateY());
-            }
+            setUpwardsFacing(playerIn.isSneaking() ? upwardsFacing.rotateYCCW() : upwardsFacing.rotateY());
+            scheduleRenderUpdate();
             return true;
         }
+
         return super.onWrenchClick(playerIn, hand, wrenchSide, hitResult);
+    }
+
+    private void refreshPreviewOnClient() {
+        if (getWorld() != null && getWorld().isRemote) {
+            MultiblockPreviewRenderer.refreshCurrentPreview(this);
+        }
     }
 
     @Override
@@ -831,6 +847,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return true;
     }
 
+    /**
+     * Returns the list of structure channels this multiblock supports.
+     * These are used by the Structure Projector to pre-fill channel fields in the GUI.
+     * Override in subclasses to declare which channels the structure uses.
+     *
+     * @return list of supported StructureChannel instances
+     */
+    @NotNull
+    public List<StructureChannel> getSupportedChannels() {
+        return Collections.emptyList();
+    }
+
     public List<MultiblockShapeInfo> getMatchingShapes() {
         if (this.structurePattern == null) {
             this.reinitializeStructurePattern();
@@ -839,22 +867,40 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
         }
         int[][] aisleRepetitions = this.structurePattern.aisleRepetitions;
-        return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>());
+        return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), null);
+    }
+
+    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
+        if (channelValues == null || channelValues.isEmpty()) {
+            return getMatchingShapes();
+        }
+        if (this.structurePattern == null) {
+            this.reinitializeStructurePattern();
+            if (this.structurePattern == null) {
+                return Collections.emptyList();
+            }
+        }
+        int[][] aisleRepetitions = this.structurePattern.aisleRepetitions;
+        return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues);
     }
 
     private List<MultiblockShapeInfo> repetitionDFS(List<MultiblockShapeInfo> pages, int[][] aisleRepetitions,
-                                                    Stack<Integer> repetitionStack) {
+                                                    Stack<Integer> repetitionStack,
+                                                    @Nullable Map<String, Integer> channelValues) {
         if (repetitionStack.size() == aisleRepetitions.length) {
             int[] repetition = new int[repetitionStack.size()];
             for (int i = 0; i < repetitionStack.size(); i++) {
                 repetition[i] = repetitionStack.get(i);
             }
-            pages.add(new MultiblockShapeInfo(Objects.requireNonNull(this.structurePattern).getPreview(repetition)));
+            BlockInfo[][][] preview = channelValues != null
+                    ? Objects.requireNonNull(this.structurePattern).getPreview(repetition, channelValues)
+                    : Objects.requireNonNull(this.structurePattern).getPreview(repetition);
+            pages.add(new MultiblockShapeInfo(preview));
         } else {
             for (int i = aisleRepetitions[repetitionStack.size()][0]; i <=
                     aisleRepetitions[repetitionStack.size()][1]; i++) {
                 repetitionStack.push(i);
-                repetitionDFS(pages, aisleRepetitions, repetitionStack);
+                repetitionDFS(pages, aisleRepetitions, repetitionStack, channelValues);
                 repetitionStack.pop();
             }
         }

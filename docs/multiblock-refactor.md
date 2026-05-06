@@ -1,613 +1,587 @@
-# 多方块结构系统重构方案
+# 多方块结构系统统一重构计划书
 
-## 概述
+更新时间：2026-05-04
 
-本文档描述了多方块结构定义与验证系统的全面重构方案。目标是针对以下场景优化性能：
-- **超大多方块机器**（单机结构体积巨大）
-- **大量多方块机器同时存在**（世界中同时运行数百台多方块）
+## 文档状态
 
-方案基于对三个代码库的分析：
-- **GregTech CEu 1.12**（当前项目）- `FactoryBlockPattern` + `TraceabilityPredicate`
-- **GregTech Modern 1.20**（GTM）- 事件驱动 + 异步检查 + `MultiblockState` 分离
-- **GT5-Unofficial 1.7.10**（GT5）- `IStructureDefinition` + `StructureWrapper` + 分片检查
+本计划书是当前唯一执行入口，已合并以下两份原计划：
 
----
+- `docs/multiblock-refactor.md`
+- `docs/gt5-structure-channel-porting-plan.md`
 
-## 当前架构问题
+GT5 信道移植不再作为独立工程执行，而是并入多方块结构系统重构，作为“结构信道、JEI、投影仪、自动建造一致性”主线。
 
-| 问题 | 影响 | 影响范围 |
-|------|------|----------|
-| 定时轮询检查（每20tick） | 方块无变化时浪费CPU | 多机器场景 |
-| 每次检查完整遍历所有方块 O(n) | 大型机器每次检查代价高 | 大型机器 |
-| `BlockPattern` 混合了模板和运行时状态 | 内存浪费（100台相同机器 = 100份predicate副本） | 多机器场景 |
-| 无区块级索引 | 无法快速确定哪个多方块受方块变化影响 | 多机器场景 |
-| 无分片/片段概念 | 无法对大型结构进行局部验证 | 大型机器 |
-| 手动计算外壳数量 (`setMinGlobalLimited`) | 开发者负担重且容易出错 | 所有机器 |
+## 当前结论
 
----
+当前项目已经写入了多方块结构系统重构的大部分主体代码，但还不能判定为完成。
 
-## 重构任务
+当前状态：
 
-### P0: 事件驱动结构检查 + 区块坐标索引
+> 主体实现已落地，编译阻塞待修复；P0/P2/P4 已接入主流程，P1/P3 与 GT5 信道 parity 尚未完全兑现，整体仍处于待验收阶段。
 
-**来源:** GTM `LevelMixin` + `MultiblockWorldSavedData`
+当前最直接的阻塞点是 `compileJava` 未通过：
 
-**优先级:** 关键
+- 执行命令：`./gradlew --% compileJava --no-daemon -Dorg.gradle.workers.max=1 -Dorg.gradle.compiler.daemon=false`
+- 编译失败位置：`src/main/java/gregtech/common/metatileentities/multi/electric/godforge/ForgeOfGodsStructureString.java`
+- 报错原因：第 1 行存在 `\ufeff` BOM，编译器报告“非法字符”
 
-**解决的问题:** 消除已成形多方块的不必要定期检查。世界中有100+台机器时，只有受方块变化影响的那一台触发验证。
+后续第一优先级是恢复可编译状态，然后再做结构检查、信道、JEI、投影仪的实机验收。
 
-**实现细节:**
+## 总目标
 
-1. **方块变化事件监听（推荐方案A + 方案B组合）**
+本轮统一重构同时解决两类问题。
 
-   | 方案 | Hook位置 | 影响其他mod? | 推荐度 |
-   |------|----------|-------------|--------|
-   | **方案A: Forge事件** | `BlockEvent.NeighborNotifyEvent` + `BreakEvent` + `PlaceEvent` | ❌ 零影响 | ⭐⭐⭐⭐⭐ |
-   | **方案B: Mixin @Inject** | `World.setBlockState()` 的 `@At("RETURN")` | 🟡 极低影响 | ⭐⭐⭐⭐ |
-   | ~~方案C: Mixin @Overwrite~~ | ~~覆盖World方法~~ | 🔴 高风险冲突 | ❌ 不推荐 |
+### 结构运行时问题
 
-   **推荐策略:**
-   - 优先使用Forge原生事件（方案A）覆盖95%场景（玩家破坏/放置/活塞推动等）
-   - 仅在Forge事件覆盖不到的特殊情况下（如某mod调用 `world.setBlockState(pos, state, 2)` 只sync客户端不通知邻居），启用Mixin作为补充
-   - Mixin使用 `@Inject(at = @At("RETURN"))`，不修改方法行为，只追加观察者逻辑
+| 问题 | 影响 |
+|------|------|
+| 已成形多方块仍依赖定时轮询 | 世界中多台机器同时存在时浪费 CPU |
+| 每次结构检查可能遍历完整结构 | 大型多方块检查代价高 |
+| `BlockPattern` 同时承载模板与运行时状态 | 相同机器无法真正共享结构模板 |
+| 缺少区块级位置索引 | 方块变化后无法快速定位受影响的多方块 |
+| 缺少分片结构验证 | 超大结构无法局部重检 |
 
-   方案A的实现:
-   ```java
-   @SubscribeEvent
-   public void onBlockNotify(BlockEvent.NeighborNotifyEvent event) {
-       BlockPos pos = event.getPos();
-       World world = (World) event.getWorld();
-       MultiblockWorldData.get(world).onBlockChanged(pos);
-   }
-   ```
+### 结构定义与展示问题
 
-   方案B的实现（补充覆盖）:
-   ```java
-   @Mixin(World.class)
-   public class MixinWorld {
-       @Inject(method = "setBlockState(Lnet/minecraft/util/math/BlockPos;"
-               + "Lnet/minecraft/block/state/IBlockState;I)Z",
-               at = @At("RETURN"))
-       private void gregtech$onSetBlockState(BlockPos pos, IBlockState newState, 
-               int flags, CallbackInfoReturnable<Boolean> cir) {
-           if (cir.getReturnValue()) {
-               MultiblockWorldData.get((World)(Object)this).onBlockChanged(pos);
-           }
-       }
-   }
-   ```
+| 问题 | 影响 |
+|------|------|
+| 外壳与仓室数量手动声明 | 多方块定义冗长且容易出错 |
+| tiered casing 没有统一信道语义 | 线圈、玻璃、机器外壳等 tier 选择分散 |
+| JEI、投影仪、自动建造不共享同一份结构请求 | 玩家看到的结构和实际建造结构可能不一致 |
+| 投影仪配置不是 per ItemStack NBT | 多个投影仪或多人使用时容易串状态 |
+| GT5 legacy channel key 未兼容 | 从 GT5 移植机器时语义容易丢失 |
 
-2. **区块坐标索引注册表**
-   - 维护 `Map<ChunkPos, Set<MultiblockController>>` 用于所有已成形的多方块
-   - 多方块成形时，按区块注册其所有方块位置
-   - 多方块失效时，取消注册
+## 参考来源
 
-3. **方块变化处理器**
-   - 当位置P处的方块发生变化时：
-     - 找到P所在的区块
-     - 对该区块中注册的每个多方块：
-       - 检查P是否在结构的缓存位置集合中（O(1)查找）
-       - 是：仅对该多方块触发重新验证
-       - 否：跳过
+- GregTech CEu 1.12 当前实现：`FactoryBlockPattern`、`TraceabilityPredicate`
+- GregTech Modern：事件驱动、异步检查、`MultiblockState`
+- GT5 / StructureLib：`IStructureChannels`、`StructureWrapper`、`withChannel`、分片检查、NEI preview modifier
 
-4. **未成形控制器的回退机制**
-   - 未成形的控制器仍使用定期检查（但频率降低）
-   - 只有已成形的结构受益于事件驱动模式
+GT5 源码结论已经并入本文的“结构信道统一模型”和后续里程碑。原 `gt5-structure-channel-porting-plan.md` 仅保留为归档说明。
 
-**性能影响:**
-- 已成形机器：从每20tick O(N_machines × N_blocks_per_machine) → 无方块变化时 O(1)
-- 方块破坏/放置：只有受影响的多方块重新检查，O(受影响方块数) 而非 O(总方块数)
+## 当前实现总览
 
-**对其他mod的影响:**
-- 方案A（Forge事件）：**零影响**，使用Forge标准API
-- 方案B（Mixin @Inject RETURN）：**极低影响**，原因如下：
-  - `@Inject` 支持多mod同时注入同一方法，互不干扰
-  - 注入在 `RETURN` 位置，不修改原方法逻辑，只追加观察者
-  - 不使用 `@Overwrite` 或 `@Redirect`，不会覆盖其他mod的修改
-
-**与常见mod的兼容性:**
-
-| Mod | 它做了什么 | 是否与我们冲突 |
-|-----|-----------|---------------|
-| Sponge (服务端) | 用Mixin大量修改World | ❌ `@Inject(RETURN)` 安全共存 |
-| FoamFix | 优化mod | ❌ 不修改 `setBlockState` |
-| Phosphor (光照优化) | 修改光照计算 | ❌ 不修改 `setBlockState` |
-| Cubic Chunks | 重写世界高度 | 🟡 可能改World类结构，需测试 |
-| Optifine | 渲染优化 | ❌ 不碰 `setBlockState` |
-| LittleTiles | 自定义方块系统 | ❌ 不修改vanilla World方法 |
-| BuildCraft/IC2/Thermal | 标准工业mod | ❌ 不用Mixin |
-| Applied Energistics 2 | AE2 | ❌ 不修改World方法 |
-
-**需要修改的关键文件:**
-- `MultiblockControllerBase.java` - 添加注册/注销逻辑
-- 新增: `MultiblockWorldData.java` - 区块坐标注册表 + 事件分发
-- 新增: `MixinWorld.java`（可选）- 补充覆盖 Forge事件捕获不到的方块变化
-- 新增: `mixins.gregtech.minecraft.json` 中添加 `MixinWorld`
-
-**依赖:** 无（可独立完成）
-**前置条件:** 项目已具备MixinBooter基础设施（已确认存在）
-
----
-
-### P1: MultiblockState 分离（模板/实例拆分）
-
-**来源:** GTM `MultiblockState`
-
-**优先级:** 高
-
-**解决的问题:** 内存优化。当前每个多方块实例创建自己的 `BlockPattern`（包含完整的predicate数组）。分离后，100台相同机器共享1份模板。
-
-**实现细节:**
-
-1. **将 `BlockPattern` 拆分为两个类:**
-   - `BlockPatternTemplate`（不可变，按机器类型共享）
-     - `TraceabilityPredicate[][][]` - 结构形状谓词
-     - `int[]` 可重复范围
-     - 所有静态结构信息
-   - `MultiblockState`（按实例持有，可变）
-     - `LongOpenHashSet cache` - 缓存的方块位置
-     - `PatternMatchContext matchContext` - 运行时匹配结果
-     - `int[] globalCount` - 当前外壳计数
-     - `PatternError error` - 当前错误状态
-     - 用于线程安全的锁（为P2做准备）
-
-2. **模板创建的工厂模式:**
-   ```java
-   // 按机器类型（共享单例）
-   private static final BlockPatternTemplate TEMPLATE = createStructurePattern();
-   
-   // 按机器实例（轻量级）
-   private final MultiblockState state = TEMPLATE.createState();
-   ```
-
-3. **线程安全准备:**
-   - `MultiblockState` 持有 `ReentrantLock`
-   - `checkPatternAt()` 在修改状态前获取锁
-   - 只读访问（如 `isFormed()`）不需要锁
-
-**内存影响:**
-- 重构前: 100台EBF = 100 × (predicates + cache + context) ≈ 100 × 50KB = 5MB
-- 重构后: 1份模板 (50KB) + 100 × 轻量状态 (2KB) ≈ 250KB
-- **约95%的内存减少**（对于相同机器）
-
-**需要修改的关键文件:**
-- `BlockPattern.java` → 拆分为 `BlockPatternTemplate.java` + `MultiblockState.java`
-- `FactoryBlockPattern.java` → 返回 `BlockPatternTemplate`
-- `MultiblockControllerBase.java` → 持有 `MultiblockState` 而非 `BlockPattern`
-- 所有 `createStructurePattern()` 实现 → 改为静态/缓存
-
-**依赖:** 无，但应在P2之前完成（异步检查需要线程安全的状态）
-
----
-
-### P2: 异步结构检查线程
-
-**来源:** GTM `ScheduledExecutorService`
-
-**优先级:** 高
-
-**解决的问题:** 未成形控制器的结构验证在非主线程运行。主线程永远不会在结构检查上阻塞。
-
-**实现细节:**
-
-1. **未成形控制器的异步执行器:**
-   ```java
-   // 在 MultiblockWorldData 中
-   private final ScheduledExecutorService executor = 
-       Executors.newSingleThreadScheduledExecutor(r -> {
-           Thread t = new Thread(r, "GT-Multiblock-Check");
-           t.setDaemon(true);
-           return t;
-       });
-   
-   // 每250ms（约5tick）检查未成形的控制器
-   executor.scheduleAtFixedRate(this::asyncCheckTask, 0, 250, TimeUnit.MILLISECONDS);
-   ```
-
-2. **线程安全的世界访问:**
-   - 结构检查需要从世界中读取 `IBlockState`
-   - 在1.12.2中，`World.getBlockState()` 不是线程安全的
-   - 解决方案：在异步检查前于主线程中拍摄 `ChunkCache` 快照
-   - 或：使用 `tryLock()` 模式，主线程正在修改时跳过
-
-3. **主线程回调:**
-   - 当异步检查发现结构成形/破坏时：
-     - 通过 `FMLCommonHandler.instance().getMinecraftServerInstance().addScheduledTask()` 调度主线程回调
-     - 主线程执行状态变更（成形/失效多方块）
-
-4. **错峰机制:**
-   - 不在每个周期检查所有未成形控制器
-   - 使用 `(controllerId + tickCount) % 4 == 0` 分散负载
-
-**性能影响:**
-- 主线程：未成形控制器检查消耗零时间
-- 异步线程：检查是I/O密集型（读取方块状态），CPU占用低
-- 成形检测延迟：约250-1000ms（对玩家体验可接受）
-
-**需要修改的关键文件:**
-- 新增: `AsyncStructureChecker.java` - 执行器 + 任务调度
-- `MultiblockWorldData.java` - 与P0注册表集成
-- `MultiblockControllerBase.java` - 注册/注销异步检查
-- `BlockPattern.java` / `MultiblockState.java` - 线程安全的检查方法
-
-**依赖:** P1（需要带锁支持的 `MultiblockState`）
-
----
-
-### P3: 分片式结构检查
-
-**来源:** GT5 `checkPiece()` 多片段系统
-
-**优先级:** 中高
-
-**解决的问题:** 对于超大结构（如127×29×155的上帝之炉 ≈ 570,000个方块），每次检查整个结构代价过高。分片检查允许只验证变化的部分。
-
-**实现细节:**
-
-1. **片段定义API:**
-   ```java
-   public class StructurePiece {
-       private final String name;
-       private final BlockPatternTemplate template;
-       private final Vec3i offset; // 相对于控制器的偏移
-       private boolean validated; // 缓存的验证状态
-       private boolean dirty;     // 需要重新检查
-   }
-   ```
-
-2. **多片段结构构建器:**
-   ```java
-   return MultiPiecePattern.builder()
-       .piece("core", corePattern, Vec3i.ZERO)
-       .piece("ring1", ring1Pattern, new Vec3i(0, 0, -59))
-       .piece("ring2", ring2Pattern, new Vec3i(0, 0, -67))
-       .conditionalPiece("ring2", () -> isUpgradeActive(RING2))
-       .build();
-   ```
-
-3. **脏片段追踪（与P0集成）:**
-   - 当P0检测到已成形多方块中有方块变化时：
-     - 确定哪个片段包含变化的位置
-     - 仅将那些片段标记为脏
-     - 仅重新验证脏片段（而非整个结构）
-
-4. **条件片段:**
-   - 某些片段只在特定条件满足时才需要验证
-   - 例如：扩展环只在升级激活时检查
-   - 减少较小配置下的基准验证开销
-
-**性能影响:**
-- 570K方块结构拆成10个片段：单片段中方块变化 → 验证约57K方块而非570K
-- 对于典型多方块（< 100方块）：开销极小，单片段行为
-- 片段缓存：已验证的片段在标记为脏之前跳过重新检查
-
-**需要修改的关键文件:**
-- 新增: `StructurePiece.java` - 单个片段定义
-- 新增: `MultiPiecePattern.java` - 带片段的复合模式
-- `MultiblockControllerBase.java` - 片段感知的验证逻辑
-- `MultiblockWorldData.java` - 片段级脏追踪
-
-**依赖:** P0（事件驱动用于脏标记），P1（每片段的状态）
-
----
-
-### P4: 声明式 ICasing 管理
-
-**来源:** GT5 `ICasing` / `ICasingGroup` / `StructureWrapper`
-
-**优先级:** 中
-
-**解决的问题:** 开发体验优化。当前每个多方块需要手动指定 `setMinGlobalLimited(14)` 并手动实现分级追踪（线圈类型等）。这容易出错且冗长。
-
-**实现细节:**
-
-1. **ICasing 接口:**
-   ```java
-   public interface ICasing {
-       IBlockState getBlockState();
-       String getLocalizedName();
-       boolean isTiered();
-       int getTier(); // 用于分级外壳（线圈等）
-   }
-   
-   public interface ICasingGroup {
-       String getGroupName();
-       List<ICasing> getCasings();
-       boolean requiresUniformTier(); // 所有外壳必须同级
-   }
-   ```
-
-2. **声明式仓室配置:**
-   ```java
-   // 当前冗长写法:
-   .where('X', states(getCasingState())
-       .setMinGlobalLimited(14)
-       .or(abilities(IMPORT_ITEMS).setMinGlobalLimited(1).setMaxGlobalLimited(4))
-       .or(abilities(EXPORT_ITEMS).setMinGlobalLimited(1).setMaxGlobalLimited(4))
-       .or(abilities(INPUT_ENERGY).setMinGlobalLimited(1).setMaxGlobalLimited(3))
-       .or(autoAbilities()))
-   
-   // 建议的声明式写法:
-   .casing('X', Casings.SOLID_STEEL)
-       .withHatches(IMPORT_ITEMS, 1, 4)
-       .withHatches(EXPORT_ITEMS, 1, 4)
-       .withHatches(INPUT_ENERGY, 1, 3)
-       .withAutoAbilities()
-   // 最小外壳数量从结构定义自动计算
-   ```
-
-3. **自动外壳计数:**
-   - 统计结构定义中 'X' 字符的总数
-   - 减去最大可能的仓室数量
-   - 结果 = 最小外壳需求（自动设置）
-
-4. **自动提示信息生成:**
-   ```java
-   // 自动生成:
-   // "至少需要14个固态钢制外壳"
-   // "接受1-4个输入总线"
-   // "接受1-3个能源仓"
-   structureWrapper.buildTooltip(tooltip);
-   ```
-
-5. **分级通道追踪:**
-   ```java
-   // 当前手动方式:
-   .where('C', heatingCoils())
-   // ... 然后手动: matchContext.getOrPut("CoilType", ...)
-   
-   // 建议方式:
-   .tieredCasing('C', CasingGroups.HEATING_COILS)
-   // 自动追踪，通过以下方式访问:
-   int coilTier = state.getTierChannel("heating_coils");
-   ```
-
-**开发体验影响:**
-- 每个多方块定义减少约40%的样板代码
-- 消除手动最小/最大计数错误
-- 自动保持提示信息一致性
-- 分级检测从命令式变为声明式
-
-**需要修改的关键文件:**
-- 新增: `ICasing.java`, `ICasingGroup.java` - 接口定义
-- 新增: `CasingRegistry.java` - 集中外壳注册
-- 新增: `DeclarativePatternBuilder.java` - 新构建器API（与现有共存）
-- 新增: `StructureTooltipBuilder.java` - 从定义自动生成提示
-- `TraceabilityPredicate.java` - 添加分级通道支持
-
-**依赖:** 无（可独立完成，但P1的状态分离对分级追踪有帮助）
-
----
-
-## 实施顺序
-
-```
-第一阶段: 基础（P1 → P0）
-├── P1: MultiblockState 分离（无外部依赖）
-└── P0: 事件驱动 + 区块坐标索引（需要ASM/Mixin配置）
-
-第二阶段: 性能优化（P2 → P3）
-├── P2: 异步检查（需要P1提供线程安全）
-└── P3: 分片检查（需要P0提供脏标记机制）
-
-第三阶段: 开发体验（P4）
-└── P4: ICasing 声明式系统（独立，可随时开始）
-```
-
-## 对当前mod的内部影响
-
-### 影响范围统计
-
-| 分类 | 数量 | 说明 |
-|------|------|------|
-| 实现 `createStructurePattern()` 的多方块 | **37个** | gregtech核心32个 + gtqt模块5个 |
-| 引用 `BlockPattern` 的文件 | **41个** | 含API层、实现层、工具类 |
-| 使用 `PatternMatchContext` 的文件 | **41个** | 结构检查结果读取 |
-| 调用 `isStructureFormed()`/`isFormed()` 的文件 | **56个** | 遍布UI、集成、逻辑各处 |
-| 使用 `checkStructurePattern()` 的位置 | **37个** | 基本都在多方块控制器内 |
-
-### P0: 事件驱动 — 对当前mod的影响
-
-| 受影响的文件/类 | 改动类型 | 具体影响 |
-|----------------|----------|----------|
-| `MultiblockControllerBase.doStructureCheck()` | **修改** | 将定时轮询逻辑改为事件驱动回调；已成形时不再主动检查 |
-| `MultiblockControllerBase.update()` | **修改** | 移除/简化 `doStructureCheck()` 的调用 |
-| `MultiblockControllerBase.invalidateStructure()` | **修改** | 添加向 `MultiblockWorldData` 注销的逻辑 |
-| `MultiblockControllerBase.formStructure()` | **修改** | 添加向 `MultiblockWorldData` 注册的逻辑 |
-| `MetaTileEntityCleanroom` | **可能影响** | 其有自定义的结构检查节奏，需要适配事件驱动 |
-| `MetaTileEntityCentralMonitor` | **可能影响** | 有自定义结构更新逻辑 |
-| `MultiblockPreviewRenderer` | **无影响** | 仅读取结构信息用于渲染 |
-| `MultiblockInfoRecipeWrapper` (JEI) | **无影响** | 仅用于JEI预览展示 |
-| 所有37个 `createStructurePattern()` 实现 | **无影响** | 结构定义本身不变 |
-| `ConfigHolder` (延迟检查配置) | **修改** | 延迟检查配置意义改变，可移除或重定义为未成形控制器的检查频率 |
-
-**总结:** 核心改动集中在 `MultiblockControllerBase` 的检查调度逻辑。37个多方块的结构定义代码完全不需要改动。
-
----
-
-### P1: MultiblockState分离 — 对当前mod的影响
-
-| 受影响的文件/类 | 改动类型 | 具体影响 |
-|----------------|----------|----------|
-| `BlockPattern.java` | **重构拆分** | 拆为 `BlockPatternTemplate`（模板）+ `MultiblockState`（实例状态） |
-| `FactoryBlockPattern.java` | **修改** | `build()` 返回 `BlockPatternTemplate` 而非 `BlockPattern` |
-| `MultiblockControllerBase.java` | **修改** | `structurePattern` 字段类型变更；添加 `multiblockState` 字段 |
-| `MultiblockControllerBase.reinitializeStructurePattern()` | **修改** | 改为仅重建状态，不重建模板 |
-| `PatternMatchContext.java` | **移入MultiblockState** | 成为 `MultiblockState` 的内部状态 |
-| `BlockWorldState.java` | **修改** | 可能需要从 `MultiblockState` 获取上下文 |
-| 所有37个 `createStructurePattern()` 实现 | **改动极小** | 仅返回类型标注变化（可通过接口兼容保持无改动） |
-| `MetaTileEntityEBF.formStructure()` 等 | **小改** | `matchContext` 获取方式从 `structurePattern.xxx` 改为 `multiblockState.xxx` |
-| 所有读取 `matchContext.getOrPut("CoilType")` 的类 | **小改** | 约15处，改为从 `multiblockState` 获取 |
-| `MetaTileEntityHPCA.formStructure()` | **小改** | 读取结构匹配结果的路径变化 |
-| `MetaTileEntityPowerSubstation.formStructure()` | **小改** | 同上 |
-| `MetaTileEntityActiveTransformer.formStructure()` | **小改** | 同上 |
-| `MetaTileEntityLargeMiner` | **小改** | `structurePattern.formedRepetitionCount` → `multiblockState.getRepetitionCount()` |
-| `MetaTileEntityDistillationTower` | **小改** | 同上 |
-| `MultiblockPreviewRenderer` | **小改** | 从模板读取结构信息而非实例 |
-| `MultiblockInfoRecipeWrapper` (JEI) | **小改** | 同上 |
-| `DistillationTowerLogicHandler` | **小改** | `matchContext` 访问路径变化 |
-
-**总结:** 约 **15-20个文件** 需要小幅改动（主要是 `matchContext` 和 `structurePattern` 的访问路径变化）。核心重构集中在3个API层文件。可通过在旧位置保留 `@Deprecated` 的代理方法来减少一次性改动量。
-
----
-
-### P2: 异步检查线程 — 对当前mod的影响
-
-| 受影响的文件/类 | 改动类型 | 具体影响 |
-|----------------|----------|----------|
-| `MultiblockControllerBase.doStructureCheck()` | **修改** | 未成形时改为提交异步任务而非直接检查 |
-| `BlockPattern.checkPatternAt()` / `MultiblockState.checkPattern()` | **修改** | 添加锁机制；世界读取改为从 `ChunkCache` 快照 |
-| `BlockWorldState.java` | **修改** | 方块状态读取支持从快照和World两种来源 |
-| `TraceabilityPredicate.java` | **需审查** | 确保所有内置predicate无副作用（不写World） |
-| `MultiblockControllerBase.formStructure()` | **修改** | 必须确保在主线程执行（添加线程检查） |
-| `MultiblockControllerBase.invalidateStructure()` | **修改** | 同上 |
-| `MetaTileEntityCleanroom` | **需注意** | 其清洁室检查可能依赖实时世界状态 |
-| `MetaTileEntityLargeMiner` | **需注意** | 矿机的挖掘逻辑可能读取结构状态 |
-| `RecipeMapMultiblockController.updateFormedValid()` | **无影响** | 仍在主线程tick中调用 |
-| 所有 `updateFormedValid()` 实现 | **无影响** | 仍在主线程执行 |
-| `SteamMultiblockRecipeLogic` | **无影响** | 配方逻辑不涉及结构检查 |
-
-**需要特别注意的自定义TraceabilityPredicate:**
-
-| Predicate | 是否有副作用 | 风险 |
-|-----------|------------|------|
-| `states(...)` | ❌ 纯读取 | 安全 |
-| `abilities(...)` | ❌ 纯读取 | 安全 |
-| `heatingCoils()` | ❌ 纯读取+记录类型 | 安全 |
-| `autoAbilities()` | ❌ 纯读取 | 安全 |
-| `air()` | ❌ 纯读取 | 安全 |
-| `any()` | ❌ 纯读取 | 安全 |
-| 自定义Lambda predicate (如gtqt中) | 🟡 需逐一审查 | 可能不安全 |
-
-**总结:** 核心改动约 **5-8个API层文件**。37个多方块的业务代码基本无需改动（`updateFormedValid()` 仍在主线程）。主要风险在于自定义predicate是否有副作用。
-
----
-
-### P3: 分片检查 — 对当前mod的影响
-
-| 受影响的文件/类 | 改动类型 | 具体影响 |
-|----------------|----------|----------|
-| 所有现有37个多方块 | **无需改动** | 自动作为单片段处理，行为完全不变 |
-| `MultiblockControllerBase.java` | **新增方法** | 添加 `createMultiPiecePattern()` 可选方法 |
-| `BlockPatternTemplate` | **扩展** | 增加片段相关字段（对现有单片段无影响） |
-| `MultiblockState` | **扩展** | 增加片段脏标记（对现有机器透明） |
-| `MultiblockWorldData` | **扩展** | 增加片段级位置索引 |
-| 未来新增的超大多方块 | **可选使用** | opt-in式API，不强制 |
-
-**总结:** **零影响**。这是纯增量功能，所有现有代码保持不变。
-
----
-
-### P4: ICasing声明式 — 对当前mod的影响
-
-| 受影响的文件/类 | 改动类型 | 具体影响 |
-|----------------|----------|----------|
-| 所有现有37个多方块 | **无需改动** | 旧 `.where()` API永久保留 |
-| `TraceabilityPredicate.java` | **扩展** | 添加分级通道支持（不破坏现有API） |
-| `FactoryBlockPattern.java` | **扩展** | 添加 `.casing()` 等新方法（不影响现有 `.where()`） |
-| `MetaTileEntityEBF` 等使用线圈的机器 | **可选迁移** | 可逐步从手动 `getOrPut("CoilType")` 迁移到声明式 |
-| `MultiblockDisplayText` | **可选集成** | 可以从ICasing自动生成tooltip |
-| `MultiblockControllerBase.addDisplayText()` | **可选修改** | 可以用自动tooltip替代手动文本 |
-
-**如果选择迁移现有机器（可选，非强制）:**
-
-| 机器类别 | 数量 | 迁移难度 |
-|----------|------|----------|
-| 简单多方块（无分级外壳）| 25个 | 极简单：只需将 `.where()` 替换为 `.casing()` |
-| 带线圈分级的多方块 | 5个 | 简单：EBF/多合金炉/多熔炉/焦化炉/裂化装置 |
-| 带其他分级外壳的多方块 | 4个 | 简单：融合堆/电力分站/HPCA/数据银行 |
-| 有复杂自定义逻辑的多方块 | 3个 | 中等：清洁室/中央监视器/矿机 |
-
-**总结:** **零破坏性影响**。新API与旧API共存。迁移是完全可选的，可以在数月内逐步完成。
-
----
-
-### 改动量总估算
-
-| 阶段 | 任务 | 新增文件 | 修改文件 | 改动行数（预估） |
-|------|------|----------|----------|-----------------|
-| Phase 1 | P1 (状态分离) | 2个 | 15-20个 | ~800行 |
-| Phase 1 | P0 (事件驱动) | 2-3个 | 3-5个 | ~400行 |
-| Phase 2 | P2 (异步检查) | 1-2个 | 5-8个 | ~500行 |
-| Phase 2 | P3 (分片) | 2-3个 | 3-4个 | ~600行 |
-| Phase 3 | P4 (声明式) | 4-5个 | 2-3个（扩展） | ~1000行 |
-| **合计** | | **11-15个新文件** | **28-40个修改** | **~3300行** |
-
-### 向后兼容策略
-
-为确保迁移平滑，建议在每个阶段采用以下策略：
-
-| 策略 | 适用任务 | 说明 |
+| 模块 | 当前状态 | 判断 |
 |------|----------|------|
-| **接口兼容** | P1 | `createStructurePattern()` 返回类型改为共同接口，旧代码无需改 |
-| **废弃代理** | P1 | 在旧位置保留 `@Deprecated` 的getter代理到新位置 |
-| **可选开关** | P0, P2 | 提供配置开关回退到旧的定时轮询行为 |
-| **纯增量** | P3, P4 | 完全新增API，旧代码路径完整保留 |
-| **渐进迁移** | P4 | 新老API共存，无迁移deadline |
+| 事件驱动结构检查 | 已接入 `MultiblockWorldData`、Forge 事件、Mixin、controller 注册/注销 | 基本完成，待编译与实测 |
+| 异步结构检查 | 已接入 `AsyncStructureChecker` 和 `BlockStateSnapshot` | 已实现雏形，需并发安全复核 |
+| 模板/实例状态拆分 | 已有 `BlockPatternTemplate`、`MultiblockState`、兼容层 `BlockPattern` | 部分完成，模板共享收益未完全兑现 |
+| 分片式结构检查 | 已有 `StructurePiece`、`MultiPiecePattern` 与 controller 入口 | API 完成，暂无机器启用 |
+| 声明式 casing | 已有 `ICasing`、`ICasingGroup`、`DeclarativePatternBuilder`，多数机器已迁移 | 大部分完成，剩余迁移与 tooltip 整合 |
+| 结构信道 | 已有 `StructureChannel`、`GTStructureChannels`、`channelValues` 预览/建造雏形 | 部分完成，缺 registry、legacy key、indicator、NBT 统一层 |
+| JEI 信道预览 | 已有 `getSupportedChannels()` 与 `getMatchingShapes(channelValues)` 调用 | 可用雏形，仍有硬编码范围与 metadata 缺口 |
+| 投影仪信道 | 行为类已有 `channelValues` 字段与 GUI 控件 | 未完成，状态不是 per ItemStack NBT，renderer 未强制使用 channel values |
 
-## 风险评估
+## 已落地的关键代码
 
-| 任务 | 风险 | 影响范围 | 缓解措施 |
-|------|------|----------|----------|
-| P0 (Forge事件) | 极低：标准API使用 | 无其他mod受影响 | 无需特殊处理 |
-| P0 (Mixin补充) | 低：`@Inject(RETURN)`注入 | 理论上Cubic Chunks等深度改World的mod可能需要测试 | 作为可选补充，可通过配置开关禁用 |
-| P1 (状态拆分) | 中：API破坏性变更 | 直接使用 `BlockPattern` 的附属模组 | 提供兼容层；废弃旧API；附属mod通常通过 `createStructurePattern()` 间接使用 |
-| P2 (异步) | 中高：线程安全问题 | 所有结构检查逻辑 | 使用ChunkCache快照；充分单元测试；提供同步回退开关 |
-| P3 (分片) | 低：纯新增功能 | 仅使用分片API的新多方块 | 保持单片段为默认；分片为opt-in；旧API不受影响 |
-| P4 (ICasing) | 低：纯新增功能 | 新编写的多方块可选使用 | 新API与旧API共存；渐进式迁移；旧方式永久保留 |
+### 运行时与调度
 
-### 各任务对外部mod的详细影响
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockControllerBase.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockWorldData.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/AsyncStructureChecker.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/BlockStateSnapshot.java`
+- `src/main/java/gregtech/common/event/BlockChangeListener.java`
+- `src/main/java/gregtech/mixins/minecraft/WorldBlockStateMixin.java`
+- `src/main/resources/mixins.gregtech.minecraft.json`
 
-#### P0: 事件驱动 — 对外部mod影响
+### Pattern 与状态
 
-| 影响对象 | 影响描述 | 严重程度 |
-|----------|----------|----------|
-| 使用Forge BlockEvent的mod | 无影响，我们只是新增一个监听者 | ❌ 无 |
-| 使用Mixin修改World的mod (如Sponge) | `@Inject(RETURN)`不修改方法逻辑，与其他注入和平共存 | ❌ 无 |
-| 重写World类的mod (如Cubic Chunks) | 方法签名可能变化，Mixin目标可能找不到 | 🟡 需测试 |
-| GT附属mod | 无影响，不改变任何现有API | ❌ 无 |
+- `src/main/java/gregtech/api/pattern/BlockPattern.java`
+- `src/main/java/gregtech/api/pattern/BlockPatternTemplate.java`
+- `src/main/java/gregtech/api/pattern/MultiblockState.java`
+- `src/main/java/gregtech/api/pattern/FactoryBlockPattern.java`
+- `src/main/java/gregtech/api/pattern/TraceabilityPredicate.java`
+- `src/main/java/gregtech/api/pattern/BlockWorldState.java`
 
-#### P1: 状态分离 — 对外部mod影响
+### 分片结构
 
-| 影响对象 | 影响描述 | 严重程度 |
-|----------|----------|----------|
-| 直接new BlockPattern的代码 | 编译错误，需改用 `BlockPatternTemplate` | 🔴 破坏性 |
-| 调用 `getStructurePattern()` 的代码 | 返回类型变化 | 🟡 需适配 |
-| 调用 `createStructurePattern()` 的子类 | 返回类型可改为接口兼容 | 🟡 低影响 |
-| 使用 `PatternMatchContext` 的代码 | 移至 `MultiblockState` 内，需通过新getter访问 | 🟡 需适配 |
-| 使用 `blockPattern.checkPatternAt()` 的代码 | 改为 `state.checkPattern()` | 🟡 需适配 |
-| 普通GT附属（只override `createStructurePattern`） | 仅返回类型变化，改动极小 | 🟢 低影响 |
+- `src/main/java/gregtech/api/pattern/StructurePiece.java`
+- `src/main/java/gregtech/api/pattern/MultiPiecePattern.java`
 
-#### P2: 异步检查 — 对外部mod影响
+### 声明式 casing 与信道
 
-| 影响对象 | 影响描述 | 严重程度 |
-|----------|----------|----------|
-| 在 `checkPatternAt` 中读取World状态的代码 | 可能在非主线程执行，需确保线程安全 | 🟡 需注意 |
-| 在结构检查回调中修改World的代码 | 必须确保在主线程执行 | 🔴 潜在问题 |
-| 依赖 `isFormed()` 立即返回最新状态的代码 | 异步检查有250ms延迟 | 🟡 需注意 |
-| GT附属的自定义TraceabilityPredicate | 如果内部有副作用（写World），需要改为线程安全 | 🟡 需审查 |
-| 普通GT附属（只关心最终结果） | 无影响，回调仍在主线程 | ❌ 无 |
+- `src/main/java/gregtech/api/pattern/casing/ICasing.java`
+- `src/main/java/gregtech/api/pattern/casing/ICasingGroup.java`
+- `src/main/java/gregtech/api/pattern/casing/CasingDefinition.java`
+- `src/main/java/gregtech/api/pattern/casing/DeclarativePatternBuilder.java`
+- `src/main/java/gregtech/api/pattern/casing/GTCasingGroups.java`
+- `src/main/java/gregtech/api/pattern/casing/GTStructureChannels.java`
+- `src/main/java/gregtech/api/pattern/casing/StructureChannel.java`
+- `src/main/java/gregtech/api/pattern/casing/StructureTooltipBuilder.java`
+- `src/main/java/gregtech/api/util/CasingTier.java`
+- `src/main/java/gregtech/api/util/GlassTier.java`
 
-#### P3: 分片检查 — 对外部mod影响
+### 消费端
 
-| 影响对象 | 影响描述 | 严重程度 |
-|----------|----------|----------|
-| 现有多方块（使用旧API） | 完全不受影响，自动作为单片段处理 | ❌ 无 |
-| 新多方块（使用分片API） | 纯增量功能 | ❌ 无 |
-| GT附属的超大多方块 | 可选使用分片获得性能提升 | ❌ 无 |
+- `src/main/java/gregtech/integration/jei/multiblock/MultiblockInfoRecipeWrapper.java`
+- `src/main/java/gregtech/common/items/behaviors/StructureProjectorBehavior.java`
+- `src/main/java/gregtech/common/items/behaviors/MultiblockBuilderBehavior.java`
+- `src/main/java/gregtech/client/renderer/handler/MultiblockPreviewRenderer.java`
 
-#### P4: ICasing声明式 — 对外部mod影响
+## 统一架构方向
 
-| 影响对象 | 影响描述 | 严重程度 |
-|----------|----------|----------|
-| 现有多方块（使用旧 `.where()` API） | 完全不受影响，旧API永久保留 | ❌ 无 |
-| GT附属的新多方块 | 可选使用新声明式API | ❌ 无 |
-| 自定义TraceabilityPredicate | 不受影响 | ❌ 无 |
+后续所有结构预览、投影、对比和自动建造都应围绕同一个请求对象或等价数据流执行：
 
-## 参考资料
+```text
+StructureProjectionRequest
+  controller
+  triggerStack / projectorStack
+  channelValues
+  compareMode
+  targetPos
+  layer
+  hatchPlacementMode
+```
 
-- GTM源码: `com.gregtechceu.gtceu.api.pattern.BlockPattern` / `MultiblockState` / `MultiblockWorldSavedData`
-- GTM Mixin: `LevelMixin.gtceu$updateChunkMultiblocks()`
-- GT5源码: `com.gtnewhorizon.structurelib` / `gregtech.api.structure.StructureWrapper`
-- GT5分片: `MTEEnhancedMultiBlockBase.checkPiece()`
-- 当前项目: `gregtech.api.pattern.BlockPattern` / `FactoryBlockPattern` / `TraceabilityPredicate`
+推荐数据流：
+
+```text
+ItemStack NBT
+  -> StructureChannelValues
+  -> controller.getMatchingShapes(channelValues)
+  -> MultiblockPreviewRenderer
+  -> compare / material list / autoBuild
+```
+
+核心原则：
+
+- JEI 预览、投影仪预览、投影仪 compare、自动建造必须使用同一份 `channelValues`。
+- 多方块结构定义中的 tiered casing、尺寸、hatch 放置都应能通过 `StructureChannel` 表达。
+- GT5 legacy key 必须可解析，避免移植机器时出现 `coil`、`height`、`length`、`gt_hatch` 等 key 语义丢失。
+
+## 结构信道统一模型
+
+GT5 的 `IStructureChannels` 同时承担四件事：
+
+- 定义 channel key 与默认 tooltip。
+- 把 channel 包到结构元素上。
+- 从触发 `ItemStack` 读取 channel 值。
+- 注册 indicator item，表示某个物品对应某个 channel value。
+
+当前工程已有 `StructureChannel` 与 `GTStructureChannels` 雏形，但还缺少统一 trigger 数据、registry metadata 和 legacy key alias。
+
+### 需要补齐的 API
+
+#### `StructureChannel`
+
+保留当前接口，但补充或通过 companion registry 提供：
+
+- 当前工程内部稳定 id，例如 `heating_coil`。
+- GT5 legacy key，例如 `coil`。
+- 默认 tooltip。
+- 默认值、最小值、最大值。
+- trigger 语义的 `getValueClamped(raw, min, max)`。
+- matched context 语义的 tier 读取 helper。
+
+注意：GT5 的 trigger 语义是 `raw + min - 1`，而当前 `PatternMatchContext` 中记录的通常是已检测 tier。这两种语义不能混用同一个隐式方法。
+
+#### `StructureChannelRegistry`
+
+新增注册表，职责：
+
+- 注册 channel id 与 legacy key。
+- 支持按 id 或 legacy key 查找。
+- 保存显示名、tooltip、范围、默认值。
+- 保存 indicator `ItemStack -> value`。
+- 给 JEI 和投影仪提供 UI metadata。
+- 给 addon 机器提供兼容入口。
+
+#### `StructureChannelValues`
+
+新增值对象或工具类，统一三种数据形态：
+
+- `ItemStack` NBT：投影仪/触发物品持久化。
+- `Map<String, Integer>`：当前 preview / autoBuild API。
+- `PatternMatchContext`：结构成形后的实际 tier。
+
+建议 NBT：
+
+```text
+GT.StructureChannels: {
+  coil: 3,
+  glass: 2,
+  height: 12,
+  length: 16,
+  gt_hatch: 1
+}
+```
+
+读写时同时支持当前 id 与 GT5 legacy key。
+
+### GT5 重点信道映射
+
+| GT5 key | 当前建议 id | 用途 |
+|---------|-------------|------|
+| `coil` | `heating_coil` | 加热线圈 tier |
+| `glass` | `borosilicate_glass` | 玻璃 tier |
+| `machine_casing` | `machine_casing` | 机器外壳 tier |
+| `casing` | `solid_casing` / alias group | 多类外壳 tier，需 legacy alias |
+| `height` | `structure_height` | 可变高度 |
+| `length` | `structure_length` | 可变长度 |
+| `pipe` | `pipe_casing` | 管道外壳 tier |
+| `item_pipe` | `item_pipe_casing` | 物品管道外壳 tier |
+| `solenoid` | `solenoid` | 螺线管 tier |
+| `capacitor` | `battery` 或 `capacitor` | 电容/储能元件 tier |
+| `gt_hatch` | `hatch` / `no_hatch` 转换层 | survival 自动放置 hatch |
+
+当前 `GTStructureChannels.NO_HATCH` 与 GT5 `HATCH` 的语义需要明确对齐。GT5 是“设置 hatch channel 后允许放置非 exclusive hatch”，而当前注释更接近“skip hatch”。这块必须在转换层显式处理，避免 UI 语义反转。
+
+## 统一里程碑
+
+### M0：恢复编译
+
+目标：让 `compileJava` 通过，拿到真实代码错误列表。
+
+任务：
+
+1. 移除 `ForgeOfGodsStructureString.java` 文件开头 BOM。
+2. 重新运行：
+
+   ```powershell
+   ./gradlew --% compileJava --no-daemon -Dorg.gradle.workers.max=1 -Dorg.gradle.compiler.daemon=false
+   ```
+
+3. 修复后续 Java 编译错误。
+
+验收：
+
+- `compileJava` 成功。
+- 不再依赖 Gradle Worker Daemon 异常判断项目状态。
+
+### M1：稳定事件驱动与异步检查
+
+目标：保证结构检查调度不会破坏现有多方块行为。
+
+当前已完成：
+
+- 已成形多方块注册到 `MultiblockWorldData`。
+- 方块变化通过 Forge 事件和 Mixin 通知。
+- 未成形控制器进入 `AsyncStructureChecker`。
+- 异步线程通过 `BlockStateSnapshot` 预检查，主线程确认成形。
+
+任务：
+
+1. 修复 `MultiblockState` snapshot 检查写入共享状态的问题。
+2. 给异步检查使用临时 `MultiblockState`，避免写入 controller 主 state。
+3. 调整 snapshot 范围策略，不能固定依赖 32 半径覆盖所有结构。
+4. 审查世界卸载、控制器移除、结构失效时的清理路径。
+5. 增加配置开关与 debug 统计。
+
+验收：
+
+- 普通多方块成形/破坏行为与旧版本一致。
+- 已成形多方块无方块变化时不主动完整轮询。
+- 多台未成形控制器不会造成主线程明显卡顿。
+- 世界卸载后无旧 world/controller 引用残留。
+
+### M2：模板共享真正落地
+
+目标：让同类型机器共享 `BlockPatternTemplate`，每台机器只持有自己的 `MultiblockState`。
+
+当前已完成：
+
+- `BlockPatternTemplate` 存在。
+- `MultiblockState` 存在。
+- `BlockPattern` 已作为兼容层组合 template/state。
+- `FactoryBlockPattern#buildTemplate()` 已存在。
+
+尚未完成：
+
+- `createStructurePattern()` 仍返回兼容层 `BlockPattern`。
+- 多数机器仍按实例构建完整 pattern。
+- 未形成大规模静态 template 缓存。
+
+任务：
+
+1. 在 `MultiblockControllerBase` 中引入模板优先 API：
+
+   ```java
+   protected BlockPatternTemplate createStructureTemplate()
+   ```
+
+2. 默认从旧 `createStructurePattern()` 兼容。
+3. 将核心机器逐步迁移到静态 `BlockPatternTemplate`。
+4. 将直接访问 `structurePattern.cache`、`formedRepetitionCount`、`aisleRepetitions` 的路径迁到 template/state getter。
+5. 保留 `BlockPattern` 兼容层，给附属留迁移窗口。
+
+验收：
+
+- 同类型多台机器共享同一份 template。
+- JEI、投影仪、自动建造、拆除结构均能从 template/state 正确读取。
+- 旧附属只 override `createStructurePattern()` 时仍能工作。
+
+### M3：结构信道 registry 与值模型
+
+目标：补齐 GT5 `IStructureChannels` 的当前工程等价层。
+
+任务：
+
+1. 扩展 `GTStructureChannels`，补齐 GT5 常用信道。
+2. 新增 `StructureChannelRegistry`。
+3. 新增 `StructureChannelValues`。
+4. 增加 legacy key alias，支持 `coil`、`height`、`length`、`gt_hatch` 等 GT5 key。
+5. 增加 indicator item 注册与查询。
+6. 明确 `HATCH` / `NO_HATCH` 语义转换。
+
+验收：
+
+- 可通过当前 id 和 GT5 legacy key 查到同一 channel。
+- indicator item 可注册、查询、展示。
+- `StructureChannelValues` 可在 ItemStack NBT、Map、PatternMatchContext 之间转换。
+- 不改变现有机器默认行为。
+
+### M4：多方块结构定义消费信道
+
+目标：让多方块定义、结构检查、预览候选和成形后的 tier 数据一致。
+
+当前已完成：
+
+- `DeclarativePatternBuilder#tieredCasing(...).withChannel(...)` 已存在。
+- `TraceabilityPredicate.SimplePredicate#channelName` 已被 preview / autoBuild 使用。
+- 多个线圈机器已声明 `HEATING_COIL` channel。
+- `getSupportedChannels()` 已在部分机器中 override。
+
+任务：
+
+1. 统一 `DeclarativePatternBuilder`、`TraceabilityPredicate`、`GTCasingGroups` 的 channel key 处理。
+2. 结构检查成功后，把实际 casing tier 写入 `PatternMatchContext` 和 controller 可读状态。
+3. 让 `getSupportedChannels()` 优先从结构定义自动收集；不能自动收集的机器手动声明。
+4. 对可变尺寸结构统一使用 `STRUCTURE_HEIGHT` / `STRUCTURE_LENGTH`。
+5. 迁移样例机器：
+   - Electric Blast Furnace：`coil`
+   - Cracking Unit：`coil`
+   - Pyrolyse Oven：`coil`
+   - Multi Alloy Furnace：`coil`
+   - Multi Smelter：`coil`
+   - Distillation Tower：`height`
+   - Assembly Line：`length`
+
+验收：
+
+- EBF 选择不同 coil 时，预览、材料、自动建造、成形后热量来源一致。
+- 蒸馏塔选择不同 height 时，预览层数、材料、输出层一致。
+- 装配线选择不同 length 时，重复段数量和末端输出段一致。
+
+### M5：JEI 信道 parity
+
+目标：当前 JEI 多方块预览达到 GT5 NEI 信道预览的功能等价。
+
+当前已完成：
+
+- `MultiblockInfoRecipeWrapper` 已读取 `controller.getSupportedChannels()`。
+- 已能调用 `controller.getMatchingShapes(channelValues)`。
+- 已有 `channelValues` 状态和调节逻辑雏形。
+
+尚未完成：
+
+- 范围仍偏硬编码。
+- UI metadata 不来自 registry。
+- 缓存 key 需要包含 channel map。
+- 材料列表需要确认完全随 channel 重算。
+- tooltip 未统一显示 channel usage。
+
+任务：
+
+1. JEI 从 `StructureChannelRegistry` 获取 label、tooltip、range、indicator。
+2. 移除硬编码 `0..5`。
+3. 预览缓存 key 纳入排序后的 `channelValues`。
+4. 材料列表从调节后的 shape 重新生成。
+5. tooltip 增加 `addSubChannelUsage` 等价展示。
+6. advanced tooltip 可显示 legacy key，便于调试移植。
+
+验收：
+
+- JEI 中调 EBF coil，3D 预览和材料列表同步变化。
+- JEI 中调蒸馏塔 height，预览高度和材料数量同步变化。
+- JEI 中显示可读 channel label，而不是只暴露 raw key。
+
+### M6：投影仪 parity
+
+目标：投影仪成为当前项目的 GT5 trigger item 等价物。
+
+当前状态：
+
+- `StructureProjectorBehavior` 已有 `channelValues` 字段。
+- GUI 已有高度/长度等控件雏形。
+- 但这些字段属于行为实例，不是 per ItemStack NBT。
+- `MultiblockPreviewRenderer` 多处仍调用 `controller.getMatchingShapes()`，未强制传 channel values。
+
+任务：
+
+1. 将投影仪 channel、compare mode、hatch mode 全部迁移到 `ItemStack` NBT。
+2. 使用 `StructureChannelValues.read/write(ItemStack)`。
+3. GUI 根据 controller 支持的 channels 和 registry metadata 自动生成控件。
+4. 新增 channel-aware renderer 入口：
+
+   ```java
+   renderMultiBlockPreview(controller, duration, channelValues)
+   ```
+
+5. compare、preview、autoBuild 共用同一份 `StructureProjectionRequest`。
+6. tooltip 显示当前投影仪配置的关键 channel 值。
+
+验收：
+
+- 两个投影仪物品保存不同信道配置，互不影响。
+- 关闭 GUI、丢地上、重进世界后配置仍在。
+- 投影仪选择 `coil=4` 后，预览、compare、自动建造均使用同一 coil tier。
+- compare mode 对 `height=12` 的蒸馏塔只比较 12 层结构。
+
+### M7：分片式结构检查试点
+
+目标：让 P3 从 API 进入实际机器，优先服务超大结构。
+
+当前已完成：
+
+- `StructurePiece`、`MultiPiecePattern` 已存在。
+- `createMultiPiecePattern()` 已作为 opt-in 入口。
+- `MultiblockWorldData` 可按方块位置标记 dirty piece。
+
+尚未完成：
+
+- 当前未发现任何控制器 override `createMultiPiecePattern()`。
+- 实际性能收益尚未产生。
+
+任务：
+
+1. 选择 Forge of Gods 或其他超大结构作为试点。
+2. 拆分 core、ring、extension、optional upgrade segment。
+3. 实现 `createMultiPiecePattern()`。
+4. 和 M3/M4 的 channel model 对齐，条件片段可由 upgrade/channel 状态控制。
+5. 测试局部 dirty piece 重检。
+
+验收：
+
+- 至少一个实际机器启用 `MultiPiecePattern`。
+- 修改单个片段只重检该片段。
+- inactive conditional piece 不影响已成形状态。
+- piece 失效能导致整个多方块正确失效。
+
+### M8：迁移收尾与清理
+
+目标：把旧结构定义和临时信道逻辑收束到统一体系。
+
+当前迁移情况：
+
+- 多方块中约 29 处使用 `DeclarativePatternBuilder.start()`。
+- 仍有约 5 处使用 `FactoryBlockPattern.start()`：
+  - `MetaTileEntityCleanroom`
+  - `MetaTileEntityFusionReactor`
+  - `MetaTileEntityCentralMonitor`
+  - `MetaTileEntityForgeOfGods`
+  - `MetaTileEntityCharcoalPileIgniter`
+
+任务：
+
+1. 迁移剩余旧 builder 机器，或明确保留原因。
+2. 统一 `StructureTooltipBuilder` 到多方块 tooltip 路径。
+3. 清理可由 declarative casing 自动计算的手动 `setMinGlobalLimited()`。
+4. 扫描 GT5 中所有 `.use(GTStructureChannels...)`、`.withChannel(...)`、`getValueClamped(...)`、`addSubChannelUsage(...)`，逐台机器映射。
+5. 写 addon 迁移说明，明确 legacy key 与当前 id 的对应关系。
+
+验收：
+
+- 常规多方块基本使用声明式 casing。
+- tooltip、JEI、投影仪显示一致。
+- GT5 中依赖 structure channel 的机器都有当前工程对应声明或明确 TODO。
+
+## 测试计划
+
+### 编译测试
+
+必须通过：
+
+```powershell
+./gradlew --% compileJava --no-daemon -Dorg.gradle.workers.max=1 -Dorg.gradle.compiler.daemon=false
+```
+
+建议追加：
+
+```powershell
+./gradlew processResources
+./gradlew reobfJar
+```
+
+### 实机功能测试
+
+每轮至少覆盖：
+
+- 普通电力多方块成形与破坏。
+- Steam 多方块成形与破坏。
+- 带线圈机器成形与 tier 读取。
+- 带多个 hatch 的机器成形。
+- JEI 结构预览。
+- 投影仪预览、compare、自动建造。
+- 控制器旋转、上下朝向、翻转。
+- 世界保存、退出、重进。
+- 多台机器同时存在的 tick 表现。
+
+### 信道专项测试
+
+- EBF：JEI 和投影仪选择不同 `coil`，预览、材料、自动建造、成型热量一致。
+- Distillation Tower：`height=3` 与 `height=12` 的预览层数、输出 hatch 层数、材料数量一致。
+- Assembly Line：`length=5` 与 `length=16` 的重复段和末端输出段位置一致。
+- Hatch：确认当前 `NO_HATCH` 与 GT5 `gt_hatch` 的转换后，测试 survival 自动建造 hatch 行为。
+- Indicator：注册过的线圈、玻璃、管道 casing 能在 JEI/投影仪中作为对应信道值展示。
+
+### 压力测试
+
+- 100 台已成形小型多方块，无方块变化时观察 tick 成本。
+- 100 台未成形控制器，观察异步检查对主线程影响。
+- 跨多个 chunk 的大型结构，破坏不同 chunk 中的内部方块。
+- 大型结构启用分片后，破坏不同片段并记录重检耗时。
+
+## 风险清单
+
+| 风险 | 严重程度 | 当前缓解方式 | 后续处理 |
+|------|----------|--------------|----------|
+| 编译失败 | 高 | 已定位到 BOM 阻塞点 | M0 优先修复 |
+| 异步检查写入共享状态 | 高 | 主线程确认检查兜底 | 使用临时 state 或完整加锁 |
+| snapshot 范围不足 | 中高 | 当前固定半径 32 | 改为按结构 AABB 或位置集合 capture |
+| P1 未真正共享模板 | 中 | 已有 template/state 结构 | 引入模板优先 API 与静态模板 |
+| GT5 legacy key 缺失 | 中 | 当前有部分 channel enum | 新增 registry 与 alias |
+| `HATCH` / `NO_HATCH` 语义反转 | 中 | 暂无统一转换层 | 在 `StructureChannelValues` 中显式转换 |
+| JEI channel 范围硬编码 | 中 | 当前已有 UI 雏形 | 改用 registry metadata |
+| 投影仪状态非 per ItemStack | 中高 | 行为字段暂存 | 迁移到 ItemStack NBT |
+| 分片 API 无实际使用者 | 中 | API 已接入控制器 | Forge of Gods 试点 |
+| 自动 tooltip 未统一 | 低 | 已有工具类 | 接入显示路径 |
+
+## 完成定义
+
+只有满足以下条件，统一重构才能标记为完成：
+
+1. `compileJava` 通过。
+2. P0 事件驱动结构检查通过实机验收。
+3. P1 同类型机器模板共享实际落地。
+4. P2 异步检查不存在共享状态并发写入风险。
+5. P3 至少有一个实际超大结构启用分片检查。
+6. P4 剩余旧 builder 机器已迁移或明确保留原因。
+7. `StructureChannelRegistry`、legacy key alias、indicator item、`StructureChannelValues` 完成。
+8. JEI、投影仪、compare、autoBuild 使用同一份 channel values。
+9. 投影仪配置持久化到 ItemStack NBT。
+10. GT5 关键样例机器的 channel 行为完成 parity 验收。
+11. 世界卸载、控制器移除、结构失效不会留下注册残留。
+
+## 当前下一步
+
+立即执行 M0：
+
+1. 修复 `ForgeOfGodsStructureString.java` 的 BOM。
+2. 重新跑 `compileJava`。
+3. 修复新的编译错误。
+4. 编译通过后，优先进入 M1 与 M3。
+
+推荐顺序：
+
+```text
+M0 编译
+  -> M1 稳定结构检查
+  -> M3 统一信道 registry / values
+  -> M6 投影仪 NBT 与 renderer
+  -> M5 JEI parity
+  -> M2 模板共享
+  -> M7 分片试点
+  -> M8 迁移收尾
+```
+
+M1 和 M3 可以并行推进，但在投影仪、JEI、自动建造改动前，必须先确定 `StructureChannelValues` 和 legacy key 规则。

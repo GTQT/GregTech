@@ -21,6 +21,8 @@ import gregtech.client.model.SimpleStateMapper;
 import gregtech.client.model.modelfactories.BakedModelHandler;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityTESR;
+import gregtech.client.renderer.godforge.GodforgeRenderTileEntity;
+import gregtech.client.renderer.godforge.GodforgeStarRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
@@ -461,6 +463,7 @@ public class MetaBlocks {
         GameRegistry.registerTileEntity(TileEntityLaserPipe.class, gregtechId("laser_pipe"));
         GameRegistry.registerTileEntity(TileEntityFluidPipeTickable.class, gregtechId("fluid_pipe_active"));
         GameRegistry.registerTileEntity(TileEntityItemPipeTickable.class, gregtechId("item_pipe_active"));
+        GameRegistry.registerTileEntity(GodforgeRenderTileEntity.class, gregtechId("godforge_render"));
     }
 
     @SideOnly(Side.CLIENT)
@@ -633,6 +636,7 @@ public class MetaBlocks {
         FLUID_BLOCKS.forEach(modelHandler::addFluidBlock);
 
         ClientRegistry.bindTileEntitySpecialRenderer(MetaTileEntityHolder.class, new MetaTileEntityTESR());
+        ClientRegistry.bindTileEntitySpecialRenderer(GodforgeRenderTileEntity.class, new GodforgeStarRenderer());
     }
 
     @SideOnly(Side.CLIENT)

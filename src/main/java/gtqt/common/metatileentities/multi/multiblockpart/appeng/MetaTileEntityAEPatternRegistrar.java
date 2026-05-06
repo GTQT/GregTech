@@ -1,8 +1,6 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
-import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IDataStickIntractable;
-import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.Mods;
 import gregtech.api.util.TextFormattingUtil;
@@ -10,7 +8,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEnti
 import gregtech.integration.ae2.GTCircuitHelper;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
@@ -20,7 +17,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IPowerChannelState;
@@ -58,20 +54,17 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
         implements ICraftingProvider, IGridProxyable, IPowerChannelState, IDataStickIntractable {
 
     // UI icons for subclass GUI pages
-    protected final IDrawable CHEST = new ItemDrawable(Blocks.CHEST)
-            .asIcon().size(16);
     protected final IDrawable HATCH = new ItemDrawable(getStackForm())
             .asIcon().size(16);
     protected final IDrawable PROXY = new ItemDrawable(Mods.AppliedEnergistics2.getItem("interface"))
             .asIcon().size(16);
     protected final IDrawable FILTER = new ItemDrawable(Items.PAPER)
             .asIcon().size(16);
+    protected final IDrawable LINK = new ItemDrawable(Items.COMPASS)
+            .asIcon().size(16);
 
     @Nullable
     protected List<ICraftingPatternDetails> patternDetails;
-
-    @Nullable
-    protected GhostCircuitItemStackHandler circuitInventory;
 
     // Master connection
     @Nullable
@@ -104,46 +97,14 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
     @Getter
     protected boolean autoCollapse;
 
-    @Setter
-    @Getter
-    protected boolean advancedCircuit = false;
-
-    // Slots used by subclass GUIs
-    @Getter
-    @Nullable
-    protected DualHandler dualHandler;
-    @Nullable
-    protected ItemStackHandler extraItem;
-
     public MetaTileEntityAEPatternRegistrar(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
     }
 
     // ==================== Utility methods for subclass GUIs ====================
 
-    public boolean hasGhostCircuitInventory() {
-        return true;
-    }
-
     public void setAutoCollapse(boolean value) {
         this.autoCollapse = value;
-    }
-
-    protected int getTankSize() {
-        return (int) Math.sqrt(getInventorySize());
-    }
-
-    protected int getItemSize() {
-        return getInventorySize();
-    }
-
-    protected int getTankCapacity() {
-        return 8000 * (1 << Math.min(9, getTier()));
-    }
-
-    private int getInventorySize() {
-        int sizeRoot = 1 + Math.min(9, getTier());
-        return sizeRoot * sizeRoot;
     }
 
     // ==================== Master connection ====================
@@ -198,7 +159,7 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
             return false;
         }
 
-        // Wrap non-consumable items (extraInput) as ProgrammableCircuit before forwarding
+        // Wrap non-consumable inputs for the linked provider before buffer matching.
         wrapExtraInputsAsProgrammable(table);
 
         return master.pushToBuffer(table);

@@ -706,7 +706,42 @@ metaitem.circuit.integrated.tooltip=右击以打开配置界面/n/n手持并潜�
 metaitem.circuit.integrated.gui=电路配置
 metaitem.circuit.integrated.jei_description=JEI将仅显示匹配当前编程电路配置的配方。/n/n在编程电路配置界面中调整配置以查看对应配方。
 
-metaitem.tool.mutliblock_preview.name=多方块预览器
+metaitem.tool.mutliblock_preview.name=多方块投影仪
+
+# Structure Projector
+gregtech.tool.projector.tooltip1=§7右键多方块控制器：显示全息预览
+gregtech.tool.projector.tooltip2=§7Shift+右键多方块控制器：自动建造结构
+gregtech.tool.projector.tooltip3=§7右键空气：打开配置GUI填写信道
+gregtech.tool.projector.compare_on=§a对比模式：开启
+gregtech.tool.projector.no_hatch_on=§c禁止放置舱室：开启
+gregtech.tool.projector.channels_set=§e信道配置：%s个
+gregtech.tool.projector.channel_config_hint=§8右键控制器自动填入支持的信道，右键空气打开GUI配置
+gregtech.tool.projector.gui_title=多方块投影仪配置
+gregtech.tool.projector.compare_tooltip=切换对比模式（高亮缺失/错误方块）
+gregtech.tool.projector.no_hatch_tooltip=切换禁止放置舱室模式（自动建造时不放置任何舱室）
+gregtech.tool.projector.clear=清空信道
+gregtech.tool.projector.structure_height=高度
+gregtech.tool.projector.structure_length=长度
+
+# Structure Channels
+gregtech.structure_channel.heating_coil=加热线圈等级
+gregtech.structure_channel.wire_coil=线圈等级
+gregtech.structure_channel.borosilicate_glass=玻璃等级
+gregtech.structure_channel.machine_casing=机器外壳等级
+gregtech.structure_channel.solid_casing=固体外壳等级
+gregtech.structure_channel.pipe_casing=管道外壳等级
+gregtech.structure_channel.item_pipe_casing=物品管道外壳等级
+gregtech.structure_channel.structure_height=结构高度
+gregtech.structure_channel.structure_length=结构长度
+gregtech.structure_channel.hatch_tier=仓室等级
+gregtech.structure_channel.energy_casing=能源外壳等级
+gregtech.structure_channel.solenoid=螺线管等级
+gregtech.structure_channel.battery=电池等级
+gregtech.structure_channel.no_hatch=不放置仓室
+
+# Casing Groups
+gregtech.casing_group.heating_coils=加热线圈
+gregtech.casing_group.machine_casings=机器外壳
 
 item.glass.lens=玻璃透镜（白色）
 metaitem.glass_lens.orange.name=玻璃透镜（橙色）
@@ -7038,6 +7073,12 @@ gregtech.multiblock.universal.over_flow_disabled=溢能模式：§c否§r/n动�
 gregtech.multiblock.universal.structure_check=进行一次多方块结构检测
 gregtech.multiblock.universal.distinct_not_supported=这个多方块不支持总线隔离
 gregtech.multiblock.universal.no_flex_button=这个多方块没有这个按钮的附加功能
+
+gregtech.multiblock.tooltip.at_least=至少
+gregtech.multiblock.tooltip.same_tier=全部相同等级
+gregtech.multiblock.tooltip.optional=可选
+gregtech.multiblock.tooltip.sub_channel=%s§7: §f使用投影仪配置
+gregtech.multiblock.tooltip.sub_channel_purpose=%s§7 (§f%s§7)
 gregtech.multiblock.universal.no_multi_recipemap=这个多方块不需要配方切换
 gregtech.multiblock.parallel=最大并行：%s
 gregtech.multiblock.multiple_recipemaps.header=机器模式：

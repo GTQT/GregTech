@@ -119,6 +119,9 @@ public class MultiblockAbility<T> {
 
     public static final MultiblockAbility<IThreadHatch> THREAD_HATCH = new MultiblockAbility<>("thread_hatch", IThreadHatch.class);
 
+    public static final MultiblockAbility<IGodforgeModule> GODFORGE_MODULE = ability(
+            "godforge_module", IGodforgeModule.class);
+
 
     public static void registerMultiblockAbility(MultiblockAbility<?> ability, MetaTileEntity part) {
         if (!REGISTRY.containsKey(ability)) {

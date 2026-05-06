@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
@@ -157,10 +158,6 @@ public class BlockPattern {
         state.clearCache();
     }
 
-    public int[] calculateRepetitionsByTier(int tier) {
-        return state.calculateRepetitionsByTier(tier);
-    }
-
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase) {
         state.autoBuild(player, controllerBase);
     }
@@ -169,9 +166,9 @@ public class BlockPattern {
         state.autoBuild(player, controllerBase, tier);
     }
 
-    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier,
-                          java.util.Map<String, Integer> channelValues) {
-        state.autoBuild(player, controllerBase, tier, channelValues);
+    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,
+                          java.util.Map<String, Integer> channelValues, boolean skipHatches) {
+        state.autoBuild(player, controllerBase, channelValues, skipHatches);
     }
 
     public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
@@ -182,5 +179,9 @@ public class BlockPattern {
 
     public BlockInfo[][][] getPreview(int[] repetition) {
         return state.getPreview(repetition);
+    }
+
+    public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
+        return state.getPreview(repetition, channelValues);
     }
 }

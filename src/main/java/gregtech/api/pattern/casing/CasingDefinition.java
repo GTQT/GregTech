@@ -85,19 +85,21 @@ public final class CasingDefinition {
     }
 
     /**
-     * Create and register a tiered casing group from a list.
+     * Create and register a tiered casing group with a custom tier channel name.
      *
      * @param groupId         unique group identifier
      * @param translationKey  translation key for the group name
      * @param requiresUniform true if all casings must be the same tier
+     * @param tierChannel     the tier channel name (used as key in PatternMatchContext)
      * @param casings         the casings in this group (will be sorted by tier)
      * @return the registered casing group
      */
     public static ICasingGroup tieredGroup(@NotNull String groupId, @NotNull String translationKey,
-                                           boolean requiresUniform, @NotNull List<ICasing> casings) {
+                                           boolean requiresUniform, @NotNull String tierChannel,
+                                           @NotNull List<ICasing> casings) {
         List<ICasing> sorted = new ArrayList<>(casings);
         sorted.sort(Comparator.comparingInt(ICasing::getTier));
-        ICasingGroup group = new SimpleCasingGroup(groupId, translationKey, sorted, requiresUniform);
+        ICasingGroup group = new SimpleCasingGroup(groupId, translationKey, sorted, requiresUniform, tierChannel);
         GROUPS.put(groupId, group);
         return group;
     }
@@ -198,12 +200,19 @@ public final class CasingDefinition {
         private final String translationKey;
         private final List<ICasing> casings;
         private final boolean requiresUniform;
+        private final String tierChannel;
 
         SimpleCasingGroup(String groupId, String translationKey, List<ICasing> casings, boolean requiresUniform) {
+            this(groupId, translationKey, casings, requiresUniform, null);
+        }
+
+        SimpleCasingGroup(String groupId, String translationKey, List<ICasing> casings, boolean requiresUniform,
+                          String tierChannel) {
             this.groupId = groupId;
             this.translationKey = translationKey;
             this.casings = Collections.unmodifiableList(casings);
             this.requiresUniform = requiresUniform;
+            this.tierChannel = tierChannel;
         }
 
         @Override
@@ -224,6 +233,11 @@ public final class CasingDefinition {
         @Override
         public boolean requiresUniformTier() {
             return requiresUniform;
+        }
+
+        @Override
+        public String getTierChannel() {
+            return tierChannel != null ? tierChannel : groupId;
         }
     }
 }

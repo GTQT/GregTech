@@ -15,6 +15,7 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.ICasing;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
@@ -37,6 +38,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Collections;
+import java.util.List;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
@@ -193,5 +197,10 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
         public int getParallelLimit() {
             return getMaxParallel(heatingCoilLevel);
         }
+    }
+
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Collections.singletonList(GTStructureChannels.HEATING_COIL);
     }
 }

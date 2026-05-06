@@ -13,13 +13,28 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.blocks.BlockGodforgeGlass;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 
+import static gregtech.api.util.RelativeDirection.FRONT;
+import static gregtech.api.util.RelativeDirection.RIGHT;
+import static gregtech.api.util.RelativeDirection.UP;
+
 public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
+
+    private final ForgeOfGodsData data = new ForgeOfGodsData();
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -33,18 +48,19 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @NotNull
     @Override
     protected BlockPattern createStructurePattern() {
-        // Combine BEAM_SHAFT and FIRST_RING into a single FactoryBlockPattern
+        // GT5's main structure is BEAM_SHAFT + FIRST_RING checked from controller offset (63, 14, 1).
+        // Once the star renderer is active, the physical first ring is replaced with air.
         String[][] beamShaft = ForgeOfGodsStructureString.BEAM_SHAFT;
-        String[][] firstRing = ForgeOfGodsStructureString.FIRST_RING;
+        String[][] firstRing = data.isRenderActive() ?
+                ForgeOfGodsStructureString.FIRST_RING_AIR :
+                ForgeOfGodsStructureString.FIRST_RING;
 
-        FactoryBlockPattern builder = FactoryBlockPattern.start();
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
 
-        // Add all aisles from BEAM_SHAFT
         for (String[] layer : beamShaft) {
             builder.aisle(layer);
         }
 
-        // Add all aisles from FIRST_RING
         for (String[] layer : firstRing) {
             builder.aisle(layer);
         }
@@ -53,10 +69,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 // Controller
                 .where('S', selfPredicate())
                 // Hatches (InputBus, InputHatch, OutputBus) or Transcendentally Amplified Magnetic Confinement Casing
-                .where('A', states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS))
+                .where('A', abilities(MultiblockAbility.IMPORT_ITEMS)
                         .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS)))
+                        .or(abilities(MultiblockAbility.EXPORT_ITEMS))
+                        .or(states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))))
                 // Singularity Reinforced Stellar Shielding Casing
                 .where('B', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
                 // Celestial Matter Guidance Casing
@@ -72,7 +88,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 // Spatially Transcendent Gravitational Lens (Glass)
                 .where('H', states(getGlassState()))
                 // Module Hatches or Singularity Reinforced Stellar Shielding Casing
-                .where('J', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
+                .where('J', godforgeModules()
+                        .or(states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))))
+                // Medial Graviton Flow Modulator
+                .where('I', states(getCasingState(BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR)))
+                // Central Graviton Flow Modulator
+                .where('K', states(getCasingState(BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR)))
+                // Air placeholder used by ring removal/render-state templates
+                .where('L', air())
                 .build();
     }
 
@@ -86,11 +109,33 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return MetaBlocks.GODFORGE_GLASS.getState(BlockGodforgeGlass.GlassType.SPATIALLY_TRANSCENDENT_GRAVITATIONAL_LENS);
     }
 
+    private static TraceabilityPredicate godforgeModules() {
+        return metaTileEntities(
+                MetaTileEntities.GODFORGE_SMELTING_MODULE,
+                MetaTileEntities.GODFORGE_MOLTEN_MODULE,
+                MetaTileEntities.GODFORGE_PLASMA_MODULE,
+                MetaTileEntities.GODFORGE_EXOTIC_MODULE);
+    }
+
     // ==================== Rendering ====================
 
+    @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return Textures.SOLID_STEEL_CASING;
+        return Textures.GODFORGE_INNER_CASING;
+    }
+
+    @SideOnly(Side.CLIENT)
+    @NotNull
+    @Override
+    protected ICubeRenderer getFrontOverlay() {
+        return Textures.GODFORGE_CONTROLLER_OVERLAY;
+    }
+
+    @Override
+    public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
+        super.renderMetaTileEntity(renderState, translation, pipeline);
+        getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(), true, true);
     }
 
     @Override
@@ -101,5 +146,32 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public boolean allowsExtendedFacing() {
         return false;
+    }
+
+    @Override
+    public boolean isValidFrontFacing(EnumFacing facing) {
+        return facing != null && (!hasFrontFacing() || getFrontFacing() != facing);
+    }
+
+    public ForgeOfGodsData getData() {
+        return data;
+    }
+
+    public void updateRenderer() {}
+
+    public void destroyRenderer() {}
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound data) {
+        NBTTagCompound tag = super.writeToNBT(data);
+        this.data.writeToNBT(tag, false);
+        return tag;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound data) {
+        super.readFromNBT(data);
+        this.data.readFromNBT(data);
+        reinitializeStructurePattern();
     }
 }

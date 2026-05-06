@@ -1,35 +1,25 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
-import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.capability.DualHandler;
-import gregtech.api.capability.impl.FluidTankList;
-import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
-import gregtech.api.capability.impl.ItemHandlerList;
-import gregtech.api.capability.impl.NotifiableFluidTank;
-import gregtech.api.capability.impl.NotifiableItemStackHandler;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
-import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.info.MaterialFlag;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
-import gregtech.api.util.GTTransferUtils;
-import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.mui.widget.GTFluidSlot;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -41,8 +31,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidTank;
-import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
 import appeng.api.AEApi;
@@ -67,7 +55,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
-import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.PageButton;
 import com.cleanroommc.modularui.widgets.PagedWidget;
@@ -78,7 +65,6 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
-import gtqt.common.metatileentities.GTQTMetaTileEntities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -101,8 +87,8 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
     ArrayList<String> blackList = new ArrayList<>();
     ArrayList<String> whiteTagList = new ArrayList<>();
     ArrayList<String> blackTagList = new ArrayList<>();
-    int inputNumber = 0;
-    int outputNumber = 0;
+    int inputNumber = 1;
+    int outputNumber = 1;
     ItemStackHandler extraInput = new ItemStackHandler(8);
     ItemStackHandler extraOutput = new ItemStackHandler(2);
 
@@ -194,8 +180,8 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         this.extraInput.deserializeNBT(data.getCompoundTag("ExtraInput"));
         this.extraOutput.deserializeNBT(data.getCompoundTag("ExtraOutput"));
 
-        this.inputNumber = data.getInteger("inputNumber");
-        this.outputNumber = data.getInteger("outputNumber");
+        this.inputNumber = Math.max(1, data.getInteger("inputNumber"));
+        this.outputNumber = Math.max(1, data.getInteger("outputNumber"));
         this.input = data.getString("input");
         this.output = data.getString("output");
 
@@ -314,17 +300,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         inputs[0] = input.copy();
         outputs[0] = output.copy();
 
-        // 1.2 额外输入 (槽位1-8)
-        for (int i = 0; i < 8 && i < extraInput.getSlots(); i++) {
-            ItemStack extra = extraInput.getStackInSlot(i);
-            if (!extra.isEmpty()) inputs[i + 1] = extra.copy();
-        }
-
-        // 1.3 额外输出 (槽位1-2)
-        for (int i = 0; i < 2 && i < extraOutput.getSlots(); i++) {
-            ItemStack extra = extraOutput.getStackInSlot(i);
-            if (!extra.isEmpty()) outputs[i + 1] = extra.copy();
-        }
+        // Extra item slots are local push metadata only; do not encode them into AE patterns.
 
         // 2. 无条件执行决策
         return isFluidPattern ?
@@ -333,6 +309,23 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
     }
 
     // 创建流体样板 (处理模式)
+    @Override
+    protected void wrapExtraInputsAsProgrammable(InventoryCrafting table) {
+        int slotLimit = Math.min(9, table.getSizeInventory());
+        for (int i = 1; i < slotLimit; i++) {
+            table.setInventorySlotContents(i, ItemStack.EMPTY);
+        }
+        for (int i = 0; i < extraInput.getSlots() && i + 1 < slotLimit; i++) {
+            ItemStack extra = extraInput.getStackInSlot(i);
+            if (extra.isEmpty()) continue;
+
+            ItemStack wrapped = wrapAsProgrammable(extra);
+            if (wrapped != null && !wrapped.isEmpty()) {
+                table.setInventorySlotContents(i + 1, wrapped);
+            }
+        }
+    }
+
     private ItemStack createFluidPattern(ItemStack[] inputs, ItemStack[] outputs, boolean substitute) {
         // 1. 创建流体样板
         return createProcessingPattern(inputs, outputs, substitute, true);
@@ -414,50 +407,9 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = getTankSize();
-        guiSyncManager.registerSlotGroup("item_inv", rowSize);
-
-        int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5 + 18,   // Player Inv width
-                (rowSize + 1) * 18 + 14 + 18); // Bus Inv width
-        int backgroundHeight = 18 + 18 * Math.max(5, rowSize + 1) + 94;
-
-        List<List<IWidget>> widgetsItem = new ArrayList<>();
-        for (int i = 0; i < rowSize; i++) {
-            widgetsItem.add(new ArrayList<>());
-            for (int j = 0; j < rowSize; j++) {
-                int index = i * rowSize + j;
-
-                IItemHandlerModifiable handler = importItems;
-                widgetsItem.get(i)
-                        .add(new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(handler, index)
-                                        .slotGroup("item_inv")
-                                        .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                                            if (onlyAmountChanged &&
-                                                    handler instanceof GTItemStackHandler gtHandler) {
-                                                gtHandler.onContentsChanged(index);
-                                            }
-                                        })
-                                        .accessibility(true, true)));
-            }
-            IFluidTank tankHandler = dualHandler.getTankAt(i);
-            widgetsItem.get(i).add(new GTFluidSlot()
-                    .syncHandler(GTFluidSlot.sync(tankHandler)
-                            .accessibility(true, true))
-            );
-        }
-        widgetsItem.add(new ArrayList<>());
-        for (int i = 0; i <= rowSize; i++) {
-            widgetsItem.get(rowSize)
-                    .add(new ItemSlot()
-                            .slot(SyncHandlers.itemSlot(extraItem, i)
-                                    .slotGroup("item_inv")
-                                    .accessibility(true, true)
-                            )
-                            .background(GTGuiTextures.SLOT, GTGuiTextures.EXTRA_SLOT_OVERLAY)
-                    );
-        }
+        int backgroundWidth = 9 * 18 + 18 + 14 + 5 + 18;
+        int backgroundHeight = 18 + 18 * 7 + 94;
+        guiSyncManager.registerSlotGroup("item_inv", extraInput.getSlots());
 
         List<List<IWidget>> widgetsPattern = new ArrayList<>();
         widgetsPattern.add(new ArrayList<>());
@@ -979,18 +931,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         BooleanSyncValue exportStateValue = new BooleanSyncValue(this::isExport, this::setExport);
         guiSyncManager.syncValue("export_state", exportStateValue);
 
-        BooleanSyncValue ghostCircuitStateValue = new BooleanSyncValue(this::isAdvancedCircuit,
-                this::setAdvancedCircuit);
-
-        guiSyncManager.syncValue("ghost_circuit_state", ghostCircuitStateValue);
-
-        BooleanSyncValue needPatternSyncStateValue = new BooleanSyncValue(this::isNeedPatternSync,
-                this::setNeedPatternSync);
-
-        guiSyncManager.syncValue("need_pattern_sync_state", needPatternSyncStateValue);
-
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
-
         var controller = new PagedWidget.Controller();
         guiSyncManager.syncValue("page_controller", new PagedWidgetSyncHandler(controller));
 
@@ -1012,12 +952,13 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
                                 .overlay(FILTER))
                         .child(new PageButton(2, controller)
                                 .tab(GuiTextures.TAB_TOP, 0)
-                                .addTooltipLine(IKey.lang("物品检索"))
-                                .overlay(CHEST))
-                        .child(new PageButton(3, controller)
-                                .tab(GuiTextures.TAB_TOP, 0)
                                 .addTooltipLine(IKey.lang("网络代理"))
                                 .overlay(PROXY))
+                        .child(new PageButton(3, controller)
+                                .tab(GuiTextures.TAB_TOP, 0)
+                                .addTooltipLine(IKey.lang(
+                                        "gregtech.machine.me_ore_prefix_pattern_provider.ui.tab.link"))
+                                .overlay(LINK))
                 )
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
@@ -1080,15 +1021,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
                                         )
 
                         )
-                        .addPage(// 物品模式页面
-                                new Grid()
-                                        .top(0)
-                                        .height((rowSize + 1) * 18)
-                                        .minElementMargin(0, 0)
-                                        .minColWidth(18)
-                                        .minRowHeight(18)
-                                        .leftRel(0.5f)
-                                        .matrix(widgetsItem))
                         .addPage(// 代理模式页面
                                 Flow.column() // 使用列布局
                                         .top(0)
@@ -1140,10 +1072,24 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
                                                 .child(new TextWidget<>(IKey.str("有线代理模式")))
                                         )
                         )
+                        .addPage(// 链接信息页面
+                                Flow.column()
+                                        .top(0)
+                                        .widthRel(1f)
+                                        .leftRel(0.5f)
+                                        .margin(5, 0)
+                                        .child(new TextWidget<>(IKey.lang(
+                                                "gregtech.machine.me_ore_prefix_pattern_provider.ui.link.title")))
+                                        .child(new TextWidget<>(IKey.dynamic(this::getLinkStatusText)))
+                                        .child(new TextWidget<>(IKey.dynamic(this::getLinkTargetText)))
+                                        .child(new TextWidget<>(IKey.dynamic(this::getLinkBufferText)))
+                                        .child(new TextWidget<>(IKey.lang(
+                                                "gregtech.machine.me_ore_prefix_pattern_provider.ui.link.hint")))
+                        )
                 )
                 .child(Flow.column()
                         .pos(backgroundWidth - 7 - 36, backgroundHeight - 18 * 4 - 7 - 5)
-                        .width(18).height(18 * 4 + 5)
+                        .width(36).height(18 * 4 + 5)
 
                         .child(GTGuiTextures.getLogo(getUITheme()).asWidget()
                                 .top(18 * 3 + 5)
@@ -1171,51 +1117,93 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
                                 .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
                                 .tooltip(tooltip -> tooltip.addLine(IKey.str("自动整理"))))
 
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .top(18)
-                                .left(18)
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .top(18)
-                                .left(18)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))
-                        )
-
                         .child(new ButtonWidget<>()
                                 .top(0)
                                 .onMousePressed(mouseButton -> {
-                                    needPatternSyncStateValue.setBoolValue(true);
+                                    handlePatternGenerate(guiSyncManager.getPlayer());
                                     return true;
                                 })
                                 .overlay(GTGuiTextures.PATTERN_OVERLAY)
-                                .tooltip(tooltip -> tooltip.addLine(IKey.str("样板生成"))))
-
-                        .child(new ToggleButton()
-                                .top(0)
-                                .left(18)
-                                .value(new BoolValue.Dynamic(ghostCircuitStateValue::getBoolValue,
-                                        ghostCircuitStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.CIRCUIT_OVERLAY)
-                                .tooltip(tooltip -> tooltip.addLine(IKey.str("高级样板电路"))))
+                                .tooltip(tooltip -> tooltip.addLine(IKey.lang(
+                                        "gregtech.machine.me_ore_prefix_pattern_provider.ui.generate.button"))))
 
                 );
     }
 
+    private void handlePatternGenerate(EntityPlayer player) {
+        int patternCount = refreshGeneratedPatternDetails();
+        if (patternCount <= 0) {
+            setNeedPatternSync(true);
+            player.sendStatusMessage(new TextComponentTranslation(
+                    "gregtech.machine.me_ore_prefix_pattern_provider.ui.generate.none"), true);
+            return;
+        }
+
+        setNeedPatternSync(true);
+        boolean waitingForSync = mePatternChange();
+        setNeedPatternSync(waitingForSync);
+
+        String messageKey = waitingForSync
+                ? "gregtech.machine.me_ore_prefix_pattern_provider.ui.generate.queued"
+                : hasMaster()
+                        ? "gregtech.machine.me_ore_prefix_pattern_provider.ui.generate.success"
+                        : "gregtech.machine.me_ore_prefix_pattern_provider.ui.generate.unlinked";
+        player.sendStatusMessage(new TextComponentTranslation(messageKey, patternCount), true);
+    }
+
+    private int refreshGeneratedPatternDetails() {
+        setPatternDetails();
+        if (patternDetails == null) {
+            return 0;
+        }
+        int patternCount = 0;
+        for (Object detail : patternDetails) {
+            if (detail != null) {
+                patternCount++;
+            }
+        }
+        return patternCount;
+    }
+
+    private String getLinkStatusText() {
+        if (hasMaster() && masterPos != null) {
+            return I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.ui.link.status.linked",
+                    masterPos.getX(), masterPos.getY(), masterPos.getZ());
+        }
+        if (masterSet && masterPos != null) {
+            return I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.ui.link.status.waiting",
+                    masterPos.getX(), masterPos.getY(), masterPos.getZ());
+        }
+        return I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.ui.link.status.none");
+    }
+
+    private String getLinkTargetText() {
+        if (!hasMaster()) {
+            return "";
+        }
+        return I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.ui.link.status.target",
+                I18n.format(master.getMetaFullName()));
+    }
+
+    private String getLinkBufferText() {
+        if (!hasMaster()) {
+            return "";
+        }
+        int usedBuffers = 0;
+        List<MetaTileEntityMEPatternProvider.PatternBuffer> bufferPool = master.getBufferPool();
+        if (bufferPool == null) {
+            return "";
+        }
+        for (MetaTileEntityMEPatternProvider.PatternBuffer buffer : bufferPool) {
+            if (!buffer.isEmpty()) usedBuffers++;
+        }
+        return I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.ui.link.status.buffers",
+                usedBuffers, MetaTileEntityMEPatternProvider.BUFFER_COUNT);
+    }
+
     @Override
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
-        // override here is gross, but keeps things in order despite
-        // IDs being out of order, due to UEV+ being added later
-        if (this == GTQTMetaTileEntities.ME_ORE_PREFIX_PATTERN_PROVIDER[0]) {
-            for (var hatch : GTQTMetaTileEntities.ME_ORE_PREFIX_PATTERN_PROVIDER) {
-                if (hatch != null) subItems.add(hatch.getStackForm());
-            }
-        } else if (this.getClass() != MetaTileEntityMEOrePrefixPatternProvider.class) {
-            // let subclasses fall through this override
-            super.getSubItems(creativeTab, subItems);
-        }
+        super.getSubItems(creativeTab, subItems);
     }
 
     @Override
@@ -1227,11 +1215,6 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         tooltip.add(I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.tooltip.4"));
         tooltip.add(I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.tooltip.5"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.2"));
-        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.4"));
-        tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
-                getTankCapacity()));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }

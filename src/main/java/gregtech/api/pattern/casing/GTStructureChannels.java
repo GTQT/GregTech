@@ -52,10 +52,9 @@ public enum GTStructureChannels implements StructureChannel {
     BATTERY("battery", "gregtech.structure_channel.battery"),
 
     // --- Hatch Placement Control ---
-    // Boolean-style channel: when present in channelValues, autoBuild will place hatches.
-    // When absent, autoBuild skips hatch candidates and only places casing blocks.
-    // Mirrors GT5's GTStructureChannels.HATCH("gt_hatch") behavior.
-    HATCH("gt_hatch", "gregtech.structure_channel.hatch"),
+    // When gt_no_hatch=1 in channelValues, autoBuild skips hatch candidates
+    // and only places casing blocks. When absent or 0, hatches are placed normally.
+    NO_HATCH("gt_no_hatch", "gregtech.structure_channel.no_hatch"),
     ;
 
     private final String name;

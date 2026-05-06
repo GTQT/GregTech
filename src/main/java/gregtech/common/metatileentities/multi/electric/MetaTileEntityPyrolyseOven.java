@@ -14,6 +14,7 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.ICasing;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
@@ -40,6 +41,7 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 
 public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
@@ -173,6 +175,11 @@ public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
     @Override
     public boolean canBeDistinct() {
         return true;
+    }
+
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Collections.singletonList(GTStructureChannels.HEATING_COIL);
     }
 
     @SuppressWarnings("InnerClassMayBeStatic")
