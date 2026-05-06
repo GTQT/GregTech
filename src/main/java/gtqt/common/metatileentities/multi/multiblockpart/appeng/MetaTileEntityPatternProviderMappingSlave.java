@@ -26,7 +26,6 @@ import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -164,35 +163,13 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
     }
 
     private void tryToSetMaster() {
-        if (getWorld() == null || masterPos == null) {
+        MetaTileEntityMEPatternProvider resolved = MasterNodeResolver.resolve(getWorld(), masterPos);
+        if (resolved != null) {
+            setMasterAndRegister(resolved);
+        } else {
             this.master = null;
             this.checkForMaster = true;
-            return;
         }
-
-        TileEntity tileEntity = getWorld().getTileEntity(masterPos);
-        if (!(tileEntity instanceof IGregTechTileEntity iGregTechTileEntity)) {
-            this.master = null;
-            this.checkForMaster = true;
-            return;
-        }
-
-        MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
-        if (metaTileEntity instanceof MetaTileEntityMEPatternProvider provider) {
-            setMasterAndRegister(provider);
-            return;
-        }
-
-        if (metaTileEntity instanceof MetaTileEntityMEPatternProviderProxy proxy) {
-            MetaTileEntityMEPatternProvider resolvedMain = proxy.getResolvedMainForLink();
-            if (resolvedMain != null) {
-                setMasterAndRegister(resolvedMain);
-                return;
-            }
-        }
-
-        this.master = null;
-        this.checkForMaster = true;
     }
 
     private void setMasterAndRegister(MetaTileEntityMEPatternProvider newMaster) {

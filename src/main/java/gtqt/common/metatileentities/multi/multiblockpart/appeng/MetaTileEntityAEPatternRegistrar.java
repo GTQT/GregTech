@@ -3,8 +3,6 @@ package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.Mods;
 import gregtech.api.util.TextFormattingUtil;
@@ -151,35 +149,13 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
     // ==================== Master connection ====================
 
     protected void tryToSetMaster() {
-        if (getWorld() == null || masterPos == null) {
+        MetaTileEntityMEPatternProvider resolved = MasterNodeResolver.resolve(getWorld(), masterPos);
+        if (resolved != null) {
+            setMasterAndRegister(resolved);
+        } else {
             this.master = null;
             this.checkForMaster = true;
-            return;
         }
-
-        TileEntity tileEntity = getWorld().getTileEntity(masterPos);
-        if (!(tileEntity instanceof IGregTechTileEntity iGregTechTileEntity)) {
-            this.master = null;
-            this.checkForMaster = true;
-            return;
-        }
-
-        MetaTileEntity metaTileEntity = iGregTechTileEntity.getMetaTileEntity();
-        if (metaTileEntity instanceof MetaTileEntityMEPatternProvider provider) {
-            setMasterAndRegister(provider);
-            return;
-        }
-
-        if (metaTileEntity instanceof MetaTileEntityMEPatternProviderProxy proxy) {
-            MetaTileEntityMEPatternProvider resolvedMain = proxy.getResolvedMainForLink();
-            if (resolvedMain != null) {
-                setMasterAndRegister(resolvedMain);
-                return;
-            }
-        }
-
-        this.master = null;
-        this.checkForMaster = true;
     }
 
     private void setMasterAndRegister(MetaTileEntityMEPatternProvider newMaster) {
