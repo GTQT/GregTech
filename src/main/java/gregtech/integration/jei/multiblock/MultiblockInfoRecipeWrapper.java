@@ -82,9 +82,9 @@ import java.util.stream.Collectors;
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private static final int MAX_PARTS = 27;
-    private static final int PARTS_HEIGHT = 54;
+    private static final int PARTS_WIDTH = 40; // left panel width for materials (2 columns of slots)
     private static final int SLOT_SIZE = 18;
-    private static final int SLOTS_PER_ROW = 9;
+    private static final int SLOTS_PER_COL = 9; // vertical slots per column on left panel
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
     private static ItemStack tooltipBlockStack;
@@ -97,8 +97,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final List<TraceabilityPredicate.SimplePredicate> predicates;
     private final Map<String, Integer> channelValues = new HashMap<>();
     private final List<StructureChannel> supportedChannels;
-    private final List<GuiButton> channelMinusButtons = new ArrayList<>();
-    private final List<GuiButton> channelPlusButtons = new ArrayList<>();
+    private final int[][] channelRanges; // [channelIdx][0=min, 1=max]
     private MBPattern[] patterns;
     private RecipeLayout recipeLayout;
     private int layerIndex = -1;
@@ -114,29 +113,26 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private List<String> predicateTips;
     private BlockPos selected;
     private TraceabilityPredicate father;
+    // Channel slider state
+    private int draggingChannelIdx = -1;
+    private int hoveredChannelIdx = -1;
 
     @SuppressWarnings("NewExpressionSideOnly")
     public MultiblockInfoRecipeWrapper(@NotNull MultiblockControllerBase controller) {
         this.controller = controller;
         this.supportedChannels = controller.getSupportedChannels();
+        // Precompute ranges from the pattern template
+        this.channelRanges = new int[supportedChannels.size()][];
+        for (int i = 0; i < supportedChannels.size(); i++) {
+            channelRanges[i] = controller.getChannelRange(supportedChannels.get(i));
+        }
+
         Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
         this.patterns = controller.getMatchingShapes(channelValues).stream()
                 .map(it -> initializePattern(it, drops))
                 .toArray(MBPattern[]::new);
         allItemStackInputs.addAll(drops);
         this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), 70, ICON_SIZE, ICON_SIZE, "");
-
-        int channelStartY = 90;
-        for (int i = 0; i < supportedChannels.size(); i++) {
-            int rowY = channelStartY + i * 22;
-            GuiButton minusBtn = new GuiButton(0, 176 - 60, rowY, 16, 16, "-");
-            GuiButton plusBtn = new GuiButton(0, 176 - 20, rowY, 16, 16, "+");
-            channelMinusButtons.add(minusBtn);
-            channelPlusButtons.add(plusBtn);
-            final int idx = i;
-            buttons.put(minusBtn, () -> updateChannelValue(idx, -1));
-            buttons.put(plusBtn, () -> updateChannelValue(idx, 1));
-        }
 
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
         this.predicates = new ArrayList<>();
@@ -324,14 +320,27 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void updateChannelValue(int channelIndex, int delta) {
         if (channelIndex < 0 || channelIndex >= supportedChannels.size()) return;
         String channelName = supportedChannels.get(channelIndex).getName();
+        int min = channelRanges[channelIndex][0];
+        int max = channelRanges[channelIndex][1];
         int current = channelValues.getOrDefault(channelName, 0);
-        int newValue = current + delta;
-        if (newValue < 0) newValue = 0;
-        if (newValue > 5) newValue = 5;
+        int newValue = Math.max(0, Math.min(max, current + delta));
         if (newValue == 0) {
             channelValues.remove(channelName);
         } else {
             channelValues.put(channelName, newValue);
+        }
+        regeneratePatterns();
+    }
+
+    private void setChannelValue(int channelIndex, int value) {
+        if (channelIndex < 0 || channelIndex >= supportedChannels.size()) return;
+        String channelName = supportedChannels.get(channelIndex).getName();
+        int max = channelRanges[channelIndex][1];
+        int clamped = Math.max(0, Math.min(max, value));
+        if (clamped == 0) {
+            channelValues.remove(channelName);
+        } else {
+            channelValues.put(channelName, clamped);
         }
         regeneratePatterns();
     }
@@ -343,6 +352,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 .toArray(MBPattern[]::new);
         allItemStackInputs.clear();
         allItemStackInputs.addAll(drops);
+        // Update the global pattern cache so tooltips reflect the current channel state
+        GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
         setNextLayer(-1);
         updateParts();
         getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch),
@@ -359,10 +370,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void preparePlaceForParts(int recipeHeight) {
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        for (int i = 0; i < MAX_PARTS; ++i)
+        // Place item slots on the left panel: 2 columns, up to SLOTS_PER_COL rows each
+        for (int i = 0; i < MAX_PARTS; ++i) {
+            int col = i / SLOTS_PER_COL;
+            int row = i % SLOTS_PER_COL;
             itemStackGroup.init(i, true,
-                    SLOT_SIZE * i - (SLOT_SIZE * SLOTS_PER_ROW) * (i / SLOTS_PER_ROW) + (SLOT_SIZE / 2) - 2,
-                    recipeHeight - PARTS_HEIGHT + SLOT_SIZE * (i / SLOTS_PER_ROW));
+                    col * SLOT_SIZE + 1,
+                    row * SLOT_SIZE + 2);
+        }
     }
 
     private void updateParts() {
@@ -379,7 +394,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @Override
     public void drawInfo(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
         WorldSceneRenderer renderer = getCurrentRenderer();
-        int sceneHeight = recipeHeight - PARTS_HEIGHT;
+        // Scene area: to the right of the left parts panel
+        int sceneX = PARTS_WIDTH;
+        int sceneWidth = recipeWidth - PARTS_WIDTH;
+        int sceneHeight = recipeHeight - (supportedChannels.size() * 16 + 10); // leave room for sliders
         int viewX = recipeLayout.getPosX();
         int viewY = recipeLayout.getPosY();
         int absMouseX = mouseX + viewX;
@@ -392,7 +410,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             GlStateManager.enableRescaleNormal();
             GlStateManager.enableLighting();
             RenderHelper.enableStandardItemLighting();
-            renderer.render(viewX, viewY, recipeWidth, sceneHeight, absMouseX, absMouseY);
+            renderer.render(viewX + sceneX, viewY, sceneWidth, sceneHeight, absMouseX, absMouseY);
         } finally {
             GlStateManager.popAttrib();
             GlStateManager.popMatrix();
@@ -410,12 +428,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         this.drawInfoIcon = mouseX >= iconX && mouseX <= iconX + ICON_SIZE &&
                 mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
 
-        // 绘制部件槽位（修正原偏移计算）
+        // 绘制左侧部件槽位
         for (int i = 0; i < MAX_PARTS; ++i) {
-            int row = i / SLOTS_PER_ROW;
-            int col = i % SLOTS_PER_ROW;
-            int slotX = col * SLOT_SIZE + (SLOT_SIZE / 2) - 2; // 保留原偏移逻辑
-            int slotY = sceneHeight + row * SLOT_SIZE;
+            int col = i / SLOTS_PER_COL;
+            int row = i % SLOTS_PER_COL;
+            int slotX = col * SLOT_SIZE + 1;
+            int slotY = row * SLOT_SIZE + 2;
             this.slot.draw(minecraft, slotX, slotY);
         }
 
@@ -437,7 +455,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 break;
             }
         }
-        boolean insideView = mouseX >= 0 && mouseY >= 0 &&
+        boolean insideView = mouseX >= sceneX && mouseY >= 0 &&
                 mouseX < recipeWidth && mouseY < sceneHeight &&
                 !isMouseOverButton;
 
@@ -562,21 +580,88 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void drawMultiblockTier(int recipeWidth) {
-        FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
         if (supportedChannels.isEmpty()) return;
-        int channelStartY = 90;
+        FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+
+        // Channel sliders are drawn below the 3D scene, in the right area
+        int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
+        int sliderWidth = recipeWidth - PARTS_WIDTH - 10;
+        int sliderX = PARTS_WIDTH + 5;
+
         for (int i = 0; i < supportedChannels.size(); i++) {
-            String channelName = supportedChannels.get(i).getName();
+            StructureChannel channel = supportedChannels.get(i);
+            String channelName = channel.getName();
+            int min = channelRanges[i][0];
+            int max = channelRanges[i][1];
             int value = channelValues.getOrDefault(channelName, 0);
-            String displayText = channelName + ": " + value;
-            int textWidth = fontRenderer.getStringWidth(displayText);
-            fontRenderer.drawString(displayText, recipeWidth - 60 + (40 - textWidth) / 2,
-                    channelStartY + i * 22 + 4, ConfigHolder.client.multiblockPreviewFontColor);
+            int rowY = sliderStartY + i * 16;
+
+            // Draw channel label (localized)
+            String label = I18n.format(channel.getDefaultTooltip());
+            fontRenderer.drawString(label, sliderX, rowY, 0x404040);
+
+            // Draw slider track
+            int trackX = sliderX;
+            int trackY = rowY + fontRenderer.FONT_HEIGHT + 1;
+            int trackHeight = 4;
+            drawRect(trackX, trackY, trackX + sliderWidth, trackY + trackHeight, 0xFFAAAAAA);
+
+            // Draw slider handle
+            int range = Math.max(1, max);
+            float ratio = (float) value / range;
+            int handleX = trackX + (int) (ratio * (sliderWidth - 4));
+            drawRect(handleX, trackY - 1, handleX + 4, trackY + trackHeight + 1, 0xFF4488CC);
+
+            // Draw value text (right-aligned)
+            String valueText = value == 0 ? "Auto" : String.valueOf(value);
+            ItemStack indicator = channel.getIndicatorItem(value);
+            if (!indicator.isEmpty() && value > 0) {
+                valueText = indicator.getDisplayName();
+            }
+            fontRenderer.drawString(valueText, sliderX + sliderWidth - fontRenderer.getStringWidth(valueText),
+                    rowY, 0x222222);
         }
+    }
+
+    private static void drawRect(int left, int top, int right, int bottom, int color) {
+        net.minecraft.client.gui.Gui.drawRect(left, top, right, bottom, color);
+    }
+
+    private int getSliderTrackY(int channelIdx, int sliderStartY) {
+        FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+        return sliderStartY + channelIdx * 16 + fontRenderer.FONT_HEIGHT + 1;
+    }
+
+    private int getSliderX() {
+        return PARTS_WIDTH + 5;
+    }
+
+    private int getSliderWidth(int recipeWidth) {
+        return recipeWidth - PARTS_WIDTH - 10;
     }
 
     @Override
     public boolean handleClick(@NotNull Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
+        // Handle channel slider clicks
+        if (mouseButton == 0 && !supportedChannels.isEmpty()) {
+            int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
+            int sliderX = getSliderX();
+            int sliderWidth = getSliderWidth(176);
+            for (int i = 0; i < supportedChannels.size(); i++) {
+                int trackY = getSliderTrackY(i, sliderStartY);
+                // Click area: track region with some vertical tolerance
+                if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth
+                        && mouseY >= trackY - 3 && mouseY <= trackY + 7) {
+                    int max = channelRanges[i][1];
+                    float ratio = (float) (mouseX - sliderX) / sliderWidth;
+                    int newValue = Math.round(ratio * max);
+                    setChannelValue(i, newValue);
+                    draggingChannelIdx = i;
+                    return true;
+                }
+            }
+        }
+
         for (Entry<GuiButton, Runnable> button : buttons.entrySet()) {
             if (button.getKey().mousePressed(minecraft, mouseX, mouseY)) {
                 button.getValue().run();
@@ -636,6 +721,43 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @NotNull
     @Override
     public List<String> getTooltipStrings(int mouseX, int mouseY) {
+        // Channel slider tooltips
+        if (!supportedChannels.isEmpty()) {
+            int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
+            int sliderX = getSliderX();
+            int sliderWidth = getSliderWidth(176);
+            for (int i = 0; i < supportedChannels.size(); i++) {
+                int rowY = sliderStartY + i * 16;
+                int trackY = getSliderTrackY(i, sliderStartY);
+                if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth
+                        && mouseY >= rowY && mouseY <= trackY + 7) {
+                    StructureChannel channel = supportedChannels.get(i);
+                    int min = channelRanges[i][0];
+                    int max = channelRanges[i][1];
+                    int value = channelValues.getOrDefault(channel.getName(), 0);
+                    List<String> tips = new ArrayList<>();
+                    tips.add(TextFormatting.WHITE + I18n.format(channel.getDefaultTooltip()));
+                    tips.add(TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.channel_range",
+                            min, max));
+                    if (value > 0) {
+                        ItemStack indicator = channel.getIndicatorItem(value);
+                        if (!indicator.isEmpty()) {
+                            tips.add(TextFormatting.AQUA + I18n.format("gregtech.multiblock.preview.channel_current",
+                                    indicator.getDisplayName()));
+                        }
+                    } else {
+                        tips.add(TextFormatting.YELLOW + I18n.format("gregtech.multiblock.preview.channel_auto"));
+                    }
+                    tips.add(TextFormatting.DARK_GRAY + I18n.format("gregtech.multiblock.preview.channel_click"));
+                    // Advanced tooltip: show raw channel key for debugging/porting
+                    if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips) {
+                        tips.add(TextFormatting.DARK_GRAY + "Key: " + channel.getName());
+                    }
+                    return tips;
+                }
+            }
+        }
+
         if (drawInfoIcon) {
             return Arrays.asList(
                     I18n.format("gregtech.multiblock.preview.zoom"),

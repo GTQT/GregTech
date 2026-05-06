@@ -985,6 +985,64 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
     }
 
+    /**
+     * Get the valid value range for a given channel in this multiblock's pattern.
+     * For tiered casing channels, the range is [0, maxCandidateIndex].
+     * For repeatable aisle channels, the range is [aisleMin, aisleMax].
+     *
+     * @param channel the channel to query
+     * @return int[2] with [min, max], or [0, 0] if channel not found in pattern
+     */
+    @NotNull
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        if (patternTemplate == null) {
+            reinitializeStructurePattern();
+            if (patternTemplate == null) return new int[] { 0, 0 };
+        }
+        String channelName = channel.getName();
+
+        // Check repeatable aisle channels first
+        String[] aisleChannelNames = patternTemplate.getAisleChannelNames();
+        int[][] aisleRepetitions = patternTemplate.getAisleRepetitions();
+        if (aisleChannelNames != null) {
+            for (int i = 0; i < aisleChannelNames.length; i++) {
+                if (channelName.equals(aisleChannelNames[i])) {
+                    return new int[] { aisleRepetitions[i][0], aisleRepetitions[i][1] };
+                }
+            }
+        }
+
+        // Check tiered casing channels: count max candidates in predicates with this channelName
+        int maxCandidates = 0;
+        TraceabilityPredicate[][][] matches = patternTemplate.getBlockMatches();
+        for (TraceabilityPredicate[][] layer : matches) {
+            for (TraceabilityPredicate[] row : layer) {
+                for (TraceabilityPredicate predicate : row) {
+                    if (predicate == null) continue;
+                    maxCandidates = Math.max(maxCandidates,
+                            countChannelCandidates(predicate.common, channelName));
+                    maxCandidates = Math.max(maxCandidates,
+                            countChannelCandidates(predicate.limited, channelName));
+                }
+            }
+        }
+        if (maxCandidates > 0) {
+            return new int[] { 0, maxCandidates - 1 };
+        }
+        return new int[] { 0, 0 };
+    }
+
+    private static int countChannelCandidates(
+            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
+            @NotNull String channelName) {
+        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
+            if (channelName.equals(sp.channelName) && sp.candidates != null) {
+                return sp.candidates.get().length;
+            }
+        }
+        return 0;
+    }
+
     public List<MultiblockShapeInfo> getMatchingShapes() {
         if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
