@@ -97,6 +97,22 @@ public class DeclarativePatternBuilder {
         return this;
     }
 
+    /**
+     * Define a repeatable aisle associated with a structure channel.
+     * The channel value controls the repetition count in previews and autoBuild.
+     *
+     * @param minRepeat   minimum repetition count
+     * @param maxRepeat   maximum repetition count
+     * @param channelName the channel name controlling this aisle's repetition
+     * @param aisle       the aisle pattern strings
+     */
+    public DeclarativePatternBuilder aisleRepeatable(int minRepeat, int maxRepeat, String channelName,
+                                                     String... aisle) {
+        factoryBuilder.aisleRepeatable(minRepeat, maxRepeat, channelName, aisle);
+        aisles.add(aisle);
+        return this;
+    }
+
     // --- Standard where (pass-through to FactoryBlockPattern) ---
 
     /**

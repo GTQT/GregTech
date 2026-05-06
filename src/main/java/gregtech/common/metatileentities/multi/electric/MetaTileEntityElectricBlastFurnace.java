@@ -20,7 +20,6 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.ICasing;
-import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
@@ -55,7 +54,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -182,11 +180,6 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     @Override
     public SoundEvent getBreakdownSound() {
         return GTSoundEvents.BREAKDOWN_ELECTRICAL;
-    }
-
-    @Override
-    public List<StructureChannel> getSupportedChannels() {
-        return Collections.singletonList(GTStructureChannels.HEATING_COIL);
     }
 
     @Override

@@ -20,6 +20,7 @@ public class FactoryBlockPattern {
     private static final Joiner COMMA_JOIN = Joiner.on(",");
     private final List<String[]> depth = new ArrayList<>();
     private final List<int[]> aisleRepetitions = new ArrayList<>();
+    private final List<String> aisleChannelNames = new ArrayList<>();
     private final Map<Character, TraceabilityPredicate> symbolMap = new HashMap<>();
     private int aisleHeight;
     private int rowWidth;
@@ -54,6 +55,19 @@ public class FactoryBlockPattern {
      * Adds a repeatable aisle to this pattern.
      */
     public FactoryBlockPattern aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
+        return aisleRepeatable(minRepeat, maxRepeat, null, aisle);
+    }
+
+    /**
+     * Adds a repeatable aisle to this pattern, associated with a structure channel.
+     * When previewing with channelValues, the channel value determines the repetition count.
+     *
+     * @param minRepeat   minimum repetition count
+     * @param maxRepeat   maximum repetition count
+     * @param channelName the channel name controlling this aisle's repetition (null = no channel)
+     * @param aisle       the aisle pattern strings
+     */
+    public FactoryBlockPattern aisleRepeatable(int minRepeat, int maxRepeat, String channelName, String... aisle) {
         if (!ArrayUtils.isEmpty(aisle) && !StringUtils.isEmpty(aisle[0])) {
             if (this.depth.isEmpty()) {
                 this.aisleHeight = aisle.length;
@@ -82,6 +96,7 @@ public class FactoryBlockPattern {
                 if (minRepeat > maxRepeat)
                     throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
                 aisleRepetitions.add(new int[] { minRepeat, maxRepeat });
+                aisleChannelNames.add(channelName);
                 return this;
             }
         } else {
@@ -103,6 +118,17 @@ public class FactoryBlockPattern {
         if (minRepeat > maxRepeat)
             throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
         aisleRepetitions.set(aisleRepetitions.size() - 1, new int[] { minRepeat, maxRepeat });
+        return this;
+    }
+
+    /**
+     * Set last aisle repeatable with an associated channel.
+     */
+    public FactoryBlockPattern setRepeatable(int minRepeat, int maxRepeat, String channelName) {
+        if (minRepeat > maxRepeat)
+            throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
+        aisleRepetitions.set(aisleRepetitions.size() - 1, new int[] { minRepeat, maxRepeat });
+        aisleChannelNames.set(aisleChannelNames.size() - 1, channelName);
         return this;
     }
 
@@ -142,7 +168,8 @@ public class FactoryBlockPattern {
      */
     public BlockPatternTemplate buildTemplate() {
         return new BlockPatternTemplate(makePredicateArray(), structureDir,
-                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]));
+                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]));
     }
 
     /**

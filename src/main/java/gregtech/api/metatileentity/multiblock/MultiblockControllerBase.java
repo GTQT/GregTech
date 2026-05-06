@@ -17,6 +17,7 @@ import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
@@ -124,6 +125,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     private int structureTier = 0;
     private int delayStructureCheckStandby = 20;
     private int delayStructureCheckWork = 20;
+
+    /** Channel values collected from the formed structure (populated in formStructure) */
+    @NotNull
+    private StructureChannelValues formedChannelValues = new StructureChannelValues();
 
     public MultiblockControllerBase(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -576,6 +581,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.multiblockAbilities.putAll(abilities);
             parts.forEach(part -> part.addToMultiBlock(this));
             this.structureFormed = true;
+            this.formedChannelValues = StructureChannelValues.fromContext(context);
             writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
             formStructure(context);
 
@@ -671,6 +677,17 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return multiblockState;
     }
 
+    /**
+     * Get the channel tier values determined when the structure was formed.
+     * Empty if the structure is not currently formed.
+     *
+     * @return the formed channel values (never null)
+     */
+    @NotNull
+    public StructureChannelValues getFormedChannelValues() {
+        return formedChannelValues;
+    }
+
     public void invalidateStructure() {
         // Unregister from event-driven structure checking system
         if (getWorld() != null && !getWorld().isRemote) {
@@ -686,6 +703,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.multiblockAbilities.clear();
         this.multiblockParts.clear();
         this.structureFormed = false;
+        this.formedChannelValues = new StructureChannelValues();
         this.setFlipped(false);
         writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(false));
     }
@@ -912,15 +930,59 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Returns the list of structure channels this multiblock supports.
-     * These are used by the Structure Projector to pre-fill channel fields in the GUI.
-     * Override in subclasses to declare which channels the structure uses.
+     * Returns the list of structure channels supported by this multiblock.
+     * Default implementation auto-collects channels from the pattern template's predicates.
+     * Subclasses can override for custom behavior or to add channels not in the pattern.
      *
      * @return list of supported StructureChannel instances
      */
     @NotNull
     public List<StructureChannel> getSupportedChannels() {
-        return Collections.emptyList();
+        if (patternTemplate == null) {
+            reinitializeStructurePattern();
+            if (patternTemplate == null) {
+                return Collections.emptyList();
+            }
+        }
+        return collectChannelsFromTemplate(patternTemplate);
+    }
+
+    /**
+     * Collect all unique channels referenced by predicates in the given template.
+     */
+    @NotNull
+    protected static List<StructureChannel> collectChannelsFromTemplate(
+            @NotNull BlockPatternTemplate template) {
+        Set<String> seen = new java.util.LinkedHashSet<>();
+        TraceabilityPredicate[][][] matches = template.getBlockMatches();
+        for (TraceabilityPredicate[][] layer : matches) {
+            for (TraceabilityPredicate[] row : layer) {
+                for (TraceabilityPredicate predicate : row) {
+                    if (predicate == null) continue;
+                    collectChannelNames(predicate.common, seen);
+                    collectChannelNames(predicate.limited, seen);
+                }
+            }
+        }
+        List<StructureChannel> result = new ArrayList<>();
+        for (String name : seen) {
+            StructureChannel channel =
+                    gregtech.api.pattern.casing.StructureChannelRegistry.resolve(name);
+            if (channel != null) {
+                result.add(channel);
+            }
+        }
+        return result;
+    }
+
+    private static void collectChannelNames(
+            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
+            @NotNull Set<String> out) {
+        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
+            if (sp.channelName != null && !sp.channelName.isEmpty()) {
+                out.add(sp.channelName);
+            }
+        }
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes() {
@@ -961,11 +1023,27 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     : Objects.requireNonNull(this.multiblockState).getPreview(repetition);
             pages.add(new MultiblockShapeInfo(preview));
         } else {
-            for (int i = aisleRepetitions[repetitionStack.size()][0]; i <=
-                    aisleRepetitions[repetitionStack.size()][1]; i++) {
-                repetitionStack.push(i);
+            int aisleIdx = repetitionStack.size();
+            String[] channelNames = this.patternTemplate.getAisleChannelNames();
+            String channelName = (channelNames != null && aisleIdx < channelNames.length)
+                    ? channelNames[aisleIdx] : null;
+
+            // If this aisle is controlled by a channel and a value is provided, use it directly
+            if (channelName != null && channelValues != null && channelValues.containsKey(channelName)) {
+                int channelValue = channelValues.get(channelName);
+                // Clamp to valid range
+                int min = aisleRepetitions[aisleIdx][0];
+                int max = aisleRepetitions[aisleIdx][1];
+                int clamped = Math.max(min, Math.min(max, channelValue));
+                repetitionStack.push(clamped);
                 repetitionDFS(pages, aisleRepetitions, repetitionStack, channelValues);
                 repetitionStack.pop();
+            } else {
+                for (int i = aisleRepetitions[aisleIdx][0]; i <= aisleRepetitions[aisleIdx][1]; i++) {
+                    repetitionStack.push(i);
+                    repetitionDFS(pages, aisleRepetitions, repetitionStack, channelValues);
+                    repetitionStack.pop();
+                }
             }
         }
         return pages;

@@ -12,6 +12,7 @@ import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
@@ -84,7 +85,7 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
     protected BlockPattern createStructurePattern() {
         return DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                 .aisle("FIF", "RTR", "SAG", " Y ")
-                .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
+                .aisleRepeatable(3, 15, GTStructureChannels.STRUCTURE_LENGTH.getName(), "FIF", "RTR", "DAG", " Y ")
                 .aisle("FOF", "RTR", "DAG", " Y ")
                 .where('S', selfPredicate())
                 .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)

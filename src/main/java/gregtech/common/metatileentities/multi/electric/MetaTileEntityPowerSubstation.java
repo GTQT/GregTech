@@ -25,7 +25,6 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
-import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -67,7 +66,6 @@ import java.math.BigInteger;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -344,12 +342,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                             abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
                                     MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
                 .build();
-    }
-
-    @NotNull
-    @Override
-    public List<StructureChannel> getSupportedChannels() {
-        return Collections.singletonList(GTStructureChannels.BATTERY);
     }
 
     @Override

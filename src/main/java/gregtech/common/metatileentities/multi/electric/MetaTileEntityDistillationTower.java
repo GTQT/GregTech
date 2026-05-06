@@ -13,6 +13,7 @@ import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTTransferUtils;
@@ -99,7 +100,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     protected @NotNull BlockPattern createStructurePattern() {
         return DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
                 .aisle("YSY", "YYY", "YYY")
-                .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
+                .aisleRepeatable(1, 11, GTStructureChannels.STRUCTURE_HEIGHT.getName(), "XXX", "X#X", "XXX")
                 .aisle("XXX", "XXX", "XXX")
                 .where('S', selfPredicate())
                 .where('#', air())
