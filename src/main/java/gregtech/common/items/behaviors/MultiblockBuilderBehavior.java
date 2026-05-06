@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.GTUtility;
@@ -67,13 +68,17 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         if (player.isSneaking()) {
             if (!multiblock.isStructureFormed()) {
                 Map<String, Integer> channelValues = tierToChannelValues(tier);
-                multiblock.structurePattern.autoBuild(player, multiblock, channelValues, false);
+                MultiblockState state = multiblock.getMultiblockState();
+                if (state != null) {
+                    state.autoBuild(player, multiblock, channelValues, false);
+                }
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
         } else {
             if (!multiblock.isStructureFormed()) {
-                PatternError error = multiblock.structurePattern.getError();
+                MultiblockState state = multiblock.getMultiblockState();
+                PatternError error = state != null ? state.getError() : null;
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(

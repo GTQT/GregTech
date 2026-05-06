@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
@@ -99,7 +100,10 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
             if (!multiblock.isStructureFormed()) {
                 Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
-                multiblock.structurePattern.autoBuild(player, multiblock, channels, noHatch);
+                MultiblockState state = multiblock.getMultiblockState();
+                if (state != null) {
+                    state.autoBuild(player, multiblock, channels, noHatch);
+                }
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -114,7 +118,8 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
             // Server-side: show error info if structure is not formed
             if (!multiblock.isStructureFormed()) {
-                PatternError error = multiblock.structurePattern.getError();
+                MultiblockState state = multiblock.getMultiblockState();
+                PatternError error = state != null ? state.getError() : null;
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(

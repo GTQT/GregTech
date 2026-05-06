@@ -82,6 +82,19 @@ public class BlockPattern {
         this.structureDir = template.getStructureDir();
     }
 
+    /**
+     * Create a BlockPattern from an existing template and state.
+     * Used by the controller to share the same state between the compat layer and the new architecture.
+     */
+    public BlockPattern(@NotNull BlockPatternTemplate template, @NotNull MultiblockState state) {
+        this.template = template;
+        this.state = state;
+        this.cache = state.cache;
+        this.formedRepetitionCount = state.formedRepetitionCount;
+        this.aisleRepetitions = template.getAisleRepetitions();
+        this.structureDir = template.getStructureDir();
+    }
+
     // --- Access to internal components ---
 
     /**

@@ -1,6 +1,5 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
@@ -228,9 +227,8 @@ public class AsyncStructureChecker {
      */
     private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
                                                             BlockPos pos) {
-        BlockPattern pattern = controller.structurePattern;
-        if (pattern != null) {
-            BlockPatternTemplate template = pattern.getTemplate();
+        BlockPatternTemplate template = controller.getPatternTemplate();
+        if (template != null) {
             // Compute radius from template dimensions with margin
             int xRadius = template.getStructureXSize() + SNAPSHOT_MARGIN;
             int yRadius = template.getStructureYSize() + SNAPSHOT_MARGIN;
@@ -272,11 +270,11 @@ public class AsyncStructureChecker {
      * Only returns whether the pattern matched; the main thread will do a confirmatory check.
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
-        BlockPattern structurePattern = task.controller.structurePattern;
-        if (structurePattern == null) return false;
+        BlockPatternTemplate template = task.controller.getPatternTemplate();
+        if (template == null) return false;
 
         // Create a temporary state from the shared template to avoid data race (M1 fix)
-        MultiblockState tempState = structurePattern.getTemplate().createState();
+        MultiblockState tempState = template.createState();
 
         // Use the snapshot-based check on the temporary state
         PatternMatchContext context = tempState.checkPatternFastAtSnapshot(

@@ -235,12 +235,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void reinitializeStructurePattern() {
-        this.structurePattern = createStructurePattern();
-        // Also sync the new architecture fields from the structurePattern
-        if (this.structurePattern != null) {
-            this.patternTemplate = this.structurePattern.getTemplate();
-            this.multiblockState = this.structurePattern.getState();
-        }
+        // Template-first approach: create shared template, then per-instance state
+        this.patternTemplate = createStructureTemplate();
+        this.multiblockState = this.patternTemplate.createState();
+        // Maintain backward-compatible structurePattern sharing the same template and state
+        this.structurePattern = new BlockPattern(this.patternTemplate, this.multiblockState);
         // Initialize multi-piece pattern if the subclass provides one (P3)
         this.multiPiecePattern = createMultiPiecePattern();
     }
@@ -312,10 +311,35 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected abstract void updateFormedValid();
 
     /**
+     * Creates the structure pattern for this multiblock.
+     *
      * @return structure pattern of this multiblock
+     * @deprecated Override {@link #createStructureTemplate()} instead for new code.
+     *             This method is retained for backward compatibility with existing subclasses.
+     *             The default implementation of {@link #createStructureTemplate()} delegates to this method.
      */
+    @Deprecated
     @NotNull
     protected abstract BlockPattern createStructurePattern();
+
+    /**
+     * Override this method to provide a shared immutable structure template.
+     * The template is shared across all instances of the same machine type,
+     * while each instance holds its own mutable {@link MultiblockState}.
+     *
+     * <p>Default implementation delegates to the deprecated {@link #createStructurePattern()}
+     * for backward compatibility.
+     *
+     * <p>For optimal memory usage, subclasses should override this method and return
+     * a statically cached {@link BlockPatternTemplate} instance.
+     *
+     * @return the immutable structure template
+     * @see FactoryBlockPattern#buildTemplate()
+     */
+    @NotNull
+    protected BlockPatternTemplate createStructureTemplate() {
+        return createStructurePattern().getTemplate();
+    }
 
     /**
      * Override this method to provide a multi-piece pattern for super-large structures.
@@ -356,10 +380,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 notifyBlockUpdate();
                 markDirty();
                 writeCustomData(UPDATE_UPWARDS_FACING, buf -> buf.writeByte(upwardsFacing.getIndex()));
-                if (structurePattern != null) {
+                if (multiblockState != null) {
                     // Unregister before clearing cache so positions can be properly cleaned up
                     MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
-                    structurePattern.clearCache();
+                    multiblockState.clearCache();
                     checkStructurePattern();
                 }
             }
@@ -518,8 +542,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void checkStructurePattern() {
-        if (structurePattern == null) return;
-        PatternMatchContext context = structurePattern.checkPatternFastAt(getWorld(), getPos(),
+        if (multiblockState == null) return;
+        PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
                 getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
                 isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
         if (context != null && !structureFormed) {
@@ -565,8 +589,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     multiPiecePattern.checkAllPieces(getWorld(), getPos(),
                             getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip());
                     registerMultiPiecePattern();
-                } else if (structurePattern != null && !structurePattern.cache.isEmpty()) {
-                    LongSet positions = new LongOpenHashSet(structurePattern.cache.keySet());
+                } else if (multiblockState != null && !multiblockState.cache.isEmpty()) {
+                    LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
                     MultiblockWorldData.get(getWorld()).registerMultiblock(this, positions);
                 }
             }
@@ -579,11 +603,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
 
             // Re-register if cache was refreshed (e.g. after facing change + clearCache)
-            if (structurePattern != null && !structurePattern.cache.isEmpty()
+            if (multiblockState != null && !multiblockState.cache.isEmpty()
                     && !(getWorld() instanceof DummyWorld)) {
                 MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
                 if (!worldData.isRegistered(this)) {
-                    LongSet positions = new LongOpenHashSet(structurePattern.cache.keySet());
+                    LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
                     worldData.registerMultiblock(this, positions);
                 }
             }
@@ -800,12 +824,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             setUpwardsFacing(newUpwardsFacing);
         }
 
-        if (getWorld() != null && !getWorld().isRemote && structurePattern != null) {
+        if (getWorld() != null && !getWorld().isRemote && multiblockState != null) {
             // Unregister before clearing cache so positions can be properly cleaned up
             MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
             // clear cache since the cache has no concept of pre-existing facing
             // for the controller block (or any block) in the structure
-            structurePattern.clearCache();
+            multiblockState.clearCache();
             // recheck structure pattern immediately to avoid a slight "lag"
             // on deforming when rotating a multiblock controller
             checkStructurePattern();
@@ -900,13 +924,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes() {
-        if (this.structurePattern == null) {
+        if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
-            if (this.structurePattern == null) {
+            if (this.patternTemplate == null) {
                 return Collections.emptyList();
             }
         }
-        int[][] aisleRepetitions = this.structurePattern.aisleRepetitions;
+        int[][] aisleRepetitions = this.patternTemplate.getAisleRepetitions();
         return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), null);
     }
 
@@ -914,13 +938,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (channelValues == null || channelValues.isEmpty()) {
             return getMatchingShapes();
         }
-        if (this.structurePattern == null) {
+        if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
-            if (this.structurePattern == null) {
+            if (this.patternTemplate == null) {
                 return Collections.emptyList();
             }
         }
-        int[][] aisleRepetitions = this.structurePattern.aisleRepetitions;
+        int[][] aisleRepetitions = this.patternTemplate.getAisleRepetitions();
         return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues);
     }
 
@@ -933,8 +957,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 repetition[i] = repetitionStack.get(i);
             }
             BlockInfo[][][] preview = channelValues != null
-                    ? Objects.requireNonNull(this.structurePattern).getPreview(repetition, channelValues)
-                    : Objects.requireNonNull(this.structurePattern).getPreview(repetition);
+                    ? Objects.requireNonNull(this.multiblockState).getPreview(repetition, channelValues)
+                    : Objects.requireNonNull(this.multiblockState).getPreview(repetition);
             pages.add(new MultiblockShapeInfo(preview));
         } else {
             for (int i = aisleRepetitions[repetitionStack.size()][0]; i <=
@@ -969,19 +993,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void dismantleStructure(EntityPlayer player) {
-        BlockPattern pattern = structurePattern; // 获取已初始化的BlockPattern
+        MultiblockState state = this.multiblockState;
 
-        if (!structureFormed || pattern == null) {
-            return; // 如果结构未形成或没有结构模式，直接返回
+        if (!structureFormed || state == null) {
+            return;
         }
 
-        // 首先解除结构，移除所有部件与控制器的关联
+        // First invalidate structure, removing all part associations
         invalidateStructure();
 
         World world = getWorld();
 
-        // 获取所有结构内的方块位置 - 使用新封装的方法
-        Map<BlockPos, BlockInfo> blocks = pattern.getAllStructureBlocks(
+        // Get all block positions in the structure
+        Map<BlockPos, BlockInfo> blocks = state.getAllStructureBlocks(
                 world, getPos(), getFrontFacing().getOpposite(), getUpwardsFacing(), isFlipped());
 
         ArrayList<ItemStack> drops = new ArrayList<>();

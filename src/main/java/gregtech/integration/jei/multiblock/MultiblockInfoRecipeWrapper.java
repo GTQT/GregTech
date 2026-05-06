@@ -735,11 +735,13 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
         if (controllerBase != null) {
-            if (controllerBase.structurePattern == null) {
+            gregtech.api.pattern.MultiblockState state = controllerBase.getMultiblockState();
+            if (state == null) {
                 controllerBase.reinitializeStructurePattern();
+                state = controllerBase.getMultiblockState();
             }
-            if (controllerBase.structurePattern != null) {
-                controllerBase.structurePattern.cache.forEach((pos, blockInfo) -> predicateMap
+            if (state != null) {
+                state.cache.forEach((pos, blockInfo) -> predicateMap
                         .put(BlockPos.fromLong(pos), (TraceabilityPredicate) blockInfo.getInfo()));
             }
         }

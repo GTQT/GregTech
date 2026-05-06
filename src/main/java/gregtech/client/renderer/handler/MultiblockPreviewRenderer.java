@@ -567,11 +567,12 @@ public class MultiblockPreviewRenderer {
     }
 
     private static BlockPos transformPreviewOffset(MultiblockControllerBase controller, BlockPos previewOffset) {
-        if (controller.structurePattern == null) {
+        gregtech.api.pattern.BlockPatternTemplate template = controller.getPatternTemplate();
+        if (template == null) {
             return previewOffset;
         }
 
-        RelativeDirection[] structureDir = controller.structurePattern.getStructureDir();
+        RelativeDirection[] structureDir = template.getStructureDir();
         int[] localOffset = new int[3];
         for (int i = 0; i < structureDir.length; i++) {
             localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.NORTH));

@@ -77,7 +77,11 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
                     return null;
                 }
             }
-            PatternMatchContext context = multi.structurePattern.checkPatternFastAt(
+            gregtech.api.pattern.MultiblockState state = multi.getMultiblockState();
+            if (state == null) {
+                return null;
+            }
+            PatternMatchContext context = state.checkPatternFastAt(
                     target.getWorld(), target.getPos(), target.getFrontFacing().getOpposite(), multi.getUpwardsFacing(),
                     multi.allowsFlip());
             if (context == null) {

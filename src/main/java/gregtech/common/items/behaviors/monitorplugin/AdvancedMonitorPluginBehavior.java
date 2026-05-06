@@ -251,21 +251,24 @@ public class AdvancedMonitorPluginBehavior extends ProxyHolderPluginBehavior {
                     MultiblockControllerBase entity = (MultiblockControllerBase) holder.getMetaTileEntity();
                     if (entity.isStructureFormed()) {
                         if (!isValid) {
-                            PatternMatchContext result = entity.structurePattern.checkPatternFastAt(
-                                    entity.getWorld(), entity.getPos(), entity.getFrontFacing().getOpposite(),
-                                    entity.getUpwardsFacing(), entity.allowsFlip());
-                            if (result != null) {
-                                validPos = entity.structurePattern.cache.keySet().stream().map(BlockPos::fromLong)
-                                        .collect(Collectors.toSet());
-                                writePluginData(GregtechDataCodes.UPDATE_ADVANCED_VALID_POS, buf -> {
-                                    buf.writeVarInt(validPos.size());
-                                    for (BlockPos pos : validPos) {
-                                        buf.writeBlockPos(pos);
-                                    }
-                                });
-                                isValid = true;
-                            } else {
-                                validPos = Collections.emptySet();
+                            gregtech.api.pattern.MultiblockState state = entity.getMultiblockState();
+                            if (state != null) {
+                                PatternMatchContext result = state.checkPatternFastAt(
+                                        entity.getWorld(), entity.getPos(), entity.getFrontFacing().getOpposite(),
+                                        entity.getUpwardsFacing(), entity.allowsFlip());
+                                if (result != null) {
+                                    validPos = state.cache.keySet().stream().map(BlockPos::fromLong)
+                                            .collect(Collectors.toSet());
+                                    writePluginData(GregtechDataCodes.UPDATE_ADVANCED_VALID_POS, buf -> {
+                                        buf.writeVarInt(validPos.size());
+                                        for (BlockPos pos : validPos) {
+                                            buf.writeBlockPos(pos);
+                                        }
+                                    });
+                                    isValid = true;
+                                } else {
+                                    validPos = Collections.emptySet();
+                                }
                             }
                         }
                     } else if (isValid) {
