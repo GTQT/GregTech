@@ -863,6 +863,74 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         super.addInformation(stack, world, tooltip, advanced);
         TooltipBuilder.createDefault().build(this, tooltip);
         TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
+
+        // Auto-generated structure description from DeclarativePatternBuilder
+        if (patternTemplate != null) {
+            List<String> structureDesc = patternTemplate.getStructureDescription();
+            if (!structureDesc.isEmpty()) {
+                tooltip.add("");
+                for (String line : structureDesc) {
+                    tooltip.add(formatStructureDescriptionLine(line));
+                }
+            }
+        }
+    }
+
+    /**
+     * Format a raw structure description line for tooltip display.
+     * Lines are stored as "type:param1:param2:..." for server-safe storage.
+     */
+    @SideOnly(Side.CLIENT)
+    private String formatStructureDescriptionLine(@NotNull String rawLine) {
+        String[] parts = rawLine.split(":", 4);
+        if (parts.length < 2) return rawLine;
+
+        switch (parts[0]) {
+            case "casing": {
+                // "casing:<translationKey>:<minCount>:<maxCount>"
+                String name = I18n.format(parts[1]);
+                int min = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+                int max = parts.length > 3 ? Integer.parseInt(parts[3]) : min;
+                if (min == max) {
+                    return String.format("  %dx %s", max, name);
+                } else {
+                    return String.format("  %dx %s (%s %d)", max, name,
+                            I18n.format("gregtech.multiblock.tooltip.at_least"), min);
+                }
+            }
+            case "hatch": {
+                // "hatch:<abilityName>:<minCount>:<maxCount>"
+                String name = I18n.format("gregtech.multiblock.ability." + parts[1]);
+                int min = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+                int max = parts.length > 3 ? Integer.parseInt(parts[3]) : 1;
+                if (min == 0) {
+                    return String.format("  0-%dx %s (%s)", max, name,
+                            I18n.format("gregtech.multiblock.tooltip.optional"));
+                } else if (min == max) {
+                    return String.format("  %dx %s", max, name);
+                } else {
+                    return String.format("  %d-%dx %s", min, max, name);
+                }
+            }
+            case "tiered": {
+                // "tiered:<translationKey>:<requiresUniform>"
+                String name = I18n.format(parts[1]);
+                boolean uniform = parts.length > 2 && Boolean.parseBoolean(parts[2]);
+                if (uniform) {
+                    return String.format("  %s (%s)", name,
+                            I18n.format("gregtech.multiblock.tooltip.same_tier"));
+                } else {
+                    return "  " + name;
+                }
+            }
+            case "channel": {
+                // "channel:<tooltipKey>"
+                return String.format("  %s", I18n.format("gregtech.multiblock.tooltip.sub_channel",
+                        I18n.format(parts[1])));
+            }
+            default:
+                return rawLine;
+        }
     }
 
     @Override

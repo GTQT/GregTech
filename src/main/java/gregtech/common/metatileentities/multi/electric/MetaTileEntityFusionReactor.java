@@ -120,6 +120,8 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     @NotNull
     @Override
+    // Retained on FactoryBlockPattern: complex tier-dependent energy hatch filtering
+    // and unique ring structure with multiple predicate variants per character.
     protected BlockPattern createStructurePattern() {
         return FactoryBlockPattern.start()
                 .aisle("###############", "######OGO######", "###############")

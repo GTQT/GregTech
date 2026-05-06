@@ -1401,6 +1401,10 @@ metaitem.tool.multiblock_remover.name=多方块拆除器
 metaitem.tool.multiblock_remover.tooltip=拆除你的多方块结构！
 metaitem.tool.multiblock_remover.tooltip2=按住SHIFT键后右键单击多方块结构控制器以自动拆除
 
+metaitem.stellar_fuel.name=恒星燃料
+metaitem.stellar_fuel.tooltip=§5浓缩恒星点火催化剂
+metaitem.stellar_fuel.tooltip2=§7用于启动诸神之锻炉
+
 metaarmor.nms.nightvision.enabled=纳米肌体™套装：夜视已启用
 metaarmor.nms.nightvision.disabled=纳米肌体™套装：夜视已禁用
 metaarmor.nms.nightvision.error=纳米肌体™套装：§c能量不足！
@@ -7079,6 +7083,44 @@ gregtech.multiblock.tooltip.same_tier=全部相同等级
 gregtech.multiblock.tooltip.optional=可选
 gregtech.multiblock.tooltip.sub_channel=%s§7: §f使用投影仪配置
 gregtech.multiblock.tooltip.sub_channel_purpose=%s§7 (§f%s§7)
+
+# Multiblock ability display names (for auto-generated structure tooltips)
+gregtech.multiblock.ability.export_items=物品输出总线
+gregtech.multiblock.ability.import_items=物品输入总线
+gregtech.multiblock.ability.export_fluids=流体输出仓
+gregtech.multiblock.ability.import_fluids=流体输入仓
+gregtech.multiblock.ability.input_energy=能量输入仓
+gregtech.multiblock.ability.output_energy=能量输出仓
+gregtech.multiblock.ability.input_heat=热量输入仓
+gregtech.multiblock.ability.output_heat=热量输出仓
+gregtech.multiblock.ability.heat_sensor=热量传感器仓
+gregtech.multiblock.ability.substation_input_energy=变电站能量输入仓
+gregtech.multiblock.ability.substation_output_energy=变电站能量输出仓
+gregtech.multiblock.ability.rotor_holder=转子支架
+gregtech.multiblock.ability.pump_fluid_hatch=泵流体仓
+gregtech.multiblock.ability.steam=蒸汽仓
+gregtech.multiblock.ability.steam_import_items=蒸汽输入总线
+gregtech.multiblock.ability.steam_export_items=蒸汽输出总线
+gregtech.multiblock.ability.steam_import_fluid=蒸汽输入仓
+gregtech.multiblock.ability.steam_export_fluid=蒸汽输出仓
+gregtech.multiblock.ability.maintenance_hatch=维护仓
+gregtech.multiblock.ability.muffler_hatch=消音仓
+gregtech.multiblock.ability.machine_hatch=机器仓
+gregtech.multiblock.ability.tank_valve=储罐阀门
+gregtech.multiblock.ability.passthrough_hatch=直通仓
+gregtech.multiblock.ability.data_access_hatch=数据访问仓
+gregtech.multiblock.ability.optical_data_reception=光学数据接收仓
+gregtech.multiblock.ability.optical_data_transmission=光学数据发送仓
+gregtech.multiblock.ability.input_laser=激光输入仓
+gregtech.multiblock.ability.output_laser=激光输出仓
+gregtech.multiblock.ability.computation_data_reception=计算数据接收仓
+gregtech.multiblock.ability.computation_data_transmission=计算数据发送仓
+gregtech.multiblock.ability.hpca_component=HPCA组件
+gregtech.multiblock.ability.object_holder=物体持有器
+gregtech.multiblock.ability.wireless_controller=无线控制器
+gregtech.multiblock.ability.thread_hatch=线程仓
+gregtech.multiblock.ability.godforge_module=锻神炉模块
+
 gregtech.multiblock.universal.no_multi_recipemap=这个多方块不需要配方切换
 gregtech.multiblock.parallel=最大并行：%s
 gregtech.multiblock.multiple_recipemaps.header=机器模式：

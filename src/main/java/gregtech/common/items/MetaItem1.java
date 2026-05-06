@@ -1409,5 +1409,8 @@ public class MetaItem1 extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
+        // Forge of the Gods - Stellar Fuel catalyst for battery startup
+        STELLAR_FUEL = addItem(1007, "stellar_fuel").setRarity(EnumRarity.EPIC);
+
     }
 }

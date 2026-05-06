@@ -156,11 +156,35 @@ public class DeclarativePatternBuilder {
     /**
      * Build the pattern. Automatically calculates minimum casing counts and
      * generates TraceabilityPredicates for all declared casing/tiered slots.
+     * Also generates and attaches structure description to the template for tooltip display.
      *
      * @return the built BlockPattern (with template + state)
      */
     @SuppressWarnings("deprecation")
     public BlockPattern build() {
+        processSlots();
+        BlockPattern pattern = factoryBuilder.build();
+        attachStructureDescription(pattern.getTemplate());
+        return pattern;
+    }
+
+    /**
+     * Build only the immutable template. Use for shared templates (P1 architecture).
+     * Also generates and attaches structure description.
+     *
+     * @return the built BlockPatternTemplate
+     */
+    public BlockPatternTemplate buildTemplate() {
+        processSlots();
+        BlockPatternTemplate template = factoryBuilder.buildTemplate();
+        attachStructureDescription(template);
+        return template;
+    }
+
+    /**
+     * Process all declared casing and tiered slots into FactoryBlockPattern predicates.
+     */
+    private void processSlots() {
         // Process casing slots
         for (Map.Entry<Character, CasingSlotInfo> entry : casingSlots.entrySet()) {
             char symbol = entry.getKey();
@@ -198,53 +222,51 @@ public class DeclarativePatternBuilder {
             String channelName = info.channel != null ? info.channel.getName() : info.group.getTierChannel();
             factoryBuilder.where(symbol, createTieredPredicate(info.group, channelName));
         }
-
-        return factoryBuilder.build();
     }
 
     /**
-     * Build only the immutable template. Use for shared templates (P1 architecture).
-     *
-     * @return the built BlockPatternTemplate
+     * Generate structure tooltip description from declared slots and attach to template.
+     * Stores raw translation keys (not formatted strings) for server-safe operation.
+     * Actual formatting happens at tooltip display time (client-side).
      */
-    public BlockPatternTemplate buildTemplate() {
-        // Process casing slots
-        for (Map.Entry<Character, CasingSlotInfo> entry : casingSlots.entrySet()) {
-            char symbol = entry.getKey();
-            CasingSlotInfo info = entry.getValue();
+    private void attachStructureDescription(@NotNull BlockPatternTemplate template) {
+        List<String> lines = new ArrayList<>();
 
+        // Add casing requirements as raw format patterns
+        for (CasingSlotInfo info : casingSlots.values()) {
+            char symbol = info.symbol;
             int totalCount = countCharInAisles(symbol);
             int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
                     + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
             int minCasings = Math.max(0, totalCount - maxHatches);
 
-            TraceabilityPredicate predicate = createCasingPredicate(info.casing)
-                    .setMinGlobalLimited(minCasings);
+            // Format: "casing:<translationKey>:<minCount>:<maxCount>"
+            lines.add("casing:" + info.casing.getTranslationKey() + ":" + minCasings + ":" + totalCount);
 
+            // Add hatch lines: "hatch:<abilityName>:<minCount>:<maxCount>"
             for (HatchInfo hatch : info.hatches) {
-                predicate = predicate.or(
-                        MultiblockControllerBase.abilities(hatch.ability)
-                                .setMinGlobalLimited(hatch.minCount)
-                                .setMaxGlobalLimited(hatch.maxCount)
-                                .setPreviewCount(Math.max(1, hatch.minCount)));
+                lines.add("hatch:" + hatch.ability.toString() + ":" + hatch.minCount + ":" + hatch.maxCount);
             }
-
-            // Add custom hatch predicates
-            for (CustomHatchInfo customHatch : info.customHatches) {
-                predicate = predicate.or(customHatch.predicate);
-            }
-
-            factoryBuilder.where(symbol, predicate);
         }
 
-        for (Map.Entry<Character, TieredSlotInfo> entry : tieredSlots.entrySet()) {
-            char symbol = entry.getKey();
-            TieredSlotInfo info = entry.getValue();
-            String channelName = info.channel != null ? info.channel.getName() : info.group.getTierChannel();
-            factoryBuilder.where(symbol, createTieredPredicate(info.group, channelName));
+        // Add tiered casing requirements: "tiered:<translationKey>:<requiresUniform>"
+        for (TieredSlotInfo info : tieredSlots.values()) {
+            lines.add("tiered:" + info.group.getTranslationKey() + ":" + info.group.requiresUniformTier());
+            if (info.channel != null) {
+                lines.add("channel:" + info.channel.getDefaultTooltip());
+            }
         }
 
-        return factoryBuilder.buildTemplate();
+        if (!lines.isEmpty()) {
+            template.setStructureDescription(lines);
+        }
+    }
+
+    /**
+     * Get the translation key for a MultiblockAbility's display name.
+     */
+    private static String getAbilityTranslationKey(MultiblockAbility<?> ability) {
+        return "gregtech.multiblock.ability." + ability.toString();
     }
 
     // --- Internal helpers ---

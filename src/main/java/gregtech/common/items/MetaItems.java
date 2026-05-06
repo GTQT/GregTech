@@ -640,6 +640,9 @@ public final class MetaItems {
 
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_BUILDER;
 
+    // Forge of the Gods
+    public static MetaItem<?>.MetaValueItem STELLAR_FUEL;
+
     private static final List<OrePrefix> orePrefixes = new ArrayList<>();
 
     static {

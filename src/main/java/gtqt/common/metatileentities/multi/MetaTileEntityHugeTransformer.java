@@ -110,6 +110,8 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
     }
 
     @Override
+    // Retained on FactoryBlockPattern: trivially simple (1 aisle, 3 blocks),
+    // no casings — DeclarativePatternBuilder would add unnecessary complexity.
     protected BlockPattern createStructurePattern() {
         return FactoryBlockPattern.start()
                 .aisle("ISI")

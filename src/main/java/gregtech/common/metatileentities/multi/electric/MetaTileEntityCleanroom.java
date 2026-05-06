@@ -428,6 +428,8 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
+    // Retained on FactoryBlockPattern: structure is dynamically generated from variable dimensions.
+    // The aisle strings are built at runtime based on detected cleanroom boundaries.
     protected BlockPattern createStructurePattern() {
         // return the default structure, even if there is no valid size found
         // this means auto-build will still work, and prevents terminal crashes.

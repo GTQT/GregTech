@@ -13,28 +13,47 @@ import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.blocks.BlockGodforgeGlass;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.multi.electric.godforge.data.Fuels;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEBaseModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExoticModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
 import gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade;
 import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
+import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMath;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.Vec3i;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.IItemHandlerModifiable;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static gregtech.api.util.RelativeDirection.FRONT;
 import static gregtech.api.util.RelativeDirection.RIGHT;
@@ -60,7 +79,12 @@ import static gregtech.api.util.RelativeDirection.UP;
  */
 public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
+    // Core tick interval: every 100 ticks (5 seconds) just like GT5
+    private static final int TICK_INTERVAL = 100;
+
     private final ForgeOfGodsData data = new ForgeOfGodsData();
+    private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
+    private long ticker = 0;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -239,11 +263,36 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         updateRingAmount();
+        discoverModules();
     }
 
     @Override
     public void invalidateStructure() {
+        disconnectAllModules();
+        moduleHatches.clear();
         super.invalidateStructure();
+    }
+
+    /**
+     * Scans all multiblock parts to discover connected godforge modules.
+     * Modules are sub-multiblocks attached to the beam_shaft at 'J' positions.
+     */
+    private void discoverModules() {
+        moduleHatches.clear();
+        for (IMultiblockPart part : getMultiblockParts()) {
+            if (part instanceof MTEBaseModule) {
+                moduleHatches.add((MTEBaseModule) part);
+            }
+        }
+    }
+
+    /**
+     * Disconnects all currently connected modules.
+     */
+    private void disconnectAllModules() {
+        for (MTEBaseModule module : moduleHatches) {
+            module.disconnect();
+        }
     }
 
     private void updateRingAmount() {
@@ -282,7 +331,343 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     @Override
     protected void updateFormedValid() {
-        // TODO: Implement Forge of Gods core logic (fuel, battery, modules, milestones)
+        if (getWorld().isRemote) return;
+
+        ticker++;
+
+        if (ticker % TICK_INTERVAL != 0) return;
+
+        // Calculate max allowed module count based on ring upgrades
+        int maxModuleCount = 8;
+        if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD)) {
+            maxModuleCount += 4;
+        }
+        if (data.isUpgradeActive(ForgeOfGodsUpgrade.END)) {
+            maxModuleCount += 4;
+        }
+
+        // === Fuel absorption and battery startup ===
+        absorbFuelOrShards();
+
+        // === Fuel consumption (drain fluid + maintain battery) ===
+        if (data.getInternalBattery() != 0) {
+            drainFuel();
+        }
+
+        // === Milestone calculations ===
+        determineCompositionMilestoneLevel();
+        determineMilestoneProgress();
+        checkInversionStatus();
+        determineGravitonShardAmount();
+
+        // === Graviton shard ejection (if END upgrade active and ejection enabled) ===
+        if (data.isUpgradeActive(ForgeOfGodsUpgrade.END) && data.isGravitonShardEjection()) {
+            ejectGravitonShards();
+        }
+
+        // === Module parameter calculation and connection management ===
+        if (!moduleHatches.isEmpty() && data.getInternalBattery() > 0
+                && moduleHatches.size() <= maxModuleCount) {
+            for (MTEBaseModule module : moduleHatches) {
+                if (GodforgeMath.allowModuleConnection(module, data)) {
+                    module.connect();
+                    GodforgeMath.calculateMaxHeatForModules(module, data);
+                    GodforgeMath.calculateSpeedBonusForModules(module, data);
+                    GodforgeMath.calculateMaxParallelForModules(module, data);
+                    GodforgeMath.calculateEnergyDiscountForModules(module, data);
+                    GodforgeMath.setMiscModuleParameters(module, data);
+                    GodforgeMath.queryMilestoneStats(module, data);
+                    if (!data.isUpgradeActive(ForgeOfGodsUpgrade.TBF)) {
+                        GodforgeMath.calculateProcessingVoltageForModules(module, data);
+                    }
+                    if (GodforgeMath.factorChangeDuringRecipeAntiCheese(module)) {
+                        module.disconnect();
+                    }
+                } else {
+                    module.disconnect();
+                }
+            }
+        } else if (moduleHatches.size() > maxModuleCount) {
+            disconnectAllModules();
+        }
+    }
+
+    // ==================== Fuel System ====================
+
+    /**
+     * Absorbs stellar fuel from input bus for battery startup,
+     * or graviton shards if battery is already running and END upgrade is active.
+     */
+    private void absorbFuelOrShards() {
+        List<IItemHandlerModifiable> itemInputs = getAbilities(MultiblockAbility.IMPORT_ITEMS);
+        if (itemInputs.isEmpty()) return;
+
+        if (data.getInternalBattery() == 0 || data.isUpgradeActive(ForgeOfGodsUpgrade.END)) {
+            ItemStack itemToAbsorb;
+            boolean absorbingShards = data.isUpgradeActive(ForgeOfGodsUpgrade.END) && data.getInternalBattery() != 0;
+
+            if (absorbingShards) {
+                itemToAbsorb = OrePrefix.gem.getItemForm(Materials.GravitonShard, 1);
+            } else {
+                itemToAbsorb = getStellarFuelItem();
+            }
+
+            if (itemToAbsorb == null) return;
+
+            for (IItemHandlerModifiable handler : itemInputs) {
+                for (int i = 0; i < handler.getSlots(); i++) {
+                    ItemStack itemStack = handler.getStackInSlot(i);
+                    if (itemStack.isEmpty()) continue;
+                    if (!itemStack.isItemEqual(itemToAbsorb)) continue;
+
+                    int stackSize = Math.min(itemStack.getCount(),
+                            Integer.MAX_VALUE - data.getStellarFuelAmount());
+                    handler.extractItem(i, stackSize, false);
+
+                    if (!absorbingShards) {
+                        data.setStellarFuelAmount(data.getStellarFuelAmount() + stackSize);
+                    } else {
+                        data.setGravitonShardsAvailable(data.getGravitonShardsAvailable() + stackSize);
+                        data.setGravitonShardsSpent(data.getGravitonShardsSpent() - stackSize);
+                    }
+                }
+            }
+
+            // Attempt battery startup
+            if (data.getInternalBattery() == 0) {
+                data.setNeededStartupFuel(GodforgeMath.calculateStartupFuelConsumption(data));
+                if (data.getStellarFuelAmount() >= data.getNeededStartupFuel()) {
+                    data.setStellarFuelAmount(data.getStellarFuelAmount() - data.getNeededStartupFuel());
+                    increaseBattery(data.getNeededStartupFuel());
+                    if (!data.isRendererDisabled()) {
+                        // TODO: createRenderer() - pending Phase C (renderer)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the item used as stellar fuel for battery startup.
+     * In GT5 this was Avaritia's Infinity Catalyst; here it's a dedicated MetaItem.
+     */
+    private ItemStack getStellarFuelItem() {
+        return MetaItems.STELLAR_FUEL.getStackForm();
+    }
+
+    /**
+     * Drains fuel fluid from input hatches and manages battery charge.
+     * Port of GT5 MTEForgeOfGods#drainFuel().
+     */
+    private void drainFuel() {
+        int fuelConsumptionFactor = data.getFuelConsumptionFactor();
+
+        // Clamp fuel factor based on fuel type and upgrades
+        if (data.getSelectedFuelType() == 0) {
+            if (data.isUpgradeActive(ForgeOfGodsUpgrade.STEM)) {
+                if (fuelConsumptionFactor > ForgeOfGodsData.MAX_RESIDUE_FACTOR_DISCOUNTED) {
+                    data.setFuelConsumptionFactor(ForgeOfGodsData.MAX_RESIDUE_FACTOR_DISCOUNTED);
+                }
+            } else if (fuelConsumptionFactor > ForgeOfGodsData.MAX_RESIDUE_FACTOR) {
+                data.setFuelConsumptionFactor(ForgeOfGodsData.MAX_RESIDUE_FACTOR);
+            }
+        } else if (data.getSelectedFuelType() == 1) {
+            if (data.isUpgradeActive(ForgeOfGodsUpgrade.STEM)) {
+                if (fuelConsumptionFactor > ForgeOfGodsData.MAX_STELLAR_PLASMA_FACTOR_DISCOUNTED) {
+                    data.setFuelConsumptionFactor(ForgeOfGodsData.MAX_STELLAR_PLASMA_FACTOR_DISCOUNTED);
+                }
+            } else if (fuelConsumptionFactor > ForgeOfGodsData.MAX_STELLAR_PLASMA_FACTOR) {
+                data.setFuelConsumptionFactor(ForgeOfGodsData.MAX_STELLAR_PLASMA_FACTOR);
+            }
+        }
+
+        int updatedFuelConsumptionFactor = data.getFuelConsumptionFactor();
+        data.setFuelConsumption(
+                (long) Math.max(GodforgeMath.calculateFuelConsumption(data)
+                        * 5 * (data.isBatteryCharging() ? 2 : 1), 1));
+
+        if (data.getFuelConsumption() >= Integer.MAX_VALUE) {
+            reduceBattery(updatedFuelConsumptionFactor);
+            return;
+        }
+
+        Fuels selectedFuel = Fuels.getFromData(data);
+        FluidStack fuelToDrain = selectedFuel.getFluid((int) data.getFuelConsumption());
+        if (fuelToDrain == null) {
+            reduceBattery(updatedFuelConsumptionFactor);
+            return;
+        }
+
+        List<IFluidTank> fluidInputs = getAbilities(MultiblockAbility.IMPORT_FLUIDS);
+        int remaining = fuelToDrain.amount;
+
+        for (IFluidTank tank : fluidInputs) {
+            if (remaining <= 0) break;
+            if (!(tank instanceof IFluidHandler)) continue;
+
+            FluidStack drained = ((IFluidHandler) tank).drain(
+                    new FluidStack(fuelToDrain, remaining), true);
+            if (drained != null) {
+                remaining -= drained.amount;
+            }
+        }
+
+        if (remaining <= 0) {
+            // Successfully drained all required fuel
+            data.setTotalFuelConsumed(data.getTotalFuelConsumed() + updatedFuelConsumptionFactor);
+            if (data.isBatteryCharging()) {
+                increaseBattery(updatedFuelConsumptionFactor);
+            }
+        } else {
+            // Not enough fuel — reduce battery
+            reduceBattery(updatedFuelConsumptionFactor);
+        }
+    }
+
+    // ==================== Battery Management ====================
+
+    private void increaseBattery(int amount) {
+        long newCharge = (long) data.getInternalBattery() + amount;
+        if (newCharge <= data.getMaxBatteryCharge()) {
+            data.setInternalBattery((int) newCharge);
+        } else {
+            data.setInternalBattery(data.getMaxBatteryCharge());
+            data.setBatteryCharging(false);
+        }
+    }
+
+    private void reduceBattery(int amount) {
+        if (data.getInternalBattery() - amount <= 0) {
+            data.setInternalBattery(0);
+            disconnectAllModules();
+            destroyRenderer();
+        } else {
+            data.setInternalBattery(data.getInternalBattery() - amount);
+            data.setTotalFuelConsumed(data.getTotalFuelConsumed() + amount);
+        }
+    }
+
+    // ==================== Milestone Tracking ====================
+
+    /**
+     * Determines the composition milestone level based on active module types.
+     * Port of GT5 MTEForgeOfGods#determineCompositionMilestoneLevel().
+     */
+    private void determineCompositionMilestoneLevel() {
+        int[] uniqueModuleCount = new int[5];
+        int smelting = 0;
+        int molten = 0;
+        int plasma = 0;
+        int exotic = 0;
+        int exoticMagmatter = 0;
+
+        for (MTEBaseModule module : moduleHatches) {
+            if (module instanceof MTESmeltingModule) {
+                uniqueModuleCount[0] = 1;
+                smelting++;
+            } else if (module instanceof MTEMoltenModule) {
+                uniqueModuleCount[1] = 1;
+                molten++;
+            } else if (module instanceof MTEPlasmaModule) {
+                uniqueModuleCount[2] = 1;
+                plasma++;
+            } else if (module instanceof MTEExoticModule) {
+                if (!((MTEExoticModule) module).isMagmatterModeOn()) {
+                    uniqueModuleCount[3] = 1;
+                    exotic++;
+                } else {
+                    uniqueModuleCount[4] = 1;
+                    exoticMagmatter++;
+                }
+            }
+        }
+
+        data.setTotalExtensionsBuilt(
+                Arrays.stream(uniqueModuleCount).sum() + data.getRingAmount() - 1);
+
+        if (data.isInversion()) {
+            float toAdd = (smelting - 1
+                    + (molten - 1) * 2
+                    + (plasma - 1) * 3
+                    + (exotic - 1) * 4
+                    + (exoticMagmatter - 1) * 5) / 5f;
+            data.setTotalExtensionsBuilt(data.getTotalExtensionsBuilt() + toAdd);
+        }
+
+        data.setMilestoneProgress(3, (int) Math.floor(data.getTotalExtensionsBuilt()));
+    }
+
+    /**
+     * Calculates all four milestone percentages.
+     */
+    private void determineMilestoneProgress() {
+        GodforgeMath.determineChargeMilestone(data);
+        GodforgeMath.determineConversionMilestone(data);
+        GodforgeMath.determineCatalystMilestone(data);
+        GodforgeMath.determineCompositionMilestone(data);
+    }
+
+    /**
+     * Checks if all milestones have reached tier 7 to enable inversion.
+     */
+    private void checkInversionStatus() {
+        int inversionChecker = 0;
+        for (int progress : data.getAllMilestoneProgress()) {
+            if (progress < 7) {
+                break;
+            }
+            inversionChecker++;
+        }
+        data.setInversion(inversionChecker == 4);
+    }
+
+    /**
+     * Calculates the total graviton shards available based on milestone progress.
+     */
+    private void determineGravitonShardAmount() {
+        int sum = 0;
+        for (int progress : data.getAllMilestoneProgress()) {
+            if (!data.isInversion()) {
+                progress = Math.min(progress, 7);
+            }
+            sum += progress * (progress + 1) / 2;
+        }
+        data.setGravitonShardsAvailable(sum - data.getGravitonShardsSpent());
+    }
+
+    /**
+     * Ejects graviton shards into the output bus.
+     */
+    private void ejectGravitonShards() {
+        List<IItemHandlerModifiable> itemOutputs = getAbilities(MultiblockAbility.EXPORT_ITEMS);
+        if (itemOutputs.isEmpty()) return;
+
+        int shardsToEject = data.getGravitonShardsAvailable();
+        if (shardsToEject <= 0) return;
+
+        ItemStack shardStack = OrePrefix.gem.getItemForm(Materials.GravitonShard, shardsToEject);
+        if (shardStack.isEmpty()) return;
+
+        int ejected = 0;
+        for (IItemHandlerModifiable handler : itemOutputs) {
+            for (int i = 0; i < handler.getSlots(); i++) {
+                if (shardStack.isEmpty()) break;
+                ItemStack remainder = handler.insertItem(i, shardStack, false);
+                int inserted = shardStack.getCount() - (remainder.isEmpty() ? 0 : remainder.getCount());
+                ejected += inserted;
+                if (remainder.isEmpty()) {
+                    shardStack = ItemStack.EMPTY;
+                    break;
+                }
+                shardStack = remainder;
+            }
+            if (shardStack.isEmpty()) break;
+        }
+
+        if (ejected > 0) {
+            data.setGravitonShardsAvailable(data.getGravitonShardsAvailable() - ejected);
+            data.setGravitonShardsSpent(data.getGravitonShardsSpent() + ejected);
+        }
     }
 
     // ==================== Facing ====================

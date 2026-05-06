@@ -53,6 +53,8 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
 
     @NotNull
     @Override
+    // Retained on FactoryBlockPattern: uses abstract getCoilBlockPredicate() for per-module
+    // predicate customization, and all chars are simple states() with hatches on one slot only.
     protected BlockPattern createStructurePattern() {
         return FactoryBlockPattern.start()
                 .aisle("       ", "  BBB  ", " BBBBB ", " BB~BB ", " BBBBB ", "  BBB  ", "       ")

@@ -795,4 +795,12 @@ public class Materials {
     public static Material BasalticMineralSand;
     public static Material HSSE;
     public static Material HSSS;
+
+    /**
+     * Forge of the Gods Materials
+     */
+    public static Material DimensionallyTranscendentResidue;
+    public static Material RawStarMatter;
+    public static Material MagnetoHydrodynamicallyConstrainedStarMatter;
+    public static Material GravitonShard;
 }

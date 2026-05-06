@@ -436,6 +436,8 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     @Override
+    // Retained on FactoryBlockPattern: uses non-standard directions (UP, BACK, RIGHT)
+    // and dynamically generated aisle strings based on monitor width.
     protected BlockPattern createStructurePattern() {
         StringBuilder start = new StringBuilder("AS");
         StringBuilder slice = new StringBuilder("BB");

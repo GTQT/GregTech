@@ -142,6 +142,8 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     }
 
     @Override
+    // Retained on FactoryBlockPattern: non-standard direction (RIGHT, FRONT, UP),
+    // mixed hatch/casing predicates on multiple chars with frames — low migration value.
     protected @NotNull BlockPattern createStructurePattern() {
         return FactoryBlockPattern.start(RIGHT, FRONT, UP)
                 .aisle("ISI", "OEO")

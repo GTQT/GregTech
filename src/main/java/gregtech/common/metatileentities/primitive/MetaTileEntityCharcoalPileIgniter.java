@@ -119,6 +119,8 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
 
     @NotNull
     @Override
+    // Retained on FactoryBlockPattern: structure is dynamically generated from variable dimensions.
+    // Aisle strings are built at runtime based on detected pile boundaries.
     protected BlockPattern createStructurePattern() {
         // update the structure's dimensions just before we create it
         // return the default structure, even if there is no valid size found

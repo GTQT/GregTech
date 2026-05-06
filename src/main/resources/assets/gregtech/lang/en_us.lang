@@ -1403,6 +1403,10 @@ metaitem.tool.multiblock_remover.name=Multiblock demolition
 metaitem.tool.multiblock_remover.tooltip=Dismantle your Multiblock structure！
 metaitem.tool.multiblock_remover.tooltip2=Hold down the SHIFT key and right-click on the Multiblock structure controller to automatically dismantle it
 
+metaitem.stellar_fuel.name=Stellar Fuel
+metaitem.stellar_fuel.tooltip=§5Condensed stellar ignition catalyst
+metaitem.stellar_fuel.tooltip2=§7Used to start the Forge of the Gods
+
 metaarmor.nms.nightvision.enabled=NanoMuscle™ Suite: NightVision Enabled
 metaarmor.nms.nightvision.disabled=NanoMuscle™ Suite: NightVision Disabled
 metaarmor.nms.nightvision.error=NanoMuscle™ Suite: §cNot enough power!
@@ -7083,6 +7087,44 @@ gregtech.multiblock.tooltip.same_tier=all same tier
 gregtech.multiblock.tooltip.optional=optional
 gregtech.multiblock.tooltip.sub_channel=%s§7: §fuse Projector to configure
 gregtech.multiblock.tooltip.sub_channel_purpose=%s§7 (§f%s§7)
+
+# Multiblock ability display names (for auto-generated structure tooltips)
+gregtech.multiblock.ability.export_items=Item Output Bus
+gregtech.multiblock.ability.import_items=Item Input Bus
+gregtech.multiblock.ability.export_fluids=Fluid Output Hatch
+gregtech.multiblock.ability.import_fluids=Fluid Input Hatch
+gregtech.multiblock.ability.input_energy=Energy Input Hatch
+gregtech.multiblock.ability.output_energy=Energy Output Hatch
+gregtech.multiblock.ability.input_heat=Heat Input Hatch
+gregtech.multiblock.ability.output_heat=Heat Output Hatch
+gregtech.multiblock.ability.heat_sensor=Heat Sensor Hatch
+gregtech.multiblock.ability.substation_input_energy=Substation Energy Input Hatch
+gregtech.multiblock.ability.substation_output_energy=Substation Energy Output Hatch
+gregtech.multiblock.ability.rotor_holder=Rotor Holder
+gregtech.multiblock.ability.pump_fluid_hatch=Pump Fluid Hatch
+gregtech.multiblock.ability.steam=Steam Hatch
+gregtech.multiblock.ability.steam_import_items=Steam Import Bus
+gregtech.multiblock.ability.steam_export_items=Steam Export Bus
+gregtech.multiblock.ability.steam_import_fluid=Steam Import Hatch
+gregtech.multiblock.ability.steam_export_fluid=Steam Export Hatch
+gregtech.multiblock.ability.maintenance_hatch=Maintenance Hatch
+gregtech.multiblock.ability.muffler_hatch=Muffler Hatch
+gregtech.multiblock.ability.machine_hatch=Machine Hatch
+gregtech.multiblock.ability.tank_valve=Tank Valve
+gregtech.multiblock.ability.passthrough_hatch=Passthrough Hatch
+gregtech.multiblock.ability.data_access_hatch=Data Access Hatch
+gregtech.multiblock.ability.optical_data_reception=Optical Data Reception Hatch
+gregtech.multiblock.ability.optical_data_transmission=Optical Data Transmission Hatch
+gregtech.multiblock.ability.input_laser=Laser Input Hatch
+gregtech.multiblock.ability.output_laser=Laser Output Hatch
+gregtech.multiblock.ability.computation_data_reception=Computation Data Reception Hatch
+gregtech.multiblock.ability.computation_data_transmission=Computation Data Transmission Hatch
+gregtech.multiblock.ability.hpca_component=HPCA Component
+gregtech.multiblock.ability.object_holder=Object Holder
+gregtech.multiblock.ability.wireless_controller=Wireless Controller
+gregtech.multiblock.ability.thread_hatch=Thread Hatch
+gregtech.multiblock.ability.godforge_module=Godforge Module
+
 gregtech.multiblock.universal.no_multi_recipemap=This Multiblock does not require recipe switching
 gregtech.multiblock.parallel=Max Parallels: %s
 gregtech.multiblock.multiple_recipemaps.header=Machine Mode:

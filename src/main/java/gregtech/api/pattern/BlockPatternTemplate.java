@@ -7,6 +7,9 @@ import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Immutable structural template for multiblock patterns.
  * Contains all static/shared data that does not change between instances of the same machine type.
@@ -29,6 +32,10 @@ public class BlockPatternTemplate {
     private final int palmLength; // x size
     // x, y, z, minZ, maxZ
     private final int[] centerOffset;
+
+    // Auto-generated structure description lines (from DeclarativePatternBuilder)
+    @Nullable
+    private List<String> structureDescription;
 
     public BlockPatternTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
                                 @NotNull RelativeDirection[] structureDir,
@@ -154,5 +161,26 @@ public class BlockPatternTemplate {
 
     public int getStructureZSize() {
         return fingerLength;
+    }
+
+    /**
+     * Get auto-generated structure description lines for tooltip display.
+     * Only available if the template was built via {@link gregtech.api.pattern.casing.DeclarativePatternBuilder}.
+     *
+     * @return unmodifiable list of tooltip lines, or empty list if not available
+     */
+    @NotNull
+    public List<String> getStructureDescription() {
+        return structureDescription != null ? structureDescription : Collections.emptyList();
+    }
+
+    /**
+     * Set the structure description lines. Called by DeclarativePatternBuilder during build.
+     * Should only be called once during template construction.
+     *
+     * @param description the description lines
+     */
+    public void setStructureDescription(@NotNull List<String> description) {
+        this.structureDescription = Collections.unmodifiableList(description);
     }
 }

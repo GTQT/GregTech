@@ -198,5 +198,36 @@ public class HigherDegreeMaterials {
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Water, 1, Lapis, 9)
                 .build();
+
+        // ==================== Forge of the Gods Materials ====================
+
+        // Dimensionally Transcendent Residue (DTR) - primary godforge fuel
+        DimensionallyTranscendentResidue = Material.builder(2530, gregtechId("dimensionally_transcendent_residue"))
+                .fluid()
+                .color(0x1A0033).iconSet(DULL)
+                .flags(DISABLE_DECOMPOSITION)
+                .build();
+
+        // Raw Star Matter - secondary godforge fuel
+        RawStarMatter = Material.builder(2531, gregtechId("raw_star_matter"))
+                .fluid()
+                .color(0xFFFF99).iconSet(SHINY)
+                .flags(DISABLE_DECOMPOSITION)
+                .build();
+
+        // Magneto-Hydrodynamically Constrained Star Matter (MHDCSM) - tertiary godforge fuel (molten)
+        MagnetoHydrodynamicallyConstrainedStarMatter = Material.builder(2532,
+                        gregtechId("magneto_hydrodynamically_constrained_star_matter"))
+                .ingot().fluid()
+                .color(0xE6E6FF).iconSet(METALLIC)
+                .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
+                .build();
+
+        // Graviton Shard - godforge upgrade currency
+        GravitonShard = Material.builder(2533, gregtechId("graviton_shard"))
+                .gem(1)
+                .color(0x9933FF).iconSet(DIAMOND)
+                .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
+                .build();
     }
 }
