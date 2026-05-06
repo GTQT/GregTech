@@ -15,8 +15,7 @@ import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.api.util.ItemStackHashStrategy;
-import gregtech.client.renderer.scene.ImmediateWorldSceneRenderer;
-import gregtech.client.renderer.scene.VBOWorldSceneRenderer;
+import gregtech.client.renderer.scene.FBOWorldSceneRenderer;
 import gregtech.client.renderer.scene.WorldSceneRenderer;
 import gregtech.client.utils.RenderUtil;
 import gregtech.client.utils.TrackedDummyWorld;
@@ -297,16 +296,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (renderer != null) {
             TrackedDummyWorld world = ((TrackedDummyWorld) renderer.world);
             resetCenter(world);
-            renderer.renderedBlocks.clear();
             int minY = (int) world.getMinPos().getY();
-            Collection<BlockPos> renderBlocks;
             if (newLayer == -1) {
-                renderBlocks = world.renderedBlocks;
+                // Show all layers: disable clip planes
+                renderer.disableClipPlanes();
             } else {
-                renderBlocks = world.renderedBlocks.stream().filter(pos -> pos.getY() - minY == newLayer)
-                        .collect(Collectors.toSet());
+                // Show single layer: use GL clip planes (no VBO rebuild needed)
+                renderer.setClipPlanes(minY + newLayer, minY + newLayer + 1.0);
             }
-            renderer.addRenderedBlocks(renderBlocks);
         }
     }
 
@@ -808,7 +805,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
 
         TrackedDummyWorld world = new TrackedDummyWorld();
-        ImmediateWorldSceneRenderer worldSceneRenderer = new VBOWorldSceneRenderer(world);
+        // FBO renderer: offscreen rendering with dirty-flag caching
+        // Resolution dynamically based on typical JEI preview area (~200x200 scaled pixels → 400x400 native)
+        FBOWorldSceneRenderer worldSceneRenderer = new FBOWorldSceneRenderer(world, 512, 512);
 
         worldSceneRenderer.setClearColor(ConfigHolder.client.multiblockPreviewColor);
         world.addBlocks(blockMap);

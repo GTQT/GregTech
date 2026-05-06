@@ -1,268 +1,314 @@
 # JEI 多方块预览性能优化计划
 
-## 现状分析
+> **最后更新:** 2026-05-06
+> **状态:** Phase 1-3.1 已实施，Phase 4-6 待实施
 
-### 当前渲染管线
+---
+
+## 实施进度总览
+
+| Phase | 描述 | 状态 | 关键文件 |
+|-------|------|------|----------|
+| 1.1 | TESR 白名单过滤 | ✅ 已完成 | `WorldSceneRenderer.java` L166-193 |
+| 1.2 | TESR 距离剔除 | ✅ 已完成 | `WorldSceneRenderer.java` L178-181, L425-429 |
+| 2 | 命中检测降频 | ✅ 已完成 | `WorldSceneRenderer.java` L204-207, L241-255 |
+| 3.1 | 内部方块剔除 | ✅ 已完成 | `WorldSceneRenderer.java` L114-123, L143-151 |
+| 3.2 | 远距离简化渲染 | ❌ 未实施 | — |
+| 4.1 | 分帧VBO构建 | ❌ 未实施 | — |
+| 4.2 | 预览缓存 | ❌ 未实施 | — |
+| 5 | FBO离屏渲染 | ❌ 未实施 | `FBOWorldSceneRenderer.java` 存在但未启用 |
+| 6 (NEW) | 架构隐患修复 | ❌ 未实施 | `VBOWorldSceneRenderer.java`, `WorldSceneRenderer.java` |
+
+---
+
+## 当前架构分析
+
+### 渲染管线（已优化后）
 
 ```
-MultiblockInfoRecipeWrapper.render()
+MultiblockInfoRecipeWrapper.drawInfo()
   └─ WorldSceneRenderer.render(x, y, w, h, mouseX, mouseY)
-       ├─ setupCamera()              — 设置 GL 投影/视图矩阵
-       ├─ drawWorld()
-       │    ├─ renderBlockLayer() x4  — 4个渲染层（Solid/Cutout/CutoutMipped/Translucent）
-       │    │    └─ 遍历 renderedBlocks, 调用 blockrendererdispatcher.renderBlock() [瓶颈1]
-       │    ├─ renderTileEntities()   — 遍历 TILE_ENTITIES, 调用 dispatcher.render()  [瓶颈2]
-       │    └─ afterRender()          — 高亮覆盖层
-       ├─ unProject(mouseX, mouseY)   — glReadPixels (GPU→CPU同步)                    [瓶颈3]
-       ├─ rayTrace(hitPos)            — world.rayTraceBlocks()
+       ├─ setupCamera()
+       ├─ drawWorld()  [VBOWorldSceneRenderer override]
+       │    ├─ if (isDirty) uploadVBO()     — 同步重建 VBO（仅 dirty 时）
+       │    ├─ draw VBO x4 layers           — 从缓存的 VBO 绘制
+       │    ├─ renderTileEntities()         — ✅ 有数量限制 + 距离剔除 + 自定义过滤
+       │    └─ afterRender()                — 高亮覆盖层
+       ├─ if (frameCount % hitTestInterval == 0)  — ✅ 降频命中检测
+       │    ├─ unProject(mouseX, mouseY)    — glReadPixels (仅每N帧执行)
+       │    └─ rayTrace(hitPos)
        └─ resetCamera()
 ```
 
-### 渲染器类型
+### 当前配置策略（`initializePattern()` 中）
 
-| 渲染器 | 方块渲染 | TileEntity | 使用场景 |
-|--------|----------|------------|---------|
-| `ImmediateWorldSceneRenderer` | 每帧重绘 | 每帧TESR | 旧代码默认 |
-| `VBOWorldSceneRenderer` | VBO缓存(仅dirty时重建) | 每帧TESR | 当前JEI使用 |
-| `FBOWorldSceneRenderer` | VBO+FBO离屏渲染 | 每帧TESR | 未使用 |
+| 结构大小 | TESR 策略 | 命中检测间隔 | 内部剔除 |
+|----------|-----------|-------------|---------|
+| ≤ 50 方块 | 无限制（全部渲染） | 每帧 | 关闭 |
+| 51-100 方块 | 最多8个TESR, 距离≤16 | 每3帧 | 开启 |
+| > 100 方块 | 仅控制器TESR | 每5帧 | 开启 |
 
-### 性能瓶颈（按严重程度排序）
+### 已发现的架构隐患
 
-| # | 瓶颈 | 影响 | 复杂度 |
-|---|------|------|--------|
-| 1 | **TileEntity TESR 每帧渲染** | 每个GT MetaTileEntity都有TESR（管道贴图、覆盖板等），500+个TE会导致严重掉帧 | 高 |
-| 2 | **VBO重建（初始化/dirty时）** | 遍历所有方块位置调用 renderBlock()，大结构初始化时卡顿数秒 | 中 |
-| 3 | **glReadPixels GPU同步** | 每帧从GPU回读深度缓冲区做鼠标命中检测，强制GPU-CPU同步 | 低 |
-| 4 | **初始化收集** | initializePattern() 创建所有BlockInfo/TileEntity/ItemStack | 中 |
-| 5 | **afterRender高亮** | CodeChickenLib的renderBlockOverLay，每帧绘制 | 低 |
+#### 1. 静态 VBO 数组共享问题（严重）
 
-### GTM (LDLib) 对比
+```java
+// VBOWorldSceneRenderer.java Line 28
+protected static final VertexBuffer[] VBOS = new VertexBuffer[BlockRenderLayer.values().length];
+```
 
-GTM 使用 LDLib 的 `WorldSceneRenderer`，核心差异：
+**问题:** 所有 `VBOWorldSceneRenderer` 实例共享同一组 VBO。如果同时存在多个渲染器实例（如多个多方块预览缓存在 `MBPattern[]` 中），后初始化的会覆盖前面的 VBO 数据。当前因为每次只渲染一个活跃的 pattern 且切换时会 setDirty 重建，所以不会立即表现为渲染错误，但这阻碍了未来的 VBO 缓存优化（Phase 4.2）。
 
-| 方面 | GTCEu 1.12 (当前) | GTM/LDLib (1.20+) |
-|------|-------------------|-------------------|
-| 方块渲染 | VBO（4层分别draw） | VBO + 合并顶点（section-based） |
-| TESR | 每帧逐个渲染所有TE | **过滤：仅渲染 IFastRenderMetaTileEntity**，且有距离剔除 |
-| 鼠标命中 | glReadPixels + gluUnProject + rayTrace | 纯数学 ray-AABB 测试（不依赖GL） |
-| 初始化 | 全量一次性 | 支持分批/惰性加载 |
-| 内部方块 | 全部渲染 | 面剔除（被遮挡面不生成顶点） |
+#### 2. 静态 TILE_ENTITIES Map 共享问题（中等）
+
+```java
+// WorldSceneRenderer.java Line 72
+protected static final Map<BlockPos, TileEntity> TILE_ENTITIES = new Object2ObjectArrayMap<>();
+```
+
+**问题:** 与 VBO 相同，所有渲染器实例共享同一个 TE map。`addRenderedBlocks()` 会清空再重建，多实例切换时数据被覆盖。
+
+#### 3. setNextLayer 触发不必要的 VBO 重建
+
+```java
+// MultiblockInfoRecipeWrapper.java Line 300-309
+renderer.renderedBlocks.clear();
+// ...filter by layer...
+renderer.addRenderedBlocks(renderBlocks);  // → isDirty = true → VBO rebuild
+```
+
+**问题:** 切换层时每次都重建 VBO。对大结构来说，这会导致切换层时卡顿。
+**更优方案:** 预构建所有层的 VBO，或通过 GL 裁剪平面实现层过滤（不需要重建 VBO）。
+
+#### 4. FBOWorldSceneRenderer 缺少脏标记
+
+当前 `FBOWorldSceneRenderer.render()` 每次调用都重渲染 FBO 内容，没有判断是否需要更新。如果要启用 FBO 方案，必须添加脏标记机制。
 
 ---
 
-## 优化方案
+## 下一步优化方案（按优先级排序）
 
-### Phase 1: TESR 优化（效果最大，改动最小）
+### Phase 6: 架构隐患修复（P0 - 阻塞后续优化）
 
-**目标：** 减少 90%+ 的 TESR 调用
+**目标:** 消除静态共享问题，为缓存和 FBO 方案铺路
 
-#### 1.1 TESR 白名单过滤
+#### 6.1 VBO 实例化
 
-当前 `addRenderedBlocks()` 中已有过滤：
-```java
-if (tile != null && (!(tile instanceof IGregTechTileEntity gtte) ||
-        gtte.getMetaTileEntity() instanceof IFastRenderMetaTileEntity)) {
-    TILE_ENTITIES.put(pos, tile);
-}
-```
-但这只过滤了非 FastRender 的 MTE。实际上在 JEI 预览场景中，**大部分 TESR 完全不需要渲染**（管道覆盖板、仓室前面板等视觉效果不影响结构展示）。
-
-**改动：**
-- 在 `WorldSceneRenderer` 中添加 `setTileEntityRenderLimit(int maxTEs)` — 超过阈值时跳过 TESR
-- 或添加 `setTileEntityFilter(Predicate<TileEntity>)` — 自定义过滤
-- 在 `MultiblockInfoRecipeWrapper` 中设置过滤：只渲染控制器的 TESR
-
-**预期效果：** 帧率提升 50-80%
-
-#### 1.2 TESR 距离剔除
-
-对于超大结构，即使保留部分 TESR，也应该基于相机距离剔除远处的 TE：
+将 `static final VertexBuffer[] VBOS` 改为实例字段：
 
 ```java
-protected void renderTileEntities() {
-    double maxDistSq = MAX_TESR_RENDER_DIST * MAX_TESR_RENDER_DIST;
-    TILE_ENTITIES.forEach((pos, tile) -> {
-        double distSq = pos.distanceSq(eyePos.x, eyePos.y, eyePos.z);
-        if (distSq < maxDistSq && tile.shouldRenderInPass(finalPass)) {
-            dispatcher.render(tile, ...);
-        }
-    });
+public class VBOWorldSceneRenderer extends ImmediateWorldSceneRenderer {
+    private final VertexBuffer[] vbos = new VertexBuffer[BlockRenderLayer.values().length];
+    // ...
 }
 ```
 
-**预期效果：** 额外 20-30% 提升
+**影响:** 每个渲染器拥有独立的 VBO，允许多实例共存和缓存。
 
----
+#### 6.2 TILE_ENTITIES 实例化
 
-### Phase 2: 鼠标命中检测优化
-
-**目标：** 消除 glReadPixels GPU 同步
-
-当前方案：每帧调用 `glReadPixels` → `gluUnProject` → `world.rayTraceBlocks()`
-- `glReadPixels` 强制 GPU pipeline flush，是 OpenGL 中最慢的操作之一
-
-**替代方案：CPU 侧 Ray-AABB 测试**
+将 `static final Map<BlockPos, TileEntity> TILE_ENTITIES` 改为实例字段：
 
 ```java
-public RayTraceResult rayTraceBlocks(int mouseX, int mouseY, int x, int y, int w, int h) {
-    // 1. 从屏幕坐标计算射线方向（纯数学，不需要 GL）
-    Vec3d rayOrigin = getCameraPosition();
-    Vec3d rayDir = screenToWorldRay(mouseX, mouseY, x, y, w, h);
-    
-    // 2. 遍历 renderedBlocks 做 Ray-AABB 测试
-    double closestDist = Double.MAX_VALUE;
-    BlockPos closestPos = null;
-    for (BlockPos pos : renderedBlocks) {
-        if (world.isAirBlock(pos)) continue;
-        double dist = rayIntersectsAABB(rayOrigin, rayDir, pos);
-        if (dist >= 0 && dist < closestDist) {
-            closestDist = dist;
-            closestPos = pos;
+public abstract class WorldSceneRenderer {
+    protected final Map<BlockPos, TileEntity> tileEntities = new Object2ObjectArrayMap<>();
+    // ...
+}
+```
+
+**影响:** 每个渲染器独立管理自己的 TE 集合。
+
+#### 6.3 VBO 释放管理
+
+添加 `dispose()` 方法用于释放 VBO 资源：
+
+```java
+public void dispose() {
+    for (int i = 0; i < vbos.length; i++) {
+        if (vbos[i] != null) {
+            vbos[i].deleteGlBuffers();
+            vbos[i] = null;
         }
     }
-    return closestPos != null ? new RayTraceResult(...) : null;
 }
 ```
 
-**优化：** 使用空间索引（八叉树或分区哈希）加速射线测试，将 O(n) 降为 O(log n)。
-
-但对于 JEI 预览，更简单的方案是：**降低命中检测频率**，不需要每帧检测，每 3-5 帧检测一次即可。
-
-**改动：**
-- 添加 `hitTestInterval` 字段（默认=3帧）
-- `render()` 中只在 `frameCount % hitTestInterval == 0` 时做命中检测
-- 保留上次结果用于中间帧
-
-**预期效果：** 帧率稳定性提升，消除 GPU 管线同步卡顿
+**预期改动量:** ~30 行
+**风险:** 低（行为等价替换，只是从 static 变 instance）
 
 ---
 
-### Phase 3: 大结构 LOD（Level of Detail）
+### Phase 4: 初始化优化（P1）
 
-**目标：** 超大结构（>1000方块）降低渲染复杂度
+#### 4.1 层切换优化（替代原有分帧方案）
 
-#### 3.1 内部方块剔除
+**新方案: GL 裁剪平面**
 
-对于 3x3x3 以上的实心区域，内部被完全遮挡的方块不需要渲染。
+利用 OpenGL 裁剪平面（glClipPlane）在不重建 VBO 的情况下实现层过滤：
 
-**算法：**
-```
-对于每个方块位置 pos:
-  如果 pos 的6个相邻位置都是非空方块:
-    跳过渲染（被完全包围，不可见）
-```
-
-**改动：**
-- 在 `addRenderedBlocks()` 后添加 `cullInternalBlocks()` 预处理
-- 生成 `visibleBlocks` 子集（只包含至少一面暴露的方块）
-- VBO 和 TESR 只处理 `visibleBlocks`
-
-**预期效果：** 对于大型多方块（如 5x5x5+），渲染方块数减少 30-50%
-
-#### 3.2 远距离简化渲染
-
-当相机距离结构较远时（缩小视角），使用简化渲染：
-
-| 距离 | 渲染模式 |
-|------|---------|
-| 近 | 完整方块纹理 + TESR |
-| 中 | 只渲染方块纹理，跳过TESR |
-| 远 | 只渲染外壳颜色方块（不加载纹理） |
-
-**改动：**
-- `drawWorld()` 中根据相机距离选择渲染策略
-- 缩放时动态切换
-
----
-
-### Phase 4: 初始化优化
-
-**目标：** 消除切换结构预览时的卡顿
-
-#### 4.1 异步 VBO 构建
-
-当前 VBO 重建在 `isDirty` 时同步执行（卡主线程）。改为异步构建：
-
-```
-主线程：收集 BlockPos 列表 → 标记 dirty
-后台线程：遍历方块，调用 renderBlock() 填充 BufferBuilder
-主线程（下一帧）：上传 VBO 数据到 GPU
-```
-
-**注意：** MC 1.12 的 `BlockRendererDispatcher.renderBlock()` 不是线程安全的，需要对 DummyWorld 做快照。
-
-**替代方案：** 分帧构建 — 每帧只处理 N 个方块（如 500个/帧），用 2-3 帧完成大结构的 VBO 构建。用户可以看到结构"逐渐出现"。
-
-#### 4.2 预览缓存
-
-对于同一个多方块的同一个结构变体（repetition组合），缓存 VBO 数据：
 ```java
-Map<String, int[]> vboCache; // key = "multiblockId:shapeIndex:repetitions"
+private void setNextLayer(int newLayer) {
+    this.layerIndex = newLayer;
+    if (newLayer == -1) {
+        // Show all: disable clip plane
+        renderer.setClipPlane(null);
+    } else {
+        // Clip to single layer using GL clip planes
+        int minY = (int) world.getMinPos().getY();
+        float y = minY + newLayer;
+        renderer.setClipPlane(y, y + 1.0f);  // Only show blocks in [y, y+1)
+    }
+}
 ```
 
-**预期效果：** 多次切换已浏览过的预览时零延迟
+**优势:** 
+- 切换层不重建 VBO（零延迟切换）
+- VBO 始终包含完整结构数据
+- 实现简单（~40行）
+
+**注意:** 裁剪平面会裁剪 TESR 和方块高亮，需要额外处理。
+**替代方案:** 如果裁剪平面处理复杂，可改用 per-layer VBO 预构建。
+
+#### 4.2 预览缓存（依赖 Phase 6.1）
+
+修复 VBO 静态共享问题后，可以缓存已构建的渲染器：
+
+```java
+// MBPattern already stores WorldSceneRenderer, just need to avoid isDirty on revisit
+// The cache already exists via MBPattern[] patterns array
+// Key fix: Don't clear+rebuild when switching back to a pattern that already has valid VBO
+```
+
+当前 `MBPattern[]` 数组已经为每个形状保存了独立的 `WorldSceneRenderer`，但由于 VBO 是 static 的，切换回来时 VBO 数据已丢失。修复 Phase 6.1 后，缓存自然生效。
+
+**预期改动量:** Phase 6.1 完成后仅需 ~5 行（移除不必要的 isDirty 设置）
 
 ---
 
-### Phase 5: FBO 离屏渲染（可选，最大化优化）
+### Phase 5: FBO 离屏渲染（P2 - 可选但高收益）
 
-**目标：** 完全解耦预览渲染与主游戏帧率
+**目标:** 完全解耦预览渲染与主游戏帧率
 
-当前项目已有 `FBOWorldSceneRenderer`，但未在 JEI 中使用。
+当前 `FBOWorldSceneRenderer` 已存在且功能完整，但缺少：
 
-**方案：**
-- JEI 预览使用 FBO 渲染到纹理
-- 主渲染只绘制一个贴图四边形（几乎零开销）
-- FBO 渲染频率可以独立于主帧率（如 20fps）
-- 只在相机移动/结构切换时重新渲染 FBO
+1. **脏标记机制** — 只在相机移动/结构切换时重渲染
+2. **独立渲染频率** — FBO 可以以低于主循环的频率更新（如 20fps）
+3. **与 VBO 的结合** — 当前 FBO 继承自 `WorldSceneRenderer`（Immediate 渲染），应改为继承 `VBOWorldSceneRenderer`
 
-**改动：**
-- `MultiblockInfoRecipeWrapper` 中将 `VBOWorldSceneRenderer` 替换为 `FBOWorldSceneRenderer`
-- 设置 FBO 分辨率（如 512x512 或根据 JEI 区域大小动态调整）
-- 添加脏标记：只在需要时重渲染 FBO
+**改动清单:**
 
-**预期效果：** 预览渲染完全不影响主游戏帧率
+```java
+public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {  // 改继承关系
+    private boolean fboDirty = true;
+    private int renderInterval = 3;  // 每3帧才真正渲染 FBO 一次
+    private int fboFrameCount;
+    
+    public void markFBODirty() { this.fboDirty = true; }
+    
+    @Override
+    public void render(float x, float y, float width, float height, int mouseX, int mouseY) {
+        fboFrameCount++;
+        if (fboDirty || fboFrameCount % renderInterval == 0) {
+            // Render to FBO
+            int lastID = bindFBO();
+            super.render(0, 0, resolutionWidth, resolutionHeight, ...);
+            unbindFBO(lastID);
+            fboDirty = false;
+        }
+        // Always: draw FBO texture as quad (nearly free)
+        drawFBOTextureQuad(x, y, width, height);
+    }
+}
+```
+
+**预期改动量:** ~80 行
+**风险:** 中（需要处理 FBO 与主 GL 上下文的交互、鼠标坐标映射）
 
 ---
 
-## 实施优先级
+### Phase 3.2: 远距离简化渲染（P3 - 低优先级）
 
-| 阶段 | 改动量 | 性能提升 | 风险 | 推荐优先级 |
-|------|--------|---------|------|-----------|
-| Phase 1.1: TESR过滤 | 小(~20行) | ★★★★★ | 低 | **P0 - 立即** |
-| Phase 1.2: TESR距离剔除 | 小(~15行) | ★★★ | 低 | **P0 - 立即** |
-| Phase 2: 命中检测降频 | 小(~10行) | ★★★ | 低 | **P1 - 紧随** |
-| Phase 3.1: 内部方块剔除 | 中(~50行) | ★★★★ | 低 | **P1 - 紧随** |
-| Phase 4.1: 分帧VBO构建 | 中(~80行) | ★★★ | 中 | **P2 - 后续** |
-| Phase 4.2: 预览缓存 | 中(~60行) | ★★★ | 低 | **P2 - 后续** |
-| Phase 3.2: 远距离简化 | 大(~100行) | ★★ | 中 | **P3 - 可选** |
-| Phase 5: FBO离屏渲染 | 大(~150行) | ★★★★ | 高 | **P3 - 可选** |
+**评估:** 由于已实施的 TESR 过滤和内部剔除已覆盖大部分性能收益，远距离 LOD 的边际收益较低。仅在超大结构（>500方块）仍有明显卡顿时再考虑。
+
+**如果实施:** 建议基于缩放级别动态调整 TESR 策略，而非实现完整的面简化：
+
+| zoom 级别 | TESR 策略 |
+|-----------|-----------|
+| 近 (zoom < 8) | 按当前策略 |
+| 中 (8-15) | 完全禁用 TESR |
+| 远 (> 15) | 完全禁用 TESR + 跳过 Translucent 层 |
+
+---
+
+## 新的实施优先级
+
+| 阶段 | 描述 | 改动量 | 性能/架构收益 | 风险 | 优先级 |
+|------|------|--------|-------------|------|--------|
+| ~~Phase 1.1~~ | ~~TESR过滤~~ | — | — | — | ~~✅ 已完成~~ |
+| ~~Phase 1.2~~ | ~~TESR距离剔除~~ | — | — | — | ~~✅ 已完成~~ |
+| ~~Phase 2~~ | ~~命中检测降频~~ | — | — | — | ~~✅ 已完成~~ |
+| ~~Phase 3.1~~ | ~~内部方块剔除~~ | — | — | — | ~~✅ 已完成~~ |
+| **Phase 6.1** | VBO 实例化 | 小(~20行) | 架构★★★★★ | 低 | **P0 - 立即** |
+| **Phase 6.2** | TILE_ENTITIES 实例化 | 小(~15行) | 架构★★★★ | 低 | **P0 - 立即** |
+| **Phase 4.1** | 层切换优化(裁剪平面) | 中(~40行) | 性能★★★ | 中 | **P1 - 紧随** |
+| **Phase 4.2** | 预览缓存(依赖6.1) | 小(~5行) | 性能★★★★ | 低 | **P1 - 紧随** |
+| **Phase 5** | FBO离屏渲染 | 大(~80行) | 性能★★★★★ | 中 | **P2 - 后续** |
+| Phase 3.2 | 远距离简化 | 中(~30行) | 性能★★ | 低 | **P3 - 可选** |
+
+---
+
+## 已完成优化的代码位置
+
+### WorldSceneRenderer.java
+
+| 功能 | 位置 | 描述 |
+|------|------|------|
+| TESR 数量限制 | `maxTileEntityRenderers` 字段, L85 | `setMaxTileEntityRenderers(int)` |
+| TESR 距离剔除 | `maxTileEntityRenderDistSq` 字段, L86 | `setMaxTileEntityRenderDistance(double)` |
+| TESR 自定义过滤 | `tileEntityFilter` 字段, L87 | `setTileEntityFilter(Predicate<TileEntity>)` |
+| 命中检测降频 | `hitTestInterval` / `frameCount`, L90-91 | `setHitTestInterval(int)` |
+| 内部方块剔除 | `cullInternal` 字段, L94 | `setCullInternalBlocks(boolean)` + `isFullyEnclosed()` |
+| 渲染TE时三重过滤 | `renderTileEntities()`, L407-441 | 数量→距离→自定义过滤器 |
+
+### MultiblockInfoRecipeWrapper.java
+
+| 功能 | 位置 | 描述 |
+|------|------|------|
+| 大结构TESR过滤 | `initializePattern()`, L831-842 | 按方块数量分档配置 |
+| 内部剔除启用 | `initializePattern()`, L821-824 | >50方块时启用 |
 
 ---
 
 ## 参考：GT5 NEI vs 当前 JEI 对比
 
-| 特性 | GT5 NEI (structurelib) | 当前 JEI |
+| 特性 | GT5 NEI (structurelib) | 当前 JEI (优化后) |
 |------|----------------------|---------|
-| 渲染方式 | Display List / 简化面渲染 | VBO + TESR |
-| TileEntity | 完全跳过 | 逐个渲染 |
-| 方块面 | 只渲染可见面 | 渲染所有面 |
-| 鼠标交互 | 无/简单 | 每帧 GL 命中检测 |
-| 初始化 | 按需惰性加载 | 全量同步加载 |
-| 大结构支持 | 分片渲染（按 piece） | 全部一次性渲染 |
+| 渲染方式 | Display List / 简化面渲染 | VBO + 受限 TESR |
+| TileEntity | 完全跳过 | ✅ 过滤+限制+距离剔除 |
+| 方块面 | 只渲染可见面 | ✅ 内部方块剔除 (block level) |
+| 鼠标交互 | 无/简单 | ✅ 降频 glReadPixels (3-5帧/次) |
+| 初始化 | 按需惰性加载 | 全量同步加载（待优化） |
+| 大结构支持 | 分片渲染（按 piece） | 全部一次性渲染（待优化） |
 
-GT5 之所以不卡，核心原因是**完全不渲染 TileEntity TESR**，只画方块面。这对应我们的 Phase 1 优化。
+### GTM/LDLib 优化特性对比
+
+| LDLib 优化 | 当前实现状态 | 等价/差距 |
+|-----------|------------|-----------|
+| Section-based 渲染 | ❌ | MC 1.12 无原生支持，需自行实现 |
+| 面剔除 | ⚠️ 方块级剔除 | 比面级剔除粒度粗，但实现简单 |
+| TESR 过滤 | ✅ | 已实现，策略更激进（大结构仅控制器） |
+| 纯数学命中检测 | ⚠️ 降频替代 | 未完全消除 glReadPixels，但频率降低了 |
+| 延迟初始化 | ❌ | 仍为全量同步，待 Phase 4 |
 
 ---
 
-## 参考：GTM/LDLib 优化特性
+## 附录：关键类继承关系
 
-GTM 通过 LDLib 的 `WorldSceneRenderer` 实现了以下优化：
+```
+WorldSceneRenderer (abstract)
+├─ ImmediateWorldSceneRenderer    — 每帧即时渲染方块+TE
+│   └─ VBOWorldSceneRenderer      — 方块VBO缓存 + 每帧TE (当前JEI使用)
+└─ FBOWorldSceneRenderer          — FBO离屏渲染 (当前未使用)
+```
 
-1. **Section-based 渲染** — 将方块按 16x16x16 chunk section 分组，类似游戏内 chunk 渲染
-2. **面剔除** — 被相邻方块遮挡的面不生成顶点数据
-3. **TESR 过滤** — 只渲染实现了 `IFastRenderMetaTileEntity` 的 TE，其余跳过
-4. **纯数学命中检测** — 不依赖 glReadPixels，用射线-AABB 测试
-5. **延迟初始化** — 首次显示时才构建渲染数据
-
-这些优化中，1 和 2 是 MC 1.20+ 渲染管线带来的自然优势（MC 重写了渲染系统），3-5 是 LDLib 的主动优化。我们的 Phase 1-4 覆盖了 3-5 的等价实现。
+**注意:** `FBOWorldSceneRenderer` 直接继承 `WorldSceneRenderer`（使用 Immediate 方块渲染），如果启用 FBO 方案，应改为继承 `VBOWorldSceneRenderer` 以获得 VBO 缓存的方块渲染优势。

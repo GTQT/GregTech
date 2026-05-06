@@ -24,18 +24,23 @@ import javax.vecmath.Vector3f;
  *
  * @Author: KilaBash
  * @Date: 2021/08/23
- * @Description: It looks similar to {@link ImmediateWorldSceneRenderer}, but totally different.
- *               It uses FBO and is more universality and efficient(X).
- *               FBO can be rendered anywhere more flexibly, not just in the GUI.
- *               If you have scene rendering needs, you will love this FBO renderer.
- *               TODO OP_LIST might be used in the future to further improve performance.
+ * @Description: FBO-based offscreen renderer that inherits VBO caching from
+ *               {@link VBOWorldSceneRenderer}. Renders the scene into an FBO texture
+ *               and draws the result as a textured quad.
+ *
+ *               Supports dirty-flag mechanism: the FBO is only re-rendered when
+ *               the scene actually changes (camera movement, layer switch, structure switch).
+ *               On clean frames, only the cached FBO texture quad is drawn (~zero cost).
  */
 @SideOnly(Side.CLIENT)
-public class FBOWorldSceneRenderer extends WorldSceneRenderer {
+public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
 
     private int resolutionWidth = 1080;
     private int resolutionHeight = 1080;
     private Framebuffer fbo;
+
+    // Dirty flag: when true, the FBO content needs to be re-rendered
+    private boolean fboDirty = true;
 
     public FBOWorldSceneRenderer(World world, int resolutionWidth, int resolutionHeight) {
         super(world);
@@ -55,6 +60,21 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         return resolutionHeight;
     }
 
+    /**
+     * Mark the FBO content as needing re-render. Call this when the camera moves,
+     * the layer changes, or the structure switches.
+     */
+    public void markFBODirty() {
+        this.fboDirty = true;
+    }
+
+    /**
+     * @return true if the FBO needs re-rendering this frame
+     */
+    public boolean isFBODirty() {
+        return fboDirty;
+    }
+
     /***
      * This will modify the size of the FBO. You'd better know what you're doing before you call it.
      */
@@ -67,6 +87,7 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         } catch (Exception e) {
             GTLog.logger.error(e);
         }
+        this.fboDirty = true;
     }
 
     public RayTraceResult screenPos2BlockPosFace(int mouseX, int mouseY) {
@@ -84,22 +105,65 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         return winPos;
     }
 
+    /**
+     * Renders the scene. If the FBO is dirty, re-renders the full scene into the FBO.
+     * Otherwise, just draws the cached FBO texture as a quad (nearly free).
+     * Hit test is only performed on dirty frames (when depth buffer is freshly written).
+     */
     public void render(float x, float y, float width, float height, float mouseX, float mouseY) {
-        // bind to FBO
-        int lastID = bindFBO();
-        super.render(0, 0, this.resolutionWidth, this.resolutionHeight, (int) (this.resolutionWidth * mouseX / width),
-                (int) (this.resolutionHeight * (1 - mouseY / height)));
-        // unbind FBO
-        unbindFBO(lastID);
+        if (fboDirty) {
+            // Re-render scene into FBO
+            int lastID = bindFBO();
+            super.render(0, 0, this.resolutionWidth, this.resolutionHeight,
+                    (int) (this.resolutionWidth * mouseX / width),
+                    (int) (this.resolutionHeight * (1 - mouseY / height)));
+            unbindFBO(lastID);
+            fboDirty = false;
+        }
 
-        // bind FBO as texture
+        // Draw cached FBO texture as a screen-aligned quad
+        drawFBOQuad(x, y, width, height);
+    }
+
+    @Override
+    public void render(float x, float y, float width, float height, int mouseX, int mouseY) {
+        render(x, y, width, height, (float) mouseX, (float) mouseY);
+    }
+
+    @Override
+    public WorldSceneRenderer setClipPlanes(double minY, double maxY) {
+        markFBODirty();
+        return super.setClipPlanes(minY, maxY);
+    }
+
+    @Override
+    public WorldSceneRenderer disableClipPlanes() {
+        markFBODirty();
+        return super.disableClipPlanes();
+    }
+
+    @Override
+    public void setCameraLookAt(Vector3f eyePos, Vector3f lookAt, Vector3f worldUp) {
+        super.setCameraLookAt(eyePos, lookAt, worldUp);
+        markFBODirty();
+    }
+
+    @Override
+    public void setCameraLookAt(Vector3f lookAt, double radius, double rotationPitch, double rotationYaw) {
+        super.setCameraLookAt(lookAt, radius, rotationPitch, rotationYaw);
+        markFBODirty();
+    }
+
+    /**
+     * Draw the FBO texture as a textured quad covering the specified screen area.
+     */
+    private void drawFBOQuad(float x, float y, float width, float height) {
         GlStateManager.enableTexture2D();
         GlStateManager.disableLighting();
-        lastID = GL11.glGetInteger(GL11.GL_TEXTURE_2D);
+        int lastTexID = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         GlStateManager.bindTexture(fbo.framebufferTexture);
         GlStateManager.color(1, 1, 1, 1);
 
-        // render rect with FBO texture
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder bufferbuilder = tessellator.getBuffer();
         bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
@@ -110,11 +174,7 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
         bufferbuilder.pos(x, y + height, 0).tex(0, 0).endVertex();
         tessellator.draw();
 
-        GlStateManager.bindTexture(lastID);
-    }
-
-    public void render(float x, float y, float width, float height, int mouseX, int mouseY) {
-        render(x, y, width, height, (float) mouseX, (float) mouseY);
+        GlStateManager.bindTexture(lastTexID);
     }
 
     private int bindFBO() {
@@ -137,5 +197,11 @@ public class FBOWorldSceneRenderer extends WorldSceneRenderer {
             fbo.deleteFramebuffer();
         }
         fbo = null;
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        releaseFBO();
     }
 }

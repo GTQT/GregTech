@@ -36,6 +36,7 @@ import org.lwjgl.util.glu.GLU;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -67,9 +68,12 @@ public abstract class WorldSceneRenderer {
             .asFloatBuffer();
     protected static final FloatBuffer OBJECT_POS_BUFFER = ByteBuffer.allocateDirect(3 * 4)
             .order(ByteOrder.nativeOrder()).asFloatBuffer();
+    // Reusable buffer for glClipPlane (4 doubles = 32 bytes)
+    protected static final DoubleBuffer CLIP_PLANE_BUFFER = ByteBuffer.allocateDirect(4 * 8)
+            .order(ByteOrder.nativeOrder()).asDoubleBuffer();
 
-    // In most cases this would be empty
-    protected static final Map<BlockPos, TileEntity> TILE_ENTITIES = new Object2ObjectArrayMap<>();
+    // Per-instance tile entity storage for TESR rendering
+    protected final Map<BlockPos, TileEntity> tileEntities = new Object2ObjectArrayMap<>();
     public final World world;
     public final Collection<BlockPos> renderedBlocks = new ObjectOpenHashSet<>();
     protected Consumer<WorldSceneRenderer> beforeRender;
@@ -92,6 +96,11 @@ public abstract class WorldSceneRenderer {
 
     // Internal block culling: remove blocks fully enclosed by other blocks
     private boolean cullInternal;
+
+    // Y-axis clip planes for layer filtering (avoids VBO rebuild on layer switch)
+    private boolean clipEnabled;
+    private double clipMinY;
+    private double clipMaxY;
 
     public WorldSceneRenderer(World world) {
         this.world = world;
@@ -122,13 +131,13 @@ public abstract class WorldSceneRenderer {
                 this.renderedBlocks.removeAll(toRemove);
             }
 
-            TILE_ENTITIES.clear();
+            tileEntities.clear();
             this.renderedBlocks.forEach(pos -> {
                 TileEntity tile = world.getTileEntity(pos);
                 if (tile != null && (!(tile instanceof IGregTechTileEntity gtte) ||
                         // Put MTEs only when it has FastRenderer
                         gtte.getMetaTileEntity() instanceof IFastRenderMetaTileEntity)) {
-                    TILE_ENTITIES.put(pos, tile);
+                    tileEntities.put(pos, tile);
                 }
             });
         }
@@ -220,6 +229,53 @@ public abstract class WorldSceneRenderer {
         return this;
     }
 
+    /**
+     * Set Y-axis clip planes for layer filtering. When enabled, only geometry within
+     * [minY, maxY) is rendered. This uses GL clip planes and does NOT require VBO rebuild.
+     * Pass -1 for both to disable clipping (show all layers).
+     *
+     * @param minY lower Y boundary (inclusive)
+     * @param maxY upper Y boundary (exclusive)
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer setClipPlanes(double minY, double maxY) {
+        this.clipEnabled = true;
+        this.clipMinY = minY;
+        this.clipMaxY = maxY;
+        return this;
+    }
+
+    /**
+     * Disable Y-axis clip planes, showing all layers.
+     *
+     * @return this renderer for chaining
+     */
+    public WorldSceneRenderer disableClipPlanes() {
+        this.clipEnabled = false;
+        return this;
+    }
+
+    /**
+     * @return true if Y-axis clip planes are currently active
+     */
+    public boolean isClipEnabled() {
+        return clipEnabled;
+    }
+
+    /**
+     * @return the minimum Y of the active clip range, only valid when {@link #isClipEnabled()} is true
+     */
+    public double getClipMinY() {
+        return clipMinY;
+    }
+
+    /**
+     * @return the maximum Y of the active clip range, only valid when {@link #isClipEnabled()} is true
+     */
+    public double getClipMaxY() {
+        return clipMaxY;
+    }
+
     public void setClearColor(int clearColor) {
         this.clearColor = clearColor;
     }
@@ -235,8 +291,20 @@ public abstract class WorldSceneRenderer {
         mouseX = mouse.position.x;
         mouseY = mouse.position.y;
         setupCamera(positionedRect);
+
+        // Enable Y-axis clip planes for layer filtering
+        if (clipEnabled) {
+            enableYClipPlanes(clipMinY, clipMaxY);
+        }
+
         // render TrackedDummyWorld
         drawWorld();
+
+        // Disable clip planes before hit test (unProject needs unclipped depth buffer)
+        if (clipEnabled) {
+            disableYClipPlanes();
+        }
+
         // check lookingAt (throttled: only run every hitTestInterval frames)
         frameCount++;
         if (frameCount % hitTestInterval == 0) {
@@ -247,6 +315,13 @@ public abstract class WorldSceneRenderer {
                     mouseY < positionedRect.position.y + positionedRect.size.height) {
                 Vector3f hitPos = unProject(mouseX, mouseY);
                 RayTraceResult result = rayTrace(hitPos);
+                // Filter out hits outside clip range
+                if (result != null && clipEnabled && result.getBlockPos() != null) {
+                    int hitY = result.getBlockPos().getY();
+                    if (hitY < clipMinY || hitY >= clipMaxY) {
+                        result = null;
+                    }
+                }
                 if (result != null) {
                     this.lastTraceResult = result;
                     onLookingAt.accept(result);
@@ -413,7 +488,7 @@ public abstract class WorldSceneRenderer {
 
             int finalPass = pass;
             int rendered = 0;
-            for (Map.Entry<BlockPos, TileEntity> entry : TILE_ENTITIES.entrySet()) {
+            for (Map.Entry<BlockPos, TileEntity> entry : tileEntities.entrySet()) {
                 if (rendered >= maxTileEntityRenderers) break;
 
                 BlockPos pos = entry.getKey();
@@ -451,6 +526,36 @@ public abstract class WorldSceneRenderer {
             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GlStateManager.depthMask(false);
         }
+    }
+
+    /**
+     * Enable two Y-axis clip planes to restrict rendering to a horizontal slice.
+     * GL_CLIP_PLANE0: clips below minY (normal pointing up)
+     * GL_CLIP_PLANE1: clips above maxY (normal pointing down)
+     */
+    protected void enableYClipPlanes(double minY, double maxY) {
+        // Clip plane equation: Ax + By + Cz + D >= 0 passes
+        CLIP_PLANE_BUFFER.clear();
+        // Bottom plane: y >= minY  →  0*x + 1*y + 0*z + (-minY) >= 0
+        CLIP_PLANE_BUFFER.put(0).put(1).put(0).put(-minY);
+        CLIP_PLANE_BUFFER.flip();
+        GL11.glClipPlane(GL11.GL_CLIP_PLANE0, CLIP_PLANE_BUFFER);
+        GL11.glEnable(GL11.GL_CLIP_PLANE0);
+
+        CLIP_PLANE_BUFFER.clear();
+        // Top plane: y < maxY  →  0*x + (-1)*y + 0*z + maxY > 0
+        CLIP_PLANE_BUFFER.put(0).put(-1).put(0).put(maxY);
+        CLIP_PLANE_BUFFER.flip();
+        GL11.glClipPlane(GL11.GL_CLIP_PLANE1, CLIP_PLANE_BUFFER);
+        GL11.glEnable(GL11.GL_CLIP_PLANE1);
+    }
+
+    /**
+     * Disable Y-axis clip planes.
+     */
+    protected void disableYClipPlanes() {
+        GL11.glDisable(GL11.GL_CLIP_PLANE0);
+        GL11.glDisable(GL11.GL_CLIP_PLANE1);
     }
 
     public RayTraceResult rayTrace(Vector3f hitPos) {

@@ -25,11 +25,25 @@ import java.util.Collection;
 @SideOnly(Side.CLIENT)
 public class VBOWorldSceneRenderer extends ImmediateWorldSceneRenderer {
 
-    protected static final VertexBuffer[] VBOS = new VertexBuffer[BlockRenderLayer.values().length];
+    // Per-instance VBO storage: each renderer owns its own vertex buffers
+    protected final VertexBuffer[] vbos = new VertexBuffer[BlockRenderLayer.values().length];
     protected boolean isDirty = true;
 
     public VBOWorldSceneRenderer(World world) {
         super(world);
+    }
+
+    /**
+     * Release GPU resources held by this renderer's VBOs.
+     * Should be called when the renderer is no longer needed.
+     */
+    public void dispose() {
+        for (int i = 0; i < vbos.length; i++) {
+            if (vbos[i] != null) {
+                vbos[i].deleteGlBuffers();
+                vbos[i] = null;
+            }
+        }
     }
 
     private void uploadVBO() {
@@ -48,8 +62,8 @@ public class VBOWorldSceneRenderer extends ImmediateWorldSceneRenderer {
                 buffer.reset();
 
                 int i = layer.ordinal();
-                var vbo = VBOS[i];
-                if (vbo == null) vbo = VBOS[i] = new VertexBuffer(DefaultVertexFormats.BLOCK);
+                var vbo = vbos[i];
+                if (vbo == null) vbo = vbos[i] = new VertexBuffer(DefaultVertexFormats.BLOCK);
                 vbo.bufferData(buffer.getByteBuffer());
 
                 OptiFineHelper.postRenderChunkLayer(layer);
@@ -92,7 +106,7 @@ public class VBOWorldSceneRenderer extends ImmediateWorldSceneRenderer {
             GlStateManager.pushMatrix();
             {
                 int i = layer.ordinal();
-                var vbo = VBOS[i];
+                var vbo = vbos[i];
                 vbo.bindBuffer();
                 enableClientStates();
                 setupArrayPointers();

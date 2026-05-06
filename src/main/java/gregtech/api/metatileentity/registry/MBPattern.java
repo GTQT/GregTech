@@ -1,8 +1,6 @@
 package gregtech.api.metatileentity.registry;
 
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.client.renderer.scene.VBOWorldSceneRenderer;
-
 import gregtech.client.renderer.scene.WorldSceneRenderer;
 
 import net.minecraft.item.ItemStack;
