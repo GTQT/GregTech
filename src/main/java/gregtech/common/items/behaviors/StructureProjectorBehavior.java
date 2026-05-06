@@ -21,6 +21,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
@@ -65,7 +66,12 @@ import java.util.Map;
  */
 public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory {
 
-    // --- Persistent state ---
+    // --- State keys in ItemStack NBT ---
+    private static final String NBT_COMPARE_MODE = "ProjectorCompareMode";
+    private static final String NBT_NO_HATCH = "ProjectorNoHatch";
+    private static final String NBT_CHANNELS = "ProjectorChannels";
+
+    // --- Cached state (read from ItemStack on use, written back on change) ---
     private boolean compareModeEnabled = true;
     private boolean noHatch = false;
     private final Map<String, Integer> channelValues = new HashMap<>();
@@ -77,9 +83,60 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     private static final int MAX_VISIBLE_ROWS = 6;
     private static final int ROW_HEIGHT = 18;
 
+    // --- NBT persistence helpers ---
+
+    /**
+     * Load projector settings from the given ItemStack's NBT.
+     */
+    private void loadFromNBT(@NotNull ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null) {
+            compareModeEnabled = true;
+            noHatch = false;
+            channelValues.clear();
+            return;
+        }
+        compareModeEnabled = !tag.hasKey(NBT_COMPARE_MODE) || tag.getBoolean(NBT_COMPARE_MODE);
+        noHatch = tag.getBoolean(NBT_NO_HATCH);
+        channelValues.clear();
+        if (tag.hasKey(NBT_CHANNELS)) {
+            NBTTagCompound channels = tag.getCompoundTag(NBT_CHANNELS);
+            for (String key : channels.getKeySet()) {
+                channelValues.put(key, channels.getInteger(key));
+            }
+        }
+    }
+
+    /**
+     * Save projector settings to the given ItemStack's NBT.
+     */
+    private void saveToNBT(@NotNull ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
+        tag.setBoolean(NBT_COMPARE_MODE, compareModeEnabled);
+        tag.setBoolean(NBT_NO_HATCH, noHatch);
+        NBTTagCompound channels = new NBTTagCompound();
+        for (Map.Entry<String, Integer> entry : channelValues.entrySet()) {
+            if (entry.getValue() != 0) {
+                channels.setInteger(entry.getKey(), entry.getValue());
+            }
+        }
+        if (!channels.isEmpty()) {
+            tag.setTag(NBT_CHANNELS, channels);
+        } else {
+            tag.removeTag(NBT_CHANNELS);
+        }
+    }
+
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
                                            float hitY, float hitZ, EnumHand hand) {
+        ItemStack heldStack = player.getHeldItem(hand);
+        loadFromNBT(heldStack);
+
         TileEntity tileEntity = world.getTileEntity(pos);
         if (!(tileEntity instanceof IGregTechTileEntity)) {
             // Not a GT tile — open configuration GUI
@@ -104,6 +161,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 if (state != null) {
                     state.autoBuild(player, multiblock, channels, noHatch);
                 }
+                saveToNBT(heldStack);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -111,6 +169,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Right-click: Show hologram preview / error info
             if (world.isRemote) {
                 MultiblockPreviewRenderer.setCompareMode(compareModeEnabled);
+                MultiblockPreviewRenderer.setChannelValues(channelValues);
                 supportedChannels = multiblock.getSupportedChannels();
                 MultiblockPreviewRenderer.renderMultiBlockPreview(multiblock, 10000);
                 return EnumActionResult.SUCCESS;
@@ -158,6 +217,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
+        loadFromNBT(itemStack);
         lines.add(I18n.format("gregtech.tool.projector.tooltip1"));
         lines.add(I18n.format("gregtech.tool.projector.tooltip2"));
         lines.add(I18n.format("gregtech.tool.projector.tooltip3"));
@@ -178,14 +238,17 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
     @Override
     public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        var panel = GTGuis.createPanel(guiData.getUsedItemStack(), 176, 220);
+        ItemStack stack = guiData.getUsedItemStack();
+        loadFromNBT(stack);
+
+        var panel = GTGuis.createPanel(stack, 176, 220);
 
         BooleanSyncValue compareModeValue = new BooleanSyncValue(
-                () -> compareModeEnabled, v -> compareModeEnabled = v);
+                () -> compareModeEnabled, v -> { compareModeEnabled = v; saveToNBT(stack); });
         guiSyncManager.syncValue("compare_mode", compareModeValue);
 
         BooleanSyncValue noHatchValue = new BooleanSyncValue(
-                () -> noHatch, v -> noHatch = v);
+                () -> noHatch, v -> { noHatch = v; saveToNBT(stack); });
         guiSyncManager.syncValue("no_hatch", noHatchValue);
 
         IntSyncValue heightValue = new IntSyncValue(
@@ -193,6 +256,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 v -> {
                     if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_HEIGHT.getName());
                     else channelValues.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), v);
+                    saveToNBT(stack);
                 });
         guiSyncManager.syncValue("structure_height", heightValue);
 
@@ -201,6 +265,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 v -> {
                     if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_LENGTH.getName());
                     else channelValues.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), v);
+                    saveToNBT(stack);
                 });
         guiSyncManager.syncValue("structure_length", lengthValue);
 

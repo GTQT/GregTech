@@ -37,6 +37,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
 
+import javax.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +55,8 @@ public class MultiblockPreviewRenderer {
     private static int layer;
     private static int tier;
     private static boolean compareMode = false;
+    @Nullable
+    private static Map<String, Integer> channelValues = null;
 
     // Comparison mode data: world positions of missing/wrong blocks for overlay rendering
     private static final List<BlockPos> missingPositions = new ArrayList<>();
@@ -132,7 +136,9 @@ public class MultiblockPreviewRenderer {
             controller.reinitializeStructurePattern();
         }
         try {
-            List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+            List<MultiblockShapeInfo> shapes = channelValues != null
+                    ? controller.getMatchingShapes(channelValues)
+                    : controller.getMatchingShapes();
             if (!shapes.isEmpty()) {
                 renderControllerInList(controller, shapes.get(0), layer);
                 // Compute comparison data if compare mode is active
@@ -161,7 +167,9 @@ public class MultiblockPreviewRenderer {
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
         opList = GLAllocation.generateDisplayLists(1); // allocate op list
         GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+        List<MultiblockShapeInfo> shapes = channelValues != null
+                ? controller.getMatchingShapes(channelValues)
+                : controller.getMatchingShapes();
         if (!shapes.isEmpty())
             renderControllerInList(controller, shapes.get(Math.min(tier, shapes.size() - 1)), 0, pos);
         if (tier >= shapes.size() - 1) tier = 0;
@@ -180,7 +188,9 @@ public class MultiblockPreviewRenderer {
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
         opList = GLAllocation.generateDisplayLists(1); // allocate op list
         GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+        List<MultiblockShapeInfo> shapes = channelValues != null
+                ? controller.getMatchingShapes(channelValues)
+                : controller.getMatchingShapes();
         if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer, pos);
         GlStateManager.glEndList();
     }
@@ -192,7 +202,9 @@ public class MultiblockPreviewRenderer {
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
         opList = GLAllocation.generateDisplayLists(1); // allocate op list
         GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+        List<MultiblockShapeInfo> shapes = channelValues != null
+                ? controller.getMatchingShapes(channelValues)
+                : controller.getMatchingShapes();
         if (!shapes.isEmpty())
             renderControllerInList(controller, shapes.get(Math.min(tier, shapes.size() - 1)), layer, pos);
         GlStateManager.glEndList();
@@ -205,7 +217,9 @@ public class MultiblockPreviewRenderer {
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
         opList = GLAllocation.generateDisplayLists(1); // allocate op list
         GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes();
+        List<MultiblockShapeInfo> shapes = channelValues != null
+                ? controller.getMatchingShapes(channelValues)
+                : controller.getMatchingShapes();
         if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer, pos);
         GlStateManager.glEndList();
     }
@@ -228,6 +242,17 @@ public class MultiblockPreviewRenderer {
      */
     public static void setCompareMode(boolean enabled) {
         compareMode = enabled;
+    }
+
+    /**
+     * Set the channel values to use when rendering the next multiblock preview.
+     * These values are passed to {@code getMatchingShapes(channelValues)} to determine
+     * which tier/size variant to preview.
+     *
+     * @param values the channel values map (null = use default/all variants)
+     */
+    public static void setChannelValues(@Nullable Map<String, Integer> values) {
+        channelValues = values != null && !values.isEmpty() ? new HashMap<>(values) : null;
     }
 
     public static boolean isCompareMode() {
