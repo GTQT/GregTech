@@ -76,6 +76,7 @@ local.properties
 /classes/
 /out/
 /build/
+/src/test/
 .run/
 
 # Linux
