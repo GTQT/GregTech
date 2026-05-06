@@ -803,4 +803,6 @@ public class Materials {
     public static Material RawStarMatter;
     public static Material MagnetoHydrodynamicallyConstrainedStarMatter;
     public static Material GravitonShard;
+    public static Material QuarkGluonPlasma;
+    public static Material MagMatter;
 }

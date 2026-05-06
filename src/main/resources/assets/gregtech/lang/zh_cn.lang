@@ -2484,6 +2484,14 @@ gregtech.material.basaltic_mineral_sand=玄武岩矿砂
 gregtech.material.hsse=高速钢-E
 gregtech.material.hsss=高速钢-S
 
+# Forge of the Gods Materials
+gregtech.material.dimensionally_transcendent_residue=维度超越残留物
+gregtech.material.raw_star_matter=原始星体物质
+gregtech.material.magneto_hydrodynamically_constrained_star_matter=磁流体动力约束星体物质
+gregtech.material.graviton_shard=引力子碎片
+gregtech.material.quark_gluon_plasma=夸克-胶子等离子体
+gregtech.material.mag_matter=磁物质
+
 
 # Marker Material Tiers
 gregtech.material.primitive=初级

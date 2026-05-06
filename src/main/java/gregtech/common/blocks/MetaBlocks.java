@@ -150,6 +150,7 @@ public class MetaBlocks {
     // Forge of the Gods blocks
     public static BlockGodforgeCasing GODFORGE_CASING;
     public static BlockGodforgeGlass GODFORGE_GLASS;
+    public static BlockGodforgeRender GODFORGE_RENDER;
 
     public static final EnumMap<EnumDyeColor, BlockLamp> LAMPS = new EnumMap<>(EnumDyeColor.class);
     public static final EnumMap<EnumDyeColor, BlockLamp> BORDERLESS_LAMPS = new EnumMap<>(EnumDyeColor.class);
@@ -288,6 +289,8 @@ public class MetaBlocks {
         GODFORGE_CASING.setRegistryName("godforge_casing");
         GODFORGE_GLASS = new BlockGodforgeGlass();
         GODFORGE_GLASS.setRegistryName("godforge_glass");
+        GODFORGE_RENDER = new BlockGodforgeRender();
+        GODFORGE_RENDER.setRegistryName("godforge_render");
 
         for (EnumDyeColor color : EnumDyeColor.values()) {
             BlockLamp block = new BlockLamp(color);

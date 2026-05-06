@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
@@ -16,6 +17,7 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.client.renderer.ICubeRenderer;
+import gregtech.client.renderer.godforge.GodforgeRenderTileEntity;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.blocks.BlockGodforgeGlass;
@@ -35,8 +37,10 @@ import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMat
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
@@ -85,6 +89,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private final ForgeOfGodsData data = new ForgeOfGodsData();
     private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
     private long ticker = 0;
+    private int lastKnownRingAmount = 1;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -264,12 +269,20 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         super.formStructure(context);
         updateRingAmount();
         discoverModules();
+
+        // Restore renderer if battery was active before structure broke
+        if (data.getInternalBattery() != 0 && !data.isRenderActive() && !data.isRendererDisabled()) {
+            createRenderer();
+        }
     }
 
     @Override
     public void invalidateStructure() {
         disconnectAllModules();
         moduleHatches.clear();
+        if (data.isRenderActive()) {
+            destroyRenderer();
+        }
         super.invalidateStructure();
     }
 
@@ -390,6 +403,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         } else if (moduleHatches.size() > maxModuleCount) {
             disconnectAllModules();
         }
+
+        // === Ring unlock/respec detection → update renderer and structure ===
+        if (data.getRingAmount() != lastKnownRingAmount) {
+            lastKnownRingAmount = data.getRingAmount();
+            if (data.isRenderActive() && !data.isRendererDisabled()) {
+                updateRenderer();
+            }
+            reinitializeStructurePattern();
+        }
     }
 
     // ==================== Fuel System ====================
@@ -440,7 +462,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                     data.setStellarFuelAmount(data.getStellarFuelAmount() - data.getNeededStartupFuel());
                     increaseBattery(data.getNeededStartupFuel());
                     if (!data.isRendererDisabled()) {
-                        // TODO: createRenderer() - pending Phase C (renderer)
+                        createRenderer();
                     }
                 }
             }
@@ -688,9 +710,97 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return data;
     }
 
-    public void updateRenderer() {}
+    public List<MTEBaseModule> getModuleHatches() {
+        return moduleHatches;
+    }
 
-    public void destroyRenderer() {}
+    // ==================== Renderer Management ====================
+
+    /**
+     * Offset from controller to render position along the structure's back axis.
+     * In GT5, the star is at the center of the ring structure, 122 blocks behind the controller.
+     */
+    private static final int RENDER_OFFSET = 122;
+
+    /**
+     * Creates the render TileEntity at the structure center.
+     * Places an invisible block with GodforgeRenderTileEntity at the correct position.
+     */
+    public void createRenderer() {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        BlockPos renderPos = getRenderPos();
+        if (renderPos == null) return;
+
+        getWorld().setBlockState(renderPos, MetaBlocks.GODFORGE_RENDER.getDefaultState(), 2);
+        TileEntity te = getWorld().getTileEntity(renderPos);
+        if (te instanceof GodforgeRenderTileEntity) {
+            GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
+            renderTE.setRenderRotation(getFrontFacing());
+            updateRenderer();
+        }
+
+        data.setRenderActive(true);
+    }
+
+    /**
+     * Removes the render block and marks renderer as inactive.
+     */
+    public void destroyRenderer() {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        BlockPos renderPos = getRenderPos();
+        if (renderPos == null) return;
+
+        IBlockState state = getWorld().getBlockState(renderPos);
+        if (state.getBlock() == MetaBlocks.GODFORGE_RENDER) {
+            getWorld().setBlockToAir(renderPos);
+        }
+
+        data.setRenderActive(false);
+    }
+
+    /**
+     * Syncs current star parameters to the render TileEntity.
+     */
+    public void updateRenderer() {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        BlockPos renderPos = getRenderPos();
+        if (renderPos == null) return;
+
+        TileEntity te = getWorld().getTileEntity(renderPos);
+        if (!(te instanceof GodforgeRenderTileEntity)) return;
+
+        GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
+        renderTE.setRingCount(data.getRingAmount());
+        renderTE.setStarRadius(data.getStarSize());
+        renderTE.setRotationSpeed(data.getRotationSpeed());
+        renderTE.setColor(
+                data.getStarColors()
+                        .getByName(data.getSelectedStarColor()));
+        renderTE.updateToClient();
+    }
+
+    /**
+     * Calculates the world position where the render TE should be placed.
+     * The star is at the center of the ring structure, behind the controller.
+     */
+    @Nullable
+    private BlockPos getRenderPos() {
+        BlockPos controllerPos = getPos();
+        if (controllerPos == null) return null;
+
+        EnumFacing back = getFrontFacing().getOpposite();
+        return controllerPos.offset(back, RENDER_OFFSET);
+    }
+
+    // ==================== GUI ====================
+
+    @Override
+    protected MultiblockUIFactory createUIFactory() {
+        return new GodforgeUIFactory(this);
+    }
 
     // ==================== NBT ====================
 

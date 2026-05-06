@@ -229,5 +229,19 @@ public class HigherDegreeMaterials {
                 .color(0x9933FF).iconSet(DIAMOND)
                 .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
                 .build();
+
+        // Quark-Gluon Plasma - exotic module output
+        QuarkGluonPlasma = Material.builder(2534, gregtechId("quark_gluon_plasma"))
+                .plasma()
+                .color(0x00FFCC).iconSet(SHINY)
+                .flags(DISABLE_DECOMPOSITION)
+                .build();
+
+        // Mag Matter (Magmatter) - exotic module advanced output
+        MagMatter = Material.builder(2535, gregtechId("mag_matter"))
+                .ingot().fluid()
+                .color(0x1A001A).iconSet(METALLIC)
+                .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
+                .build();
     }
 }

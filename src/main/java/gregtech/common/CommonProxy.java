@@ -181,6 +181,7 @@ public class CommonProxy {
         // Forge of the Gods blocks
         registry.register(GODFORGE_CASING);
         registry.register(GODFORGE_GLASS);
+        registry.register(GODFORGE_RENDER);
         registry.register(FOAM);
         registry.register(REINFORCED_FOAM);
         registry.register(PETRIFIED_FOAM);

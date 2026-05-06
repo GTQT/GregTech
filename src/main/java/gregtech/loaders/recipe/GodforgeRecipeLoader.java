@@ -1,82 +1,158 @@
 package gregtech.loaders.recipe;
 
-import gregtech.api.GTValues;
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
+
+import gregtech.api.GregTechAPI;
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.recipes.GodforgeRecipeMaps;
+import gregtech.api.recipes.Recipe;
+import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
-import net.minecraftforge.fluids.Fluid;
 
+/**
+ * Loads recipes for Forge of the Gods modules:
+ * - Plasma module: auto-generates dust→plasma recipes from all materials that have plasma fluid
+ * - Molten module: generates blast furnace derivative recipes with molten outputs
+ * - Exotic module: recipe generation is dynamic (handled in module logic)
+ * - Smelting module: uses BLAST_RECIPES and ARC_FURNACE_RECIPES directly
+ */
 public class GodforgeRecipeLoader {
 
     private static final int TICKS = 1;
     private static final int SECONDS = 20;
     private static final int INGOTS = 144;
 
+    // Plasma recipe base EUt (effectively free due to wireless energy)
+    private static final int PLASMA_RECIPE_EUT = Integer.MAX_VALUE;
+    // Plasma recipe base duration
+    private static final int PLASMA_RECIPE_DURATION = 10 * TICKS;
+
+    // Collected data for exotic module use
+    public static final List<Material> plasmaMaterials = new ArrayList<>();
+
     private GodforgeRecipeLoader() {}
 
     public static void init() {
         registerPlasmaRecipes();
+        registerMoltenRecipes();
         registerUpgradeCostRecipes();
     }
 
+    // ==================== Plasma Module Recipes (C3) ====================
+
+    /**
+     * Automatically generates dust→plasma recipes for ALL materials that have:
+     * 1. A plasma fluid registered
+     * 2. A dust OrePrefix form
+     * This allows modpack developers to simply add plasma to a material and the godforge
+     * will automatically pick it up.
+     */
     private static void registerPlasmaRecipes() {
-        registerTier0SingleStepPlasmaRecipes();
-        registerTier0MultiStepPlasmaRecipes();
-        registerTier1SingleStepPlasmaRecipes();
-    }
+        int registered = 0;
 
-    private static void registerTier0SingleStepPlasmaRecipes() {
-        Material[][] recipes = {
-                { Materials.Aluminium, Materials.Aluminium },
-                { Materials.Iron, Materials.Iron },
-                { Materials.Copper, Materials.Copper },
-                { Materials.Gold, Materials.Gold },
-                { Materials.Silver, Materials.Silver },
-                { Materials.Tin, Materials.Tin },
-                { Materials.Zinc, Materials.Zinc },
-                { Materials.Titanium, Materials.Titanium },
-                { Materials.Nickel, Materials.Nickel },
-                { Materials.Lead, Materials.Lead },
-                { Materials.Tungsten, Materials.Tungsten },
-                { Materials.Platinum, Materials.Platinum },
-                { Materials.Iridium, Materials.Iridium },
-                { Materials.Osmium, Materials.Osmium },
-        };
+        for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+            // Must have dust form (input)
+            if (!material.hasProperty(PropertyKey.DUST)) continue;
 
-        for (Material[] recipe : recipes) {
-            Material material = recipe[0];
-            Material plasmaMaterial = recipe[1];
-            Fluid plasma = plasmaMaterial.hasFluid() ? plasmaMaterial.getFluid(FluidStorageKeys.PLASMA) : null;
-            if (plasma == null) {
-                GTLog.logger.warn("Skipping Godforge plasma recipe for {} because {} has no plasma fluid",
-                    material.getResourceLocation(), plasmaMaterial.getResourceLocation());
-                continue;
-            }
+            // Must have plasma fluid (output)
+            Fluid plasma = material.getFluid(FluidStorageKeys.PLASMA);
+            if (plasma == null) continue;
 
             GodforgeRecipeMaps.GODFORGE_PLASMA_RECIPES.recipeBuilder()
                     .input(OrePrefix.dust, material)
-                    .fluidOutputs(plasmaMaterial.getFluid(FluidStorageKeys.PLASMA, INGOTS))
-                    .duration(10 * TICKS)
-                    .EUt(Integer.MAX_VALUE)
+                    .fluidOutputs(material.getPlasma(INGOTS))
+                    .duration(PLASMA_RECIPE_DURATION)
+                    .EUt(PLASMA_RECIPE_EUT)
                     .buildAndRegister();
+
+            plasmaMaterials.add(material);
+            registered++;
         }
+
+        GTLog.logger.info("GodforgeRecipeLoader: Registered {} plasma recipes", registered);
     }
 
-    private static void registerTier0MultiStepPlasmaRecipes() {
-        // TODO: 当以下材料添加等离子属性后，取消注释
-        // Materials.Bismuth, Materials.Boron, Materials.Naquadah, Materials.Plutonium
+    // ==================== Molten Module Recipes (C2) ====================
+
+    /**
+     * Generates molten module recipes by scanning BLAST_RECIPES and converting
+     * solid outputs to their molten (fluid) equivalents.
+     * Only creates recipes for materials that have both ingot/dust and fluid forms.
+     */
+    private static void registerMoltenRecipes() {
+        int registered = 0;
+
+        for (Recipe blastRecipe : RecipeMaps.BLAST_RECIPES.getRecipeList()) {
+            // Only consider recipes with item outputs that have fluid forms
+            if (blastRecipe.getOutputs().isEmpty()) continue;
+
+            List<FluidStack> moltenOutputs = new ArrayList<>();
+            boolean hasValidOutput = false;
+
+            for (var itemOutput : blastRecipe.getOutputs()) {
+                Material outputMaterial = getMaterialFromItemStack(itemOutput);
+                if (outputMaterial != null && outputMaterial.hasFluid()) {
+                    FluidStack molten = outputMaterial.getFluid(INGOTS * itemOutput.getCount());
+                    if (molten != null) {
+                        moltenOutputs.add(molten);
+                        hasValidOutput = true;
+                    }
+                }
+            }
+
+            if (!hasValidOutput || moltenOutputs.isEmpty()) continue;
+
+            var builder = GodforgeRecipeMaps.GODFORGE_MOLTEN_RECIPES.recipeBuilder();
+
+            // Copy inputs from blast recipe
+            builder.inputIngredients(blastRecipe.getInputs());
+            builder.fluidInputs(blastRecipe.getFluidInputs());
+
+            // Output as molten fluids instead of solid items
+            builder.fluidOutputs(moltenOutputs.toArray(new FluidStack[0]));
+
+            // Same duration/EUt as blast recipe but will be overclocked by module
+            builder.duration(blastRecipe.getDuration());
+            builder.EUt(blastRecipe.getEUt());
+
+            // Propagate temperature requirement from original blast recipe
+            int blastTemp = blastRecipe.getProperty(TemperatureProperty.getInstance(), 0);
+            if (blastTemp > 0) {
+                builder.applyProperty(TemperatureProperty.getInstance(), blastTemp);
+            }
+
+            builder.buildAndRegister();
+            registered++;
+        }
+
+        GTLog.logger.info("GodforgeRecipeLoader: Registered {} molten recipes from blast furnace", registered);
     }
 
-    private static void registerTier1SingleStepPlasmaRecipes() {
-        // TODO: 当以下材料添加等离子属性后，取消注释
-        // Materials.Thorium, Materials.Naquadria
+    /**
+     * Attempts to determine the Material corresponding to an ItemStack output from a recipe.
+     * Returns null if no matching material is found.
+     */
+    @org.jetbrains.annotations.Nullable
+    private static Material getMaterialFromItemStack(net.minecraft.item.ItemStack stack) {
+        var unificationEntry = gregtech.api.unification.OreDictUnifier.getUnificationEntry(stack);
+        if (unificationEntry != null && unificationEntry.material != null) {
+            return unificationEntry.material;
+        }
+        return null;
     }
+
+    // ==================== Upgrade Cost Recipes ====================
 
     private static void registerUpgradeCostRecipes() {
-        // TODO: 当升级系统完善后，注册各模块升级消耗配方
-        // 升级配方使用 GodforgeRecipeMaps.GODFORGE_UPGRADE_COST_RECIPES
+        // TODO: Register upgrade material costs when upgrade system is fully wired
     }
 }

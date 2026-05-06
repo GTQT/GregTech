@@ -2488,6 +2488,14 @@ gregtech.material.basaltic_mineral_sand=Basaltic Mineral Sand
 gregtech.material.hsse=HSS-E
 gregtech.material.hsss=HSS-S
 
+# Forge of the Gods Materials
+gregtech.material.dimensionally_transcendent_residue=Dimensionally Transcendent Residue
+gregtech.material.raw_star_matter=Raw Star Matter
+gregtech.material.magneto_hydrodynamically_constrained_star_matter=Magneto-Hydrodynamically Constrained Star Matter
+gregtech.material.graviton_shard=Graviton Shard
+gregtech.material.quark_gluon_plasma=Quark-Gluon Plasma
+gregtech.material.mag_matter=Mag Matter
+
 
 # Marker Material Tiers
 gregtech.material.primitive=Primitive
