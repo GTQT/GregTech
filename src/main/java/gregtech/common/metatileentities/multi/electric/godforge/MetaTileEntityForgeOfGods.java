@@ -6,7 +6,11 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.client.renderer.ICubeRenderer;
@@ -22,6 +26,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.Vec3i;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -29,6 +34,7 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static gregtech.api.util.RelativeDirection.FRONT;
 import static gregtech.api.util.RelativeDirection.RIGHT;
@@ -90,14 +96,101 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return builder.build();
     }
 
-    // ==================== Multi-Piece Pattern ====================
-    // TODO: Implement createMultiPiecePattern() after multiblock structure system refactoring.
-    // The plan involves:
-    //   1. Adding OffsetMode.STRUCTURE_SPACE to MultiPiecePattern for direction-aware offset rotation
-    //   2. Adding explicit centerOffset support to BlockPatternTemplate
-    //   3. Splitting structure into 4 pieces: beam_shaft, first_ring, second_ring, third_ring
-    //   4. Conditional activation of second/third ring based on upgrade state
-    // See: docs/multiblock-refactor.md (M7: 分片式结构检查试点)
+    // ==================== Multi-Piece Pattern (P3: Sharded Structure Check) ====================
+
+    // Piece offsets in structure-relative coordinates (right, up, back from controller)
+    // Derived from GT5 structurelib checkPiece offsets:
+    //   beam_shaft: controller is at template [63, 14, 1] → offset (0, 0, 0)
+    //   first_ring: controller maps to template [63, 14, 0] → 59 aisles behind controller
+    //   second_ring: controller maps to template [55, 11, 0] → 67 aisles behind controller
+    //   third_ring: controller maps to template [47, 13, 0] → 76 aisles behind controller
+    private static final Vec3i BEAM_SHAFT_OFFSET = Vec3i.NULL_VECTOR;
+    private static final Vec3i FIRST_RING_OFFSET = new Vec3i(0, 0, 59);
+    private static final Vec3i SECOND_RING_OFFSET = new Vec3i(0, 0, 67);
+    private static final Vec3i THIRD_RING_OFFSET = new Vec3i(0, 0, 76);
+
+    // External center offsets [x, y, z, minZ, maxZ] for sub-piece templates without selfPredicate
+    private static final int[] FIRST_RING_CENTER = { 63, 14, 0, 0, 0 };
+    private static final int[] SECOND_RING_CENTER = { 55, 11, 0, 0, 0 };
+    private static final int[] THIRD_RING_CENTER = { 47, 13, 0, 0, 0 };
+
+    // Static template cache using LazyTemplate (thread-safe, zero-lock after init)
+    private static final LazyTemplate BEAM_SHAFT_TEMPLATE = LazyTemplate.of(
+            MetaTileEntityForgeOfGods::buildBeamShaftTemplate);
+    private static final LazyTemplate FIRST_RING_TEMPLATE = LazyTemplate.of(
+            MetaTileEntityForgeOfGods::buildFirstRingTemplate);
+    private static final LazyTemplate SECOND_RING_TEMPLATE = LazyTemplate.of(
+            MetaTileEntityForgeOfGods::buildSecondRingTemplate);
+    private static final LazyTemplate THIRD_RING_TEMPLATE = LazyTemplate.of(
+            MetaTileEntityForgeOfGods::buildThirdRingTemplate);
+
+    @Nullable
+    @Override
+    protected MultiPiecePattern createMultiPiecePattern() {
+        return MultiPiecePattern.builder()
+                .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
+                .piece("first_ring", FIRST_RING_TEMPLATE.get(), FIRST_RING_OFFSET, OffsetMode.RELATIVE)
+                .conditionalPiece("second_ring", SECOND_RING_TEMPLATE.get(), SECOND_RING_OFFSET,
+                        OffsetMode.RELATIVE, () -> data.isUpgradeActive(ForgeOfGodsUpgrade.CD))
+                .conditionalPiece("third_ring", THIRD_RING_TEMPLATE.get(), THIRD_RING_OFFSET,
+                        OffsetMode.RELATIVE, () -> data.isUpgradeActive(ForgeOfGodsUpgrade.END))
+                .build();
+    }
+
+    private static BlockPatternTemplate buildBeamShaftTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.BEAM_SHAFT) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, true);
+        return builder.buildTemplate();
+    }
+
+    private static BlockPatternTemplate buildFirstRingTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.FIRST_RING) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, false);
+        return builder.buildTemplate(FIRST_RING_CENTER);
+    }
+
+    private static BlockPatternTemplate buildSecondRingTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.SECOND_RING) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, false);
+        return builder.buildTemplate(SECOND_RING_CENTER);
+    }
+
+    private static BlockPatternTemplate buildThirdRingTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.THIRD_RING) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, false);
+        return builder.buildTemplate(THIRD_RING_CENTER);
+    }
+
+    /**
+     * Apply all known character -> predicate mappings to a builder.
+     * Includes all characters used across all pieces.
+     *
+     * @param builder          the factory block pattern builder
+     * @param includeController true to include 'S' -> selfPredicate() (only for beam_shaft)
+     */
+    private static void applyAllPredicates(FactoryBlockPattern builder, boolean includeController) {
+        if (includeController) {
+            builder.where('S', new TraceabilityPredicate(
+                    blockWorldState -> true,
+                    () -> new gregtech.api.util.BlockInfo[] {
+                            new gregtech.api.util.BlockInfo(
+                                    getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
+                    }).setCenter());
+        }
+        applySharedPredicates(builder);
+    }
 
     // ==================== Block State Helpers ====================
 

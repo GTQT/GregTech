@@ -131,15 +131,15 @@ public class MultiPiecePattern {
             if (!piece.isActive()) continue;
 
             if (piece.isDirty()) {
-                BlockPos pieceCenter = piece.getCenterPos(controllerPos);
+                BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing);
                 PatternMatchContext result = piece.getState().checkPatternFastAt(
                         world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
 
                 if (result != null) {
                     piece.setValidated(true);
-                    // Update the piece's position set from the state cache
-                    piece.getPositions().clear();
-                    piece.getPositions().addAll(piece.getState().cache.keySet());
+                    // Atomically swap the piece's position set from the state cache
+                    LongSet newPositions = new LongOpenHashSet(piece.getState().cache.keySet());
+                    piece.swapPositions(newPositions);
                 } else {
                     piece.setValidated(false);
                 }
@@ -214,7 +214,7 @@ public class MultiPiecePattern {
         private Builder() {}
 
         /**
-         * Add an unconditional piece.
+         * Add an unconditional piece with default RELATIVE offset mode.
          *
          * @param name     unique name for this piece
          * @param template the pattern template
@@ -222,15 +222,29 @@ public class MultiPiecePattern {
          * @return this builder
          */
         public Builder piece(@NotNull String name, @NotNull BlockPatternTemplate template, @NotNull Vec3i offset) {
+            return piece(name, template, offset, OffsetMode.RELATIVE);
+        }
+
+        /**
+         * Add an unconditional piece with explicit offset mode.
+         *
+         * @param name       unique name for this piece
+         * @param template   the pattern template
+         * @param offset     offset from the controller position
+         * @param offsetMode how the offset is interpreted relative to controller facing
+         * @return this builder
+         */
+        public Builder piece(@NotNull String name, @NotNull BlockPatternTemplate template,
+                             @NotNull Vec3i offset, @NotNull OffsetMode offsetMode) {
             if (pieces.containsKey(name)) {
                 throw new IllegalArgumentException("Duplicate piece name: " + name);
             }
-            pieces.put(name, new StructurePiece(name, template, offset));
+            pieces.put(name, new StructurePiece(name, template, offset, offsetMode));
             return this;
         }
 
         /**
-         * Add a conditional piece that is only checked when the condition returns true.
+         * Add a conditional piece with default RELATIVE offset mode.
          *
          * @param name      unique name for this piece
          * @param template  the pattern template
@@ -240,10 +254,26 @@ public class MultiPiecePattern {
          */
         public Builder conditionalPiece(@NotNull String name, @NotNull BlockPatternTemplate template,
                                         @NotNull Vec3i offset, @NotNull BooleanSupplier condition) {
+            return conditionalPiece(name, template, offset, OffsetMode.RELATIVE, condition);
+        }
+
+        /**
+         * Add a conditional piece with explicit offset mode.
+         *
+         * @param name       unique name for this piece
+         * @param template   the pattern template
+         * @param offset     offset from the controller position
+         * @param offsetMode how the offset is interpreted relative to controller facing
+         * @param condition  condition supplier; piece is only active when this returns true
+         * @return this builder
+         */
+        public Builder conditionalPiece(@NotNull String name, @NotNull BlockPatternTemplate template,
+                                        @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
+                                        @NotNull BooleanSupplier condition) {
             if (pieces.containsKey(name)) {
                 throw new IllegalArgumentException("Duplicate piece name: " + name);
             }
-            pieces.put(name, new StructurePiece(name, template, offset, condition));
+            pieces.put(name, new StructurePiece(name, template, offset, offsetMode, condition));
             return this;
         }
 

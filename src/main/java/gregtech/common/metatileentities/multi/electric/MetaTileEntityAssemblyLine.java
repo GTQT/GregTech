@@ -85,7 +85,8 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
     protected BlockPattern createStructurePattern() {
         return DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                 .aisle("FIF", "RTR", "SAG", " Y ")
-                .aisleRepeatable(3, 15, GTStructureChannels.STRUCTURE_LENGTH.getName(), "FIF", "RTR", "DAG", " Y ")
+                .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                 .aisle("FOF", "RTR", "DAG", " Y ")
                 .where('S', selfPredicate())
                 .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)

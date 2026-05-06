@@ -5,6 +5,7 @@ import gregtech.api.util.RelativeDirection;
 import net.minecraft.util.EnumFacing;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Immutable structural template for multiblock patterns.
@@ -39,6 +40,24 @@ public class BlockPatternTemplate {
                                 @NotNull RelativeDirection[] structureDir,
                                 @NotNull int[][] aisleRepetitions,
                                 @NotNull String[] aisleChannelNames) {
+        this(predicatesIn, structureDir, aisleRepetitions, aisleChannelNames, null);
+    }
+
+    /**
+     * Full constructor with optional external center offset.
+     *
+     * @param predicatesIn     the 3D predicate array [z][y][x]
+     * @param structureDir     the 3 relative directions
+     * @param aisleRepetitions the repetition ranges per aisle
+     * @param aisleChannelNames channel names per aisle (nullable entries)
+     * @param externalCenterOffset optional externally-specified center offset [x,y,z,minZ,maxZ];
+     *                             if null, auto-discovers from isCenter predicate
+     */
+    public BlockPatternTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
+                                @NotNull RelativeDirection[] structureDir,
+                                @NotNull int[][] aisleRepetitions,
+                                @NotNull String[] aisleChannelNames,
+                                @Nullable int[] externalCenterOffset) {
         this.blockMatches = predicatesIn;
         this.fingerLength = predicatesIn.length;
         this.structureDir = structureDir;
@@ -57,7 +76,7 @@ public class BlockPatternTemplate {
             this.palmLength = 0;
         }
 
-        this.centerOffset = initializeCenterOffsets();
+        this.centerOffset = externalCenterOffset != null ? externalCenterOffset : initializeCenterOffsets();
     }
 
     private int[] initializeCenterOffsets() {

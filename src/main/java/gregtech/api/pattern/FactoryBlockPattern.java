@@ -5,6 +5,7 @@ import gregtech.api.util.RelativeDirection;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -55,19 +56,6 @@ public class FactoryBlockPattern {
      * Adds a repeatable aisle to this pattern.
      */
     public FactoryBlockPattern aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
-        return aisleRepeatable(minRepeat, maxRepeat, null, aisle);
-    }
-
-    /**
-     * Adds a repeatable aisle to this pattern, associated with a structure channel.
-     * When previewing with channelValues, the channel value determines the repetition count.
-     *
-     * @param minRepeat   minimum repetition count
-     * @param maxRepeat   maximum repetition count
-     * @param channelName the channel name controlling this aisle's repetition (null = no channel)
-     * @param aisle       the aisle pattern strings
-     */
-    public FactoryBlockPattern aisleRepeatable(int minRepeat, int maxRepeat, String channelName, String... aisle) {
         if (!ArrayUtils.isEmpty(aisle) && !StringUtils.isEmpty(aisle[0])) {
             if (this.depth.isEmpty()) {
                 this.aisleHeight = aisle.length;
@@ -96,7 +84,7 @@ public class FactoryBlockPattern {
                 if (minRepeat > maxRepeat)
                     throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
                 aisleRepetitions.add(new int[] { minRepeat, maxRepeat });
-                aisleChannelNames.add(channelName);
+                aisleChannelNames.add(null);
                 return this;
             }
         } else {
@@ -130,6 +118,13 @@ public class FactoryBlockPattern {
         aisleRepetitions.set(aisleRepetitions.size() - 1, new int[] { minRepeat, maxRepeat });
         aisleChannelNames.set(aisleChannelNames.size() - 1, channelName);
         return this;
+    }
+
+    /**
+     * Get the repetition range of the last aisle.
+     */
+    public int[] getLastAisleRepetition() {
+        return aisleRepetitions.get(aisleRepetitions.size() - 1);
     }
 
     /**
@@ -170,6 +165,20 @@ public class FactoryBlockPattern {
         return new BlockPatternTemplate(makePredicateArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]));
+    }
+
+    /**
+     * Build the immutable template with an externally-specified center offset.
+     * Use this for multi-piece sub-patterns that don't have a selfPredicate() center marker.
+     *
+     * @param centerOffset the center offset [x, y, z, minZ, maxZ]
+     * @return the shared immutable template
+     */
+    public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset) {
+        return new BlockPatternTemplate(makePredicateArray(), structureDir,
+                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
+                centerOffset);
     }
 
     /**
