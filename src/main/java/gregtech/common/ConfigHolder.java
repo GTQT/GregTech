@@ -194,6 +194,20 @@ public class ConfigHolder {
         "Each failed sampling increases the proportion of the next sampling until the test is completed"})
         @Config.RangeDouble(min = 0.05,max = 1)
         public double delayStructureCheckSample = 0.20;
+
+        @Config.Comment({ "Whether to enable async structure checking for unformed multiblocks.",
+                "When enabled, unformed controllers check patterns on a background thread.",
+                "Disable if you experience issues with structure formation.", "Default: true" })
+        public boolean enableAsyncStructureCheck = true;
+
+        @Config.Comment({ "Whether to enable event-driven structure checking for formed multiblocks.",
+                "When enabled, formed multiblocks only re-check when a block change is detected.",
+                "Disable to revert to periodic polling for formed multiblocks.", "Default: true" })
+        public boolean enableEventDrivenStructureCheck = true;
+
+        @Config.Comment({ "Whether to enable debug logging for structure check events.",
+                "Logs event-driven triggers, async check results, and timing info.", "Default: false" })
+        public boolean debugStructureCheck = false;
     }
 
     public static class WorldGenOptions {

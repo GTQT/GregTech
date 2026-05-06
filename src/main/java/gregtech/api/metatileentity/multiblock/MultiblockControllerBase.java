@@ -266,10 +266,15 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         // Event-driven mode: formed multiblocks only re-check when a block change is detected
-        if (structureFormed && getWorld() != null && !(getWorld() instanceof DummyWorld)) {
+        if (ConfigHolder.machines.enableEventDrivenStructureCheck
+                && structureFormed && getWorld() != null && !(getWorld() instanceof DummyWorld)) {
             MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
             if (worldData.isRegistered(this)) {
                 if (worldData.hasPendingRecheck(this)) {
+                    if (ConfigHolder.machines.debugStructureCheck) {
+                        GTLog.logger.debug("[StructureCheck] Event-driven recheck triggered for {}",
+                                getMetaName());
+                    }
                     // Multi-piece mode (P3): only check dirty pieces instead of full pattern
                     if (multiPiecePattern != null) {
                         checkMultiPieceStructure();
@@ -282,7 +287,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         // Unformed multiblocks: register for async checking (P2)
-        if (!structureFormed && getWorld() != null && !getWorld().isRemote
+        if (ConfigHolder.machines.enableAsyncStructureCheck
+                && !structureFormed && getWorld() != null && !getWorld().isRemote
                 && !(getWorld() instanceof DummyWorld)) {
             AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
             if (checker.isRunning()) {
@@ -292,14 +298,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         // Fallback: periodic polling (when async checker is not running or DummyWorld)
-        if (isDelayCheck()) {
-            if (getOffsetTimer() % getDelayStructureCheckStandby() == 0) {
-                checkStructurePattern();
-            }
-        } else {
-            if (getOffsetTimer() % 20 == 0) {
-                checkStructurePattern();
-            }
+        int interval = isWorkingForStructureCheck()
+                ? getStructureCheckIntervalWorking()
+                : getStructureCheckIntervalStandby();
+        if (getOffsetTimer() % interval == 0) {
+            checkStructurePattern();
         }
     }
 
@@ -458,6 +461,43 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public void setDelayCheck(boolean delay) {
         delayCheck = delay;
+    }
+
+    /**
+     * Returns whether this multiblock is currently "working" for structure check interval purposes.
+     * Subclasses override to provide machine-specific working state (e.g., recipe active).
+     * When working, the fallback polling uses {@link #getStructureCheckIntervalWorking()}.
+     *
+     * @return true if the multiblock is actively working
+     */
+    protected boolean isWorkingForStructureCheck() {
+        return false;
+    }
+
+    /**
+     * Returns the structure check polling interval (in ticks) when the multiblock is idle/standby.
+     * Used in fallback polling mode when event-driven or async checking is unavailable.
+     *
+     * @return polling interval in ticks (minimum 20)
+     */
+    protected int getStructureCheckIntervalStandby() {
+        if (isDelayCheck()) {
+            return getDelayStructureCheckStandby();
+        }
+        return 20;
+    }
+
+    /**
+     * Returns the structure check polling interval (in ticks) when the multiblock is working.
+     * Used in fallback polling mode when event-driven or async checking is unavailable.
+     *
+     * @return polling interval in ticks (minimum 20)
+     */
+    protected int getStructureCheckIntervalWorking() {
+        if (isDelayCheck()) {
+            return getDelayStructureCheckWork();
+        }
+        return 20;
     }
 
     public int getDelayStructureCheckStandby() {

@@ -9,6 +9,7 @@ import net.minecraft.world.World;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -23,7 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MultiblockWorldData {
 
-    private static final Map<World, MultiblockWorldData> INSTANCES = new WeakHashMap<>();
+    // Thread-safe: Forge events may fire from non-main threads (e.g., async chunk loading)
+    private static final Map<World, MultiblockWorldData> INSTANCES =
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     /** ChunkPos -> Set of controllers that have blocks in this chunk */
     private final Map<ChunkPos, Set<MultiblockControllerBase>> chunkIndex = new ConcurrentHashMap<>();

@@ -1,6 +1,6 @@
 # 多方块结构系统统一重构计划书
 
-更新时间：2026-05-04
+更新时间：2026-05-06
 
 ## 文档状态
 
@@ -63,10 +63,10 @@ GT5 源码结论已经并入本文的“结构信道统一模型”和后续里�
 
 | 模块 | 当前状态 | 判断 |
 |------|----------|------|
-| 事件驱动结构检查 | 已接入 `MultiblockWorldData`、Forge 事件、Mixin、controller 注册/注销 | 基本完成，待编译与实测 |
-| 异步结构检查 | 已接入 `AsyncStructureChecker` 和 `BlockStateSnapshot` | 已实现雏形，需并发安全复核 |
+| 事件驱动结构检查 | 已接入 `MultiblockWorldData`、Forge 事件、Mixin、controller 注册/注销 | **名义完成但实际未生效** — 子类 override 绕过了新系统 |
+| 异步结构检查 | 已接入 `AsyncStructureChecker` 和 `BlockStateSnapshot` | **存在严重并发安全问题**，需重写异步检查路径 |
 | 模板/实例状态拆分 | 已有 `BlockPatternTemplate`、`MultiblockState`、兼容层 `BlockPattern` | 部分完成，模板共享收益未完全兑现 |
-| 分片式结构检查 | 已有 `StructurePiece`、`MultiPiecePattern` 与 controller 入口 | API 完成，暂无机器启用 |
+| 分片式结构检查 | 已有 `StructurePiece`、`MultiPiecePattern` 与 controller 入口 | API 完成，**首次成形流程缺失**，暂无机器启用 |
 | 声明式 casing | 已有 `ICasing`、`ICasingGroup`、`DeclarativePatternBuilder`，多数机器已迁移 | 大部分完成，剩余迁移与 tooltip 整合 |
 | 结构信道 | 已有 `StructureChannel`、`GTStructureChannels`、`channelValues` 预览/建造雏形 | 部分完成，缺 registry、legacy key、indicator、NBT 统一层 |
 | JEI 信道预览 | 已有 `getSupportedChannels()` 与 `getMatchingShapes(channelValues)` 调用 | 可用雏形，仍有硬编码范围与 metadata 缺口 |
@@ -442,13 +442,130 @@ GT.StructureChannels: {
 - 当前未发现任何控制器 override `createMultiPiecePattern()`。
 - 实际性能收益尚未产生。
 
-任务：
+#### 架构限制（通过 Forge of Gods 试点发现）
 
-1. 选择 Forge of Gods 或其他超大结构作为试点。
-2. 拆分 core、ring、extension、optional upgrade segment。
-3. 实现 `createMultiPiecePattern()`。
-4. 和 M3/M4 的 channel model 对齐，条件片段可由 upgrade/channel 状态控制。
-5. 测试局部 dirty piece 重检。
+1. **`MultiPiecePattern` 的 offset 不支持方向旋转**
+   - `StructurePiece.getCenterPos(controllerPos)` 简单返回 `controllerPos.add(offset)`
+   - 对于非固定朝向的多方块，offset 应根据控制器朝向旋转到世界坐标
+   - 导致诸神之煅炉等大型多方块无法在不同朝向下正确使用分片检查
+
+2. **`BlockPatternTemplate` 不支持外部 centerOffset**
+   - center 只能通过模板内 `isCenter=true` 的 predicate 自动检测
+   - 对于子片段（如 second_ring），其 center（控制器位置）不在模板物理范围内
+   - 无法为子片段指定"虚拟 center"用于坐标计算
+
+3. **Template 缓存没有标准化方案**
+   - 超大结构的 predicate 数组可达 200K+ 对象
+   - 多个控制器实例如果各自重建 template 会造成大量内存浪费
+   - 当前需要使用者在控制器层面自行实现 DCL（double-checked locking）缓存
+
+4. **缺少 structurelib 的"虚拟 center"概念**
+   - GT5 的 structurelib 允许 `checkPiece(piece, ox, oy, oz)` 中 oz 为负值
+   - 表示"模板的第0层在控制器前方 |oz| 格"
+   - 我们的系统要求 center 必须在模板内部（`z >= 0 && z < fingerLength`）
+
+#### API 改动方案
+
+##### 改动1：`StructurePiece` 支持方向感知的 offset
+
+推荐方案：在 `MultiPiecePattern.Builder` 中声明 offset 语义。
+
+```java
+MultiPiecePattern.builder()
+    .offsetMode(OffsetMode.STRUCTURE_SPACE)  // or WORLD_ABSOLUTE (default, backward compat)
+    .piece("beam_shaft", template, new Vec3i(0, 0, 0))
+    .piece("first_ring", template, new Vec3i(0, 0, 59))  // FRONT +59
+    .build();
+```
+
+运行时在 `checkDirtyPieces` 中根据 `offsetMode` 决定是否旋转：
+
+```java
+private static BlockPos computeRotatedCenter(Vec3i offset, BlockPos controllerPos,
+        EnumFacing frontFacing, EnumFacing upwardsFacing, boolean isFlipped) {
+    if (offset.getX() == 0 && offset.getY() == 0 && offset.getZ() == 0) {
+        return controllerPos;
+    }
+    // offset = (RIGHT, UP, FRONT) → convert to offsetPos(UP, LEFT, FRONT)
+    return RelativeDirection.offsetPos(controllerPos, frontFacing, upwardsFacing, isFlipped,
+            offset.getY(), -offset.getX(), offset.getZ());
+}
+```
+
+##### 改动2：`BlockPatternTemplate` 支持外部 centerOffset
+
+添加新构造函数接受显式 `int[] centerOffset`：
+
+```java
+public BlockPatternTemplate(TraceabilityPredicate[][][] predicatesIn,
+                            RelativeDirection[] structureDir,
+                            int[][] aisleRepetitions,
+                            int[] centerOffset) {
+    // ... 初始化字段 ...
+    this.centerOffset = centerOffset;  // 跳过 initializeCenterOffsets()
+}
+```
+
+配套修改：`FactoryBlockPattern.buildTemplate(int[] centerOffset)` 方法。
+
+##### 改动3：Template 缓存
+
+推荐方案：控制器层面的 static volatile + DCL（简单直接，只有极少数超大结构需要）。
+
+#### Forge of Gods 偏移计算参考
+
+GT5 structurelib 的 `checkPiece(pieceName, ox, oy, oz)` 语义：
+- "模板中坐标 (ox, oy, oz) 对应控制器在世界中的位置"
+- ox=RIGHT 方向偏移, oy=UP 方向偏移, oz=FRONT(aisle) 方向偏移
+
+各 piece 的具体值：
+
+| Piece | GT5 checkPiece offset | template centerOffset | piece offset (FRONT) |
+|-------|----------------------|----------------------|---------------------|
+| beam_shaft | (63, 14, 1) | [63, 14, 1, 1, 1] (auto from 'S') | (0, 0, 0) |
+| first_ring | (63, 14, -59) | [63, 14, 0, 0, 0] (explicit) | (0, 0, 59) |
+| second_ring | (55, 11, -67) | [55, 11, 0, 0, 0] (explicit) | (0, 0, 67) |
+| third_ring | (47, 13, -76) | [47, 13, 0, 0, 0] (explicit) | (0, 0, 76) |
+
+推导公式：`piece offset z = -GT5_oz + template_center_z`
+
+#### Forge of Gods 最终实现方式
+
+```java
+@Override
+protected MultiPiecePattern createMultiPiecePattern() {
+    return MultiPiecePattern.builder()
+            .offsetMode(OffsetMode.STRUCTURE_SPACE)
+            .piece("beam_shaft", getBeamShaftTemplate(), Vec3i.NULL_VECTOR)
+            .piece("first_ring", getFirstRingTemplate(), new Vec3i(0, 0, 59))
+            .conditionalPiece("second_ring", getSecondRingTemplate(), new Vec3i(0, 0, 67),
+                    () -> data.isUpgradeActive(ForgeOfGodsUpgrade.CD))
+            .conditionalPiece("third_ring", getThirdRingTemplate(), new Vec3i(0, 0, 76),
+                    () -> data.isUpgradeActive(ForgeOfGodsUpgrade.END))
+            .build();
+}
+```
+
+#### 任务
+
+1. 实现 `OffsetMode` enum 和 `MultiPiecePattern.Builder.offsetMode()` 方法。
+2. 修改 `MultiPiecePattern.checkDirtyPieces()` 根据 offsetMode 旋转偏移。
+3. 添加 `BlockPatternTemplate` 的外部 centerOffset 构造函数。
+4. 添加 `FactoryBlockPattern.buildTemplate(int[] centerOffset)`。
+5. 在 `MetaTileEntityForgeOfGods` 中实现 `createMultiPiecePattern()` 使用新 API。
+6. 实现 static template 缓存（DCL 模式）。
+7. 验证各朝向下结构检查的正确性。
+8. 测试局部 dirty piece 重检。
+
+#### 影响范围
+
+| 文件 | 改动 | 影响 |
+|------|------|------|
+| `MultiPiecePattern.java` | 添加 `OffsetMode` + 旋转逻辑 | 默认 `WORLD_ABSOLUTE` 保持旧行为 |
+| `MultiPiecePattern.Builder` | 添加 `.offsetMode()` | 新代码 |
+| `BlockPatternTemplate.java` | 新增构造函数 | 无影响（新增） |
+| `FactoryBlockPattern.java` | 新增 `buildTemplate(int[])` | 无影响（新增） |
+| `MetaTileEntityForgeOfGods.java` | 实现 `createMultiPiecePattern()` | 控制器层面 |
 
 验收：
 
@@ -456,6 +573,7 @@ GT.StructureChannels: {
 - 修改单个片段只重检该片段。
 - inactive conditional piece 不影响已成形状态。
 - piece 失效能导致整个多方块正确失效。
+- 不同控制器朝向下结构检查结果正确。
 
 ### M8：迁移收尾与清理
 

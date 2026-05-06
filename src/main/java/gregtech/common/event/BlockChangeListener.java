@@ -72,8 +72,10 @@ public class BlockChangeListener {
     public static void onWorldLoad(WorldEvent.Load event) {
         World world = (World) event.getWorld();
         if (world.isRemote) return;
-        // Ensure async checker is running when a world loads
-        AsyncStructureChecker.getInstance().start();
+        // Only start async checker if enabled in config
+        if (gregtech.common.ConfigHolder.machines.enableAsyncStructureCheck) {
+            AsyncStructureChecker.getInstance().start();
+        }
     }
 
     /**

@@ -366,5 +366,6 @@ public class CoreModule implements IGregTechModule {
     public void serverStopped(FMLServerStoppedEvent event) {
         VirtualEnderRegistry.clearMaps();
         CapesRegistry.clearMaps();
+        gregtech.api.metatileentity.multiblock.AsyncStructureChecker.getInstance().stop();
     }
 }

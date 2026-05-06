@@ -1,6 +1,8 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.util.GTLog;
 
@@ -68,8 +70,11 @@ public class AsyncStructureChecker {
     /** Maximum snapshots prepared per tick to avoid lag spikes */
     private static final int MAX_SNAPSHOTS_PER_TICK = 4;
 
-    /** Snapshot radius: how many blocks around the controller to capture */
-    private static final int SNAPSHOT_RADIUS = 32;
+    /** Fallback snapshot radius when template size cannot be determined */
+    private static final int FALLBACK_SNAPSHOT_RADIUS = 32;
+
+    /** Extra margin added to structure AABB for snapshot capture */
+    private static final int SNAPSHOT_MARGIN = 2;
 
     /** Interval between async check cycles (ms) */
     private static final long CHECK_INTERVAL_MS = 250;
@@ -163,8 +168,8 @@ public class AsyncStructureChecker {
             BlockPos pos = controller.getPos();
             if (pos == null) continue;
 
-            // Capture snapshot on main thread
-            BlockStateSnapshot snapshot = BlockStateSnapshot.capture(world, pos, SNAPSHOT_RADIUS);
+            // Compute snapshot region from template dimensions instead of fixed radius
+            BlockStateSnapshot snapshot = captureSnapshotForController(world, controller, pos);
 
             // Create task and enqueue for async processing
             SnapshotTask task = new SnapshotTask(
@@ -203,6 +208,10 @@ public class AsyncStructureChecker {
             if (result.matched) {
                 // Pattern matched in snapshot — do a confirmatory check on main thread
                 // This handles the rare case where world changed between snapshot and now
+                if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                    GTLog.logger.debug("[AsyncStructureCheck] Async match found for {}, performing main-thread confirm",
+                            controller.getMetaName());
+                }
                 controller.checkStructurePattern();
 
                 if (controller.isStructureFormed()) {
@@ -211,6 +220,27 @@ public class AsyncStructureChecker {
             }
             // If not matched, controller stays in pendingControllers for next cycle
         }
+    }
+
+    /**
+     * Capture a snapshot region sized to the controller's structure template.
+     * Falls back to a fixed radius if template is unavailable.
+     */
+    private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
+                                                            BlockPos pos) {
+        BlockPattern pattern = controller.structurePattern;
+        if (pattern != null) {
+            BlockPatternTemplate template = pattern.getTemplate();
+            // Compute radius from template dimensions with margin
+            int xRadius = template.getStructureXSize() + SNAPSHOT_MARGIN;
+            int yRadius = template.getStructureYSize() + SNAPSHOT_MARGIN;
+            int zRadius = template.getStructureZSize() + SNAPSHOT_MARGIN;
+            // Use max dimension as a conservative symmetric radius for captureRegion
+            BlockPos min = pos.add(-xRadius, -yRadius, -zRadius);
+            BlockPos max = pos.add(xRadius, yRadius, zRadius);
+            return BlockStateSnapshot.captureRegion(world, min, max);
+        }
+        return BlockStateSnapshot.capture(world, pos, FALLBACK_SNAPSHOT_RADIUS);
     }
 
     /**
@@ -238,14 +268,18 @@ public class AsyncStructureChecker {
 
     /**
      * Perform pattern matching against a snapshot (runs on async thread).
-     * Uses the snapshot as a read-only IBlockAccess.
+     * Uses a temporary MultiblockState to avoid data race with the main thread.
+     * Only returns whether the pattern matched; the main thread will do a confirmatory check.
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
         BlockPattern structurePattern = task.controller.structurePattern;
         if (structurePattern == null) return false;
 
-        // Use the snapshot-based check
-        PatternMatchContext context = structurePattern.getState().checkPatternFastAtSnapshot(
+        // Create a temporary state from the shared template to avoid data race (M1 fix)
+        MultiblockState tempState = structurePattern.getTemplate().createState();
+
+        // Use the snapshot-based check on the temporary state
+        PatternMatchContext context = tempState.checkPatternFastAtSnapshot(
                 task.snapshot, task.centerPos, task.frontFacing, task.upwardsFacing, task.allowsFlip);
 
         return context != null;

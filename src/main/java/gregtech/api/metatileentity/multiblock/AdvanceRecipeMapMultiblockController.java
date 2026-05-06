@@ -574,32 +574,8 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
             recipeMapWorkable.setEnergyLackWarningEnable(enable);
     }
 
-    /// /////////////////////////////////////////////////////////////////
     @Override
-    public void doStructureCheck() {
-        // 如果是首次tick，直接进行检测
-        if (isFirstTick()) {
-            checkStructurePattern();
-            return;
-        }
-
-        // 根据多方块是否工作采用不同的检测策略
-        if (checkActive()) {
-            if (isDelayCheck()) {
-                if (getOffsetTimer() % getDelayStructureCheckStandby() == 0) {
-                    checkStructurePattern();
-                }
-            } else if (getOffsetTimer() % 20 == 0) {
-                checkStructurePattern();
-            }
-        } else {
-            if (isDelayCheck()) {
-                if (getOffsetTimer() % getDelayStructureCheckWork() == 0) {
-                    checkStructurePattern();
-                }
-            } else if (getOffsetTimer() % 20 == 0) {
-                checkStructurePattern();
-            }
-        }
+    protected boolean isWorkingForStructureCheck() {
+        return checkActive();
     }
 }
