@@ -1,6 +1,10 @@
 package gregtech.api.pattern.casing;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.ItemStack;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a single casing type used in multiblock structures.
@@ -30,4 +34,18 @@ public interface ICasing {
      * @return the tier level of this casing (only meaningful if {@link #isTiered()} is true)
      */
     int getTier();
+
+    /**
+     * Get the ItemStack representation of this casing.
+     * Used for indicator display in GUIs and tooltips.
+     *
+     * @return the item stack for this casing block state
+     */
+    @NotNull
+    default ItemStack getItemStack() {
+        IBlockState state = getBlockState();
+        Block block = state.getBlock();
+        int meta = block.getMetaFromState(state);
+        return new ItemStack(block, 1, meta);
+    }
 }

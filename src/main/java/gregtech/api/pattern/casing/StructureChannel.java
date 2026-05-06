@@ -100,4 +100,19 @@ public interface StructureChannel {
     default boolean hasValue(@NotNull PatternMatchContext context) {
         return context.get(getName()) != null;
     }
+
+    /**
+     * Get the indicator item representing a specific tier of this channel.
+     * Indicator items are used in GUIs and tooltips to visually represent tier levels
+     * (e.g. a coil block's ItemStack for the HEATING_COIL channel tier).
+     *
+     * <p>Default implementation delegates to {@link StructureChannelRegistry#getIndicator(StructureChannel, int)}.
+     *
+     * @param tier the tier value
+     * @return the indicator item, or {@link net.minecraft.item.ItemStack#EMPTY} if not registered
+     */
+    @NotNull
+    default net.minecraft.item.ItemStack getIndicatorItem(int tier) {
+        return StructureChannelRegistry.getIndicator(this, tier);
+    }
 }

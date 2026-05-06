@@ -62,12 +62,15 @@ public final class GTCasingGroups {
             casings.add(new HeatingCoilCasing(entry.getKey(), entry.getValue()));
         }
         casings.sort(Comparator.comparingInt(ICasing::getTier));
-        return CasingDefinition.tieredGroup(
+        ICasingGroup group = CasingDefinition.tieredGroup(
                 "heating_coils",
                 "gregtech.casing_group.heating_coils",
                 true,
                 GTStructureChannels.HEATING_COIL.getName(),
                 casings);
+        // Register indicator items for the channel
+        StructureChannelRegistry.registerIndicatorsFromGroup(group, GTStructureChannels.HEATING_COIL);
+        return group;
     }
 
     /**
@@ -95,12 +98,14 @@ public final class GTCasingGroups {
             casings.add(new MachineCasingCasing(state, type, tier));
         }
         casings.sort(Comparator.comparingInt(ICasing::getTier));
-        return CasingDefinition.tieredGroup(
+        ICasingGroup group = CasingDefinition.tieredGroup(
                 "machine_casings",
                 "gregtech.casing_group.machine_casings",
                 true,
                 GTStructureChannels.MACHINE_CASING.getName(),
                 casings);
+        StructureChannelRegistry.registerIndicatorsFromGroup(group, GTStructureChannels.MACHINE_CASING);
+        return group;
     }
 
     /**
@@ -126,12 +131,14 @@ public final class GTCasingGroups {
             casings.add(new GlassCasing(state, block, meta, tier));
         }
         casings.sort(Comparator.comparingInt(ICasing::getTier));
-        return CasingDefinition.tieredGroup(
+        ICasingGroup group = CasingDefinition.tieredGroup(
                 "borosilicate_glasses",
                 "gregtech.casing_group.borosilicate_glasses",
                 true,
                 GTStructureChannels.BOROSILICATE_GLASS.getName(),
                 casings);
+        StructureChannelRegistry.registerIndicatorsFromGroup(group, GTStructureChannels.BOROSILICATE_GLASS);
+        return group;
     }
 
     /**
