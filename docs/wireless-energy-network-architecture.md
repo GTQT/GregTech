@@ -99,15 +99,15 @@ GT5 的一个重要性能判断是：`BigInteger` 操作比较贵，所以机器
 
 ### 当前项目主要差距
 
-| 项目 | 现状 | 风险 |
-| --- | --- | --- |
+| 项目     | 现状                                                                                         | 风险                                                 |
+| ------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------- |
 | 两套无线网络 | `gregtech.common.misc.WirelessNetworkManager` 与 `gtqt.api.util.wireless.NetworkManager` 并存 | 如果沿用 GT5 旧调用点，移植机器容易写入全局余额，而当前无线仓读取 PSS 网络，形成能量孤岛。 |
-| 网络身份 | 全局余额用 FTB team owner；PSS 网络用 owner 或扫描队伍成员已有 network | 队伍变更、owner 变化和多人访问时容易出现多个 network。 |
-| 持久化 | 全局余额存余额；PSS 网络只存 controller 位置 | PSS 未加载时容量和储能不可见，HUD/转账依赖已加载 tile。 |
-| 转账性能 | PSS 网络每次 fill/drain 动态解析世界、过滤 loaded hatches、排序 | 高频无线仓越多，查找和排序成本越高。 |
-| 统计 | `CPacketRequestNetworkInfo` 请求后调用 `node.resetStats()` | 多个客户端同时看 HUD 会互相清空统计。 |
-| 优先级 | tooltip 说等级越高越优先，代码按 `Comparator.comparingInt(priority)` 升序 | 语义可能反了，需要明确高优先还是低优先。 |
-| 数据一致性 | PSS tile 是真实储能，NetworkDatabase 是位置索引 | 如果后续要支持未加载节点参与网络，需要解决 tile NBT 与网络账本同步。 |
+| 网络身份   | 全局余额用 FTB team owner；PSS 网络用 owner 或扫描队伍成员已有 network                                       | 队伍变更、owner 变化和多人访问时容易出现多个 network。                 |
+| 持久化    | 全局余额存余额；PSS 网络只存 controller 位置                                                             | PSS 未加载时容量和储能不可见，HUD/转账依赖已加载 tile。                 |
+| 转账性能   | PSS 网络每次 fill/drain 动态解析世界、过滤 loaded hatches、排序                                            | 高频无线仓越多，查找和排序成本越高。                                 |
+| 统计     | `CPacketRequestNetworkInfo` 请求后调用 `node.resetStats()`                                      | 多个客户端同时看 HUD 会互相清空统计。                              |
+| 优先级    | tooltip 说等级越高越优先，代码按 `Comparator.comparingInt(priority)` 升序                                | 语义可能反了，需要明确高优先还是低优先。                               |
+| 数据一致性  | PSS tile 是真实储能，NetworkDatabase 是位置索引                                                       | 如果后续要支持未加载节点参与网络，需要解决 tile NBT 与网络账本同步。            |
 
 ## 最优架构
 
@@ -396,16 +396,16 @@ PSS GUI 应显示：
 
 ## 与现有代码的落地关系
 
-| 现有类 | 建议处理 |
-| --- | --- |
-| `gregtech.common.misc.WirelessNetworkManager` | 标记为 deprecated 桥接层，内部委托 `WirelessEnergyService`；新移植机器禁止新增调用。 |
-| `gregtech.common.misc.GlobalEnergyWorldSavedData` | 作为旧数据迁移源，迁移后不再作为活跃存储。 |
-| `gtqt.api.util.wireless.NetworkDatabase` | 作为旧 PSS node 位置迁移源，迁移后由 `WirelessEnergySavedData` 取代。 |
-| `gtqt.api.util.wireless.NetworkNode` | 拆分为 `WirelessEnergyNetwork` 和 `WirelessStorageNodeSnapshot`；不再每次转账动态扫世界。 |
-| `gtqt.api.util.wireless.EnergyContainerWireless` | 保留为无线仓 buffer adapter，但改为调用统一 service。 |
-| `MetaTileEntityWirelessController` | 从 `IWirelessController` 扩展为 `IWirelessStorageNodeProvider`，负责注册/更新/注销 PSS node。 |
-| `MetaTileEntityPowerSubstation` | PSS 能量银行和无线 service 对接，避免无线仓直接操作 PSS tile。 |
-| `SPacketWirelessNetworkInfo` / `CPacketRequestNetworkInfo` | 改为同步 `WirelessNetworkView`，不 reset 统计。 |
+| 现有类                                                        | 建议处理                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `gregtech.common.misc.WirelessNetworkManager`              | 标记为 deprecated 桥接层，内部委托 `WirelessEnergyService`；新移植机器禁止新增调用。                    |
+| `gregtech.common.misc.GlobalEnergyWorldSavedData`          | 作为旧数据迁移源，迁移后不再作为活跃存储。                                                           |
+| `gtqt.api.util.wireless.NetworkDatabase`                   | 作为旧 PSS node 位置迁移源，迁移后由 `WirelessEnergySavedData` 取代。                           |
+| `gtqt.api.util.wireless.NetworkNode`                       | 拆分为 `WirelessEnergyNetwork` 和 `WirelessStorageNodeSnapshot`；不再每次转账动态扫世界。        |
+| `gtqt.api.util.wireless.EnergyContainerWireless`           | 保留为无线仓 buffer adapter，但改为调用统一 service。                                          |
+| `MetaTileEntityWirelessController`                         | 从 `IWirelessController` 扩展为 `IWirelessStorageNodeProvider`，负责注册/更新/注销 PSS node。 |
+| `MetaTileEntityPowerSubstation`                            | PSS 能量银行和无线 service 对接，避免无线仓直接操作 PSS tile。                                      |
+| `SPacketWirelessNetworkInfo` / `CPacketRequestNetworkInfo` | 改为同步 `WirelessNetworkView`，不 reset 统计。                                          |
 
 ## 迁移阶段
 
@@ -470,6 +470,7 @@ PSS GUI 应显示：
 - `SPacketWirelessNetworkInfo` 同步 `WirelessNetworkView`。
 - HUD 不再读取后清零统计。
 - 添加管理命令和 stale node 清理命令。
+- 添加为无线网络增加能量的命令
 
 验收：
 
@@ -564,3 +565,4 @@ GT5 源端：
 - `D:\mc\modgit\GregTech\src\main\java\gtqt\common\metatileentities\multi\multiblockpart\MetaTileEntityWirelessController.java`
 - `D:\mc\modgit\GregTech\src\main\java\gtqt\common\metatileentities\multi\multiblockpart\MetaTileEntityWirelessEnergyHatch.java`
 - `D:\mc\modgit\GregTech\src\main\java\gregtech\common\metatileentities\multi\electric\MetaTileEntityPowerSubstation.java`
+

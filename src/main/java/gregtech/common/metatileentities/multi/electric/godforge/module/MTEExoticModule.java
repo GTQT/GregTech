@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.recipes.GTRecipeHandler;
 import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
@@ -89,7 +90,7 @@ public class MTEExoticModule extends MTEBaseModule {
         }
 
         // Build the recipe dynamically
-        GodforgeRecipeMaps.GODFORGE_EXOTIC_MATTER_RECIPES.removeAllRecipes();
+        GTRecipeHandler.removeAllRecipes(GodforgeRecipeMaps.GODFORGE_EXOTIC_MATTER_RECIPES);
 
         var builder = GodforgeRecipeMaps.GODFORGE_EXOTIC_MATTER_RECIPES.recipeBuilder();
         for (Material mat : selected) {

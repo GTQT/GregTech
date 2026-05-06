@@ -6,10 +6,16 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.wireless.UnregisterMode;
+import gregtech.api.wireless.WirelessEnergyService;
+import gregtech.api.wireless.WirelessNodeId;
+import gregtech.api.wireless.WirelessStorageNodeSnapshot;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+import gregtech.common.wireless.WirelessEnergyServiceImpl;
+import gregtech.common.wireless.WirelessTeamResolver;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -23,8 +29,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import gtqt.api.util.wireless.NetworkManager;
-import gtqt.api.util.wireless.NetworkNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +41,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
     private int priority;
 
-    // ==================== 构造与基础方法 ====================
+    // ==================== Construction ====================
 
     public MetaTileEntityWirelessController(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
@@ -68,6 +72,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         tooltip.add(I18n.format("仓的等级决定了能量交互的优先级，等级越高在网络充放电顺序中越优先。"));
         tooltip.add(I18n.format("注意：每个无线代理仓必须安装在已成形且有效的PSS上才能正常工作，多方块被拆除后会自动注销本仓的代理行为。"));
     }
+
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
@@ -82,39 +87,57 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         return Textures.FUSION_REACTOR_OVERLAY;
     }
 
-    // ==================== 网络绑定 ====================
+    // ==================== Wireless Network Binding ====================
 
     /**
-     * 获取当前仓所属的网络（如果不存在则自动创建）
-     */
-    private NetworkNode getOrCreateNetwork() {
-        World world = this.getWorld();
-        if (world == null || world.isRemote) return null;
-
-        UUID ownerId = this.getOwnerGT();
-        if (ownerId == null) return null;
-
-        return NetworkManager.INSTANCE.getOrCreateNetwork(world, ownerId, "无线网络");
-    }
-
-    /**
-     * 将当前仓添加到网络（多方块成形时调用）
+     * Registers this PSS as a storage node in the unified wireless energy service.
+     * Called when the PSS multi-block structure forms.
      */
     public void sentMTE() {
-        NetworkNode node = getOrCreateNetwork();
-        if (node != null) {
-            node.addNewHatch(this);
-        }
+        World world = this.getWorld();
+        if (world == null || world.isRemote) return;
+
+        UUID ownerId = this.getOwnerGT();
+        if (ownerId == null) return;
+
+        MetaTileEntityPowerSubstation pss = getPSS();
+        if (pss == null) return;
+
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return;
+
+        UUID networkId = WirelessTeamResolver.resolveNetworkId(ownerId);
+        WirelessNodeId nodeId = new WirelessNodeId(world.provider.getDimension(), this.getPos());
+
+        WirelessStorageNodeSnapshot snapshot = WirelessStorageNodeSnapshot
+                .builder(nodeId, networkId)
+                .priority(this.priority)
+                .tier(this.getTier())
+                .capacity(pss.getCapacityByBigInteger())
+                .stored(pss.getStoredByBigInteger())
+                .maxInputPerTick(Long.MAX_VALUE)
+                .maxOutputPerTick(Long.MAX_VALUE)
+                .allowExternalAccess(pss.isExternalEnergyAccessAllowed())
+                .lastSeenTick(world.getTotalWorldTime())
+                .status(WirelessStorageNodeSnapshot.NodeStatus.ONLINE)
+                .build();
+
+        service.registerStorageNode(snapshot);
     }
 
     /**
-     * 从网络中移除当前仓（多方块拆解时调用）
+     * Unregisters this PSS from the unified wireless energy service.
+     * Called when the PSS multi-block structure is invalidated.
      */
     public void removeMTE() {
-        NetworkNode node = getOrCreateNetwork();
-        if (node != null) {
-            node.removeHatch(this);
-        }
+        World world = this.getWorld();
+        if (world == null || world.isRemote) return;
+
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return;
+
+        WirelessNodeId nodeId = new WirelessNodeId(world.provider.getDimension(), this.getPos());
+        service.unregisterStorageNode(nodeId, UnregisterMode.GRACEFUL);
     }
 
     public MetaTileEntityPowerSubstation getPSS() {
@@ -146,7 +169,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         return 0;
     }
 
-    // ==================== 优先级 ====================
+    // ==================== Priority ====================
 
     public int getPriority() {
         return priority;
@@ -156,7 +179,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         this.priority = priority;
     }
 
-    // ==================== 数据持久化 ====================
+    // ==================== Persistence ====================
 
     @Override
     public NBTTagCompound writeToNBT(@NotNull NBTTagCompound data) {

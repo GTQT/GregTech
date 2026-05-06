@@ -5,7 +5,11 @@ import java.util.UUID;
 
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
-import gregtech.common.misc.WirelessNetworkManager;
+import gregtech.api.wireless.TransferContext;
+import gregtech.api.wireless.TransferResult;
+import gregtech.api.wireless.WirelessEnergyService;
+import gregtech.api.wireless.WirelessNetworkView;
+import gregtech.common.wireless.WirelessEnergyServiceImpl;
 
 public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
 
@@ -20,7 +24,9 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
     protected long getEnergyStored() {
         UUID uuid = module.getOwnerGT();
         if (uuid == null) return 0;
-        BigInteger eu = WirelessNetworkManager.getUserEU(uuid);
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return 0;
+        BigInteger eu = service.getView(uuid).getStored();
         long clamped = eu.min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
         return Math.max(clamped, 0);
     }
@@ -38,14 +44,17 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
         UUID uuid = module.getOwnerGT();
         if (uuid == null) return false;
 
-        BigInteger currentEU = WirelessNetworkManager.getUserEU(uuid);
-        BigInteger required = BigInteger.valueOf(recipeEUt);
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return false;
 
-        if (currentEU.compareTo(required) >= 0) {
-            if (!simulate) {
-                WirelessNetworkManager.addEUToGlobalEnergyMap(uuid, required.negate());
-                module.addToPowerTally(required);
-            }
+        if (simulate) {
+            WirelessNetworkView view = service.getView(uuid);
+            return view.getStored().compareTo(BigInteger.valueOf(recipeEUt)) >= 0;
+        }
+
+        TransferResult result = service.extract(uuid, recipeEUt, TransferContext.MACHINE);
+        if (result.isSuccess()) {
+            module.addToPowerTally(BigInteger.valueOf(result.getAmountLong()));
             return true;
         }
         return false;

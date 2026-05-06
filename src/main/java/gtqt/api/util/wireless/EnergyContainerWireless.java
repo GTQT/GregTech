@@ -2,8 +2,10 @@ package gtqt.api.util.wireless;
 
 import gregtech.api.capability.impl.EnergyContainerHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
-
-import net.minecraft.world.World;
+import gregtech.api.wireless.TransferContext;
+import gregtech.api.wireless.TransferResult;
+import gregtech.api.wireless.WirelessEnergyService;
+import gregtech.common.wireless.WirelessEnergyServiceImpl;
 
 import java.util.UUID;
 
@@ -25,27 +27,27 @@ public class EnergyContainerWireless extends EnergyContainerHandler {
     public void update() {
         super.update();
         if (!this.metaTileEntity.getWorld().isRemote) {
-            World world = metaTileEntity.getWorld();
             UUID ownerId = this.metaTileEntity.getOwnerGT();
-            if (ownerId == null) return; // 无所有者，无法操作网络
+            if (ownerId == null) return;
 
-            NetworkNode node = NetworkManager.INSTANCE.getNetworkForPlayer(world, ownerId);
-            if (node == null) return;
+            WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+            if (service == null) return;
 
-            if (isExport) { // 动力舱（输出能量到网络）
+            if (isExport) {
+                // Dynamo hatch: push local buffer into wireless network
                 if (this.energyStored > 0) {
-                    long toTransfer = this.energyStored;
-                    long transferred = node.fill(toTransfer);
-                    if (transferred > 0) {
-                        this.removeEnergy(transferred);
+                    TransferResult result = service.insert(ownerId, this.energyStored, TransferContext.HATCH);
+                    if (result.isSuccess()) {
+                        this.removeEnergy(result.getAmountLong());
                     }
                 }
-            } else { // 能源仓：从网络抽取能量
+            } else {
+                // Energy hatch: pull from wireless network into local buffer
                 long needEnergy = this.getEnergyCapacity() - this.getEnergyStored();
                 if (needEnergy > 0) {
-                    long transferred = node.drain(needEnergy);
-                    if (transferred > 0) {
-                        this.addEnergy(transferred);
+                    TransferResult result = service.extract(ownerId, needEnergy, TransferContext.HATCH);
+                    if (result.isSuccess()) {
+                        this.addEnergy(result.getAmountLong());
                     }
                 }
             }

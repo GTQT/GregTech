@@ -12,7 +12,7 @@ public final class TransferContext {
     /** Context for ported GT5 machine operations calling the unified service directly. */
     public static final TransferContext MACHINE = new TransferContext(Source.MACHINE, false);
 
-    /** Context for the deprecated WirelessNetworkManager bridge layer. */
+    /** Context for legacy bridge operations (e.g. old API compatibility layer). */
     public static final TransferContext LEGACY_BRIDGE = new TransferContext(Source.LEGACY_BRIDGE, true);
 
     /** Context for admin/command operations that may bypass capacity limits. */

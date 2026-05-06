@@ -1,16 +1,16 @@
 package gtqt.common.network;
 
+import gregtech.api.wireless.WirelessEnergyService;
+import gregtech.api.wireless.WirelessNetworkView;
+import gregtech.common.wireless.WirelessEnergyServiceImpl;
+
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import gtqt.api.util.wireless.NetworkManager;
-import gtqt.api.util.wireless.NetworkNode;
 import io.netty.buffer.ByteBuf;
 
-import java.math.BigInteger;
 import java.util.UUID;
 
 public class CPacketRequestNetworkInfo implements IMessage {
@@ -28,16 +28,15 @@ public class CPacketRequestNetworkInfo implements IMessage {
         public IMessage onMessage(CPacketRequestNetworkInfo message, MessageContext ctx) {
             EntityPlayerMP player = ctx.getServerHandler().player;
             player.getServerWorld().addScheduledTask(() -> {
-                World world = player.getServerWorld();
                 UUID playerId = player.getUniqueID();
-                NetworkNode node = NetworkManager.INSTANCE.getNetworkForPlayer(world, playerId);
-                if (node != null) {
-                    BigInteger stored = node.getTotalStored();
-                    BigInteger capacity = node.getTotalCapacity();
-                    BigInteger energyIn = node.getTotalInput();
-                    BigInteger energyOut = node.getTotalOutput();
-                    node.resetStats();
-                    NetworkHandler.INSTANCE.sendTo(new SPacketWirelessNetworkInfo(stored, capacity,energyIn,energyOut), player);
+                WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+                if (service == null) return;
+
+                WirelessNetworkView view = service.getView(playerId);
+                if (!view.isEmpty()) {
+                    NetworkHandler.INSTANCE.sendTo(new SPacketWirelessNetworkInfo(
+                            view.getStored(), view.getCapacity(),
+                            view.getInputPerSecond(), view.getOutputPerSecond()), player);
                 }
             });
             return null;

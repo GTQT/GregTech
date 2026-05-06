@@ -36,7 +36,7 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
 
     private WirelessEnergySavedData savedData;
 
-    private WirelessEnergyServiceImpl() {}
+    public WirelessEnergyServiceImpl() {}
 
     // ==================== Instance Management ====================
 
@@ -75,6 +75,7 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         }
         savedData = null;
         WirelessEnergySavedData.clearInstance();
+        WirelessTeamResolver.clearOverrides();
         INSTANCE = null;
     }
 

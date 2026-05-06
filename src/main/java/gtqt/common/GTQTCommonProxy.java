@@ -7,11 +7,9 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.world.gen.structure.MapGenStructureIO;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.registry.VillagerRegistry;
 
-import gtqt.api.util.wireless.WirelessWorldEventHandler;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.covers.GTQTCoverBehavior;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
@@ -38,7 +36,6 @@ public class GTQTCommonProxy {
     }
 
     public static void init() {
-        MinecraftForge.EVENT_BUS.register(new WirelessWorldEventHandler());
         MapGenStructureIO.registerStructureComponent(VillageEngineersHouse.class, "gtqt:village_engineers_house");
         VillagerRegistry.instance().registerVillageCreationHandler(new VillageEngineersHouse.VillageManager());
     }

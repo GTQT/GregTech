@@ -48,7 +48,6 @@ import gregtech.common.pipelike.laser.BlockLaserPipe;
 import gregtech.common.pipelike.laser.ItemBlockLaserPipe;
 import gregtech.common.pipelike.optical.BlockOpticalPipe;
 import gregtech.common.pipelike.optical.ItemBlockOpticalPipe;
-import gregtech.common.misc.GlobalEnergyWorldSavedData;
 import gregtech.common.wireless.WirelessEnergyServiceImpl;
 import gregtech.datafix.GTDataFixers;
 import gregtech.integration.groovy.GroovyScriptModule;
@@ -499,7 +498,6 @@ public class CommonProxy {
         GTDataFixers.init();
         GTQTCommonProxy.init();
         registerCEuContainers();
-        MinecraftForge.EVENT_BUS.register(new GlobalEnergyWorldSavedData());
         MinecraftForge.EVENT_BUS.register(new WirelessEnergyServiceImpl());
     }
 
