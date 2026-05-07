@@ -12,6 +12,7 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Alignment.MainAxis;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
@@ -48,7 +49,11 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
-        hypervisor.setSyncManager(getMainPanel(), syncManager);
+        ModularPanel mainPanel = hypervisor.getModularPanel(hypervisor.getMainModule(), getMainPanel());
+        if (mainPanel != null) {
+            hypervisor.setModularPanel(getModuleType(), getMainPanel(), mainPanel);
+        }
+        hypervisor.setSyncManager(getModuleType(), getMainPanel(), syncManager);
 
         SyncValues.CONNECTION_STATUS.registerFor(getModuleType(), getMainPanel(), hypervisor);
     }
@@ -76,7 +81,7 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
         return new Column().coverChildren()
             .rightRel(0, 6, 0)
             .bottomRel(0, 6, 0)
-            .child(createGeneralInfoPanelButton());
+            .childIf(hypervisor.getData() != null, this::createGeneralInfoPanelButton);
     }
 
     @Override
@@ -106,6 +111,7 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
     @Override
     protected ToggleButton createPowerSwitchButton() {
         return super.createPowerSwitchButton().size(16)
+            .value(new BoolValue.Dynamic(multiblock::isAllowedToWork, multiblock::setWorkingEnabled))
             .background(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .selectedBackground(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .overlay(new DynamicDrawable(() -> {

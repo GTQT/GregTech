@@ -20,6 +20,7 @@ import com.cleanroommc.modularui.widgets.layout.Row;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.common.metatileentities.multi.electric.godforge.data.Milestones;
 import gregtech.common.mui.multiblock.godforge.ForgeOfGodsGuiUtil;
+import gregtech.common.mui.multiblock.godforge.sync.Modules;
 import gregtech.common.mui.multiblock.godforge.sync.Panels;
 import gregtech.common.mui.multiblock.godforge.sync.SyncHypervisor;
 import gregtech.common.mui.multiblock.godforge.sync.SyncValues;
@@ -62,6 +63,7 @@ public class MilestonePanel {
     }
 
     private static void registerSyncValues(SyncHypervisor hypervisor) {
+        SyncValues.INVERSION.registerFor(Modules.CORE, Panels.MILESTONE, hypervisor);
         SyncValues.MILESTONE_CLICKED.registerFor(Panels.MILESTONE, hypervisor);
 
         SyncValues.MILESTONE_CHARGE_LEVEL.registerFor(Panels.MILESTONE, hypervisor);

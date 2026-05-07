@@ -90,7 +90,8 @@ public class MTEExoticModuleGui extends MTEBaseModuleGui<MTEExoticModule> {
 
     @Override
     protected IWidget createTerminalLeftButton() {
-        IPanelHandler expectedInputsPanel = Panels.EXOTIC_INPUTS_LIST.getFrom(getMainPanel(), hypervisor);
+        IPanelHandler expectedInputsPanel = Panels.EXOTIC_INPUTS_LIST
+            .getFrom(getModuleType(), getMainPanel(), hypervisor);
         return new ButtonWidget<>().size(16)
             .overlay(GTGuiTextures.PICTURE_INFO)
             .disableThemeBackground(true)

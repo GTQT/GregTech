@@ -267,7 +267,7 @@ public class CustomStarColorPanel {
             new ButtonWidget<>().size(37, 15)
                 .onMousePressed(d -> {
                     ForgeOfGodsStarColor starColor = getClickedStarColor(hypervisor);
-                    if (editingIndex.intValue() >= 0 && starColor.numColors() < editingIndex.intValue()) {
+                    if (editingIndex.intValue() >= 0 && editingIndex.intValue() < starColor.numColors()) {
                         StarColorSetting setting = starColor.getColor(editingIndex.intValue());
                         colorData.updateFrom(setting);
                         return true;

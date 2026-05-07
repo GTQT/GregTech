@@ -122,7 +122,7 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
             energyOutputPerSec += this.energyStored - energyStored;
         }
         this.energyStored = energyStored;
-        if (!metaTileEntity.getWorld().isRemote) {
+        if (metaTileEntity.getWorld() != null && !metaTileEntity.getWorld().isRemote) {
             metaTileEntity.markDirty();
             notifyEnergyListener(false);
         }

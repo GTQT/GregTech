@@ -295,7 +295,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         // Unformed multiblocks: register for async checking (P2)
-        if (ConfigHolder.machines.enableAsyncStructureCheck
+        if (ConfigHolder.machines.enableAsyncStructureCheck && allowsAsyncStructureCheck()
                 && !structureFormed && getWorld() != null && !getWorld().isRemote
                 && !(getWorld() instanceof DummyWorld)) {
             AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
@@ -518,6 +518,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     protected boolean isWorkingForStructureCheck() {
         return false;
+    }
+
+    /**
+     * Large or piece-sharded structures may be more expensive to snapshot than to check normally.
+     */
+    protected boolean allowsAsyncStructureCheck() {
+        return true;
     }
 
     /**

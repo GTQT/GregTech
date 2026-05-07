@@ -4,6 +4,7 @@ import static gregtech.api.GTValues.MODID;
 
 import java.nio.FloatBuffer;
 
+import gregtech.api.util.GTLog;
 import gregtech.client.renderer.godforge.util.SphereVBOCache;
 import gregtech.client.renderer.godforge.util.StructureVBO;
 import gregtech.client.renderer.godforge.util.TextureUpdateRequester;
@@ -36,9 +37,12 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
 
     private static boolean initialized = false;
     private static boolean failedInit = false;
+    private static long lastFailedInitLogTime = 0;
+    private static long lastInvalidOwnerLogTime = 0;
+    private static long lastRenderEntryLogTime = 0;
 
     private static int starProgram = -1;
-    private static int u_StarColor = -1, u_StarModelMatrix = -1, u_StarGamma = -1;
+    private static int u_StarColor = -1, u_StarModelMatrix = -1, u_StarGamma = -1, u_StarTexture = -1;
 
     private static int beamProgram = -1;
     private static int a_VertexID = -1;
@@ -64,10 +68,16 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
             u_StarColor = GL20.glGetUniformLocation(starProgram, "u_Color");
             u_StarGamma = GL20.glGetUniformLocation(starProgram, "u_Gamma");
             u_StarModelMatrix = GL20.glGetUniformLocation(starProgram, "u_ModelMatrix");
+            u_StarTexture = GL20.glGetUniformLocation(starProgram, "u_Texture");
         } catch (Exception e) {
+            GTLog.logger.warn("[FOG] GodforgeStarRenderer: star shader initialization failed", e);
             failedInit = true;
             return;
         }
+
+        GL20.glUseProgram(starProgram);
+        GL20.glUniform1i(u_StarTexture, 0);
+        GL20.glUseProgram(0);
 
         try {
             beamProgram = createShaderProgram("gorgeBeam.vert", "gorgeBeam.frag");
@@ -82,6 +92,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
 
             a_VertexID = GL20.glGetAttribLocation(beamProgram, "a_VertexID");
         } catch (Exception e) {
+            GTLog.logger.warn("[FOG] GodforgeStarRenderer: beam shader initialization failed", e);
             failedInit = true;
             return;
         }
@@ -147,6 +158,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         try {
             fadeBypassProgram = createShaderProgram("fadebypass.vert", "fadebypass.frag");
         } catch (Exception e) {
+            GTLog.logger.warn("[FOG] GodforgeStarRenderer: ring fade shader initialization failed", e);
             failedInit = true;
             return;
         }
@@ -240,6 +252,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
 
         GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_CULL_FACE);
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
@@ -270,6 +283,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
 
         GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_CULL_FACE);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(false);
         GL11.glEnable(GL11.GL_BLEND);
@@ -486,22 +500,46 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     @Override
     public void render(GodforgeRenderTileEntity tile, double x, double y, double z, float partialTicks,
                        int destroyStage, float alpha) {
-        if (failedInit) return;
-        if (tile.getRingCount() < 1) return;
+        if (failedInit) {
+            lastFailedInitLogTime = logThrottled(
+                    "[FOG] GodforgeStarRenderer: render skipped because initialization previously failed",
+                    lastFailedInitLogTime);
+            return;
+        }
+        if (tile.getRingCount() < 1) {
+            GTLog.logger.warn("[FOG] GodforgeStarRenderer: render skipped at {} because ringCount={}",
+                    tile.getPos(), tile.getRingCount());
+            return;
+        }
+        if (!tile.hasValidOwner()) {
+            lastInvalidOwnerLogTime = logThrottled("[FOG] GodforgeStarRenderer: render skipped at " + tile.getPos() +
+                    " because owner is invalid. owner=" + tile.getOwnerPosForDebug(), lastInvalidOwnerLogTime);
+            return;
+        }
 
         if (!initialized) {
+            GTLog.logger.info("[FOG] GodforgeStarRenderer: initializing renderer at {}, owner={}, radius={}, rings={}",
+                    tile.getPos(), tile.getOwnerPosForDebug(), tile.getStarRadius(), tile.getRingCount());
             init();
             if (!initialized) {
+                GTLog.logger.warn("[FOG] GodforgeStarRenderer: initialization did not complete at {}", tile.getPos());
                 failedInit = true;
                 return;
             }
             try {
                 initRings();
             } catch (Exception e) {
+                GTLog.logger.warn("[FOG] GodforgeStarRenderer: ring VBO initialization failed at {}", tile.getPos(), e);
                 failedInit = true;
                 return;
             }
+            GTLog.logger.info("[FOG] GodforgeStarRenderer: initialization complete");
         }
+
+        lastRenderEntryLogTime = logThrottled("[FOG] GodforgeStarRenderer: rendering at " + tile.getPos() +
+                ", owner=" + tile.getOwnerPosForDebug() +
+                ", radius=" + tile.getStarRadius() +
+                ", rings=" + tile.getRingCount(), lastRenderEntryLogTime);
 
         tile.incrementColors();
 
@@ -520,5 +558,14 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         renderRings(tile, x, y, z, timer);
         renderStarTransparentPass(tile, x, y, z, timer);
         renderBeamSegment(tile, x, y, z, timer, needsBeamUpdate);
+    }
+
+    private static long logThrottled(String message, long lastLogTime) {
+        long now = System.currentTimeMillis();
+        if (now - lastLogTime >= 5000) {
+            GTLog.logger.info(message);
+            return now;
+        }
+        return lastLogTime;
     }
 }

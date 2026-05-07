@@ -53,12 +53,9 @@ public enum OffsetMode {
             // frontFacing = into-structure direction (controller.getFrontFacing().getOpposite())
             // back = same as frontFacing (deeper into structure)
             EnumFacing back = frontFacing;
-            // Right = looking from front face into structure, right side
-            EnumFacing right = frontFacing.rotateYCCW();
-            // For non-horizontal multiblocks, right is relative to up facing
-            if (upFacing.getAxis() != EnumFacing.Axis.Y) {
-                right = deriveRight(frontFacing, upFacing);
-            }
+            // Right = looking from front face into structure, right side.
+            // Vertical facings cannot use rotateYCCW(), so derive the axis from the structure up vector.
+            EnumFacing right = deriveRight(frontFacing, upFacing);
 
             int dx = right.getXOffset() * offset[0] + upFacing.getXOffset() * offset[1] + back.getXOffset() * offset[2];
             int dy = right.getYOffset() * offset[0] + upFacing.getYOffset() * offset[1] + back.getYOffset() * offset[2];
@@ -83,7 +80,7 @@ public enum OffsetMode {
             // Only apply horizontal rotation for X/Z, keep Y absolute
             // frontFacing = into-structure direction
             EnumFacing back = frontFacing;
-            EnumFacing right = frontFacing.rotateYCCW();
+            EnumFacing right = deriveRight(frontFacing, upFacing);
 
             int dx = right.getXOffset() * offset[0] + back.getXOffset() * offset[2];
             int dy = offset[1];
@@ -120,7 +117,7 @@ public enum OffsetMode {
                 return f;
             }
         }
-        // Fallback: standard horizontal right
-        return front.rotateYCCW();
+        // Fallback: preserve legacy horizontal behavior, and use a deterministic axis for malformed vertical pairs.
+        return front.getAxis().isHorizontal() ? front.rotateYCCW() : EnumFacing.WEST;
     }
 }

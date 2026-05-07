@@ -19,6 +19,8 @@ public class BatteryConfigPanel {
     public static ModularPanel openPanel(SyncHypervisor hypervisor) {
         ModularPanel panel = hypervisor.getModularPanel(Panels.BATTERY_CONFIG);
 
+        registerSyncValues(hypervisor);
+
         panel.relative(hypervisor.getModularPanel(Panels.MAIN))
             .size(SIZE_W, SIZE_H)
             .leftRelOffset(1, -3)
@@ -37,12 +39,16 @@ public class BatteryConfigPanel {
             new TextFieldWidget()
                 .setNumbers(1, Integer.MAX_VALUE)
                 .setTextAlignment(Alignment.CENTER)
-                .value(SyncValues.MAX_BATTERY_CHARGE.create(hypervisor))
+                .value(SyncValues.MAX_BATTERY_CHARGE.lookupFrom(Panels.BATTERY_CONFIG, hypervisor))
                 .setTooltipOverride(true)
                 .size(SIZE_W - 8, 18)
                 .align(Alignment.BottomCenter)
                 .marginBottom(9));
 
         return panel;
+    }
+
+    private static void registerSyncValues(SyncHypervisor hypervisor) {
+        SyncValues.MAX_BATTERY_CHARGE.registerFor(Panels.BATTERY_CONFIG, hypervisor);
     }
 }

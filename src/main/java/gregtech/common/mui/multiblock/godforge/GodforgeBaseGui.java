@@ -4,6 +4,7 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -58,6 +59,7 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
      */
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings settings) {
         ModularPanel panel = getBasePanel(guiData, syncManager, settings);
+        hypervisor.setModularPanel(hypervisor.getMainPanel(), panel);
         hypervisor.setSyncManager(hypervisor.getMainPanel(), syncManager);
         registerSyncValues(syncManager);
 
@@ -80,7 +82,7 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
     }
 
     protected void registerSyncValues(PanelSyncManager syncManager) {
-        SyncValues.STRUCTURE_UPDATE.registerFor(Panels.MAIN, hypervisor);
+        SyncValues.STRUCTURE_UPDATE.registerFor(hypervisor.getMainModule(), hypervisor.getMainPanel(), hypervisor);
     }
 
     // --- Terminal section ---
@@ -135,6 +137,11 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
 
     protected ToggleButton createMuffleButton() {
         return new ToggleButton().size(7)
+            .value(new BoolValue.Dynamic(multiblock::isMuffled, muffled -> {
+                if (muffled != multiblock.isMuffled()) {
+                    multiblock.toggleMuffled();
+                }
+            }))
             .disableThemeBackground(true)
             .disableHoverThemeBackground(true)
             .background(GTGuiTextures.GODFORGE_SOUND_ON)
@@ -206,7 +213,8 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
     }
 
     protected IWidget createStructureUpdateButton(PanelSyncManager syncManager) {
-        BooleanSyncValue refreshSyncer = SyncValues.STRUCTURE_UPDATE.lookupFrom(Panels.MAIN, hypervisor);
+        BooleanSyncValue refreshSyncer = SyncValues.STRUCTURE_UPDATE
+            .lookupFrom(hypervisor.getMainModule(), hypervisor.getMainPanel(), hypervisor);
         return new ButtonWidget<>().size(16)
             .background(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .overlay(GTGuiTextures.TT_OVERLAY_BUTTON_STRUCTURE_CHECK)

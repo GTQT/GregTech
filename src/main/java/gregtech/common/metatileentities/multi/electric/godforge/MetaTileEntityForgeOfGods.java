@@ -281,10 +281,20 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     public void invalidateStructure() {
         disconnectAllModules();
         moduleHatches.clear();
-        if (data.isRenderActive()) {
-            destroyRenderer();
-        }
+        destroyRenderer();
+        cleanupPossibleRendererBlocks();
         super.invalidateStructure();
+    }
+
+    @Override
+    public void onRemoval() {
+        if (getWorld() != null && !getWorld().isRemote) {
+            destroyRenderer();
+            cleanupPossibleRendererBlocks();
+            disconnectAllModules();
+            moduleHatches.clear();
+        }
+        super.onRemoval();
     }
 
     /**
@@ -342,6 +352,16 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     // ==================== Tick Logic ====================
+
+    @Override
+    public void update() {
+        super.update();
+        if (getWorld() == null || getWorld().isRemote || isStructureFormed()) return;
+
+        if (data.isRenderActive() || getOffsetTimer() % TICK_INTERVAL == 0) {
+            cleanupPossibleRendererBlocks();
+        }
+    }
 
     @Override
     protected void updateFormedValid() {
@@ -578,6 +598,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private void ensureRendererState() {
+        if (!isStructureFormed()) {
+            if (data.isRenderActive()) {
+                destroyRenderer();
+            }
+            cleanupPossibleRendererBlocks();
+            return;
+        }
+
         if (data.getInternalBattery() <= 0 || data.isRendererDisabled()) {
             if (data.isRenderActive()) {
                 destroyRenderer();
@@ -591,6 +619,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 GTLog.logger.info("[FOG] ensureRendererState: render block missing, recreating. isRenderActive={}", data.isRenderActive());
                 data.setRenderActive(false);
                 createRenderer();
+            } else {
+                TileEntity te = getWorld().getTileEntity(renderPos);
+                if (te instanceof GodforgeRenderTileEntity) {
+                    ((GodforgeRenderTileEntity) te).setOwnerPos(getPos());
+                }
             }
             return;
         }
@@ -727,12 +760,22 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     @Override
     public boolean allowsExtendedFacing() {
+        return true;
+    }
+
+    @Override
+    protected boolean allowsAsyncStructureCheck() {
         return false;
     }
 
     @Override
-    public boolean isValidFrontFacing(EnumFacing facing) {
-        return facing != null && (!hasFrontFacing() || getFrontFacing() != facing);
+    public void setFrontFacing(EnumFacing frontFacing) {
+        if (frontFacing == null) return;
+
+        if (getWorld() != null && !getWorld().isRemote && getFrontFacing() != frontFacing) {
+            cleanupPossibleRendererBlocks();
+        }
+        super.setFrontFacing(frontFacing);
     }
 
     // ==================== Data Access ====================
@@ -770,6 +813,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
      */
     public void createRenderer() {
         if (getWorld() == null || getWorld().isRemote) return;
+        if (!isStructureFormed()) {
+            cleanupPossibleRendererBlocks();
+            return;
+        }
 
         BlockPos renderPos = getRenderPos();
         if (renderPos == null) {
@@ -780,14 +827,30 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         GTLog.logger.info("[FOG] createRenderer: attempting setBlockState at {}, chunk loaded: {}",
                 renderPos, getWorld().isBlockLoaded(renderPos));
 
-        if (!getWorld().setBlockState(renderPos, MetaBlocks.GODFORGE_RENDER.getDefaultState(), 3)) {
-            GTLog.logger.warn("[FOG] createRenderer: setBlockState FAILED at {}", renderPos);
-            data.setRenderActive(false);
-            return;
+        IBlockState renderState = MetaBlocks.GODFORGE_RENDER.getDefaultState();
+        IBlockState currentState = getWorld().getBlockState(renderPos);
+        if (currentState.getBlock() != MetaBlocks.GODFORGE_RENDER &&
+                !getWorld().setBlockState(renderPos, renderState, 3)) {
+            getWorld().setBlockToAir(renderPos);
+            if (!getWorld().setBlockState(renderPos, renderState, 3)) {
+                GTLog.logger.warn("[FOG] createRenderer: setBlockState FAILED at {}", renderPos);
+                data.setRenderActive(false);
+                return;
+            }
         }
         TileEntity te = getWorld().getTileEntity(renderPos);
+        if (currentState.getBlock() == MetaBlocks.GODFORGE_RENDER && te == null) {
+            getWorld().setBlockToAir(renderPos);
+            if (!getWorld().setBlockState(renderPos, renderState, 3)) {
+                GTLog.logger.warn("[FOG] createRenderer: failed to restore missing render TileEntity at {}", renderPos);
+                data.setRenderActive(false);
+                return;
+            }
+            te = getWorld().getTileEntity(renderPos);
+        }
         if (te instanceof GodforgeRenderTileEntity) {
             GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
+            renderTE.setOwnerPos(getPos());
             renderTE.setRenderRotation(getFrontFacing());
             data.setRenderActive(true);
             updateRenderer();
@@ -808,12 +871,28 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         BlockPos renderPos = getRenderPos();
         if (renderPos == null) return;
 
+        destroyRendererAt(renderPos);
+
+        data.setRenderActive(false);
+    }
+
+    private void cleanupPossibleRendererBlocks() {
+        BlockPos controllerPos = getPos();
+        if (controllerPos == null) return;
+
+        for (EnumFacing facing : EnumFacing.VALUES) {
+            destroyRendererAt(controllerPos.offset(facing, RENDER_OFFSET));
+        }
+        data.setRenderActive(false);
+    }
+
+    private void destroyRendererAt(BlockPos renderPos) {
+        if (!getWorld().isBlockLoaded(renderPos)) return;
+
         IBlockState state = getWorld().getBlockState(renderPos);
         if (state.getBlock() == MetaBlocks.GODFORGE_RENDER) {
             getWorld().setBlockToAir(renderPos);
         }
-
-        data.setRenderActive(false);
     }
 
     /**
@@ -829,6 +908,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (!(te instanceof GodforgeRenderTileEntity)) return;
 
         GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
+        renderTE.setOwnerPos(getPos());
         renderTE.setRingCount(data.getRingAmount());
         renderTE.setStarRadius(data.getStarSize());
         renderTE.setRotationSpeed(data.getRotationSpeed());

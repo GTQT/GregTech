@@ -247,6 +247,17 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
         return 0;
     }
 
+    public void refreshStructureFromGui() {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        if (isStructureFormed()) {
+            invalidateStructure();
+        }
+        reinitializeStructurePattern();
+        checkStructurePattern();
+        markDirty();
+    }
+
     public boolean isInputSeparationEnabled() {
         return isDistinct();
     }

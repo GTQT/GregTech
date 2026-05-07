@@ -180,6 +180,9 @@ public class StarCosmeticsPanel {
         SyncValues.STAR_COLOR_EDITING_INDEX.registerFor(Panels.STAR_COSMETICS, hypervisor);
         SyncValues.SELECTED_STAR_COLOR.registerFor(Panels.STAR_COSMETICS, hypervisor);
         SyncValues.RENDERER_DISABLED.registerFor(Panels.STAR_COSMETICS, hypervisor);
+        SyncValues.RENDER_ACTIVE.registerFor(Panels.STAR_COSMETICS, hypervisor);
+        SyncValues.STAR_ROTATION_SPEED.registerFor(Panels.STAR_COSMETICS, hypervisor);
+        SyncValues.STAR_SIZE.registerFor(Panels.STAR_COSMETICS, hypervisor);
 
         SyncActions.UPDATE_RENDERER.registerFor(Panels.STAR_COSMETICS, hypervisor, hypervisor.getMultiblock());
         SyncActions.DISABLE_RENDERER.registerFor(Panels.STAR_COSMETICS, hypervisor, hypervisor.getMultiblock());
@@ -253,7 +256,7 @@ public class StarCosmeticsPanel {
 
     private static Flow createMiscTextFieldRow(ForgeOfGodsSyncValue<IntSyncValue> syncer, String name, int maxValue,
         SyncHypervisor hypervisor) {
-        IntSyncValue syncValue = syncer.create(hypervisor);
+        IntSyncValue syncValue = syncer.lookupFrom(Panels.STAR_COSMETICS, hypervisor);
         syncValue
             .setChangeListener(() -> SyncActions.UPDATE_RENDERER.callFrom(Panels.STAR_COSMETICS, hypervisor, null));
         return new Row().coverChildren()

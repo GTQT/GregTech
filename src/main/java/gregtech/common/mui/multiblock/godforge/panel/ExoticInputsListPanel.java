@@ -34,7 +34,7 @@ public class ExoticInputsListPanel {
     private static final int SIZE = 200;
 
     public static ModularPanel openPanel(SyncHypervisor hypervisor) {
-        ModularPanel panel = hypervisor.getModularPanel(Panels.EXOTIC_INPUTS_LIST);
+        ModularPanel panel = hypervisor.getModularPanel(Modules.EXOTIC, Panels.EXOTIC_INPUTS_LIST);
 
         registerSyncValues(hypervisor);
 
@@ -70,9 +70,10 @@ public class ExoticInputsListPanel {
                 .background(GTGuiTextures.BUTTON_OUTLINE_HOLLOW)
                 .overlay(
                     IKey.lang("gt.blockmachines.multimachine.FOG.refreshexoticrecipe")
-                        .alignment(Alignment.CENTER))
+                .alignment(Alignment.CENTER))
                 .onMousePressed(d -> {
-                    SyncActions.REFRESH_EXOTIC_RECIPE.callFrom(Panels.EXOTIC_INPUTS_LIST, hypervisor, null);
+                    SyncActions.REFRESH_EXOTIC_RECIPE
+                        .callFrom(Modules.EXOTIC, Panels.EXOTIC_INPUTS_LIST, hypervisor, null);
                     return true;
                 })
                 .clickSound(ForgeOfGodsGuiUtil.getButtonSound())
@@ -86,7 +87,7 @@ public class ExoticInputsListPanel {
 
     private static void registerSyncValues(SyncHypervisor hypervisor) {
         SyncValues.EXOTIC_INPUTS.registerFor(Modules.EXOTIC, Panels.EXOTIC_INPUTS_LIST, hypervisor);
-        SyncActions.REFRESH_EXOTIC_RECIPE.registerFor(Panels.EXOTIC_INPUTS_LIST, hypervisor,
+        SyncActions.REFRESH_EXOTIC_RECIPE.registerFor(Modules.EXOTIC, Panels.EXOTIC_INPUTS_LIST, hypervisor,
             hypervisor.getModule(Modules.EXOTIC));
     }
 

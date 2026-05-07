@@ -60,7 +60,7 @@ public class FuelConfigPanel {
             new TextFieldWidget()
                 .setNumbers(raw -> MathHelper.clamp(raw, 1, GodforgeMath.calculateMaxFuelFactor(data)))
                 .setTextAlignment(Alignment.CENTER)
-                .value(SyncValues.FUEL_FACTOR.create(hypervisor))
+                .value(SyncValues.FUEL_FACTOR.lookupFrom(Panels.FUEL_CONFIG, hypervisor))
                 .setTooltipOverride(true)
                 .size(70, 18)
                 .marginLeft(4)
@@ -123,6 +123,7 @@ public class FuelConfigPanel {
     private static void registerSyncHandlers(SyncHypervisor hypervisor) {
         SyncValues.SELECTED_FUEL.registerFor(Panels.FUEL_CONFIG, hypervisor);
         SyncValues.FUEL_CONSUMPTION.registerFor(Panels.FUEL_CONFIG, hypervisor);
+        SyncValues.FUEL_FACTOR.registerFor(Panels.FUEL_CONFIG, hypervisor);
     }
 
     private static ParentWidget<?> createFuelSelection(SyncHypervisor hypervisor, EnumSyncValue<Fuels> syncer,

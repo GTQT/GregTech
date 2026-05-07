@@ -38,8 +38,15 @@ public class SyncValues {
             MutableObject<Boolean> value = new MutableObject<>(false);
             return new BooleanSyncValue(value::getValue, val -> {
                 value.setValue(val);
-                if (!hypervisor.isClient() && hypervisor.getMultiblock() != null) {
-                    hypervisor.getMultiblock().refreshStructureFromGui();
+                if (!hypervisor.isClient()) {
+                    if (hypervisor.getMultiblock() != null) {
+                        hypervisor.getMultiblock().refreshStructureFromGui();
+                    } else {
+                        MTEBaseModule module = hypervisor.getModule(Modules.ANY);
+                        if (module != null) {
+                            module.refreshStructureFromGui();
+                        }
+                    }
                 }
             });
         },
@@ -225,6 +232,10 @@ public class SyncValues {
     public static final ForgeOfGodsSyncValue<BooleanSyncValue> RENDERER_DISABLED = new ForgeOfGodsSyncValue<>(
         "fog.sync.renderer_disabled",
         data -> new BooleanSyncValue(data::isRendererDisabled, data::setRendererDisabled));
+
+    public static final ForgeOfGodsSyncValue<BooleanSyncValue> RENDER_ACTIVE = new ForgeOfGodsSyncValue<>(
+        "fog.sync.render_active",
+        data -> new BooleanSyncValue(data::isRenderActive, data::setRenderActive));
 
     public static final ModuleSyncValue<BooleanSyncValue, MTEBaseModule> CONNECTION_STATUS = new ModuleSyncValue<>(
         "fog.sync.connection_status",

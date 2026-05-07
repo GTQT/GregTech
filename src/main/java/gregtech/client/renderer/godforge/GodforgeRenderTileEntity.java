@@ -7,11 +7,17 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.utils.Color;
+
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
+import gregtech.api.util.GTLog;
+import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
 
 public class GodforgeRenderTileEntity extends TileEntity {
 
@@ -46,12 +52,17 @@ public class GodforgeRenderTileEntity extends TileEntity {
     private static final String ROT_AXIS_Y_NBT_TAG = NBT_TAG + "ROT_AXIS_Y";
     private static final String ROT_AXIS_Z_NBT_TAG = NBT_TAG + "ROT_AXIS_Z";
     private static final String STAR_COLOR_TAG = NBT_TAG + "STAR_COLOR";
+    private static final String OWNER_X_NBT_TAG = NBT_TAG + "OWNER_X";
+    private static final String OWNER_Y_NBT_TAG = NBT_TAG + "OWNER_Y";
+    private static final String OWNER_Z_NBT_TAG = NBT_TAG + "OWNER_Z";
 
     public static final float BACK_PLATE_DISTANCE = -121.5f, BACK_PLATE_RADIUS = 13f;
     private static final double RING_RADIUS = 63;
     private static final double BEAM_LENGTH = 59;
 
     private static final float COLOR_CYCLE_SPEED = 16f;
+    private BlockPos ownerPos;
+    private long lastInvalidOwnerLogTime = 0;
 
     @Override
     @SideOnly(Side.CLIENT)
@@ -179,6 +190,53 @@ public class GodforgeRenderTileEntity extends TileEntity {
         updateToClient();
     }
 
+    public void setOwnerPos(BlockPos ownerPos) {
+        this.ownerPos = ownerPos;
+        updateToClient();
+    }
+
+    public BlockPos getOwnerPosForDebug() {
+        return ownerPos;
+    }
+
+    public boolean hasValidOwner() {
+        if (world == null) {
+            logInvalidOwner("world is null");
+            return false;
+        }
+        if (ownerPos == null) {
+            logInvalidOwner("ownerPos is null");
+            return false;
+        }
+        if (!world.isBlockLoaded(ownerPos)) {
+            logInvalidOwner("owner chunk is not loaded");
+            return false;
+        }
+
+        TileEntity te = world.getTileEntity(ownerPos);
+        if (!(te instanceof MetaTileEntityHolder)) {
+            logInvalidOwner("owner tile is " + (te == null ? "null" : te.getClass().getName()));
+            return false;
+        }
+
+        MetaTileEntity metaTileEntity = ((MetaTileEntityHolder) te).getMetaTileEntity();
+        if (!(metaTileEntity instanceof MetaTileEntityForgeOfGods)) {
+            logInvalidOwner("owner meta tile is " +
+                    (metaTileEntity == null ? "null" : metaTileEntity.getClass().getName()));
+            return false;
+        }
+        return true;
+    }
+
+    private void logInvalidOwner(String reason) {
+        long now = System.currentTimeMillis();
+        if (now - lastInvalidOwnerLogTime >= 5000) {
+            GTLog.logger.info("[FOG] GodforgeRenderTileEntity: invalid owner at {}, owner={}, reason={}",
+                    pos, ownerPos, reason);
+            lastInvalidOwnerLogTime = now;
+        }
+    }
+
     public float getLensDistance(int lensID) {
         switch (lensID) {
             case 0: return -61.5f;
@@ -297,6 +355,12 @@ public class GodforgeRenderTileEntity extends TileEntity {
                 setColor(color);
             }
         }
+        if (compound.hasKey(OWNER_X_NBT_TAG) && compound.hasKey(OWNER_Y_NBT_TAG) && compound.hasKey(OWNER_Z_NBT_TAG)) {
+            ownerPos = new BlockPos(
+                    compound.getInteger(OWNER_X_NBT_TAG),
+                    compound.getInteger(OWNER_Y_NBT_TAG),
+                    compound.getInteger(OWNER_Z_NBT_TAG));
+        }
     }
 
     @Override
@@ -312,6 +376,11 @@ public class GodforgeRenderTileEntity extends TileEntity {
 
         if (starColor != null) {
             compound.setTag(STAR_COLOR_TAG, starColor.serializeToNBT());
+        }
+        if (ownerPos != null) {
+            compound.setInteger(OWNER_X_NBT_TAG, ownerPos.getX());
+            compound.setInteger(OWNER_Y_NBT_TAG, ownerPos.getY());
+            compound.setInteger(OWNER_Z_NBT_TAG, ownerPos.getZ());
         }
         return compound;
     }

@@ -32,7 +32,7 @@ public class ExoticPossibleInputsListPanel {
     private static final int SIZE = 200;
 
     public static ModularPanel openPanel(SyncHypervisor hypervisor) {
-        ModularPanel panel = hypervisor.getModularPanel(Panels.EXOTIC_POSSIBLE_INPUTS_LIST);
+        ModularPanel panel = hypervisor.getModularPanel(Modules.EXOTIC, Panels.EXOTIC_POSSIBLE_INPUTS_LIST);
 
         registerSyncValues(hypervisor);
 
