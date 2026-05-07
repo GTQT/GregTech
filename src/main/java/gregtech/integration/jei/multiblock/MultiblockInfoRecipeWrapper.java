@@ -80,10 +80,11 @@ import java.util.stream.Collectors;
 
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
-    private static final int MAX_PARTS = 27;
-    private static final int PARTS_WIDTH = 40; // left panel width for materials (2 columns of slots)
+    private static final int PARTS_COLUMNS = 2;
+    private static final int SLOTS_PER_COL = 10; // vertical slots per column on left panel
+    private static final int MAX_PARTS = PARTS_COLUMNS * SLOTS_PER_COL;
     private static final int SLOT_SIZE = 18;
-    private static final int SLOTS_PER_COL = 9; // vertical slots per column on left panel
+    private static final int PARTS_WIDTH = PARTS_COLUMNS * SLOT_SIZE + 4;
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
     private static ItemStack tooltipBlockStack;
@@ -395,10 +396,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         int sceneX = PARTS_WIDTH;
         int sceneWidth = recipeWidth - PARTS_WIDTH;
         int sceneHeight = recipeHeight - (supportedChannels.size() * 16 + 10); // leave room for sliders
-        int viewX = recipeLayout.getPosX();
-        int viewY = recipeLayout.getPosY();
-        int absMouseX = mouseX + viewX;
-        int absMouseY = mouseY + viewY;
 
         // 渲染3D场景（保留OpenGL状态安全）
         GlStateManager.pushMatrix();
@@ -407,7 +404,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             GlStateManager.enableRescaleNormal();
             GlStateManager.enableLighting();
             RenderHelper.enableStandardItemLighting();
-            renderer.render(viewX + sceneX, viewY, sceneWidth, sceneHeight, absMouseX, absMouseY);
+            renderer.render(sceneX, 0, sceneWidth, sceneHeight, mouseX, mouseY);
         } finally {
             GlStateManager.popAttrib();
             GlStateManager.popMatrix();
@@ -441,13 +438,13 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
 
         for (GuiButton button : buttons.keySet()) {
-            button.drawButton(minecraft, absMouseX, absMouseY, 0.0f);
+            button.drawButton(minecraft, mouseX, mouseY, 0.0f);
         }
 
         boolean isMouseOverButton = false;
         for (GuiButton button : buttons.keySet()) {
-            if (absMouseX >= button.x && absMouseX <= button.x + button.width &&
-                    absMouseY >= button.y && absMouseY <= button.y + button.height) {
+            if (mouseX >= button.x && mouseX <= button.x + button.width &&
+                    mouseY >= button.y && mouseY <= button.y + button.height) {
                 isMouseOverButton = true;
                 break;
             }

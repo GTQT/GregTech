@@ -53,6 +53,7 @@ public class GTGuiTheme {
             .itemSlot(IDs.STANDARD_SLOT)
             .fluidSlot(IDs.STANDARD_FLUID_SLOT)
             .color(ConfigHolder.client.defaultUIColor)
+            .displayText()
             .button(IDs.STANDARD_BUTTON)
             .simpleToggleButton(IDs.STANDARD_BUTTON,
                     IDs.STANDARD_SLOT,
@@ -238,6 +239,15 @@ public class GTGuiTheme {
         /** Enable text shadow for the global UI text for this theme. */
         public Builder textShadow() {
             theme.elementBuilder.add(b -> b.add("textShadow", true));
+            return this;
+        }
+
+        public Builder displayText() {
+            theme.elementBuilder.add(b -> b
+                    .add(GTWidgetThemes.DISPLAY_TEXT.getFullName(), new JsonBuilder()
+                            .add("textColor", Color.WHITE.main)
+                            .add("markedColor", 0xFAFAFA)
+                            .add("textShadow", false)));
             return this;
         }
 

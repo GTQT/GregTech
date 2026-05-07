@@ -325,6 +325,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                 .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                 .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
                 .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                 .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
                 .where('S', selfPredicate())
                 .where('C', states(getCasingState()))

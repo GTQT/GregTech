@@ -767,23 +767,23 @@ protected MultiPiecePattern createMultiPiecePattern() {
 
 每轮至少覆盖：
 
-- 普通电力多方块成形与破坏。
-- Steam 多方块成形与破坏。
-- 带线圈机器成形与 tier 读取。
-- 带多个 hatch 的机器成形。
-- JEI 结构预览。
-- 投影仪预览、compare、自动建造。
-- 控制器旋转、上下朝向、翻转。
-- 世界保存、退出、重进。
-- 多台机器同时存在的 tick 表现。
-
+- 普通电力多方块成形与破坏。正常
+- Steam 多方块成形与破坏。正常
+- 带线圈机器成形与 tier 读取。正常
+- 带多个 hatch 的机器成形。有这种多方块吗？
+- JEI 结构预览。鼠标选择后的循环展示与左侧物品栏重叠，左侧物品显示与gt5的区别较大
+- 投影仪预览、compare、自动建造。正常
+- 控制器旋转、上下朝向、翻转。正常
+- 世界保存、退出、重进。正常
+- 多台机器同时存在的 tick 表现。正常
+蒸馏塔，装配线，pss搭建好了都不成形要退出世界重进才会成形
 ### 信道专项测试
 
-- EBF：JEI 和投影仪选择不同 `coil`，预览、材料、自动建造、成型热量一致。
-- Distillation Tower：`height=3` 与 `height=12` 的预览层数、输出 hatch 层数、材料数量一致。
-- Assembly Line：`length=5` 与 `length=16` 的重复段和末端输出段位置一致。
-- Hatch：确认当前 `NO_HATCH` 与 GT5 `gt_hatch` 的转换后，测试 survival 自动建造 hatch 行为。
-- Indicator：注册过的线圈、玻璃、管道 casing 能在 JEI/投影仪中作为对应信道值展示。
+- EBF：JEI 和投影仪选择不同 `coil`，预览、材料、自动建造、成型热量一致。不正常，投影仪读取信道逻辑有问题，线圈设置的值无效。清空信道按键没有效果
+- Distillation Tower：`height=3` 与 `height=12` 的预览层数、输出 hatch 层数、材料数量一致。预览层数不对，但是构建层数是正常的。
+- Assembly Line：`length=5` 与 `length=16` 的重复段和末端输出段位置一致。预览层数不对，但是构建层数是正常的。
+- Hatch：确认当前 `NO_HATCH` 与 GT5 `gt_hatch` 的转换后，测试 survival 自动建造 hatch 行为。开始NO_HATCH后会空缺一个位置不放置方块。
+- Indicator：注册过的线圈、玻璃、管道 casing 能在 JEI/投影仪中作为对应信道值展示。线圈没注册全？
 
 ### 压力测试
 

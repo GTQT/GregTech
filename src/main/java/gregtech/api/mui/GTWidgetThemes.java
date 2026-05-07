@@ -8,10 +8,12 @@ import com.cleanroommc.modularui.utils.Color;
 public final class GTWidgetThemes {
 
     private static final IThemeApi themeApi = IThemeApi.get();
+    private static final WidgetTheme DISPLAY_TEXT_THEME = new WidgetTheme(
+            0, 0, null, Color.WHITE.main, 0xFAFAFA, false, 0);
 
-    public static WidgetThemeKey<WidgetTheme> DISPLAY_TEXT = themeApi
+    public static final WidgetThemeKey<WidgetTheme> DISPLAY_TEXT = themeApi
         .widgetThemeKeyBuilder("displayText", WidgetTheme.class)
-        .defaultTheme(new WidgetTheme(0, 0, null, Color.WHITE.main, 0xFAFAFA, false, 0))
-        .defaultHoverTheme(null)
+        .defaultTheme(DISPLAY_TEXT_THEME)
+        .defaultHoverTheme(DISPLAY_TEXT_THEME)
         .register();
 }

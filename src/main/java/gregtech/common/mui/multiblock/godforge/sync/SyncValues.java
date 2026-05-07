@@ -32,7 +32,18 @@ import gregtech.common.mui.multiblock.godforge.sync.SyncValue.ModuleSyncValue;
 
 public class SyncValues {
 
-    public static final ForgeOfGodsSyncValue<BooleanSyncValue> STRUCTURE_UPDATE = new ForgeOfGodsSyncValue<>("structureUpdateButton");
+    public static final ForgeOfGodsSyncValue<BooleanSyncValue> STRUCTURE_UPDATE = new ForgeOfGodsSyncValue<>(
+        "structureUpdateButton",
+        hypervisor -> {
+            MutableObject<Boolean> value = new MutableObject<>(false);
+            return new BooleanSyncValue(value::getValue, val -> {
+                value.setValue(val);
+                if (!hypervisor.isClient() && hypervisor.getMultiblock() != null) {
+                    hypervisor.getMultiblock().refreshStructureFromGui();
+                }
+            });
+        },
+        true);
 
     public static final ForgeOfGodsSyncValue<EnumSyncValue<Formatters>> FORMATTER = new ForgeOfGodsSyncValue<>(
         "fog.sync.formatter",
