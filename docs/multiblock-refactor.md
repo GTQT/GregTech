@@ -811,7 +811,7 @@ protected MultiPiecePattern createMultiPiecePattern() {
 | 13 | JEI channel 范围硬编码                                          | 中             | 当前已有 UI 雏形                                  | 改用 registry metadata                 | M5  |
 | 14 | 投影仪状态非 per ItemStack                                       | 中高            | 行为字段暂存                                      | 迁移到 ItemStack NBT                    | M6  |
 | 15 | 分片 API 无实际使用者                                              | ~~中~~ **已解决** | Forge of Gods 已实现 createMultiPiecePattern() | 待实机验收                                | M7  |
-| 16 | 自动 tooltip 未统一                                             | 低             | 已有工具类                                       | 接入显示路径                               | M8  |
+| 16 | 自动 tooltip 未统一                                             | ~~低~~ **已解决** | DeclarativePatternBuilder 自动生成并注入 tooltip    | 待实机验收                                | M8  |
 
 ## 完成定义
 
