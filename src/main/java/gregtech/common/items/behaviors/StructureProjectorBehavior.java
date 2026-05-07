@@ -62,6 +62,9 @@ import java.util.Map;
  * - Channel configuration (select tier for auto-build)
  * - Nearby container search for survival mode building
  *
+ * <p>This behavior is stateless — all persistent data lives in the ItemStack's NBT.
+ * Instance fields are only used as transient working copies within a single method call.
+ *
  * <p>Replaces the separate RenderItemBehavior and MultiblockBuilderBehavior.
  */
 public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory {
@@ -70,54 +73,89 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     private static final String NBT_COMPARE_MODE = "ProjectorCompareMode";
     private static final String NBT_NO_HATCH = "ProjectorNoHatch";
     private static final String NBT_CHANNELS = "ProjectorChannels";
-
-    // --- Cached state (read from ItemStack on use, written back on change) ---
-    private boolean compareModeEnabled = true;
-    private boolean noHatch = false;
-    private final Map<String, Integer> channelValues = new HashMap<>();
-
-    // --- Client-side preview state ---
-    private List<StructureChannel> supportedChannels = new ArrayList<>();
+    private static final String NBT_CHANNEL_RANGES = "ProjectorChannelRanges";
 
     private static final int MAX_CHANNEL_ROWS = 12;
     private static final int MAX_VISIBLE_ROWS = 6;
     private static final int ROW_HEIGHT = 18;
 
-    // --- NBT persistence helpers ---
+    // --- Static NBT read/write helpers ---
 
     /**
-     * Load projector settings from the given ItemStack's NBT.
+     * Read compare mode from ItemStack NBT (defaults to true if absent).
      */
-    private void loadFromNBT(@NotNull ItemStack stack) {
+    private static boolean readCompareMode(@NotNull ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
-        if (tag == null) {
-            compareModeEnabled = true;
-            noHatch = false;
-            channelValues.clear();
-            return;
-        }
-        compareModeEnabled = !tag.hasKey(NBT_COMPARE_MODE) || tag.getBoolean(NBT_COMPARE_MODE);
-        noHatch = tag.getBoolean(NBT_NO_HATCH);
-        channelValues.clear();
-        if (tag.hasKey(NBT_CHANNELS)) {
-            NBTTagCompound channels = tag.getCompoundTag(NBT_CHANNELS);
-            for (String key : channels.getKeySet()) {
-                channelValues.put(key, channels.getInteger(key));
-            }
-        }
+        if (tag == null || !tag.hasKey(NBT_COMPARE_MODE)) return true;
+        return tag.getBoolean(NBT_COMPARE_MODE);
     }
 
     /**
-     * Save projector settings to the given ItemStack's NBT.
+     * Read no-hatch mode from ItemStack NBT (defaults to false if absent).
      */
-    private void saveToNBT(@NotNull ItemStack stack) {
+    private static boolean readNoHatch(@NotNull ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
-        if (tag == null) {
-            tag = new NBTTagCompound();
-            stack.setTagCompound(tag);
+        if (tag == null) return false;
+        return tag.getBoolean(NBT_NO_HATCH);
+    }
+
+    /**
+     * Read channel values map from ItemStack NBT.
+     */
+    @NotNull
+    private static Map<String, Integer> readChannelValues(@NotNull ItemStack stack) {
+        Map<String, Integer> result = new HashMap<>();
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null || !tag.hasKey(NBT_CHANNELS)) return result;
+        NBTTagCompound channels = tag.getCompoundTag(NBT_CHANNELS);
+        for (String key : channels.getKeySet()) {
+            result.put(key, channels.getInteger(key));
         }
-        tag.setBoolean(NBT_COMPARE_MODE, compareModeEnabled);
+        return result;
+    }
+
+    /**
+     * Read stored channel ranges from ItemStack NBT.
+     * Format: each key is a channel name, value is "min,max".
+     *
+     * @return map of channel name -> int[]{min, max}, or empty if none stored
+     */
+    @NotNull
+    private static Map<String, int[]> readChannelRanges(@NotNull ItemStack stack) {
+        Map<String, int[]> result = new HashMap<>();
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null || !tag.hasKey(NBT_CHANNEL_RANGES)) return result;
+        NBTTagCompound ranges = tag.getCompoundTag(NBT_CHANNEL_RANGES);
+        for (String key : ranges.getKeySet()) {
+            int[] range = ranges.getIntArray(key);
+            if (range.length == 2) {
+                result.put(key, range);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Write compare mode to ItemStack NBT.
+     */
+    private static void writeCompareMode(@NotNull ItemStack stack, boolean enabled) {
+        NBTTagCompound tag = getOrCreateTag(stack);
+        tag.setBoolean(NBT_COMPARE_MODE, enabled);
+    }
+
+    /**
+     * Write no-hatch mode to ItemStack NBT.
+     */
+    private static void writeNoHatch(@NotNull ItemStack stack, boolean noHatch) {
+        NBTTagCompound tag = getOrCreateTag(stack);
         tag.setBoolean(NBT_NO_HATCH, noHatch);
+    }
+
+    /**
+     * Write channel values map to ItemStack NBT. Values of 0 are excluded.
+     */
+    private static void writeChannelValues(@NotNull ItemStack stack, @NotNull Map<String, Integer> channelValues) {
+        NBTTagCompound tag = getOrCreateTag(stack);
         NBTTagCompound channels = new NBTTagCompound();
         for (Map.Entry<String, Integer> entry : channelValues.entrySet()) {
             if (entry.getValue() != 0) {
@@ -131,11 +169,38 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         }
     }
 
+    /**
+     * Write channel ranges (from a controller) to ItemStack NBT for GUI display.
+     */
+    private static void writeChannelRanges(@NotNull ItemStack stack, @NotNull Map<String, int[]> ranges) {
+        NBTTagCompound tag = getOrCreateTag(stack);
+        if (ranges.isEmpty()) {
+            tag.removeTag(NBT_CHANNEL_RANGES);
+            return;
+        }
+        NBTTagCompound rangesTag = new NBTTagCompound();
+        for (Map.Entry<String, int[]> entry : ranges.entrySet()) {
+            rangesTag.setIntArray(entry.getKey(), entry.getValue());
+        }
+        tag.setTag(NBT_CHANNEL_RANGES, rangesTag);
+    }
+
+    @NotNull
+    private static NBTTagCompound getOrCreateTag(@NotNull ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
+        return tag;
+    }
+
+    // --- Item use actions ---
+
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
                                            float hitY, float hitZ, EnumHand hand) {
         ItemStack heldStack = player.getHeldItem(hand);
-        loadFromNBT(heldStack);
 
         TileEntity tileEntity = world.getTileEntity(pos);
         if (!(tileEntity instanceof IGregTechTileEntity)) {
@@ -151,6 +216,11 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         MultiblockControllerBase multiblock = (MultiblockControllerBase) mte;
         if (!player.canPlayerEdit(pos, side, player.getHeldItem(hand))) return EnumActionResult.FAIL;
 
+        // Read current settings from NBT
+        boolean compareMode = readCompareMode(heldStack);
+        boolean noHatch = readNoHatch(heldStack);
+        Map<String, Integer> channelValues = readChannelValues(heldStack);
+
         if (player.isSneaking()) {
             // Shift+right-click: Auto-build the structure
             if (world.isRemote) return EnumActionResult.SUCCESS;
@@ -161,19 +231,20 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 if (state != null) {
                     state.autoBuild(player, multiblock, channels, noHatch);
                 }
-                saveToNBT(heldStack);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
         } else {
             // Right-click: Show hologram preview / error info
             if (world.isRemote) {
-                MultiblockPreviewRenderer.setCompareMode(compareModeEnabled);
+                MultiblockPreviewRenderer.setCompareMode(compareMode);
                 MultiblockPreviewRenderer.setChannelValues(channelValues);
-                supportedChannels = multiblock.getSupportedChannels();
                 MultiblockPreviewRenderer.renderMultiBlockPreview(multiblock, 10000);
                 return EnumActionResult.SUCCESS;
             }
+
+            // Server-side: store supported channel ranges into NBT for GUI use
+            saveControllerChannelRanges(heldStack, multiblock);
 
             // Server-side: show error info if structure is not formed
             if (!multiblock.isStructureFormed()) {
@@ -201,6 +272,21 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         }
     }
 
+    /**
+     * Save the controller's supported channel names and their valid ranges into the projector's NBT.
+     * This allows the GUI to show proper min/max ranges for each channel.
+     */
+    private static void saveControllerChannelRanges(@NotNull ItemStack stack,
+                                                     @NotNull MultiblockControllerBase controller) {
+        List<StructureChannel> supported = controller.getSupportedChannels();
+        Map<String, int[]> ranges = new HashMap<>();
+        for (StructureChannel ch : supported) {
+            int[] range = controller.getChannelRange(ch);
+            ranges.put(ch.getName(), range);
+        }
+        writeChannelRanges(stack, ranges);
+    }
+
     @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
         if (!world.isRemote) {
@@ -217,11 +303,14 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
-        loadFromNBT(itemStack);
+        boolean compareMode = readCompareMode(itemStack);
+        boolean noHatch = readNoHatch(itemStack);
+        Map<String, Integer> channelValues = readChannelValues(itemStack);
+
         lines.add(I18n.format("gregtech.tool.projector.tooltip1"));
         lines.add(I18n.format("gregtech.tool.projector.tooltip2"));
         lines.add(I18n.format("gregtech.tool.projector.tooltip3"));
-        if (compareModeEnabled) {
+        if (compareMode) {
             lines.add(TextFormatting.GREEN + I18n.format("gregtech.tool.projector.compare_on"));
         }
         if (noHatch) {
@@ -239,24 +328,46 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     @Override
     public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         ItemStack stack = guiData.getUsedItemStack();
-        loadFromNBT(stack);
+
+        // Read all state from NBT into local working copies
+        boolean[] compareHolder = { readCompareMode(stack) };
+        boolean[] noHatchHolder = { readNoHatch(stack) };
+        Map<String, Integer> channelValues = readChannelValues(stack);
+        Map<String, int[]> channelRanges = readChannelRanges(stack);
+        List<ChannelEntry> entries = buildChannelEntries(channelValues, channelRanges);
 
         var panel = GTGuis.createPanel(stack, 176, 220);
 
+        // --- Compare mode sync ---
         BooleanSyncValue compareModeValue = new BooleanSyncValue(
-                () -> compareModeEnabled, v -> { compareModeEnabled = v; saveToNBT(stack); });
+                () -> compareHolder[0],
+                v -> {
+                    compareHolder[0] = v;
+                    writeCompareMode(stack, v);
+                });
         guiSyncManager.syncValue("compare_mode", compareModeValue);
 
+        // --- No-hatch mode sync ---
         BooleanSyncValue noHatchValue = new BooleanSyncValue(
-                () -> noHatch, v -> { noHatch = v; saveToNBT(stack); });
+                () -> noHatchHolder[0],
+                v -> {
+                    noHatchHolder[0] = v;
+                    writeNoHatch(stack, v);
+                });
         guiSyncManager.syncValue("no_hatch", noHatchValue);
+
+        // --- Structure height/length sync ---
+        int[] heightRange = channelRanges.getOrDefault(
+                GTStructureChannels.STRUCTURE_HEIGHT.getName(), new int[] { 0, 100 });
+        int[] lengthRange = channelRanges.getOrDefault(
+                GTStructureChannels.STRUCTURE_LENGTH.getName(), new int[] { 0, 100 });
 
         IntSyncValue heightValue = new IntSyncValue(
                 () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_HEIGHT.getName(), 0),
                 v -> {
                     if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_HEIGHT.getName());
                     else channelValues.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), v);
-                    saveToNBT(stack);
+                    writeChannelValues(stack, channelValues);
                 });
         guiSyncManager.syncValue("structure_height", heightValue);
 
@@ -265,12 +376,11 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 v -> {
                     if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_LENGTH.getName());
                     else channelValues.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), v);
-                    saveToNBT(stack);
+                    writeChannelValues(stack, channelValues);
                 });
         guiSyncManager.syncValue("structure_length", lengthValue);
 
-        List<ChannelEntry> entries = buildChannelEntries();
-
+        // --- Channel entries sync ---
         StringSyncValue[] nameSyncs = new StringSyncValue[MAX_CHANNEL_ROWS];
         IntSyncValue[] valueSyncs = new IntSyncValue[MAX_CHANNEL_ROWS];
 
@@ -278,10 +388,10 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             final int idx = i;
             nameSyncs[i] = new StringSyncValue(
                     () -> idx < entries.size() ? entries.get(idx).name : "",
-                    n -> updateEntryName(entries, idx, n != null ? n : ""));
+                    n -> updateEntryName(stack, entries, channelValues, idx, n != null ? n : ""));
             valueSyncs[i] = new IntSyncValue(
                     () -> idx < entries.size() ? entries.get(idx).value : 0,
-                    v -> updateEntryValue(entries, idx, v));
+                    v -> updateEntryValue(stack, entries, channelValues, idx, v));
             guiSyncManager.syncValue("ch_name_" + i, nameSyncs[i]);
             guiSyncManager.syncValue("ch_val_" + i, valueSyncs[i]);
         }
@@ -289,35 +399,49 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         int visibleRows = Math.max(entries.size(), 1);
         int listHeight = Math.min(visibleRows, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
 
+        // Determine valid ranges for channel entry value fields
         var channelList = new ListWidget<>()
-                .children(visibleRows, i -> Flow.row()
-                        .widthRel(1f)
-                        .height(ROW_HEIGHT - 2)
-                        .child(new TextFieldWidget()
-                                .width(100)
-                                .height(12)
-                                .setTextColor(Color.WHITE.darker(1))
-                                .setMaxLength(32)
-                                .value(nameSyncs[i])
-                                .background(GTGuiTextures.DISPLAY))
-                        .child(new TextFieldWidget()
-                                .width(40)
-                                .height(12)
-                                .setTextColor(Color.WHITE.darker(1))
-                                .setNumbers(0, 100)
-                                .value(valueSyncs[i])
-                                .background(GTGuiTextures.DISPLAY)))
+                .children(visibleRows, i -> {
+                    int[] range = getEntryRange(entries, channelRanges, i);
+                    return Flow.row()
+                            .widthRel(1f)
+                            .height(ROW_HEIGHT - 2)
+                            .child(new TextFieldWidget()
+                                    .width(100)
+                                    .height(12)
+                                    .setTextColor(Color.WHITE.darker(1))
+                                    .setMaxLength(32)
+                                    .value(nameSyncs[i])
+                                    .background(GTGuiTextures.DISPLAY))
+                            .child(new TextFieldWidget()
+                                    .width(40)
+                                    .height(12)
+                                    .setTextColor(Color.WHITE.darker(1))
+                                    .setNumbers(range[0], range[1])
+                                    .value(valueSyncs[i])
+                                    .background(GTGuiTextures.DISPLAY));
+                })
                 .scrollDirection(new VerticalScrollData())
                 .size(162, listHeight)
                 .pos(7, 85);
 
+        // --- Clear button: properly resets all sync values ---
         var clearButton = new ButtonWidget<>()
                 .pos(7, 195)
                 .width(60).height(16)
                 .overlay(IKey.lang("gregtech.tool.projector.clear"))
                 .onMousePressed(m -> {
+                    // Clear all channel values and entries
                     channelValues.clear();
                     entries.clear();
+                    writeChannelValues(stack, channelValues);
+                    // Reset sync values so GUI and server reflect the cleared state
+                    heightValue.setValue(0, true, true);
+                    lengthValue.setValue(0, true, true);
+                    for (int i = 0; i < MAX_CHANNEL_ROWS; i++) {
+                        nameSyncs[i].setValue("", true, true);
+                        valueSyncs[i].setValue(0, true, true);
+                    }
                     return true;
                 });
 
@@ -344,7 +468,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                         .pos(80, 42)
                         .width(40).height(12)
                         .setTextColor(Color.WHITE.darker(1))
-                        .setNumbers(0, 100)
+                        .setNumbers(heightRange[0], heightRange[1])
                         .value(heightValue)
                         .background(GTGuiTextures.DISPLAY))
                 .child(IKey.lang("gregtech.tool.projector.structure_length").asWidget().pos(7, 62))
@@ -352,21 +476,35 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                         .pos(80, 62)
                         .width(40).height(12)
                         .setTextColor(Color.WHITE.darker(1))
-                        .setNumbers(0, 100)
+                        .setNumbers(lengthRange[0], lengthRange[1])
                         .value(lengthValue)
                         .background(GTGuiTextures.DISPLAY))
                 .child(channelList)
                 .child(clearButton);
     }
 
-    private List<ChannelEntry> buildChannelEntries() {
+    /**
+     * Build the channel entries list for the GUI from persisted channel values.
+     * Excludes height/length which have dedicated controls.
+     * If no values are stored but ranges exist (from a previous controller interaction),
+     * auto-fills entries with default value 0 for each known channel.
+     */
+    private static List<ChannelEntry> buildChannelEntries(@NotNull Map<String, Integer> channelValues,
+                                                          @NotNull Map<String, int[]> channelRanges) {
         List<ChannelEntry> entries = new ArrayList<>();
 
-        if (channelValues.isEmpty() && !supportedChannels.isEmpty()) {
-            autoFillFromSupported(entries);
+        // If channelValues is empty and we have range info from a controller, auto-fill entries
+        if (channelValues.isEmpty() && !channelRanges.isEmpty()) {
+            for (Map.Entry<String, int[]> rangeEntry : channelRanges.entrySet()) {
+                String name = rangeEntry.getKey();
+                if (name.equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
+                if (name.equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
+                entries.add(new ChannelEntry(name, 0));
+            }
             return entries;
         }
 
+        // Build entries from existing channel values
         for (Map.Entry<String, Integer> e : channelValues.entrySet()) {
             if (e.getKey().equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
             if (e.getKey().equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
@@ -376,17 +514,25 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         return entries;
     }
 
-    private void autoFillFromSupported(List<ChannelEntry> entries) {
-        for (StructureChannel ch : supportedChannels) {
-            String name = ch.getName();
-            if (name.equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
-            if (name.equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
-            entries.add(new ChannelEntry(name, 0));
-            channelValues.put(name, 0);
+    /**
+     * Get the valid value range for a channel entry by looking up stored ranges.
+     * Falls back to [0, 100] if no range is stored for the entry's channel name.
+     */
+    private static int[] getEntryRange(List<ChannelEntry> entries, Map<String, int[]> channelRanges, int idx) {
+        if (idx < entries.size()) {
+            String name = entries.get(idx).name;
+            if (name != null && !name.isEmpty() && channelRanges.containsKey(name)) {
+                return channelRanges.get(name);
+            }
         }
+        return new int[] { 0, 100 };
     }
 
-    private void updateEntryName(List<ChannelEntry> entries, int idx, String name) {
+    /**
+     * Update a channel entry name and persist to NBT.
+     */
+    private static void updateEntryName(@NotNull ItemStack stack, List<ChannelEntry> entries,
+                                        Map<String, Integer> channelValues, int idx, String name) {
         while (entries.size() <= idx) {
             entries.add(new ChannelEntry("", 0));
         }
@@ -399,9 +545,14 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         if (name != null && !name.isEmpty()) {
             channelValues.put(name, entries.get(idx).value);
         }
+        writeChannelValues(stack, channelValues);
     }
 
-    private void updateEntryValue(List<ChannelEntry> entries, int idx, int value) {
+    /**
+     * Update a channel entry value and persist to NBT.
+     */
+    private static void updateEntryValue(@NotNull ItemStack stack, List<ChannelEntry> entries,
+                                         Map<String, Integer> channelValues, int idx, int value) {
         while (entries.size() <= idx) {
             entries.add(new ChannelEntry("", 0));
         }
@@ -411,7 +562,10 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         if (name != null && !name.isEmpty()) {
             channelValues.put(name, value);
         }
+        writeChannelValues(stack, channelValues);
     }
+
+    // --- Inner data class ---
 
     private static class ChannelEntry {
 
@@ -424,17 +578,24 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         }
     }
 
-    // --- Getters/Setters ---
+    // --- Public API for external access (reads fresh from NBT) ---
 
-    public Map<String, Integer> getChannelValues() {
-        return channelValues;
+    @NotNull
+    public static Map<String, Integer> getChannelValues(@NotNull ItemStack stack) {
+        return readChannelValues(stack);
     }
 
-    public void setChannelValue(String channelName, int value) {
-        channelValues.put(channelName, value);
+    public static void setChannelValue(@NotNull ItemStack stack, String channelName, int value) {
+        Map<String, Integer> values = readChannelValues(stack);
+        if (value == 0) {
+            values.remove(channelName);
+        } else {
+            values.put(channelName, value);
+        }
+        writeChannelValues(stack, values);
     }
 
-    public void clearChannelValues() {
-        channelValues.clear();
+    public static void clearChannelValues(@NotNull ItemStack stack) {
+        writeChannelValues(stack, new HashMap<>());
     }
 }

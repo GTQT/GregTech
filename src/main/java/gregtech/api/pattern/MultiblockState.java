@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.Mods;
 import gregtech.api.util.RelativeDirection;
@@ -335,39 +334,40 @@ public class MultiblockState {
      * @param channelValues map of channel name -> value (null = all max)
      * @return repetitions array
      */
+    /**
+     * Calculate aisle repetitions from channel values.
+     * Uses aisleChannelNames to match channel names to specific aisles (consistent with repetitionDFS).
+     * Aisles without an assigned channel name or without a matching value in channelValues default to min repetition,
+     * consistent with the preview path (repetitionDFS generates shapes starting from min).
+     */
     private int[] calculateRepetitionsFromChannels(Map<String, Integer> channelValues) {
         int[][] aisleRepetitions = template.getAisleRepetitions();
+        String[] aisleChannelNames = template.getAisleChannelNames();
         int[] repetitions = new int[aisleRepetitions.length];
 
         for (int i = 0; i < aisleRepetitions.length; i++) {
-            repetitions[i] = aisleRepetitions[i][1];
+            // Default to min repetition (consistent with preview showing min variant)
+            repetitions[i] = aisleRepetitions[i][0];
         }
 
         if (channelValues == null || channelValues.isEmpty()) {
             return repetitions;
         }
 
-        Integer heightVal = channelValues.get(GTStructureChannels.STRUCTURE_HEIGHT.getName());
-        Integer lengthVal = channelValues.get(GTStructureChannels.STRUCTURE_LENGTH.getName());
-
-        int repeatableIdx = 0;
         for (int i = 0; i < aisleRepetitions.length; i++) {
+            // Skip non-repeatable aisles
             if (aisleRepetitions[i][0] == aisleRepetitions[i][1]) continue;
-            if (repeatableIdx == 0 && heightVal != null) {
-                repetitions[i] = clampRepetitionValue(aisleRepetitions[i], heightVal);
-            } else if (repeatableIdx == 1 && lengthVal != null) {
-                repetitions[i] = clampRepetitionValue(aisleRepetitions[i], lengthVal);
+
+            String channelName = (aisleChannelNames != null && i < aisleChannelNames.length)
+                    ? aisleChannelNames[i] : null;
+
+            if (channelName != null && channelValues.containsKey(channelName)) {
+                int value = channelValues.get(channelName);
+                repetitions[i] = Math.min(Math.max(value, aisleRepetitions[i][0]), aisleRepetitions[i][1]);
             }
-            repeatableIdx++;
         }
 
         return repetitions;
-    }
-
-    private int clampRepetitionValue(int[] minMax, int value) {
-        if (value <= 0) return minMax[1];
-        if (value == 1) return minMax[0];
-        return Math.min(Math.max(value, minMax[0]), minMax[1]);
     }
 
     /**
@@ -381,12 +381,23 @@ public class MultiblockState {
      * Auto-build the structure in the world at the given tier.
      * Converts tier to channelValues internally for backward compatibility.
      *
-     * @param tier the repetition tier (0 = max, 1 = min, 2+ = specific)
+     * @param tier the repetition tier (0 = min/default, 1 = min, 2+ = specific repetition count)
+     * @deprecated Use {@link #autoBuild(EntityPlayer, MultiblockControllerBase, Map, boolean)} with channelValues
      */
+    @Deprecated
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
         Map<String, Integer> channels = new HashMap<>();
-        channels.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), tier);
-        channels.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), tier);
+        if (tier > 0) {
+            int[][] aisleReps = template.getAisleRepetitions();
+            String[] channelNames = template.getAisleChannelNames();
+            for (int i = 0; i < aisleReps.length; i++) {
+                if (aisleReps[i][0] == aisleReps[i][1]) continue;
+                String name = (channelNames != null && i < channelNames.length) ? channelNames[i] : null;
+                if (name != null) {
+                    channels.put(name, tier);
+                }
+            }
+        }
         autoBuild(player, controllerBase, channels, false);
     }
 
@@ -549,6 +560,9 @@ public class MultiblockState {
                                     }).collect(Collectors.toList());
                             if (candidates.isEmpty()) continue;
 
+                            // skipHatches mode: replace hatch positions with casing blocks.
+                            // Dedicated hatch positions (like muffler) where no non-hatch candidate
+                            // can be found will still place the hatch normally.
                             if (skipHatches) {
                                 List<BlockInfo> nonHatchInfos = new ArrayList<>();
                                 List<ItemStack> nonHatchCandidates = new ArrayList<>();
@@ -562,34 +576,62 @@ public class MultiblockState {
                                     candidateIdx++;
                                 }
                                 if (nonHatchInfos.isEmpty()) {
-                                    for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
-                                        if (!cacheInfos.containsKey(common)) {
-                                            cacheInfos.put(common,
-                                                    common.candidates == null ? null : common.candidates.get());
+                                    // All candidates in infos are hatches. Search all predicates
+                                    // (both common and limited) for a non-hatch casing candidate.
+                                    for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
+                                        if (!cacheInfos.containsKey(sp)) {
+                                            cacheInfos.put(sp,
+                                                    sp.candidates == null ? null : sp.candidates.get());
                                         }
-                                        BlockInfo[] commonInfos = cacheInfos.get(common);
-                                        if (commonInfos != null) {
-                                            for (BlockInfo info : commonInfos) {
+                                        BlockInfo[] spInfos = cacheInfos.get(sp);
+                                        if (spInfos != null) {
+                                            for (BlockInfo info : spInfos) {
                                                 if (info.getBlockState().getBlock() != Blocks.AIR &&
                                                         !(info.getTileEntity() instanceof IGregTechTileEntity)) {
                                                     nonHatchInfos.add(info);
                                                 }
                                             }
                                         }
+                                        if (!nonHatchInfos.isEmpty()) break;
                                     }
                                     if (nonHatchInfos.isEmpty()) {
-                                        continue;
+                                        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
+                                            if (!cacheInfos.containsKey(sp)) {
+                                                cacheInfos.put(sp,
+                                                        sp.candidates == null ? null : sp.candidates.get());
+                                            }
+                                            BlockInfo[] spInfos = cacheInfos.get(sp);
+                                            if (spInfos != null) {
+                                                for (BlockInfo info : spInfos) {
+                                                    if (info.getBlockState().getBlock() != Blocks.AIR &&
+                                                            !(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                                                        nonHatchInfos.add(info);
+                                                    }
+                                                }
+                                            }
+                                            if (!nonHatchInfos.isEmpty()) break;
+                                        }
                                     }
-                                    nonHatchCandidates = nonHatchInfos.stream()
-                                            .map(info -> {
-                                                IBlockState blockState = info.getBlockState();
-                                                return new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
-                                                        blockState.getBlock().damageDropped(blockState));
-                                            }).collect(Collectors.toList());
+                                    if (nonHatchInfos.isEmpty()) {
+                                        // No non-hatch candidate found anywhere in this position's predicates.
+                                        // This is a dedicated hatch position (e.g. muffler).
+                                        // Fall through to place the hatch normally.
+                                    }
+                                    if (!nonHatchInfos.isEmpty() && nonHatchCandidates.isEmpty()) {
+                                        nonHatchCandidates = nonHatchInfos.stream()
+                                                .map(info -> {
+                                                    IBlockState blockState = info.getBlockState();
+                                                    return new ItemStack(
+                                                            Item.getItemFromBlock(blockState.getBlock()),
+                                                            1, blockState.getBlock().damageDropped(blockState));
+                                                }).collect(Collectors.toList());
+                                    }
                                 }
-                                infos = nonHatchInfos.toArray(new BlockInfo[0]);
-                                candidates = nonHatchCandidates;
-                                matchedPredicate = null;
+                                if (!nonHatchInfos.isEmpty()) {
+                                    infos = nonHatchInfos.toArray(new BlockInfo[0]);
+                                    candidates = nonHatchCandidates;
+                                    matchedPredicate = null;
+                                }
                             }
 
                             ItemStack found = null;

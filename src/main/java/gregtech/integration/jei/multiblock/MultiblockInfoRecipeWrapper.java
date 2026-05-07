@@ -80,6 +80,7 @@ import java.util.stream.Collectors;
 
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
+    // Left parts panel layout constants
     private static final int PARTS_COLUMNS = 2;
     private static final int SLOTS_PER_COL = 10; // vertical slots per column on left panel
     private static final int MAX_PARTS = PARTS_COLUMNS * SLOTS_PER_COL;
@@ -87,6 +88,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static final int PARTS_WIDTH = PARTS_COLUMNS * SLOT_SIZE + 4;
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
+    // Right candidates panel layout constants
+    private static final int CANDIDATES_COLUMNS = 1;
+    private static final int CANDIDATES_PER_COL = 6;
+    private static final int MAX_CANDIDATES = CANDIDATES_COLUMNS * CANDIDATES_PER_COL;
+    // Candidate cycling interval in milliseconds
+    private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
     private static ItemStack tooltipBlockStack;
     private static long lastRender;
     private static MultiblockInfoRecipeWrapper lastWrapper;
@@ -113,6 +120,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private List<String> predicateTips;
     private BlockPos selected;
     private TraceabilityPredicate father;
+    // Candidate cycling state for 3D in-place rendering
+    private int candidateCycleIndex = 0;
+    private long lastCandidateCycleTime = 0L;
     // Channel slider state
     private int draggingChannelIdx = -1;
     private int hoveredChannelIdx = -1;
@@ -220,6 +230,68 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.color(1, 1, 1, 1);
+    }
+
+    /**
+     * Renders the current cycling candidate block at the selected position in the 3D scene.
+     * This provides GT5-style in-place block cycling preview.
+     */
+    @SideOnly(Side.CLIENT)
+    private void renderCandidateBlockAtPosition(World world, BlockPos pos) {
+        // Advance candidate cycle based on time
+        long now = System.currentTimeMillis();
+        if (now - lastCandidateCycleTime >= CANDIDATE_CYCLE_INTERVAL_MS) {
+            lastCandidateCycleTime = now;
+            candidateCycleIndex++;
+        }
+
+        // Collect all candidate BlockInfo from all predicates
+        List<BlockInfo> allCandidateBlocks = new ArrayList<>();
+        for (TraceabilityPredicate.SimplePredicate predicate : predicates) {
+            if (predicate.candidates != null) {
+                BlockInfo[] infos = predicate.candidates.get();
+                for (BlockInfo info : infos) {
+                    if (info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
+                        allCandidateBlocks.add(info);
+                    }
+                }
+            }
+        }
+        if (allCandidateBlocks.isEmpty()) return;
+
+        int index = candidateCycleIndex % allCandidateBlocks.size();
+        BlockInfo candidateInfo = allCandidateBlocks.get(index);
+        IBlockState candidateState = candidateInfo.getBlockState();
+
+        // Render the candidate block at the selected position using immediate mode
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.renderEngine.bindTexture(net.minecraft.client.renderer.texture.TextureMap.LOCATION_BLOCKS_TEXTURE);
+        net.minecraft.client.renderer.BlockRendererDispatcher dispatcher = mc.getBlockRendererDispatcher();
+
+        net.minecraft.client.renderer.BufferBuilder buffer = Tessellator.getInstance().getBuffer();
+        BlockRenderLayer oldLayer = net.minecraftforge.client.MinecraftForgeClient.getRenderLayer();
+        try {
+            for (BlockRenderLayer layer : BlockRenderLayer.values()) {
+                net.minecraftforge.client.ForgeHooksClient.setRenderLayer(layer);
+                if (!candidateState.getBlock().canRenderInLayer(candidateState, layer)) continue;
+
+                int pass = layer == BlockRenderLayer.TRANSLUCENT ? 1 : 0;
+                WorldSceneRenderer.setDefaultPassRenderState(pass);
+
+                buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                dispatcher.renderBlock(candidateState, pos, world, buffer);
+                Tessellator.getInstance().draw();
+            }
+        } finally {
+            net.minecraftforge.client.ForgeHooksClient.setRenderLayer(oldLayer);
+        }
+
+        GlStateManager.disableBlend();
     }
 
     public static ItemStack getHoveredItemStack() {
@@ -392,12 +464,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @Override
     public void drawInfo(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
         WorldSceneRenderer renderer = getCurrentRenderer();
-        // Scene area: to the right of the left parts panel
-        int sceneX = PARTS_WIDTH;
-        int sceneWidth = recipeWidth - PARTS_WIDTH;
+        // Full-screen 3D scene (GT5 style: scene covers entire area, UI overlaid on top)
+        int sceneX = 0;
+        int sceneWidth = recipeWidth;
         int sceneHeight = recipeHeight - (supportedChannels.size() * 16 + 10); // leave room for sliders
 
-        // 渲染3D场景（保留OpenGL状态安全）
+        // Render 3D scene full-screen (OpenGL state safety)
         GlStateManager.pushMatrix();
         GlStateManager.pushAttrib();
         try {
@@ -410,20 +482,21 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             GlStateManager.popMatrix();
         }
 
-        // 绘制UI文字
+        // Draw multiblock name and tier info (overlaid on 3D scene)
         drawMultiblockName(recipeWidth);
         drawMultiblockTier(recipeWidth);
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F); // 重置颜色
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
-        // 绘制信息图标
+        // Draw info icon (top-right corner)
         int iconX = recipeWidth - (ICON_SIZE + RIGHT_PADDING);
         int iconY = 49;
         this.infoIcon.draw(minecraft, iconX, iconY);
         this.drawInfoIcon = mouseX >= iconX && mouseX <= iconX + ICON_SIZE &&
                 mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
 
-        // 绘制左侧部件槽位
-        for (int i = 0; i < MAX_PARTS; ++i) {
+        // Draw left-side parts slots (only for actual items, no empty slots to avoid blocking 3D)
+        int actualPartsCount = Math.min(this.patterns[0].getParts().size(), MAX_PARTS);
+        for (int i = 0; i < actualPartsCount; ++i) {
             int col = i / SLOTS_PER_COL;
             int row = i % SLOTS_PER_COL;
             int slotX = col * SLOT_SIZE + 1;
@@ -431,9 +504,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             this.slot.draw(minecraft, slotX, slotY);
         }
 
-        for (int i = 0; i < predicates.size(); i++) {
-            int slotX = 5 + (i / 6) * SLOT_SIZE;
-            int slotY = (i % 6) * SLOT_SIZE + 10;
+        // Draw right-side candidate slots (overlaid on 3D scene, no overlap with left panel)
+        for (int i = 0; i < predicates.size() && i < MAX_CANDIDATES; i++) {
+            int col = i / CANDIDATES_PER_COL;
+            int row = i % CANDIDATES_PER_COL;
+            int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
+            int slotY = row * SLOT_SIZE + 70;
             this.slot.draw(minecraft, slotX, slotY);
         }
 
@@ -672,6 +748,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     }
                     predicates.clear();
                     this.father = null;
+                    this.candidateCycleIndex = 0;
+                    this.lastCandidateCycleTime = 0L;
                     return true;
                 }
                 return false;
@@ -684,6 +762,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 predicates.clear();
                 this.father = null;
                 this.selected = selected;
+                // Reset candidate cycling state for 3D in-place preview
+                this.candidateCycleIndex = 0;
+                this.lastCandidateCycleTime = 0L;
                 TraceabilityPredicate predicate = patterns[0].getPredicateMap().get(this.selected);
                 if (predicate != null) {
                     predicates.addAll(predicate.common);
@@ -691,6 +772,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     predicates.removeIf(p -> p.candidates == null);
                     this.father = predicate;
                     setItemStackGroup();
+                }
+                // Mark FBO dirty so scene re-renders with candidate block cycling
+                if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
+                    fboRenderer.markFBODirty();
                 }
                 return true;
             }
@@ -700,8 +785,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void setItemStackGroup() {
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        for (int i = 0; i < predicates.size(); i++) {
-            itemStackGroup.init(i + MAX_PARTS, true, 5 + (i / 6) * SLOT_SIZE, (i % 6) * SLOT_SIZE + 10);
+        IDrawable border = recipeLayout.getRecipeCategory().getBackground();
+        int recipeWidth = border.getWidth();
+        // Place candidate slots on the right side (no overlap with left parts panel)
+        int count = Math.min(predicates.size(), MAX_CANDIDATES);
+        for (int i = 0; i < count; i++) {
+            int col = i / CANDIDATES_PER_COL;
+            int row = i % CANDIDATES_PER_COL;
+            int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
+            int slotY = row * SLOT_SIZE + 70;
+            itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
             itemStackGroup.set(i + MAX_PARTS, predicates.get(i).getCandidates());
         }
 
@@ -843,10 +936,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     worldSceneRenderer.getLastTraceResult().getBlockPos();
             if (look != null && look.equals(selected)) {
                 renderBlockOverLay(selected, 200, 75, 75);
-                return;
+            } else {
+                renderBlockOverLay(look, 150, 150, 150);
+                renderBlockOverLay(selected, 255, 0, 0);
             }
-            renderBlockOverLay(look, 150, 150, 150);
-            renderBlockOverLay(selected, 255, 0, 0);
+            // Render candidate block cycling at the selected position (GT5 style in-place preview)
+            if (selected != null && !predicates.isEmpty()) {
+                renderCandidateBlockAtPosition(world, selected);
+            }
         });
         world.updateEntities();
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);

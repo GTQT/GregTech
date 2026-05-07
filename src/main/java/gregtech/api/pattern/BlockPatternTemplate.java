@@ -164,6 +164,21 @@ public class BlockPatternTemplate {
     }
 
     /**
+     * Compute the maximum expanded finger length, accounting for repeatable aisles.
+     * This is the sum of all max repetition counts across all aisles,
+     * representing the worst-case structure length along the finger axis.
+     *
+     * @return the maximum possible finger length when all aisles are at max repetitions
+     */
+    public int getMaxExpandedFingerLength() {
+        int total = 0;
+        for (int[] rep : aisleRepetitions) {
+            total += rep[1];
+        }
+        return total;
+    }
+
+    /**
      * Get auto-generated structure description lines for tooltip display.
      * Only available if the template was built via {@link gregtech.api.pattern.casing.DeclarativePatternBuilder}.
      *

@@ -50,7 +50,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.relauncher.Side;
@@ -122,13 +121,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     boolean delayCheck = false;
     @Getter
     private boolean structureFormed;
-    private int structureTier = 0;
     private int delayStructureCheckStandby = 20;
     private int delayStructureCheckWork = 20;
 
     /** Channel values collected from the formed structure (populated in formStructure) */
     @NotNull
     private StructureChannelValues formedChannelValues = new StructureChannelValues();
+
+    /** Tick counter for async check fallback — counts ticks since registering for async check */
+    private int asyncCheckFallbackTicks = 0;
+
+    /** Interval (in ticks) before falling back to a main-thread check when async check has not formed */
+    private static final int ASYNC_FALLBACK_INTERVAL = 100;
 
     public MultiblockControllerBase(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -297,6 +301,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
             if (checker.isRunning()) {
                 checker.registerForAsyncCheck(this);
+                asyncCheckFallbackTicks++;
+                // Fallback: if async check has not formed after ASYNC_FALLBACK_INTERVAL ticks,
+                // perform a full main-thread check to handle edge cases (e.g. snapshot coverage issues)
+                if (asyncCheckFallbackTicks >= ASYNC_FALLBACK_INTERVAL) {
+                    asyncCheckFallbackTicks = 0;
+                    if (ConfigHolder.machines.debugStructureCheck) {
+                        GTLog.logger.debug("[StructureCheck] Async fallback triggered for {}", getMetaName());
+                    }
+                    checkStructurePattern();
+                    if (structureFormed) {
+                        checker.unregister(this);
+                    }
+                }
                 return;
             }
         }
@@ -704,6 +721,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.multiblockParts.clear();
         this.structureFormed = false;
         this.formedChannelValues = new StructureChannelValues();
+        this.asyncCheckFallbackTicks = 0;
         this.setFlipped(false);
         writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(false));
     }
@@ -728,32 +746,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return Collections.unmodifiableList(multiblockParts);
     }
 
-    /**
-     * Grabs the current tier of the multi(whether in DummyWorld or Server) useful for whatever you want
-     */
-    public int getStructureTier() {
-        return this.structureTier;
-    }
-
-    /**
-     * sets the tier of the multi clamped between 1 and maxTier()
-     */
-    public void setStructureTier(int structureTier) {
-        if (this.structureTier != structureTier) {
-            this.structureTier = MathHelper.clamp(structureTier, 0, getMaxStructureTier());
-            if (getWorld() != null && !getWorld().isRemote) {
-                reinitializeStructurePattern();
-            }
-        }
-    }
-
-    /**
-     * Override if you are using the multiblock tiered system max tier of 0 means tiering is disabled
-     */
-    public int getMaxStructureTier() {
-        return 0;
-    }
-
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
@@ -763,7 +755,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (data.hasKey("IsFlipped")) {
             this.isFlipped = data.getBoolean("IsFlipped");
         }
-        structureTier = data.getInteger("structureTier");
         delayCheck = data.getBoolean("delayCheck");
         delayStructureCheckStandby = data.getInteger("delayStructureCheckStandby");
         delayStructureCheckWork = data.getInteger("delayStructureCheckWork");
@@ -775,7 +766,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         super.writeToNBT(data);
         data.setByte("UpwardsFacing", (byte) upwardsFacing.getIndex());
         data.setBoolean("IsFlipped", isFlipped);
-        data.setInteger("structureTier", structureTier);
         data.setBoolean("delayCheck", delayCheck);
         data.setInteger("delayStructureCheckStandby", delayStructureCheckStandby);
         data.setInteger("delayStructureCheckWork", delayStructureCheckWork);

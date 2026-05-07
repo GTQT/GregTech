@@ -223,19 +223,23 @@ public class AsyncStructureChecker {
 
     /**
      * Capture a snapshot region sized to the controller's structure template.
+     * Uses the maximum expanded dimensions (accounting for repeatable aisles)
+     * and takes the max across all axes as a symmetric radius, since the mapping
+     * from pattern coordinates to world coordinates depends on controller facing.
      * Falls back to a fixed radius if template is unavailable.
      */
     private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
                                                             BlockPos pos) {
         BlockPatternTemplate template = controller.getPatternTemplate();
         if (template != null) {
-            // Compute radius from template dimensions with margin
-            int xRadius = template.getStructureXSize() + SNAPSHOT_MARGIN;
-            int yRadius = template.getStructureYSize() + SNAPSHOT_MARGIN;
-            int zRadius = template.getStructureZSize() + SNAPSHOT_MARGIN;
-            // Use max dimension as a conservative symmetric radius for captureRegion
-            BlockPos min = pos.add(-xRadius, -yRadius, -zRadius);
-            BlockPos max = pos.add(xRadius, yRadius, zRadius);
+            int palmSize = template.getPalmLength();
+            int thumbSize = template.getThumbLength();
+            int fingerSize = template.getMaxExpandedFingerLength();
+            // Use max dimension as a conservative symmetric radius since we don't know
+            // which pattern axis maps to which world axis without resolving structureDir + facing
+            int radius = Math.max(Math.max(palmSize, thumbSize), fingerSize) + SNAPSHOT_MARGIN;
+            BlockPos min = pos.add(-radius, -radius, -radius);
+            BlockPos max = pos.add(radius, radius, radius);
             return BlockStateSnapshot.captureRegion(world, min, max);
         }
         return BlockStateSnapshot.capture(world, pos, FALLBACK_SNAPSHOT_RADIUS);

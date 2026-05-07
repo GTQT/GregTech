@@ -175,6 +175,7 @@ public class BlockPattern {
         state.autoBuild(player, controllerBase);
     }
 
+    @Deprecated
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
         state.autoBuild(player, controllerBase, tier);
     }

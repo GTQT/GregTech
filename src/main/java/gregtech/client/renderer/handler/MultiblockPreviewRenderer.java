@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.KeyUtil;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.utils.TrackedDummyWorld;
 
@@ -19,7 +18,6 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -53,7 +51,6 @@ public class MultiblockPreviewRenderer {
     private static long mbpEndTime;
     private static int opList = -1;
     private static int layer;
-    private static int tier;
     private static boolean compareMode = false;
     @Nullable
     private static Map<String, Integer> channelValues = null;
@@ -85,12 +82,19 @@ public class MultiblockPreviewRenderer {
             double tz = entity.lastTickPosZ + ((entity.posZ - entity.lastTickPosZ) * partialTicks);
 
             Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-            GlStateManager.color(1F, 1F, 1F, 1F);
             GlStateManager.pushMatrix();
             GlStateManager.translate(-tx, -ty, -tz);
             GlStateManager.enableBlend();
+            // Semi-transparent holographic blend: src_alpha / one_minus_src_alpha
+            GlStateManager.tryBlendFuncSeparate(
+                    GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                    GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+            // White color with reduced alpha so block textures show through semi-transparently
+            GlStateManager.color(1F, 1F, 1F, 0.6F);
 
             GlStateManager.callList(opList);
+
+            GlStateManager.color(1F, 1F, 1F, 1F);
 
             // Render comparison overlay (colored outlines for missing/wrong blocks)
             if (compareMode && (!missingPositions.isEmpty() || !wrongPositions.isEmpty())) {
@@ -108,7 +112,6 @@ public class MultiblockPreviewRenderer {
     public static void renderMultiBlockPreview(MultiblockControllerBase controller, long durTimeMillis) {
         if (!controller.getPos().equals(mbpPos)) {
             layer = 0;
-            tier = 0;
         } else {
             if (mbpEndTime - System.currentTimeMillis() < 200) return;
             layer++;
@@ -131,10 +134,6 @@ public class MultiblockPreviewRenderer {
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
         opList = GLAllocation.generateDisplayLists(1); // allocate op list
         GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        if (tier != controller.getStructureTier()) {
-            tier = controller.getStructureTier();
-            controller.reinitializeStructurePattern();
-        }
         try {
             List<MultiblockShapeInfo> shapes = channelValues != null
                     ? controller.getMatchingShapes(channelValues)
@@ -149,31 +148,6 @@ public class MultiblockPreviewRenderer {
         } finally {
             GlStateManager.glEndList();
         }
-    }
-
-    public static void renderMultiBlockPreviewByTier(EntityPlayer player, MultiblockControllerBase controller,
-                                                     BlockPos pos,
-                                                     long durTimeMillis) {
-        if (!controller.getPos().equals(mbpPos)) {
-            tier = 0;
-        } else {
-            if (mbpEndTime - System.currentTimeMillis() < 200) return;
-            tier++;
-        }
-        controller.noticePlayer(
-                "[结构预览]正在预览" + KeyUtil.lang(controller.getMetaFullName()) + "的第" + tier + "等级", player);
-        resetMultiblockRender();
-        mbpPos = controller.getPos();
-        mbpEndTime = System.currentTimeMillis() + durTimeMillis;
-        opList = GLAllocation.generateDisplayLists(1); // allocate op list
-        GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        List<MultiblockShapeInfo> shapes = channelValues != null
-                ? controller.getMatchingShapes(channelValues)
-                : controller.getMatchingShapes();
-        if (!shapes.isEmpty())
-            renderControllerInList(controller, shapes.get(Math.min(tier, shapes.size() - 1)), 0, pos);
-        if (tier >= shapes.size() - 1) tier = 0;
-        GlStateManager.glEndList();
     }
 
     public static void renderMultiBlockPreview(MultiblockControllerBase controller, BlockPos pos, long durTimeMillis) {
@@ -192,21 +166,6 @@ public class MultiblockPreviewRenderer {
                 ? controller.getMatchingShapes(channelValues)
                 : controller.getMatchingShapes();
         if (!shapes.isEmpty()) renderControllerInList(controller, shapes.get(0), layer, pos);
-        GlStateManager.glEndList();
-    }
-
-    public static void renderMultiBlockPreviewByTier(MultiblockControllerBase controller, BlockPos pos, int tier,
-                                                     long durTimeMillis) {
-        resetMultiblockRender();
-        mbpPos = controller.getPos();
-        mbpEndTime = System.currentTimeMillis() + durTimeMillis;
-        opList = GLAllocation.generateDisplayLists(1); // allocate op list
-        GlStateManager.glNewList(opList, GL11.GL_COMPILE);
-        List<MultiblockShapeInfo> shapes = channelValues != null
-                ? controller.getMatchingShapes(channelValues)
-                : controller.getMatchingShapes();
-        if (!shapes.isEmpty())
-            renderControllerInList(controller, shapes.get(Math.min(tier, shapes.size() - 1)), layer, pos);
         GlStateManager.glEndList();
     }
 
@@ -473,6 +432,9 @@ public class MultiblockPreviewRenderer {
 
         Set<BlockPos> surfaceBlocks = computeSurfaceBlocks(blockMap);
 
+        // Disable lighting so block textures render with their original colors
+        // without being tinted by the OpenGL fixed-function lighting pipeline.
+        GlStateManager.disableLighting();
         TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
         for (BlockRenderLayer brl : BlockRenderLayer.values()) {
             buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
@@ -492,6 +454,7 @@ public class MultiblockPreviewRenderer {
             }
             tes.draw();
         }
+        GlStateManager.enableLighting();
         ForgeHooksClient.setRenderLayer(oldLayer);
 
         GlStateManager.popMatrix();
@@ -542,6 +505,9 @@ public class MultiblockPreviewRenderer {
 
         Set<BlockPos> surfaceBlocks = computeSurfaceBlocks(blockMap);
 
+        // Disable lighting so block textures render with their original colors
+        // without being tinted by the OpenGL fixed-function lighting pipeline.
+        GlStateManager.disableLighting();
         TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
         for (BlockRenderLayer brl : BlockRenderLayer.values()) {
             buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
@@ -561,6 +527,7 @@ public class MultiblockPreviewRenderer {
             }
             tes.draw();
         }
+        GlStateManager.enableLighting();
         ForgeHooksClient.setRenderLayer(oldLayer);
 
         GlStateManager.popMatrix();
