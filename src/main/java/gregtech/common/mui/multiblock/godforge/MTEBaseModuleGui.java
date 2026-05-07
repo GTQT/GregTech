@@ -56,7 +56,7 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
     @Override
     protected Flow createButtonColumn(ModularPanel panel, PanelSyncManager syncManager) {
         return new Column().width(18)
-            .leftRel(1, -3, 1)
+            .heightRel(1)
             .childPadding(2)
             .mainAxisAlignment(MainAxis.END)
             .reverseLayout(true)
@@ -144,7 +144,7 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
                 }
                 return true;
             })
-            .tooltip(t -> t.addLine(translateToLocal("GT5U.gui.button.power_panel")))
+            .tooltip(t -> t.addLine(translateToLocal("gt.blockmachines.multimachine.FOG.powerpanel")))
             .tooltipShowUpTimer(TOOLTIP_DELAY)
             .clickSound(ForgeOfGodsGuiUtil.getButtonSound());
     }

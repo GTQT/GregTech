@@ -132,23 +132,6 @@ public class UpgradeStorage {
         return unlockedUpgrades.computeIfAbsent(upgrade, $ -> new UpgradeData());
     }
 
-    private boolean hasAnyProgress() {
-        if (isUpgradeActive(ForgeOfGodsUpgrade.START)) return true;
-
-        for (var entry : unlockedUpgrades.entrySet()) {
-            ForgeOfGodsUpgrade upgrade = entry.getKey();
-            if (upgrade.hasExtraCost()) {
-                UpgradeData data = entry.getValue();
-                if (data.isCostPaid()) return true;
-                for (int i = 0; i < data.amountsPaid.length; i++) {
-                    if (data.amountsPaid[i] != 0) return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     public int getTotalActiveUpgrades() {
         return (int) unlockedUpgrades.values()
             .stream()
@@ -182,9 +165,7 @@ public class UpgradeStorage {
         }
     }
 
-    public void writeToNBT(NBTTagCompound nbt, boolean force) {
-        if (!force && !hasAnyProgress()) return;
-
+    public void writeToNBT(NBTTagCompound nbt) {
         NBTTagCompound upgradeTag = new NBTTagCompound();
         for (ForgeOfGodsUpgrade upgrade : ForgeOfGodsUpgrade.VALUES) {
             UpgradeData data = unlockedUpgrades.get(upgrade);

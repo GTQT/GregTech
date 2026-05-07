@@ -57,19 +57,19 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
     // predicate customization, and all chars are simple states() with hatches on one slot only.
     protected BlockPattern createStructurePattern() {
         return FactoryBlockPattern.start()
-                .aisle("       ", "  BBB  ", " BBBBB ", " BB~BB ", " BBBBB ", "  BBB  ", "       ")
-                .aisle("  CCC  ", " CFFFC ", "CFFFFFC", "CFFFFFC", "CFFFFFC", " CFFFC ", "  CCC  ")
-                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
-                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
-                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
-                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
-                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
                 .aisle("       ", "       ", "       ", "   G   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
+                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
+                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
+                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
+                .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
+                .aisle("  CCC  ", " CFFFC ", "CFFFFFC", "CFFFFFC", "CFFFFFC", " CFFFC ", "  CCC  ")
+                .aisle("       ", "  BBB  ", " BBBBB ", " BB~BB ", " BBBBB ", "  BBB  ", "       ")
                 .where('~', selfPredicate())
                 .where('A', getCoilBlockPredicate())
                 .where('B', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))
@@ -355,7 +355,7 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
 
     @Override
     public ICubeRenderer getBaseTexture(gregtech.api.metatileentity.multiblock.IMultiblockPart sourcePart) {
-        return Textures.SOLID_STEEL_CASING;
+        return Textures.GODFORGE_INNER_CASING;
     }
 
     protected static IBlockState getCasingState(BlockGodforgeCasing.CasingType type) {

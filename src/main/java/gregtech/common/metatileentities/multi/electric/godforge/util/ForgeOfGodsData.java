@@ -411,48 +411,60 @@ public class ForgeOfGodsData {
         this.starSize = starSize;
     }
 
-    public void writeToNBT(NBTTagCompound nbt, boolean force) {
-        if (force || selectedFuelType != 0) nbt.setInteger("selectedFuelType", selectedFuelType);
-        if (force || internalBattery != 0) nbt.setInteger("internalBattery", internalBattery);
-        if (force || batteryCharging) nbt.setBoolean("batteryCharging", batteryCharging);
-        if (force || gravitonShardsAvailable != 0) nbt.setInteger("gravitonShardsAvailable", gravitonShardsAvailable);
-        if (force || gravitonShardsSpent != 0) nbt.setInteger("gravitonShardsSpent", gravitonShardsSpent);
-        if (force || totalRecipesProcessed != 0) nbt.setLong("totalRecipesProcessed", totalRecipesProcessed);
-        if (force || totalFuelConsumed != 0) nbt.setLong("totalFuelConsumed", totalFuelConsumed);
-        if (force || stellarFuelAmount != 0) nbt.setInteger("starFuelStored", stellarFuelAmount);
-        if (force || gravitonShardEjection) nbt.setBoolean("gravitonShardEjection", gravitonShardEjection);
-        if (force || secretUpgrade) nbt.setBoolean("secretUpgrade", secretUpgrade);
-        if (force || inversion) nbt.setBoolean("inversion", inversion);
+    /**
+     * Serializes all persistent state to NBT for world save/load.
+     * Render-related fields (isRenderActive, isRendererDisabled, visual settings) are
+     * co-located here instead of the old dead-code writeRenderNBT().
+     */
+    public void writeToNBT(NBTTagCompound nbt) {
+        // --- Core operational state ---
+        nbt.setInteger("selectedFuelType", selectedFuelType);
+        nbt.setInteger("internalBattery", internalBattery);
+        nbt.setBoolean("batteryCharging", batteryCharging);
+        nbt.setInteger("gravitonShardsAvailable", gravitonShardsAvailable);
+        nbt.setInteger("gravitonShardsSpent", gravitonShardsSpent);
+        nbt.setLong("totalRecipesProcessed", totalRecipesProcessed);
+        nbt.setLong("totalFuelConsumed", totalFuelConsumed);
+        nbt.setInteger("starFuelStored", stellarFuelAmount);
+        nbt.setBoolean("gravitonShardEjection", gravitonShardEjection);
+        nbt.setBoolean("secretUpgrade", secretUpgrade);
+        nbt.setBoolean("inversion", inversion);
 
-        if (force || fuelConsumptionFactor != DEFAULT_FUEL_CONSUMPTION_FACTOR) {
-            nbt.setInteger("fuelConsumptionFactor", fuelConsumptionFactor);
-        }
-        if (force || maxBatteryCharge != DEFAULT_MAX_BATTERY_CHARGE) {
-            nbt.setInteger("batterySize", maxBatteryCharge);
-        }
-        if (force || !DEFAULT_TOTAL_POWER.equals(totalPowerConsumed)) {
-            nbt.setByteArray("totalPowerConsumed", totalPowerConsumed.toByteArray());
-        }
-        if (force || formatter != DEFAULT_FORMATTER) {
-            nbt.setInteger("formatter", formatter.ordinal());
-        }
+        // --- Configurable parameters ---
+        nbt.setInteger("fuelConsumptionFactor", fuelConsumptionFactor);
+        nbt.setInteger("batterySize", maxBatteryCharge);
+        nbt.setByteArray("totalPowerConsumed", totalPowerConsumed.toByteArray());
+        nbt.setInteger("formatter", formatter.ordinal());
 
-        if (force) {
-            nbt.setTag("upgradeWindowStorage", upgradeWindowHandler.serializeNBT());
+        // --- Structure state: ring amount must survive reload for structure validation ---
+        nbt.setInteger("ringAmount", ringAmount);
+
+        // --- Milestone progress: graviton shard count depends on these ---
+        for (int i = 0; i < milestoneProgress.length; i++) {
+            nbt.setInteger("milestoneProgress" + i, milestoneProgress[i]);
         }
+        nbt.setFloat("totalExtensionsBuilt", totalExtensionsBuilt);
 
-        upgrades.writeToNBT(nbt, force);
-        starColors.writeToNBT(nbt);
-    }
-
-    public void writeRenderNBT(NBTTagCompound nbt) {
+        // --- Render / visual settings ---
+        nbt.setBoolean("isRenderActive", isRenderActive);
+        nbt.setBoolean("isRendererDisabled", isRendererDisabled);
         nbt.setInteger("rotationSpeed", rotationSpeed);
         nbt.setInteger("starSize", starSize);
         nbt.setString("selectedStarColor", selectedStarColor);
-        nbt.setInteger("ringAmount", ringAmount);
-        nbt.setBoolean("isRenderActive", isRenderActive);
-        nbt.setBoolean("isRendererDisabled", isRendererDisabled);
+
+        // --- Upgrade window inventory (always persisted) ---
+        nbt.setTag("upgradeWindowStorage", upgradeWindowHandler.serializeNBT());
+
+        upgrades.writeToNBT(nbt);
+        starColors.writeToNBT(nbt);
     }
+
+    /**
+     * @deprecated No longer needed: render fields are now written by {@link #writeToNBT}.
+     *             Kept as a no-op to avoid breaking any call sites that may exist.
+     */
+    @Deprecated
+    public void writeRenderNBT(NBTTagCompound nbt) {}
 
     public void readFromNBT(NBTTagCompound nbt) {
         selectedFuelType = nbt.getInteger("selectedFuelType");
@@ -476,26 +488,40 @@ public class ForgeOfGodsData {
         if (nbt.hasKey("totalPowerConsumed")) {
             totalPowerConsumed = new BigInteger(nbt.getByteArray("totalPowerConsumed"));
         }
-        if (nbt.hasKey("formattingMode")) {
-            int index = MathHelper.clamp(nbt.getInteger("formattingMode"), 0, Formatters.VALUES.length);
-            formatter = Formatters.VALUES[index];
-        }
+
         if (nbt.hasKey("formatter")) {
-            int index = MathHelper.clamp(nbt.getInteger("formatter"), 0, Formatters.VALUES.length);
+            int index = MathHelper.clamp(nbt.getInteger("formatter"), 0, Formatters.VALUES.length - 1);
             formatter = Formatters.VALUES[index];
         }
 
-        NBTTagCompound tempItemTag = nbt.getCompoundTag("upgradeWindowStorage");
-        if (tempItemTag != null) {
-            upgradeWindowHandler.deserializeNBT(tempItemTag);
+        // --- Structure state ---
+        if (nbt.hasKey("ringAmount")) {
+            ringAmount = nbt.getInteger("ringAmount");
         }
 
+        // --- Milestone progress ---
+        for (int i = 0; i < milestoneProgress.length; i++) {
+            String key = "milestoneProgress" + i;
+            if (nbt.hasKey(key)) {
+                milestoneProgress[i] = nbt.getInteger(key);
+            }
+        }
+        if (nbt.hasKey("totalExtensionsBuilt")) {
+            totalExtensionsBuilt = nbt.getFloat("totalExtensionsBuilt");
+        }
+
+        // --- Render / visual settings ---
+        isRenderActive = nbt.getBoolean("isRenderActive");
+        isRendererDisabled = nbt.getBoolean("isRendererDisabled");
         if (nbt.hasKey("rotationSpeed")) rotationSpeed = nbt.getInteger("rotationSpeed");
         if (nbt.hasKey("starSize")) starSize = nbt.getInteger("starSize");
         if (nbt.hasKey("selectedStarColor")) selectedStarColor = nbt.getString("selectedStarColor");
-        if (nbt.hasKey("ringAmount")) ringAmount = nbt.getInteger("ringAmount");
-        isRenderActive = nbt.getBoolean("isRenderActive");
-        isRendererDisabled = nbt.getBoolean("isRendererDisabled");
+
+        // --- Upgrade window inventory ---
+        NBTTagCompound itemTag = nbt.getCompoundTag("upgradeWindowStorage");
+        if (itemTag != null && !itemTag.isEmpty()) {
+            upgradeWindowHandler.deserializeNBT(itemTag);
+        }
 
         upgrades.readFromNBT(nbt);
         starColors.readFromNBT(nbt);

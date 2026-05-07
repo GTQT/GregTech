@@ -7,33 +7,53 @@ import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 
+import gregtech.common.mui.multiblock.godforge.panel.BatteryConfigPanel;
+import gregtech.common.mui.multiblock.godforge.panel.CustomStarColorPanel;
+import gregtech.common.mui.multiblock.godforge.panel.ExoticInputsListPanel;
+import gregtech.common.mui.multiblock.godforge.panel.ExoticPossibleInputsListPanel;
+import gregtech.common.mui.multiblock.godforge.panel.FuelConfigPanel;
+import gregtech.common.mui.multiblock.godforge.panel.GeneralInfoPanel;
+import gregtech.common.mui.multiblock.godforge.panel.IndividualMilestonePanel;
+import gregtech.common.mui.multiblock.godforge.panel.IndividualUpgradePanel;
+import gregtech.common.mui.multiblock.godforge.panel.ManualInsertionPanel;
+import gregtech.common.mui.multiblock.godforge.panel.MilestonePanel;
+import gregtech.common.mui.multiblock.godforge.panel.PlasmaDebugPanel;
+import gregtech.common.mui.multiblock.godforge.panel.SpecialThanksPanel;
+import gregtech.common.mui.multiblock.godforge.panel.StarColorImportPanel;
+import gregtech.common.mui.multiblock.godforge.panel.StarCosmeticsPanel;
+import gregtech.common.mui.multiblock.godforge.panel.StatisticsPanel;
+import gregtech.common.mui.multiblock.godforge.panel.UpgradeTreePanel;
+import gregtech.common.mui.multiblock.godforge.panel.VoltageConfigPanel;
+
 public enum Panels {
 
+    // Main panels (no panelSupplier needed — these are root panels, never opened via getFrom())
     MAIN,
     MAIN_SMELTING,
     MAIN_MOLTEN,
     MAIN_PLASMA,
     MAIN_EXOTIC,
 
-    GENERAL_INFO,
-    VOLTAGE_CONFIG,
+    // Sub-panels opened from main panels
+    GENERAL_INFO(GeneralInfoPanel::openPanel),
+    VOLTAGE_CONFIG((hypervisor, module) -> VoltageConfigPanel.openModulePanel(hypervisor, module)),
 
-    MILESTONE,
-    INDIVIDUAL_MILESTONE,
-    FUEL_CONFIG,
-    BATTERY_CONFIG,
-    STAR_COSMETICS,
-    CUSTOM_STAR_COLOR,
-    STAR_COLOR_IMPORT,
-    UPGRADE_TREE,
-    INDIVIDUAL_UPGRADE,
-    MANUAL_INSERTION,
-    STATISTICS,
-    SPECIAL_THANKS,
+    MILESTONE(MilestonePanel::openPanel),
+    INDIVIDUAL_MILESTONE(IndividualMilestonePanel::openPanel),
+    FUEL_CONFIG(FuelConfigPanel::openPanel),
+    BATTERY_CONFIG(BatteryConfigPanel::openPanel),
+    STAR_COSMETICS(StarCosmeticsPanel::openPanel),
+    CUSTOM_STAR_COLOR(CustomStarColorPanel::openPanel),
+    STAR_COLOR_IMPORT(StarColorImportPanel::openPanel),
+    UPGRADE_TREE(UpgradeTreePanel::openPanel),
+    INDIVIDUAL_UPGRADE(IndividualUpgradePanel::openPanel),
+    MANUAL_INSERTION(ManualInsertionPanel::openPanel),
+    STATISTICS(StatisticsPanel::openPanel),
+    SPECIAL_THANKS(SpecialThanksPanel::openPanel),
 
-    EXOTIC_INPUTS_LIST,
-    EXOTIC_POSSIBLE_INPUTS_LIST,
-    PLASMA_DEBUG,
+    EXOTIC_INPUTS_LIST(ExoticInputsListPanel::openPanel),
+    EXOTIC_POSSIBLE_INPUTS_LIST(ExoticPossibleInputsListPanel::openPanel),
+    PLASMA_DEBUG(PlasmaDebugPanel::openPanel),
 
     ;
 

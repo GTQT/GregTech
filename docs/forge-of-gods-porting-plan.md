@@ -1,177 +1,157 @@
 # 诸神之煅炉（Forge of the Gods）移植计划
 
-## 最近更新: 2026-05-06
+## 最近更新: 2026-05-07
 
-**当前状态：绝大多数文件已移植完成，处于集成调试阶段。**
+**当前状态：核心逻辑已实现，处于功能验证和Bug修复阶段。**
 
 ---
 
 ## 系统总览
 
-诸神之煅炉是 GT5 TecTech 中最复杂的多方块结构，涉及 **58 个源文件**，是一个完整的子系统。
+诸神之煅炉是 GT5 TecTech 中最复杂的多方块结构，涉及 **85+ 个源文件**，是一个完整的子系统。
 
 源码位置：`GT5-Unofficial-master/src/main/java/tectech/thing/metaTileEntity/multi/godforge/`
 
 ### 核心特性
 - 主结构 127×29×127（约 570K 方块位置）
 - 3 个可选环（根据升级解锁）
-- 分片结构检查（main/shaft/ring1/ring2/ring3）
+- 分片结构检查（beam_shaft + first_ring + second_ring + third_ring）
 - 30 个升级节点的升级树系统
 - 4 种里程碑追踪
 - 4 种子模块类型（Smelting/Molten/Plasma/Exotic），最多 16 个
-- 无线能量网络
-- 可自定义恒星颜色的渲染系统
-- 30+ 个 GUI 面板
+- 无线能量网络（通过 WirelessEnergyService）
+- 可自定义恒星颜色的渲染系统（着色器+VBO）
+- 30+ 个 GUI 面板（MUI2）
 
 ---
 
 ## 当前移植进度总览
 
-### ✅ 已完成的模块
+### ✅ 已完成并验证编译通过
 
-| 阶段 | 模块 | 状态 | 文件位置 |
-|------|------|------|---------|
-| 1 | 方块注册 | ✅ 完成 | `BlockGodforgeCasing.java` (9种方块状态), `BlockGodforgeGlass.java` (1种) |
-| 1 | 贴图资源 | ✅ 完成 | `textures/blocks/casings/godforge/` (12个贴图+mcmeta) |
-| 1 | blockstates | ✅ 完成 | `blockstates/godforge_casing.json`, `godforge_glass.json` |
-| 1 | 本地化 | ✅ 完成 | `en_us.lang` 和 `zh_cn.lang` 均已添加 |
-| 2 | 结构字符串 | ✅ 完成 | `ForgeOfGodsStructureString.java` + 4个txt资源文件 |
-| 3 | 数据模型 | ✅ 完成 | `ForgeOfGodsData.java` (含NBT序列化) |
-| 3 | 数学计算 | ✅ 完成 | `GodforgeMath.java` |
-| 3 | 颜色系统 | ✅ 完成 | `ForgeOfGodsStarColor.java`, `StarColorSetting.java`, `StarColorStorage.java` |
-| 4 | 升级系统 | ✅ 完成 | `ForgeOfGodsUpgrade.java` (30节点enum), `UpgradeStorage.java` |
-| 4 | GUI数据 | ✅ 完成 | `data/` 目录: `ColorData`, `Milestones`, `StarColors`, `UpgradeColor`, `UpgradeType`, `Fuels`, `Formatters`, `Statistics` |
-| 5 | 无线能量网络 | ✅ 已存在 | `WirelessNetworkManager.java` (旧版GT5风格全局Map) + `gtqt.api.util.wireless` (新版PSS+NetworkNode系统) |
-| 6 | 控制器 | ⚠️ 骨架完成 | `MetaTileEntityForgeOfGods.java` (177行, 结构+渲染+NBT已实现, **缺少核心运行逻辑**) |
-| 6 | 模块基类 | ✅ 完成 | `MTEBaseModule.java` (357行, 含NBT/参数/RecipeLogic) |
-| 6 | 4个子模块 | ✅ 完成 | `MTESmeltingModule`, `MTEMoltenModule`, `MTEPlasmaModule`, `MTEExoticModule` |
-| 6 | 模块接口 | ✅ 完成 | `IGodforgeModule.java` (connect/disconnect/isConnected) |
-| 6 | 模块RecipeLogic | ✅ 完成 | `GodforgeModuleRecipeLogic.java` (无线能量消耗已集成WirelessNetworkManager) |
-| 6 | MTE注册 | ✅ 完成 | `MetaTileEntities.java` (ID 2100-2104) |
-| 7 | 主GUI | ✅ 完成 | `MTEForgeOfGodsGui.java` + `GodforgeBaseGui.java` + `ForgeOfGodsGuiUtil.java` |
-| 7 | 模块GUI | ✅ 完成 | `MTEBaseModuleGui`, `MTESmeltingModuleGui`, `MTEMoltenModuleGui`, `MTEPlasmaModuleGui`, `MTEExoticModuleGui` |
-| 7 | 面板(18个) | ✅ 完成 | `panel/` 目录全部18个面板 |
-| 7 | 同步系统 | ✅ 完成 | `sync/` 目录: `SyncHypervisor`, `SyncActions`, `SyncValue`, `SyncValues`, `Modules`, `Panels` |
-| 7 | 辅助Widget | ✅ 完成 | `SelectButton`, `SlotLikeButtonWidget`, `LinkedBoolValue`, `RotatedDrawable` |
-| 8 | 恒星渲染器 | ✅ 完成 | `GodforgeStarRenderer.java` (着色器+VBO) |
-| 8 | 渲染TE | ✅ 完成 | `GodforgeRenderTileEntity.java` |
-| 8 | 渲染工具 | ✅ 完成 | `util/SphereVBOCache`, `StructureVBO`, `StructureBlockAccess`, `TextureUpdateRequester` |
-| 8 | 渲染贴图 | ✅ 完成 | `textures/godforge/StarLayer0-2.png`, `spaceLayer.png` |
-| 9 | RecipeMap | ✅ 完成 | `GodforgeRecipeMaps.java` (5个Map: Smelting/Plasma/Exotic/Molten/UpgradeCost) |
-| 9 | 配方注册 | ⚠️ 部分完成 | `GodforgeRecipeLoader.java` (等离子体配方+升级花费已注册, 熔炼/熔融/奇异待完善) |
+| 层级 | 模块 | 状态 | 说明 |
+|------|------|------|------|
+| **底层方块** | BlockGodforgeCasing, BlockGodforgeGlass, BlockGodforgeRender | ✅ | 9+1+1=11种方块状态，TESR已绑定 |
+| **贴图资源** | 方块贴图、星体贴图、着色器 | ✅ | 12个贴图+mcmeta + 4星体贴图 + 6着色器文件 |
+| **结构定义** | ForgeOfGodsStructureString + 4个txt资源 | ✅ | beam_shaft/first_ring/second_ring/third_ring |
+| **数据模型** | ForgeOfGodsData（含NBT序列化） | ✅ | writeToNBT/readFromNBT/writeRenderNBT |
+| **数学计算** | GodforgeMath | ✅ | 燃料计算、模块参数、里程碑、防作弊 |
+| **颜色系统** | ForgeOfGodsStarColor, StarColorSetting, StarColorStorage | ✅ | NBT持久化+渲染颜色插值 |
+| **升级系统** | ForgeOfGodsUpgrade(30节点enum), UpgradeStorage | ✅ | 完整升级树拓扑+前置依赖+解锁逻辑 |
+| **控制器** | MetaTileEntityForgeOfGods | ✅ | **核心运行逻辑已完整实现** |
+| **模块基类** | MTEBaseModule + GodforgeModuleRecipeLogic | ✅ | 无线能量消耗+参数体系+NBT |
+| **子模块×4** | Smelting/Molten/Plasma/Exotic Module | ✅ | 各模块配方逻辑+动态配方生成(Exotic) |
+| **GUI主系统** | MTEForgeOfGodsGui + GodforgeBaseGui + 18个面板 | ✅ | panelSupplier已连接 |
+| **GUI同步** | SyncHypervisor, Panels, Modules, SyncActions | ✅ | 子面板打开机制已修复 |
+| **渲染系统** | GodforgeStarRenderer(TESR) + GodforgeRenderTileEntity | ✅ | 星体着色器+环VBO+颜色循环 |
+| **RecipeMap** | GodforgeRecipeMaps(5个Map) | ✅ | Smelting/Plasma/Exotic/Molten/UpgradeCost |
+| **配方加载** | GodforgeRecipeLoader | ✅ | 等离子体+熔融+升级花费已注册 |
+| **MTE注册** | MetaTileEntities.java (ID 2100-2104) | ✅ | 控制器+4模块 |
+| **接口** | IGodforgeModule | ✅ | connect/disconnect/isConnected |
 
 ---
 
-### ⚠️ 待完成的关键任务
+### ⚠️ 已发现的Bug与待修复项
 
-| 优先级 | 任务 | 描述 | 估算复杂度 |
-|--------|------|------|-----------|
-| **P0** | 控制器核心运行逻辑 | `MetaTileEntityForgeOfGods.updateFormedValid()` 当前为空 TODO，需实现：燃料消耗、电池充放、模块发现/连接/参数下发、里程碑追踪、升级效果应用 | ⭐⭐⭐ 高 |
-| **P0** | 分片结构检查集成 | 当前控制器使用单一 `BlockPattern`（beam_shaft + first_ring 合并为一个模式），**未使用 `MultiPiecePattern`**，因此第二环/第三环无条件检查支持 | ⭐⭐⭐ 高 |
-| **P1** | 模块发现机制 | 控制器如何发现并管理已连接模块（最多16个）。当前有 `godforgeModules()` predicate 但缺少运行时发现逻辑 | ⭐⭐ 中 |
-| **P1** | 燃料系统逻辑 | 燃料消耗/补充循环、启动燃料需求、燃料类型切换 | ⭐⭐ 中 |
-| **P1** | 电池系统逻辑 | 内部电池充放电循环、电池配置UI交互 | ⭐ 低 |
-| **P1** | 里程碑进度系统 | 4种里程碑的进度追踪与奖励应用 | ⭐⭐ 中 |
-| **P2** | 升级效果应用 | 30个升级节点的实际效果执行（目前enum定义完成，但效果未连接到控制器） | ⭐⭐ 中 |
-| **P2** | 恒星渲染集成 | 控制器的 `updateRenderer()`/`destroyRenderer()` 当前为空方法，需与 `GodforgeStarRenderer` 连接 | ⭐⭐ 中 |
-| **P2** | 配方完善 | 熔炼模块(电弧炉/炉模式)、熔融模块(EBF)、奇异模块(暗物质)配方缺失 | ⭐ 低 |
-| **P3** | 自动构建支持 | 超大结构的玩家辅助建造（JEI预览 + 创造模式自动放置） | ⭐⭐ 中 |
-| **P3** | 编译验证 | 确保所有文件编译通过，无运行时崩溃 | ⭐ 低 |
+| 优先级 | 问题 | 状态 | 详情 |
+|--------|------|------|------|
+| **P0** | GUI按钮不可用 | ✅ **已修复** | `Panels`枚举缺少`panelSupplier`连接，已为所有子面板添加对应的`openPanel`方法引用 |
+| **P0** | 模块贴图为占位符 | ✅ **已修复** | `MTEBaseModule.getBaseTexture()` 从 `SOLID_STEEL_CASING` 改为 `GODFORGE_INNER_CASING` |
+| **P0** | 模块结构方向反转 | ✅ **已修复** | 反转了 aisle 排列顺序，G(Siphon)在FRONT，控制器面板在BACK |
+| **P1** | 恒星渲染不触发 | 🔍 **排查中** | 已添加`[FOG]`调试日志，等待测试结果确认是区块加载问题还是其他原因 |
+| **P2** | `writeToNBT` 不保存 `isRenderActive` | ⚠️ 待修复 | `writeRenderNBT()`是死代码从未被调用，重载后依赖`ensureRendererState()`重建 |
+| **P2** | 配方不完整 | ⚠️ 待完善 | 熔炼模块直接使用BLAST_RECIPES/ARC_FURNACE_RECIPES，molten配方生成逻辑待验证 |
+| **P3** | ForgeChunkManager未实现 | ⚠️ 待定 | 渲染器在控制器后方122格，需要区块加载保证 |
 
 ---
 
-## 底层依赖分析（更新版）
+## 控制器核心逻辑（已实现）
 
-| GT5 依赖 | 当前项目对应物 | 当前状态 |
-|----------|--------------|---------|
-| `com.gtnewhorizon.structurelib` (checkPiece/buildPiece) | `MultiPiecePattern` (P3) | ✅ API已就绪，⚠️ **未被godforge使用** |
-| `TTMultiblockBase` (TecTech 基类) | `MultiblockWithDisplayBase` | ✅ 控制器已继承此类 |
-| `WirelessNetworkManager` (无线能量网络) | `gregtech.common.misc.WirelessNetworkManager` | ✅ 已存在且已被 `GodforgeModuleRecipeLogic` 使用 |
-| MUI2 (`com.cleanroommc.modularui`) | 当前 MUI (同一库 MC 1.12版) | ✅ GUI系统完整使用MUI2 API |
-| `GodforgeCasings` (TecTech 方块) | `BlockGodforgeCasing` + `BlockGodforgeGlass` | ✅ 已注册(9+1=10种方块状态) |
-| `IStructureDefinition` (structurelib) | `FactoryBlockPattern` / `BlockPatternTemplate` | ✅ 结构已转换为FactoryBlockPattern格式 |
-| GT5 RecipeMap 系统 | `GodforgeRecipeMaps` | ✅ 5个RecipeMap已注册 |
+`MetaTileEntityForgeOfGods.updateFormedValid()` 已完整实现以下功能：
+
+### 运行时循环（每100 tick = 5秒）
+```
+1. absorbFuelOrShards()     — 从输入总线吸收恒星燃料/引力子碎片
+2. drainFuel()              — 从流体仓抽取燃料流体，维持电池
+3. ensureRendererState()    — 检查并维护恒星渲染器状态
+4. 里程碑计算               — determineCompositionMilestoneLevel() + determineMilestoneProgress()
+5. checkInversionStatus()   — 反转状态检查
+6. determineGravitonShardAmount() — 引力子碎片产量计算
+7. ejectGravitonShards()    — 引力子碎片输出（需END升级）
+8. 模块参数下发             — GodforgeMath 计算后下发到每个模块
+9. 环状态同步               — 检测环数量变化，更新渲染器和结构
+```
+
+### 结构系统（已实现）
+- **初始成形：** `createStructurePattern()` — beam_shaft + first_ring 合并为单一 BlockPattern
+- **分片验证：** `createMultiPiecePattern()` — 4个piece（beam_shaft, first_ring, second_ring, third_ring）
+- **条件片段：** second_ring 由 CD 升级控制，third_ring 由 END 升级控制
+- **模块发现：** `discoverModules()` 在 `formStructure()` 中扫描所有 `MTEBaseModule` part
+
+### 渲染系统（已实现）
+- `createRenderer()` — 在控制器后方122格放置 `BlockGodforgeRender`（含TESR）
+- `destroyRenderer()` — 移除渲染方块
+- `updateRenderer()` — 同步星体大小/旋转速度/颜色/环数到 `GodforgeRenderTileEntity`
+- `ensureRendererState()` — 每5秒检查渲染器一致性，自动重建
 
 ---
 
-## 已完成文件清单（82个文件）
+## 底层依赖对照
 
-### 底层方块 (2文件)
-- `gregtech/common/blocks/BlockGodforgeCasing.java`
-- `gregtech/common/blocks/BlockGodforgeGlass.java`
+| GT5 依赖 | 当前项目对应物 | 状态 |
+|----------|--------------|------|
+| `com.gtnewhorizon.structurelib` | `MultiPiecePattern` + `LazyTemplate` | ✅ 已使用 |
+| `TTMultiblockBase` | `MultiblockWithDisplayBase` | ✅ |
+| `WirelessNetworkManager` | `WirelessEnergyService` + `WirelessEnergyServiceImpl` | ✅ |
+| MUI2 `com.cleanroommc.modularui` | 同一库 MC 1.12版 | ✅ |
+| `GodforgeCasings` (TecTech) | `BlockGodforgeCasing` + `BlockGodforgeGlass` | ✅ |
+| GT5 RecipeMap | `GodforgeRecipeMaps` (5个Map) | ✅ |
+| `ForgeChunkManager` (区块加载) | **未实现** | ⚠️ |
 
-### 控制器+模块 (8文件)
-- `gregtech/common/metatileentities/multi/electric/godforge/MetaTileEntityForgeOfGods.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/ForgeOfGodsStructureString.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/module/MTEBaseModule.java`
+---
+
+## 文件清单（85+文件）
+
+### 底层方块 (3文件)
+- `gregtech/common/blocks/BlockGodforgeCasing.java` — 9种方块状态
+- `gregtech/common/blocks/BlockGodforgeGlass.java` — 1种
+- `gregtech/common/blocks/BlockGodforgeRender.java` — 渲染器宿主方块
+
+### 控制器+模块 (9文件)
+- `gregtech/common/metatileentities/multi/electric/godforge/MetaTileEntityForgeOfGods.java` — 主控制器(876行)
+- `gregtech/common/metatileentities/multi/electric/godforge/GodforgeUIFactory.java` — GUI工厂
+- `gregtech/common/metatileentities/multi/electric/godforge/ForgeOfGodsStructureString.java` — 结构字符串加载
+- `gregtech/common/metatileentities/multi/electric/godforge/module/MTEBaseModule.java` — 模块基类(364行)
 - `gregtech/common/metatileentities/multi/electric/godforge/module/MTESmeltingModule.java`
 - `gregtech/common/metatileentities/multi/electric/godforge/module/MTEMoltenModule.java`
 - `gregtech/common/metatileentities/multi/electric/godforge/module/MTEPlasmaModule.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/module/MTEExoticModule.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/module/GodforgeModuleRecipeLogic.java`
+- `gregtech/common/metatileentities/multi/electric/godforge/module/MTEExoticModule.java` — 动态配方生成
+- `gregtech/common/metatileentities/multi/electric/godforge/module/GodforgeModuleRecipeLogic.java` — 无线能量
 
 ### 数据/工具 (5文件)
-- `gregtech/common/metatileentities/multi/electric/godforge/util/ForgeOfGodsData.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/util/GodforgeMath.java`
+- `gregtech/common/metatileentities/multi/electric/godforge/util/ForgeOfGodsData.java` — 主数据容器
+- `gregtech/common/metatileentities/multi/electric/godforge/util/GodforgeMath.java` — 公式计算
 - `gregtech/common/metatileentities/multi/electric/godforge/color/ForgeOfGodsStarColor.java`
 - `gregtech/common/metatileentities/multi/electric/godforge/color/StarColorSetting.java`
 - `gregtech/common/metatileentities/multi/electric/godforge/color/StarColorStorage.java`
 
 ### 升级系统 (2文件)
-- `gregtech/common/metatileentities/multi/electric/godforge/upgrade/ForgeOfGodsUpgrade.java`
+- `gregtech/common/metatileentities/multi/electric/godforge/upgrade/ForgeOfGodsUpgrade.java` — 30节点
 - `gregtech/common/metatileentities/multi/electric/godforge/upgrade/UpgradeStorage.java`
 
 ### GUI数据 (8文件)
-- `gregtech/common/metatileentities/multi/electric/godforge/data/ColorData.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/Milestones.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/StarColors.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/UpgradeColor.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/UpgradeType.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/Fuels.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/Formatters.java`
-- `gregtech/common/metatileentities/multi/electric/godforge/data/Statistics.java`
+- `data/ColorData`, `Milestones`, `StarColors`, `UpgradeColor`, `UpgradeType`, `Fuels`, `Formatters`, `Statistics`
 
 ### GUI系统 (36文件)
-- `gregtech/common/mui/multiblock/godforge/MTEForgeOfGodsGui.java`
-- `gregtech/common/mui/multiblock/godforge/MTEBaseModuleGui.java`
-- `gregtech/common/mui/multiblock/godforge/MTESmeltingModuleGui.java`
-- `gregtech/common/mui/multiblock/godforge/MTEMoltenModuleGui.java`
-- `gregtech/common/mui/multiblock/godforge/MTEPlasmaModuleGui.java`
-- `gregtech/common/mui/multiblock/godforge/MTEExoticModuleGui.java`
-- `gregtech/common/mui/multiblock/godforge/GodforgeBaseGui.java`
-- `gregtech/common/mui/multiblock/godforge/ForgeOfGodsGuiUtil.java`
-- `gregtech/common/mui/multiblock/godforge/SelectButton.java`
-- `gregtech/common/mui/multiblock/godforge/SlotLikeButtonWidget.java`
-- `gregtech/common/mui/multiblock/godforge/LinkedBoolValue.java`
-- `gregtech/common/mui/multiblock/godforge/RotatedDrawable.java`
-- `gregtech/common/mui/multiblock/godforge/panel/BatteryConfigPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/CustomStarColorPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/CustomStarColorSelector.java`
-- `gregtech/common/mui/multiblock/godforge/panel/ExoticInputsListPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/ExoticPossibleInputsListPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/FuelConfigPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/GeneralInfoPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/IndividualMilestonePanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/IndividualUpgradePanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/ManualInsertionPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/MilestonePanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/PlasmaDebugPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/SpecialThanksPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/StarColorImportPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/StarCosmeticsPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/StatisticsPanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/UpgradeTreePanel.java`
-- `gregtech/common/mui/multiblock/godforge/panel/VoltageConfigPanel.java`
-- `gregtech/common/mui/multiblock/godforge/sync/Modules.java`
-- `gregtech/common/mui/multiblock/godforge/sync/Panels.java`
-- `gregtech/common/mui/multiblock/godforge/sync/SyncActions.java`
-- `gregtech/common/mui/multiblock/godforge/sync/SyncHypervisor.java`
-- `gregtech/common/mui/multiblock/godforge/sync/SyncValue.java`
-- `gregtech/common/mui/multiblock/godforge/sync/SyncValues.java`
+- 主GUI: `MTEForgeOfGodsGui`, `GodforgeBaseGui`, `ForgeOfGodsGuiUtil`
+- 模块GUI: `MTEBaseModuleGui`, `MTESmeltingModuleGui`, `MTEMoltenModuleGui`, `MTEPlasmaModuleGui`, `MTEExoticModuleGui`
+- 面板(18个): `panel/` 目录
+- 同步: `sync/SyncHypervisor`, `Panels`, `Modules`, `SyncActions`, `SyncValue`, `SyncValues`
+- 辅助Widget: `SelectButton`, `SlotLikeButtonWidget`, `LinkedBoolValue`, `RotatedDrawable`
 
 ### 渲染系统 (6文件)
-- `gregtech/client/renderer/godforge/GodforgeStarRenderer.java`
-- `gregtech/client/renderer/godforge/GodforgeRenderTileEntity.java`
+- `gregtech/client/renderer/godforge/GodforgeStarRenderer.java` — TESR着色器渲染
+- `gregtech/client/renderer/godforge/GodforgeRenderTileEntity.java` — 渲染数据容器
 - `gregtech/client/renderer/godforge/util/SphereVBOCache.java`
 - `gregtech/client/renderer/godforge/util/StructureVBO.java`
 - `gregtech/client/renderer/godforge/util/StructureBlockAccess.java`
@@ -184,206 +164,142 @@
 ### 接口 (1文件)
 - `gregtech/api/metatileentity/multiblock/IGodforgeModule.java`
 
-### 资源文件 (22文件)
-- 结构定义: `assets/gregtech/godforge/structures/beam_shaft.txt`, `first_ring.txt`, `second_ring.txt`, `third_ring.txt`
-- 星体贴图: `textures/godforge/StarLayer0.png`, `StarLayer1.png`, `StarLayer2.png`, `spaceLayer.png`
-- 方块贴图: `textures/blocks/casings/godforge/` 下12个文件
-- Blockstates: `blockstates/godforge_casing.json`, `godforge_glass.json`
+### 资源文件 (26文件)
+- 结构: `assets/gregtech/godforge/structures/` (4个txt)
+- 星体贴图: `textures/godforge/` (4个png)
+- 着色器: `assets/gregtech/shaders/` (star.vert/frag, gorgeBeam.vert/frag, fadebypass.vert/frag)
+- 方块贴图: `textures/blocks/casings/godforge/` (12个)
+- Blockstates: 2个json
 
 ---
 
-## 下一步实施计划（优先级排序）
+## 剩余工作清单
 
-### Phase A: 控制器核心逻辑补全 [P0 - 最高优先级]
+### 🔴 P1: 恒星渲染排查
 
-**目标：** 让 `MetaTileEntityForgeOfGods` 从"空壳"变为可运行的主控制器。
+**问题：** 电池已启动(27/100)但恒星不渲染。
 
-#### A1. 分片结构检查重构
-**当前问题：** 控制器的 `createStructurePattern()` 将 beam_shaft + first_ring 合并为单一 `BlockPattern`，无法支持条件性的第二环/第三环。
+**已添加调试日志：** `createRenderer()` 和 `ensureRendererState()` 中的 `[FOG]` 前缀日志。
 
-**依赖：** 需要先完成 `docs/multiblock-refactor.md` 中 M7 章节的 API 改动。
+**可能原因（按可能性排序）：**
+1. `setBlockState` 失败（区块未加载） — 需要 `ForgeChunkManager`
+2. `setBlockState` 成功但 TESR 被 frustum culling 剔除（RenderBoundingBox 问题）
+3. 着色器初始化失败（`failedInit = true`）— 查看游戏日志中的 GL error
+4. 渲染器位置超出客户端渲染距离
 
-**详细技术方案见：** `docs/multiblock-refactor.md` → M7: 分片式结构检查试点
-
-**概要：**
-- 使用 `OffsetMode.STRUCTURE_SPACE` 支持方向感知的 piece offset
-- 通过 `buildTemplate(int[] centerOffset)` 为 ring 指定外部 center
-- 静态缓存 template 实例（DCL 模式）
-- 控制器 `createMultiPiecePattern()` 返回 4 个 piece（beam_shaft + 3 rings）
-- 条件片段通过 `conditionalPiece()` 由升级状态控制
-
-#### A2. updateFormedValid() 实现
-**需要实现的逻辑（参照GT5 `MTEForgeOfGods.onPostTick()`）：**
-
-1. **燃料消耗循环** - 每tick检查燃料是否充足，消耗stellar fuel
-2. **电池充放电** - 内部电池的充电/放电逻辑
-3. **模块参数下发** - 定期计算并下发参数到所有已连接模块：
-   - 热量(heat)、超频热量(overclockHeat)
-   - 并行数(calculatedMaxParallel)、处理速度(processingSpeedBonus)
-   - 能量折扣(energyDiscount)、处理电压(processingVoltage)
-   - 各种升级标志
-4. **里程碑追踪** - 根据模块汇报的统计数据更新4种里程碑进度
-5. **引力子碎片生成** - 满足条件时生成引力子碎片
-6. **渲染器状态更新** - 恒星渲染器的开关控制
-
-#### A3. 模块发现与连接
-**当前机制：** 结构模式中 `'J'` 字符匹配模块 MTE，结构成形后可通过 `getAbilities()` 获取。
-
-**需实现：**
-- 在 `formStructure()` 中通过 `MultiblockAbility` 或自定义 predicate 收集所有已连接模块
-- 调用每个模块的 `connect()` 方法
-- 在 `invalidateStructure()` 中调用 `disconnect()`
-- 定期将主控制器计算的参数同步到各模块
+**解决方案（视日志结果）：**
+- 如果是区块加载问题 → 实现 `ForgeChunkManager` 强制加载渲染区块
+- 如果是TESR问题 → 调整 `getRenderBoundingBox()` 或检查着色器兼容性
+- 临时方案：可将 `RENDER_OFFSET` 缩小用于测试
 
 ---
 
-### Phase B: 系统集成 [P1]
+### 🟡 P2: NBT持久化完善
 
-#### B1. 渲染器连接
-- 实现 `updateRenderer()` / `destroyRenderer()` 与 `GodforgeRenderTileEntity` + `GodforgeStarRenderer` 的连接
-- 控制恒星出现/消失的时机（结构成形且渲染激活）
-- 颜色设置同步到渲染器
+**问题：** `ForgeOfGodsData.writeRenderNBT()` 从未被调用，`isRenderActive` 不保存到世界NBT。
 
-#### B2. 升级效果连接
-- 在 `updateFormedValid()` 中读取 `UpgradeStorage` 状态
-- 根据激活的升级修改模块参数（通过 `GodforgeMath` 计算）
-- 升级解锁环结构时触发 `reinitializeStructurePattern()`
+**影响：** 世界重载后 `isRenderActive = false`，但 `ensureRendererState()` 会自动重建（前提是区块加载成功）。
 
-#### B3. GUI完整集成测试
-- 确保 `SyncHypervisor` 正确同步所有面板数据
-- 验证升级树面板的节点点击/解锁逻辑
-- 验证燃料/电池配置面板的实时反馈
+**修复方案：** 在 `MetaTileEntityForgeOfGods.writeToNBT()` 中调用 `data.writeRenderNBT(tag)` 或将相关字段合并到 `writeToNBT(nbt, force)` 中。
 
 ---
 
-### Phase C: 配方完善 [P2]
+### 🟡 P2: ForgeChunkManager 区块加载
 
-#### C1. 熔炼模块配方
-- 电弧炉配方映射（使用标准RecipeMap的配方复制或映射）
-- 炉模式（furnace mode）的实现
+**问题：** 渲染器位于控制器后方122格（约8个区块），没有区块加载器时可能不在内存中。
 
-#### C2. 熔融模块配方
-- 高温高炉配方映射
-- 热量相关的配方筛选
+**GT5方案：** GT5使用 `ForgeChunkManager` 注册 ticket 强制加载渲染区块。
 
-#### C3. 奇异模块配方
-- 奇异物质配方
-- 暗物质（Magmatter）配方
+**实现要点：**
+```java
+// 在 mod 初始化时注册 callback
+ForgeChunkManager.setForcedChunkLoadingCallback(GregTechMod.instance, callback);
 
----
-
-### Phase D: 测试与优化 [P3]
-
-#### D1. 编译与基本运行验证
-- 确保全部82+文件编译通过
-- 游戏内放置控制器不崩溃
-- 结构成形检查基本工作
-
-#### D2. 性能优化
-- 验证 `MultiPiecePattern` 的分片脏标记在570K方块场景下性能表现
-- 恒星渲染器在低端GPU上的帧率
-
-#### D3. JEI集成
-- 超大结构的JEI预览（可能需要简化展示）
-- 各模块RecipeMap的JEI注册
+// 在 createRenderer() 中请求 ticket
+ForgeChunkManager.Ticket ticket = ForgeChunkManager.requestTicket(instance, world, Type.NORMAL);
+ForgeChunkManager.forceChunk(ticket, new ChunkPos(renderPos));
+```
 
 ---
 
+### 🟡 P2: 配方完善验证
+
+| 模块 | 配方来源 | 状态 |
+|------|---------|------|
+| Smelting | BLAST_RECIPES + ARC_FURNACE_RECIPES (直接使用) | ✅ 应可用 |
+| Molten | GodforgeRecipeLoader 动态生成 | ⚠️ 需验证 |
+| Plasma | GodforgeRecipeLoader 自动扫描所有plasma材料 | ✅ 应可用 |
+| Exotic | MTEExoticModule 运行时动态生成 | ⚠️ 需验证 |
+
+---
+
+### 🟢 P3: 优化与打磨
+
+| 任务 | 说明 |
+|------|------|
+| 移除调试日志 | 渲染问题确认修复后移除 `[FOG]` 调试输出 |
+| GUI样式对齐 | 与GT5原版GUI效果对比，调整面板布局 |
+| JEI集成 | 各模块RecipeMap的JEI预览 |
+| 性能测试 | MultiPiecePattern 在570K方块场景下的性能 |
+| 超大结构建造辅助 | 创造模式自动放置工具 |
+
+---
 
 ## 架构决策记录
 
-### 决策1: 无线能量网络方案
-**选择：** 使用已存在的 `WirelessNetworkManager`（GT5风格全局Map）
-**原因：** `GodforgeModuleRecipeLogic` 已经使用此API，无需额外开发。
-**备注：** 项目中同时存在新版PSS-based网络系统(`gtqt.api.util.wireless`)，二者目前并存。Godforge使用旧版全局Map系统。
+### 决策1: 无线能量网络
+**选择：** `WirelessEnergyService` + `WirelessEnergyServiceImpl`
+**用法：** `GodforgeModuleRecipeLogic.drawEnergy()` 通过 `service.extract(uuid, amount, TransferContext.MACHINE)` 消耗能量
 
 ### 决策2: 结构检查策略
-**选择：** 控制器使用 `FactoryBlockPattern`（beam_shaft + first_ring合并），暂未使用 `MultiPiecePattern`
-**问题：** 这意味着第二环/第三环目前不参与结构检查
-**需要决策：** 是否需要在Phase A中将结构检查迁移到 `MultiPiecePattern`？或者简化为仅检查第一环？
+**选择：** 双层结构
+- 初始成形：`createStructurePattern()` — beam_shaft + first_ring 合并为单一BlockPattern
+- 运行时分片：`createMultiPiecePattern()` — 4个独立piece，条件环由升级控制
+- 使用 `LazyTemplate` 静态缓存模板实例
 
-### 决策3: 模块作为独立多方块
-**选择：** 每个模块(Smelting/Molten/Plasma/Exotic)是独立的 `RecipeMapMultiblockController`
-**好处：** 模块有自己的结构检查、配方逻辑、GUI
-**注意：** 主控制器通过结构模式中的 predicate 发现模块，但模块同时也是独立的多方块
+### 决策3: 模块作为 MultiblockPart
+**选择：** 模块继承 `RecipeMapMultiblockController` 但同时作为主结构的 part
+**机制：** 主控制器通过 `getMultiblockParts()` → `instanceof MTEBaseModule` 发现模块
+**好处：** 模块有独立的结构检查+配方逻辑+GUI，同时被主控制器管理
 
----
+### 决策4: GUI面板打开机制
+**选择：** `Panels` 枚举持有 `panelSupplier` 函数引用
+**机制：** 按钮点击 → `Panels.getFrom(hypervisor)` → `panelSupplier.apply()` → 面板构建并显示
+**注意：** 主面板(MAIN/MAIN_SMELTING等)为根面板，不通过 `getFrom()` 打开
 
-## 关键风险（更新版）
-
-### 1. 分片结构集成 — 最高风险 🔴
-当前控制器**没有使用**已就绪的 `MultiPiecePattern`。如果不迁移：
-- 第二环/第三环永远无法工作
-- 570K方块的检查性能可能有问题
-迁移的话需要重写控制器的结构检查流程，这是最复杂的架构改动。
-
-### 2. 控制器运行逻辑缺失 — 高风险 🔴
-`updateFormedValid()` 当前为空 TODO。这是整个系统的"心脏"：
-- 不实现此方法 = 结构成形但什么都不做
-- 涉及燃料/电池/模块管理/里程碑/渲染等所有子系统的协调
-
-### 3. 模块发现机制未实现 — 中风险 🟡
-主控制器如何在运行时发现和管理最多16个子模块？
-结构检查阶段的 predicate 匹配不等于运行时的模块引用管理。
-
-### 4. 渲染器集成 — 中风险 🟡
-渲染代码已完成但未连接到控制器。需要：
-- 创建/销毁 `GodforgeRenderTileEntity` 的时机控制
-- 恒星颜色/大小参数的同步
-
-### 5. 编译状态未知 — 低风险 🟢
-82个文件已存在但未验证是否能编译通过。可能存在：
-- import 路径问题
-- API不匹配
-- 方法签名变更
+### 决策5: 渲染器放置策略
+**选择：** 在目标位置放置不可见方块 `BlockGodforgeRender`，绑定 TESR
+**位置：** 控制器正后方 `RENDER_OFFSET=122` 格（结构环中心）
+**同步：** `GodforgeRenderTileEntity.updateToClient()` → `world.notifyBlockUpdate()` → SPacketUpdateTileEntity
 
 ---
 
-## 工作量预估（更新版）
+## 已修复Bug记录
 
-| 任务 | 新增/修改行数估算 | 复杂度 | 说明 |
-|------|-----------------|--------|------|
-| A1. MultiPiecePattern集成 | ~150行修改 | ⭐⭐⭐ 高 | 重写结构检查流程 |
-| A2. updateFormedValid()实现 | ~200行新增 | ⭐⭐⭐ 高 | 核心运行逻辑 |
-| A3. 模块发现连接 | ~80行新增 | ⭐⭐ 中 | formStructure/invalidateStructure |
-| B1. 渲染器连接 | ~50行修改 | ⭐⭐ 中 | 连接已有代码 |
-| B2. 升级效果连接 | ~100行新增 | ⭐⭐ 中 | 读取并应用升级 |
-| B3. GUI集成测试 | ~20行调整 | ⭐ 低 | 可能需要修bug |
-| C1-C3. 配方完善 | ~300行新增 | ⭐ 低 | 标准配方注册 |
-| D1. 编译验证+修复 | 未知 | ⭐⭐ 中 | 可能有若干编译错误 |
-| **总计（剩余工作）** | **~900行** | — | 相比已完成的数千行代码量，剩余约10% |
+### 2026-05-07
 
----
+1. **GUI按钮NPE** — `Panels`枚举的子面板缺少`panelSupplier`连接
+   - 原因: 所有子面板使用了默认无参构造器，`panelSupplier = null`
+   - 修复: 为每个子面板添加对应的 `::openPanel` 方法引用
 
-## 建议执行顺序
+2. **模块贴图占位符** — `MTEBaseModule.getBaseTexture()` 返回钢贴图
+   - 原因: 占位符代码未更新
+   - 修复: 改为 `Textures.GODFORGE_INNER_CASING`
 
-```
-D1: 编译验证（先确保现有代码能编译）
-     ↓
-A3: 模块发现连接（formStructure中收集模块引用）
-     ↓
-A2: updateFormedValid()（实现核心运行循环）
-     ↓
-A1: MultiPiecePattern集成（支持条件环）
-     ↓
-B1: 渲染器连接
-     ↓
-B2: 升级效果连接
-     ↓
-C1-C3: 配方完善
-     ↓
-B3+D2+D3: 测试优化
-```
+3. **模块结构方向反转** — 控制器面板在FRONT，beam连接端在BACK
+   - 原因: aisle排列顺序与实际摆放方向相反
+   - 修复: 反转aisle排列，G(Siphon)在第一个aisle(FRONT)，控制器面板在最后(BACK)
 
 ---
 
 ## 总结
 
-移植进度约 **90%**（按文件数计），但剩余 **10% 是最关键的集成逻辑**。
-所有"零件"已到位，现在需要把它们"组装"起来——即实现控制器的核心运行逻辑。
-最紧迫的任务是 **D1(编译验证)** 和 **A2(updateFormedValid实现)**。
+移植进度约 **95%**（核心逻辑已全部实现）。
 
-部分测试结果：
-1.与gt5GUI相差过大，大部分按键不可用，而且在放入了恒星燃料后且机器内部电池在增加的情况下并不会渲染
-2.模块的模型还是用的占位符
-3.模块搭建又是反的
+剩余工作集中在：
+1. **恒星渲染不触发**的Bug排查（最可能是区块加载问题）
+2. NBT持久化完善
+3. 配方验证
+4. GUI细节打磨
+
+所有核心系统（控制器运行逻辑、燃料系统、电池管理、模块发现与参数下发、里程碑追踪、升级效果、渲染器管理、GUI面板系统）已完整实现并编译通过。

@@ -47,7 +47,7 @@ public class VoltageConfigPanel {
         Flow column = new Column().sizeRel(1);
 
         column.child(
-            IKey.lang("GT5U.gui.text.power_panel")
+            IKey.lang("gt.blockmachines.multimachine.FOG.powerpanel")
                 .style(TextFormatting.UNDERLINE, TextFormatting.BLACK)
                 .alignment(Alignment.CENTER)
                 .asWidget()
@@ -82,7 +82,7 @@ public class VoltageConfigPanel {
             .alignX(0.5f);
 
         column.child(
-            IKey.lang("GTPP.CC.parallel")
+            IKey.lang("gt.blockmachines.multimachine.FOG.parallel")
                 .style(TextFormatting.BLACK)
                 .alignment(Alignment.CENTER)
                 .asWidget()
@@ -103,9 +103,9 @@ public class VoltageConfigPanel {
                 .tooltipDynamic(t -> {
                     int maxParallel = maxParallelSyncer.getIntValue();
                     if (alwaysMaxParallelSyncer.getBoolValue()) {
-                        t.addLine(translateToLocalFormatted("GT5U.gui.text.lockedvalue", maxParallel));
+                        t.addLine(translateToLocalFormatted("gt.blockmachines.multimachine.FOG.parallel.locked", maxParallel));
                     } else {
-                        t.addLine(translateToLocalFormatted("GT5U.gui.text.rangedvalue", 1, maxParallel));
+                        t.addLine(translateToLocalFormatted("gt.blockmachines.multimachine.FOG.parallel.range", 1, maxParallel));
                     }
                 })
                 .tooltipAutoUpdate(true)
@@ -127,7 +127,7 @@ public class VoltageConfigPanel {
                     setMaxParallelSyncer.setValue(maxParallelSyncer.getIntValue());
                     return true;
                 })
-                .tooltip(t -> t.addLine(translateToLocal("GT5U.gui.button.max_parallel")))
+                .tooltip(t -> t.addLine(translateToLocal("gt.blockmachines.multimachine.FOG.parallel.alwaysmax")))
                 .tooltipShowUpTimer(TOOLTIP_DELAY)
                 .clickSound(ForgeOfGodsGuiUtil.getButtonSound()));
 

@@ -60,7 +60,7 @@ public class MTEForgeOfGodsGui extends GodforgeBaseGui<MetaTileEntityForgeOfGods
     @Override
     protected Flow createButtonColumn(ModularPanel panel, PanelSyncManager syncManager) {
         return new Column().width(18)
-            .leftRel(1, -3, 1)
+            .heightRel(1)
             .childPadding(3)
             .mainAxisAlignment(MainAxis.END)
             .child(createMilestonePanelButton())
