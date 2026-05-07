@@ -2397,6 +2397,14 @@ gregtech.material.decalcified_bauxite_sludge=脱钙铝土泥渣
 gregtech.material.bauxite_slag=铝土矿渣
 gregtech.material.sewage=污水
 gregtech.material.molybdenite_lubricant=辉钼润滑剂
+gregtech.material.zinc_manganese_mix=锌锰电极混合粉
+gregtech.material.zinc_manganese_paste=锌锰电解质糊
+gregtech.material.lithium_manganese_mix=锂锰电极混合粉
+gregtech.material.lithium_manganese_paste=锂锰电极糊
+gregtech.material.nickel_hydroxide=氢氧化镍
+gregtech.material.nickel_cadmium_electrode=镍镉电极
+gregtech.material.nickel_oxide=氧化镍
+gregtech.material.nickel_cadmium_electrolyte=镍镉电解液
 
 # Second Degree Materials
 gregtech.material.glass=玻璃
@@ -4807,6 +4815,19 @@ gregtech.machine.battery_buffer.opv.16.name=16x过载压电池箱（§9OpV§r）
 gregtech.machine.battery_buffer.max.4.name=4x上限压电池箱（§c§lMAX§r）
 gregtech.machine.battery_buffer.max.8.name=8x上限压电池箱（§c§lMAX§r）
 gregtech.machine.battery_buffer.max.16.name=16x上限压电池箱（§c§lMAX§r）
+
+# Disposable Battery Blocks (A-series)
+gregtech.machine.disposable_battery.max_capacity=§c总储量：§f%,d EU
+gregtech.machine.disposable_battery.single_use_warning=§4⚠ 一次性。耗尽后掉落化学副产物。
+gregtech.machine.zinc_manganese_cell.name=锌锰干电池方块
+metaitem.disposable.battery.hull.zinc_manganese.name=锌锰电池外壳
+metaitem.disposable.battery.hull.zinc_manganese.tooltip=一个空的§7LV§7锌锰干电池外壳
+gregtech.machine.lithium_manganese_cell.name=锂锰电池方块
+metaitem.disposable.battery.hull.lithium_manganese.name=锂锰电池外壳
+metaitem.disposable.battery.hull.lithium_manganese.tooltip=一个空的§bMV§b锂锰电池外壳
+gregtech.machine.nickel_cadmium_cell.name=镍镉电池方块
+metaitem.disposable.battery.hull.nickel_cadmium.name=镍镉电池外壳
+metaitem.disposable.battery.hull.nickel_cadmium.tooltip=一个空的§6HV§6镍镉电池外壳
 
 gregtech.battery_buffer.average_input=平均输入：%s EU/t
 gregtech.battery_buffer.average_output=平均输出：%s EU/t

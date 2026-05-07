@@ -670,5 +670,62 @@ public class UnknownCompositionMaterials {
         MolybdeniteLubricant = Material.builder(1657, gregtechId("molybdenite_lubricant"))
                 .color(0xB7A5F9).liquid(new FluidBuilder().customStill())
                 .build();
+
+        // --- Disposable Battery Block intermediates (A-series), IDs 1700+ ---
+
+        // A0 electrode dry blend: Zinc powder + MnO₂ (Pyrolusite) powder, grey-black colour
+        ZincManganeseMix = Material.builder(1700, gregtechId("zinc_manganese_mix"))
+                .dust()
+                .color(0x4A4A55)
+                .build();
+
+        // A0 electrode paste: ZnMn mix soaked in NaOH electrolyte solution; fluid form
+        // (viscous alkaline slurry, analogous to how GT handles Battery Electrolyte)
+        ZincManganesePaste = Material.builder(1701, gregtechId("zinc_manganese_paste"))
+                .fluid()
+                .color(0x2E2E38)
+                .build();
+
+        // --- A1 Lithium-Manganese intermediates ---
+
+        // A1 electrode dry blend: Lithium powder + MnO₂ (Pyrolusite) powder; silver-black colour
+        LithiumManganeseMix = Material.builder(1702, gregtechId("lithium_manganese_mix"))
+                .dust()
+                .color(0x3A3A4A)
+                .build();
+
+        // A1 electrode paste: LiMn mix dissolved in non-aqueous electrolyte; fluid form
+        // (represents slurried electrode active material ready for cell filling)
+        LithiumManganesePaste = Material.builder(1703, gregtechId("lithium_manganese_paste"))
+                .fluid()
+                .color(0x1E2530)
+                .build();
+
+        // --- A2 Nickel-Cadmium intermediates ---
+
+        // NickelHydroxide — Ni(OH)₂, cathode active material; pale green powder
+        NickelHydroxide = Material.builder(1704, gregtechId("nickel_hydroxide"))
+                .dust()
+                .color(0x5FAF5F)
+                .build();
+
+        // NickelCadmiumElectrode — Cd/Ni(OH)₂ electrode stack after alkaline chemical bath;
+        // grey-black metallic pellet representing the assembled electrode plate pair
+        NickelCadmiumElectrode = Material.builder(1705, gregtechId("nickel_cadmium_electrode"))
+                .dust()
+                .color(0x2B3030)
+                .build();
+
+        // NickelOxide — NiO discharge byproduct; nickel cathode becomes NiO after full discharge
+        NickelOxide = Material.builder(1706, gregtechId("nickel_oxide"))
+                .dust()
+                .color(0x4A6060)
+                .build();
+
+        // NickelCadmiumElectrolyte — KOH-based alkaline electrolyte slurry for cell filling
+        NickelCadmiumElectrolyte = Material.builder(1707, gregtechId("nickel_cadmium_electrolyte"))
+                .fluid()
+                .color(0x2A3C3A)
+                .build();
     }
 }

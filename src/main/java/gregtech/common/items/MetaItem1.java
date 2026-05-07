@@ -1224,6 +1224,13 @@ public class MetaItem1 extends StandardMetaItem {
         BATTERY_HULL_LARGE_NAQUADRIA = addItem(724, "battery.hull.uv")
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Americium, M * 18)));
 
+        // Disposable Battery Block hulls (A-series): ID 725+
+        ZINC_MANGANESE_CELL_HULL = addItem(725, "disposable.battery.hull.zinc_manganese");
+        // A1 MV Lithium-Manganese cell housing
+        LITHIUM_MANGANESE_CELL_HULL = addItem(726, "disposable.battery.hull.lithium_manganese");
+        // A2 HV Nickel-Cadmium cell housing
+        NICKEL_CADMIUM_CELL_HULL = addItem(727, "disposable.battery.hull.nickel_cadmium");
+
         // Batteries: 731-775
         BATTERY_ULV_TANTALUM = addItem(731, "battery.re.ulv.tantalum")
                 .addComponents(ElectricStats.createRechargeableBattery(1000, GTValues.ULV))

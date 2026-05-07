@@ -805,4 +805,22 @@ public class Materials {
     public static Material GravitonShard;
     public static Material QuarkGluonPlasma;
     public static Material MagMatter;
+
+    /**
+     * Disposable Battery Block intermediate materials (A-series).
+     * IDs: 1700+
+     */
+    // A0 — Zinc-Manganese intermediates
+    public static Material ZincManganeseMix;
+    public static Material ZincManganesePaste;
+
+    // A1 — Lithium-Manganese intermediates
+    public static Material LithiumManganeseMix;
+    public static Material LithiumManganesePaste;
+
+    // A2 — Nickel-Cadmium intermediates
+    public static Material NickelHydroxide;
+    public static Material NickelCadmiumElectrode;
+    public static Material NickelOxide;
+    public static Material NickelCadmiumElectrolyte;
 }

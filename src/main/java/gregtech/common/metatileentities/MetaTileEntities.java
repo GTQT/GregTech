@@ -41,6 +41,9 @@ import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
+import gregtech.common.metatileentities.electric.MetaTileEntityZincManganeseCell;
+import gregtech.common.metatileentities.electric.MetaTileEntityLithiumManganeseCell;
+import gregtech.common.metatileentities.electric.MetaTileEntityNickelCadmiumCell;
 import gregtech.common.metatileentities.electric.SimpleMachineMetaTileEntityResizable;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
@@ -447,6 +450,11 @@ public class MetaTileEntities {
     public static MTEMoltenModule GODFORGE_MOLTEN_MODULE;
     public static MTEPlasmaModule GODFORGE_PLASMA_MODULE;
     public static MTEExoticModule GODFORGE_EXOTIC_MODULE;
+
+    // DISPOSABLE BATTERY BLOCKS (A-series), IDs 2105+
+    public static MetaTileEntityZincManganeseCell ZINC_MANGANESE_CELL;
+    public static MetaTileEntityLithiumManganeseCell LITHIUM_MANGANESE_CELL;
+    public static MetaTileEntityNickelCadmiumCell NICKEL_CADMIUM_CELL;
 
     // STORAGE SECTION
     public static MetaTileEntityTankValve WOODEN_TANK_VALVE;
@@ -1038,6 +1046,14 @@ public class MetaTileEntities {
                 new MTEPlasmaModule(gregtechId("godforge_plasma_module")));
         GODFORGE_EXOTIC_MODULE = registerMetaTileEntity(2104,
                 new MTEExoticModule(gregtechId("godforge_exotic_module")));
+
+        // Disposable Battery Blocks (A-series), IDs 2105+
+        ZINC_MANGANESE_CELL = registerMetaTileEntity(2105,
+                new MetaTileEntityZincManganeseCell(gregtechId("zinc_manganese_cell")));
+        LITHIUM_MANGANESE_CELL = registerMetaTileEntity(2106,
+                new MetaTileEntityLithiumManganeseCell(gregtechId("lithium_manganese_cell")));
+        NICKEL_CADMIUM_CELL = registerMetaTileEntity(2107,
+                new MetaTileEntityNickelCadmiumCell(gregtechId("nickel_cadmium_cell")));
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
 

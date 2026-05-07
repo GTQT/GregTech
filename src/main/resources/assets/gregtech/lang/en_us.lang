@@ -2401,6 +2401,14 @@ gregtech.material.decalcified_bauxite_sludge=Decalcified Bauxite Sludge
 gregtech.material.bauxite_slag=Bauxite Slag
 gregtech.material.sewage=Sewage
 gregtech.material.molybdenite_lubricant=Molybdenite Lubricant
+gregtech.material.zinc_manganese_mix=Zinc-Manganese Electrode Mix
+gregtech.material.zinc_manganese_paste=Zinc-Manganese Electrolyte Paste
+gregtech.material.lithium_manganese_mix=Lithium-Manganese Electrode Mix
+gregtech.material.lithium_manganese_paste=Lithium-Manganese Electrode Paste
+gregtech.material.nickel_hydroxide=Nickel Hydroxide
+gregtech.material.nickel_cadmium_electrode=Nickel-Cadmium Electrode
+gregtech.material.nickel_oxide=Nickel Oxide
+gregtech.material.nickel_cadmium_electrolyte=Nickel-Cadmium Electrolyte
 
 # Second Degree Materials
 gregtech.material.glass=Glass
@@ -4811,6 +4819,19 @@ gregtech.machine.battery_buffer.opv.16.name=Overpowered Voltage 16x Battery Buff
 gregtech.machine.battery_buffer.max.4.name=Maximum Voltage 4x Battery Buffer
 gregtech.machine.battery_buffer.max.8.name=Maximum Voltage 8x Battery Buffer
 gregtech.machine.battery_buffer.max.16.name=Maximum Voltage 16x Battery Buffer
+
+# Disposable Battery Blocks (A-series)
+gregtech.machine.disposable_battery.max_capacity=§cTotal Charge: §f%,d EU
+gregtech.machine.disposable_battery.single_use_warning=§4⚠ Single-use. Drops chemical byproducts when depleted.
+gregtech.machine.zinc_manganese_cell.name=Zinc-Manganese Dry Cell Block
+metaitem.disposable.battery.hull.zinc_manganese.name=Zinc-Manganese Cell Hull
+metaitem.disposable.battery.hull.zinc_manganese.tooltip=An empty §7LV §7Zinc-Manganese Cell housing
+gregtech.machine.lithium_manganese_cell.name=Lithium-Manganese Battery Block
+metaitem.disposable.battery.hull.lithium_manganese.name=Lithium-Manganese Cell Hull
+metaitem.disposable.battery.hull.lithium_manganese.tooltip=An empty §bMV §bLithium-Manganese Cell housing
+gregtech.machine.nickel_cadmium_cell.name=Nickel-Cadmium Battery Block
+metaitem.disposable.battery.hull.nickel_cadmium.name=Nickel-Cadmium Cell Hull
+metaitem.disposable.battery.hull.nickel_cadmium.tooltip=An empty §6HV §6Nickel-Cadmium Cell housing
 
 gregtech.battery_buffer.average_input=Average input: %s EU/t
 gregtech.battery_buffer.average_output=Average output: %s EU/t

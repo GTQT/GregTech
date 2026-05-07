@@ -149,6 +149,11 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem BATTERY_HULL_MEDIUM_NAQUADRIA;
     public static MetaItem<?>.MetaValueItem BATTERY_HULL_LARGE_NAQUADRIA;
 
+    // Disposable Battery Block hulls (A-series)
+    public static MetaItem<?>.MetaValueItem ZINC_MANGANESE_CELL_HULL;
+    public static MetaItem<?>.MetaValueItem LITHIUM_MANGANESE_CELL_HULL;
+    public static MetaItem<?>.MetaValueItem NICKEL_CADMIUM_CELL_HULL;
+
     public static MetaItem<?>.MetaValueItem BATTERY_ULV_TANTALUM;
     public static MetaItem<?>.MetaValueItem BATTERY_LV_CADMIUM;
     public static MetaItem<?>.MetaValueItem BATTERY_LV_LITHIUM;
