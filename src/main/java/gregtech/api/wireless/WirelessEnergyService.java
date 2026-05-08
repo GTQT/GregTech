@@ -56,6 +56,18 @@ public interface WirelessEnergyService {
      */
     TransferResult extract(UUID actor, long amount, TransferContext context);
 
+    /**
+     * Extracts up to the requested amount from the actor's wireless network.
+     * Non-atomic: extracts whatever is available (min of amount and stored).
+     * Use this for hatch refilling where partial fulfillment is acceptable.
+     *
+     * @param actor   the player UUID (resolved to team network)
+     * @param amount  maximum amount of EU to extract (must be > 0)
+     * @param context transfer context specifying source and behavior
+     * @return result indicating success/partial/failure and actual amount transferred
+     */
+    TransferResult extractUpTo(UUID actor, long amount, TransferContext context);
+
     // ==================== Transfer (BigInteger path) ====================
 
     /**
@@ -78,6 +90,17 @@ public interface WirelessEnergyService {
      * @return result indicating success/failure and actual amount transferred
      */
     TransferResult extract(UUID actor, BigInteger amount, TransferContext context);
+
+    /**
+     * Extracts up to the requested amount from the actor's wireless network (BigInteger variant).
+     * Non-atomic: extracts whatever is available (min of amount and stored).
+     *
+     * @param actor   the player UUID (resolved to team network)
+     * @param amount  maximum amount of EU to extract (must be positive)
+     * @param context transfer context specifying source and behavior
+     * @return result indicating success/partial/failure and actual amount transferred
+     */
+    TransferResult extractUpTo(UUID actor, BigInteger amount, TransferContext context);
 
     // ==================== Node Management ====================
 

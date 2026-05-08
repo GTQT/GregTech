@@ -39,7 +39,10 @@ import java.util.UUID;
 public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<IWirelessController>, IWirelessController {
 
+    private static final int SYNC_INTERVAL_TICKS = 20;
+
     private int priority;
+    private int syncTickCounter = 0;
 
     // ==================== Construction ====================
 
@@ -88,6 +91,52 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     }
 
     // ==================== Wireless Network Binding ====================
+
+    @Override
+    public void update() {
+        super.update();
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        syncTickCounter++;
+        if (syncTickCounter >= SYNC_INTERVAL_TICKS) {
+            syncTickCounter = 0;
+            syncNodeToService();
+        }
+    }
+
+    /**
+     * Periodically syncs this PSS node's stored/capacity to the wireless energy service.
+     * Ensures the service layer has up-to-date energy data without needing to query world tiles.
+     */
+    private void syncNodeToService() {
+        MetaTileEntityPowerSubstation pss = getPSS();
+        if (pss == null) return;
+
+        UUID ownerId = this.getOwnerGT();
+        if (ownerId == null) return;
+
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return;
+
+        World world = this.getWorld();
+        UUID networkId = WirelessTeamResolver.resolveNetworkId(ownerId);
+        WirelessNodeId nodeId = new WirelessNodeId(world.provider.getDimension(), this.getPos());
+
+        WirelessStorageNodeSnapshot snapshot = WirelessStorageNodeSnapshot
+                .builder(nodeId, networkId)
+                .priority(this.priority)
+                .tier(this.getTier())
+                .capacity(pss.getCapacityByBigInteger())
+                .stored(pss.getStoredByBigInteger())
+                .maxInputPerTick(Long.MAX_VALUE)
+                .maxOutputPerTick(Long.MAX_VALUE)
+                .allowExternalAccess(pss.isExternalEnergyAccessAllowed())
+                .lastSeenTick(world.getTotalWorldTime())
+                .status(WirelessStorageNodeSnapshot.NodeStatus.ONLINE)
+                .build();
+
+        service.updateStorageNode(snapshot);
+    }
 
     /**
      * Registers this PSS as a storage node in the unified wireless energy service.

@@ -148,6 +148,27 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
     }
 
     @Override
+    public TransferResult extractUpTo(UUID actor, long amount, TransferContext context) {
+        if (amount <= 0) return TransferResult.success(0L);
+        if (savedData == null) return TransferResult.noNetwork();
+
+        UUID networkId = WirelessTeamResolver.resolveNetworkId(actor);
+        if (networkId == null) return TransferResult.noNetwork();
+
+        WirelessEnergyNetwork network = savedData.getNetwork(networkId);
+        if (network == null) return TransferResult.noNetwork();
+
+        long extracted = network.extractUpTo(amount);
+        if (extracted == amount) {
+            return TransferResult.success(extracted);
+        } else if (extracted > 0) {
+            return TransferResult.partial(extracted);
+        } else {
+            return TransferResult.insufficientEnergy();
+        }
+    }
+
+    @Override
     public TransferResult insert(UUID actor, BigInteger amount, TransferContext context) {
         if (amount.signum() <= 0) return TransferResult.success(BigInteger.ZERO);
         if (savedData == null) return TransferResult.noNetwork();
@@ -181,6 +202,27 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         BigInteger extracted = network.extract(amount);
         if (extracted.compareTo(amount) == 0) {
             return TransferResult.success(extracted);
+        } else {
+            return TransferResult.insufficientEnergy();
+        }
+    }
+
+    @Override
+    public TransferResult extractUpTo(UUID actor, BigInteger amount, TransferContext context) {
+        if (amount.signum() <= 0) return TransferResult.success(BigInteger.ZERO);
+        if (savedData == null) return TransferResult.noNetwork();
+
+        UUID networkId = WirelessTeamResolver.resolveNetworkId(actor);
+        if (networkId == null) return TransferResult.noNetwork();
+
+        WirelessEnergyNetwork network = savedData.getNetwork(networkId);
+        if (network == null) return TransferResult.noNetwork();
+
+        BigInteger extracted = network.extractUpTo(amount);
+        if (extracted.compareTo(amount) == 0) {
+            return TransferResult.success(extracted);
+        } else if (extracted.signum() > 0) {
+            return TransferResult.partial(extracted);
         } else {
             return TransferResult.insufficientEnergy();
         }

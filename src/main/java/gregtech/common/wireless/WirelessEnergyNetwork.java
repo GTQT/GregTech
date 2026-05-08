@@ -167,6 +167,50 @@ public class WirelessEnergyNetwork {
         return amount;
     }
 
+    /**
+     * Extracts up to the requested amount from the network (long fast-path).
+     * Non-atomic: returns min(amount, stored), extracting whatever is available.
+     *
+     * @param amount maximum amount to extract (must be > 0)
+     * @return actual amount extracted (0 to amount)
+     */
+    public long extractUpTo(long amount) {
+        if (amount <= 0) return 0;
+
+        long available;
+        if (stored.compareTo(BigInteger.valueOf(amount)) >= 0) {
+            available = amount;
+        } else {
+            available = stored.longValue();
+        }
+
+        if (available <= 0) return 0;
+
+        stored = stored.subtract(BigInteger.valueOf(available));
+        recordOutput(available);
+        markDirtyBatched();
+        return available;
+    }
+
+    /**
+     * Extracts up to the requested amount from the network (BigInteger path).
+     * Non-atomic: returns min(amount, stored), extracting whatever is available.
+     *
+     * @param amount maximum amount to extract (must be positive)
+     * @return actual amount extracted (ZERO to amount)
+     */
+    public BigInteger extractUpTo(BigInteger amount) {
+        if (amount.signum() <= 0) return BigInteger.ZERO;
+
+        BigInteger available = amount.min(stored);
+        if (available.signum() <= 0) return BigInteger.ZERO;
+
+        stored = stored.subtract(available);
+        recordOutput(available);
+        markDirtyBatched();
+        return available;
+    }
+
     // ==================== Node Management ====================
 
     public void registerNode(WirelessStorageNodeSnapshot node) {

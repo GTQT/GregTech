@@ -45,7 +45,7 @@ public class EnergyContainerWireless extends EnergyContainerHandler {
                 // Energy hatch: pull from wireless network into local buffer
                 long needEnergy = this.getEnergyCapacity() - this.getEnergyStored();
                 if (needEnergy > 0) {
-                    TransferResult result = service.extract(ownerId, needEnergy, TransferContext.HATCH);
+                    TransferResult result = service.extractUpTo(ownerId, needEnergy, TransferContext.HATCH);
                     if (result.isSuccess()) {
                         this.addEnergy(result.getAmountLong());
                     }
