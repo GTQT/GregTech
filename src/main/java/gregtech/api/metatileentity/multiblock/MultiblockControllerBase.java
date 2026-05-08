@@ -477,7 +477,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public static TraceabilityPredicate selfPredicate(@NotNull ResourceLocation metaTileEntityId) {
-        MetaTileEntity mte = GregTechAPI.MTE_REGISTRY.getObject(metaTileEntityId);
+        MetaTileEntity mte = GregTechAPI.mteManager.getRegistry(metaTileEntityId.getNamespace())
+                .getObject(metaTileEntityId);
         if (mte == null) {
             throw new IllegalArgumentException("No MetaTileEntity registered with id: " + metaTileEntityId);
         }

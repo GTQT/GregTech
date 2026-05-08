@@ -1,6 +1,7 @@
 package gregtech.common.metatileentities.multi.electric.godforge;
 
 import gregtech.api.util.GTLog;
+import gregtech.api.util.GTUtility;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -13,6 +14,7 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
+import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -38,10 +40,12 @@ import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGods
 import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMath;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
@@ -52,6 +56,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
@@ -93,6 +98,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
     private long ticker = 0;
     private int lastKnownRingAmount = 1;
+    private long lastStructureFailureLogTime = -1;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -111,9 +117,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         // The main BlockPattern handles initial structure formation and JEI preview.
         // It contains beam_shaft + first_ring merged into a single pattern.
         String[][] beamShaft = ForgeOfGodsStructureString.BEAM_SHAFT;
-        String[][] firstRing = data.isRenderActive() ?
-                ForgeOfGodsStructureString.FIRST_RING_AIR :
-                ForgeOfGodsStructureString.FIRST_RING;
+        String[][] firstRing = ForgeOfGodsStructureString.FIRST_RING;
 
         FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
         for (String[] layer : beamShaft) {
@@ -214,12 +218,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
      */
     private static void applyAllPredicates(FactoryBlockPattern builder, boolean includeController) {
         if (includeController) {
-            builder.where('S', new TraceabilityPredicate(
-                    blockWorldState -> true,
-                    () -> new gregtech.api.util.BlockInfo[] {
-                            new gregtech.api.util.BlockInfo(
-                                    getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
-                    }).setCenter());
+            builder.where('S', godforgeController());
         }
         applySharedPredicates(builder);
     }
@@ -254,6 +253,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return abilities(MultiblockAbility.IMPORT_ITEMS)
                 .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
                 .or(abilities(MultiblockAbility.EXPORT_ITEMS))
+                .or(abilities(MultiblockAbility.EXPORT_FLUIDS))
                 .or(states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)));
     }
 
@@ -265,7 +265,96 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 MetaTileEntities.GODFORGE_EXOTIC_MODULE);
     }
 
+    private static TraceabilityPredicate godforgeController() {
+        ResourceLocation controllerId = GTUtility.gregtechId("forge_of_gods");
+        return tilePredicate((state, tile) -> tile != null && controllerId.equals(tile.metaTileEntityId),
+                () -> new gregtech.api.util.BlockInfo[] {
+                        new gregtech.api.util.BlockInfo(
+                                getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
+                }).setCenter();
+    }
+
     // ==================== Structure Lifecycle ====================
+
+    @Override
+    public void checkStructurePattern() {
+        super.checkStructurePattern();
+        if (!isStructureFormed()) {
+            logStructureFailure();
+        }
+    }
+
+    private void logStructureFailure() {
+        if (getWorld() == null || getWorld().isRemote || multiblockState == null) return;
+
+        long worldTime = getWorld().getTotalWorldTime();
+        if (lastStructureFailureLogTime >= 0 && worldTime - lastStructureFailureLogTime < TICK_INTERVAL) return;
+        lastStructureFailureLogTime = worldTime;
+
+        PatternError error = multiblockState.getError();
+        BlockPos renderPos = getRenderPos();
+        String renderState = "null";
+        if (renderPos != null) {
+            renderState = getWorld().isBlockLoaded(renderPos) ?
+                    String.valueOf(getWorld().getBlockState(renderPos)) :
+                    "unloaded";
+        }
+
+        if (error == null) {
+            GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, up={}, renderActive={}, " +
+                            "rendererDisabled={}, battery={}, rings={}, renderPos={}, renderState={}, no pattern error",
+                    getPos(), getFrontFacing(), getUpwardsFacing(), data.isRenderActive(), data.isRendererDisabled(),
+                    data.getInternalBattery(), data.getRingAmount(), renderPos, renderState);
+            return;
+        }
+
+        BlockPos errorPos = error.getPos();
+        IBlockState actualState = getWorld().isBlockLoaded(errorPos) ?
+                getWorld().getBlockState(errorPos) :
+                null;
+        TileEntity actualTile = actualState != null ? getWorld().getTileEntity(errorPos) : null;
+
+        GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, up={}, renderActive={}, " +
+                        "rendererDisabled={}, battery={}, rings={}, renderPos={}, renderState={}, errorType={}, " +
+                        "errorPos={}, actualState={}, actualTile={}, candidates={}",
+                getPos(), getFrontFacing(), getUpwardsFacing(), data.isRenderActive(), data.isRendererDisabled(),
+                data.getInternalBattery(), data.getRingAmount(), renderPos, renderState,
+                error.getClass().getSimpleName(), errorPos,
+                actualState != null ? actualState : "unloaded",
+                describeTileEntity(actualTile), describeCandidates(error));
+    }
+
+    private static String describeTileEntity(@Nullable TileEntity tileEntity) {
+        if (tileEntity == null) return "null";
+        String description = tileEntity.getClass().getName();
+        if (tileEntity instanceof IGregTechTileEntity) {
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            description += ", mte=" + (metaTileEntity == null ? "null" :
+                    metaTileEntity.metaTileEntityId + "/" + metaTileEntity.getClass().getName());
+        }
+        return description;
+    }
+
+    private static String describeCandidates(PatternError error) {
+        StringBuilder builder = new StringBuilder();
+        for (List<ItemStack> group : error.getCandidates()) {
+            if (builder.length() > 0) builder.append(" | ");
+            builder.append('[');
+            int written = 0;
+            for (ItemStack stack : group) {
+                if (stack.isEmpty()) continue;
+                if (written > 0) builder.append(", ");
+                builder.append(stack.getItem().getRegistryName()).append(':').append(stack.getMetadata());
+                written++;
+                if (written >= 3) {
+                    builder.append(", ...");
+                    break;
+                }
+            }
+            builder.append(']');
+        }
+        return builder.length() == 0 ? "[]" : builder.toString();
+    }
 
     @Override
     protected void formStructure(PatternMatchContext context) {
@@ -763,6 +852,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public boolean allowsExtendedFacing() {
         return true;
+    }
+
+    @Override
+    public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing wrenchSide,
+                                 CuboidRayTraceResult hitResult) {
+        if (wrenchSide == getFrontFacing()) {
+            return false;
+        }
+        return super.onWrenchClick(playerIn, hand, wrenchSide, hitResult);
     }
 
     @Override

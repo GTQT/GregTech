@@ -36,7 +36,6 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
         return new MetaTileEntitySawMill(metaTileEntityId);
     }
 
-    @Override
     private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
             DeclarativePatternBuilder.start()
                     .aisle("PPPPP", "    F", "    F")

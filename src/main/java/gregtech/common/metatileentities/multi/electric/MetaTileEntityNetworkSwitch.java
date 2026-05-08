@@ -101,7 +101,6 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
         return true;
     }
 
-    @Override
     private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")

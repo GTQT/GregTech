@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeBuilder;
@@ -18,6 +19,7 @@ import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.properties.FluidProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
@@ -72,14 +74,11 @@ public class GodforgeRecipeLoader {
             // Must have fluid property first, otherwise getFluid(...) may throw
             if (!material.hasProperty(PropertyKey.FLUID)) continue;
 
-            // Must have plasma fluid (output)
-            FluidStack plasmaStack;
-            try {
-                plasmaStack = material.getPlasma(INGOTS);
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-            if (plasmaStack == null) continue;
+            // Must have plasma fluid (output). Check the storage entry before
+            // constructing a FluidStack, since missing plasma returns a null fluid.
+            FluidProperty fluidProperty = material.getProperty(PropertyKey.FLUID);
+            if (fluidProperty == null || fluidProperty.get(FluidStorageKeys.PLASMA) == null) continue;
+            FluidStack plasmaStack = material.getPlasma(INGOTS);
 
             // Determine plasma tier based on proton count
             int tier = FogPlasmaTierProperty.getTierForProtons(material.getProtons());
@@ -256,16 +255,20 @@ public class GodforgeRecipeLoader {
             if (!upgrade.hasExtraCost()) continue;
 
             RecipeBuilder<?> builder = GodforgeRecipeMaps.GODFORGE_UPGRADE_COST_RECIPES.recipeBuilder();
+            boolean hasCost = false;
 
             for (ItemStack cost : upgrade.getExtraCostNoNulls()) {
+                if (cost.isEmpty()) continue;
                 builder.inputs(cost);
+                hasCost = true;
             }
+            if (!hasCost) continue;
 
-            // Use 0 EUt / 0 duration since this is just a display recipe
-            builder.duration(0)
-                    .EUt(0)
-                    .applyProperty(FogUpgradeNameProperty.getInstance(), upgrade.getShortNameKey())
-                    .buildAndRegister();
+            // Display-only recipe; keep values non-zero to satisfy RecipeBuilder validation.
+            builder.duration(1)
+                    .EUt(1);
+            builder.applyProperty(FogUpgradeNameProperty.getInstance(), upgrade.getShortNameKey());
+            builder.buildAndRegister();
 
             registered++;
         }

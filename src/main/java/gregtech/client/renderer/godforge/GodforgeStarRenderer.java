@@ -27,10 +27,10 @@ import org.lwjgl.opengl.GL20;
 
 public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRenderTileEntity> {
 
-    private static final ResourceLocation STAR_LAYER_0 = new ResourceLocation(MODID, "textures/godforge/StarLayer0.png");
-    private static final ResourceLocation STAR_LAYER_1 = new ResourceLocation(MODID, "textures/godforge/StarLayer1.png");
-    private static final ResourceLocation STAR_LAYER_2 = new ResourceLocation(MODID, "textures/godforge/StarLayer2.png");
-    private static final ResourceLocation BEAM_TEXTURE = new ResourceLocation(MODID, "textures/godforge/spaceLayer.png");
+    private static final ResourceLocation STAR_LAYER_0 = new ResourceLocation(MODID, "textures/godforge/starlayer0.png");
+    private static final ResourceLocation STAR_LAYER_1 = new ResourceLocation(MODID, "textures/godforge/starlayer1.png");
+    private static final ResourceLocation STAR_LAYER_2 = new ResourceLocation(MODID, "textures/godforge/starlayer2.png");
+    private static final ResourceLocation BEAM_TEXTURE = new ResourceLocation(MODID, "textures/godforge/spacelayer.png");
 
     private static final int MAX_SEGMENTS = 10;
     private static final int BEAM_SEGMENT_QUADS = 16;
@@ -415,10 +415,8 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
             bufferIntenseBeam(tile);
         }
 
-        float[] modelMatrix = new float[16];
-        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, FloatBuffer.wrap(modelMatrix));
         matrixBuffer.clear();
-        matrixBuffer.put(modelMatrix);
+        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrixBuffer);
         matrixBuffer.flip();
         GL20.glUniformMatrix4(u_BeamModelMatrix, false, matrixBuffer);
 

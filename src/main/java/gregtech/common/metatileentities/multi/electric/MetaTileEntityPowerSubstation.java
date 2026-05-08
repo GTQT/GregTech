@@ -93,7 +93,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                     .where('S', selfPredicate(GTUtility.gregtechId("power_substation")))
                     .where('C', states(getCasingState()))
                     .where('G', states(getGlassState()))
-                    .where('B', BATTERY_PREDICATE.get())
+                    .where('B', getBatteryPredicate())
                     .casing('X', CasingDefinition.simple(getCasingState(),
                             "gregtech.machine.casing.palladium_substation"))
                         .withCustomHatches(
@@ -148,6 +148,10 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
         return predicate;
     };
+
+    private static TraceabilityPredicate getBatteryPredicate() {
+        return BATTERY_PREDICATE.get();
+    }
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
     private PowerStationEnergyBank energyBank;
     private EnergyContainerList inputHatches;

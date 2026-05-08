@@ -68,6 +68,7 @@ public final class GodforgeRecipeMaps {
             .itemOutputs(2)
             .fluidInputs(0)
             .fluidOutputs(2)
+            .allowEmptyOutputs()
             .uiBuilder(builder -> builder
                     .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW))
             .build();

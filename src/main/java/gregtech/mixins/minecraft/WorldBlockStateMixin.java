@@ -32,7 +32,7 @@ public abstract class WorldBlockStateMixin {
         // because those are already covered by Forge's NeighborNotifyEvent.
         // This avoids duplicate notifications.
         if ((flags & 1) == 0) {
-            MultiblockWorldData.get(self).onBlockChanged(pos);
+            MultiblockWorldData.get(self).onBlockChanged(pos, self.getTotalWorldTime());
         }
     }
 }

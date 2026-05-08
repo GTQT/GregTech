@@ -209,7 +209,7 @@ public class MultiPiecePattern {
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
         BlockPos pieceCenter = piece.getCenterPos(
-                controller.getPos(), controller.getFrontFacing(), controller.getUpwardsFacing());
+                controller.getPos(), controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing());
 
         piece.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
         return true;

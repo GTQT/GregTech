@@ -96,7 +96,7 @@ public class MultiblockPreviewRenderer {
             GlStateManager.enableBlend();
             GL14.glBlendColor(1.0F, 1.0F, 1.0F, 0.6F);
             GlStateManager.tryBlendFuncSeparate(
-                    GL14.GL_CONSTANT_ALPHA, GL14.GL_ONE_MINUS_CONSTANT_ALPHA,
+                    GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA,
                     GL11.GL_ONE, GL11.GL_ZERO);
 
             GlStateManager.callList(opList);
