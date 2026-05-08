@@ -15,6 +15,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IGodforgeModule;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -23,6 +24,7 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
 
 public abstract class MTEBaseModule extends RecipeMapMultiblockController implements IGodforgeModule {
 
@@ -50,6 +52,17 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
         super(metaTileEntityId, recipeMap);
         this.recipeMapWorkable = new GodforgeModuleRecipeLogic(this);
     }
+
+    // region GUI
+
+    protected abstract MTEBaseModuleGui<?> createModuleGui();
+
+    @Override
+    protected MultiblockUIFactory createUIFactory() {
+        return new ModuleUIFactory(this, createModuleGui());
+    }
+
+    // endregion
 
     @NotNull
     @Override

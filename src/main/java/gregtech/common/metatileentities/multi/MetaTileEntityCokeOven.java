@@ -12,9 +12,12 @@ import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.mui.widget.RecipeProgressWidget;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -54,6 +57,21 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockController {
 
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "X#X", "XXX")
+                    .aisle("XXX", "XYX", "XXX")
+                    .where('Y', selfPredicate(GTUtility.gregtechId("coke_oven")))
+                    .where('#', air())
+                    .casing('X', CasingDefinition.simple(
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS),
+                            "gregtech.machine.casing.coke_bricks"))
+                        .withCustomHatches(
+                                metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5), 5)
+                    .buildTemplate()
+    );
+
     public MetaTileEntityCokeOven(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.COKE_OVEN_RECIPES);
     }
@@ -65,18 +83,8 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
 
     @NotNull
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "X#X", "XXX")
-                .aisle("XXX", "XYX", "XXX")
-                .where('Y', selfPredicate())
-                .where('#', air())
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.coke_bricks"))
-                    .withCustomHatches(
-                            metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5), 5)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     protected IBlockState getCasingState() {

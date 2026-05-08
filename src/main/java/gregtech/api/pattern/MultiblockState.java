@@ -419,6 +419,21 @@ public class MultiblockState {
      */
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,
                           Map<String, Integer> channelValues, boolean skipHatches) {
+        autoBuildAt(player, controllerBase, controllerBase.getPos(), channelValues, skipHatches);
+    }
+
+    /**
+     * Auto-build the structure in the world at a specified center position.
+     * Used by MultiPiecePattern to build individual pieces at their offset positions.
+     *
+     * @param player         the player performing the build
+     * @param controllerBase the multiblock controller (used for facing/flip info)
+     * @param centerPos      the center position for this build (controller pos or piece center)
+     * @param channelValues  map of channel name -> desired value (null = max size, no tier preference)
+     * @param skipHatches    if true, skip all hatch placement and only place casing blocks
+     */
+    public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
+                            BlockPos centerPos, Map<String, Integer> channelValues, boolean skipHatches) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
@@ -431,7 +446,6 @@ public class MultiblockState {
         BlockWorldState bws = new BlockWorldState();
         int minZ = -centerOffset[4];
         EnumFacing facing = controllerBase.getFrontFacing().getOpposite();
-        BlockPos centerPos = controllerBase.getPos();
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, Object> blocks = new HashMap<>();

@@ -10,6 +10,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Queue;
@@ -59,6 +60,12 @@ public class AsyncStructureChecker {
     /** Controllers currently being processed (avoid double submission) */
     private final Set<MultiblockControllerBase> inFlight = ConcurrentHashMap.newKeySet();
 
+    /**
+     * Controllers whose structure AABB is too large to snapshot safely.
+     * These are handed back to the main thread for direct polling instead.
+     */
+    private final Queue<MultiblockControllerBase> oversizedQueue = new ConcurrentLinkedQueue<>();
+
     private final ScheduledExecutorService executor;
     private ScheduledFuture<?> scheduledTask;
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -74,6 +81,13 @@ public class AsyncStructureChecker {
 
     /** Extra margin added to structure AABB for snapshot capture */
     private static final int SNAPSHOT_MARGIN = 2;
+
+    /**
+     * Volume threshold above which snapshot capture is skipped and the controller
+     * is flagged for immediate main-thread fallback instead.
+     * 100^3 = 1,000,000 — structures larger than this are too expensive to snapshot per-tick.
+     */
+    private static final int MAX_SNAPSHOT_VOLUME = 100 * 100 * 100;
 
     /** Interval between async check cycles (ms) */
     private static final long CHECK_INTERVAL_MS = 250;
@@ -112,6 +126,7 @@ public class AsyncStructureChecker {
             snapshotQueue.clear();
             resultQueue.clear();
             inFlight.clear();
+            oversizedQueue.clear();
         }
     }
 
@@ -167,8 +182,15 @@ public class AsyncStructureChecker {
             BlockPos pos = controller.getPos();
             if (pos == null) continue;
 
-            // Compute snapshot region from template dimensions instead of fixed radius
+            // Compute precise snapshot region from template AABB
             BlockStateSnapshot snapshot = captureSnapshotForController(world, controller, pos);
+
+            if (snapshot == null) {
+                // Structure AABB exceeds volume cap — route to oversized queue for main-thread fallback
+                pendingControllers.remove(controller);
+                oversizedQueue.offer(controller);
+                continue;
+            }
 
             // Create task and enqueue for async processing
             SnapshotTask task = new SnapshotTask(
@@ -189,9 +211,22 @@ public class AsyncStructureChecker {
     /**
      * Called from the main thread every tick.
      * Processes results from async checks that matched.
+     * Also handles oversized controllers that could not be snapshotted.
      */
     public void processResults() {
         if (!running.get()) return;
+
+        // Process oversized controllers: perform a direct main-thread structure check.
+        // These controllers were removed from pendingControllers in prepareSnapshots(),
+        // so re-register them for async after a successful main-thread form, or fall back to polling.
+        MultiblockControllerBase oversized;
+        while ((oversized = oversizedQueue.poll()) != null) {
+            if (oversized.getWorld() == null || oversized.isStructureFormed()) continue;
+            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug("[AsyncStructureCheck] Oversized AABB fallback for {}", oversized.getMetaName());
+            }
+            oversized.checkStructurePattern();
+        }
 
         AsyncCheckResult result;
         while ((result = resultQueue.poll()) != null) {
@@ -222,25 +257,44 @@ public class AsyncStructureChecker {
     }
 
     /**
-     * Capture a snapshot region sized to the controller's structure template.
-     * Uses the maximum expanded dimensions (accounting for repeatable aisles)
-     * and takes the max across all axes as a symmetric radius, since the mapping
-     * from pattern coordinates to world coordinates depends on controller facing.
-     * Falls back to a fixed radius if template is unavailable.
+     * Capture a precise snapshot for the controller using the structure template's world-space AABB.
+     *
+     * <p>Uses {@link BlockPatternTemplate#computeWorldAABB} to determine the exact bounding box
+     * of the structure in world coordinates, avoiding the wasteful symmetric cubic approximation.
+     *
+     * <p>Returns {@code null} if the computed AABB volume exceeds {@link #MAX_SNAPSHOT_VOLUME},
+     * signalling the caller to route the controller to main-thread fallback instead.
      */
+    @Nullable
     private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
                                                             BlockPos pos) {
         BlockPatternTemplate template = controller.getPatternTemplate();
         if (template != null) {
-            int palmSize = template.getPalmLength();
-            int thumbSize = template.getThumbLength();
-            int fingerSize = template.getMaxExpandedFingerLength();
-            // Use max dimension as a conservative symmetric radius since we don't know
-            // which pattern axis maps to which world axis without resolving structureDir + facing
-            int radius = Math.max(Math.max(palmSize, thumbSize), fingerSize) + SNAPSHOT_MARGIN;
-            BlockPos min = pos.add(-radius, -radius, -radius);
-            BlockPos max = pos.add(radius, radius, radius);
-            return BlockStateSnapshot.captureRegion(world, min, max);
+            BlockPos[] aabb = template.computeWorldAABB(
+                    pos,
+                    controller.getFrontFacing().getOpposite(),
+                    controller.getUpwardsFacing(),
+                    controller.isFlipped(),
+                    SNAPSHOT_MARGIN);
+            BlockPos minCorner = aabb[0];
+            BlockPos maxCorner = aabb[1];
+
+            // Guard against absurdly large AABBs (e.g. bad template data or very large repeatable aisles)
+            long dx = (long) maxCorner.getX() - minCorner.getX() + 1;
+            long dy = (long) maxCorner.getY() - minCorner.getY() + 1;
+            long dz = (long) maxCorner.getZ() - minCorner.getZ() + 1;
+            long volume = dx * dy * dz;
+
+            if (volume > MAX_SNAPSHOT_VOLUME) {
+                if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                    GTLog.logger.debug(
+                            "[AsyncStructureCheck] Snapshot AABB too large ({} blocks) for {}, routing to main-thread fallback",
+                            volume, controller.getMetaName());
+                }
+                return null;
+            }
+
+            return BlockStateSnapshot.captureRegion(world, minCorner, maxCorner);
         }
         return BlockStateSnapshot.capture(world, pos, FALLBACK_SNAPSHOT_RADIUS);
     }
@@ -294,6 +348,7 @@ public class AsyncStructureChecker {
     public void clearWorld(@NotNull World world) {
         pendingControllers.removeIf(c -> c.getWorld() == world);
         inFlight.removeIf(c -> c.getWorld() == world);
+        oversizedQueue.removeIf(c -> c.getWorld() == world);
     }
 
     /**

@@ -18,6 +18,8 @@ import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -129,29 +131,33 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     }
 
     @NotNull
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "VVV", "PPP", "PPP", "PPP", "VVV", "XXX")
+                    .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
+                    .aisle("XXX", "VAV", "XAX", "XSX", "XAX", "VAV", "XXX")
+                    .aisle("XXX", "XAX", "---", "---", "---", "XAX", "XXX")
+                    .aisle(" X ", "XAX", "---", "---", "---", "XAX", " X ")
+                    .aisle(" X ", "XAX", "-A-", "-H-", "-A-", "XAX", " X ")
+                    .aisle("   ", "XXX", "---", "---", "---", "XXX", "   ")
+                    .where('S', selfPredicate(GTUtility.gregtechId("research_station")))
+                    .where('X', states(getCasingState()))
+                    .where(' ', any())
+                    .where('-', air())
+                    .where('V', states(getVentState()))
+                    .where('A', states(getAdvancedState()))
+                    .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
+                    .casing('P', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.research_station"))
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 1)
+                    .buildTemplate()
+    );
+
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "VVV", "PPP", "PPP", "PPP", "VVV", "XXX")
-                .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
-                .aisle("XXX", "VAV", "XAX", "XSX", "XAX", "VAV", "XXX")
-                .aisle("XXX", "XAX", "---", "---", "---", "XAX", "XXX")
-                .aisle(" X ", "XAX", "---", "---", "---", "XAX", " X ")
-                .aisle(" X ", "XAX", "-A-", "-H-", "-A-", "XAX", " X ")
-                .aisle("   ", "XXX", "---", "---", "---", "XXX", "   ")
-                .where('S', selfPredicate())
-                .where('X', states(getCasingState()))
-                .where(' ', any())
-                .where('-', air())
-                .where('V', states(getVentState()))
-                .where('A', states(getAdvancedState()))
-                .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
-                .casing('P', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.research_station"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 1)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @Override

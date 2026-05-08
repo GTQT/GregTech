@@ -47,6 +47,7 @@ public class IndividualUpgradePanel {
             panel.size(upgrade.getPanelSize());
             panel.background(upgrade.getBackground());
             panel.disableHoverBackground();
+            panel.scheduleResize();
             return buildPanel(upgrade.getPanelSize(), upgrade, hypervisor, manualInsertionPanel);
         });
 

@@ -28,6 +28,13 @@ public class MultiblockWorldData {
     private static final Map<World, MultiblockWorldData> INSTANCES =
             Collections.synchronizedMap(new WeakHashMap<>());
 
+    /**
+     * Minimum server ticks between successive structure re-checks for the same controller.
+     * Prevents per-tick full pattern scans when a player rapidly breaks/places blocks.
+     * At 20 TPS this means at most one full check per 5 ticks (250 ms).
+     */
+    private static final int RECHECK_COOLDOWN_TICKS = 5;
+
     /** ChunkPos -> Set of controllers that have blocks in this chunk */
     private final Map<ChunkPos, Set<MultiblockControllerBase>> chunkIndex = new ConcurrentHashMap<>();
 
@@ -39,6 +46,12 @@ public class MultiblockWorldData {
 
     /** Controllers that have been notified of a block change and need re-validation on next tick */
     private final Set<MultiblockControllerBase> pendingRecheck = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Controller -> server tick at which the last block-change event was received.
+     * Used together with {@link #RECHECK_COOLDOWN_TICKS} to debounce rapid block changes.
+     */
+    private final Map<MultiblockControllerBase, Long> lastChangedTick = new ConcurrentHashMap<>();
 
     public static MultiblockWorldData get(World world) {
         return INSTANCES.computeIfAbsent(world, w -> new MultiblockWorldData());
@@ -102,6 +115,7 @@ public class MultiblockWorldData {
 
         controllerPiecePatterns.remove(controller);
         pendingRecheck.remove(controller);
+        lastChangedTick.remove(controller);
     }
 
     /**
@@ -112,14 +126,17 @@ public class MultiblockWorldData {
      * For multi-piece controllers, only the affected piece(s) are marked dirty
      * instead of the entire controller (P3 piece-level dirty tracking).
      *
-     * @param pos the position where a block changed
+     * @param pos      the position where a block changed
+     * @param gameTick the current server tick (from {@code world.getTotalWorldTime()})
+     * @return true if at least one registered multiblock was affected by this position
      */
-    public void onBlockChanged(BlockPos pos) {
+    public boolean onBlockChanged(BlockPos pos, long gameTick) {
         ChunkPos chunkPos = new ChunkPos(pos);
         Set<MultiblockControllerBase> controllers = chunkIndex.get(chunkPos);
-        if (controllers == null || controllers.isEmpty()) return;
+        if (controllers == null || controllers.isEmpty()) return false;
 
         long posLong = pos.toLong();
+        boolean affected = false;
         for (MultiblockControllerBase controller : controllers) {
             LongSet positions = controllerPositions.get(controller);
             if (positions != null && positions.contains(posLong)) {
@@ -129,20 +146,42 @@ public class MultiblockWorldData {
                     // Piece-level dirty marking: only mark the specific piece(s) containing this position
                     piecePattern.markDirtyByPosition(posLong);
                 }
-                // Always add to pendingRecheck so doStructureCheck() gets triggered
+                // Record the tick of this change; doStructureCheck() will debounce using this value
+                lastChangedTick.put(controller, gameTick);
                 pendingRecheck.add(controller);
+                affected = true;
             }
         }
+        return affected;
     }
 
     /**
-     * Check if a controller has a pending re-check due to a block change event.
+     * Check if a controller has a pending re-check due to a block change event,
+     * applying a cooldown so that rapid consecutive changes collapse into one check.
+     *
+     * <p>Returns {@code true} (and clears the pending flag) only when both:
+     * <ul>
+     *   <li>the controller is in the pending set, AND</li>
+     *   <li>at least {@link #RECHECK_COOLDOWN_TICKS} ticks have elapsed since the last change</li>
+     * </ul>
      *
      * @param controller the controller to check
-     * @return true if the controller needs re-validation
+     * @param currentTick the current server tick (from {@code world.getTotalWorldTime()})
+     * @return true if the controller should be re-validated this tick
      */
-    public boolean hasPendingRecheck(MultiblockControllerBase controller) {
-        return pendingRecheck.remove(controller);
+    public boolean hasPendingRecheck(MultiblockControllerBase controller, long currentTick) {
+        if (!pendingRecheck.contains(controller)) return false;
+
+        Long changed = lastChangedTick.get(controller);
+        if (changed != null && (currentTick - changed) < RECHECK_COOLDOWN_TICKS) {
+            // Still within the cooldown window — defer the check
+            return false;
+        }
+
+        // Cooldown expired: consume the pending flag and clear the tick record
+        pendingRecheck.remove(controller);
+        lastChangedTick.remove(controller);
+        return true;
     }
 
     /**
@@ -174,5 +213,6 @@ public class MultiblockWorldData {
         controllerPositions.clear();
         controllerPiecePatterns.clear();
         pendingRecheck.clear();
+        lastChangedTick.clear();
     }
 }

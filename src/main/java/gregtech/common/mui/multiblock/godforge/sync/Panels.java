@@ -35,7 +35,7 @@ public enum Panels {
     MAIN_EXOTIC,
 
     // Sub-panels opened from main panels
-    GENERAL_INFO(GeneralInfoPanel::openPanel),
+    GENERAL_INFO(GeneralInfoPanel::openModulePanel),
     VOLTAGE_CONFIG((hypervisor, module) -> VoltageConfigPanel.openModulePanel(hypervisor, module)),
 
     MILESTONE(MilestonePanel::openPanel),

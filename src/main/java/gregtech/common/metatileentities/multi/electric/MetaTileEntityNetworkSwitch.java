@@ -10,10 +10,13 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.KeyUtil;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -99,20 +102,24 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
     }
 
     @Override
-    protected @NotNull BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "XAX", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate())
-                .where('A', states(getAdvancedState()))
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.computer"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
-                    .withHatches(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
-                .build();
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "XAX", "XXX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("network_switch")))
+                    .where('A', states(getAdvancedState()))
+                    .casing('X', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.computer"))
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
+                        .withHatches(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
+                    .buildTemplate()
+    );
+
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     private static @NotNull IBlockState getCasingState() {

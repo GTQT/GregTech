@@ -1,5 +1,8 @@
 package gregtech.api.pattern;
 
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
@@ -187,6 +190,36 @@ public class MultiPiecePattern {
             }
         }
         return found;
+    }
+
+    /**
+     * Auto-build a specific piece by its 1-based index.
+     * Computes the piece's center position from the controller and delegates to the piece's state.
+     *
+     * @param pieceIndex     1-based index into the piece list
+     * @param player         the player performing the build
+     * @param controller     the multiblock controller
+     * @param channelValues  channel values for tier selection
+     * @param skipHatches    if true, skip hatch placement
+     * @return true if the piece was successfully built (index valid and piece exists)
+     */
+    public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
+                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches) {
+        if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
+
+        StructurePiece piece = pieceList.get(pieceIndex - 1);
+        BlockPos pieceCenter = piece.getCenterPos(
+                controller.getPos(), controller.getFrontFacing(), controller.getUpwardsFacing());
+
+        piece.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
+        return true;
+    }
+
+    /**
+     * @return the number of pieces in this pattern
+     */
+    public int getPieceCount() {
+        return pieceList.size();
     }
 
     /**

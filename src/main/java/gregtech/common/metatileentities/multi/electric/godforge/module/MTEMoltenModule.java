@@ -11,6 +11,8 @@ import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.common.blocks.BlockGodforgeCasing;
+import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
+import gregtech.common.mui.multiblock.godforge.MTEMoltenModuleGui;
 
 /**
  * Godforge Molten Module.
@@ -27,6 +29,11 @@ public class MTEMoltenModule extends MTEBaseModule {
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MTEMoltenModule(metaTileEntityId);
+    }
+
+    @Override
+    protected MTEBaseModuleGui<?> createModuleGui() {
+        return new MTEMoltenModuleGui(this);
     }
 
     @Override

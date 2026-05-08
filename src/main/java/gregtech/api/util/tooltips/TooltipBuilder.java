@@ -17,10 +17,9 @@ public class TooltipBuilder {
         return new TooltipBuilder();
     }
 
-    // 创建包含基础信息的建造者
+    // 创建包含基础信息的建造者（functional tooltips only, structure info is in addStructureInformation）
     public static TooltipBuilder createDefault() {
         return new TooltipBuilder()
-                .addStructure()
                 .addRecipe();
     }
 

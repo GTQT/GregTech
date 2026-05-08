@@ -7,9 +7,12 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
@@ -46,20 +49,25 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
         return new MetaTileEntitySteamGrinder(metaTileEntityId);
     }
 
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "X#X", "XXX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("steam_grinder")))
+                    .where('#', air())
+                    .casing('X', CasingDefinition.simple(
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS),
+                            "gregtech.machine.casing.bronze_bricks"))
+                        .withHatches(MultiblockAbility.STEAM, 1, 2)
+                        .withOptionalHatches(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
+                        .withOptionalHatches(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
+                    .buildTemplate()
+    );
+
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "X#X", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate())
-                .where('#', air())
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.bronze_bricks"))
-                    .withHatches(MultiblockAbility.STEAM, 1, 2)
-                    .withOptionalHatches(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
-                    .withOptionalHatches(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     public IBlockState getCasingState() {

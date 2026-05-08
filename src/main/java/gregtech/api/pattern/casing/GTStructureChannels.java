@@ -55,6 +55,11 @@ public enum GTStructureChannels implements StructureChannel {
     // When gt_no_hatch=1 in channelValues, autoBuild skips hatch candidates
     // and only places casing blocks. When absent or 0, hatches are placed normally.
     NO_HATCH("gt_no_hatch", "gregtech.structure_channel.no_hatch"),
+
+    // --- Multi-Piece Structure Piece Selection ---
+    // Controls which piece of a MultiPiecePattern to build.
+    // 0 = main pattern only (default), 1+ = piece index (1-based) from MultiPiecePattern.
+    STRUCTURE_PIECE("structure_piece", "gregtech.structure_channel.structure_piece"),
     ;
 
     private final String name;

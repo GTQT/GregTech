@@ -12,6 +12,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -48,6 +50,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase implements IControllable {
+
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "XCX", "XXX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("active_transformer")))
+                    .where('C', states(MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL)))
+                    .casing('X', CasingDefinition.simple(
+                            MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING),
+                            "gregtech.machine.casing.high_power"))
+                        .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 4)
+                        .withOptionalHatches(MultiblockAbility.OUTPUT_ENERGY, 4)
+                        .withOptionalHatches(MultiblockAbility.SUBSTATION_INPUT_ENERGY, 4)
+                        .withOptionalHatches(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, 4)
+                        .withOptionalHatches(MultiblockAbility.INPUT_LASER, 4)
+                        .withOptionalHatches(MultiblockAbility.OUTPUT_LASER, 4)
+                    .buildTemplate()
+    );
 
     private boolean isWorkingEnabled = false;
     private IEnergyContainer powerOutput;
@@ -117,22 +138,8 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
     }
 
     @Override
-    protected @NotNull BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "XCX", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate())
-                .where('C', states(MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL)))
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.high_power"))
-                    .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 4)
-                    .withOptionalHatches(MultiblockAbility.OUTPUT_ENERGY, 4)
-                    .withOptionalHatches(MultiblockAbility.SUBSTATION_INPUT_ENERGY, 4)
-                    .withOptionalHatches(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, 4)
-                    .withOptionalHatches(MultiblockAbility.INPUT_LASER, 4)
-                    .withOptionalHatches(MultiblockAbility.OUTPUT_LASER, 4)
-                .build();
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @Override

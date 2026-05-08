@@ -8,6 +8,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -44,6 +46,28 @@ import java.util.List;
 
 public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
 
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("HCHCH", "HCHCH", "HCHCH")
+                    .aisle("HCHCH", "H###H", "HCHCH")
+                    .aisle("HCHCH", "HCOCH", "HCHCH")
+                    .where('O', selfPredicate(GTUtility.gregtechId("cracking_unit")))
+                    .where('#', air())
+                    .casing('H', CasingDefinition.simple(
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN),
+                            "gregtech.machine.casing.stainless_clean"))
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .tieredCasing('C', GTCasingGroups.heatingCoils())
+                        .withChannel(GTStructureChannels.HEATING_COIL)
+                    .buildTemplate()
+    );
+
     private int coilTier;
 
     public MetaTileEntityCrackingUnit(ResourceLocation metaTileEntityId) {
@@ -57,25 +81,8 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     }
 
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("HCHCH", "HCHCH", "HCHCH")
-                .aisle("HCHCH", "H###H", "HCHCH")
-                .aisle("HCHCH", "HCOCH", "HCHCH")
-                .where('O', selfPredicate())
-                .where('#', air())
-                .casing('H', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.stainless_clean"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .tieredCasing('C', GTCasingGroups.heatingCoils())
-                    .withChannel(GTStructureChannels.HEATING_COIL)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @SideOnly(Side.CLIENT)

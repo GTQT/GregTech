@@ -177,16 +177,17 @@ public class MachineItemBlock extends ItemBlock {
             }
         }
 
-        // additional tooltips that the MTE provides
-        metaTileEntity.addInformation(stack, worldIn, tooltip, flagIn.isAdvanced());
-
-        // tool usages tooltips
-        if (metaTileEntity.showToolUsages()) {
-            if (TooltipHelper.isShiftDown()) {
+        // Mutually exclusive tooltip display based on SHIFT state
+        if (TooltipHelper.isShiftDown()) {
+            // SHIFT held: show structure info and tool usages
+            metaTileEntity.addStructureInformation(stack, worldIn, tooltip, flagIn.isAdvanced());
+            if (metaTileEntity.showToolUsages()) {
                 metaTileEntity.addToolUsages(stack, worldIn, tooltip, flagIn.isAdvanced());
-            } else {
-                tooltip.add(I18n.format("gregtech.tool_action.show_tooltips"));
             }
+        } else {
+            // No SHIFT: show functional tooltips
+            metaTileEntity.addInformation(stack, worldIn, tooltip, flagIn.isAdvanced());
+            tooltip.add(I18n.format("gregtech.tool_action.show_tooltips"));
         }
 
         if (ConfigHolder.misc.debug) {

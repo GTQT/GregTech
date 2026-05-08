@@ -3,6 +3,7 @@ package gregtech.api.pattern;
 import gregtech.api.util.RelativeDirection;
 
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -176,6 +177,71 @@ public class BlockPatternTemplate {
             total += rep[1];
         }
         return total;
+    }
+
+    /**
+     * Compute the precise world-space AABB for this structure template given the controller state.
+     *
+     * <p>Instead of a symmetric cubic bounding box, this transforms the 8 corner points of the
+     * pattern's local bounding box through the same coordinate mapping used by
+     * {@link RelativeDirection#setActualRelativeOffset} and returns the resulting world min/max.
+     * This is accurate regardless of controller facing or upwardsFacing.
+     *
+     * <p>The returned array is {@code [minX, minY, minZ, maxX, maxY, maxZ]} relative to
+     * {@code centerPos}.
+     *
+     * @param centerPos      the controller's world position
+     * @param frontFacing    the "into structure" direction (controller.getFrontFacing().getOpposite())
+     * @param upwardsFacing  the controller's upward facing
+     * @param isFlipped      whether the structure is flipped
+     * @param margin         extra blocks to add on all sides as safety margin
+     * @return a pair of BlockPos: [min corner, max corner] in world coordinates
+     */
+    @NotNull
+    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos, @NotNull EnumFacing frontFacing,
+                                       @NotNull EnumFacing upwardsFacing, boolean isFlipped, int margin) {
+        int maxFingerLen = getMaxExpandedFingerLength();
+
+        // Pattern-local range for each axis:
+        //   x (palm):   [-centerOffset[0] .. palmLength - 1 - centerOffset[0]]
+        //   y (thumb):  [-centerOffset[1] .. thumbLength - 1 - centerOffset[1]]
+        //   z (finger): Uses centerOffset[3] (minZ) and centerOffset[4] (maxZ) which track
+        //               the cumulative min/max aisle counts *before* the center aisle.
+        //               For the worst-case AABB we maximize both negative and positive extent:
+        //               - Negative direction: max distance before center = centerOffset[4] (maxZ)
+        //               - Positive direction: max distance after center = maxFingerLen - 1 - centerOffset[3] (minZ)
+        int xMin = -centerOffset[0];
+        int xMax = palmLength - 1 - centerOffset[0];
+        int yMin = -centerOffset[1];
+        int yMax = thumbLength - 1 - centerOffset[1];
+        int zMin = -centerOffset[4];
+        int zMax = maxFingerLen - 1 - centerOffset[3];
+
+        // Transform all 8 corners of the local AABB into world offsets
+        int worldMinX = Integer.MAX_VALUE, worldMinY = Integer.MAX_VALUE, worldMinZ = Integer.MAX_VALUE;
+        int worldMaxX = Integer.MIN_VALUE, worldMaxY = Integer.MIN_VALUE, worldMaxZ = Integer.MIN_VALUE;
+
+        for (int xi = 0; xi < 2; xi++) {
+            int lx = (xi == 0) ? xMin : xMax;
+            for (int yi = 0; yi < 2; yi++) {
+                int ly = (yi == 0) ? yMin : yMax;
+                for (int zi = 0; zi < 2; zi++) {
+                    int lz = (zi == 0) ? zMin : zMax;
+                    BlockPos offset = RelativeDirection.setActualRelativeOffset(
+                            lx, ly, lz, frontFacing, upwardsFacing, isFlipped, structureDir);
+                    worldMinX = Math.min(worldMinX, offset.getX());
+                    worldMinY = Math.min(worldMinY, offset.getY());
+                    worldMinZ = Math.min(worldMinZ, offset.getZ());
+                    worldMaxX = Math.max(worldMaxX, offset.getX());
+                    worldMaxY = Math.max(worldMaxY, offset.getY());
+                    worldMaxZ = Math.max(worldMaxZ, offset.getZ());
+                }
+            }
+        }
+
+        BlockPos min = centerPos.add(worldMinX - margin, worldMinY - margin, worldMinZ - margin);
+        BlockPos max = centerPos.add(worldMaxX + margin, worldMaxY + margin, worldMaxZ + margin);
+        return new BlockPos[] { min, max };
     }
 
     /**

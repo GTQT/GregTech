@@ -1,22 +1,23 @@
 package gregtech.common.mui.multiblock.godforge.panel;
 
-import static gregtech.api.metatileentity.MetaTileEntity.TOOLTIP_DELAY;
 import static net.minecraft.util.text.translation.I18n.translateToLocal;
 
 import net.minecraft.util.text.TextFormatting;
 
+import com.cleanroommc.modularui.api.GuiAxis;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
-import com.cleanroommc.modularui.widgets.layout.Column;
-import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
 
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.common.metatileentities.multi.electric.godforge.data.Formatters;
-import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
 import gregtech.common.mui.multiblock.godforge.ForgeOfGodsGuiUtil;
 import gregtech.common.mui.multiblock.godforge.sync.Modules;
 import gregtech.common.mui.multiblock.godforge.sync.Panels;
@@ -25,116 +26,80 @@ import gregtech.common.mui.multiblock.godforge.sync.SyncValues;
 
 public class GeneralInfoPanel {
 
-    private static final int SIZE = 200;
+    private static final int SIZE = 300;
+    private static final int OFFSET_SIZE = 280;
 
-    public static ModularPanel openPanel(SyncHypervisor hypervisor) {
-        ModularPanel panel = hypervisor.getModularPanel(Panels.GENERAL_INFO);
+    public static ModularPanel openModulePanel(SyncHypervisor hypervisor, Modules<?> module) {
+        ModularPanel panel = hypervisor.getModularPanel(module, Panels.GENERAL_INFO);
 
-        registerSyncValues(hypervisor);
+        registerSyncValues(module, hypervisor);
 
         panel.size(SIZE)
+            .padding(10, 0, 10, 0)
             .background(GTGuiTextures.BACKGROUND_GLOW_WHITE)
             .disableHoverBackground()
             .child(ForgeOfGodsGuiUtil.panelCloseButton());
 
-        BooleanSyncValue inversionSyncer = SyncValues.INVERSION
-            .lookupFrom(Modules.CORE, Panels.GENERAL_INFO, hypervisor);
+        BooleanSyncValue inversionSyncer = SyncValues.INVERSION.lookupFrom(module, Panels.GENERAL_INFO, hypervisor);
 
         DynamicSyncHandler handler = new DynamicSyncHandler().widgetProvider(($, $$) -> {
-            ForgeOfGodsData data = hypervisor.getData();
-            boolean inversion = inversionSyncer.getBoolValue();
+            ListWidget<IWidget, ?> textList = new ListWidget<>().size(OFFSET_SIZE);
+            textList.child(createHeader("gt.blockmachines.multimachine.FOG.introduction"));
+            textList.child(createTextEntry("gt.blockmachines.multimachine.FOG.introductioninfotext"));
 
-            Flow column = new Column().coverChildren()
-                .marginTop(12)
-                .alignX(0.5f);
+            TextWidget<?> fuelHeader = createHeader("gt.blockmachines.multimachine.FOG.fuel");
+            TextWidget<?> fuelText = createTextEntry("gt.blockmachines.multimachine.FOG.fuelinfotext");
+            ButtonWidget<?> fuelToC = createToCEntry(textList, "gt.blockmachines.multimachine.FOG.fuel", fuelHeader);
 
-            column.child(
-                IKey.lang("gt.blockmachines.multimachine.FOG.generalinfo")
-                    .style(TextFormatting.GOLD)
-                    .alignment(Alignment.CENTER)
-                    .asWidget()
-                    .alignX(0.5f)
-                    .marginBottom(16));
+            TextWidget<?> moduleHeader = createHeader("gt.blockmachines.multimachine.FOG.modules");
+            TextWidget<?> moduleText = createTextEntry("gt.blockmachines.multimachine.FOG.moduleinfotext");
+            ButtonWidget<?> moduleToC = createToCEntry(
+                textList,
+                "gt.blockmachines.multimachine.FOG.modules",
+                moduleHeader);
 
-            column.child(
-                IKey.dynamic(() -> {
-                    Formatters formatter = data.getFormatter();
-                    return translateToLocal("gt.blockmachines.multimachine.FOG.totalpowerconsumed")
-                        + ": "
-                        + TextFormatting.GRAY
-                        + formatter.format(data.getTotalPowerConsumed());
-                })
-                    .alignment(Alignment.CENTER)
-                    .scale(0.7f)
-                    .asWidget()
-                    .width(180)
-                    .alignX(0.5f));
+            TextWidget<?> upgradeHeader = createHeader("gt.blockmachines.multimachine.FOG.upgrades");
+            TextWidget<?> upgradeText = createTextEntry("gt.blockmachines.multimachine.FOG.upgradeinfotext");
+            ButtonWidget<?> upgradeToC = createToCEntry(
+                textList,
+                "gt.blockmachines.multimachine.FOG.upgrades",
+                upgradeHeader);
 
-            column.child(
-                IKey.dynamic(() -> {
-                    Formatters formatter = data.getFormatter();
-                    return translateToLocal("gt.blockmachines.multimachine.FOG.totalrecipesprocessed")
-                        + ": "
-                        + TextFormatting.GRAY
-                        + formatter.format(data.getTotalRecipesProcessed());
-                })
-                    .alignment(Alignment.CENTER)
-                    .scale(0.7f)
-                    .asWidget()
-                    .width(180)
-                    .alignX(0.5f)
-                    .marginTop(10));
+            TextWidget<?> milestoneHeader = createHeader("gt.blockmachines.multimachine.FOG.milestones");
+            TextWidget<?> milestoneText = createTextEntry("gt.blockmachines.multimachine.FOG.milestoneinfotext");
+            ButtonWidget<?> milestoneToC = createToCEntry(
+                textList,
+                "gt.blockmachines.multimachine.FOG.milestones",
+                milestoneHeader);
 
-            column.child(
-                IKey.dynamic(() -> {
-                    Formatters formatter = data.getFormatter();
-                    return translateToLocal("gt.blockmachines.multimachine.FOG.totalfuelconsumed")
-                        + ": "
-                        + TextFormatting.GRAY
-                        + formatter.format(data.getTotalFuelConsumed());
-                })
-                    .alignment(Alignment.CENTER)
-                    .scale(0.7f)
-                    .asWidget()
-                    .width(180)
-                    .alignX(0.5f)
-                    .marginTop(10));
+            TextWidget<?> inversionHeader = createHeaderInversion();
+            TextWidget<?> inversionText = createTextEntry("gt.blockmachines.multimachine.FOG.inversioninfotext");
+            ButtonWidget<?> inversionToC = createToCEntryInversion(textList, inversionHeader);
 
-            column.child(
-                IKey.dynamic(() -> {
-                    Formatters formatter = data.getFormatter();
-                    return translateToLocal("gt.blockmachines.multimachine.FOG.gravitonshardsavailable")
-                        + ": "
-                        + TextFormatting.GRAY
-                        + formatter.format(data.getGravitonShardsAvailable());
-                })
-                    .alignment(Alignment.CENTER)
-                    .scale(0.7f)
-                    .asWidget()
-                    .width(180)
-                    .alignX(0.5f)
-                    .marginTop(10));
+            // Table of Contents section
+            textList.child(createTableOfContentsHeader());
+            textList.child(fuelToC);
+            textList.child(moduleToC);
+            textList.child(upgradeToC);
+            textList.child(milestoneToC);
+            textList.childIf(inversionSyncer.getBoolValue(), () -> inversionToC);
 
-            if (inversion) {
-                column.child(
-                    IKey.lang("gt.blockmachines.multimachine.FOG.inversionactive")
-                        .style(TextFormatting.WHITE, TextFormatting.BOLD)
-                        .alignment(Alignment.CENTER)
-                        .scale(0.8f)
-                        .asWidget()
-                        .width(180)
-                        .alignX(0.5f)
-                        .marginTop(10));
-            }
+            // Content sections
+            textList.child(fuelHeader);
+            textList.child(fuelText);
+            textList.child(moduleHeader);
+            textList.child(moduleText);
+            textList.child(upgradeHeader);
+            textList.child(upgradeText);
+            textList.child(milestoneHeader);
+            textList.child(milestoneText);
+            textList.childIf(inversionSyncer.getBoolValue(), () -> inversionHeader);
+            textList.childIf(inversionSyncer.getBoolValue(), () -> inversionText);
 
-            return column;
+            return textList;
         });
 
-        inversionSyncer.setChangeListener(() -> {
-            if (handler.isValid()) {
-                handler.notifyUpdate($ -> {});
-            }
-        });
+        inversionSyncer.setChangeListener(() -> handler.notifyUpdate($ -> {}));
 
         panel.child(
             new DynamicSyncedWidget<>().coverChildren()
@@ -143,11 +108,93 @@ public class GeneralInfoPanel {
         return panel;
     }
 
-    private static void registerSyncValues(SyncHypervisor hypervisor) {
-        SyncValues.INVERSION.registerFor(Modules.CORE, Panels.GENERAL_INFO, hypervisor);
-        SyncValues.TOTAL_POWER_CONSUMED.registerFor(Panels.GENERAL_INFO, hypervisor);
-        SyncValues.TOTAL_RECIPES_PROCESSED.registerFor(Panels.GENERAL_INFO, hypervisor);
-        SyncValues.TOTAL_FUEL_CONSUMED.registerFor(Panels.GENERAL_INFO, hypervisor);
-        SyncValues.AVAILABLE_GRAVITON_SHARDS.registerFor(Panels.GENERAL_INFO, hypervisor);
+    private static void registerSyncValues(Modules<?> module, SyncHypervisor hypervisor) {
+        SyncValues.INVERSION.registerFor(module, Panels.GENERAL_INFO, hypervisor);
+    }
+
+    private static TextWidget<?> createHeader(String langKey) {
+        return IKey.lang(langKey)
+            .style(TextFormatting.DARK_PURPLE, TextFormatting.BOLD, TextFormatting.UNDERLINE)
+            .asWidget()
+            .alignX(Alignment.CENTER)
+            .marginBottom(8);
+    }
+
+    private static TextWidget<?> createTextEntry(String langKey) {
+        return IKey.lang(langKey)
+            .style(TextFormatting.GOLD)
+            .alignment(Alignment.CenterLeft)
+            .asWidget()
+            .width(OFFSET_SIZE)
+            .marginBottom(8);
+    }
+
+    private static TextWidget<?> createTableOfContentsHeader() {
+        return IKey.lang("gt.blockmachines.multimachine.FOG.tableofcontents")
+            .style(TextFormatting.AQUA, TextFormatting.BOLD)
+            .alignment(Alignment.CenterLeft)
+            .asWidget()
+            .width(OFFSET_SIZE)
+            .marginBottom(8);
+    }
+
+    private static ButtonWidget<?> createToCEntry(ListWidget<IWidget, ?> textList, String langKey,
+        TextWidget<?> jumpPoint) {
+        return new ButtonWidget<>().width(OFFSET_SIZE)
+            .background(IDrawable.EMPTY)
+            .overlay(
+                IKey.lang(langKey)
+                    .style(TextFormatting.AQUA, TextFormatting.BOLD)
+                    .alignment(Alignment.CenterLeft))
+            .disableHoverBackground()
+            .clickSound(ForgeOfGodsGuiUtil.getButtonSound())
+            .onMousePressed(d -> {
+                textList.getScrollData()
+                    .animateTo(
+                        textList.getScrollArea(),
+                        jumpPoint.getArea()
+                            .getRelativePoint(GuiAxis.Y));
+                return true;
+            });
+    }
+
+    private static ButtonWidget<?> createToCEntryInversion(ListWidget<IWidget, ?> textList, TextWidget<?> jumpPoint) {
+        return new ButtonWidget<>().width(OFFSET_SIZE)
+            .background(IDrawable.EMPTY)
+            .overlay(
+                IKey.str(getInversionHeaderText())
+                    .alignment(Alignment.CenterLeft))
+            .disableHoverBackground()
+            .clickSound(ForgeOfGodsGuiUtil.getButtonSound())
+            .onMousePressed(d -> {
+                textList.getScrollData()
+                    .animateTo(
+                        textList.getScrollArea(),
+                        jumpPoint.getArea()
+                            .getRelativePoint(GuiAxis.Y));
+                return true;
+            });
+    }
+
+    private static TextWidget<?> createHeaderInversion() {
+        return IKey.str(getInversionHeaderText())
+            .asWidget()
+            .alignX(Alignment.CENTER)
+            .marginBottom(8);
+    }
+
+    private static String getInversionHeaderText() {
+        return TextFormatting.DARK_GRAY + ""
+            + TextFormatting.BOLD
+            + TextFormatting.OBFUSCATED
+            + "2"
+            + TextFormatting.RESET
+            + TextFormatting.WHITE
+            + TextFormatting.BOLD
+            + translateToLocal("gt.blockmachines.multimachine.FOG.inversion")
+            + TextFormatting.DARK_GRAY
+            + TextFormatting.BOLD
+            + TextFormatting.OBFUSCATED
+            + "2";
     }
 }

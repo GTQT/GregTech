@@ -278,7 +278,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 && structureFormed && getWorld() != null && !(getWorld() instanceof DummyWorld)) {
             MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
             if (worldData.isRegistered(this)) {
-                if (worldData.hasPendingRecheck(this)) {
+                if (worldData.hasPendingRecheck(this, getWorld().getTotalWorldTime())) {
                     if (ConfigHolder.machines.debugStructureCheck) {
                         GTLog.logger.debug("[StructureCheck] Event-driven recheck triggered for {}",
                                 getMetaName());
@@ -342,7 +342,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @Deprecated
     @NotNull
-    protected abstract BlockPattern createStructurePattern();
+    protected BlockPattern createStructurePattern() {
+        throw new UnsupportedOperationException(
+                "Override createStructureTemplate() instead of createStructurePattern()");
+    }
 
     /**
      * Override this method to provide a shared immutable structure template.
@@ -453,6 +456,56 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public TraceabilityPredicate selfPredicate() {
         return metaTileEntities(this).setCenter();
+    }
+
+    /**
+     * Static version of {@link #selfPredicate()} for use in static template builders.
+     * Creates a center predicate that matches a controller by its registry ID.
+     *
+     * <p>Usage in static context:
+     * <pre>{@code
+     * private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+     *     DeclarativePatternBuilder.start()
+     *         .where('S', selfPredicate(gregtechId("electric_blast_furnace")))
+     *         ...
+     *         .buildTemplate()
+     * );
+     * }</pre>
+     *
+     * @param metaTileEntityId the registry ID of the controller MetaTileEntity
+     * @return a center predicate matching that controller type
+     */
+    @NotNull
+    public static TraceabilityPredicate selfPredicate(@NotNull ResourceLocation metaTileEntityId) {
+        MetaTileEntity mte = GregTechAPI.MTE_REGISTRY.getObject(metaTileEntityId);
+        if (mte == null) {
+            throw new IllegalArgumentException("No MetaTileEntity registered with id: " + metaTileEntityId);
+        }
+        return metaTileEntities(mte).setCenter();
+    }
+
+    /**
+     * Static version of {@link #selfPredicate()} for multi-variant controllers.
+     * Creates a center predicate that matches any controller instance whose class equals or
+     * extends the given class. Suitable for machines that register multiple IDs with the same class
+     * (e.g., LargeTurbine, LargeBoiler, LargeMiner).
+     *
+     * <p>Usage:
+     * <pre>{@code
+     * private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+     *     DeclarativePatternBuilder.start()
+     *         .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
+     *         ...
+     *         .buildTemplate()
+     * );
+     * }</pre>
+     *
+     * @param controllerClass the exact controller class to match
+     * @return a center predicate matching all instances of that class
+     */
+    @NotNull
+    public static TraceabilityPredicate selfPredicateByClass(@NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+        return tilePredicate((state, tile) -> controllerClass.isInstance(tile), null).setCenter();
     }
 
     @Override
@@ -860,6 +913,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         super.addInformation(stack, world, tooltip, advanced);
         TooltipBuilder.createDefault().build(this, tooltip);
         TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addStructureInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
+                                        boolean advanced) {
+        // Structure size and tier info
+        TooltipBuilder.create().addStructure().build(this, tooltip);
 
         // Auto-generated structure description from DeclarativePatternBuilder
         if (patternTemplate != null) {
@@ -1100,7 +1161,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
         }
         if (maxCandidates > 0) {
-            return new int[] { 0, maxCandidates - 1 };
+            // Channel value semantics: 0 = auto, 1..N = specific candidate (1-based).
+            // getChannelCandidateIndex uses (cv - 1) as 0-based index into candidates array.
+            return new int[] { 0, maxCandidates };
         }
         return new int[] { 0, 0 };
     }

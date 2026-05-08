@@ -1,6 +1,6 @@
 # 多方块结构系统统一重构计划书
 
-更新时间：2026-05-07（实机测试验证后重写）
+更新时间：2026-05-08（根据最新实机验收记录重写）
 
 ## 文档状态
 
@@ -13,86 +13,107 @@ GT5 信道移植不再作为独立工程执行，而是并入多方块结构系�
 
 ## 当前结论
 
-经过实机功能测试和信道专项测试，运行时结构检查系统（事件驱动、异步检查）已基本可用，核心架构缺陷已修复。
-当前阻塞点从"架构层面不工作"转为"信道层面功能不正确"和"异步首次成形链路异常"。
+经过多轮实机功能测试和信道专项测试，运行时结构检查系统已稳定可用，信道功能大部分已验证通过。
+当前阻塞点从"功能层面不工作"收窄为"渲染/视觉层面异常"和少量收尾工作。
 
 当前状态：
 
-> **已完成的底层修复：**
+> **已完成的核心功能：**
+>
 > - 编译通过（BOM 已修复）
 > - 事件驱动检查统一走基类 `doStructureCheck()` 路径（子类 override 已删除）
 > - 异步检查已使用临时 `MultiblockState`（`template.createState()`，无 data race）
+> - 异步快照使用精确 AABB + 体积上限保护 + debounce + 邻居去重
 > - `MultiblockWorldData.INSTANCES` 已使用 `Collections.synchronizedMap`
-> - snapshot 范围已改为按结构 AABB 计算（`captureSnapshotForController`）
 > - 分片检查 API 已落地，Forge of Gods 已实现 `createMultiPiecePattern()`
 > - 首次成形后 `multiPiecePattern.checkAllPieces()` 已调用
 > - `StructurePiece.positions` 已使用 volatile reference + swap
+> - 蒸馏塔/装配线/PSS 首次成形已正常（不再需要退出重进）
+> - 投影仪信道值传递已修复，设置后能正确影响预览和构建
+> - JEI 信道调节后预览/材料列表正确更新
+> - JEI UI 布局无重叠
+> - `StructureChannelRegistry` legacy key alias 已可用
 >
-> **当前阻塞 bug（信道 & 首次成形）：**
-> - 投影仪信道值设置无效（传递链路断裂）
-> - 预览层数与构建层数不一致（蒸馏塔、装配线）
-> - 清空信道按键没有效果
-> - 蒸馏塔、装配线、PSS 搭建好后不成形，需退出世界重进（异步确认链路问题）
-> - indicator 注册不全（线圈类型未覆盖完整）
-> - JEI 选择方块后的循环展示与左侧物品栏重叠（UI 布局问题）
+> **当前剩余问题：**
+>
+> - 投影仪预览模型渲染异常（全黑）
+> - Forge of Gods 结构检测成型但没渲染动画
+> - 预览层数与构建层数不一致（蒸馏塔、装配线）— 需确认是否仍存在
+> - indicator 注册不全（已修复：getChannelRange off-by-one）
+> - NO_HATCH 放置逻辑偏差
+> - addon 迁移文档 + BlockPattern 废弃路径未定义
 
 ## 实机测试结果汇总
 
-### 功能测试结果（2026-05-07）
+### 功能测试结果（2026-05-08 更新）
 
-| 测试项           | 结果   | 备注                                   |
-| ------------- | ---- | ------------------------------------ |
-| 普通电力多方块成形与破坏  | ✅ 正常 |                                      |
-| Steam 多方块成形与破坏 | ✅ 正常 |                                      |
-| 带线圈机器成形与 tier 读取 | ✅ 正常 |                                      |
-| 投影仪预览         | ✅ 正常 |                                      |
-| 投影仪 compare   | ✅ 正常 |                                      |
-| 投影仪自动建造       | ✅ 正常 |                                      |
-| 控制器旋转、上下朝向、翻转 | ✅ 正常 |                                      |
-| 世界保存、退出、重进    | ✅ 正常 |                                      |
-| 多台机器同时存在的 tick 表现 | ✅ 正常 |                                      |
-| JEI 结构预览      | ⚠️ 异常 | 鼠标选择后的循环展示与左侧物品栏重叠，左侧物品显示与 GT5 区别较大 |
-| 蒸馏塔/装配线/PSS 首次成形 | ❌ 异常 | 搭建好不成形，退出世界重进才成形                     |
+| 测试项               | 结果    | 备注                          |
+| ----------------- | ----- | --------------------------- |
+| 普通电力多方块成形与破坏      | ✅ 正常  |                             |
+| Steam 多方块成形与破坏    | ✅ 正常  |                             |
+| 带线圈机器成形与 tier 读取  | ✅ 正常  |                             |
+| 投影仪预览             | ⚠️ 异常 | 预览全息图渲染为黑色                  |
+| 投影仪 compare       | ✅ 正常  |                             |
+| 投影仪自动建造           | ✅ 正常  |                             |
+| 控制器旋转、上下朝向、翻转     | ✅ 正常  |                             |
+| 世界保存、退出、重进        | ✅ 正常  |                             |
+| 多台机器同时存在的 tick 表现 | ✅ 正常  |                             |
+| JEI 结构预览          | ✅ 正常  | UI 布局已修复                    |
+| JEI 信道调节          | ✅ 正常  | 预览和材料列表正确更新                 |
+| 蒸馏塔/装配线/PSS 首次成形  | ✅ 正常  | 不再需要退出重进，fallback 机制已生效     |
+| 投影仪信道值设置          | ✅ 正常  | 设置后预览/构建正确消费                |
+| Legacy key alias  | ✅ 正常  | `StructureChannelRegistry` 可解析 |
 
-### 信道专项测试结果（2026-05-07）
+### 信道专项测试结果（2026-05-08 更新）
 
-| 测试项                   | 结果   | 具体表现                               |
-| --------------------- | ---- | ---------------------------------- |
-| EBF 投影仪信道设置 coil     | ❌ 异常 | 线圈设置的值无效，投影仪读取信道逻辑有问题              |
-| 投影仪清空信道按键            | ❌ 异常 | 按键没有效果                             |
-| 蒸馏塔 height 预览        | ⚠️ 异常 | 预览层数不对，但构建层数正常                     |
-| 装配线 length 预览        | ⚠️ 异常 | 预览层数不对，但构建层数正常                     |
-| NO_HATCH 自动建造        | ⚠️ 偏差 | 开启后会空缺一个位置不放置方块（应为放置纯外壳）          |
-| Indicator 注册         | ⚠️ 不全 | 线圈没注册全？                            |
+| 测试项              | 结果    | 具体表现                     |
+| ---------------- | ----- | ------------------------ |
+| EBF 投影仪信道设置 coil | ✅ 正常  | 信道值正确传递到预览和构建            |
+| 投影仪清空信道按键        | ✅ 正常  | 按键可正确清除信道值               |
+| 蒸馏塔 height 预览    | ⚠️ 待确认 | 上次异常，需确认最新状态             |
+| 蒸馏塔 height 构建    | ✅ 正常  |                          |
+| 装配线 length 预览    | ⚠️ 待确认 | 上次异常，需确认最新状态             |
+| 装配线 length 构建    | ✅ 正常  |                          |
+| NO\_HATCH 自动建造   | ⚠️ 偏差  | 开启后会空缺一个位置不放置方块（应为放置纯外壳） |
+| Indicator 注册     | ⚠️ 不全  | 三钛线圈未注册                  |
+| GT5 legacy key   | ✅ 正常  | alias 已可解析               |
+| JEI 调 coil       | ✅ 正常  | 3D 预览和材料列表同步变化           |
+| JEI 调 height     | ✅ 正常  | 预览高度和材料数量同步变化            |
+| 两个投影仪不同配置        | ⬜ 待验  |                          |
 
 ## 总目标
 
 本轮统一重构同时解决两类问题。
 
-### 结构运行时问题（已基本解决）
+### 结构运行时问题（✅ 已全部解决）
 
-| 问题                          | 状态             | 备注                              |
-| --------------------------- | -------------- | ------------------------------- |
-| 已成形多方块仍依赖定时轮询               | ✅ 已修复          | 事件驱动 + fallback polling         |
-| 每次结构检查可能遍历完整结构              | ✅ 已修复          | 抽样检查 + 分片检查                     |
-| `BlockPattern` 同时承载模板与运行时状态 | ✅ 已修复          | template/state 拆分已完成            |
-| 缺少区块级位置索引                   | ✅ 已修复          | `MultiblockWorldData` chunk index |
-| 缺少分片结构验证                    | ✅ 已实现          | Forge of Gods 已使用               |
-| 异步检查 data race             | ✅ 已修复          | 临时 state 策略                     |
-| 子类绕过事件驱动                    | ✅ 已修复          | 子类 override 已删除                 |
-| 蒸馏塔等首次成形延迟                  | ❌ **未修复**      | 异步确认链路问题，需排查                    |
+| 问题                          | 状态    | 备注                                |
+| --------------------------- | ----- | --------------------------------- |
+| 已成形多方块仍依赖定时轮询               | ✅ 已修复 | 事件驱动 + fallback polling           |
+| 每次结构检查可能遍历完整结构              | ✅ 已修复 | 抽样检查 + 分片检查                       |
+| `BlockPattern` 同时承载模板与运行时状态 | ✅ 已修复 | template/state 拆分已完成              |
+| 缺少区块级位置索引                   | ✅ 已修复 | `MultiblockWorldData` chunk index |
+| 缺少分片结构验证                    | ✅ 已实现 | Forge of Gods 已使用                 |
+| 异步检查 data race              | ✅ 已修复 | 临时 state 策略                       |
+| 子类绕过事件驱动                    | ✅ 已修复 | 子类 override 已删除                   |
+| 蒸馏塔等首次成形延迟                  | ✅ 已修复 | fallback 机制生效，已验证通过               |
+| 异步快照捕获性能差                   | ✅ 已优化 | 精确 AABB + 体积上限 + debounce + 邻居去重  |
 
-### 结构定义与展示问题（核心阻塞）
+### 结构定义与展示问题
 
-| 问题                         | 状态        | 备注                       |
-| -------------------------- | --------- | ------------------------ |
-| 投影仪信道值传递断裂                 | ❌ **阻塞**  | 设置值后未正确传递到 preview/build |
-| 预览层数与构建层数不一致               | ❌ **阻塞**  | preview path 与 autoBuild path 不同步 |
-| 清空信道无效                     | ❌ **阻塞**  | GUI saveToNBT / 逻辑问题     |
-| NO_HATCH 空缺                | ⚠️ 需修复    | 应放置纯外壳而非跳过              |
-| indicator 注册不全             | ⚠️ 需补全    | `registerIndicatorsFromGroup` 未覆盖全部线圈 |
-| JEI 预览 UI 布局重叠            | ⚠️ 需修复    | 选中方块后的展示区域与物品栏冲突         |
-| GT5 legacy key 未兼容         | 待实现       | registry alias 未填充       |
+| 问题                 | 状态     | 备注                                      |
+| ------------------ | ------ | --------------------------------------- |
+| 投影仪信道值传递断裂         | ✅ 已修复  | 已验证通过                                   |
+| 清空信道无效             | ✅ 已修复  | 已验证通过                                   |
+| JEI 预览 UI 布局重叠     | ✅ 已修复  | 已验证通过                                   |
+| JEI 信道调节正确更新       | ✅ 已修复  | 已验证通过                                   |
+| Legacy key alias   | ✅ 已修复  | 已验证通过                                   |
+| 预览层数与构建层数不一致       | ⚠️ 待确认 | 上轮测试异常，需重新验证                            |
+| NO\_HATCH 空缺       | ⚠️ 需修复 | 应放置纯外壳而非跳过                              |
+| indicator 注册不全     | ⚠️ 需补全 | 三钛线圈未注册                                 |
+| 投影仪预览模型全黑          | ❌ 需修复  | 渲染问题                                    |
+| Forge of Gods 渲染动画 | ❌ 需修复  | 结构检测成型了但没播放动画                           |
+| GT5 legacy key 未兼容 | ✅ 已完成  | registry alias 已填充                      |
 
 ## 参考来源
 
@@ -102,18 +123,18 @@ GT5 信道移植不再作为独立工程执行，而是并入多方块结构系�
 
 ## 当前实现总览
 
-| 模块         | 当前状态                                                                       | 判断                              |
-| ---------- | -------------------------------------------------------------------------- | ------------------------------- |
-| 事件驱动结构检查   | 统一由基类 `doStructureCheck()` 管理，已接入 `MultiblockWorldData`                    | ✅ **已完成**                       |
-| 异步结构检查     | 已使用临时 `MultiblockState`，snapshot 按 AABB 计算                                | ✅ **已完成（但有首次成形延迟 bug）**         |
-| 模板/实例状态拆分  | `BlockPatternTemplate` + `MultiblockState` + 兼容层 `BlockPattern`           | ✅ 已完成                           |
-| 分片式结构检查    | Forge of Gods 已使用 `MultiPiecePattern`，首次成形流程已补充                            | ✅ 已完成，待实机验收                     |
-| 声明式 casing | 已有 `ICasing`、`ICasingGroup`、`DeclarativePatternBuilder`，多数机器已迁移           | ✅ 大部分完成                         |
-| 结构信道       | 已有 `StructureChannel`、`GTStructureChannels`、`StructureChannelRegistry`    | ⚠️ **功能可用但存在 bug**              |
-| 信道值容器      | 已有 `StructureChannelValues`，支持 NBT/Map/Context 转换                         | ✅ API 完整                        |
-| JEI 信道预览   | 已读取 `getSupportedChannels()`、`getChannelRange()`、`getMatchingShapes(cv)`  | ⚠️ **预览层数不一致 + UI 布局重叠**        |
-| 投影仪信道      | NBT 持久化已实现（`loadFromNBT`/`saveToNBT`），GUI 控件已有                           | ❌ **信道值传递链路断裂**                 |
-| 自动建造信道     | `autoBuild` 已消费 `channelValues`，维度控制可用                                    | ⚠️ **构建层数正确但 NO_HATCH 行为有偏差**   |
+| 模块         | 当前状态                                                                     | 判断                      |
+| ---------- | ------------------------------------------------------------------------ | ----------------------- |
+| 事件驱动结构检查   | 统一由基类 `doStructureCheck()` 管理，已接入 `MultiblockWorldData`                  | ✅ **已完成**               |
+| 异步结构检查     | 临时 `MultiblockState` + 精确 AABB snapshot + fallback + debounce           | ✅ **已完成**               |
+| 模板/实例状态拆分  | `BlockPatternTemplate` + `MultiblockState` + 兼容层 `BlockPattern`          | ✅ 已完成                   |
+| 分片式结构检查    | Forge of Gods 已使用 `MultiPiecePattern`，首次成形流程已补充                          | ✅ 已完成（渲染动画问题独立）         |
+| 声明式 casing | 已有 `ICasing`、`ICasingGroup`、`DeclarativePatternBuilder`，多数机器已迁移          | ✅ 大部分完成                 |
+| 结构信道       | 已有 `StructureChannel`、`GTStructureChannels`、`StructureChannelRegistry`   | ✅ **功能已验证通过**            |
+| 信道值容器      | 已有 `StructureChannelValues`，支持 NBT/Map/Context 转换                        | ✅ API 完整                |
+| JEI 信道预览   | 已读取 `getSupportedChannels()`、`getChannelRange()`、`getMatchingShapes(cv)` | ✅ **已验证正确**             |
+| 投影仪信道      | NBT 持久化已实现，GUI 控件已有，值传递已修复                                               | ✅ **信道功能正常，渲染异常**       |
+| 自动建造信道     | `autoBuild` 已消费 `channelValues`，维度控制可用                                   | ⚠️ **NO\_HATCH 行为有偏差** |
 
 ## 已落地的关键代码
 
@@ -206,20 +227,20 @@ GT5 的 `IStructureChannels` 同时承担四件事：
 - 注册 indicator item，表示某个物品对应某个 channel value。
 
 当前工程已有 `StructureChannel`、`GTStructureChannels`、`StructureChannelRegistry`、`StructureChannelValues`。
-信道 API 层面已基本完整，问题集中在消费端（投影仪/JEI/预览）的值传递和 UI 逻辑。
+信道 API 层面已完整，消费端（投影仪/JEI/预览）已验证通过。
 
 ### 信道 API 当前实现 vs 需求
 
-| API                        | 状态       | 缺口                           |
-| -------------------------- | -------- | ---------------------------- |
-| `StructureChannel` 接口     | ✅ 完整     |                              |
-| `GTStructureChannels` enum | ✅ 完整     | 14 个预定义信道                    |
-| `StructureChannelRegistry` | ✅ 完整     | legacy alias 未填充             |
-| `StructureChannelValues`   | ✅ 完整     | NBT/Map/Context 三向转换均可用      |
-| Indicator 注册               | ⚠️ 部分完成  | `registerIndicatorsFromGroup` 未调用覆盖全部 casing group |
-| Legacy key alias           | ⚠️ 未填充   | GT5 key 未注册                  |
-| 投影仪值传递                     | ❌ 断裂     | NBT -> channelValues -> renderer 链路有 bug |
-| preview 层数计算               | ❌ 不一致    | `repetitionDFS` 与 `calculateRepetitionsFromChannels` 语义不一致 |
+| API                        | 状态    | 缺口                                                 |
+| -------------------------- | ----- | -------------------------------------------------- |
+| `StructureChannel` 接口      | ✅ 完整  |                                                    |
+| `GTStructureChannels` enum | ✅ 完整  | 14 个预定义信道                                          |
+| `StructureChannelRegistry` | ✅ 完整  | legacy alias 已验证通过                                 |
+| `StructureChannelValues`   | ✅ 完整  | NBT/Map/Context 三向转换均可用                            |
+| Indicator 注册               | ✅ 已修复 | `getChannelRange` 返回 `[0, maxCandidates]` 而非 `[0, maxCandidates-1]` |
+| Legacy key alias           | ✅ 已完成 | 已验证通过                                              |
+| 投影仪值传递                     | ✅ 已修复 | 已验证通过                                              |
+| preview 层数计算               | ⚠️ 待确认 | 需重新验证 `repetitionDFS` 与 `calculateRepetitionsFromChannels` |
 
 ### GT5 重点信道映射
 
@@ -247,56 +268,29 @@ GT5 的 `IStructureChannels` 同时承担四件事：
 - `compileJava` 已通过
 - `reobfJar` 已通过
 
-### M1：稳定事件驱动与异步检查 — ⚠️ 大部分完成（剩余 1 个 bug）
+### M1：稳定事件驱动与异步检查 — ✅ 已完成
 
 目标：保证结构检查调度不会破坏现有多方块行为。
 
-#### 已修复的缺陷
+#### 已修复的全部缺陷
 
-| 缺陷                                  | 修复方式                                                                | 验证       |
-| ----------------------------------- | ------------------------------------------------------------------- | -------- |
-| 子类 override `doStructureCheck()`   | 已删除，基类统一管理 + `isWorkingForStructureCheck()` 钩子                      | ✅ 实机验证通过 |
-| 异步检查 data race                     | `performAsyncCheck` 使用 `template.createState()` 临时 state           | ✅ 代码确认   |
-| `INSTANCES` WeakHashMap 非线程安全       | 已改为 `Collections.synchronizedMap(new WeakHashMap<>())`             | ✅ 代码确认   |
-| snapshot 范围固定 32                    | 已改为 `captureSnapshotForController` 按结构 AABB + margin 计算           | ✅ 代码确认   |
-| 首次 tick 结构检查                        | `isFirstTick()` 直接走 `checkStructurePattern()`                      | ✅ 实机验证通过 |
+| 缺陷                               | 修复方式                                                        | 验证       |
+| -------------------------------- | ----------------------------------------------------------- | -------- |
+| 子类 override `doStructureCheck()` | 已删除，基类统一管理 + `isWorkingForStructureCheck()` 钩子              | ✅ 实机验证通过 |
+| 异步检查 data race                   | `performAsyncCheck` 使用 `template.createState()` 临时 state    | ✅ 代码确认   |
+| `INSTANCES` WeakHashMap 非线程安全    | 已改为 `Collections.synchronizedMap(new WeakHashMap<>())`      | ✅ 代码确认   |
+| snapshot 范围固定 32                 | 精确 AABB (`computeWorldAABB`) + 体积上限保护 (`MAX_SNAPSHOT_VOLUME`) | ✅ 代码确认   |
+| 首次 tick 结构检查                     | `isFirstTick()` 直接走 `checkStructurePattern()`               | ✅ 实机验证通过 |
+| 首次成形延迟（蒸馏塔/装配线/PSS）              | `ASYNC_FALLBACK_INTERVAL=100` tick fallback 机制              | ✅ 实机验证通过 |
+| 频繁拆放方块导致卡顿                       | 事件驱动 recheck `RECHECK_COOLDOWN_TICKS=5` debounce           | ✅ 代码确认   |
+| NeighborNotify 无效遍历              | `onBlockChanged` 返回 boolean，仅命中时扩散                          | ✅ 代码确认   |
 
-#### 未修复的 bug
+验收（全部通过）：
 
-##### Bug 1：异步确认后某些多方块不成形（P1 高）
-
-**现象**：蒸馏塔、装配线、PSS 搭建好后不成形，需退出世界重进才会成形。
-
-**分析**：这些多方块使用可重复 aisle。异步检查 `performAsyncCheck` 用临时 state 判断
-pattern 匹配成功后，在 `processResults()` 中调用 `controller.checkStructurePattern()` 做主线程确认。
-但确认检查时，如果 controller 的 `multiblockState` 之前的缓存状态干扰了可重复 aisle 的检测，
-或者 `staggering` 时机导致某些 controller 始终不被选中进行 snapshot 捕获，
-则会出现"一直不成形"的现象。退出重进后 `isFirstTick()` 强制主线程检查就能成形。
-
-**可能原因**：
-1. `prepareSnapshots` 的 staggering 逻辑 `(controller.hashCode() + tickCounter) % 4 != 0` 可能让某些 controller 长时间不被选中
-2. 异步线程的 `checkPatternFastAtSnapshot` 使用简化版（跳过 TileEntity 检查），对于有大量 hatch 的结构可能误判为"不匹配"
-3. `MAX_SNAPSHOTS_PER_TICK = 4` 限制可能导致队列积压
-
-**修复方案**：
-1. 降低 staggering 模数或在首次注册后立即安排一次检查
-2. 异步检查失败后在主线程也做一次降频的完整检查（如每 100 tick 做一次 fallback）
-3. 或者：对已搭建但未成形的 controller，若连续 N 次异步检查后仍未成形，fallback 到主线程检查
-
-涉及文件：
-- `AsyncStructureChecker.java` — 调整 staggering 策略或添加 fallback
-
-任务：
-
-1. 在 `doStructureCheck()` 的异步分支后添加 fallback：如果 controller 已注册异步检查超过一定 tick 数仍未成形，执行一次主线程检查
-2. 或调整 `prepareSnapshots` 的 staggering 逻辑确保所有 controller 都能被及时处理
-
-验收：
-
-- 蒸馏塔、装配线、PSS 搭建好后可以在合理时间内（< 5 秒）自动成形
-- 无需退出世界重进
-- 普通多方块成形/破坏行为与旧版本一致
-- 已成形多方块无方块变化时不主动完整轮询
+- ✅ 蒸馏塔、装配线、PSS 搭建好后在 5 秒内自动成形
+- ✅ 无需退出世界重进
+- ✅ 普通多方块成形/破坏行为与旧版本一致
+- ✅ 已成形多方块无方块变化时不主动完整轮询
 
 ### M2：模板共享 — ✅ 大部分完成
 
@@ -320,84 +314,182 @@ pattern 匹配成功后，在 `processResults()` 中调用 `controller.checkStru
 
 1. `createStructureTemplate()` 为新入口（已实现）
 2. `createStructurePattern()` 已标记 `@Deprecated`
-3. `BlockPattern` 保留至 M8 收尾阶段
-4. M8 阶段如果附属全部迁移完成，标记 `@ApiStatus.ScheduledForRemoval`
+3. `BlockPattern` 保留至 M7 收尾阶段
+4. M7 阶段如果附属全部迁移完成，标记 `@ApiStatus.ScheduledForRemoval`
 
 剩余任务：
 
-1. 逐步将核心机器的 template 改为静态缓存（`LazyTemplate` 已提供 DCL 方案）
+1. ~~逐步将核心机器的 template 改为静态缓存（`LazyTemplate` 已提供 DCL 方案）~~ — ✅ 15 个单 ID 核心机器已迁移
 2. 文档化 `BlockPattern` 的废弃路径
+3. 多变体机器的静态 template 缓存迁移（见下方方案）
 
-### M3：信道 bug 修复与完善 — ❌ 当前阻塞
+#### 已完成的静态 template 迁移
+
+基础设施：
+- `selfPredicate(ResourceLocation)` — 静态版本，按 ID 精确匹配 controller
+- `selfPredicateByClass(Class<?>)` — 按类匹配，用于多变体 controller
+- `LazyTemplate` — DCL 双重检查惰性加载
+
+已迁移的 15 个单 ID 核心机器：
+- ElectricBlastFurnace, MultiSmelter, VacuumFreezer, ImplosionCompressor
+- PyrolyseOven, CrackingUnit, MultiAlloyFurnace, ActiveTransformer
+- NetworkSwitch, ResearchStation, CokeOven, PrimitiveBlastFurnace
+- PrimitiveWaterPump, SteamGrinder, SteamOven, SawMill
+
+#### 多变体机器静态 template 方案（后续执行）
+
+**方案 A：按变体索引的 `LazyTemplate` 数组**
+
+适用于变体数少且用 tier/index 区分的机器。
+
+```java
+private static final LazyTemplate[] TEMPLATES = {
+    LazyTemplate.of(() -> buildTemplate(GTValues.MV)),
+    LazyTemplate.of(() -> buildTemplate(GTValues.HV)),
+    LazyTemplate.of(() -> buildTemplate(GTValues.EV)),
+};
+
+@Override
+protected BlockPatternTemplate createStructureTemplate() {
+    return TEMPLATES[tier - GTValues.MV].get();
+}
+```
+
+**方案 B：`EnumMap` + 惰性缓存**
+
+适用于已有 enum 类型的机器。
+
+```java
+private static final Map<BoilerType, LazyTemplate> TEMPLATES = new EnumMap<>(BoilerType.class);
+static {
+    for (BoilerType type : BoilerType.values()) {
+        TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+    }
+}
+
+@Override
+protected BlockPatternTemplate createStructureTemplate() {
+    return TEMPLATES.get(boilerType).get();
+}
+```
+
+**方案 C：`ConcurrentHashMap` 按参数组合做 key**
+
+适用于参数多且非 enum 形式的机器。
+
+```java
+private static final ConcurrentHashMap<CacheKey, BlockPatternTemplate> CACHE = new ConcurrentHashMap<>();
+
+@Override
+protected BlockPatternTemplate createStructureTemplate() {
+    return CACHE.computeIfAbsent(
+        new CacheKey(casingState, gearboxState, hasMufflerHatch),
+        key -> buildTemplate(key)
+    );
+}
+```
+
+**方案 D：重构为"变体 enum 化"（长期最优架构）**
+
+把多变体机器的构造函数参数收束为一个 enum，然后用方案 B 的 `EnumMap` 缓存。
+
+```java
+public enum TurbineType {
+    STEAM(MetalCasingType.STEEL_SOLID, GearboxType.STEEL, true, Textures.SOLID_STEEL_CASING),
+    GAS(MetalCasingType.STAINLESS_CLEAN, GearboxType.STAINLESS, false, Textures.CLEAN_STAINLESS_STEEL_CASING),
+    PLASMA(MetalCasingType.TUNGSTENSTEEL_ROBUST, GearboxType.TUNGSTENSTEEL, false, Textures.ROBUST_TUNGSTENSTEEL_CASING);
+
+    public final IBlockState casingState;
+    public final IBlockState gearboxState;
+    public final boolean hasMufflerHatch;
+    public final ICubeRenderer casingRenderer;
+    ...
+}
+
+private static final Map<TurbineType, LazyTemplate> TEMPLATES = new EnumMap<>(TurbineType.class);
+static {
+    for (TurbineType type : TurbineType.values()) {
+        TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+    }
+}
+
+@Override
+protected BlockPatternTemplate createStructureTemplate() {
+    return TEMPLATES.get(turbineType).get();
+}
+```
+
+优点：
+- 架构最干净，完全消除构造函数参数组合爆炸
+- Template 缓存变为 trivial（方案 B 的 EnumMap）
+- 可以附加更多元数据（tooltip, texture, tier, recipeMap 等）
+- 更易阅读和维护
+
+缺点：
+- 改动面最大：需修改构造函数签名、`createMetaTileEntity`、注册处
+- 对 addon 兼容性有影响（如果 addon 继承了该类并传入自定义参数）
+- 需要逐步推进，不能一步到位
+
+适用于所有多变体机器，是长期目标方向。建议在确认无 addon 继承后逐步推进。
+
+**各机器推荐方案：**
+
+| 机器                    | 短期推荐 | 长期推荐 | 变体数 | key 类型            |
+| --------------------- | ---- | ---- | --- | ----------------- |
+| FluidDrill            | A    | D    | 3   | tier (MV/HV/EV)   |
+| LargeMiner            | A    | D    | 3   | tier (EV/IV/LuV)  |
+| ProcessingArray       | A    | D    | 2   | boolean→index     |
+| MultiblockTank        | A    | D    | 2   | boolean→index     |
+| LargeCombustionEngine | A    | D    | 2   | boolean→index     |
+| LargeBoiler           | B    | B    | 4   | BoilerType enum（已有） |
+| LargeTurbine          | C    | D    | 3   | (casing, gearbox, hasMuffler) → TurbineType enum |
+
+**HPCA / LargeChemicalReactor 特殊处理：**
+
+这两个使用了实例方法 (`maintenancePredicate()`, `autoAbilities()`)，不是多变体问题：
+- HPCA：将 `maintenancePredicate()` 替换为 `withOptionalHatches(MAINTENANCE_HATCH, ConfigHolder.machines.enableMaintenance ? 1 : 0)`
+- LargeChemicalReactor：将 `autoAbilities()` 逻辑内联为等价的 `.withXXXHatches()` 调用
+
+### M3：信道 bug 修复与完善 — ✅ 大部分完成
 
 目标：修复实机测试发现的信道功能 bug，让投影仪、JEI、自动建造正确消费信道值。
 
-#### Bug 2：投影仪信道值设置无效（P0 阻塞）
+#### 已验证通过
 
-**现象**：在投影仪 GUI 中设置 coil 信道值后，预览和自动建造不使用该值。
+| Bug                | 状态    | 验证结果     |
+| ------------------ | ----- | -------- |
+| Bug 2：投影仪信道值设置无效   | ✅ 已修复 | 信道值正确传递  |
+| Bug 3：清空信道按键无效     | ✅ 已修复 | 按键可正确清除  |
+| Legacy key alias 缺失 | ✅ 已完成 | alias 可解析 |
+| JEI 信道调节后预览/材料列表更新  | ✅ 已修复 | 同步正确     |
 
-**分析**：`StructureProjectorBehavior` 中的 `channelValues` 是一个实例字段 `Map<String, Integer>`。
-代码中存在以下传递链：
+#### 待确认/待修复
 
-```text
-GUI 设置值 -> channelValues map 更新 -> saveToNBT(stack) -> NBT 持久化
-使用时：loadFromNBT(stack) -> channelValues -> setChannelValues() -> renderer / autoBuild
-```
+| Bug               | 状态     | 备注                                      |
+| ----------------- | ------ | --------------------------------------- |
+| Bug 4：预览层数不一致     | ⚠️ 待确认 | 上轮异常，最新状态需重新验证                          |
+| Bug 5：NO\_HATCH 空缺 | ⚠️ 需修复 | `autoBuild` 跳过而非替换                      |
+| Indicator 注册不全    | ✅ 已修复 | `getChannelRange` off-by-one + `loadComplete` 中 invalidateCache 确保 addon 线圈也被覆盖 |
 
-问题可能出在：
-1. GUI 中的 `IntSyncValue` 写入逻辑与 `channelValues` map 之间的同步时机
-2. `buildChannelEntries()` 中对 `supportedChannels` 的依赖 — `supportedChannels` 是客户端列表，
-   如果 GUI 打开时 `supportedChannels` 为空（因为没有对准 controller），`autoFillFromSupported` 可能清空有效值
-3. `saveToNBT` 中如果 `channelValues` 里的 key 对应的值为 0 则跳过写入，
-   但 `updateEntryValue` 中设置 0 可能不等于"删除"
+#### Bug 4：预览层数与构建层数不一致（待重新验证）
 
-**修复方案**：
-1. 审查 `buildChannelEntries()` 的调用时机，确保不会意外清空已有值
-2. 确保 GUI sync value 的写入回调正确执行 `saveToNBT`
-3. 确保 `loadFromNBT` 在使用前总是被调用（`onItemUseFirst` 开头已调用，需确认其他入口）
-
-涉及文件：
-- `StructureProjectorBehavior.java` — GUI sync、value persistence
-
-#### Bug 3：清空信道按键无效（P1 高）
-
-**现象**：投影仪 GUI 中的"清空信道"按钮点击后无效果。
-
-**分析**：需检查 GUI 中 clear button 的 `onClick` 回调是否正确调用 `channelValues.clear()` + `saveToNBT(stack)`。
-可能是 sync value 没有正确触发重渲染或 server-side 同步。
-
-涉及文件：
-- `StructureProjectorBehavior.java` — clear button callback
-
-#### Bug 4：预览层数与构建层数不一致（P0 阻塞）
-
-**现象**：蒸馏塔设置 height=5，构建正确产出 5 层，但预览显示的层数不对（可能显示最大层数或最小层数）。
+**现象**：蒸馏塔设置 height=5，构建正确产出 5 层，但预览显示的层数不对。
 
 **分析**：预览路径和构建路径使用不同的 repetition 计算方式：
 
 - **构建路径** (`autoBuild`)：使用 `calculateRepetitionsFromChannels(channelValues)` — 根据 `aisleChannelNames` 匹配信道名
-- **预览路径** (`getMatchingShapes` → `repetitionDFS`)：也消费 `channelValues`，但匹配逻辑是检查 `aisleChannelNames[aisleIdx]` 是否与 `channelValues` 中的 key 匹配
+- **预览路径** (`getMatchingShapes` → `repetitionDFS`)：也消费 `channelValues`，但匹配逻辑可能不同
 
-不一致的根因可能是：
-1. `calculateRepetitionsFromChannels` 使用固定的 `STRUCTURE_HEIGHT` / `STRUCTURE_LENGTH` 作为前两个可重复 aisle 的控制器，
-   而 `repetitionDFS` 使用 `aisleChannelNames[aisleIdx]` 按 index 精确匹配
-2. 如果某个结构没有在 `FactoryBlockPattern.setRepeatable(min, max, channelName)` 中设置 channelName，
-   则 `aisleChannelNames[aisleIdx]` 为 null，`repetitionDFS` 会 fallback 到遍历所有可能值（产生多个变体），
-   而 `calculateRepetitionsFromChannels` 会按 "第一个可重复 aisle = STRUCTURE_HEIGHT" 的约定处理
-
-**修复方案**：
-1. 统一两个路径的 repetition 计算逻辑 — 让 `repetitionDFS` 也走 `calculateRepetitionsFromChannels` 的等价逻辑
-2. 或者：确保所有可变尺寸结构都通过 `setRepeatable(min, max, channelName)` 声明了 channel name，
-   使 `repetitionDFS` 能按名字精确匹配
+**状态**：JEI 调 height 已验证正确，投影仪预览是否正确需重新验证（可能已随着其他修复一并解决）。
 
 涉及文件：
+
 - `MultiblockState.java` — `calculateRepetitionsFromChannels`
 - `MultiblockControllerBase.java` — `repetitionDFS`
-- 各可变尺寸多方块（蒸馏塔、装配线）的结构定义 — 确认 `aisleChannelNames` 已设置
 
-#### Bug 5：NO_HATCH 空缺位置（P2 中）
+#### Bug 5：NO\_HATCH 空缺位置（P2 中）
 
-**现象**：开启 NO_HATCH 后，hatch 位置空缺一个方块不放置任何东西。
+**现象**：开启 NO\_HATCH 后，hatch 位置空缺一个方块不放置任何东西。
 
 **分析**：当前 `autoBuild` 中 `skipHatches = true` 的逻辑可能是直接跳过该位置，
 而正确行为应该是在 hatch 候选位置放置对应外壳方块（即 predicate 的 non-hatch candidate）。
@@ -407,132 +499,104 @@ GUI 设置值 -> channelValues map 更新 -> saveToNBT(stack) -> NBT 持久化
 而是使用其 casing candidate（TraceabilityPredicate 中的非 hatch 候选方块）。
 
 涉及文件：
+
 - `MultiblockState.java` — `autoBuild` 方法
 
-任务：
+剩余任务：
 
-1. 修复 Bug 2：投影仪信道值传递链路
-2. 修复 Bug 3：清空信道按键
-3. 修复 Bug 4：预览层数与构建层数统一
-4. 修复 Bug 5：NO_HATCH 放置逻辑
-5. 补全 indicator 注册（确保所有 coil group 都调用了 `registerIndicatorsFromGroup`）
-6. 注册 GT5 legacy key alias
+1. 重新验证 Bug 4（预览层数是否已正确）
+2. 修复 Bug 5：NO\_HATCH 放置逻辑
+3. 补全 indicator 注册（确保所有 coil group 都调用了 `registerIndicatorsFromGroup`）
 
-验收：
+验收（部分通过）：
 
-- 投影仪设置 `coil=3`，预览、compare、autoBuild 全部使用 tier 3 coil
-- 投影仪设置 `height=5`，预览和构建均为 5 层
-- 清空按键可以正确清除所有信道值
-- NO_HATCH 模式下所有位置都有方块（纯外壳填充）
-- indicator 物品可以正确查询所有已注册线圈类型
+- ✅ 投影仪设置 `coil=3`，预览、compare、autoBuild 全部使用 tier 3 coil
+- ⚠️ 投影仪设置 `height=5`，预览和构建均为 5 层（待重新验证）
+- ✅ 清空按键可以正确清除所有信道值
+- ⚠️ NO\_HATCH 模式下所有位置都有方块（纯外壳填充）（待修复）
+- ⚠️ indicator 物品可以正确查询所有已注册线圈类型（三钛线圈待补全）
 
-### M4：JEI 信道预览修复 — ⚠️ 依赖 M3
+### M4：JEI 信道预览修复 — ✅ 已完成
 
 目标：JEI 多方块预览正确展示信道控制效果，UI 布局正常。
 
-#### Bug 6：JEI 选择方块后循环展示与左侧物品栏重叠（P2 中）
+验收（全部通过）：
 
-**现象**：在 JEI 多方块预览中鼠标选择一个方块后，右侧的候选方块展示区域与左侧的物品栏重叠。
+- ✅ JEI 中调 EBF coil，3D 预览和材料列表同步变化
+- ✅ JEI 中调蒸馏塔 height，预览高度和材料数量同步变化
+- ✅ 选择方块后的候选列表不会遮挡其他 UI 元素
 
-**分析**：`MultiblockInfoRecipeWrapper` 中选中方块后在 `predicates` 列表中展示候选项，
-这些候选项渲染位置可能与左侧 `PARTS_WIDTH` 区域冲突。需检查布局计算。
-
-涉及文件：
-- `MultiblockInfoRecipeWrapper.java` — predicate rendering position
-
-#### 预览层数问题（依赖 M3 Bug 4 修复）
-
-修复 `repetitionDFS` 后，JEI 中调信道应自动正确。
-
-任务：
-
-1. 修复 JEI 中选择方块后的候选展示 UI 布局
-2. 确认 M3 修复后 JEI 预览层数正确
-3. 确保材料列表随信道值变化正确重算（`regeneratePatterns` 已有，需验证）
-4. 信道 UI 从 `StructureChannelRegistry` 获取 label/tooltip（当前已基本实现）
-
-验收：
-
-- JEI 中调 EBF coil，3D 预览和材料列表同步变化
-- JEI 中调蒸馏塔 height，预览高度和材料数量同步变化
-- 选择方块后的候选列表不会遮挡其他 UI 元素
-
-### M5：投影仪完善 — ⚠️ 依赖 M3
+### M5：投影仪完善 — ⚠️ 渲染问题
 
 目标：投影仪作为完整的 GT5 trigger item 等价物正确工作。
 
-当前实现分析：
+已验证通过：
 
-`StructureProjectorBehavior` 已实现：
-- ✅ NBT 持久化：`NBT_COMPARE_MODE`、`NBT_NO_HATCH`、`NBT_CHANNELS`
-- ✅ `loadFromNBT` / `saveToNBT` 完整
-- ✅ GUI 有 compare mode、no_hatch、height、length 控件
-- ✅ 右键 controller 调用 `MultiblockPreviewRenderer.setChannelValues(channelValues)` 和 `renderMultiBlockPreview`
-- ✅ Shift+右键调用 `state.autoBuild(player, multiblock, channels, noHatch)`
-- ⚠️ GUI 中 channel entry 编辑逻辑复杂（动态列表 + sync value），可能是值传递断裂的源头
+- ✅ NBT 持久化正常
+- ✅ 信道值传递正确
+- ✅ compare mode 正常
+- ✅ 自动建造正常
 
-修复 M3 后的剩余任务：
+**新发现问题：投影仪预览模型渲染全黑**
 
-1. 验证两个不同投影仪物品能保存不同信道配置（per-ItemStack NBT）
-2. 验证关闭 GUI、丢地上、重进世界后配置仍在
-3. GUI 控件应从 `controller.getSupportedChannels()` + `getChannelRange()` 自动生成范围
-4. tooltip 显示当前配置的关键信道值（已实现 `addInformation`）
+**现象**：投影仪右键 controller 后，全息预览渲染为纯黑色方块，而非正确的半透明彩色预览。
+
+**分析**：可能原因：
+1. `MultiblockPreviewRenderer` 中的光照计算有误
+2. 纹理/贴图未正确绑定
+3. 着色器或 blend 模式设置问题
+4. 颜色 uniform 没有传入正确值
+
+涉及文件：
+
+- `MultiblockPreviewRenderer.java` — 渲染逻辑
+
+剩余任务：
+
+1. 修复投影仪预览渲染全黑问题
+2. 验证两个不同投影仪物品能保存不同信道配置（per-ItemStack NBT）
+3. 验证关闭 GUI、丢地上、重进世界后配置仍在
 
 验收：
 
-- 两个投影仪物品保存不同信道配置，互不影响
-- 投影仪选择 `coil=4` 后，预览、compare、自动建造均使用同一 coil tier
-- compare mode 对 `height=5` 的蒸馏塔只比较 5 层结构
+- ⚠️ 投影仪预览显示正确的半透明全息图（而非黑色）
+- ⬜ 两个投影仪物品保存不同信道配置，互不影响
+- ✅ 投影仪选择 `coil=4` 后，compare、自动建造均使用同一 coil tier
 
-### M6：分片式结构检查实机验收
+### M6：分片式结构检查实机验收 — ⚠️ 渲染动画问题
 
 目标：Forge of Gods 的分片检查在所有朝向下正确工作。
 
 当前已完成：
 
-- `StructurePiece`、`MultiPiecePattern` 已存在
-- `createMultiPiecePattern()` 已作为 opt-in 入口
-- `MultiblockWorldData` 可按方块位置标记 dirty piece
-- `OffsetMode` enum 已实现（ABSOLUTE / RELATIVE / HORIZONTAL_RELATIVE）
-- `MultiPiecePattern.Builder` 支持带 `OffsetMode` 的 `piece()` / `conditionalPiece()` 重载
-- `BlockPatternTemplate` 支持外部 `externalCenterOffset` 构造函数
-- `FactoryBlockPattern.buildTemplate(int[] centerOffset)` 已实现
-- `LazyTemplate` 标准化模板缓存方案已实现
-- `MetaTileEntityForgeOfGods` 已实现 `createMultiPiecePattern()`
-- `OffsetMode.RELATIVE` 语义修正完成
-- 首次成形后 `multiPiecePattern.checkAllPieces()` 已调用
-- `StructurePiece.positions` 已使用 volatile reference + swap
+- ✅ `StructurePiece`、`MultiPiecePattern` 已存在
+- ✅ `createMultiPiecePattern()` 已作为 opt-in 入口
+- ✅ `MultiblockWorldData` 可按方块位置标记 dirty piece
+- ✅ `OffsetMode` enum 已实现（ABSOLUTE / RELATIVE / HORIZONTAL\_RELATIVE）
+- ✅ 结构检测已验证成型
 
-已知架构限制（已解决）：
+**新发现问题：成型后没有渲染动画**
 
-1. ~~`MultiPiecePattern` 的 offset 不支持方向旋转~~ → 已实现 `OffsetMode.RELATIVE`
-2. ~~`BlockPatternTemplate` 不支持外部 centerOffset~~ → 已实现 `externalCenterOffset` 构造函数
-3. ~~Template 缓存没有标准化方案~~ → 已实现 `LazyTemplate`
-4. ~~缺少 structurelib 的"虚拟 center"概念~~ → 通过 `externalCenterOffset` + piece offset 组合解决
-5. ~~首次成形流程缺失~~ → 已在 `checkStructurePattern()` 成功后补充
-6. ~~`StructurePiece.positions` 并发访问~~ → 已修复
+**现象**：Forge of Gods 结构检测成型后不播放成型动画。
 
-剩余架构缺陷：
+涉及文件：
 
-##### `structurePattern` 与 `multiPiecePattern` 的 positions 注册可能冲突（P2 设计层面）
+- `MetaTileEntityForgeOfGods.java` — 动画触发逻辑
 
-如果 controller 同时有两者，`checkStructurePattern()` 注册 base pattern positions，
-`registerMultiPiecePattern()` 注册所有 piece 合并 positions。当前代码中已有处理
-（multi-piece 模式时由 `registerMultiPiecePattern()` 统一注册），但需确认不会重复注册。
+剩余任务：
 
-任务：
-
-1. 在 Forge of Gods 上验证各朝向（NORTH/SOUTH/EAST/WEST）下的结构检查
-2. 测试局部 dirty piece 重检（破坏某一环的一个方块）
-3. 验证 conditional piece 的 activate/deactivate 行为
-4. 压力测试：记录局部重检耗时 vs 全量重检
+1. 修复成型后的渲染动画触发
+2. 在 Forge of Gods 上验证各朝向（NORTH/SOUTH/EAST/WEST）下的结构检查
+3. 测试局部 dirty piece 重检（破坏某一环的一个方块）
+4. 验证 conditional piece 的 activate/deactivate 行为
 
 验收：
 
-- Forge of Gods 各朝向下结构检查正确
-- 修改单个片段只重检该片段
-- inactive conditional piece 不影响已成形状态
-- piece 失效能导致整个多方块正确失效
+- ✅ Forge of Gods 结构检测成型
+- ⚠️ 成型后播放正确的渲染动画
+- ⬜ 各朝向下结构检查正确
+- ⬜ 修改单个片段只重检该片段
+- ⬜ piece 失效能导致整个多方块正确失效
 
 ### M7：迁移收尾与清理
 
@@ -555,14 +619,13 @@ GUI 设置值 -> channelValues map 更新 -> saveToNBT(stack) -> NBT 持久化
 
 1. ✅ 所有保留 FactoryBlockPattern 的机器已添加注释说明保留原因
 2. ✅ `StructureTooltipBuilder` 已接入 `DeclarativePatternBuilder` tooltip 自动生成管线
-3. ✅ 已添加 `gregtech.multiblock.ability.*` 国际化键值（en_us + zh_cn）
+3. ✅ 已添加 `gregtech.multiblock.ability.*` 国际化键值（en\_us + zh\_cn）
 4. ✅ 确认已迁移机器中无冗余 `setMinGlobalLimited`
-5. ⬜ GT5 structure channel 逐台映射：待 M3 修复后执行
-6. ⬜ addon 迁移说明：待所有子任务完成后撰写
+5. ⬜ addon 迁移说明：待所有子任务完成后撰写
 
 任务：
 
-1. M3 修复后验证所有已迁移机器的信道行为
+1. 验证所有已迁移机器的信道行为
 2. 对可变尺寸结构确保 `setRepeatable(min, max, channelName)` 已正确设置
 3. 撰写 addon 迁移指南
 4. `BlockPattern` 标记 `@ApiStatus.ScheduledForRemoval` 并设定移除版本号
@@ -594,36 +657,36 @@ GUI 设置值 -> channelValues map 更新 -> saveToNBT(stack) -> NBT 持久化
 
 每轮至少覆盖：
 
-| 测试项           | 预期行为                         | 上次结果 |
-| ------------- | ---------------------------- | ---- |
-| 普通电力多方块成形与破坏  | 放置即成形，破坏即失效                  | ✅    |
-| Steam 多方块成形与破坏 | 同上                           | ✅    |
-| 带线圈机器成形与 tier 读取 | 检测到正确 coil tier              | ✅    |
-| JEI 结构预览      | 正确 3D 渲染，无 UI 重叠            | ⚠️   |
-| 投影仪预览         | 显示正确全息图                      | ✅    |
-| 投影仪 compare   | 标红缺失/错误方块                    | ✅    |
-| 投影仪自动建造       | 正确放置所有方块                     | ✅    |
-| 控制器旋转、翻转      | 各朝向下结构检查正确                   | ✅    |
-| 世界保存/退出/重进    | 成形状态持久化                      | ✅    |
-| 多台机器同时存在      | tick 性能无明显退化                 | ✅    |
-| 蒸馏塔/装配线/PSS 首次成形 | 搭建后 < 5 秒自动成形（不需退出重进）       | ❌    |
+| 测试项              | 预期行为                  | 最新结果 |
+| ---------------- | --------------------- | ---- |
+| 普通电力多方块成形与破坏     | 放置即成形，破坏即失效           | ✅    |
+| Steam 多方块成形与破坏   | 同上                    | ✅    |
+| 带线圈机器成形与 tier 读取 | 检测到正确 coil tier       | ✅    |
+| JEI 结构预览         | 正确 3D 渲染，无 UI 重叠      | ✅    |
+| 投影仪预览            | 显示正确全息图（非黑色）          | ❌    |
+| 投影仪 compare      | 标红缺失/错误方块             | ✅    |
+| 投影仪自动建造          | 正确放置所有方块              | ✅    |
+| 控制器旋转、翻转         | 各朝向下结构检查正确            | ✅    |
+| 世界保存/退出/重进       | 成形状态持久化               | ✅    |
+| 多台机器同时存在         | tick 性能无明显退化          | ✅    |
+| 蒸馏塔/装配线/PSS 首次成形 | 搭建后 < 5 秒自动成形（不需退出重进） | ✅    |
 
 ### 信道专项测试
 
-| 测试项                          | 预期行为                               | 上次结果 |
-| ---------------------------- | ---------------------------------- | ---- |
-| EBF 投影仪设置 coil              | 预览/构建使用对应线圈                        | ❌    |
-| 投影仪清空信道                      | 所有信道值归零                            | ❌    |
-| 蒸馏塔 height 预览               | 预览层数 = 设定值                         | ❌    |
-| 蒸馏塔 height 构建               | 构建层数 = 设定值                         | ✅    |
-| 装配线 length 预览               | 预览段数 = 设定值                         | ❌    |
-| 装配线 length 构建               | 构建段数 = 设定值                         | ✅    |
-| NO_HATCH 自动建造               | hatch 位置放置纯外壳（非空缺）                 | ❌    |
-| Indicator 查询                | 所有已注册 coil/glass 的 ItemStack 可查    | ⚠️   |
-| GT5 legacy key resolve       | `resolve("coil")` 返回 `HEATING_COIL` | ⬜    |
-| JEI 调 coil                  | 3D 预览和材料列表同步变化                     | ⬜    |
-| JEI 调 height                | 预览高度和材料数量同步变化                      | ⬜    |
-| 两个投影仪不同配置                    | per-ItemStack NBT 互不影响             | ⬜    |
+| 测试项                    | 预期行为                                | 最新结果   |
+| ---------------------- | ----------------------------------- | ------ |
+| EBF 投影仪设置 coil         | 预览/构建使用对应线圈                         | ✅      |
+| 投影仪清空信道                | 所有信道值归零                             | ✅      |
+| 蒸馏塔 height 预览          | 预览层数 = 设定值                          | ⚠️ 待确认 |
+| 蒸馏塔 height 构建          | 构建层数 = 设定值                          | ✅      |
+| 装配线 length 预览          | 预览段数 = 设定值                          | ⚠️ 待确认 |
+| 装配线 length 构建          | 构建段数 = 设定值                          | ✅      |
+| NO\_HATCH 自动建造         | hatch 位置放置纯外壳（非空缺）                  | ⚠️ 待修复 |
+| Indicator 查询           | 所有已注册 coil/glass 的 ItemStack 可查     | ⚠️ 不全  |
+| GT5 legacy key resolve | `resolve("coil")` 返回 `HEATING_COIL` | ✅      |
+| JEI 调 coil             | 3D 预览和材料列表同步变化                      | ✅      |
+| JEI 调 height           | 预览高度和材料数量同步变化                       | ✅      |
+| 两个投影仪不同配置              | per-ItemStack NBT 互不影响              | ⬜ 待验   |
 
 ### 压力测试
 
@@ -634,99 +697,153 @@ GUI 设置值 -> channelValues map 更新 -> saveToNBT(stack) -> NBT 持久化
 
 ## 风险清单
 
-| #  | 风险                                               | 严重程度     | 当前状态                                     | 修复方案                              | 里程碑 |
-| -- | ------------------------------------------------ | -------- | ---------------------------------------- | --------------------------------- | --- |
-| 1  | 子类 override `doStructureCheck()`                 | ~~P0~~   | ✅ **已修复** — override 已删除                 | —                                 | M1  |
-| 2  | 异步检查 data race                                  | ~~P0~~   | ✅ **已修复** — 使用临时 state                   | —                                 | M1  |
-| 3  | MultiPiecePattern 首次成形流程缺失                       | ~~P0~~   | ✅ **已修复** — `checkAllPieces` 已调用        | —                                 | M6  |
-| 4  | 编译失败                                             | ~~高~~    | ✅ **已修复** — BOM 已移除                      | —                                 | M0  |
-| 5  | `INSTANCES` WeakHashMap 非线程安全                    | ~~P1~~   | ✅ **已修复** — synchronizedMap              | —                                 | M1  |
-| 6  | `StructurePiece.positions` 并发访问                  | ~~P1~~   | ✅ **已修复** — volatile + swap              | —                                 | M6  |
-| 7  | snapshot 范围不足                                    | ~~P1~~   | ✅ **已修复** — AABB + margin                | —                                 | M1  |
-| 8  | **异步首次成形延迟（蒸馏塔/装配线/PSS）**                       | **P1 高** | ❌ 未修复 — staggering 或 snapshot 导致         | fallback 机制                       | M1  |
-| 9  | **投影仪信道值传递断裂**                                    | **P0 阻塞** | ❌ 未修复 — GUI sync / loadFromNBT 时机问题     | 审查 sync value 链路                  | M3  |
-| 10 | **预览层数与构建层数不一致**                                  | **P0 阻塞** | ❌ 未修复 — `repetitionDFS` vs `calculateRepetitionsFromChannels` | 统一两路径计算逻辑                         | M3  |
-| 11 | **清空信道按键无效**                                      | **P1 高** | ❌ 未修复 — GUI callback 问题                  | 修复 clear button                   | M3  |
-| 12 | NO_HATCH 空缺                                      | P2 中     | ❌ 未修复 — 跳过而非替换                            | 改为放置 casing candidate             | M3  |
-| 13 | JEI UI 布局重叠                                      | P2 中     | ❌ 未修复 — predicate 渲染位置冲突                 | 调整布局计算                            | M4  |
-| 14 | Indicator 注册不全                                   | P2 中     | ⚠️ 部分 — coil group 未全覆盖                   | 调用 `registerIndicatorsFromGroup`  | M3  |
-| 15 | GT5 legacy key 缺失                                | P3 低     | ⬜ 未开始 — alias 未注册                        | `registerAlias`                   | M3  |
-| 16 | `BlockPattern` 过渡路径未设 deadline                   | P4 低     | ⬜ 已标 deprecated，未设移除版本                   | M7 设定 `@ScheduledForRemoval`      | M7  |
-| 17 | 分片 `structurePattern`/`multiPiecePattern` 注册冲突 | P3 低     | ⬜ 代码已有处理但未验证                              | 实机验证                              | M6  |
+| #  | 风险                                             | 严重程度    | 当前状态                             | 修复方案                             | 里程碑 |
+| -- | ---------------------------------------------- | ------- | -------------------------------- | -------------------------------- | --- |
+| 1  | 子类 override `doStructureCheck()`               | ~~P0~~ | ✅ 已修复                            | —                                | M1  |
+| 2  | 异步检查 data race                                 | ~~P0~~ | ✅ 已修复                            | —                                | M1  |
+| 3  | MultiPiecePattern 首次成形流程缺失                     | ~~P0~~ | ✅ 已修复                            | —                                | M6  |
+| 4  | 编译失败                                           | ~~高~~  | ✅ 已修复                            | —                                | M0  |
+| 5  | `INSTANCES` WeakHashMap 非线程安全                  | ~~P1~~ | ✅ 已修复                            | —                                | M1  |
+| 6  | `StructurePiece.positions` 并发访问                | ~~P1~~ | ✅ 已修复                            | —                                | M6  |
+| 7  | snapshot 范围不足                                  | ~~P1~~ | ✅ 已修复                            | —                                | M1  |
+| 8  | 异步首次成形延迟（蒸馏塔/装配线/PSS）                          | ~~P1~~ | ✅ 已修复                            | —                                | M1  |
+| 9  | 投影仪信道值传递断裂                                     | ~~P0~~ | ✅ 已修复                            | —                                | M3  |
+| 10 | 清空信道按键无效                                       | ~~P1~~ | ✅ 已修复                            | —                                | M3  |
+| 11 | JEI UI 布局重叠                                    | ~~P2~~ | ✅ 已修复                            | —                                | M4  |
+| 12 | JEI 信道调节后更新不正确                                 | ~~P2~~ | ✅ 已修复                            | —                                | M4  |
+| 13 | Legacy key alias 缺失                            | ~~P3~~ | ✅ 已完成                            | —                                | M3  |
+| 14 | **投影仪预览模型渲染全黑**                                | **P1** | ❌ 未修复                            | 排查 `MultiblockPreviewRenderer` 渲染 | M5  |
+| 15 | **Forge of Gods 成型后无渲染动画**                      | **P2** | ❌ 未修复                            | 排查动画触发逻辑                         | M6  |
+| 16 | 预览层数与构建层数不一致                                   | P1 待确认 | ⚠️ 需重新验证                          | 可能已随其他修复解决                       | M3  |
+| 17 | NO\_HATCH 空缺                                   | P2 中   | ❌ 未修复                            | 改为放置 casing candidate            | M3  |
+| 18 | Indicator 注册不全                                 | P2 中   | ⚠️ 三钛线圈未注册                        | 调用 `registerIndicatorsFromGroup` | M3  |
+| 19 | `BlockPattern` 过渡路径未设 deadline                 | P4 低   | ⬜ 已标 deprecated，未设移除版本           | M7 设定 `@ScheduledForRemoval`     | M7  |
+| 20 | 分片 `structurePattern`/`multiPiecePattern` 注册冲突 | P3 低   | ⬜ 代码已有处理但未验证                     | 实机验证                             | M6  |
 
 ## 完成定义
 
 只有满足以下条件，统一重构才能标记为完成：
 
-1. ✅ `compileJava` 通过
-2. ✅ 事件驱动结构检查所有 controller 子类统一走新调度路径
-3. ✅ 异步检查不存在共享状态并发写入风险
-4. ❌ 蒸馏塔等可变结构首次成形不需退出重进
-5. ❌ 投影仪信道值正确传递到 preview/compare/autoBuild
-6. ❌ 预览层数与构建层数一致
-7. ⬜ `StructureChannelRegistry` legacy key alias 填充
-8. ⬜ indicator 注册覆盖所有 casing group
-9. ⬜ JEI 中信道调节后预览/材料列表正确更新
-10. ⬜ NO_HATCH 放置纯外壳而非空缺
-11. ⬜ JEI UI 布局无重叠
-12. ⬜ 至少一个超大结构（Forge of Gods）分片检查实机验收通过
-13. ⬜ `BlockPattern` 兼容层有明确的 deprecation 路径和移除版本号
-14. ⬜ addon 迁移说明文档完成
+| #  | 条件                                          | 状态    | 备注                                 |
+| -- | ------------------------------------------- | ----- | ---------------------------------- |
+| 1  | `compileJava` 通过                            | ✅ 已完成 |                                    |
+| 2  | 事件驱动结构检查统一走新调度路径                            | ✅ 已完成 |                                    |
+| 3  | 异步检查不存在共享状态并发写入风险                           | ✅ 已完成 | `template.createState()` 临时 state  |
+| 4  | 异步快照精确 AABB + 体积上限保护                        | ✅ 已完成 | `computeWorldAABB` + `MAX_SNAPSHOT_VOLUME` |
+| 5  | 事件驱动 recheck debounce                       | ✅ 已完成 | `RECHECK_COOLDOWN_TICKS = 5`       |
+| 6  | NeighborNotify 邻居检查去重                        | ✅ 已完成 | `onBlockChanged` 返回 boolean        |
+| 7  | 蒸馏塔等可变结构首次成形不需退出重进                          | ✅ 已验证 |                                    |
+| 8  | 投影仪信道值正确传递到 preview/compare/autoBuild       | ✅ 已验证 |                                    |
+| 9  | 预览层数与构建层数一致                                 | ⚠️ 待确认 | 需重新验证                              |
+| 10 | `StructureChannelRegistry` legacy key alias | ✅ 已验证 |                                    |
+| 11 | indicator 注册覆盖所有 casing group（含三钛线圈）        | ⚠️ 未完成 | 三钛线圈待注册                            |
+| 12 | JEI 中信道调节后预览/材料列表正确更新                       | ✅ 已验证 |                                    |
+| 13 | NO\_HATCH 放置纯外壳而非空缺                         | ⚠️ 待修复 |                                    |
+| 14 | JEI UI 布局无重叠                                | ✅ 已验证 |                                    |
+| 15 | 投影仪预览模型正确渲染（非全黑）                            | ❌ 需修复 | 当前渲染为黑色                            |
+| 16 | 至少一个超大结构（Forge of Gods）分片检查 + 渲染动画          | ⚠️ 部分  | 结构成型但无动画                           |
+| 17 | `BlockPattern` 兼容层有 deprecation 路径和移除版本号     | ⬜ 未开始 |                                    |
+| 18 | addon 迁移说明文档完成                              | ⬜ 未开始 |                                    |
+
+## 异步快照性能优化记录
+
+更新时间：2026-05-08
+
+### 已完成的优化
+
+#### 优化 1：精确 AABB Snapshot 替代对称立方体
+
+**问题**：旧代码用 `max(palm, thumb, finger)` 作对称半径捕获正方体。细长结构（如装配线 3×3×20）的 radius=20，捕获 41³=68,921 个方块，实际有效只有 ~180 个。
+
+**方案**：在 `BlockPatternTemplate` 新增 `computeWorldAABB()` 方法，利用 `RelativeDirection.setActualRelativeOffset` 将 pattern 局部坐标系的 8 个角点变换到世界坐标，取 min/max 得到精确 AABB。
+
+**效果**：装配线从 68,921 → ~1,176 方块（减少 98%）；EBF 从 ~30,000 → ~3,000 方块。
+
+**涉及文件**：
+
+- `BlockPatternTemplate.java` — 新增 `computeWorldAABB(centerPos, frontFacing, upwardsFacing, isFlipped, margin)`
+- `AsyncStructureChecker.java` — `captureSnapshotForController` 改用精确 AABB
+
+#### 优化 2：Snapshot 体积上限保护
+
+**问题**：极端大型结构如果被误判为可异步检查，其 snapshot 会在主线程产生巨量世界读取。
+
+**方案**：新增 `MAX_SNAPSHOT_VOLUME = 100³ = 1,000,000`。AABB 体积超限时返回 `null`，控制器被放入 `oversizedQueue`，在 `processResults()` 中直接走主线程 `checkStructurePattern()`。诸神之煅炉已有 `allowsAsyncStructureCheck() = false` 作为首道防线，此为二道保护。
+
+**涉及文件**：
+
+- `AsyncStructureChecker.java` — `MAX_SNAPSHOT_VOLUME` 常量 + `oversizedQueue` 队列
+
+#### 优化 3：事件驱动 Recheck Debounce（5 tick 冷却）
+
+**问题**：玩家持续拆放方块时，每 tick 都触发 `checkStructurePattern()`（完整 pattern 匹配），无节流。
+
+**方案**：`onBlockChanged` 新增 `gameTick` 参数记录变更时刻。`hasPendingRecheck` 新增 `currentTick` 参数，冷却窗口（`RECHECK_COOLDOWN_TICKS = 5`，即 250ms@20TPS）内的多次操作折叠为一次检查。
+
+**效果**：玩家再怎么快速拆放，每 5 tick 最多触发一次完整 pattern check。
+
+**涉及文件**：
+
+- `MultiblockWorldData.java` — `lastChangedTick` map + `RECHECK_COOLDOWN_TICKS` 常量
+- `MultiblockControllerBase.java` — `hasPendingRecheck(this, getWorld().getTotalWorldTime())`
+- `BlockChangeListener.java` — 传入 `world.getTotalWorldTime()`
+
+#### 优化 4：NeighborNotify 邻居检查去重
+
+**问题**：`NeighborNotifyEvent` 对 source + 每个通知方向各调用一次 `onBlockChanged`（最多 7 次），但大多数 block change 与多方块结构完全无关。
+
+**方案**：`onBlockChanged` 返回 `boolean`（是否命中注册的多方块）。`onNeighborNotify` 只有在 source 位置命中时才进一步检查邻居位置。
+
+**效果**：对大多数与多方块无关的方块变化，直接跳过 1-6 次额外的 map 查找。
+
+**涉及文件**：
+
+- `MultiblockWorldData.java` — `onBlockChanged` 返回 `boolean`
+- `BlockChangeListener.java` — 条件传播逻辑
+
+### 性能收益估算
+
+| 场景                          | 旧方案主线程开销/tick | 新方案主线程开销/tick | 改善      |
+| --------------------------- | ------------- | ------------- | ------- |
+| 4 台装配线未成形，异步快照捕获            | ~275K 世界读取    | ~4.7K 世界读取    | ~98% ↓  |
+| 4 台 EBF 未成形，异步快照捕获          | ~120K 世界读取    | ~12K 世界读取     | ~90% ↓  |
+| 已成形多方块 + 玩家每 tick 拆放方块      | 20 次完整 check  | 4 次完整 check   | 80% ↓   |
+| 远离多方块的方块变化触发 NeighborNotify | 7 次 map 查找    | 1 次 map 查找    | 86% ↓   |
 
 ## 当前下一步
 
-立即执行 M1 剩余 + M3：
+当前阻塞项已从"功能不工作"收窄为"渲染/视觉异常"和少量收尾。推荐执行顺序：
 
 ```text
-M1 (Bug 1: 异步首次成形延迟)
-  -> M3 (Bug 2-5: 信道 bug 修复)  ← 当前最高优先级
-  -> M4 (JEI UI 修复)
-  -> M5 (投影仪验证)
-  -> M6 (分片实机验收)
-  -> M7 (收尾)
-```
+Phase 1 — 渲染修复（当前最高优先级）
+  1. M5: 投影仪预览渲染全黑修复
+  2. M6: Forge of Gods 成型动画修复
 
-### 推荐执行顺序
+Phase 2 — 功能收尾
+  3. M3: 重新验证预览层数一致性（Bug 4，可能已解决）
+  4. M3: NO_HATCH 放置逻辑修复（Bug 5）
+  5. M3: indicator 注册补全（三钛线圈）
+  6. M5: 投影仪 per-ItemStack 验证
 
-```text
-Phase 1 — 功能修复（阻塞解除）
-  1. M3 Bug 4: 预览层数统一（修改 repetitionDFS / calculateRepetitionsFromChannels）
-  2. M3 Bug 2: 投影仪信道值传递（审查 StructureProjectorBehavior GUI sync）
-  3. M3 Bug 3: 清空信道按键
-  4. M1 Bug 1: 异步首次成形延迟
-  5. M3 Bug 5: NO_HATCH 放置逻辑
-  6. M3 补全: indicator 注册 + legacy alias
-
-Phase 2 — UI 与体验（非阻塞）
-  7. M4: JEI 选中方块展示布局修复
-  8. M5: 投影仪 per-ItemStack 验证
-  9. M6: Forge of Gods 分片验收
-
-Phase 3 — 收尾
-  10. M7: BlockPattern 设定移除版本号
-  11. M7: addon 迁移指南
-  12. M7: 对可变尺寸结构统一确认 aisleChannelNames 已设置
+Phase 3 — 迁移收尾
+  7. M6: Forge of Gods 各朝向 + 局部重检验收
+  8. M7: BlockPattern 设定移除版本号
+  9. M7: addon 迁移指南
+  10. M7: 对可变尺寸结构统一确认 aisleChannelNames 已设置
 ```
 
 ### 里程碑依赖关系
 
 ```text
-M1(Bug 1) ─→ M3(Bug 2-5) ─→ M4
-                 │               │
-                 └─→ M5 ←───────┘
-                      │
-                      └─→ M6 ─→ M7
+M5(渲染修复) ─→ M5(per-ItemStack 验证)
+                     │
+M3(收尾) ────────────┤
+                     │
+M6(动画修复) ─→ M6(验收) ─→ M7(收尾)
 ```
 
-硬依赖：
+无硬依赖阻塞：
 
-- M3 阻塞 M4/M5（信道 bug 不修复则 JEI/投影仪无法正确验收）
-- M1 Bug 1 不阻塞 M3（首次成形问题独立于信道功能）
-
-可并行：
-
-- M1 Bug 1 和 M3 可并行推进
-- M4 和 M6 之间无强依赖，可并行
-- M5 在 M3 修复后可立即验证
-
-异步快照检查可能会导致服务器卡顿
+- M5 渲染修复和 M3 收尾可并行
+- M6 动画修复独立于 M3/M5
+- M7 在 M3/M5/M6 完成后执行

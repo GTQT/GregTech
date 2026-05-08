@@ -10,6 +10,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.widget.RecipeProgressWidget;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -60,6 +62,24 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
 
     private static final TraceabilityPredicate SNOW_PREDICATE = new TraceabilityPredicate(
             bws -> GTUtility.isBlockSnow(bws.getBlockState()));
+
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX", "XXX")
+                    .aisle("XXX", "X&X", "X#X", "X#X")
+                    .aisle("XXX", "XYX", "XXX", "XXX")
+                    .where('Y', selfPredicate(GTUtility.gregtechId("primitive_blast_furnace.bronze")))
+                    .where('#', air())
+                    .where('&', air().or(SNOW_PREDICATE))
+                    .casing('X', CasingDefinition.simple(
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS),
+                            "gregtech.machine.casing.primitive_bricks"))
+                        .withCustomHatches(
+                                metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
+                                        .setMaxGlobalLimited(3), 3)
+                    .buildTemplate()
+    );
+
     UITexture[] importOverlays = {
             GTGuiTextures.PRIMITIVE_INGOT_OVERLAY,
             GTGuiTextures.PRIMITIVE_DUST_OVERLAY,
@@ -82,22 +102,8 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
 
     @NotNull
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX", "XXX")
-                .aisle("XXX", "X&X", "X#X", "X#X")
-                .aisle("XXX", "XYX", "XXX", "XXX")
-                .where('Y', selfPredicate())
-                .where('#', air())
-                .where('&', air().or(SNOW_PREDICATE)) // this won't stay in the structure, and will be broken while
-                // running
-                .casing('X', CasingDefinition.simple(
-                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS),
-                        "gregtech.machine.casing.primitive_bricks"))
-                    .withCustomHatches(
-                            metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
-                                    .setMaxGlobalLimited(3), 3)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @SideOnly(Side.CLIENT)

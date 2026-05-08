@@ -208,7 +208,7 @@ public class MetaTileEntityGasHatch extends MetaTileEntityMultiblockPart impleme
                 .showAmountOnSlot(false)
                 .accessibility(true, false);
 
-        BooleanSyncValue outputStateValue = new BooleanSyncValue(this::isWaste, this::isWaste);
+        BooleanSyncValue outputStateValue = new BooleanSyncValue(this::isWaste, this::setWaste);
         guiSyncManager.syncValue("output_state", outputStateValue);
 
         return GTGuis.createPanel(this, 176, 166)

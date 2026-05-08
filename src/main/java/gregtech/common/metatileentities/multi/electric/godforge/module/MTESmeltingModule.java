@@ -13,6 +13,8 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.common.blocks.BlockGodforgeCasing;
+import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
+import gregtech.common.mui.multiblock.godforge.MTESmeltingModuleGui;
 
 /**
  * Godforge Smelting Module.
@@ -37,6 +39,11 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MTESmeltingModule(metaTileEntityId);
+    }
+
+    @Override
+    protected MTEBaseModuleGui<?> createModuleGui() {
+        return new MTESmeltingModuleGui(this);
     }
 
     @Override

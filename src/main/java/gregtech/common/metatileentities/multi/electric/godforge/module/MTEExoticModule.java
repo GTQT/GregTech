@@ -23,6 +23,8 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.common.blocks.BlockGodforgeCasing;
+import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
+import gregtech.common.mui.multiblock.godforge.MTEExoticModuleGui;
 import gregtech.loaders.recipe.GodforgeRecipeLoader;
 
 /**
@@ -57,6 +59,11 @@ public class MTEExoticModule extends MTEBaseModule {
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MTEExoticModule(metaTileEntityId);
+    }
+
+    @Override
+    protected MTEBaseModuleGui<?> createModuleGui() {
+        return new MTEExoticModuleGui(this);
     }
 
     @Override

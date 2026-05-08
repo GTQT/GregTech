@@ -15,6 +15,8 @@ import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.client.renderer.ICubeRenderer;
@@ -768,14 +770,53 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return false;
     }
 
+    // ==================== Structure Channels ====================
+
+    @Override
+    @NotNull
+    public List<StructureChannel> getSupportedChannels() {
+        List<StructureChannel> channels = new ArrayList<>(super.getSupportedChannels());
+        channels.add(GTStructureChannels.STRUCTURE_PIECE);
+        return channels;
+    }
+
+    @Override
+    @NotNull
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        if (channel == GTStructureChannels.STRUCTURE_PIECE) {
+            // 0=main only, 1=beam_shaft, 2=first_ring, 3=second_ring, 4=third_ring
+            int pieceCount = multiPiecePattern != null ? multiPiecePattern.getPieceCount() : 0;
+            return new int[] { 0, pieceCount };
+        }
+        return super.getChannelRange(channel);
+    }
+
+    /**
+     * Checks whether rotation/flipping is currently locked.
+     * Rotation is disabled when the structure is formed and the star renderer is active,
+     * since rotating would desync the renderer position from the structure.
+     */
+    private boolean isRotationLocked() {
+        return isStructureFormed() && data.isRenderActive();
+    }
+
     @Override
     public void setFrontFacing(EnumFacing frontFacing) {
         if (frontFacing == null) return;
+        // Block rotation while renderer is active to avoid desync
+        if (isRotationLocked() && getFrontFacing() != frontFacing) return;
 
         if (getWorld() != null && !getWorld().isRemote && getFrontFacing() != frontFacing) {
             cleanupPossibleRendererBlocks();
         }
         super.setFrontFacing(frontFacing);
+    }
+
+    @Override
+    public void setUpwardsFacing(EnumFacing upwardsFacing) {
+        // Block upward rotation while renderer is active
+        if (isRotationLocked()) return;
+        super.setUpwardsFacing(upwardsFacing);
     }
 
     // ==================== Data Access ====================

@@ -3,18 +3,26 @@ package gregtech.loaders.recipe;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.recipes.Recipe;
+import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.recipes.properties.impl.FogMultiStepProperty;
+import gregtech.api.recipes.properties.impl.FogPlasmaTierProperty;
+import gregtech.api.recipes.properties.impl.FogUpgradeNameProperty;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
+import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
+import gregtech.common.items.MetaItems;
+import gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade;
 
 /**
  * Loads recipes for Forge of the Gods modules:
@@ -73,12 +81,19 @@ public class GodforgeRecipeLoader {
             }
             if (plasmaStack == null) continue;
 
-            GodforgeRecipeMaps.GODFORGE_PLASMA_RECIPES.recipeBuilder()
+            // Determine plasma tier based on proton count
+            int tier = FogPlasmaTierProperty.getTierForProtons(material.getProtons());
+            // Multi-step flag: non-elemental materials (alloys/compounds) require multi-step processing
+            boolean multiStep = !material.isElement();
+
+            RecipeBuilder<?> builder = GodforgeRecipeMaps.GODFORGE_PLASMA_RECIPES.recipeBuilder()
                     .input(OrePrefix.dust, material)
                     .fluidOutputs(plasmaStack)
                     .duration(PLASMA_RECIPE_DURATION)
-                    .EUt(PLASMA_RECIPE_EUT)
-                    .buildAndRegister();
+                    .EUt(PLASMA_RECIPE_EUT);
+            builder.applyProperty(FogPlasmaTierProperty.getInstance(), tier);
+            builder.applyProperty(FogMultiStepProperty.getInstance(), multiStep);
+            builder.buildAndRegister();
 
             plasmaMaterials.add(material);
             registered++;
@@ -156,9 +171,105 @@ public class GodforgeRecipeLoader {
         return null;
     }
 
-    // ==================== Upgrade Cost Recipes ====================
+    // ==================== Upgrade Cost Recipes (JEI Display) ====================
 
+    /**
+     * Registers fake recipes for display in JEI showing the material cost of key upgrades.
+     * These recipes are display-only and not used for actual crafting (materials are inserted via the upgrade GUI).
+     */
     private static void registerUpgradeCostRecipes() {
-        // TODO: Register upgrade material costs when upgrade system is fully wired
+        addUpgradeMaterialCosts();
+        addFakeUpgradeCostRecipes();
+    }
+
+    /**
+     * Defines the material costs for key upgrades that require additional items.
+     * Only upgrades that unlock major new functionality have extra material costs.
+     */
+    private static void addUpgradeMaterialCosts() {
+        // START — Unlock basic functionality (T1 materials)
+        ForgeOfGodsUpgrade.START.addExtraCost(
+                OreDictUnifier.get(OrePrefix.plate, Materials.Darmstadtium, 64),
+                OreDictUnifier.get(OrePrefix.frameGt, Materials.Naquadria, 16),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(4),
+                MetaItems.SENSOR_UV.getStackForm(4));
+
+        // FDIM — Unlock Melting Core module (T2 materials)
+        ForgeOfGodsUpgrade.FDIM.addExtraCost(
+                OreDictUnifier.get(OrePrefix.plate, Materials.Neutronium, 32),
+                OreDictUnifier.get(OrePrefix.wireGtSingle, Materials.Naquadria, 64),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(8),
+                MetaItems.EMITTER_UV.getStackForm(8));
+
+        // GPCI — Unlock Plasma Fabricator module (T3 materials)
+        ForgeOfGodsUpgrade.GPCI.addExtraCost(
+                OreDictUnifier.get(OrePrefix.plate, Materials.Neutronium, 64),
+                OreDictUnifier.get(OrePrefix.frameGt, Materials.Tritanium, 32),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(16),
+                MetaItems.ROBOT_ARM_UV.getStackForm(8),
+                MetaItems.SENSOR_UV.getStackForm(16));
+
+        // QGPIU — Unlock Exoticizer module (T4 materials)
+        ForgeOfGodsUpgrade.QGPIU.addExtraCost(
+                OreDictUnifier.get(OrePrefix.block, Materials.Neutronium, 16),
+                OreDictUnifier.get(OrePrefix.wireGtQuadruple, Materials.Tritanium, 64),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(32),
+                MetaItems.EMITTER_UV.getStackForm(32),
+                OreDictUnifier.get(OrePrefix.plate, Materials.Darmstadtium, 64));
+
+        // CD — Unlock second ring (T5 materials)
+        ForgeOfGodsUpgrade.CD.addExtraCost(
+                OreDictUnifier.get(OrePrefix.block, Materials.Neutronium, 64),
+                OreDictUnifier.get(OrePrefix.block, Materials.Tritanium, 32),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(64),
+                MetaItems.EMITTER_UV.getStackForm(64),
+                MetaItems.SENSOR_UV.getStackForm(64),
+                OreDictUnifier.get(OrePrefix.frameGt, Materials.Darmstadtium, 64));
+
+        // EE — Unlock Magmatter & exotic plasmas (T6 materials)
+        ForgeOfGodsUpgrade.EE.addExtraCost(
+                OreDictUnifier.get(OrePrefix.block, Materials.Neutronium, 64),
+                OreDictUnifier.get(OrePrefix.block, Materials.Naquadria, 64),
+                OreDictUnifier.get(OrePrefix.block, Materials.Darmstadtium, 64),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(64),
+                MetaItems.ROBOT_ARM_UV.getStackForm(64));
+
+        // END — Unlock third ring & graviton shard ejection (T7 materials)
+        ForgeOfGodsUpgrade.END.addExtraCost(
+                OreDictUnifier.get(OrePrefix.block, Materials.Neutronium, 64),
+                OreDictUnifier.get(OrePrefix.block, Materials.Tritanium, 64),
+                OreDictUnifier.get(OrePrefix.block, Materials.Naquadria, 64),
+                OreDictUnifier.get(OrePrefix.block, Materials.Darmstadtium, 64),
+                MetaItems.FIELD_GENERATOR_UV.getStackForm(64),
+                MetaItems.EMITTER_UV.getStackForm(64),
+                MetaItems.SENSOR_UV.getStackForm(64));
+    }
+
+    /**
+     * Registers the fake recipes into the GODFORGE_UPGRADE_COST_RECIPES RecipeMap for JEI display.
+     * Each recipe shows the material inputs needed and the upgrade name.
+     */
+    private static void addFakeUpgradeCostRecipes() {
+        int registered = 0;
+
+        for (ForgeOfGodsUpgrade upgrade : ForgeOfGodsUpgrade.VALUES) {
+            if (!upgrade.hasExtraCost()) continue;
+
+            RecipeBuilder<?> builder = GodforgeRecipeMaps.GODFORGE_UPGRADE_COST_RECIPES.recipeBuilder();
+
+            for (ItemStack cost : upgrade.getExtraCostNoNulls()) {
+                builder.inputs(cost);
+            }
+
+            // Use 0 EUt / 0 duration since this is just a display recipe
+            builder.duration(0)
+                    .EUt(0)
+                    .applyProperty(FogUpgradeNameProperty.getInstance(), upgrade.getShortNameKey())
+                    .buildAndRegister();
+
+            registered++;
+        }
+
+        GTLog.logger.info("GodforgeRecipeLoader: Registered {} upgrade cost display recipes", registered);
     }
 }

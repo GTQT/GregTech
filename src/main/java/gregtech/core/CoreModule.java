@@ -18,6 +18,7 @@ import gregtech.api.modules.IGregTechModule;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
@@ -325,6 +326,15 @@ public class CoreModule implements IGregTechModule {
     @Override
     public void loadComplete(FMLLoadCompleteEvent event) {
         proxy.onLoadComplete();
+
+        // Rebuild all casing groups and re-register indicators after all mods have finished
+        // registration (preInit/init/postInit). This ensures addon-added coils, casings, and
+        // glasses are included in channel ranges and indicator lookups.
+        GTCasingGroups.invalidateCache();
+        // Force re-initialization so indicators are re-registered immediately
+        GTCasingGroups.heatingCoils();
+        GTCasingGroups.machineCasings();
+        GTCasingGroups.borosilicateGlasses();
     }
 
     @Override

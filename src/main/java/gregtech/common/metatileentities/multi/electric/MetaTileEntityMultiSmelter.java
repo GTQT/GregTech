@@ -10,6 +10,8 @@ import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -50,6 +52,28 @@ import java.util.List;
 import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
 public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
+
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "CCC", "XXX")
+                    .aisle("XXX", "C#C", "XMX")
+                    .aisle("XSX", "CCC", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("multi_smelter")))
+                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                    .where('#', air())
+                    .casing('X', CasingDefinition.simple(
+                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF),
+                            "gregtech.machine.casing.invar_heatproof"))
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .tieredCasing('C', GTCasingGroups.heatingCoils())
+                        .withChannel(GTStructureChannels.HEATING_COIL)
+                    .buildTemplate()
+    );
 
     protected int heatingCoilLevel;
     protected int heatingCoilDiscount;
@@ -129,25 +153,8 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
 
     @NotNull
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "CCC", "XXX")
-                .aisle("XXX", "C#C", "XMX")
-                .aisle("XSX", "CCC", "XXX")
-                .where('S', selfPredicate())
-                .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                .where('#', air())
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.invar_heatproof"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .tieredCasing('C', GTCasingGroups.heatingCoils())
-                    .withChannel(GTStructureChannels.HEATING_COIL)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     public IBlockState getCasingState() {

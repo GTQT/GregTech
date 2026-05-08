@@ -25,8 +25,11 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Row;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 
+import gregtech.api.GTValues;
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.electric.godforge.data.UpgradeColor;
 import gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade;
 import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
@@ -56,6 +59,9 @@ public class UpgradeTreePanel {
             .background(GTGuiTextures.BACKGROUND_STAR)
             .disableHoverBackground()
             .child(ForgeOfGodsGuiUtil.panelCloseButton());
+
+        // Debug widgets
+        panel.child(getDebugWidgets(hypervisor));
 
         VerticalScrollData scrollData = new VerticalScrollData();
         scrollData.setScrollSize(SCROLL_SIZE);
@@ -112,6 +118,7 @@ public class UpgradeTreePanel {
     private static void registerSyncValues(SyncHypervisor hypervisor) {
         SyncValues.UPGRADE_CLICKED.registerFor(Panels.UPGRADE_TREE, hypervisor);
         SyncValues.SECRET_UPGRADE.registerFor(Panels.UPGRADE_TREE, hypervisor);
+        SyncValues.AVAILABLE_GRAVITON_SHARDS.registerFor(Panels.UPGRADE_TREE, hypervisor);
 
         SyncActions.RESPEC_UPGRADE.registerFor(Panels.UPGRADE_TREE, hypervisor);
         SyncActions.COMPLETE_UPGRADE.registerFor(Panels.UPGRADE_TREE, hypervisor);
@@ -248,6 +255,54 @@ public class UpgradeTreePanel {
                     ForgeOfGodsData data = hypervisor.getData();
                     return data.isSecretUpgrade();
                 }));
+
+        return row;
+    }
+
+    private static Flow getDebugWidgets(SyncHypervisor hypervisor) {
+        Flow row = new Column().coverChildren()
+            .align(Alignment.TopLeft)
+            .setEnabledIf($ -> ConfigHolder.misc.debug || GTValues.isDeobfEnvironment());
+
+        // Reset upgrades
+        row.child(new ButtonWidget<>().onMousePressed(d -> {
+            hypervisor.getData()
+                .resetAllUpgrades();
+            SyncValues.UPGRADES_LIST.notifyUpdateFrom(Panels.MAIN, hypervisor);
+            return true;
+        })
+            .overlay(
+                IKey.lang("fog.debug.resetbutton.text")
+                    .alignment(Alignment.CENTER)
+                    .scale(0.57f))
+            .size(40, 15)
+            .tooltip(t -> t.addLine(translateToLocal("fog.debug.resetbutton.tooltip")))
+            .tooltipShowUpTimer(TOOLTIP_DELAY));
+
+        // Graviton shard amount
+        row.child(
+            new TextFieldWidget()
+                .setNumbers(0, 112)
+                .setTextAlignment(Alignment.CENTER)
+                .value(SyncValues.AVAILABLE_GRAVITON_SHARDS.lookupFrom(Panels.UPGRADE_TREE, hypervisor))
+                .size(25, 18)
+                .tooltip(t -> t.addLine(translateToLocal("fog.debug.gravitonshardsetter.tooltip")))
+                .tooltipShowUpTimer(TOOLTIP_DELAY));
+
+        // Unlock all upgrades
+        row.child(new ButtonWidget<>().onMousePressed(d -> {
+            hypervisor.getData()
+                .unlockAllUpgrades();
+            SyncValues.UPGRADES_LIST.notifyUpdateFrom(Panels.MAIN, hypervisor);
+            return true;
+        })
+            .overlay(
+                IKey.lang("fog.debug.unlockall.text")
+                    .alignment(Alignment.CENTER)
+                    .scale(0.57f))
+            .size(40, 15)
+            .tooltip(t -> t.addLine(translateToLocal("fog.debug.unlockall.text")))
+            .tooltipShowUpTimer(TOOLTIP_DELAY));
 
         return row;
     }

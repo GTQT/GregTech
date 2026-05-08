@@ -34,14 +34,14 @@ public class BlockChangeListener {
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         World world = (World) event.getWorld();
         if (world.isRemote) return;
-        MultiblockWorldData.get(world).onBlockChanged(event.getPos());
+        MultiblockWorldData.get(world).onBlockChanged(event.getPos(), world.getTotalWorldTime());
     }
 
     @SubscribeEvent
     public static void onBlockPlace(BlockEvent.PlaceEvent event) {
         World world = (World) event.getWorld();
         if (world.isRemote) return;
-        MultiblockWorldData.get(world).onBlockChanged(event.getPos());
+        MultiblockWorldData.get(world).onBlockChanged(event.getPos(), world.getTotalWorldTime());
     }
 
     @SubscribeEvent
@@ -49,14 +49,17 @@ public class BlockChangeListener {
         World world = (World) event.getWorld();
         if (world.isRemote) return;
 
-        // The source block changed
+        long gameTick = world.getTotalWorldTime();
         MultiblockWorldData data = MultiblockWorldData.get(world);
-        data.onBlockChanged(event.getPos());
 
-        // Also check notified neighbors (covers pistons moving blocks, etc.)
-        BlockPos sourcePos = event.getPos();
-        for (EnumFacing facing : event.getNotifiedSides()) {
-            data.onBlockChanged(sourcePos.offset(facing));
+        // Only propagate to notified neighbors if the source block itself hit a registered multiblock.
+        // This avoids iterating neighbor positions for the majority of block changes that are irrelevant.
+        boolean sourceAffected = data.onBlockChanged(event.getPos(), gameTick);
+        if (sourceAffected) {
+            BlockPos sourcePos = event.getPos();
+            for (EnumFacing facing : event.getNotifiedSides()) {
+                data.onBlockChanged(sourcePos.offset(facing), gameTick);
+            }
         }
     }
 

@@ -261,6 +261,15 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
+     * Override this to add structure information shown when SHIFT is held.
+     * This is mutually exclusive with {@link #addInformation} - only one will be displayed at a time.
+     * For multiblocks, this typically includes structure description (block counts, hatch requirements, dimensions).
+     */
+    @SideOnly(Side.CLIENT)
+    public void addStructureInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
+                                        boolean advanced) {}
+
+    /**
      * Override this to add extended tool information to the "Hold SHIFT to show Tool Info" tooltip section. ALWAYS CALL
      * SUPER LAST! Intended ordering: - Screwdriver - Wrench - Wire Cutter - Soft Hammer - Hammer - Crowbar - Others
      * <br>

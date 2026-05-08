@@ -225,8 +225,20 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Shift+right-click: Auto-build the structure
             if (world.isRemote) return EnumActionResult.SUCCESS;
 
+            Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
+
+            // Check if a specific piece is requested via STRUCTURE_PIECE channel
+            int pieceIndex = channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
+            if (pieceIndex > 0) {
+                // Build a specific piece from the MultiPiecePattern
+                var multiPiece = multiblock.getMultiPiecePattern();
+                if (multiPiece != null) {
+                    multiPiece.autoBuildPiece(pieceIndex, player, multiblock, channels, noHatch);
+                }
+                return EnumActionResult.SUCCESS;
+            }
+
             if (!multiblock.isStructureFormed()) {
-                Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
                 MultiblockState state = multiblock.getMultiblockState();
                 if (state != null) {
                     state.autoBuild(player, multiblock, channels, noHatch);

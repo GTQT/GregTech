@@ -80,7 +80,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL20.glUseProgram(0);
 
         try {
-            beamProgram = createShaderProgram("gorgeBeam.vert", "gorgeBeam.frag");
+            beamProgram = createShaderProgram("gorgebeam.vert", "gorgebeam.frag");
 
             u_BeamModelMatrix = GL20.glGetUniformLocation(beamProgram, "u_ModelMatrix");
             u_CameraPosition = GL20.glGetUniformLocation(beamProgram, "u_CameraPosition");

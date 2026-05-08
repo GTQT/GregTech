@@ -34,6 +34,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -84,17 +85,21 @@ public class MultiblockPreviewRenderer {
             Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
             GlStateManager.pushMatrix();
             GlStateManager.translate(-tx, -ty, -tz);
+
+            // Disable lightmap texture unit so block brightness is not affected by
+            // per-vertex lightmap UVs (consistent with WorldSceneRenderer approach).
+            mc.entityRenderer.disableLightmap();
+
+            // Enable blending with GL_CONSTANT_ALPHA to achieve semi-transparent hologram.
+            // Per-vertex color in BLOCK format has alpha=255, so GL state color alpha is
+            // overridden; GL_CONSTANT_ALPHA uses the blend color alpha instead.
             GlStateManager.enableBlend();
-            // Semi-transparent holographic blend: src_alpha / one_minus_src_alpha
+            GL14.glBlendColor(1.0F, 1.0F, 1.0F, 0.6F);
             GlStateManager.tryBlendFuncSeparate(
-                    GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                    GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
-            // White color with reduced alpha so block textures show through semi-transparently
-            GlStateManager.color(1F, 1F, 1F, 0.6F);
+                    GL14.GL_CONSTANT_ALPHA, GL14.GL_ONE_MINUS_CONSTANT_ALPHA,
+                    GL11.GL_ONE, GL11.GL_ZERO);
 
             GlStateManager.callList(opList);
-
-            GlStateManager.color(1F, 1F, 1F, 1F);
 
             // Render comparison overlay (colored outlines for missing/wrong blocks)
             if (compareMode && (!missingPositions.isEmpty() || !wrongPositions.isEmpty())) {
@@ -103,6 +108,7 @@ public class MultiblockPreviewRenderer {
 
             GlStateManager.disableBlend();
             GlStateManager.enableLighting();
+            mc.entityRenderer.enableLightmap();
             GlStateManager.popMatrix();
             GlStateManager.color(1F, 1F, 1F, 1F);
 
@@ -607,7 +613,8 @@ public class MultiblockPreviewRenderer {
 
         @Override
         public int getCombinedLight(BlockPos pos, int lightValue) {
-            return 15;
+            // Full brightness: skyLight=15 << 20 | blockLight=15 << 4
+            return 15 << 20 | 15 << 4;
         }
 
         @Override
