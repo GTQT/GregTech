@@ -40,12 +40,10 @@ import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGods
 import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMath;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
@@ -56,7 +54,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
@@ -852,15 +849,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public boolean allowsExtendedFacing() {
         return true;
-    }
-
-    @Override
-    public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing wrenchSide,
-                                 CuboidRayTraceResult hitResult) {
-        if (wrenchSide == getFrontFacing()) {
-            return false;
-        }
-        return super.onWrenchClick(playerIn, hand, wrenchSide, hitResult);
     }
 
     @Override

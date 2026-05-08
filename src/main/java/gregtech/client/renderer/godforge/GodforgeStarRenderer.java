@@ -129,7 +129,29 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     }
 
     private void initRings() {
-        StructureVBO ringStructure = new StructureVBO()
+        ringOne = createRingVBO(ForgeOfGodsStructureString.FIRST_RING);
+        ringOne.build();
+
+        ringTwo = createRingVBO(ForgeOfGodsStructureString.SECOND_RING);
+        ringTwo.build();
+
+        ringThree = createRingVBO(ForgeOfGodsStructureString.THIRD_RING);
+        ringThree.build();
+
+        try {
+            fadeBypassProgram = createShaderProgram("fadebypass.vert", "fadebypass.frag");
+        } catch (Exception e) {
+            GTLog.logger.warn("[FOG] GodforgeStarRenderer: ring fade shader initialization failed", e);
+            failedInit = true;
+            return;
+        }
+
+        TextureUpdateRequester textureUpdater = ringOne.getTextureUpdateRequestor();
+        textureUpdater.requestUpdate();
+    }
+
+    private static StructureVBO createRingVBO(String[][] structure) {
+        return new StructureVBO()
                 .addMapping('H', MetaBlocks.GODFORGE_GLASS, 0)
                 .addMapping('B', MetaBlocks.GODFORGE_CASING,
                         BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING.ordinal())
@@ -144,27 +166,8 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
                 .addMapping('K', MetaBlocks.GODFORGE_CASING,
                         BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR.ordinal())
                 .addMapping('I', MetaBlocks.GODFORGE_CASING,
-                        BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR.ordinal());
-
-        ringOne = ringStructure.assignStructure(ForgeOfGodsStructureString.FIRST_RING);
-        ringOne.build();
-
-        ringTwo = ringStructure.assignStructure(ForgeOfGodsStructureString.SECOND_RING);
-        ringTwo.build();
-
-        ringThree = ringStructure.assignStructure(ForgeOfGodsStructureString.THIRD_RING);
-        ringThree.build();
-
-        try {
-            fadeBypassProgram = createShaderProgram("fadebypass.vert", "fadebypass.frag");
-        } catch (Exception e) {
-            GTLog.logger.warn("[FOG] GodforgeStarRenderer: ring fade shader initialization failed", e);
-            failedInit = true;
-            return;
-        }
-
-        TextureUpdateRequester textureUpdater = ringStructure.getTextureUpdateRequestor();
-        textureUpdater.requestUpdate();
+                        BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR.ordinal())
+                .assignStructure(structure);
     }
 
     private static int createShaderProgram(String vertName, String fragName) {
