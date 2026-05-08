@@ -17,6 +17,8 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -50,16 +52,68 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockController implements ProgressBarMultiblock {
 
+    // Static template cache: one LazyTemplate per LargeCombustionEngineType variant
+    private static final EnumMap<LargeCombustionEngineType, LazyTemplate> TEMPLATES = new EnumMap<>(LargeCombustionEngineType.class);
+    static {
+        for (LargeCombustionEngineType type : LargeCombustionEngineType.values()) {
+            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+        }
+    }
+
+    private static BlockPatternTemplate buildTemplate(LargeCombustionEngineType type) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "XDX", "XXX")
+                .aisle("XCX", "CGC", "XCX")
+                .aisle("XCX", "CGC", "XCX")
+                .aisle("AAA", "AYA", "AAA")
+                .where('X', states(type.getCasingState()))
+                .where('G', states(type.getGearboxState()))
+                .where('D', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
+                        .filter(mte -> {
+                            IEnergyContainer container = mte
+                                    .getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                            return container != null &&
+                                    container.getOutputVoltage() * container.getOutputAmperage() >= GTValues.V[type.getTier()];
+                        })
+                        .toArray(MetaTileEntity[]::new))
+                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[type.getTier()]))
+                .where('A', states(type.getIntakeState()).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
+                .where('Y', selfPredicateByClass(MetaTileEntityLargeCombustionEngine.class))
+                .casing('C', CasingDefinition.simple(type.getCasingState(),
+                        "gregtech.machine.casing." + (type.isExtreme() ? "tungstensteel_robust" : "titanium_stable")))
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                .buildTemplate();
+    }
+
+    private final LargeCombustionEngineType engineType;
     private final boolean isExtreme;
     private boolean boostAllowed;
 
+    // Primary constructor: enum-based variant configuration
+    public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId, LargeCombustionEngineType engineType) {
+        super(metaTileEntityId, RecipeMaps.COMBUSTION_GENERATOR_FUELS, engineType.getTier());
+        this.engineType = engineType;
+        this.isExtreme = engineType.isExtreme();
+        this.recipeMapWorkable = new LargeCombustionEngineWorkableHandler(this, isExtreme);
+        this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[engineType.getTier()]);
+    }
+
+    // Compatibility constructor: preserved for addons that create custom combustion engine variants
+    @Deprecated
     public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, RecipeMaps.COMBUSTION_GENERATOR_FUELS, tier);
+        this.engineType = null;
         this.isExtreme = tier > GTValues.EV;
         this.recipeMapWorkable = new LargeCombustionEngineWorkableHandler(this, isExtreme);
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
@@ -67,6 +121,9 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        if (engineType != null) {
+            return new MetaTileEntityLargeCombustionEngine(metaTileEntityId, engineType);
+        }
         return new MetaTileEntityLargeCombustionEngine(metaTileEntityId, tier);
     }
 
@@ -131,7 +188,11 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     }
 
     @Override
-    protected @NotNull BlockPattern createStructurePattern() {
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
+        if (engineType != null) {
+            return TEMPLATES.get(engineType).get();
+        }
+        // Fallback for addon-created instances using deprecated constructor
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XDX", "XXX")
                 .aisle("XCX", "CGC", "XCX")
@@ -158,20 +219,29 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                     .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
                     .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
                     .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .build();
+                .buildTemplate();
     }
 
     public IBlockState getCasingState() {
+        if (engineType != null) {
+            return engineType.getCasingState();
+        }
         return isExtreme ? MetaBlocks.METAL_CASING.getState(MetalCasingType.TUNGSTENSTEEL_ROBUST) :
                 MetaBlocks.METAL_CASING.getState(MetalCasingType.TITANIUM_STABLE);
     }
 
     public IBlockState getGearboxState() {
+        if (engineType != null) {
+            return engineType.getGearboxState();
+        }
         return isExtreme ? MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TUNGSTENSTEEL_GEARBOX) :
                 MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TITANIUM_GEARBOX);
     }
 
     public IBlockState getIntakeState() {
+        if (engineType != null) {
+            return engineType.getIntakeState();
+        }
         return isExtreme ? MetaBlocks.MULTIBLOCK_CASING.getState(MultiblockCasingType.EXTREME_ENGINE_INTAKE_CASING) :
                 MetaBlocks.MULTIBLOCK_CASING.getState(MultiblockCasingType.ENGINE_INTAKE_CASING);
     }
@@ -179,6 +249,9 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+        if (engineType != null) {
+            return engineType.getCasingRenderer();
+        }
         return isExtreme ? Textures.ROBUST_TUNGSTENSTEEL_CASING : Textures.STABLE_TITANIUM_CASING;
     }
 
@@ -186,6 +259,9 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
+        if (engineType != null) {
+            return engineType.getFrontOverlay();
+        }
         return isExtreme ? Textures.EXTREME_COMBUSTION_ENGINE_OVERLAY : Textures.LARGE_COMBUSTION_ENGINE_OVERLAY;
     }
 

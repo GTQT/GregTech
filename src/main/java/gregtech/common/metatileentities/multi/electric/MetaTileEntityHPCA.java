@@ -14,6 +14,8 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -81,6 +83,27 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
 
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
+
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("AA", "CC", "CC", "CC", "AA")
+                    .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
+                    .aisle("SA", "CC", "CC", "CC", "AA")
+                    .where('S', selfPredicate(GTUtility.gregtechId("high_performance_computing_array")))
+                    .where('A', states(getAdvancedState()))
+                    .where('V', states(getVentState()))
+                    .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
+                    .casing('C', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.computer"))
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.MAINTENANCE_HATCH)
+                                        .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION).setExactLimit(1), 1)
+                    .buildTemplate()
+    );
 
     private IEnergyContainer energyContainer;
     private IFluidHandler coolantHandler;
@@ -207,23 +230,8 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected @NotNull BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("AA", "CC", "CC", "CC", "AA")
-                .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
-                .aisle("SA", "CC", "CC", "CC", "AA")
-                .where('S', selfPredicate())
-                .where('A', states(getAdvancedState()))
-                .where('V', states(getVentState()))
-                .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
-                .casing('C', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.computer"))
-                    .withCustomHatches(maintenancePredicate(), 1)
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
-                    .withCustomHatches(
-                            abilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION).setExactLimit(1), 1)
-                .build();
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     private static @NotNull IBlockState getCasingState() {

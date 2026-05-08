@@ -19,6 +19,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -62,27 +64,76 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         implements ITieredMetaTileEntity, IWorkable, ProgressBarMultiblock {
 
+    // Static template cache: one LazyTemplate per FluidDrillType variant
+    private static final EnumMap<FluidDrillType, LazyTemplate> TEMPLATES = new EnumMap<>(FluidDrillType.class);
+    static {
+        for (FluidDrillType type : FluidDrillType.values()) {
+            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+        }
+    }
+
+    private static BlockPatternTemplate buildTemplate(FluidDrillType type) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
+                .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
+                .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
+                .where('S', selfPredicateByClass(MetaTileEntityFluidDrill.class))
+                .where('C', states(type.getCasingState()))
+                .where('F', frames(type.getFrameMaterial()))
+                .where('#', any())
+                .casing('X', CasingDefinition.simple(type.getCasingState(),
+                        "gregtech.machine.casing.fluid_drill"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 1)
+                .buildTemplate();
+    }
+
     private final FluidDrillLogic minerLogic;
     private final int tier;
+    private final FluidDrillType drillType;
 
     protected IMultipleTankHandler inputFluidInventory;
     protected IMultipleTankHandler outputFluidInventory;
     protected IEnergyContainer energyContainer;
 
+    // Primary constructor: enum-based variant configuration
+    public MetaTileEntityFluidDrill(ResourceLocation metaTileEntityId, FluidDrillType drillType) {
+        super(metaTileEntityId);
+        this.drillType = drillType;
+        this.tier = drillType.getTier();
+        this.minerLogic = new FluidDrillLogic(this);
+    }
+
+    // Compatibility constructor: preserved for addons that create custom fluid drill variants
+    @Deprecated
     public MetaTileEntityFluidDrill(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId);
-        this.minerLogic = new FluidDrillLogic(this);
+        this.drillType = findTypeByTier(tier);
         this.tier = tier;
+        this.minerLogic = new FluidDrillLogic(this);
+    }
+
+    private static FluidDrillType findTypeByTier(int tier) {
+        for (FluidDrillType type : FluidDrillType.values()) {
+            if (type.getTier() == tier) {
+                return type;
+            }
+        }
+        return null;
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        if (drillType != null) {
+            return new MetaTileEntityFluidDrill(metaTileEntityId, drillType);
+        }
         return new MetaTileEntityFluidDrill(metaTileEntityId, tier);
     }
 
@@ -120,7 +171,11 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected @NotNull BlockPattern createStructurePattern() {
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
+        if (drillType != null) {
+            return TEMPLATES.get(drillType).get();
+        }
+        // Fallback for addon-created instances using deprecated constructor
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
@@ -133,39 +188,30 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
                         "gregtech.machine.casing.fluid_drill"))
                     .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
                     .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 1)
-                .build();
+                .buildTemplate();
     }
 
     private IBlockState getCasingState() {
-        if (tier == GTValues.MV)
-            return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
-        if (tier == GTValues.HV)
-            return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TITANIUM_STABLE);
-        if (tier == GTValues.EV)
-            return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST);
+        if (drillType != null) {
+            return drillType.getCasingState();
+        }
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
     @NotNull
     private TraceabilityPredicate getFramePredicate() {
-        if (tier == GTValues.MV)
-            return frames(Materials.Steel);
-        if (tier == GTValues.HV)
-            return frames(Materials.Titanium);
-        if (tier == GTValues.EV)
-            return frames(Materials.TungstenSteel);
+        if (drillType != null) {
+            return frames(drillType.getFrameMaterial());
+        }
         return frames(Materials.Steel);
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        if (tier == GTValues.MV)
-            return Textures.SOLID_STEEL_CASING;
-        if (tier == GTValues.HV)
-            return Textures.STABLE_TITANIUM_CASING;
-        if (tier == GTValues.EV)
-            return Textures.ROBUST_TUNGSTENSTEEL_CASING;
+        if (drillType != null) {
+            return drillType.getCasingRenderer();
+        }
         return Textures.SOLID_STEEL_CASING;
     }
 
@@ -266,22 +312,16 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
     }
 
     public int getRigMultiplier() {
-        if (this.tier == GTValues.MV)
-            return 1;
-        if (this.tier == GTValues.HV)
-            return 16;
-        if (this.tier == GTValues.EV)
-            return 64;
+        if (drillType != null) {
+            return drillType.getRigMultiplier();
+        }
         return 1;
     }
 
     public int getDepletionChance() {
-        if (this.tier == GTValues.MV)
-            return 1;
-        if (this.tier == GTValues.HV)
-            return 2;
-        if (this.tier == GTValues.EV)
-            return 8;
+        if (drillType != null) {
+            return drillType.getDepletionChance();
+        }
         return 1;
     }
 

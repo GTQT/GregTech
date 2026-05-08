@@ -10,9 +10,12 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -49,6 +52,36 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
 
     private static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
     private static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
+
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
+                    .aisle("CDD", "SAD", "CDD")
+                    .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
+                    .aisle("XXX", "XXX", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("data_bank")))
+                    .where('X', states(getOuterState()))
+                    .where('A', states(getInnerState()))
+                    .casing('D', CasingDefinition.simple(getInnerState(),
+                            "gregtech.machine.casing.computer"))
+                        .withOptionalHatches(MultiblockAbility.DATA_ACCESS_HATCH, 9)
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
+                                        .setMinGlobalLimited(1, 1), 1)
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
+                    .casing('C', CasingDefinition.simple(getFrontState(),
+                            "gregtech.machine.casing.high_power"))
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                    .buildTemplate()
+    );
 
     private IEnergyContainer energyContainer;
 
@@ -163,34 +196,8 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
 
     @NotNull
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
-                .aisle("XXX", "XXX", "XXX")
-                .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
-                .aisle("CDD", "SAD", "CDD")
-                .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
-                .aisle("XXX", "XXX", "XXX")
-                .where('S', selfPredicate())
-                .where('X', states(getOuterState()))
-                .where('A', states(getInnerState()))
-                .casing('D', CasingDefinition.simple(getInnerState(),
-                        "gregtech.machine.casing.computer"))
-                    .withOptionalHatches(MultiblockAbility.DATA_ACCESS_HATCH, 9)
-                    .withCustomHatches(
-                            abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
-                                    .setMinGlobalLimited(1, 1), 1)
-                    .withCustomHatches(
-                            abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
-                .casing('C', CasingDefinition.simple(getFrontState(),
-                        "gregtech.machine.casing.high_power"))
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @NotNull

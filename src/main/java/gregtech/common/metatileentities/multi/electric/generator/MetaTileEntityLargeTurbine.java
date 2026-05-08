@@ -16,6 +16,8 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -42,12 +44,47 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
+    // Static template cache: one LazyTemplate per LargeTurbineType variant
+    private static final EnumMap<LargeTurbineType, LazyTemplate> TEMPLATES = new EnumMap<>(LargeTurbineType.class);
+    static {
+        for (LargeTurbineType type : LargeTurbineType.values()) {
+            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+        }
+    }
+
+    private static BlockPatternTemplate buildTemplate(LargeTurbineType type) {
+        return DeclarativePatternBuilder.start()
+                .aisle("CCCC", "CHHC", "CCCC")
+                .aisle("CHHC", "RGGR", "CHHC")
+                .aisle("CCCC", "CSHC", "CCCC")
+                .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
+                .where('G', states(type.getGearboxState()))
+                .where('C', states(type.getCasingState()))
+                .where('R', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.ROTOR_HOLDER).stream()
+                        .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
+                                (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
+                        .toArray(MetaTileEntity[]::new))
+                        .addTooltips("gregtech.multiblock.pattern.clear_amount_3")
+                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[type.getTier()])
+                        .setExactLimit(1)
+                        .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
+                .casing('H', CasingDefinition.simple(type.getCasingState(),
+                        "gregtech.machine.casing.turbine"))
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
+                .buildTemplate();
+    }
+
+    public final LargeTurbineType turbineType;
     public final IBlockState casingState;
     public final IBlockState gearboxState;
     public final ICubeRenderer casingRenderer;
@@ -58,10 +95,27 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     public IFluidHandler exportFluidHandler;
 
+    // Primary constructor: enum-based variant configuration
+    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, LargeTurbineType turbineType) {
+        super(metaTileEntityId, turbineType.getRecipeMap(), turbineType.getTier());
+        this.turbineType = turbineType;
+        this.casingState = turbineType.getCasingState();
+        this.gearboxState = turbineType.getGearboxState();
+        this.casingRenderer = turbineType.getCasingRenderer();
+        this.hasMufflerHatch = turbineType.hasMufflerHatch();
+        this.frontOverlay = turbineType.getFrontOverlay();
+        this.tier = turbineType.getTier();
+        this.recipeMapWorkable = new LargeTurbineWorkableHandler(this, tier);
+        this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
+    }
+
+    // Compatibility constructor: preserved for addons that create custom turbine variants
+    @Deprecated
     public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap, int tier,
                                       IBlockState casingState, IBlockState gearboxState, ICubeRenderer casingRenderer,
                                       boolean hasMufflerHatch, ICubeRenderer frontOverlay) {
         super(metaTileEntityId, recipeMap, tier);
+        this.turbineType = null;
         this.casingState = casingState;
         this.gearboxState = gearboxState;
         this.casingRenderer = casingRenderer;
@@ -74,6 +128,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        if (turbineType != null) {
+            return new MetaTileEntityLargeTurbine(metaTileEntityId, turbineType);
+        }
         return new MetaTileEntityLargeTurbine(metaTileEntityId, recipeMap, tier, casingState, gearboxState,
                 casingRenderer, hasMufflerHatch, frontOverlay);
     }
@@ -191,7 +248,11 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     }
 
     @Override
-    protected BlockPattern createStructurePattern() {
+    protected BlockPatternTemplate createStructureTemplate() {
+        if (turbineType != null) {
+            return TEMPLATES.get(turbineType).get();
+        }
+        // Fallback for addon-created instances using deprecated constructor
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
@@ -213,7 +274,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                     .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
                     .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
                     .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, hasMufflerHatch ? 1 : 0)
-                .build();
+                .buildTemplate();
     }
 
     @Override

@@ -21,6 +21,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -72,6 +74,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 
 import static gregtech.api.unification.material.Materials.DrillingFluid;
@@ -81,6 +84,32 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     private static final int CHUNK_LENGTH = 16;
 
+    // Static template cache: one LazyTemplate per LargeMinerType variant
+    private static final EnumMap<LargeMinerType, LazyTemplate> TEMPLATES = new EnumMap<>(LargeMinerType.class);
+    static {
+        for (LargeMinerType type : LargeMinerType.values()) {
+            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+        }
+    }
+
+    private static BlockPatternTemplate buildTemplate(LargeMinerType type) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
+                .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
+                .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
+                .where('S', selfPredicateByClass(MetaTileEntityLargeMiner.class))
+                .where('C', states(type.getCasingState()))
+                .where('F', frames(type.getFrameMaterial()))
+                .where('#', any())
+                .casing('X', CasingDefinition.simple(type.getCasingState(),
+                        "gregtech.machine.casing.large_miner"))
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                .buildTemplate();
+    }
+
+    private final LargeMinerType minerType;
     private final Material material;
     private final int tier;
 
@@ -97,9 +126,23 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     private final MultiblockMinerLogic minerLogic;
 
+    // Primary constructor: enum-based variant configuration
+    public MetaTileEntityLargeMiner(ResourceLocation metaTileEntityId, LargeMinerType minerType) {
+        super(metaTileEntityId);
+        this.minerType = minerType;
+        this.material = minerType.getFrameMaterial();
+        this.tier = minerType.getTier();
+        this.drillingFluidConsumePerTick = minerType.getDrillingFluidConsumePerTick();
+        this.minerLogic = new MultiblockMinerLogic(this, minerType.getFortune(), minerType.getSpeed(),
+                minerType.getMaximumChunkDiameter() * CHUNK_LENGTH / 2, RecipeMaps.MACERATOR_RECIPES);
+    }
+
+    // Compatibility constructor: preserved for addons that create custom large miner variants
+    @Deprecated
     public MetaTileEntityLargeMiner(ResourceLocation metaTileEntityId, int tier, int speed, int maximumChunkDiameter,
                                     int fortune, Material material, int drillingFluidConsumePerTick) {
         super(metaTileEntityId);
+        this.minerType = null;
         this.material = material;
         this.tier = tier;
         this.drillingFluidConsumePerTick = drillingFluidConsumePerTick;
@@ -109,6 +152,9 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        if (minerType != null) {
+            return new MetaTileEntityLargeMiner(metaTileEntityId, minerType);
+        }
         return new MetaTileEntityLargeMiner(metaTileEntityId, this.tier, this.minerLogic.getSpeed(),
                 this.minerLogic.getMaximumRadius() * 2 / CHUNK_LENGTH, this.minerLogic.getFortune(), getMaterial(),
                 getDrillingFluidConsumePerTick());
@@ -195,7 +241,11 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected BlockPattern createStructurePattern() {
+    protected BlockPatternTemplate createStructureTemplate() {
+        if (minerType != null) {
+            return TEMPLATES.get(minerType).get();
+        }
+        // Fallback for addon-created instances using deprecated constructor
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
@@ -209,7 +259,7 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
                     .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
                     .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
                     .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                .build();
+                .buildTemplate();
     }
 
     @Override
@@ -347,6 +397,9 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     }
 
     public IBlockState getCasingState() {
+        if (minerType != null) {
+            return minerType.getCasingState();
+        }
         if (this.material.equals(Materials.Titanium))
             return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TITANIUM_STABLE);
         if (this.material.equals(Materials.TungstenSteel))
@@ -356,6 +409,9 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     @NotNull
     private TraceabilityPredicate getFramePredicate() {
+        if (minerType != null) {
+            return frames(minerType.getFrameMaterial());
+        }
         if (this.material.equals(Materials.Titanium))
             return frames(Materials.Titanium);
         if (this.material.equals(Materials.TungstenSteel))
@@ -366,6 +422,9 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+        if (minerType != null) {
+            return minerType.getCasingRenderer();
+        }
         if (this.material.equals(Materials.Titanium))
             return Textures.STABLE_TITANIUM_CASING;
         if (this.material.equals(Materials.TungstenSteel))
@@ -411,6 +470,9 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
+        if (minerType != null) {
+            return minerType.getFrontOverlay();
+        }
         if (this.tier == 5)
             return Textures.LARGE_MINER_OVERLAY_ADVANCED;
         if (this.tier == 6)

@@ -17,6 +17,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -58,7 +60,36 @@ import java.util.List;
 import static gregtech.api.GTValues.ULV;
 import static gregtech.api.recipes.logic.OverclockingLogic.subTickNonParallelOC;
 
-public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController implements IMachineHatchMultiblock {
+public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
+        implements IMachineHatchMultiblock {
+
+    // Static template cache: one LazyTemplate per tier (0 = normal, 1 = advanced)
+    private static final LazyTemplate[] TEMPLATES = new LazyTemplate[] {
+            LazyTemplate.of(() -> buildTemplate(
+                    MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST))),
+            LazyTemplate.of(() -> buildTemplate(
+                    MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
+    };
+
+    private static BlockPatternTemplate buildTemplate(IBlockState casingState) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "XXX", "XXX")
+                .aisle("XXX", "X#X", "XXX")
+                .aisle("XXX", "XSX", "XXX")
+                .where('S', selfPredicateByClass(MetaTileEntityProcessingArray.class))
+                .where('#', air())
+                .casing('X', CasingDefinition.simple(casingState,
+                        "gregtech.machine.casing.processing_array"))
+                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .withHatches(MultiblockAbility.MACHINE_HATCH, 1, 1)
+                .buildTemplate();
+    }
 
     private final int tier;
     private boolean machineChanged;
@@ -87,25 +118,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "X#X", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .where('L', states(getCasingState()))
-                .where('S', selfPredicate())
-                .where('#', air())
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.processing_array"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                    .withHatches(MultiblockAbility.MACHINE_HATCH, 1, 1)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATES[tier].get();
     }
 
     public IBlockState getCasingState() {

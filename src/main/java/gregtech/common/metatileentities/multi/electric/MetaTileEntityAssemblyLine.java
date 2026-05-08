@@ -9,6 +9,8 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -62,6 +64,36 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+                    .aisle("FIF", "RTR", "SAG", " Y ")
+                    .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .aisle("FOF", "RTR", "DAG", " Y ")
+                    .where('S', selfPredicate(GTUtility.gregtechId("assembly_line")))
+                    .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
+                            .addTooltips("gregtech.multiblock.pattern.location_end"))
+                    .where('I', metaTileEntities(MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV]))
+                    .where('G', states(getGrateState()))
+                    .where('A',
+                            states(MetaBlocks.MULTIBLOCK_CASING
+                                    .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_CONTROL)))
+                    .where('R', states(MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS)))
+                    .where('T',
+                            states(MetaBlocks.MULTIBLOCK_CASING
+                                    .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING)))
+                    .where('D', dataHatchPredicate())
+                    .where(' ', any())
+                    .casing('F', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.solid_steel"))
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withCustomHatches(fluidInputPredicate(), 4)
+                    .casing('Y', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.solid_steel"))
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                    .buildTemplate()
+    );
+
     private static final ResourceLocation LASER_LOCATION = GTUtility.gregtechId("textures/fx/laser/laser.png");
     private static final ResourceLocation LASER_HEAD_LOCATION = GTUtility
             .gregtechId("textures/fx/laser/laser_start.png");
@@ -82,34 +114,8 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
     @NotNull
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
-                .aisle("FIF", "RTR", "SAG", " Y ")
-                .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
-                    .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
-                .aisle("FOF", "RTR", "DAG", " Y ")
-                .where('S', selfPredicate())
-                .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
-                        .addTooltips("gregtech.multiblock.pattern.location_end"))
-                .where('I', metaTileEntities(MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV]))
-                .where('G', states(getGrateState()))
-                .where('A',
-                        states(MetaBlocks.MULTIBLOCK_CASING
-                                .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_CONTROL)))
-                .where('R', states(MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS)))
-                .where('T',
-                        states(MetaBlocks.MULTIBLOCK_CASING
-                                .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING)))
-                .where('D', dataHatchPredicate())
-                .where(' ', any())
-                .casing('F', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.solid_steel"))
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withCustomHatches(fluidInputPredicate(), 4)
-                .casing('Y', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.solid_steel"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @NotNull

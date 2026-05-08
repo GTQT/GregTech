@@ -11,6 +11,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.client.renderer.ICubeRenderer;
@@ -48,6 +50,31 @@ import java.util.List;
 
 public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
+    // Static template cache: index 0 = wooden, index 1 = metal
+    private static final LazyTemplate[] TEMPLATES = new LazyTemplate[] {
+            LazyTemplate.of(() -> buildTemplate(false)),
+            LazyTemplate.of(() -> buildTemplate(true))
+    };
+
+    private static BlockPatternTemplate buildTemplate(boolean metal) {
+        IBlockState casingState = metal ?
+                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID) :
+                MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL);
+        MetaTileEntity valve = metal ? MetaTileEntities.STEEL_TANK_VALVE : MetaTileEntities.WOODEN_TANK_VALVE;
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "XXX", "XXX")
+                .aisle("XXX", "X X", "XXX")
+                .aisle("XXX", "XSX", "XXX")
+                .where('S', selfPredicateByClass(MetaTileEntityMultiblockTank.class))
+                .where(' ', air())
+                .casing('X', CasingDefinition.simple(casingState,
+                        metal ? "gregtech.machine.casing.solid_steel"
+                                : "gregtech.machine.casing.wood_wall"))
+                    .withCustomHatches(
+                            metaTileEntities(valve).setMaxGlobalLimited(2), 2)
+                .buildTemplate();
+    }
+
     private final boolean isMetal;
     private final int capacity;
 
@@ -81,19 +108,8 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
     @Override
     @NotNull
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "X X", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate())
-                .where(' ', air())
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        isMetal ? "gregtech.machine.casing.solid_steel"
-                                : "gregtech.machine.casing.wood_wall"))
-                    .withCustomHatches(
-                            metaTileEntities(getValve()).setMaxGlobalLimited(2), 2)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATES[isMetal ? 1 : 0].get();
     }
 
     private IBlockState getCasingState() {

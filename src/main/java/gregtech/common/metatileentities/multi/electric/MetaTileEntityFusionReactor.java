@@ -18,7 +18,9 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.recipes.Recipe;
@@ -91,6 +93,50 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     protected static final int NO_COLOR = 0;
 
+    // Static template cache: one LazyTemplate per tier (LuV=6, ZPM=7, UV=8)
+    private static final LazyTemplate[] TEMPLATES = new LazyTemplate[GTValues.UV + 1];
+    static {
+        for (int t = GTValues.LuV; t <= GTValues.UV; t++) {
+            final int tier = t;
+            TEMPLATES[t] = LazyTemplate.of(() -> buildTemplate(tier));
+        }
+    }
+
+    private static BlockPatternTemplate buildTemplate(int tier) {
+        return FactoryBlockPattern.start()
+                .aisle("###############", "######OGO######", "###############")
+                .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
+                .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
+                .aisle("###C#######C###", "##EKEG###GEKE##", "###C#######C###")
+                .aisle("##C#########C##", "#GAE#######EAG#", "##C#########C##")
+                .aisle("##C#########C##", "#GAG#######GAG#", "##C#########C##")
+                .aisle("#I###########I#", "OAO#########OAO", "#I###########I#")
+                .aisle("#C###########C#", "GAG#########GAG", "#C###########C#")
+                .aisle("#I###########I#", "OAO#########OAO", "#I###########I#")
+                .aisle("##C#########C##", "#GAG#######GAG#", "##C#########C##")
+                .aisle("##C#########C##", "#GAE#######EAG#", "##C#########C##")
+                .aisle("###C#######C###", "##EKEG###GEKE##", "###C#######C###")
+                .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
+                .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
+                .aisle("###############", "######OSO######", "###############")
+                .where('S', selfPredicateByClass(MetaTileEntityFusionReactor.class))
+                .where('G', states(getCasingState(tier), getGlassState()))
+                .where('E',
+                        states(getCasingState(tier), getGlassState()).or(metaTileEntities(Arrays
+                                .stream(MetaTileEntities.ENERGY_INPUT_HATCH)
+                                .filter(mte -> mte != null && tier <= mte.getTier() && mte.getTier() <= GTValues.UV)
+                                .toArray(MetaTileEntity[]::new))
+                                .setMinGlobalLimited(1).setPreviewCount(16)))
+                .where('C', states(getCasingState(tier)))
+                .where('K', states(getCoilState(tier)))
+                .where('O', states(getCasingState(tier), getGlassState()).or(abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                .where('A', air())
+                .where('I',
+                        states(getCasingState(tier)).or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(2)))
+                .where('#', any())
+                .buildTemplate();
+    }
+
     private final int tier;
     private EnergyContainerList inputEnergyContainers;
     private long heat = 0; // defined in TileEntityFusionReactor but serialized in FusionRecipeLogic
@@ -120,41 +166,8 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    // Retained on FactoryBlockPattern: complex tier-dependent energy hatch filtering
-    // and unique ring structure with multiple predicate variants per character.
-    protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
-                .aisle("###############", "######OGO######", "###############")
-                .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
-                .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
-                .aisle("###C#######C###", "##EKEG###GEKE##", "###C#######C###")
-                .aisle("##C#########C##", "#GAE#######EAG#", "##C#########C##")
-                .aisle("##C#########C##", "#GAG#######GAG#", "##C#########C##")
-                .aisle("#I###########I#", "OAO#########OAO", "#I###########I#")
-                .aisle("#C###########C#", "GAG#########GAG", "#C###########C#")
-                .aisle("#I###########I#", "OAO#########OAO", "#I###########I#")
-                .aisle("##C#########C##", "#GAG#######GAG#", "##C#########C##")
-                .aisle("##C#########C##", "#GAE#######EAG#", "##C#########C##")
-                .aisle("###C#######C###", "##EKEG###GEKE##", "###C#######C###")
-                .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
-                .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
-                .aisle("###############", "######OSO######", "###############")
-                .where('S', selfPredicate())
-                .where('G', states(getCasingState(), getGlassState()))
-                .where('E',
-                        states(getCasingState(), getGlassState()).or(metaTileEntities(Arrays
-                                .stream(MetaTileEntities.ENERGY_INPUT_HATCH)
-                                .filter(mte -> mte != null && tier <= mte.getTier() && mte.getTier() <= GTValues.UV)
-                                .toArray(MetaTileEntity[]::new))
-                                .setMinGlobalLimited(1).setPreviewCount(16)))
-                .where('C', states(getCasingState()))
-                .where('K', states(getCoilState()))
-                .where('O', states(getCasingState(), getGlassState()).or(abilities(MultiblockAbility.EXPORT_FLUIDS)))
-                .where('A', air())
-                .where('I',
-                        states(getCasingState()).or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(2)))
-                .where('#', any())
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATES[tier].get();
     }
 
     @Override
@@ -211,11 +224,11 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         }
     }
 
-    private IBlockState getGlassState() {
+    private static IBlockState getGlassState() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.FUSION_GLASS);
     }
 
-    private IBlockState getCasingState() {
+    private static IBlockState getCasingState(int tier) {
         if (tier == GTValues.LuV)
             return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.FUSION_CASING);
         if (tier == GTValues.ZPM)
@@ -224,11 +237,19 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.FUSION_CASING_MK3);
     }
 
-    private IBlockState getCoilState() {
+    private IBlockState getCasingState() {
+        return getCasingState(tier);
+    }
+
+    private static IBlockState getCoilState(int tier) {
         if (tier == GTValues.LuV)
             return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL);
 
         return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.FUSION_COIL);
+    }
+
+    private IBlockState getCoilState() {
+        return getCoilState(tier);
     }
 
     protected int getFusionRingColor() {

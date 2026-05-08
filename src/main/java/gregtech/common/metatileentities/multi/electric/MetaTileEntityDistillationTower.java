@@ -10,6 +10,8 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -17,6 +19,7 @@ import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTTransferUtils;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -38,6 +41,30 @@ import java.util.function.Function;
 import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityDistillationTower extends RecipeMapMultiblockController implements IDistillationTower {
+
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+                    .aisle("YSY", "YYY", "YYY")
+                    .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                    .aisle("XXX", "XXX", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("distillation_tower")))
+                    .where('#', air())
+                    .casing('Y', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.stainless_clean"))
+                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(1), 1)
+                    .casing('X', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.stainless_clean"))
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
+                        .withCustomHatches(
+                                abilities(MultiblockAbility.MAINTENANCE_HATCH)
+                                        .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)
+                    .buildTemplate()
+    );
 
     protected DistillationTowerLogicHandler handler;
 
@@ -97,26 +124,8 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     }
 
     @Override
-    protected @NotNull BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                .aisle("YSY", "YYY", "YYY")
-                .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
-                    .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                .aisle("XXX", "XXX", "XXX")
-                .where('S', selfPredicate())
-                .where('#', air())
-                .casing('Y', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.stainless_clean"))
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                    .withCustomHatches(
-                            abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(1), 1)
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.stainless_clean"))
-                    .withCustomHatches(
-                            abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
-                    .withCustomHatches(maintenancePredicate(), 1)
-                .build();
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @Override
@@ -130,7 +139,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         return Textures.CLEAN_STAINLESS_STEEL_CASING;
     }
 
-    protected IBlockState getCasingState() {
+    protected static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(MetalCasingType.STAINLESS_CLEAN);
     }
 

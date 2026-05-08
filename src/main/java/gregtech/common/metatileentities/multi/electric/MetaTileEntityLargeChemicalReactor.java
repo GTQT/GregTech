@@ -7,11 +7,14 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -40,6 +43,37 @@ import java.util.List;
 
 public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockController {
 
+    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XCX", "XXX")
+                    .aisle("XCX", "CPC", "XCX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .where('S', selfPredicate(GTUtility.gregtechId("large_chemical_reactor")))
+                    .where('P', states(getPipeCasingState()))
+                    .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
+                            .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1)
+                                    .setMaxGlobalLimited(2).setPreviewCount(1))
+                            .or(abilities(MultiblockAbility.MAINTENANCE_HATCH).setMinGlobalLimited(0)
+                                    .setMaxGlobalLimited(1).setPreviewCount(0))
+                            .or(abilities(MultiblockAbility.MUFFLER_HATCH).setMinGlobalLimited(0)
+                                    .setMaxGlobalLimited(1).setPreviewCount(0))
+                            .or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1))
+                            .or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1))
+                            .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1))
+                            .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1))
+                            .or(states(getCasingState())))
+                    .casing('X', CasingDefinition.simple(getCasingState(),
+                            "gregtech.machine.casing.ptfe_inert"))
+                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
+                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
+                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .buildTemplate()
+    );
+
     public MetaTileEntityLargeChemicalReactor(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.LARGE_CHEMICAL_RECIPES);
         this.recipeMapWorkable = new MultiblockRecipeLogic(this, true);
@@ -51,27 +85,8 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected BlockPattern createStructurePattern() {
-        TraceabilityPredicate abilities = autoAbilities();
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XCX", "XXX")
-                .aisle("XCX", "CPC", "XCX")
-                .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate())
-                .where('P', states(getPipeCasingState()))
-                .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
-                        .or(abilities)
-                        .or(states(getCasingState())))
-                .casing('X', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.ptfe_inert"))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATE.get();
     }
 
     @Override
@@ -127,11 +142,11 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
         return Textures.INERT_PTFE_CASING;
     }
 
-    protected IBlockState getCasingState() {
+    protected static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
     }
 
-    protected IBlockState getPipeCasingState() {
+    protected static IBlockState getPipeCasingState() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 

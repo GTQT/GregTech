@@ -22,6 +22,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.PatternMatchContext;
@@ -69,11 +71,39 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
                                                                                     IControllable, ISteamMachine {
+
+    // Static template cache: one LazyTemplate per BoilerType variant
+    private static final EnumMap<BoilerType, LazyTemplate> TEMPLATES = new EnumMap<>(BoilerType.class);
+    static {
+        for (BoilerType type : BoilerType.values()) {
+            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+        }
+    }
+
+    private static BlockPatternTemplate buildTemplate(BoilerType type) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "CCC", "CCC", "CCC")
+                .aisle("XXX", "CPC", "CPC", "CCC")
+                .aisle("XXX", "CSC", "CCC", "CCC")
+                .where('S', selfPredicateByClass(MetaTileEntityLargeBoiler.class))
+                .where('P', states(type.pipeState))
+                .casing('X', CasingDefinition.simple(type.fireboxState,
+                        "gregtech.machine.casing.firebox"))
+                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
+                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .casing('C', CasingDefinition.simple(type.casingState,
+                        "gregtech.machine.casing.boiler"))
+                    .withHatches(MultiblockAbility.EXPORT_FLUIDS, 1, 4)
+                .buildTemplate();
+    }
 
     public final BoilerType boilerType;
     protected BoilerRecipeLogic recipeLogic;
@@ -312,23 +342,8 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     }
 
     @Override
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "CCC", "CCC", "CCC")
-                .aisle("XXX", "CPC", "CPC", "CCC")
-                .aisle("XXX", "CSC", "CCC", "CCC")
-                .where('S', selfPredicate())
-                .where('P', states(boilerType.pipeState))
-                .casing('X', CasingDefinition.simple(boilerType.fireboxState,
-                        "gregtech.machine.casing.firebox"))
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                .casing('C', CasingDefinition.simple(boilerType.casingState,
-                        "gregtech.machine.casing.boiler"))
-                    .withHatches(MultiblockAbility.EXPORT_FLUIDS, 1, 4)
-                .build();
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATES.get(boilerType).get();
     }
 
     @Override
