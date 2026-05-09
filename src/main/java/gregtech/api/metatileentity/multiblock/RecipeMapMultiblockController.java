@@ -184,9 +184,19 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                 .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.getMaxVoltage()))
                 .addCustom(this::addCustomCapacity)
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
+                .addWorkingStatusLine();
+
+        // Cross-recipe parallel display
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            var scheduler = recipeMapWorkable.getCrossRecipeScheduler();
+            builder.addCrossRecipeParallelLine(
+                    scheduler.getActiveSlotCount(),
+                    scheduler.getParallelLimit(),
+                    scheduler.getTotalEnergyConsumption());
+        } else {
+            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
+                    .addRecipeOutputLine(recipeMapWorkable);
+        }
     }
 
     protected void addCustomCapacity(KeyManager keyManager, UISyncer syncer) {

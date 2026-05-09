@@ -9,16 +9,24 @@ import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.recipes.ingredients.GTRecipeInput;
+import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
+import gregtech.api.recipes.logic.ParallelLogic;
+import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Tuple;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -39,6 +47,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected IItemHandlerModifiable currentDistinctInputBus;
     protected List<IItemHandlerModifiable> invalidatedInputList = new ArrayList<>();
 
+    // Cross-recipe parallel scheduler (lazy initialized when ParallelLogicType.CROSS_RECIPE is active)
+    @Nullable
+    private CrossRecipeParallelScheduler crossRecipeScheduler;
+    private boolean crossRecipeSchedulerActive = false;
+
+    // Cached last successful recipe for "same recipe first" strategy
+    @Nullable
+    private Recipe lastCrossRecipe;
+
     public MultiblockRecipeLogic(RecipeMapMultiblockController tileEntity) {
         super(tileEntity, tileEntity.recipeMap);
     }
@@ -54,6 +71,463 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         super.update();
     }
 
+    // ==================== Cross-Recipe Parallel Scheduler Integration ====================
+
+    /**
+     * @return the cross-recipe parallel scheduler, creating it lazily if needed
+     */
+    @NotNull
+    protected CrossRecipeParallelScheduler getOrCreateScheduler() {
+        if (crossRecipeScheduler == null) {
+            crossRecipeScheduler = new CrossRecipeParallelScheduler(getParallelLimit());
+        }
+        crossRecipeScheduler.setMaxVoltage(getMaximumOverclockVoltage());
+        crossRecipeScheduler.setParallelLimit(getParallelLimit());
+        return crossRecipeScheduler;
+    }
+
+    /**
+     * @return true if the cross-recipe parallel mode is active and being used
+     */
+    public boolean isCrossRecipeMode() {
+        return getParallelLogicType() == ParallelLogicType.CROSS_RECIPE && getParallelLimit() > 1;
+    }
+
+    @Nullable
+    public CrossRecipeParallelScheduler getCrossRecipeScheduler() {
+        return crossRecipeScheduler;
+    }
+
+    @Override
+    protected void updateRecipeProgress() {
+        if (!isCrossRecipeMode()) {
+            super.updateRecipeProgress();
+            return;
+        }
+
+        // In CROSS_RECIPE mode, the scheduler manages all progress and energy
+        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+
+        scheduler.tickSlots(
+                getOutputInventory(),
+                getOutputTank(),
+                (amount, simulate) -> drawEnergy(amount, simulate)
+        );
+
+        if (scheduler.isHasNotEnoughEnergy()) {
+            this.hasNotEnoughEnergy = true;
+        } else {
+            this.hasNotEnoughEnergy = false;
+        }
+
+        // If scheduler can accept more recipes (has remaining parallel budget), try to fill
+        if (scheduler.canAcceptMoreRecipes()) {
+            refillScheduler(scheduler);
+        }
+
+        // Update the parent's recipeEUt to reflect current total consumption (for display purposes)
+        this.recipeEUt = scheduler.getTotalEnergyConsumption();
+
+        // Update active state based on whether any slots are still running
+        if (!scheduler.hasActiveSlots()) {
+            crossRecipeSchedulerActive = false;
+            this.progressTime = 0;
+            setMaxProgress(0);
+            this.recipeEUt = 0;
+            this.wasActiveAndNeedsUpdate = true;
+        } else {
+            crossRecipeSchedulerActive = true;
+            // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
+            this.progressTime = 1;
+        }
+    }
+
+    @Override
+    protected void trySearchNewRecipeCombined() {
+        if (!isCrossRecipeMode()) {
+            super.trySearchNewRecipeCombined();
+            return;
+        }
+
+        // In CROSS_RECIPE mode, search for recipes to create new slots
+        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+        int filled = fillSchedulerSlots(scheduler);
+
+        if (filled > 0) {
+            // Set a dummy progress so the main loop keeps calling updateRecipeProgress()
+            this.progressTime = 1;
+            setMaxProgress(Integer.MAX_VALUE);
+            this.recipeEUt = scheduler.getTotalEnergyConsumption();
+            crossRecipeSchedulerActive = true;
+            if (this.wasActiveAndNeedsUpdate) {
+                this.wasActiveAndNeedsUpdate = false;
+            } else {
+                this.setActive(true);
+            }
+        }
+    }
+
+    /**
+     * Dispatches scheduler slot filling to the appropriate method based on whether Distinct mode is active.
+     */
+    protected void refillScheduler(@NotNull CrossRecipeParallelScheduler scheduler) {
+        MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;
+        if (controller instanceof RecipeMapMultiblockController distinctController &&
+                distinctController.canBeDistinct() && distinctController.isDistinct() &&
+                getInputInventory().getSlots() > 0) {
+            fillSchedulerSlotsDistinct(scheduler);
+        } else {
+            fillSchedulerSlots(scheduler);
+        }
+    }
+
+    /**
+     * Fills scheduler with recipes from distinct buses. Each bus is searched in order,
+     * creating new slots as recipes are found.
+     */
+    protected void fillSchedulerSlotsDistinct(@NotNull CrossRecipeParallelScheduler scheduler) {
+        List<IItemHandlerModifiable> importInventory = getInputBuses();
+        RecipeMap<?> recipeMap = getRecipeMap();
+        if (recipeMap == null) return;
+
+        for (int i = 0; i < importInventory.size(); i++) {
+            if (!scheduler.canAcceptMoreRecipes()) break;
+
+            IItemHandlerModifiable bus = importInventory.get(i);
+            IMultipleTankHandler busFluidTank = getInputTank(bus);
+
+            // Search for a recipe from this bus and create a slot for it
+            Recipe recipe = findRecipe(scheduler.getRemainingPowerBudget(), bus, busFluidTank);
+            if (recipe == null || !checkRecipe(recipe)) continue;
+
+            RecipeSlot slot = scheduler.acquireSlot();
+            if (setupSlotWithRecipe(slot, recipe, recipeMap, bus, busFluidTank,
+                    scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                lastCrossRecipe = recipe;
+            } else {
+                // Setup failed, release the slot back to pool
+                scheduler.getActiveSlots().remove(slot);
+            }
+        }
+    }
+
+    /**
+     * Fills scheduler with recipes from the combined input inventory.
+     * Implements "same recipe first" strategy:
+     * <ol>
+     *   <li>If a cached recipe exists, create a slot and try to maximize its parallel count</li>
+     *   <li>When the cached recipe no longer matches, perform a full recipe search</li>
+     *   <li>Each found recipe creates a new slot with maximized parallel count</li>
+     *   <li>Repeat until parallel budget is exhausted or no more recipes match</li>
+     * </ol>
+     *
+     * @param scheduler the scheduler instance
+     * @return number of slots successfully created
+     */
+    protected int fillSchedulerSlots(@NotNull CrossRecipeParallelScheduler scheduler) {
+        RecipeMap<?> recipeMap = getRecipeMap();
+        if (recipeMap == null) return 0;
+
+        IItemHandlerModifiable importInventory = getInputInventory();
+        IMultipleTankHandler importFluids = getInputTank();
+
+        int filled = 0;
+
+        // Phase 1: Try cached recipe first (fast path, avoids full recipe search)
+        if (lastCrossRecipe != null && scheduler.canAcceptMoreRecipes()) {
+            if (lastCrossRecipe.matches(false, importInventory, importFluids)) {
+                RecipeSlot slot = scheduler.acquireSlot();
+                if (setupSlotWithRecipe(slot, lastCrossRecipe, recipeMap, importInventory, importFluids,
+                        scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                    filled++;
+                } else {
+                    scheduler.getActiveSlots().remove(slot);
+                }
+            }
+        }
+
+        // Phase 2: Search for different recipes to create additional slots
+        int consecutiveFailures = 0;
+        while (scheduler.canAcceptMoreRecipes()) {
+            long remainingPower = scheduler.getRemainingPowerBudget();
+            if (remainingPower <= 0) break;
+
+            // Full recipe search
+            Recipe recipe = findRecipe(remainingPower, importInventory, importFluids);
+            if (recipe == null || !checkRecipe(recipe)) {
+                consecutiveFailures++;
+                if (consecutiveFailures >= 2) break;
+                continue;
+            }
+            consecutiveFailures = 0;
+
+            RecipeSlot slot = scheduler.acquireSlot();
+            if (setupSlotWithRecipe(slot, recipe, recipeMap, importInventory, importFluids,
+                    remainingPower, scheduler.getRemainingParallelBudget())) {
+                lastCrossRecipe = recipe;
+                filled++;
+            } else {
+                scheduler.getActiveSlots().remove(slot);
+                break; // If setup failed, no point trying more
+            }
+        }
+
+        return filled;
+    }
+
+    /**
+     * Sets up a specific slot with a known recipe.
+     * Unified execution order: Parallel (MULTIPLY) → Overclock → 1tOC (Sub-tick Parallel) → Consume → Output.
+     *
+     * <p>Flow:
+     * <ol>
+     *   <li>MULTIPLY: Determine how many copies of this recipe can run based on input availability</li>
+     *   <li>Overclock: Reduce duration using available voltage</li>
+     *   <li>1tOC: If duration reaches 1 tick and still has OC budget, convert remaining to sub-tick parallel</li>
+     *   <li>Final parallel = inputParallel × subTickParallel</li>
+     *   <li>Consume totalParallel × inputs, produce totalParallel × outputs</li>
+     * </ol>
+     *
+     * @param slot              the slot to set up
+     * @param recipe            the recipe to use
+     * @param recipeMap         the recipe map
+     * @param importInventory   the input inventory
+     * @param importFluids      the input fluid tanks
+     * @param slotMaxVoltage    the maximum voltage for this slot
+     * @param maxParallelBudget the remaining parallel budget from the scheduler
+     * @return true if the slot was successfully started
+     */
+    protected boolean setupSlotWithRecipe(@NotNull RecipeSlot slot,
+                                          @NotNull Recipe recipe,
+                                          @NotNull RecipeMap<?> recipeMap,
+                                          @NotNull IItemHandlerModifiable importInventory,
+                                          @NotNull IMultipleTankHandler importFluids,
+                                          long slotMaxVoltage,
+                                          int maxParallelBudget) {
+        // Trim recipe outputs
+        Recipe trimmed = Recipe.trimRecipeOutputs(recipe, recipeMap, metaTileEntity.getItemOutputLimit(),
+                metaTileEntity.getFluidOutputLimit());
+
+        long baseEUt = trimmed.getEUt();
+        int baseDuration = trimmed.getDuration();
+
+        // --- Step 1: MULTIPLY parallel (from inputs) ---
+        // Cap parallel by: min(parallelBudget, slotMaxVoltage / baseEUt)
+        int maxInputParallel = (int) Math.min(maxParallelBudget, slotMaxVoltage / Math.max(1, baseEUt));
+        maxInputParallel = Math.max(1, maxInputParallel);
+
+        int inputParallel = ParallelLogic.getMaxRecipeMultiplier(
+                trimmed, importInventory, importFluids, maxInputParallel);
+        if (inputParallel == 0) return false;
+
+        // Limit by output space (using inputParallel as upper bound initially)
+        int outputParallel = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+                inputParallel,
+                metaTileEntity.canVoidRecipeItemOutputs(),
+                metaTileEntity.canVoidRecipeFluidOutputs());
+        if (outputParallel == 0) {
+            this.isOutputsFull = true;
+            return false;
+        }
+        inputParallel = outputParallel;
+
+        // --- Step 2: Overclock + 1tOC (sub-tick parallel) ---
+        // Use the paralleled total EUt as the base for overclocking.
+        // The OC is applied per single recipe instance (baseEUt, baseDuration).
+        // subTickParallelOC handles: OC until 1 tick → remaining OCs become sub-tick parallel.
+        OCParams params = new OCParams();
+        OCResult result = new OCResult();
+        params.initialize(baseEUt, baseDuration, getNumberOfOCs(baseEUt));
+        modifyOverclockPre(params, trimmed.propertyStorage());
+
+        if (params.ocAmount() <= 0) {
+            result.init(params.eut(), params.duration());
+        } else {
+            // This automatically handles: OC duration → when duration=1 → convert to sub-tick parallel
+            subTickParallelOC(params, result, slotMaxVoltage,
+                    getOverclockingDurationFactor(), getOverclockingVoltageFactor());
+        }
+        modifyOverclockPost(result, trimmed.propertyStorage());
+
+        long overclockedEUt = result.eut();
+        int overclockedDuration = result.duration();
+        int subTickParallel = Math.max(1, result.parallel());
+
+        // --- Step 3: Calculate total parallel ---
+        // Total parallel = inputParallel (from MULTIPLY) × subTickParallel (from 1tOC)
+        long totalParallel = (long) inputParallel * subTickParallel;
+
+        // Verify total EUt doesn't exceed slot budget
+        // Total EUt = overclockedEUt (per single recipe after OC) × inputParallel
+        // Note: subTickParallel is already accounted for in overclockedEUt via the OC algorithm
+        long totalSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
+        totalSlotEUt *= inputParallel;
+
+        if (totalSlotEUt > slotMaxVoltage) {
+            // Reduce input parallel to fit within power budget
+            long perParallelEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
+            inputParallel = (int) (slotMaxVoltage / Math.max(1, perParallelEUt));
+            if (inputParallel <= 0) return false;
+            totalSlotEUt = perParallelEUt * inputParallel;
+            totalParallel = (long) inputParallel * subTickParallel;
+        }
+
+        // Re-check output space with final total parallel
+        if (totalParallel > outputParallel) {
+            outputParallel = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+                    (int) Math.min(Integer.MAX_VALUE, totalParallel),
+                    metaTileEntity.canVoidRecipeItemOutputs(),
+                    metaTileEntity.canVoidRecipeFluidOutputs());
+            if (outputParallel == 0) {
+                this.isOutputsFull = true;
+                return false;
+            }
+            totalParallel = outputParallel;
+            // Recalculate inputParallel based on reduced total
+            inputParallel = (int) Math.max(1, totalParallel / subTickParallel);
+            totalParallel = (long) inputParallel * subTickParallel;
+        }
+
+        int finalParallel = (int) Math.min(Integer.MAX_VALUE, totalParallel);
+
+        // --- Step 3.5: Batch processing (if enabled and duration is short enough) ---
+        int batchMultiplier = 1;
+        int finalDuration = overclockedDuration;
+        if (isBatchEnable() && overclockedDuration <= 64 && overclockedDuration > 0) {
+            int maxBatch = (int) Math.floor(128.0 / overclockedDuration);
+            // Find the maximum batch multiplier that inputs can sustain
+            // Total inputs needed = inputParallel × batchMultiplier
+            int batchInputParallel = inputParallel;
+            int bestBatch = 1;
+            int lo = 1, hi = maxBatch;
+            while (lo <= hi) {
+                int mid = lo + (hi - lo) / 2;
+                int neededParallel = batchInputParallel * mid;
+                // Check if this many inputs are available
+                int available = ParallelLogic.getMaxRecipeMultiplier(
+                        trimmed, importInventory, importFluids, neededParallel);
+                if (available >= neededParallel) {
+                    bestBatch = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            if (bestBatch > 1) {
+                batchMultiplier = bestBatch;
+                finalDuration = overclockedDuration * batchMultiplier;
+            }
+        }
+
+        // Total input consumption = inputParallel × batchMultiplier
+        int totalInputConsume = inputParallel * batchMultiplier;
+
+        // --- Step 4: Consume inputs (inputParallel × batchMultiplier copies) ---
+        if (!consumeRecipeInputs(trimmed, importInventory, importFluids, totalInputConsume)) {
+            return false;
+        }
+        this.metaTileEntity.addNotifiedInput(importInventory);
+        this.isOutputsFull = false;
+
+        // --- Step 5: Calculate outputs (multiplied by finalParallel × batchMultiplier) ---
+        int recipeTier = GTUtility.getTierByVoltage(baseEUt);
+        int machineTier = getOverclockForTier(getMaximumOverclockVoltage());
+        List<ItemStack> itemOutputs = GTUtility.copyStackList(
+                trimmed.getResultItemOutputs(recipeTier, machineTier, recipeMap));
+        List<FluidStack> fluidOutputs = GTUtility.copyFluidList(
+                trimmed.getResultFluidOutputs(recipeTier, machineTier, recipeMap));
+
+        int outputMultiplier = finalParallel * batchMultiplier;
+        if (outputMultiplier > 1) {
+            multiplyOutputs(itemOutputs, fluidOutputs, outputMultiplier);
+        }
+
+        // --- Step 6: Start the slot ---
+        slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel);
+        return true;
+    }
+
+    /**
+     * Multiplies recipe outputs by the given parallel count.
+     */
+    protected void multiplyOutputs(@NotNull List<ItemStack> itemOutputs,
+                                   @NotNull List<FluidStack> fluidOutputs,
+                                   int parallelCount) {
+        for (ItemStack stack : itemOutputs) {
+            stack.setCount(stack.getCount() * parallelCount);
+        }
+        for (FluidStack fluid : fluidOutputs) {
+            fluid.amount *= parallelCount;
+        }
+    }
+
+    /**
+     * Consumes recipe inputs multiplied by parallelCount from the given inventories.
+     * Uses the recipe's ingredient matching to identify which slots to consume from,
+     * then consumes parallelCount × the recipe's required amount.
+     *
+     * @param recipe          the recipe whose inputs to consume
+     * @param importInventory the item input inventory
+     * @param importFluids    the fluid input tanks
+     * @param parallelCount   the number of times to consume the recipe's inputs
+     * @return true if all inputs were successfully consumed
+     */
+    protected boolean consumeRecipeInputs(@NotNull Recipe recipe,
+                                          @NotNull IItemHandlerModifiable importInventory,
+                                          @NotNull IMultipleTankHandler importFluids,
+                                          int parallelCount) {
+        if (parallelCount <= 0) return false;
+
+        // For single parallel, just use the standard matches(true) which handles consumption
+        if (parallelCount == 1) {
+            return recipe.matches(true, importInventory, importFluids);
+        }
+
+        // For multiple parallels, first verify the recipe matches (without consuming)
+        if (!recipe.matches(false, importInventory, importFluids)) {
+            return false;
+        }
+
+        // Consume item inputs: parallelCount × each input's amount
+        for (GTRecipeInput recipeInput : recipe.getInputs()) {
+            int totalRequired = recipeInput.getAmount() * parallelCount;
+            int remaining = totalRequired;
+
+            for (int i = 0; i < importInventory.getSlots() && remaining > 0; i++) {
+                ItemStack stackInSlot = importInventory.getStackInSlot(i);
+                if (stackInSlot.isEmpty()) continue;
+                if (!recipeInput.acceptsStack(stackInSlot)) continue;
+
+                int toExtract = Math.min(remaining, stackInSlot.getCount());
+                importInventory.extractItem(i, toExtract, false);
+                remaining -= toExtract;
+            }
+
+            if (remaining > 0) return false; // Should not happen since getMaxRecipeMultiplier passed
+        }
+
+        // Consume fluid inputs: parallelCount × each fluid input's amount
+        for (GTRecipeInput recipeFluidInput : recipe.getFluidInputs()) {
+            int totalRequired = recipeFluidInput.getAmount() * parallelCount;
+            int remaining = totalRequired;
+
+            for (IMultipleTankHandler.ITankEntry tank : importFluids.getFluidTanks()) {
+                if (remaining <= 0) break;
+                FluidStack fluidInTank = tank.getFluid();
+                if (fluidInTank == null) continue;
+                if (!recipeFluidInput.acceptsFluid(fluidInTank)) continue;
+
+                int toDrain = Math.min(remaining, fluidInTank.amount);
+                tank.drain(toDrain, true);
+                remaining -= toDrain;
+            }
+
+            if (remaining > 0) return false; // Should not happen since getMaxRecipeMultiplier passed
+        }
+
+        return true;
+    }
+
     @Override
     protected boolean canProgressRecipe() {
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
@@ -67,6 +541,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         super.invalidate();
         lastRecipeIndex = 0;
         invalidatedInputList.clear();
+        if (crossRecipeScheduler != null) {
+            crossRecipeScheduler.invalidateAll();
+            crossRecipeSchedulerActive = false;
+        }
+        lastCrossRecipe = null;
     }
 
     public void onDistinctChanged() {
@@ -240,6 +719,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     protected void trySearchNewRecipeDistinct() {
+        if (isCrossRecipeMode()) {
+            trySearchNewRecipeDistinctCrossRecipe();
+            return;
+        }
+
         long maxVoltage = getMaxVoltage();
         Recipe currentRecipe;
         List<IItemHandlerModifiable> importInventory = getInputBuses();
@@ -278,6 +762,60 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (currentRecipe == null) {
                 // no valid recipe found, invalidate this bus
                 invalidatedInputList.add(bus);
+            }
+        }
+    }
+
+    /**
+     * Cross-recipe parallel version of distinct bus recipe search.
+     * Iterates all distinct input buses and fills idle scheduler slots from each bus.
+     * Each bus can contribute different recipes to different slots.
+     */
+    protected void trySearchNewRecipeDistinctCrossRecipe() {
+        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+        List<IItemHandlerModifiable> importInventory = getInputBuses();
+        RecipeMap<?> recipeMap = getRecipeMap();
+        if (recipeMap == null) return;
+
+        int totalFilled = 0;
+
+        for (int i = 0; i < importInventory.size(); i++) {
+            if (!scheduler.canAcceptMoreRecipes()) break;
+
+            IItemHandlerModifiable bus = importInventory.get(i);
+            if (invalidatedInputList.contains(bus)) continue;
+
+            IMultipleTankHandler busFluidTank = getInputTank(bus);
+            boolean filledFromBus = false;
+
+            // Search for a recipe from this bus and create a slot
+            Recipe recipe = findRecipe(scheduler.getRemainingPowerBudget(), bus, busFluidTank);
+            if (recipe != null && checkRecipe(recipe)) {
+                RecipeSlot slot = scheduler.acquireSlot();
+                if (setupSlotWithRecipe(slot, recipe, recipeMap, bus, busFluidTank,
+                        scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                    totalFilled++;
+                    filledFromBus = true;
+                    lastCrossRecipe = recipe;
+                } else {
+                    scheduler.getActiveSlots().remove(slot);
+                }
+            }
+
+            if (!filledFromBus) {
+                invalidatedInputList.add(bus);
+            }
+        }
+
+        if (totalFilled > 0) {
+            this.progressTime = 1;
+            setMaxProgress(Integer.MAX_VALUE);
+            this.recipeEUt = scheduler.getTotalEnergyConsumption();
+            crossRecipeSchedulerActive = true;
+            if (this.wasActiveAndNeedsUpdate) {
+                this.wasActiveAndNeedsUpdate = false;
+            } else {
+                this.setActive(true);
             }
         }
     }
@@ -412,6 +950,29 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected void completeRecipe() {
         performMufflerOperations();
         super.completeRecipe();
+    }
+
+    // ==================== Serialization for Cross-Recipe Scheduler ====================
+
+    @NotNull
+    @Override
+    public NBTTagCompound serializeNBT() {
+        NBTTagCompound compound = super.serializeNBT();
+        compound.setBoolean("crossRecipeActive", crossRecipeSchedulerActive);
+        if (crossRecipeSchedulerActive && crossRecipeScheduler != null) {
+            compound.setTag("crossRecipeScheduler", crossRecipeScheduler.serializeNBT());
+        }
+        return compound;
+    }
+
+    @Override
+    public void deserializeNBT(@NotNull NBTTagCompound compound) {
+        super.deserializeNBT(compound);
+        this.crossRecipeSchedulerActive = compound.getBoolean("crossRecipeActive");
+        if (crossRecipeSchedulerActive && compound.hasKey("crossRecipeScheduler")) {
+            crossRecipeScheduler = new CrossRecipeParallelScheduler(getParallelLimit());
+            crossRecipeScheduler.deserializeNBT(compound.getCompoundTag("crossRecipeScheduler"));
+        }
     }
 
     protected void performMufflerOperations() {

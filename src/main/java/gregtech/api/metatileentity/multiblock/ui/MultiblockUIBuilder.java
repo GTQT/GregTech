@@ -447,6 +447,55 @@ public class MultiblockUIBuilder {
     }
 
     /**
+     * Adds a cross-recipe parallel status line showing active/total slots and total EU/t consumption.
+     * <br>
+     * Added if structure is formed.
+     *
+     * @param runningSlots the number of currently running slots
+     * @param totalSlots   the total number of execution slots
+     * @param totalEUt     the total EU/t being consumed by all active slots
+     */
+    public MultiblockUIBuilder addCrossRecipeParallelLine(int runningSlots, int totalSlots, long totalEUt) {
+        if (!isStructureFormed) return this;
+        runningSlots = getSyncer().syncInt(runningSlots);
+        totalSlots = getSyncer().syncInt(totalSlots);
+        totalEUt = getSyncer().syncLong(totalEUt);
+
+        addKey(KeyUtil.lang(TextFormatting.AQUA,
+                "gregtech.multiblock.cross_recipe_parallel.status",
+                runningSlots, totalSlots,
+                KeyUtil.number(TextFormatting.RED, totalEUt)));
+        return this;
+    }
+
+    /**
+     * Adds a cross-recipe parallel slot progress line.
+     * <br>
+     * Added if structure is formed.
+     *
+     * @param slotIndex   the slot index
+     * @param progress    the slot's current progress (ticks)
+     * @param maxProgress the slot's max progress (ticks)
+     * @param eut         the slot's EU/t consumption
+     */
+    public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, int progress, int maxProgress, long eut) {
+        if (!isStructureFormed) return this;
+        slotIndex = getSyncer().syncInt(slotIndex);
+        progress = getSyncer().syncInt(progress);
+        maxProgress = getSyncer().syncInt(maxProgress);
+        eut = getSyncer().syncLong(eut);
+
+        if (maxProgress > 0) {
+            float percent = (float) progress / maxProgress * 100f;
+            addKey(KeyUtil.lang(TextFormatting.GRAY,
+                    "gregtech.multiblock.cross_recipe_parallel.slot",
+                    slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
+                    KeyUtil.number(TextFormatting.RED, eut)));
+        }
+        return this;
+    }
+
+    /**
      * Adds a warning line when the machine is low on power.
      * <br>
      * Added if the structure is formed and if the supplier returns true.

@@ -68,6 +68,14 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private static final String OVERCLOCK_VOLTAGE = "OverclockVoltage";
     private final OCParams ocParams = new OCParams();
     private final OCResult ocResult = new OCResult();
+
+    /**
+     * @return the overclock result object used by this recipe logic
+     */
+    @NotNull
+    protected OCResult getOcResult() {
+        return ocResult;
+    }
     public RecipeMap<?> recipeMap;
     @Setter
     public int progressTime;

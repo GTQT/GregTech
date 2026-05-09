@@ -19,6 +19,8 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
+import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -106,6 +108,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
                     @Override
                     public long getMaximumOverclockVoltage() {
+                        // In CROSS_RECIPE mode, the scheduler manages power distribution internally,
+                        // so each thread gets the full voltage budget.
+                        if (isCrossRecipeMode()) {
+                            return super.getMaximumOverclockVoltage();
+                        }
                         return super.getMaximumOverclockVoltage() / currentThread;
                     }
                 });
@@ -272,14 +279,22 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         if (!isStructureFormed()) return;
         int syncsParallel = builder.syncsInteger(thread);
         if (syncsParallel == 1) {
-            builder.setWorkingStatus(recipeMapWorkable.get(0).isWorkingEnabled(), recipeMapWorkable.get(0).isActive())
+            MultiblockRecipeLogic logic = recipeMapWorkable.get(0);
+            builder.setWorkingStatus(logic.isWorkingEnabled(), logic.isActive())
                     .addEnergyUsageLine(this.getEnergyContainer())
-                    .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.get(0).getMaxVoltage()))
-                    .addParallelsLine(recipeMapWorkable.get(0).getParallelLimit())
-                    .addWorkingStatusLine()
-                    .addProgressLine(recipeMapWorkable.get(0).getProgress(), recipeMapWorkable.get(0).getMaxProgress())
-                    .addRecipeOutputLine(recipeMapWorkable.get(0))
-                    .addCustom(this::addCustomCapacity);
+                    .addEnergyTierLine(GTUtility.getTierByVoltage(logic.getMaxVoltage()))
+                    .addParallelsLine(logic.getParallelLimit())
+                    .addWorkingStatusLine();
+
+            // Cross-recipe parallel display
+            if (logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null) {
+                addCrossRecipeDisplay(builder, logic);
+            } else {
+                builder.addProgressLine(logic.getProgress(), logic.getMaxProgress())
+                        .addRecipeOutputLine(logic);
+            }
+
+            builder.addCustom(this::addCustomCapacity);
         } else if (syncsParallel > 1) {
             builder.addEnergyUsageLine(this.getEnergyContainer())
                     .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.get(0).getMaxVoltage()))
@@ -291,13 +306,46 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                     });
 
             for (int i = 0; i < Math.min(syncsParallel, recipeMapWorkable.size()); i++) {
-                builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.GOLD, ">>线程：")))
-                        .setWorkingStatus(recipeMapWorkable.get(i).isWorkingEnabled(),
-                                recipeMapWorkable.get(i).isActive())
-                        .addWorkingStatusLine()
-                        .addProgressLine(recipeMapWorkable.get(i).getProgress(),
-                                recipeMapWorkable.get(i).getMaxProgress())
-                        .addEmptyLine();
+                MultiblockRecipeLogic logic = recipeMapWorkable.get(i);
+
+                // Cross-recipe parallel display per thread
+                if (logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null) {
+                    final int threadIndex = i;
+                    builder.addCustom((list, syncer) -> list.add(
+                            KeyUtil.lang(TextFormatting.GOLD, ">>线程 %s：", threadIndex + 1)));
+                    addCrossRecipeDisplay(builder, logic);
+                    builder.addEmptyLine();
+                } else {
+                    builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.GOLD, ">>线程：")))
+                            .setWorkingStatus(logic.isWorkingEnabled(), logic.isActive())
+                            .addWorkingStatusLine()
+                            .addProgressLine(logic.getProgress(), logic.getMaxProgress())
+                            .addEmptyLine();
+                }
+            }
+        }
+    }
+
+    /**
+     * Adds cross-recipe parallel scheduler status display for a single RecipeLogic.
+     */
+    protected void addCrossRecipeDisplay(MultiblockUIBuilder builder, MultiblockRecipeLogic logic) {
+        CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
+        if (scheduler == null) return;
+
+        builder.addCrossRecipeParallelLine(
+                scheduler.getActiveSlotCount(),
+                scheduler.getParallelLimit(),
+                scheduler.getTotalEnergyConsumption());
+
+        // Show per-slot progress (limit display to avoid UI overflow)
+        List<RecipeSlot> slots = scheduler.getActiveSlots();
+        int displayLimit = Math.min(slots.size(), 8);
+        for (int j = 0; j < displayLimit; j++) {
+            RecipeSlot slot = slots.get(j);
+            if (slot.isRunning()) {
+                builder.addCrossRecipeSlotLine(j,
+                        slot.getProgressTime(), slot.getMaxProgressTime(), slot.getRecipeEUt());
             }
         }
     }

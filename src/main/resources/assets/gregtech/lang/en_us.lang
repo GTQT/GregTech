@@ -5640,6 +5640,9 @@ gregtech.multiblock.parallel_mode.multiply=Single Recipe Parallel - Expands a si
 gregtech.multiblock.parallel_mode.append_items=Item Multi-Recipe Parallel - Allows running multiple different recipes simultaneously, discovering recipes only from item inputs
 gregtech.multiblock.parallel_mode.append_fluids=Fluid Multi-Recipe Parallel - Allows running multiple different recipes simultaneously, discovering recipes only from fluid inputs
 gregtech.multiblock.parallel_mode.append_all=Mixed Multi-Recipe Parallel - Allows running multiple different recipes simultaneously, comprehensively considering both item and fluid inputs
+gregtech.multiblock.parallel_mode.cross_recipe=Cross-Recipe Parallel - Multiple execution slots run different recipes concurrently with independent progress, sharing total power budget
+gregtech.multiblock.cross_recipe_parallel.status=Cross-Recipe Parallel: %s/%s slots active, Total: %s EU/t
+gregtech.multiblock.cross_recipe_parallel.slot=  Slot %s: %.1fs / %.1fs (%.0f%%) [%s EU/t]
 
 gregtech.machine.ld_item_endpoint.name=Long Distance Item Pipeline Endpoint
 gregtech.machine.ld_fluid_endpoint.name=Long Distance Fluid Pipeline Endpoint

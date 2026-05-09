@@ -27,5 +27,7 @@ public class ParallelLogicTypeComponent extends AbstractTooltipComponent {
             tooltip.add(I18n.format("gregtech.multiblock.parallel_mode.append_fluids"));
         if (type == ParallelLogicType.APPEND_ALL)
             tooltip.add(I18n.format("gregtech.multiblock.parallel_mode.append_all"));
+        if (type == ParallelLogicType.CROSS_RECIPE)
+            tooltip.add(I18n.format("gregtech.multiblock.parallel_mode.cross_recipe"));
     }
 }
