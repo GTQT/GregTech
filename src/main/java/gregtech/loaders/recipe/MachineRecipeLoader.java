@@ -31,6 +31,8 @@ import gregtech.common.blocks.StoneVariantBlock;
 import gregtech.common.blocks.StoneVariantBlock.StoneVariant;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.storage.MetaTileEntityCrate;
+import gregtech.common.metatileentities.storage.MetaTileEntityDrum;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
 import gregtech.loaders.recipe.chemistry.AssemblerRecipeLoader;
@@ -914,84 +916,35 @@ public class MachineRecipeLoader {
         ASSEMBLER_RECIPES.recipeBuilder().EUt(2).input(OreDictNames.chestWood.toString()).input(plate, WroughtIron, 5)
                 .outputs(new ItemStack(Blocks.HOPPER)).duration(800).circuitMeta(1).buildAndRegister();
 
+        // Crate - assembler recipes
+        // Wood/Copper/Iron use plank + screw pattern
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(OrePrefix.plank, Wood, 4).input(screw, Iron, 4)
-                .outputs(WOODEN_CRATE.getStackForm()).duration(100).circuitMeta(5).buildAndRegister();
+                .outputs(CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.WOOD)).duration(100).circuitMeta(5).buildAndRegister();
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(OrePrefix.plank, Copper, 4).input(screw, Copper, 4)
-                .outputs(COPPER_CRATE.getStackForm()).duration(100).circuitMeta(5).buildAndRegister();
+                .outputs(CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.COPPER)).duration(100).circuitMeta(5).buildAndRegister();
         ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(OrePrefix.plank, Iron, 4).input(screw, Iron, 4)
-                .outputs(IRON_CRATE.getStackForm()).duration(100).circuitMeta(5).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Bronze, 4).input(plate, Bronze, 4)
-                .outputs(BRONZE_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Silver, 4).input(plate, Silver, 4)
-                .outputs(SILVER_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Steel, 4).input(plate, Steel, 4)
-                .outputs(STEEL_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Gold, 4).input(plate, Gold, 4)
-                .outputs(GOLD_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Aluminium, 4).input(plate, Aluminium, 4)
-                .outputs(ALUMINIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Diamond, 4).input(plate, Diamond, 4)
-                .outputs(DIAMOND_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, StainlessSteel, 4).input(plate, StainlessSteel, 4)
-                .outputs(STAINLESS_STEEL_CRATE.getStackForm()).circuitMeta(1).duration(200).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Titanium, 4).input(plate, Titanium, 4)
-                .outputs(TITANIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, TungstenSteel, 4).input(plate, TungstenSteel, 4)
-                .outputs(TUNGSTENSTEEL_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        //RHODIUM_PLATED_PALLADIUM_CRATE
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, RhodiumPlatedPalladium, 2)
-                .input(plate, RhodiumPlatedPalladium, 4)
-                .outputs(RHODIUM_PLATED_PALLADIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        //NAQUADAH_ALLOY_CRATE
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, NaquadahAlloy, 2).input(plate, NaquadahAlloy, 4)
-                .outputs(NAQUADAH_ALLOY_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        //DARMSTADTIUM_CRATE
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Darmstadtium, 2).input(plate, Darmstadtium, 4)
-                .outputs(DARMSTADTIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
-        //NEUTRONIUM_CRATE
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Neutronium, 2).input(plate, Neutronium, 4)
-                .outputs(NEUTRONIUM_CRATE.getStackForm()).duration(200).circuitMeta(1).buildAndRegister();
+                .outputs(CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.IRON)).duration(100).circuitMeta(5).buildAndRegister();
+        // All other materials use stickLong + plate pattern
+        for (MetaTileEntityCrate.CrateMaterial mat : MetaTileEntityCrate.CrateMaterial.values()) {
+            if (mat == MetaTileEntityCrate.CrateMaterial.WOOD ||
+                    mat == MetaTileEntityCrate.CrateMaterial.COPPER ||
+                    mat == MetaTileEntityCrate.CrateMaterial.IRON) continue;
+            ASSEMBLER_RECIPES.recipeBuilder().EUt(16)
+                    .input(stickLong, mat.getMaterial(), 4)
+                    .input(plate, mat.getMaterial(), 4)
+                    .outputs(CRATE.getStackForm(mat))
+                    .duration(200).circuitMeta(1).buildAndRegister();
+        }
 
-        //Drum
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Bronze, 2).input(plate, Bronze, 4)
-                .outputs(BRONZE_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Steel, 2).input(plate, Steel, 4)
-                .outputs(STEEL_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Chrome, 2).input(plate, Chrome, 4)
-                .outputs(CHROME_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Aluminium, 2).input(plate, Aluminium, 4)
-                .outputs(ALUMINIUM_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, StainlessSteel, 2).input(plate, StainlessSteel, 4)
-                .outputs(STAINLESS_STEEL_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Titanium, 2).input(plate, Titanium, 4)
-                .outputs(TITANIUM_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Tungsten, 2).input(plate, Tungsten, 4)
-                .outputs(TUNGSTEN_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, TungstenSteel, 2).input(plate, TungstenSteel, 4)
-                .outputs(TUNGSTENSTEEL_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Iridium, 2).input(plate, Iridium, 4)
-                .outputs(IRIDIUM_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Gold, 2).input(plate, Gold, 4)
-                .outputs(GOLD_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Lead, 2).input(plate, Lead, 4)
-                .outputs(LEAD_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Iron, 2).input(plate, Iron, 4)
-                .outputs(IRON_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Copper, 2).input(plate, Copper, 4)
-                .outputs(COPPER_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        //RHODIUM_PLATED_PALLADIUM_DRUM
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, RhodiumPlatedPalladium, 2)
-                .input(plate, RhodiumPlatedPalladium, 4)
-                .outputs(RHODIUM_PLATED_PALLADIUM_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        //NAQUADAH_ALLOY_DRUM
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, NaquadahAlloy, 2).input(plate, NaquadahAlloy, 4)
-                .outputs(NAQUADAH_ALLOY_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        //DARMSTADTIUM_DRUM
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Darmstadtium, 2).input(plate, Darmstadtium, 4)
-                .outputs(DARMSTADTIUM_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
-        //NEUTRONIUM_DRUM
-        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).input(stickLong, Neutronium, 2).input(plate, Neutronium, 4)
-                .outputs(NEUTRONIUM_DRUM.getStackForm()).duration(200).circuitMeta(2).buildAndRegister();
+        //Drum - assembler recipes (all non-wood materials via loop)
+        for (MetaTileEntityDrum.DrumMaterial mat : MetaTileEntityDrum.DrumMaterial.values()) {
+            if (mat.isWood()) continue;
+            ASSEMBLER_RECIPES.recipeBuilder().EUt(16)
+                    .input(stickLong, mat.getMaterial(), 2)
+                    .input(plate, mat.getMaterial(), 4)
+                    .outputs(DRUM.getStackForm(mat))
+                    .duration(200).circuitMeta(2).buildAndRegister();
+        }
 
         ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[LV]).input(foil, Polyethylene, 4).input(CARBON_MESH)
                 .fluidInputs(Polyethylene.getFluid(288)).output(DUCT_TAPE).duration(100).buildAndRegister();
@@ -1514,51 +1467,12 @@ public class MachineRecipeLoader {
                         tank.getStackForm(), tank.getStackForm());
             }
 
-        // Drums
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_wood", MetaTileEntities.WOODEN_DRUM.getStackForm(),
-                MetaTileEntities.WOODEN_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_bronze", MetaTileEntities.BRONZE_DRUM.getStackForm(),
-                MetaTileEntities.BRONZE_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_steel", MetaTileEntities.STEEL_DRUM.getStackForm(),
-                MetaTileEntities.STEEL_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_chrome", MetaTileEntities.CHROME_DRUM.getStackForm(),
-                MetaTileEntities.CHROME_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_aluminium", MetaTileEntities.ALUMINIUM_DRUM.getStackForm(),
-                MetaTileEntities.ALUMINIUM_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_stainless_steel",
-                MetaTileEntities.STAINLESS_STEEL_DRUM.getStackForm(),
-                MetaTileEntities.STAINLESS_STEEL_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_titanium", MetaTileEntities.TITANIUM_DRUM.getStackForm(),
-                MetaTileEntities.TITANIUM_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_tungsten",
-                MetaTileEntities.TUNGSTEN_DRUM.getStackForm(), MetaTileEntities.TUNGSTEN_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_tungstensteel",
-                MetaTileEntities.TUNGSTENSTEEL_DRUM.getStackForm(), MetaTileEntities.TUNGSTENSTEEL_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_iridium",
-                MetaTileEntities.IRIDIUM_DRUM.getStackForm(), MetaTileEntities.IRIDIUM_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_gold", MetaTileEntities.GOLD_DRUM.getStackForm(),
-                MetaTileEntities.GOLD_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_lead", MetaTileEntities.LEAD_DRUM.getStackForm(),
-                MetaTileEntities.LEAD_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_iron", MetaTileEntities.IRON_DRUM.getStackForm(),
-                MetaTileEntities.IRON_DRUM.getStackForm());
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_copper", MetaTileEntities.COPPER_DRUM.getStackForm(),
-                MetaTileEntities.COPPER_DRUM.getStackForm());
-        //RHODIUM_PLATED_PALLADIUM_DRUM
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_rhodium_plated_palladium",
-                MetaTileEntities.RHODIUM_PLATED_PALLADIUM_DRUM.getStackForm(),
-                MetaTileEntities.RHODIUM_PLATED_PALLADIUM_DRUM.getStackForm());
-        //NAQUADAH_ALLOY_DRUM
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_naquadah_alloy",
-                MetaTileEntities.NAQUADAH_ALLOY_DRUM.getStackForm(),
-                MetaTileEntities.NAQUADAH_ALLOY_DRUM.getStackForm());
-        //DARMSTADTIUM_DRUM
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_darmstadtium",
-                MetaTileEntities.DARMSTADTIUM_DRUM.getStackForm(),
-                MetaTileEntities.DARMSTADTIUM_DRUM.getStackForm());
-        //NEUTRONIUM_DRUM
-        ModHandler.addShapelessNBTClearingRecipe("drum_nbt_neutronium", MetaTileEntities.NEUTRONIUM_DRUM.getStackForm(),
-                MetaTileEntities.NEUTRONIUM_DRUM.getStackForm());
+        // Drums - NBT clearing recipes
+        for (MetaTileEntityDrum.DrumMaterial mat : MetaTileEntityDrum.DrumMaterial.values()) {
+            String matName = mat.name().toLowerCase();
+            ItemStack drumStack = MetaTileEntities.DRUM.getStackForm(mat);
+            ModHandler.addShapelessNBTClearingRecipe("drum_nbt_" + matName, drumStack, drumStack);
+        }
         // Cells
         ModHandler.addShapedNBTClearingRecipe("cell_nbt_regular", MetaItems.FLUID_CELL.getStackForm(), " C", "  ", 'C',
                 MetaItems.FLUID_CELL.getStackForm());

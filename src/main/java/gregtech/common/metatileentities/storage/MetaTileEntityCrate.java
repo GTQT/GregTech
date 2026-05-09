@@ -3,10 +3,12 @@ package gregtech.common.metatileentities.storage;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.ParametricMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.items.MetaItems;
@@ -49,26 +51,39 @@ import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.IS_TAPED;
 
-public class MetaTileEntityCrate extends MetaTileEntity {
+/**
+ * Single-ID crate supporting multiple material variants via NBT.
+ * Extends {@link ParametricMetaTileEntity} for automatic variant serialization,
+ * sub-item generation, and localization.
+ */
+public class MetaTileEntityCrate extends ParametricMetaTileEntity<MetaTileEntityCrate.CrateMaterial> {
 
-    private final Material material;
-    private final int inventorySize;
-    private final int rowSize;
     protected ItemStackHandler inventory;
     private boolean isTaped;
     private final String TAPED_NBT = "Taped";
 
-    public MetaTileEntityCrate(ResourceLocation metaTileEntityId, Material material, int inventorySize, int rowSize) {
-        super(metaTileEntityId);
-        this.material = material;
-        this.inventorySize = inventorySize;
-        this.rowSize = rowSize;
+    public MetaTileEntityCrate(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, CrateMaterial.class, CrateMaterial.WOOD);
         initializeInventory();
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityCrate(metaTileEntityId, material, inventorySize, rowSize);
+        MetaTileEntityCrate crate = new MetaTileEntityCrate(metaTileEntityId);
+        crate.setVariant(getVariant());
+        crate.initializeInventory();
+        return crate;
+    }
+
+    @Override
+    @NotNull
+    protected String getVariantTranslationPrefix() {
+        return "gregtech.machine.crate";
+    }
+
+    @Override
+    protected void onVariantChanged() {
+        initializeInventory();
     }
 
     @Override
@@ -78,13 +93,16 @@ public class MetaTileEntityCrate extends MetaTileEntity {
 
     @Override
     public String getHarvestTool() {
-        return ModHandler.isMaterialWood(material) ? ToolClasses.AXE : ToolClasses.WRENCH;
+        return getVariant().isWood() ? ToolClasses.AXE : ToolClasses.WRENCH;
     }
 
     @Override
     protected void initializeInventory() {
+        CrateMaterial mat = getVariant();
+        if (mat == null) return;
+
         super.initializeInventory();
-        this.inventory = new GTItemStackHandler(this, inventorySize);
+        this.inventory = new GTItemStackHandler(this, mat.getInventorySize());
         this.itemInventory = inventory;
     }
 
@@ -95,14 +113,16 @@ public class MetaTileEntityCrate extends MetaTileEntity {
         }
     }
 
+    // region Rendering
+
     @Override
     @SideOnly(Side.CLIENT)
     public Pair<TextureAtlasSprite, Integer> getParticleTexture() {
-        if (ModHandler.isMaterialWood(material)) {
+        if (getVariant().isWood()) {
             return Pair.of(Textures.WOODEN_CRATE.getParticleTexture(), getPaintingColorForRendering());
         } else {
             int color = ColourRGBA.multiply(
-                    GTUtility.convertRGBtoOpaqueRGBA_CL(material.getMaterialRGB()),
+                    GTUtility.convertRGBtoOpaqueRGBA_CL(getVariant().getColor()),
                     GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering()));
             color = GTUtility.convertOpaqueRGBA_CLtoRGB(color);
             return Pair.of(Textures.METAL_CRATE.getParticleTexture(), color);
@@ -111,11 +131,11 @@ public class MetaTileEntityCrate extends MetaTileEntity {
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        if (material.toString().contains("wood")) {
+        if (getVariant().isWood()) {
             Textures.WOODEN_CRATE.render(renderState, translation,
                     GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering()), pipeline);
         } else {
-            int baseColor = ColourRGBA.multiply(GTUtility.convertRGBtoOpaqueRGBA_CL(material.getMaterialRGB()),
+            int baseColor = ColourRGBA.multiply(GTUtility.convertRGBtoOpaqueRGBA_CL(getVariant().getColor()),
                     GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering()));
             Textures.METAL_CRATE.render(renderState, translation, baseColor, pipeline);
         }
@@ -136,6 +156,10 @@ public class MetaTileEntityCrate extends MetaTileEntity {
         return 0xFFFFFF;
     }
 
+    // endregion
+
+    // region GUI
+
     @Override
     public boolean usesMui2() {
         return true;
@@ -143,13 +167,17 @@ public class MetaTileEntityCrate extends MetaTileEntity {
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        CrateMaterial mat = getVariant();
+        int rowSize = mat.getRowSize();
+        int inventorySize = mat.getInventorySize();
+
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int rows = inventorySize / rowSize;
         List<List<IWidget>> widgets = new ArrayList<>();
         for (int i = 0; i < rows; i++) {
             widgets.add(new ArrayList<>());
-            for (int j = 0; j < this.rowSize; j++) {
+            for (int j = 0; j < rowSize; j++) {
                 int index = i * rowSize + j;
                 widgets.get(i).add(new ItemSlot().slot(SyncHandlers.itemSlot(inventory, index)
                         .slotGroup("item_inv")
@@ -174,6 +202,10 @@ public class MetaTileEntityCrate extends MetaTileEntity {
                         .minColWidth(18).minRowHeight(18)
                         .matrix(widgets));
     }
+
+    // endregion
+
+    // region Interaction
 
     @Override
     public boolean onRightClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
@@ -204,6 +236,10 @@ public class MetaTileEntityCrate extends MetaTileEntity {
         }
         return super.getItemStackLimit(stack);
     }
+
+    // endregion
+
+    // region NBT Persistence
 
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
@@ -270,9 +306,14 @@ public class MetaTileEntityCrate extends MetaTileEntity {
         return false;
     }
 
+    // endregion
+
+    // region Tooltip
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", inventorySize));
+        CrateMaterial mat = getVariantFromStack(stack);
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", mat.getInventorySize()));
         tooltip.add(I18n.format("gregtech.crate.tooltip.taped_movement"));
     }
 
@@ -282,9 +323,66 @@ public class MetaTileEntityCrate extends MetaTileEntity {
         super.addToolUsages(stack, world, tooltip, advanced);
     }
 
+    // endregion
+
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return ModHandler.isMaterialWood(material) ? SoundType.WOOD : SoundType.METAL;
+        return getVariant().isWood() ? SoundType.WOOD : SoundType.METAL;
+    }
+
+    /**
+     * Defines all available crate materials with their properties.
+     * Each entry encapsulates the material, inventory size, and row size.
+     */
+    public enum CrateMaterial {
+
+        WOOD(Materials.Wood, 27, 9),
+        COPPER(Materials.Copper, 36, 9),
+        IRON(Materials.Iron, 45, 9),
+        BRONZE(Materials.Bronze, 54, 9),
+        SILVER(Materials.Silver, 63, 9),
+        STEEL(Materials.Steel, 72, 9),
+        GOLD(Materials.Gold, 81, 9),
+        ALUMINIUM(Materials.Aluminium, 90, 10),
+        DIAMOND(Materials.Diamond, 100, 10),
+        STAINLESS_STEEL(Materials.StainlessSteel, 108, 12),
+        TITANIUM(Materials.Titanium, 126, 14),
+        TUNGSTENSTEEL(Materials.TungstenSteel, 144, 16),
+        RHODIUM_PLATED_PALLADIUM(Materials.RhodiumPlatedPalladium, 162, 18),
+        NAQUADAH_ALLOY(Materials.NaquadahAlloy, 180, 20),
+        DARMSTADTIUM(Materials.Darmstadtium, 198, 22),
+        NEUTRONIUM(Materials.Neutronium, 216, 24);
+
+        private final Material material;
+        private final int inventorySize;
+        private final int rowSize;
+
+        CrateMaterial(@NotNull Material material, int inventorySize, int rowSize) {
+            this.material = material;
+            this.inventorySize = inventorySize;
+            this.rowSize = rowSize;
+        }
+
+        @NotNull
+        public Material getMaterial() {
+            return material;
+        }
+
+        public int getInventorySize() {
+            return inventorySize;
+        }
+
+        public int getRowSize() {
+            return rowSize;
+        }
+
+        public int getColor() {
+            return material.getMaterialRGB();
+        }
+
+        public boolean isWood() {
+            return ModHandler.isMaterialWood(material);
+        }
     }
 }
