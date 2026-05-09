@@ -178,6 +178,7 @@ public class CommonProxy {
         registry.register(CLEANROOM_CASING);
         registry.register(COMPUTER_CASING);
         registry.register(BATTERY_BLOCK);
+        registry.register(TANK_CASING);
         // Forge of the Gods blocks
         registry.register(GODFORGE_CASING);
         registry.register(GODFORGE_GLASS);

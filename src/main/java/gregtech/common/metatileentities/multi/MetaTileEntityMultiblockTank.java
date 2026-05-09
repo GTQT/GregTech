@@ -6,19 +6,20 @@ import gregtech.api.capability.impl.PropertyFluidFilter;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.LazyTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.BlockSteamCasing;
+import gregtech.common.blocks.BlockTankCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.mui.widget.GTFluidSlot;
@@ -47,50 +48,51 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 
-public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
+/**
+ * Single-ID multiblock tank supporting multiple material variants via NBT.
+ * Extends {@link ParametricMultiblockController} for automatic variant serialization,
+ * sub-item generation, and localization.
+ */
+public class MetaTileEntityMultiblockTank extends ParametricMultiblockController<MetaTileEntityMultiblockTank.TankMaterial> {
 
-    // Static template cache: index 0 = wooden, index 1 = metal
-    private static final LazyTemplate[] TEMPLATES = new LazyTemplate[] {
-            LazyTemplate.of(() -> buildTemplate(false)),
-            LazyTemplate.of(() -> buildTemplate(true))
-    };
+    private static final Map<TankMaterial, LazyTemplate> TEMPLATES = buildTemplateCache(
+            TankMaterial.class, mat -> LazyTemplate.of(() -> buildTemplate(mat)));
 
-    private static BlockPatternTemplate buildTemplate(boolean metal) {
-        IBlockState casingState = metal ?
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID) :
-                MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL);
-        MetaTileEntity valve = metal ? MetaTileEntities.STEEL_TANK_VALVE : MetaTileEntities.WOODEN_TANK_VALVE;
+    private static BlockPatternTemplate buildTemplate(TankMaterial tankMaterial) {
+        IBlockState casingState = tankMaterial.getCasingState();
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
                 .where('S', selfPredicateByClass(MetaTileEntityMultiblockTank.class))
                 .where(' ', air())
-                .casing('X', CasingDefinition.simple(casingState,
-                        metal ? "gregtech.machine.casing.solid_steel"
-                                : "gregtech.machine.casing.wood_wall"))
+                .casing('X', CasingDefinition.simple(casingState, tankMaterial.getCasingLangKey()))
                     .withCustomHatches(
-                            metaTileEntities(valve).setMaxGlobalLimited(2), 2)
+                            metaTileEntities(MetaTileEntities.MULTIBLOCK_TANK_VALVE)
+                                    .setMaxGlobalLimited(2), 2)
                 .buildTemplate();
     }
 
-    private final boolean isMetal;
-    private final int capacity;
+    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, TankMaterial.class, TankMaterial.WOOD);
+        initializeInventory();
+    }
 
-    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, boolean isMetal, int capacity) {
-        super(metaTileEntityId);
-        this.isMetal = isMetal;
-        this.capacity = capacity;
+    @Override
+    protected void onVariantChanged() {
         initializeInventory();
     }
 
     @Override
     protected void initializeInventory() {
         super.initializeInventory();
+        TankMaterial mat = getVariant();
+        if (mat == null) return;
 
-        FilteredFluidHandler tank = new FilteredFluidHandler(capacity);
-        if (!isMetal) {
+        FilteredFluidHandler tank = new FilteredFluidHandler(mat.getCapacity());
+        if (mat.isWood()) {
             tank.setFilter(new PropertyFluidFilter(340, false, false, false, false));
         }
 
@@ -100,43 +102,38 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMultiblockTank(metaTileEntityId, isMetal, capacity);
+        MetaTileEntityMultiblockTank mte = new MetaTileEntityMultiblockTank(metaTileEntityId);
+        mte.setVariant(getVariant());
+        mte.initializeInventory();
+        return mte;
+    }
+
+    @Override
+    @NotNull
+    protected Map<TankMaterial, LazyTemplate> getTemplateCache() {
+        return TEMPLATES;
+    }
+
+    @Override
+    @NotNull
+    protected String getVariantTranslationPrefix() {
+        return "gregtech.machine.tank";
     }
 
     @Override
     protected void updateFormedValid() {}
 
-    @Override
-    @NotNull
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES[isMetal ? 1 : 0].get();
-    }
-
-    private IBlockState getCasingState() {
-        if (isMetal)
-            return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
-        return MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL);
-    }
-
-    private MetaTileEntity getValve() {
-        if (isMetal)
-            return MetaTileEntities.STEEL_TANK_VALVE;
-        return MetaTileEntities.WOODEN_TANK_VALVE;
-    }
-
     @SideOnly(Side.CLIENT)
     @Override
     @NotNull
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        if (isMetal)
-            return Textures.SOLID_STEEL_CASING;
-        return Textures.WOOD_WALL;
+        return getVariant().getTexture();
     }
 
     @Override
     public GTGuiTheme getUITheme() {
-        if (isMetal) return GTGuiTheme.STEEL;
-        else return GTGuiTheme.PRIMITIVE;
+        if (getVariant().isWood()) return GTGuiTheme.PRIMITIVE;
+        return GTGuiTheme.STEEL;
     }
 
     @Override
@@ -170,7 +167,6 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
                     parent.child(new GTFluidSlot()
                             .pos(52, 18)
                             .size(72, 61)
-                            // todo this looks ugly
                             .overlay(GTGuiTextures.PRIMITIVE_LARGE_FLUID_TANK_OVERLAY.asIcon()
                                     .alignment(Alignment.CenterLeft)
                                     .size(30, 58))
@@ -197,8 +193,9 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
+        TankMaterial mat = getVariantFromStack(stack);
         tooltip.add(I18n.format("gregtech.multiblock.tank.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", capacity));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", mat.getCapacity()));
     }
 
     @Override
@@ -213,10 +210,107 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
         return super.getCapability(capability, side);
     }
 
-
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return this.isMetal ? SoundType.METAL : SoundType.WOOD;
+        return getVariant().isWood() ? SoundType.WOOD : SoundType.METAL;
+    }
+
+    /**
+     * Defines all available tank materials with their properties.
+     * Capacities are scaled from Drum capacities by a factor of 15.625 (250000/16000).
+     */
+    public enum TankMaterial {
+
+        WOOD(250_000, null, null),
+        BRONZE(375_000, Materials.Bronze, BlockTankCasing.TankCasingType.BRONZE),
+        GOLD(500_000, Materials.Gold, BlockTankCasing.TankCasingType.GOLD),
+        COPPER(625_000, Materials.Copper, BlockTankCasing.TankCasingType.COPPER),
+        IRON(750_000, Materials.Iron, BlockTankCasing.TankCasingType.IRON),
+        LEAD(875_000, Materials.Lead, BlockTankCasing.TankCasingType.LEAD),
+        STEEL(1_000_000, Materials.Steel, null),
+        CHROME(1_500_000, Materials.Chrome, BlockTankCasing.TankCasingType.CHROME),
+        ALUMINIUM(2_000_000, Materials.Aluminium, BlockTankCasing.TankCasingType.ALUMINIUM),
+        STAINLESS_STEEL(4_000_000, Materials.StainlessSteel, BlockTankCasing.TankCasingType.STAINLESS_STEEL),
+        TITANIUM(8_000_000, Materials.Titanium, BlockTankCasing.TankCasingType.TITANIUM),
+        TUNGSTEN(12_000_000, Materials.Tungsten, BlockTankCasing.TankCasingType.TUNGSTEN),
+        TUNGSTENSTEEL(16_000_000, Materials.TungstenSteel, BlockTankCasing.TankCasingType.TUNGSTENSTEEL),
+        IRIDIUM(24_000_000, Materials.Iridium, BlockTankCasing.TankCasingType.IRIDIUM),
+        RHODIUM_PLATED_PALLADIUM(32_000_000, Materials.RhodiumPlatedPalladium, BlockTankCasing.TankCasingType.RHODIUM_PLATED_PALLADIUM),
+        NAQUADAH_ALLOY(64_000_000, Materials.NaquadahAlloy, BlockTankCasing.TankCasingType.NAQUADAH_ALLOY),
+        DARMSTADTIUM(128_000_000, Materials.Darmstadtium, BlockTankCasing.TankCasingType.DARMSTADTIUM),
+        NEUTRONIUM(256_000_000, Materials.Neutronium, BlockTankCasing.TankCasingType.NEUTRONIUM);
+
+        private final int capacity;
+        @Nullable
+        private final gregtech.api.unification.material.Material material;
+        @Nullable
+        private final BlockTankCasing.TankCasingType casingType;
+
+        TankMaterial(int capacity, @Nullable gregtech.api.unification.material.Material material,
+                     @Nullable BlockTankCasing.TankCasingType casingType) {
+            this.capacity = capacity;
+            this.material = material;
+            this.casingType = casingType;
+        }
+
+        public int getCapacity() {
+            return capacity;
+        }
+
+        @Nullable
+        public gregtech.api.unification.material.Material getMaterial() {
+            return material;
+        }
+
+        @NotNull
+        public gregtech.api.unification.material.Material getRecipeMaterial() {
+            return this == WOOD ? Materials.Lead : material;
+        }
+
+        public boolean isWood() {
+            return this == WOOD;
+        }
+
+        public boolean hasOwnCasing() {
+            return casingType != null;
+        }
+
+        public IBlockState getCasingState() {
+            if (this == WOOD) {
+                return MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL);
+            }
+            if (this == STEEL) {
+                return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
+            }
+            return MetaBlocks.TANK_CASING.getState(casingType);
+        }
+
+        public ItemStack getCasingItemStack() {
+            if (this == WOOD) {
+                return MetaBlocks.STEAM_CASING.getItemVariant(BlockSteamCasing.SteamCasingType.WOOD_WALL);
+            }
+            if (this == STEEL) {
+                return MetaBlocks.METAL_CASING.getItemVariant(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
+            }
+            return MetaBlocks.TANK_CASING.getItemVariant(casingType);
+        }
+
+        public String getCasingLangKey() {
+            return switch (this) {
+                case WOOD -> "gregtech.machine.casing.wood_wall";
+                case STEEL -> "gregtech.machine.casing.solid_steel";
+                default -> "tile.tank_casing." + this.name().toLowerCase() + ".name";
+            };
+        }
+
+        @SideOnly(Side.CLIENT)
+        public ICubeRenderer getTexture() {
+            return switch (this) {
+                case WOOD -> Textures.WOOD_WALL;
+                case STEEL -> Textures.SOLID_STEEL_CASING;
+                default -> Textures.SOLID_STEEL_CASING; // TODO: add dedicated tank casing textures
+            };
+        }
     }
 }

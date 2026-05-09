@@ -471,6 +471,11 @@ public class MetaTileEntities {
     public static MetaTileEntityNickelCadmiumCell NICKEL_CADMIUM_CELL;
 
     // STORAGE SECTION
+    // Single-ID multiblock tank and valve (material variants stored in NBT)
+    public static MetaTileEntityMultiblockTank MULTIBLOCK_TANK;
+    public static MetaTileEntityTankValve MULTIBLOCK_TANK_VALVE;
+
+    // Legacy references for backward compatibility
     public static MetaTileEntityTankValve WOODEN_TANK_VALVE;
     public static MetaTileEntityTankValve STEEL_TANK_VALVE;
     public static MetaTileEntityMultiblockTank WOODEN_TANK;
@@ -1442,16 +1447,17 @@ public class MetaTileEntities {
             registerMetaTileEntity(2040 + i, QUANTUM_TANK[i]);
         }
 
-        // Tanks, IDs 2050-
-        WOODEN_TANK_VALVE = registerMetaTileEntity(2050,
-                new MetaTileEntityTankValve(gregtechId("tank_valve.wood"), false));
-        WOODEN_TANK = registerMetaTileEntity(2051,
-                new MetaTileEntityMultiblockTank(gregtechId("tank.wood"), false, 250 * 1000));
+        // Multiblock Tank - Single ID with NBT variants (IDs 2050-2051)
+        MULTIBLOCK_TANK_VALVE = registerMetaTileEntity(2050,
+                new MetaTileEntityTankValve(gregtechId("multiblock_tank_valve")));
+        MULTIBLOCK_TANK = registerMetaTileEntity(2051,
+                new MetaTileEntityMultiblockTank(gregtechId("multiblock_tank")));
 
-        STEEL_TANK_VALVE = registerMetaTileEntity(2052,
-                new MetaTileEntityTankValve(gregtechId("tank_valve.steel"), true));
-        STEEL_TANK = registerMetaTileEntity(2053,
-                new MetaTileEntityMultiblockTank(gregtechId("tank.steel"), true, 1000 * 1000));
+        // Legacy references for backward compatibility
+        WOODEN_TANK_VALVE = MULTIBLOCK_TANK_VALVE;
+        STEEL_TANK_VALVE = MULTIBLOCK_TANK_VALVE;
+        WOODEN_TANK = MULTIBLOCK_TANK;
+        STEEL_TANK = MULTIBLOCK_TANK;
 
 
         CLIPBOARD_TILE = registerMetaTileEntity(2055, new MetaTileEntityClipboard(gregtechId("clipboard")));

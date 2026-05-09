@@ -8,10 +8,11 @@ import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.ParametricMultiblockPart;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+import gregtech.common.metatileentities.multi.MetaTileEntityMultiblockTank.TankMaterial;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.client.resources.I18n;
@@ -31,19 +32,28 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
+/**
+ * Single-ID tank valve supporting multiple material variants via NBT.
+ * Extends {@link ParametricMultiblockPart} for automatic variant management.
+ */
+public class MetaTileEntityTankValve extends ParametricMultiblockPart<TankMaterial>
                                      implements IMultiblockAbilityPart<IFluidHandler> {
 
-    private final boolean isMetal;
-
-    public MetaTileEntityTankValve(ResourceLocation metaTileEntityId, boolean isMetal) {
-        super(metaTileEntityId, 0);
-        this.isMetal = isMetal;
+    public MetaTileEntityTankValve(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, TankMaterial.class, TankMaterial.WOOD);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityTankValve(metaTileEntityId, isMetal);
+        MetaTileEntityTankValve valve = new MetaTileEntityTankValve(metaTileEntityId);
+        valve.setVariant(getVariant());
+        return valve;
+    }
+
+    @Override
+    @NotNull
+    protected String getVariantTranslationPrefix() {
+        return "gregtech.machine.tank_valve";
     }
 
     @Override
@@ -55,9 +65,7 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @Override
     public ICubeRenderer getBaseTexture() {
         if (getController() == null) {
-            if (isMetal)
-                return Textures.SOLID_STEEL_CASING;
-            return Textures.WOOD_WALL;
+            return getVariant().getTexture();
         }
         return super.getBaseTexture();
     }
@@ -87,10 +95,6 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
         initializeDummyInventory();
     }
 
-    /**
-     * When this block is not connected to any multiblock it uses dummy inventory to prevent problems with capability
-     * checks
-     */
     private void initializeDummyInventory() {
         this.fluidInventory = new FluidHandlerProxy(new FluidTankList(false), new FluidTankList(false));
     }
@@ -98,8 +102,7 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @Override
     public void addToMultiBlock(MultiblockControllerBase controllerBase) {
         super.addToMultiBlock(controllerBase);
-        this.fluidInventory = controllerBase.getFluidInventory(); // directly use controllers fluid inventory as there
-                                                                  // is no reason to proxy it
+        this.fluidInventory = controllerBase.getFluidInventory();
     }
 
     @Override
@@ -155,6 +158,6 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return this.isMetal ? SoundType.METAL : SoundType.WOOD;
+        return getVariant().isWood() ? SoundType.WOOD : SoundType.METAL;
     }
 }

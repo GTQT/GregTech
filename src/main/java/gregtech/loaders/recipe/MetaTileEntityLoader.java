@@ -24,6 +24,7 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.wood.BlockGregPlanks;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.multi.MetaTileEntityMultiblockTank;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -890,23 +891,40 @@ public class MetaTileEntityLoader {
                 new UnificationEntry(OrePrefix.pipeLargeFluid, Materials.Wood), 'C',
                 new ItemStack(Blocks.STONE_SLAB, 1, 3));
 
-        ModHandler.addShapedRecipe(true, "wood_multiblock_tank", MetaTileEntities.WOODEN_TANK.getStackForm(), " R ",
-                "rCs", " R ", 'R', new UnificationEntry(OrePrefix.ring, Materials.Lead), 'C',
-                MetaBlocks.STEAM_CASING.getItemVariant(WOOD_WALL));
-        ModHandler.addShapedRecipe(true, "steel_multiblock_tank", MetaTileEntities.STEEL_TANK.getStackForm(), " R ",
-                "hCw", " R ", 'R', new UnificationEntry(OrePrefix.ring, Materials.Steel), 'C',
-                MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
-        ModHandler.addShapedRecipe(true, "wood_tank_valve", MetaTileEntities.WOODEN_TANK_VALVE.getStackForm(), " R ",
-                "rCs", " O ", 'O', new UnificationEntry(OrePrefix.rotor, Materials.Lead), 'R',
-                new UnificationEntry(OrePrefix.ring, Materials.Lead), 'C',
-                MetaBlocks.STEAM_CASING.getItemVariant(WOOD_WALL));
-        ModHandler.addShapedRecipe(true, "steel_tank_valve", MetaTileEntities.STEEL_TANK_VALVE.getStackForm(), " R ",
-                "hCw", " O ", 'O', new UnificationEntry(OrePrefix.rotor, Materials.Steel), 'R',
-                new UnificationEntry(OrePrefix.ring, Materials.Steel), 'C',
-                MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
+        // Multiblock Tank recipes (all materials via TankMaterial enum)
         ModHandler.addShapedRecipe(true, "wood_wall", MetaBlocks.STEAM_CASING.getItemVariant(WOOD_WALL), "W W", "sPh",
                 "W W", 'W', MetaBlocks.PLANKS.getItemVariant(BlockGregPlanks.BlockType.TREATED_PLANK), 'P',
                 new UnificationEntry(OrePrefix.plate, Materials.Lead));
+
+        for (MetaTileEntityMultiblockTank.TankMaterial mat : MetaTileEntityMultiblockTank.TankMaterial.values()) {
+            String matName = mat.name().toLowerCase();
+            gregtech.api.unification.material.Material recipeMat = mat.getRecipeMaterial();
+            ItemStack casingStack = mat.getCasingItemStack();
+
+            // Tank casing recipe (only for materials with their own casing block)
+            if (mat.hasOwnCasing()) {
+                ItemStack casingOutput = mat.getCasingItemStack();
+                casingOutput.setCount(4);
+                ModHandler.addShapedRecipe(true, "tank_casing_" + matName,
+                        casingOutput, "PhP", "PFP", "PwP",
+                        'P', new UnificationEntry(OrePrefix.plate, recipeMat),
+                        'F', new UnificationEntry(OrePrefix.frameGt, recipeMat));
+            }
+
+            // Multiblock tank controller recipe
+            String toolRow = mat.isWood() ? "rCs" : "hCw";
+            ModHandler.addShapedRecipe(true, matName + "_multiblock_tank",
+                    MetaTileEntities.MULTIBLOCK_TANK.getStackForm(mat), " R ", toolRow, " R ",
+                    'R', new UnificationEntry(OrePrefix.ring, recipeMat),
+                    'C', casingStack);
+
+            // Tank valve recipe
+            ModHandler.addShapedRecipe(true, matName + "_tank_valve",
+                    MetaTileEntities.MULTIBLOCK_TANK_VALVE.getStackForm(mat), " R ", toolRow, " O ",
+                    'O', new UnificationEntry(OrePrefix.rotor, recipeMat),
+                    'R', new UnificationEntry(OrePrefix.ring, recipeMat),
+                    'C', casingStack);
+        }
 
         ModHandler.addShapedRecipe(true, "alarm", MetaTileEntities.ALARM.getStackForm(), "WRW", "CHL", "WPW", 'W',
                 new UnificationEntry(OrePrefix.cableGtSingle, Materials.Tin), 'P', MetaItems.ELECTRIC_PUMP_LV, 'L',
