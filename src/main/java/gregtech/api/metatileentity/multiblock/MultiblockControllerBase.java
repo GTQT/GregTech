@@ -464,7 +464,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      *
      * <p>Usage in static context:
      * <pre>{@code
-     * private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+     * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register(
+     *     "gregtech:electric_blast_furnace", () ->
      *     DeclarativePatternBuilder.start()
      *         .where('S', selfPredicate(gregtechId("electric_blast_furnace")))
      *         ...
@@ -493,7 +494,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      *
      * <p>Usage:
      * <pre>{@code
-     * private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+     * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register(
+     *     "gregtech:large_turbine/steam", () ->
      *     DeclarativePatternBuilder.start()
      *         .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
      *         ...

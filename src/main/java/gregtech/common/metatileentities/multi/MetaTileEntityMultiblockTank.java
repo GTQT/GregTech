@@ -11,7 +11,7 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.unification.material.Materials;
@@ -57,8 +57,8 @@ import java.util.Map;
  */
 public class MetaTileEntityMultiblockTank extends ParametricMultiblockController<MetaTileEntityMultiblockTank.TankMaterial> {
 
-    private static final Map<TankMaterial, LazyTemplate> TEMPLATES = buildTemplateCache(
-            TankMaterial.class, mat -> LazyTemplate.of(() -> buildTemplate(mat)));
+    private static final Map<TankMaterial, SoftTemplate> TEMPLATES = buildTemplateCache(
+            "gregtech:multiblock_tank", TankMaterial.class, mat -> () -> buildTemplate(mat));
 
     private static BlockPatternTemplate buildTemplate(TankMaterial tankMaterial) {
         IBlockState casingState = tankMaterial.getCasingState();
@@ -110,7 +110,7 @@ public class MetaTileEntityMultiblockTank extends ParametricMultiblockController
 
     @Override
     @NotNull
-    protected Map<TankMaterial, LazyTemplate> getTemplateCache() {
+    protected Map<TankMaterial, SoftTemplate> getTemplateCache() {
         return TEMPLATES;
     }
 

@@ -14,7 +14,8 @@ import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -63,7 +64,7 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockController implements IHeatingCoil {
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:electric_blast_furnace", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "CCC", "CCC", "XXX")
                     .aisle("XXX", "C#C", "C#C", "XMX")

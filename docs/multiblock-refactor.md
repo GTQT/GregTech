@@ -450,6 +450,50 @@ protected BlockPatternTemplate createStructureTemplate() {
 - HPCA：将 `maintenancePredicate()` 替换为 `withOptionalHatches(MAINTENANCE_HATCH, ConfigHolder.machines.enableMaintenance ? 1 : 0)`
 - LargeChemicalReactor：将 `autoAbilities()` 逻辑内联为等价的 `.withXXXHatches()` 调用
 
+#### 方案4：模板池 + 弱引用（极端内存优化）— ✅ 已实现
+
+适用场景：有几百种多方块（大量 addon），且很多结构非常大，玩家不一定同时使用所有类型。
+
+**核心思路**：用 `SoftReference` 替代强引用，让不活跃类型的 template 在 JVM 内存压力时被回收。
+
+已实现组件：
+
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| `SoftTemplate` | `api/pattern/SoftTemplate.java` | 底层 SoftReference 持有者 + 30秒防抖 pin |
+| `TemplatePool` | `api/pattern/TemplatePool.java` | 全局注册中心 + 统计 + 批量驱逐 |
+
+**与 LazyTemplate 的共存策略：**
+
+| 场景 | 推荐 |
+|------|------|
+| 核心高频机器（EBF、真空冷冻等） | `LazyTemplate` — 永不回收 |
+| 大量 addon 冷门机器 | `SoftTemplate` / `TemplatePool` — 可被回收 |
+| 多变体机器 | `TemplatePool.register(key, factory)` 按 key 注册 |
+
+**防抖机制**：template 创建后通过强引用 pin 保持 30 秒，防止 GC→重建→GC 循环。
+
+**内存回收链路**：
+Controller 卸载 → 强引用消失 → 仅剩 SoftReference → JVM 内存压力时回收 → factory 按需重建
+
+**使用示例**：
+
+```java
+// Addon 冷门机器
+private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
+    .register("myaddon:exotic_reactor", () ->
+        DeclarativePatternBuilder.start()
+            .where('S', selfPredicate(new ResourceLocation("myaddon", "exotic_reactor")))
+            .aisle(...)
+            .buildTemplate()
+    );
+
+@Override
+protected BlockPatternTemplate createStructureTemplate() {
+    return TEMPLATE.get();
+}
+```
+
 ### M3：信道 bug 修复与完善 — ✅ 大部分完成
 
 目标：修复实机测试发现的信道功能 bug，让投影仪、JEI、自动建造正确消费信道值。

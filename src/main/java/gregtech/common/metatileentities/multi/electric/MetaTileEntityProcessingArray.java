@@ -18,7 +18,8 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -63,11 +64,11 @@ import static gregtech.api.recipes.logic.OverclockingLogic.subTickNonParallelOC;
 public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         implements IMachineHatchMultiblock {
 
-    // Static template cache: one LazyTemplate per tier (0 = normal, 1 = advanced)
-    private static final LazyTemplate[] TEMPLATES = new LazyTemplate[] {
-            LazyTemplate.of(() -> buildTemplate(
+    // Static template cache: one SoftTemplate per tier (0 = normal, 1 = advanced)
+    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[] {
+            TemplatePool.getInstance().register("gregtech:processing_array/normal", () -> buildTemplate(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST))),
-            LazyTemplate.of(() -> buildTemplate(
+            TemplatePool.getInstance().register("gregtech:processing_array/advanced", () -> buildTemplate(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
     };
 

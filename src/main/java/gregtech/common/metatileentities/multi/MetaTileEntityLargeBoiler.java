@@ -23,7 +23,8 @@ import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.PatternMatchContext;
@@ -78,11 +79,11 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
                                                                                     IControllable, ISteamMachine {
 
-    // Static template cache: one LazyTemplate per BoilerType variant
-    private static final EnumMap<BoilerType, LazyTemplate> TEMPLATES = new EnumMap<>(BoilerType.class);
+    // Static template cache: one SoftTemplate per BoilerType variant
+    private static final EnumMap<BoilerType, SoftTemplate> TEMPLATES = new EnumMap<>(BoilerType.class);
     static {
         for (BoilerType type : BoilerType.values()) {
-            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_boiler/" + type.name().toLowerCase(), () -> buildTemplate(type)));
         }
     }
 

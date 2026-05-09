@@ -11,7 +11,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
@@ -147,15 +148,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private static final int[] SECOND_RING_CENTER = { 55, 11, 0, 0, 0 };
     private static final int[] THIRD_RING_CENTER = { 47, 13, 0, 0, 0 };
 
-    // Static template cache using LazyTemplate (thread-safe, zero-lock after init)
-    private static final LazyTemplate BEAM_SHAFT_TEMPLATE = LazyTemplate.of(
-            MetaTileEntityForgeOfGods::buildBeamShaftTemplate);
-    private static final LazyTemplate FIRST_RING_TEMPLATE = LazyTemplate.of(
-            MetaTileEntityForgeOfGods::buildFirstRingTemplate);
-    private static final LazyTemplate SECOND_RING_TEMPLATE = LazyTemplate.of(
-            MetaTileEntityForgeOfGods::buildSecondRingTemplate);
-    private static final LazyTemplate THIRD_RING_TEMPLATE = LazyTemplate.of(
-            MetaTileEntityForgeOfGods::buildThirdRingTemplate);
+    // Static template cache using SoftTemplate (thread-safe, reclaimable under memory pressure)
+    private static final SoftTemplate BEAM_SHAFT_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/beam_shaft", MetaTileEntityForgeOfGods::buildBeamShaftTemplate);
+    private static final SoftTemplate FIRST_RING_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/first_ring", MetaTileEntityForgeOfGods::buildFirstRingTemplate);
+    private static final SoftTemplate SECOND_RING_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/second_ring", MetaTileEntityForgeOfGods::buildSecondRingTemplate);
+    private static final SoftTemplate THIRD_RING_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/third_ring", MetaTileEntityForgeOfGods::buildThirdRingTemplate);
 
     @Nullable
     @Override

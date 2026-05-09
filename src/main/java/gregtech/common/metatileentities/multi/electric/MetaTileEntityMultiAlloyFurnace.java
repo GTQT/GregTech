@@ -10,7 +10,8 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -46,7 +47,7 @@ import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
 public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockController {
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:multi_alloy_furnace", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "CCC", "XXX")
                     .aisle("XXX", "C#C", "XMX")

@@ -3,7 +3,8 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Base class for multiblocks that support multiple variants stored as NBT sub-types
@@ -30,14 +32,14 @@ import java.util.function.Function;
  * <pre>{@code
  * public class MetaTileEntityMultiblockTank extends ParametricMultiblockController<TankMaterial> {
  *
- *     private static final Map<TankMaterial, LazyTemplate> TEMPLATES = buildTemplateCache(
- *             TankMaterial.class, mat -> LazyTemplate.of(() -> createTemplate(mat)));
+ *     private static final Map<TankMaterial, SoftTemplate> TEMPLATES = buildTemplateCache(
+ *             "gregtech:multiblock_tank", TankMaterial.class, mat -> () -> createTemplate(mat));
  *
  *     public MetaTileEntityMultiblockTank(ResourceLocation id) {
  *         super(id, TankMaterial.class, TankMaterial.WOOD);
  *     }
  *
- *     @Override protected Map<TankMaterial, LazyTemplate> getTemplateCache() { return TEMPLATES; }
+ *     @Override protected Map<TankMaterial, SoftTemplate> getTemplateCache() { return TEMPLATES; }
  *     @Override protected String getVariantTranslationPrefix() { return "gregtech.machine.tank"; }
  * }
  * }</pre>
@@ -45,7 +47,7 @@ import java.util.function.Function;
  * <h3>Memory Model:</h3>
  * <ul>
  *   <li>1 MTE ID in the registry (regardless of variant count)</li>
- *   <li>1 LazyTemplate per variant (created on first use)</li>
+ *   <li>1 SoftTemplate per variant (created on first use, reclaimable under memory pressure)</li>
  *   <li>Variant stored in NBT for TileEntity persistence, ItemStack, and network sync</li>
  * </ul>
  *
@@ -101,26 +103,31 @@ public abstract class ParametricMultiblockController<V extends Enum<V>>
     // region Template Cache
 
     /**
-     * Returns the template cache mapping variants to their lazy templates.
+     * Returns the template cache mapping variants to their soft templates.
      * Subclasses should return a static field to ensure templates are shared across instances.
      */
     @NotNull
-    protected abstract Map<V, LazyTemplate> getTemplateCache();
+    protected abstract Map<V, SoftTemplate> getTemplateCache();
 
     /**
-     * Utility to build a template cache for a given enum class.
+     * Utility to build a template cache for a given enum class, registering each variant
+     * into the global {@link TemplatePool}.
      *
-     * @param enumClass the variant enum class
-     * @param factory   function that creates a LazyTemplate for each variant
-     * @return immutable EnumMap of variant → LazyTemplate
+     * @param poolKeyPrefix the pool key prefix (e.g. "gregtech:multiblock_tank")
+     * @param enumClass     the variant enum class
+     * @param factory       function that creates a template Supplier for each variant
+     * @return immutable EnumMap of variant → SoftTemplate
      */
     @NotNull
-    protected static <V extends Enum<V>> Map<V, LazyTemplate> buildTemplateCache(
+    protected static <V extends Enum<V>> Map<V, SoftTemplate> buildTemplateCache(
+            @NotNull String poolKeyPrefix,
             @NotNull Class<V> enumClass,
-            @NotNull Function<V, LazyTemplate> factory) {
-        Map<V, LazyTemplate> cache = new EnumMap<>(enumClass);
+            @NotNull Function<V, Supplier<BlockPatternTemplate>> factory) {
+        Map<V, SoftTemplate> cache = new EnumMap<>(enumClass);
+        TemplatePool pool = TemplatePool.getInstance();
         for (V value : enumClass.getEnumConstants()) {
-            cache.put(value, factory.apply(value));
+            String key = poolKeyPrefix + "/" + value.name().toLowerCase();
+            cache.put(value, pool.register(key, factory.apply(value)));
         }
         return cache;
     }

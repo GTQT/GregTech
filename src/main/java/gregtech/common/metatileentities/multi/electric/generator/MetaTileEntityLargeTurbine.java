@@ -17,7 +17,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -51,11 +52,11 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
-    // Static template cache: one LazyTemplate per LargeTurbineType variant
-    private static final EnumMap<LargeTurbineType, LazyTemplate> TEMPLATES = new EnumMap<>(LargeTurbineType.class);
+    // Static template cache: one SoftTemplate per LargeTurbineType variant
+    private static final EnumMap<LargeTurbineType, SoftTemplate> TEMPLATES = new EnumMap<>(LargeTurbineType.class);
     static {
         for (LargeTurbineType type : LargeTurbineType.values()) {
-            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_turbine/" + type.name().toLowerCase(), () -> buildTemplate(type)));
         }
     }
 

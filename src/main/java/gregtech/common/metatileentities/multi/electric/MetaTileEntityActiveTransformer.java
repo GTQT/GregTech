@@ -13,7 +13,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -51,7 +52,7 @@ import java.util.List;
 
 public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase implements IControllable {
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:active_transformer", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XCX", "XXX")

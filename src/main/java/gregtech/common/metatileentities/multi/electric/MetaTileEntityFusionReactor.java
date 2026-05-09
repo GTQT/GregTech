@@ -20,7 +20,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.recipes.Recipe;
@@ -93,12 +94,12 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     protected static final int NO_COLOR = 0;
 
-    // Static template cache: one LazyTemplate per tier (LuV=6, ZPM=7, UV=8)
-    private static final LazyTemplate[] TEMPLATES = new LazyTemplate[GTValues.UV + 1];
+    // Static template cache: one SoftTemplate per tier (LuV=6, ZPM=7, UV=8)
+    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[GTValues.UV + 1];
     static {
         for (int t = GTValues.LuV; t <= GTValues.UV; t++) {
             final int tier = t;
-            TEMPLATES[t] = LazyTemplate.of(() -> buildTemplate(tier));
+            TEMPLATES[t] = TemplatePool.getInstance().register("gregtech:fusion_reactor/" + tier, () -> buildTemplate(tier));
         }
     }
 

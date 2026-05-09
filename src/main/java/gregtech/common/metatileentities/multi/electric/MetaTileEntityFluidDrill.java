@@ -20,7 +20,8 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -71,11 +72,11 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         implements ITieredMetaTileEntity, IWorkable, ProgressBarMultiblock {
 
-    // Static template cache: one LazyTemplate per FluidDrillType variant
-    private static final EnumMap<FluidDrillType, LazyTemplate> TEMPLATES = new EnumMap<>(FluidDrillType.class);
+    // Static template cache: one SoftTemplate per FluidDrillType variant
+    private static final EnumMap<FluidDrillType, SoftTemplate> TEMPLATES = new EnumMap<>(FluidDrillType.class);
     static {
         for (FluidDrillType type : FluidDrillType.values()) {
-            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:fluid_drill/" + type.name().toLowerCase(), () -> buildTemplate(type)));
         }
     }
 

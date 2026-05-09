@@ -20,7 +20,8 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -83,7 +84,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     // Structure Constants
     public static final int MAX_BATTERY_LAYERS = 18;
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:power_substation", () ->
             DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
                     .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                     .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")

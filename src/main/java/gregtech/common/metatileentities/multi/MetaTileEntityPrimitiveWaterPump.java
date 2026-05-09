@@ -8,7 +8,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -45,7 +46,7 @@ import java.util.Set;
 
 public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase implements IPrimitivePump {
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:primitive_water_pump", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXXX", "**F*", "**F*")
                     .aisle("XXHX", "F**F", "FFFF")

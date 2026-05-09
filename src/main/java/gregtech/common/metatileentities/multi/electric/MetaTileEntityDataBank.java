@@ -11,7 +11,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -53,7 +54,7 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     private static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
     private static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:data_bank", () ->
             DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                     .aisle("XXX", "XXX", "XXX")
                     .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")

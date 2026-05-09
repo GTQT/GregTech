@@ -10,7 +10,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -64,7 +65,7 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:assembly_line", () ->
             DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                     .aisle("FIF", "RTR", "SAG", " Y ")
                     .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")

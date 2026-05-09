@@ -15,7 +15,8 @@ import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -84,7 +85,7 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:high_performance_computing_array", () ->
             DeclarativePatternBuilder.start()
                     .aisle("AA", "CC", "CC", "CC", "AA")
                     .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")

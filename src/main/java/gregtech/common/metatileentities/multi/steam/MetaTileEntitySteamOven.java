@@ -10,7 +10,8 @@ import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
@@ -52,7 +53,7 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
     }
 
     @NotNull
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:steam_oven", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "CCC", "#C#")
                     .aisle("XXX", "C#C", "#C#")

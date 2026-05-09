@@ -8,7 +8,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -43,7 +44,7 @@ import java.util.List;
 
 public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockController {
 
-    private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:large_chemical_reactor", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XCX", "CPC", "XCX")

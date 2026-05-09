@@ -22,7 +22,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.LazyTemplate;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -84,11 +85,11 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     private static final int CHUNK_LENGTH = 16;
 
-    // Static template cache: one LazyTemplate per LargeMinerType variant
-    private static final EnumMap<LargeMinerType, LazyTemplate> TEMPLATES = new EnumMap<>(LargeMinerType.class);
+    // Static template cache: one SoftTemplate per LargeMinerType variant
+    private static final EnumMap<LargeMinerType, SoftTemplate> TEMPLATES = new EnumMap<>(LargeMinerType.class);
     static {
         for (LargeMinerType type : LargeMinerType.values()) {
-            TEMPLATES.put(type, LazyTemplate.of(() -> buildTemplate(type)));
+            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_miner/" + type.name().toLowerCase(), () -> buildTemplate(type)));
         }
     }
 
