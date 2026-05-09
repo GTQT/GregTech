@@ -546,8 +546,8 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
      * @return a List of Lists of AbstractMapIngredients used for finding recipes
      */
     @Nullable
-    protected List<List<AbstractMapIngredient>> prepareRecipeFind(@NotNull Collection<ItemStack> items,
-                                                                  @NotNull Collection<FluidStack> fluids) {
+    public List<List<AbstractMapIngredient>> prepareRecipeFind(@NotNull Collection<ItemStack> items,
+                                                               @NotNull Collection<FluidStack> fluids) {
         // First, check if items and fluids are valid.
         if (items.size() == Integer.MAX_VALUE || fluids.size() == Integer.MAX_VALUE) {
             return null;
@@ -581,6 +581,25 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         // couldn't build any inputs to use for search, so no recipe could be found
         if (list == null) return null;
         return recurseIngredientTreeFindRecipe(list, lookup, canHandle);
+    }
+
+    /**
+     * Creates an iterator that yields all matching recipes for the given inputs.
+     * This is more efficient than calling findRecipe() multiple times when multiple
+     * different recipes need to be found from the same input set.
+     *
+     * @param items     the item inputs
+     * @param fluids    the fluid inputs
+     * @param canHandle a predicate for determining if a recipe is valid
+     * @return a RecipeIterator, or null if inputs are empty/invalid
+     */
+    @Nullable
+    public RecipeIterator findRecipeIterator(@NotNull Collection<ItemStack> items,
+                                            @NotNull Collection<FluidStack> fluids,
+                                            @NotNull Predicate<Recipe> canHandle) {
+        List<List<AbstractMapIngredient>> list = prepareRecipeFind(items, fluids);
+        if (list == null) return null;
+        return new RecipeIterator(this, list, canHandle);
     }
 
     /**

@@ -12,6 +12,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.recipes.Recipe;
+import gregtech.api.recipes.RecipeIterator;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
 import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
@@ -213,12 +214,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     /**
      * Fills scheduler with recipes from the combined input inventory.
-     * Implements "same recipe first" strategy:
+     * Uses an optimized search strategy:
      * <ol>
-     *   <li>If a cached recipe exists, create a slot and try to maximize its parallel count</li>
-     *   <li>When the cached recipe no longer matches, perform a full recipe search</li>
-     *   <li>Each found recipe creates a new slot with maximized parallel count</li>
-     *   <li>Repeat until parallel budget is exhausted or no more recipes match</li>
+     *   <li>Phase 1 (fast path): Try cached recipe first to avoid full tree traversal</li>
+     *   <li>Phase 2 (iterator): Use RecipeIterator to find all distinct matchable recipes
+     *       from a single prepareRecipeFind pass, avoiding redundant tree traversals
+     *       and duplicate recipe hits via exclusion set</li>
      * </ol>
      *
      * @param scheduler the scheduler instance
@@ -246,29 +247,45 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
         }
 
-        // Phase 2: Search for different recipes to create additional slots
-        int consecutiveFailures = 0;
-        while (scheduler.canAcceptMoreRecipes()) {
+        // Phase 2: Use RecipeIterator to find all distinct recipes in one pass
+        if (scheduler.canAcceptMoreRecipes()) {
             long remainingPower = scheduler.getRemainingPowerBudget();
-            if (remainingPower <= 0) break;
+            if (remainingPower > 0) {
+                List<ItemStack> items = GTUtility.itemHandlerToList(importInventory);
+                List<FluidStack> fluids = GTUtility.fluidHandlerToList(importFluids);
+                List<ItemStack> filteredItems = items.stream()
+                        .filter(s -> !s.isEmpty()).collect(java.util.stream.Collectors.toList());
+                List<FluidStack> filteredFluids = fluids.stream()
+                        .filter(f -> f != null && f.amount != 0).collect(java.util.stream.Collectors.toList());
 
-            // Full recipe search
-            Recipe recipe = findRecipe(remainingPower, importInventory, importFluids);
-            if (recipe == null || !checkRecipe(recipe)) {
-                consecutiveFailures++;
-                if (consecutiveFailures >= 2) break;
-                continue;
-            }
-            consecutiveFailures = 0;
+                final long powerBudgetSnapshot = remainingPower;
+                RecipeIterator iterator = recipeMap.findRecipeIterator(filteredItems, filteredFluids,
+                        recipe -> recipe.getEUt() <= powerBudgetSnapshot &&
+                                recipe.matches(false, importInventory, importFluids));
 
-            RecipeSlot slot = scheduler.acquireSlot();
-            if (setupSlotWithRecipe(slot, recipe, recipeMap, importInventory, importFluids,
-                    remainingPower, scheduler.getRemainingParallelBudget())) {
-                lastCrossRecipe = recipe;
-                filled++;
-            } else {
-                scheduler.getActiveSlots().remove(slot);
-                break; // If setup failed, no point trying more
+                if (iterator != null) {
+                    // Exclude the cached recipe since Phase 1 already handled it
+                    if (lastCrossRecipe != null) {
+                        iterator.exclude(lastCrossRecipe);
+                    }
+
+                    while (iterator.hasNext() && scheduler.canAcceptMoreRecipes()) {
+                        Recipe recipe = iterator.next();
+                        if (recipe == null || !checkRecipe(recipe)) continue;
+
+                        RecipeSlot slot = scheduler.acquireSlot();
+                        if (setupSlotWithRecipe(slot, recipe, recipeMap, importInventory, importFluids,
+                                scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                            lastCrossRecipe = recipe;
+                            iterator.exclude(recipe);
+                            filled++;
+                        } else {
+                            scheduler.getActiveSlots().remove(slot);
+                            // Exclude failed recipe to avoid retrying it
+                            iterator.exclude(recipe);
+                        }
+                    }
+                }
             }
         }
 
