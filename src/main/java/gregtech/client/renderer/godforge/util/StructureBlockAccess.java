@@ -70,7 +70,7 @@ public class StructureBlockAccess implements IBlockAccess {
         if (cached != null) return cached;
 
         int x = pos.getX() + offsetX;
-        int y = pos.getY() + offsetY;
+        int y = offsetY - pos.getY();
         int z = pos.getZ() + offsetZ;
 
         if (!isInBounds(x, y, z)) {
@@ -122,7 +122,7 @@ public class StructureBlockAccess implements IBlockAccess {
     @Override
     public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean _default) {
         int x = pos.getX() + offsetX;
-        int y = pos.getY() + offsetY;
+        int y = offsetY - pos.getY();
         int z = pos.getZ() + offsetZ;
         if (!isInBounds(x, y, z)) return _default;
         IBlockState state = getBlockState(pos);

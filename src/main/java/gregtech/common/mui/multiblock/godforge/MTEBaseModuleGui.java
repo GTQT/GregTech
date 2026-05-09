@@ -60,17 +60,23 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
 
     @Override
     protected Flow createButtonColumn(ModularPanel panel, PanelSyncManager syncManager) {
-        return new Column().width(18)
+        Column column = new Column().width(18)
             .heightRel(1)
             .childPadding(2)
             .mainAxisAlignment(MainAxis.END)
-            .reverseLayout(true)
-            .child(
+            .reverseLayout(true);
+
+        // Only add item slot if the input inventory has at least one slot available
+        if (multiblock.getInputInventory().getSlots() > 0) {
+            column.child(
                 new ItemSlot()
                     .slot(
                         new ModularSlot(multiblock.getInputInventory(), 0)
                             .slotGroup("item_inv"))
-                    .background(GTGuiTextures.SLOT))
+                    .background(GTGuiTextures.SLOT));
+        }
+
+        return column
             .child(createPowerSwitchButton())
             .child(createStructureUpdateButton(syncManager))
             .child(createVoltageConfigButton());

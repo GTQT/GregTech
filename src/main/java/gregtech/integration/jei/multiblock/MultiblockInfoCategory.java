@@ -3,6 +3,7 @@ package gregtech.integration.jei.multiblock;
 import gregtech.api.GTValues;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.util.GTLog;
 
 import net.minecraft.client.resources.I18n;
 
@@ -16,9 +17,9 @@ import mezz.jei.api.recipe.IRecipeCategory;
 import mezz.jei.gui.recipes.RecipeLayout;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MultiblockInfoCategory implements IRecipeCategory<MultiblockInfoRecipeWrapper> {
 
@@ -43,7 +44,15 @@ public class MultiblockInfoCategory implements IRecipeCategory<MultiblockInfoRec
     }
 
     public static void registerRecipes(IModRegistry registry) {
-        registry.addRecipes(REGISTER.stream().map(MultiblockInfoRecipeWrapper::new).collect(Collectors.toList()), UID);
+        List<MultiblockInfoRecipeWrapper> recipes = new ArrayList<>();
+        for (MultiblockControllerBase controller : REGISTER) {
+            try {
+                recipes.add(new MultiblockInfoRecipeWrapper(controller));
+            } catch (Exception e) {
+                GTLog.logger.error("Failed to create JEI multiblock info for: {}", controller.metaTileEntityId, e);
+            }
+        }
+        registry.addRecipes(recipes, UID);
     }
 
     @NotNull

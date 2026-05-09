@@ -58,7 +58,7 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
                     .aisle("XXX", "CCC", "XXX")
                     .aisle("XXX", "C#C", "XMX")
                     .aisle("XSX", "CCC", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("multi_smelter")))
+                    .where('S', selfPredicate(GTUtility.gregtechId("multi_furnace")))
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(

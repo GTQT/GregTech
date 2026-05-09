@@ -914,6 +914,7 @@ public class GTGuiTextures {
     public static final UITexture BACKGROUND_GLOW_WHITE = fullImage("textures/gui/background/white_glow");
     public static final UITexture BACKGROUND_GLOW_WHITE_HALF = fullImage("textures/gui/background/white_glow_half");
     public static final UITexture BACKGROUND_GLOW_RAINBOW = fullImage("textures/gui/background/rainbow_glow");
+    public static final UITexture BACKGROUND_SPACE = fullImage("textures/gui/background/space");
 
     public static final UITexture PROGRESSBAR_GODFORGE_PLASMA = progressBar(
         "textures/gui/progressbar/godforge_plasma.png", 20, 40);

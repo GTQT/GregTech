@@ -51,7 +51,7 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
                     .aisle("HCHCH", "HCHCH", "HCHCH")
                     .aisle("HCHCH", "H###H", "HCHCH")
                     .aisle("HCHCH", "HCOCH", "HCHCH")
-                    .where('O', selfPredicate(GTUtility.gregtechId("cracking_unit")))
+                    .where('O', selfPredicate(GTUtility.gregtechId("cracker")))
                     .where('#', air())
                     .casing('H', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN),
