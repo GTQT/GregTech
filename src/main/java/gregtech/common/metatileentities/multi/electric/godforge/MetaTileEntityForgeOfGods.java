@@ -101,6 +101,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private int lastKnownRingAmount = 1;
     private long lastStructureFailureLogTime = -1;
     private long lastModuleConnectionLogTime = -1;
+    private boolean patternBuiltForRenderActive = false;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -118,8 +119,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     protected BlockPattern createStructurePattern() {
         // The main BlockPattern handles initial structure formation and JEI preview.
         // It contains beam_shaft + first_ring merged into a single pattern.
+        // When the star renderer is active, the physical rings are intentionally replaced with air.
         String[][] beamShaft = ForgeOfGodsStructureString.BEAM_SHAFT;
-        String[][] firstRing = ForgeOfGodsStructureString.FIRST_RING;
+        String[][] firstRing = data.isRenderActive() ?
+                ForgeOfGodsStructureString.FIRST_RING_AIR :
+                ForgeOfGodsStructureString.FIRST_RING;
+        patternBuiltForRenderActive = data.isRenderActive();
 
         FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
         for (String[] layer : beamShaft) {
@@ -158,22 +163,35 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             "gregtech:forge_of_gods/beam_shaft", MetaTileEntityForgeOfGods::buildBeamShaftTemplate);
     private static final SoftTemplate FIRST_RING_TEMPLATE = TemplatePool.getInstance().register(
             "gregtech:forge_of_gods/first_ring", MetaTileEntityForgeOfGods::buildFirstRingTemplate);
+    private static final SoftTemplate FIRST_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/first_ring_air", MetaTileEntityForgeOfGods::buildFirstRingAirTemplate);
     private static final SoftTemplate SECOND_RING_TEMPLATE = TemplatePool.getInstance().register(
             "gregtech:forge_of_gods/second_ring", MetaTileEntityForgeOfGods::buildSecondRingTemplate);
+    private static final SoftTemplate SECOND_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/second_ring_air", MetaTileEntityForgeOfGods::buildSecondRingAirTemplate);
     private static final SoftTemplate THIRD_RING_TEMPLATE = TemplatePool.getInstance().register(
             "gregtech:forge_of_gods/third_ring", MetaTileEntityForgeOfGods::buildThirdRingTemplate);
+    private static final SoftTemplate THIRD_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
+            "gregtech:forge_of_gods/third_ring_air", MetaTileEntityForgeOfGods::buildThirdRingAirTemplate);
 
     @Nullable
     @Override
     protected MultiPiecePattern createMultiPiecePattern() {
         return MultiPiecePattern.builder()
                 .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
-                .piece("first_ring", FIRST_RING_TEMPLATE.get(), FIRST_RING_OFFSET, OffsetMode.RELATIVE)
-                .conditionalPiece("second_ring", SECOND_RING_TEMPLATE.get(), SECOND_RING_OFFSET,
+                .piece("first_ring", getRingTemplate(FIRST_RING_TEMPLATE, FIRST_RING_AIR_TEMPLATE),
+                        FIRST_RING_OFFSET, OffsetMode.RELATIVE)
+                .conditionalPiece("second_ring", getRingTemplate(SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
+                        SECOND_RING_OFFSET,
                         OffsetMode.RELATIVE, () -> data.isUpgradeActive(ForgeOfGodsUpgrade.CD))
-                .conditionalPiece("third_ring", THIRD_RING_TEMPLATE.get(), THIRD_RING_OFFSET,
+                .conditionalPiece("third_ring", getRingTemplate(THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
+                        THIRD_RING_OFFSET,
                         OffsetMode.RELATIVE, () -> data.isUpgradeActive(ForgeOfGodsUpgrade.END))
                 .build();
+    }
+
+    private BlockPatternTemplate getRingTemplate(SoftTemplate normalTemplate, SoftTemplate airTemplate) {
+        return data.isRenderActive() ? airTemplate.get() : normalTemplate.get();
     }
 
     private static BlockPatternTemplate buildBeamShaftTemplate() {
@@ -194,6 +212,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return builder.buildTemplate(FIRST_RING_CENTER);
     }
 
+    private static BlockPatternTemplate buildFirstRingAirTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.FIRST_RING_AIR) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, false);
+        return builder.buildTemplate(FIRST_RING_CENTER);
+    }
+
     private static BlockPatternTemplate buildSecondRingTemplate() {
         FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
         for (String[] layer : ForgeOfGodsStructureString.SECOND_RING) {
@@ -203,9 +230,27 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return builder.buildTemplate(SECOND_RING_CENTER);
     }
 
+    private static BlockPatternTemplate buildSecondRingAirTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.SECOND_RING_AIR) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, false);
+        return builder.buildTemplate(SECOND_RING_CENTER);
+    }
+
     private static BlockPatternTemplate buildThirdRingTemplate() {
         FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
         for (String[] layer : ForgeOfGodsStructureString.THIRD_RING) {
+            builder.aisle(layer);
+        }
+        applyAllPredicates(builder, false);
+        return builder.buildTemplate(THIRD_RING_CENTER);
+    }
+
+    private static BlockPatternTemplate buildThirdRingAirTemplate() {
+        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
+        for (String[] layer : ForgeOfGodsStructureString.THIRD_RING_AIR) {
             builder.aisle(layer);
         }
         applyAllPredicates(builder, false);
@@ -281,10 +326,37 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     @Override
     public void checkStructurePattern() {
+        ensurePatternMatchesRenderState();
         super.checkStructurePattern();
+        if (!isStructureFormed() && tryRecoverRenderedStructure()) {
+            ensurePatternMatchesRenderState();
+            super.checkStructurePattern();
+            if (isStructureFormed()) {
+                ensureRendererState();
+            }
+        }
         if (!isStructureFormed()) {
             logStructureFailure();
         }
+    }
+
+    private void ensurePatternMatchesRenderState() {
+        if (patternBuiltForRenderActive != data.isRenderActive()) {
+            reinitializeStructurePattern();
+        }
+    }
+
+    private boolean tryRecoverRenderedStructure() {
+        if (data.isRenderActive()) return false;
+        if (getWorld() == null || getWorld().isRemote || getPos() == null) return false;
+        if (data.getInternalBattery() <= 0) return false;
+        if (!isBeamShaftStillFormed()) return false;
+        if (!isRingTemplateFormed(FIRST_RING_AIR_TEMPLATE, FIRST_RING_OFFSET)) return false;
+
+        GTLog.logger.info("[FOG] recovering persisted rendered structure at {}; first ring is air and battery={}",
+                getPos(), data.getInternalBattery());
+        data.setRenderActive(true);
+        return true;
     }
 
     @Override
@@ -305,6 +377,16 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return BEAM_SHAFT_TEMPLATE.get()
                 .createState()
                 .checkPatternFastAt(getWorld(), getPos(), getFrontFacing().getOpposite(),
+                        getUpwardsFacing(), allowsFlip(), false) != null;
+    }
+
+    private boolean isRingTemplateFormed(SoftTemplate template, Vec3i pieceOffset) {
+        BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
+                new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
+                getFrontFacing().getOpposite(), getUpwardsFacing());
+        return template.get()
+                .createState()
+                .checkPatternFastAt(getWorld(), pieceOrigin, getFrontFacing().getOpposite(),
                         getUpwardsFacing(), allowsFlip(), false) != null;
     }
 
@@ -498,7 +580,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         super.update();
         if (getWorld() == null || getWorld().isRemote || isStructureFormed()) return;
 
-        if (data.isRenderActive() || getOffsetTimer() % TICK_INTERVAL == 0) {
+        if (data.isRenderActive()) {
+            destroyRenderer();
+            return;
+        }
+        if (getOffsetTimer() % TICK_INTERVAL == 0) {
             cleanupPossibleRendererBlocks();
         }
     }
@@ -773,6 +859,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 if (te instanceof GodforgeRenderTileEntity) {
                     ((GodforgeRenderTileEntity) te).setOwnerPos(getPos());
                 }
+                replaceRenderedRings(false);
             }
             return;
         }
@@ -1116,8 +1203,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                     restoreBlocks);
         }
 
-        GTLog.logger.info("[FOG] replaceRenderedRings: restore={}, rings={}, changedBlocks={}",
-                restoreBlocks, data.getRingAmount(), changed);
+        if (restoreBlocks || changed > 0) {
+            GTLog.logger.info("[FOG] replaceRenderedRings: restore={}, rings={}, changedBlocks={}",
+                    restoreBlocks, data.getRingAmount(), changed);
+        }
     }
 
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {

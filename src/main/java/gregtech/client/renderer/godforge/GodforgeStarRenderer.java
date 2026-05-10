@@ -5,6 +5,7 @@ import static gregtech.api.GTValues.MODID;
 import java.nio.FloatBuffer;
 
 import gregtech.api.util.GTLog;
+import gregtech.client.renderer.godforge.util.DirectTessellator;
 import gregtech.client.renderer.godforge.util.SphereVBOCache;
 import gregtech.client.renderer.godforge.util.StructureVBO;
 import gregtech.client.renderer.godforge.util.TextureUpdateRequester;
@@ -226,25 +227,36 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     }
 
     public void renderStarLayer(float r, float g, float b, float a, ResourceLocation texture, float scale,
-                                float x, float y, float z, float rotX, float rotY, float rotZ, float degrees) {
+                                float translateX, float translateY, float translateZ,
+                                float rotX, float rotY, float rotZ, float degrees) {
         GL11.glPushMatrix();
+        GL11.glPushClientAttrib(GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
 
         bindTexture(texture);
 
         GL20.glUseProgram(starProgram);
 
-        setTranslationMatrix(modelMatrixValues, x, y, z);
+        setTranslationMatrix(modelMatrixValues, translateX, translateY, translateZ);
         multiplyRightRotation(modelMatrixValues, degrees, rotX, rotY, rotZ);
         multiplyRightScale(modelMatrixValues, scale);
         uploadModelMatrix(modelMatrixValues);
         GL20.glUniformMatrix4(u_StarModelMatrix, false, matrixBuffer);
         GL20.glUniform4f(u_StarColor, r, g, b, a);
 
-        SphereVBOCache.SphereVBO sphere = SphereVBOCache.getOrCreate(128, 128);
+        boolean wasCull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
+        int oldCullMode = GL11.glGetInteger(GL11.GL_CULL_FACE_MODE);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glCullFace(GL11.GL_FRONT);
+        DirectTessellator.DirectVBO sphere = SphereVBOCache.getOrCreate(128, 128);
         sphere.render();
+        GL11.glCullFace(oldCullMode);
+        if (!wasCull) {
+            GL11.glDisable(GL11.GL_CULL_FACE);
+        }
 
         GL20.glUseProgram(0);
 
+        GL11.glPopClientAttrib();
         GL11.glPopMatrix();
     }
 
@@ -397,8 +409,6 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
         bindTexture(BEAM_TEXTURE);
 
-        GL11.glPushMatrix();
-
         GL20.glUseProgram(beamProgram);
 
         if (needsBeamUpdate) {
@@ -442,7 +452,6 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
 
         GL20.glUseProgram(0);
 
-        GL11.glPopMatrix();
         GL11.glPopClientAttrib();
         GL11.glPopAttrib();
     }
@@ -723,6 +732,11 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         } finally {
             GL11.glMatrixMode(previousMatrixMode);
         }
+    }
+
+    @Override
+    public boolean isGlobalRenderer(GodforgeRenderTileEntity tile) {
+        return true;
     }
 
     private static long logThrottled(String message, long lastLogTime) {
