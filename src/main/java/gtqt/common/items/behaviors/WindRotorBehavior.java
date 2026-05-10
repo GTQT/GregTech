@@ -10,7 +10,6 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 
 import gtqt.api.util.GTQTDateHelper;
-import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.List;
 public class WindRotorBehavior extends AbstractMaterialPartBehavior implements IItemMaxStackSizeProvider {
 
     int MaxDurability;
-    @Getter
     int tier;
     Material material;
 
@@ -26,6 +24,10 @@ public class WindRotorBehavior extends AbstractMaterialPartBehavior implements I
         this.MaxDurability = Durability;
         this.material = material;
         this.tier = tier;
+    }
+
+    public int getTier() {
+        return tier;
     }
 
     @Nullable

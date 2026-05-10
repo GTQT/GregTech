@@ -11,8 +11,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
@@ -23,14 +21,10 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     protected int maxTemperature;        // 最大工作温度（K）
     protected long heatStored;           // 当前存储的热量（HU）
 
-    @Getter
     private long maxInputHeatFlow;       // 最大输入热流量（HU/tick）
-    @Getter
     private long maxOutputHeatFlow;      // 最大输出热流量（HU/tick）
 
-    @Setter
     private Predicate<EnumFacing> sideInputCondition;
-    @Setter
     private Predicate<EnumFacing> sideOutputCondition;
 
     // 热量流量统计
@@ -63,6 +57,22 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     public static HeatContainerHandler receiverContainer(MetaTileEntity tileEntity, long maxHeatCapacity,
                                                          int maxTemperature, long maxInputHeatFlow) {
         return new HeatContainerHandler(tileEntity, maxHeatCapacity, maxTemperature, maxInputHeatFlow, 0L);
+    }
+
+    public long getMaxInputHeatFlow() {
+        return maxInputHeatFlow;
+    }
+
+    public long getMaxOutputHeatFlow() {
+        return maxOutputHeatFlow;
+    }
+
+    public void setSideInputCondition(Predicate<EnumFacing> sideInputCondition) {
+        this.sideInputCondition = sideInputCondition;
+    }
+
+    public void setSideOutputCondition(Predicate<EnumFacing> sideOutputCondition) {
+        this.sideOutputCondition = sideOutputCondition;
     }
 
     @Override

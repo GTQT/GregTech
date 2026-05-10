@@ -51,8 +51,6 @@ import com.cleanroommc.modularui.widgets.RichTextWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,14 +63,20 @@ public class MetaTileEntityGasHatch extends MetaTileEntityMultiblockPart impleme
     public static final int INITIAL_INVENTORY_SIZE = 8000;
     protected final FluidTank fluidTank;
     private final int recoveryChance;
-    @Getter
-    @Setter
     boolean waste;
 
     public MetaTileEntityGasHatch(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
         this.recoveryChance = Math.min((tier - 1) * 10, 100);
         this.fluidTank = new FluidTank(getInventorySize());
+    }
+
+    public boolean isWaste() {
+        return waste;
+    }
+
+    public void setWaste(boolean waste) {
+        this.waste = waste;
     }
 
     protected int getInventorySize() {

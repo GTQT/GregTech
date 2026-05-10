@@ -61,7 +61,6 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import lombok.Getter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -92,12 +91,10 @@ public abstract class SteamBoiler extends MetaTileEntity implements IDataInfoPro
 
     private int fuelBurnTimeLeft;
     private int fuelMaxBurnTime;
-    @Getter
     private int currentTemperature;
     private boolean hasNoWater;
     private int timeBeforeCoolingDown;
 
-    @Getter
     private boolean isBurning;
     private boolean wasBurningAndNeedsUpdate;
     private final ItemStackHandler containerInventory;
@@ -109,6 +106,14 @@ public abstract class SteamBoiler extends MetaTileEntity implements IDataInfoPro
         this.bronzeSlotBackgroundTexture = getGuiTexture("slot_%s");
         this.slotFurnaceBackground = getGuiTexture("slot_%s_furnace_background");
         this.containerInventory = new GTItemStackHandler(this, 2);
+    }
+
+    public int getCurrentTemperature() {
+        return currentTemperature;
+    }
+
+    public boolean isBurning() {
+        return isBurning;
     }
 
     @Override

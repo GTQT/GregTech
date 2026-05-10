@@ -36,8 +36,6 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import gtqt.common.items.GTQTMetaItems;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -75,26 +73,17 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
     protected boolean checkForMaster = true;
 
     // AE proxy mode
-    @Getter
-    @Setter
     protected boolean useProxy = false;
     protected BlockPos AEProxy_pos = new BlockPos(0, 0, 0);
 
     // Pattern sync flag
-    @Getter
-    @Setter
     protected boolean needPatternSync = true;
 
     // State flags used by subclass GUIs
-    @Setter
-    @Getter
     protected boolean blockedMode = true;
 
-    @Setter
-    @Getter
     protected boolean export = false;
 
-    @Getter
     protected boolean autoCollapse;
 
     public MetaTileEntityAEPatternRegistrar(ResourceLocation metaTileEntityId, int tier) {
@@ -102,6 +91,42 @@ public abstract class MetaTileEntityAEPatternRegistrar extends MetaTileEntityAEH
     }
 
     // ==================== Utility methods for subclass GUIs ====================
+
+    public boolean isUseProxy() {
+        return useProxy;
+    }
+
+    public void setUseProxy(boolean useProxy) {
+        this.useProxy = useProxy;
+    }
+
+    public boolean isNeedPatternSync() {
+        return needPatternSync;
+    }
+
+    public void setNeedPatternSync(boolean needPatternSync) {
+        this.needPatternSync = needPatternSync;
+    }
+
+    public boolean isBlockedMode() {
+        return blockedMode;
+    }
+
+    public void setBlockedMode(boolean blockedMode) {
+        this.blockedMode = blockedMode;
+    }
+
+    public boolean isExport() {
+        return export;
+    }
+
+    public void setExport(boolean export) {
+        this.export = export;
+    }
+
+    public boolean isAutoCollapse() {
+        return autoCollapse;
+    }
 
     public void setAutoCollapse(boolean value) {
         this.autoCollapse = value;

@@ -143,31 +143,6 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
     }
 
-    @Override
-    protected void trySearchNewRecipeCombined() {
-        if (!isCrossRecipeMode()) {
-            super.trySearchNewRecipeCombined();
-            return;
-        }
-
-        // In CROSS_RECIPE mode, search for recipes to create new slots
-        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
-        int filled = fillSchedulerSlots(scheduler);
-
-        if (filled > 0) {
-            // Set a dummy progress so the main loop keeps calling updateRecipeProgress()
-            this.progressTime = 1;
-            setMaxProgress(Integer.MAX_VALUE);
-            this.recipeEUt = scheduler.getTotalEnergyConsumption();
-            crossRecipeSchedulerActive = true;
-            if (this.wasActiveAndNeedsUpdate) {
-                this.wasActiveAndNeedsUpdate = false;
-            } else {
-                this.setActive(true);
-            }
-        }
-    }
-
     /**
      * Dispatches scheduler slot filling to the appropriate method based on whether Distinct mode is active.
      */
@@ -732,6 +707,24 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * deal with the maintenance and distinct logic in {@link MultiblockRecipeLogic#trySearchNewRecipe()}
      */
     protected void trySearchNewRecipeCombined() {
+        if (isCrossRecipeMode()) {
+            CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+            int filled = fillSchedulerSlots(scheduler);
+
+            if (filled > 0) {
+                this.progressTime = 1;
+                setMaxProgress(Integer.MAX_VALUE);
+                this.recipeEUt = scheduler.getTotalEnergyConsumption();
+                crossRecipeSchedulerActive = true;
+                if (this.wasActiveAndNeedsUpdate) {
+                    this.wasActiveAndNeedsUpdate = false;
+                } else {
+                    this.setActive(true);
+                }
+            }
+            return;
+        }
+
         super.trySearchNewRecipe();
     }
 

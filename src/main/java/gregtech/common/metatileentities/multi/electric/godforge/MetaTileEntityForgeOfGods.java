@@ -4,6 +4,7 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IGodforgeModule;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
@@ -20,6 +21,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.util.RelativeDirection;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.client.renderer.ICubeRenderer;
@@ -41,6 +43,7 @@ import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGods
 import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMath;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -97,6 +100,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private long ticker = 0;
     private int lastKnownRingAmount = 1;
     private long lastStructureFailureLogTime = -1;
+    private long lastModuleConnectionLogTime = -1;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -142,6 +146,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private static final Vec3i FIRST_RING_OFFSET = new Vec3i(0, 0, 59);
     private static final Vec3i SECOND_RING_OFFSET = new Vec3i(0, 0, 67);
     private static final Vec3i THIRD_RING_OFFSET = new Vec3i(0, 0, 76);
+    private static final RelativeDirection[] GODFORGE_STRUCTURE_DIRECTIONS = { RIGHT, UP, FRONT };
 
     // External center offsets [x, y, z, minZ, maxZ] for sub-piece templates without selfPredicate
     private static final int[] FIRST_RING_CENTER = { 63, 14, 0, 0, 0 };
@@ -282,6 +287,27 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
     }
 
+    @Override
+    public void doStructureCheck() {
+        if (getWorld() != null && !getWorld().isRemote && isStructureFormed() && data.isRenderActive()) {
+            if (getOffsetTimer() % TICK_INTERVAL == 0 && !isBeamShaftStillFormed()) {
+                GTLog.logger.warn("[FOG] beam shaft check failed while renderer is active; invalidating controller={}",
+                        getPos());
+                invalidateStructure();
+            }
+            return;
+        }
+        super.doStructureCheck();
+    }
+
+    private boolean isBeamShaftStillFormed() {
+        if (getWorld() == null || getPos() == null) return false;
+        return BEAM_SHAFT_TEMPLATE.get()
+                .createState()
+                .checkPatternFastAt(getWorld(), getPos(), getFrontFacing().getOpposite(),
+                        getUpwardsFacing(), allowsFlip(), false) != null;
+    }
+
     private void logStructureFailure() {
         if (getWorld() == null || getWorld().isRemote || multiblockState == null) return;
 
@@ -392,11 +418,20 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
      */
     private void discoverModules() {
         moduleHatches.clear();
+
+        for (IGodforgeModule module : getAbilities(MultiblockAbility.GODFORGE_MODULE)) {
+            if (module instanceof MTEBaseModule && !moduleHatches.contains(module)) {
+                moduleHatches.add((MTEBaseModule) module);
+            }
+        }
+
         for (IMultiblockPart part : getMultiblockParts()) {
-            if (part instanceof MTEBaseModule) {
+            if (part instanceof MTEBaseModule && !moduleHatches.contains(part)) {
                 moduleHatches.add((MTEBaseModule) part);
             }
         }
+
+        logModuleDiscovery();
     }
 
     /**
@@ -406,6 +441,22 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (MTEBaseModule module : moduleHatches) {
             module.disconnect();
         }
+    }
+
+    private void logModuleDiscovery() {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        StringBuilder modules = new StringBuilder();
+        for (MTEBaseModule module : moduleHatches) {
+            if (modules.length() > 0) modules.append(" | ");
+            modules.append(describeModule(module));
+        }
+
+        GTLog.logger.info("[FOG] discoverModules: controller={}, parts={}, abilityModules={}, moduleHatches={}, " +
+                        "battery={}, rings={}, modules={}",
+                getPos(), getMultiblockParts().size(), getAbilities(MultiblockAbility.GODFORGE_MODULE).size(),
+                moduleHatches.size(), data.getInternalBattery(), data.getRingAmount(),
+                modules.length() == 0 ? "[]" : modules);
     }
 
     private void updateRingAmount() {
@@ -491,10 +542,17 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
 
         // === Module parameter calculation and connection management ===
+        logModuleConnectionSummary(maxModuleCount);
         if (!moduleHatches.isEmpty() && data.getInternalBattery() > 0
                 && moduleHatches.size() <= maxModuleCount) {
             for (MTEBaseModule module : moduleHatches) {
-                if (GodforgeMath.allowModuleConnection(module, data)) {
+                if (!module.isStructureFormed()) {
+                    module.checkStructurePattern();
+                }
+                boolean allowConnection = GodforgeMath.allowModuleConnection(module, data);
+                boolean antiCheeseDisconnect = false;
+                boolean wasConnected = module.isConnected();
+                if (allowConnection) {
                     module.connect();
                     GodforgeMath.calculateMaxHeatForModules(module, data);
                     GodforgeMath.calculateSpeedBonusForModules(module, data);
@@ -506,11 +564,13 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                         GodforgeMath.calculateProcessingVoltageForModules(module, data);
                     }
                     if (GodforgeMath.factorChangeDuringRecipeAntiCheese(module)) {
+                        antiCheeseDisconnect = true;
                         module.disconnect();
                     }
                 } else {
                     module.disconnect();
                 }
+                logModuleConnectionDecision(module, wasConnected, allowConnection, antiCheeseDisconnect);
             }
         } else if (moduleHatches.size() > maxModuleCount) {
             disconnectAllModules();
@@ -720,6 +780,41 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         GTLog.logger.info("[FOG] ensureRendererState: renderer not active, battery={}, rendererDisabled={}",
                 data.getInternalBattery(), data.isRendererDisabled());
         createRenderer();
+    }
+
+    private void logModuleConnectionSummary(int maxModuleCount) {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        long worldTime = getWorld().getTotalWorldTime();
+        if (lastModuleConnectionLogTime >= 0 && worldTime - lastModuleConnectionLogTime < TICK_INTERVAL) return;
+        lastModuleConnectionLogTime = worldTime;
+
+        GTLog.logger.info("[FOG] module connection tick: controller={}, formed={}, battery={}, modules={}, " +
+                        "maxModules={}, ringAmount={}, fuelType={}, fuelFactor={}, upgrades={}, shouldProcess={}",
+                getPos(), isStructureFormed(), data.getInternalBattery(), moduleHatches.size(), maxModuleCount,
+                data.getRingAmount(), data.getSelectedFuelType(), data.getFuelConsumptionFactor(),
+                data.getUpgrades().getTotalActiveUpgrades(),
+                !moduleHatches.isEmpty() && data.getInternalBattery() > 0 && moduleHatches.size() <= maxModuleCount);
+    }
+
+    private void logModuleConnectionDecision(MTEBaseModule module, boolean wasConnected, boolean allowConnection,
+                                             boolean antiCheeseDisconnect) {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        GTLog.logger.info("[FOG] module connection decision: controller={}, module={}, wasConnected={}, " +
+                        "allowConnection={}, antiCheeseDisconnect={}, nowConnected={}, heat={}, ocHeat={}, " +
+                        "maxParallel={}, voltage={}, currentRecipeHeat={}",
+                getPos(), describeModule(module), wasConnected, allowConnection, antiCheeseDisconnect,
+                module.isConnected(), module.getHeat(), module.getHeatForOC(), module.getCalculatedMaxParallel(),
+                module.getProcessingVoltage(), module.getCurrentRecipeHeat());
+    }
+
+    private static String describeModule(MTEBaseModule module) {
+        if (module == null) return "null";
+        return module.metaTileEntityId + "@" + module.getPos() +
+                "{formed=" + module.isStructureFormed() +
+                ", connected=" + module.isConnected() +
+                ", type=" + module.getClass().getSimpleName() + "}";
     }
 
     // ==================== Milestone Tracking ====================
@@ -981,6 +1076,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             renderTE.setOwnerPos(getPos());
             renderTE.setRenderRotation(getFrontFacing());
             data.setRenderActive(true);
+            replaceRenderedRings(false);
             updateRenderer();
             GTLog.logger.info("[FOG] createRenderer: SUCCESS at {}", renderPos);
         } else {
@@ -1000,8 +1096,96 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (renderPos == null) return;
 
         destroyRendererAt(renderPos);
+        replaceRenderedRings(true);
 
         data.setRenderActive(false);
+    }
+
+    private void replaceRenderedRings(boolean restoreBlocks) {
+        if (getWorld() == null || getWorld().isRemote || getPos() == null) return;
+
+        int changed = 0;
+        changed += replaceRingBlocks(ForgeOfGodsStructureString.FIRST_RING, FIRST_RING_OFFSET, FIRST_RING_CENTER,
+                restoreBlocks);
+        if (data.getRingAmount() >= 2) {
+            changed += replaceRingBlocks(ForgeOfGodsStructureString.SECOND_RING, SECOND_RING_OFFSET,
+                    SECOND_RING_CENTER, restoreBlocks);
+        }
+        if (data.getRingAmount() >= 3) {
+            changed += replaceRingBlocks(ForgeOfGodsStructureString.THIRD_RING, THIRD_RING_OFFSET, THIRD_RING_CENTER,
+                    restoreBlocks);
+        }
+
+        GTLog.logger.info("[FOG] replaceRenderedRings: restore={}, rings={}, changedBlocks={}",
+                restoreBlocks, data.getRingAmount(), changed);
+    }
+
+    private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
+        BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
+                new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
+                getFrontFacing().getOpposite(), getUpwardsFacing());
+        int changed = 0;
+
+        for (int z = 0; z < shape.length; z++) {
+            String[] layer = shape[z];
+            for (int y = 0; y < layer.length; y++) {
+                String row = layer[y];
+                for (int x = 0; x < row.length(); x++) {
+                    char marker = row.charAt(x);
+                    IBlockState state = restoreBlocks ? getRingBlockState(marker) : getAirReplacement(marker);
+                    if (state == null) continue;
+
+                    BlockPos relativePos = RelativeDirection.setActualRelativeOffset(
+                            x - centerOffset[0],
+                            y - centerOffset[1],
+                            z - centerOffset[2],
+                            getFrontFacing().getOpposite(),
+                            getUpwardsFacing(),
+                            isFlipped(),
+                            GODFORGE_STRUCTURE_DIRECTIONS);
+                    BlockPos worldPos = pieceOrigin.add(relativePos);
+                    if (!getWorld().isBlockLoaded(worldPos)) continue;
+
+                    if (!getWorld().getBlockState(worldPos).equals(state)) {
+                        getWorld().setBlockState(worldPos, state, 3);
+                        changed++;
+                    }
+                }
+            }
+        }
+        return changed;
+    }
+
+    @Nullable
+    private static IBlockState getAirReplacement(char marker) {
+        return marker >= 'A' && marker <= 'Z' ? Blocks.AIR.getDefaultState() : null;
+    }
+
+    @Nullable
+    private static IBlockState getRingBlockState(char marker) {
+        switch (marker) {
+            case 'B':
+                return getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING);
+            case 'C':
+                return getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING);
+            case 'D':
+                return getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING);
+            case 'E':
+                return getCasingState(
+                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING);
+            case 'F':
+                return getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING);
+            case 'G':
+                return getCasingState(BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR);
+            case 'H':
+                return getGlassState();
+            case 'I':
+                return getCasingState(BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR);
+            case 'K':
+                return getCasingState(BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR);
+            default:
+                return null;
+        }
     }
 
     private void cleanupPossibleRendererBlocks() {

@@ -64,7 +64,6 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -85,7 +84,6 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
     protected FluidTankList commonFluids;
 
     private boolean workingEnabled;
-    @Getter
     private boolean autoCollapse;
 
     public MetaTileEntityComplexDualHatch(ResourceLocation metaTileEntityId, int tier) {
@@ -457,6 +455,10 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
             notifyBlockUpdate();
             markDirty();
         }
+    }
+
+    public boolean isAutoCollapse() {
+        return autoCollapse;
     }
 
     @Override

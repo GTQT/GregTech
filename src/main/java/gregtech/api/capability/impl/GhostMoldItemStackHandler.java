@@ -12,7 +12,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -37,12 +36,15 @@ public class GhostMoldItemStackHandler extends GTItemStackHandler
      * ＊
      *
      */
-    @Getter
     private int circuitValue = NO_CONFIG;
     private ItemStack circuitStack = ItemStack.EMPTY;
 
     public GhostMoldItemStackHandler(MetaTileEntity metaTileEntity) {
         super(metaTileEntity);
+    }
+
+    public int getCircuitValue() {
+        return circuitValue;
     }
 
     /**

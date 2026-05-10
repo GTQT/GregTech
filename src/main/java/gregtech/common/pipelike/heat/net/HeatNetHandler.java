@@ -7,13 +7,11 @@ import gregtech.common.pipelike.heat.tile.TileEntityHeatConductor;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 
-import lombok.Getter;
 
 import java.util.Objects;
 
 public class HeatNetHandler implements IHeatable {
 
-    @Getter
     private HeatNet net;
     private boolean transfer;
     private final TileEntityHeatConductor conductor;
@@ -23,6 +21,10 @@ public class HeatNetHandler implements IHeatable {
         this.net = Objects.requireNonNull(net);
         this.conductor = Objects.requireNonNull(conductor);
         this.facing = facing;
+    }
+
+    public HeatNet getNet() {
+        return net;
     }
 
     public void updateNetwork(HeatNet net) {

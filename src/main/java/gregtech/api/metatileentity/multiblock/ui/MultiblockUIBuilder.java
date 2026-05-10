@@ -38,7 +38,6 @@ import com.cleanroommc.modularui.value.sync.SyncHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,7 +68,6 @@ public class MultiblockUIBuilder {
      *
      * @param action the action to apply to this builder
      */
-    @Setter
     private Consumer<MultiblockUIBuilder> action;
     @Nullable
     private InternalSyncer syncer;
@@ -83,6 +81,10 @@ public class MultiblockUIBuilder {
     private IKey pausedKey = IKey.lang("gregtech.multiblock.work_paused").style(TextFormatting.GOLD);
     private IKey runningKey = IKey.lang("gregtech.multiblock.running").style(TextFormatting.GREEN);
     private Runnable onRebuild;
+
+    public void setAction(Consumer<MultiblockUIBuilder> action) {
+        this.action = action;
+    }
 
     private static float calculatePerSecond(int recipeLength, long amount) {
         return ((float) amount / recipeLength) * 20f;

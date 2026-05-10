@@ -12,7 +12,6 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Alignment.MainAxis;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
@@ -23,15 +22,15 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Row;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEBaseModule;
 import gregtech.common.mui.multiblock.godforge.sync.Modules;
 import gregtech.common.mui.multiblock.godforge.sync.Panels;
 import gregtech.common.mui.multiblock.godforge.sync.SyncHypervisor;
 import gregtech.common.mui.multiblock.godforge.sync.SyncValues;
+import gregtech.common.mui.widget.ScrollableTextWidget;
 
 public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends GodforgeBaseGui<T> {
 
@@ -49,7 +48,7 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
-        ModularPanel mainPanel = hypervisor.getModularPanel(hypervisor.getMainModule(), getMainPanel());
+        ModularPanel mainPanel = hypervisor.getModularPanel(hypervisor.getMainModule(), hypervisor.getMainPanel());
         if (mainPanel != null) {
             hypervisor.setModularPanel(getModuleType(), getMainPanel(), mainPanel);
         }
@@ -60,21 +59,12 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
 
     @Override
     protected Flow createButtonColumn(ModularPanel panel, PanelSyncManager syncManager) {
-        Column column = new Column().width(18)
+        Column column = new Column();
+        column.width(18)
             .heightRel(1)
             .childPadding(2)
             .mainAxisAlignment(MainAxis.END)
             .reverseLayout(true);
-
-        // Only add item slot if the input inventory has at least one slot available
-        if (multiblock.getInputInventory().getSlots() > 0) {
-            column.child(
-                new ItemSlot()
-                    .slot(
-                        new ModularSlot(multiblock.getInputInventory(), 0)
-                            .slotGroup("item_inv"))
-                    .background(GTGuiTextures.SLOT));
-        }
 
         return column
             .child(createPowerSwitchButton())
@@ -115,9 +105,22 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
     }
 
     @Override
+    protected Widget<?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
+        MultiblockUIBuilder display = new MultiblockUIBuilder();
+        display.setAction(multiblock::configureModuleDisplayText);
+        display.sync("godforge_module_display", syncManager);
+
+        return new ScrollableTextWidget()
+            .widthRel(1)
+            .alignment(Alignment.TopLeft)
+            .autoUpdate(true)
+            .textBuilder(display::build);
+    }
+
+    @Override
     protected ToggleButton createPowerSwitchButton() {
         return super.createPowerSwitchButton().size(16)
-            .value(new BoolValue.Dynamic(multiblock::isAllowedToWork, multiblock::setWorkingEnabled))
+            .value(new BooleanSyncValue(multiblock::isAllowedToWork, multiblock::setWorkingEnabled))
             .background(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .selectedBackground(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .overlay(new DynamicDrawable(() -> {
@@ -130,7 +133,7 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
     }
 
     @Override
-    protected IWidget createStructureUpdateButton(PanelSyncManager syncManager) {
+    protected Widget<?> createStructureUpdateButton(PanelSyncManager syncManager) {
         return ((ButtonWidget<?>) super.createStructureUpdateButton(syncManager)).size(16)
             .background(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .overlay(new DynamicDrawable(() -> {

@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
 
@@ -143,12 +144,16 @@ public class UpgradeStorage {
         return unlockedUpgrades.keySet();
     }
 
-    public GenericListSyncHandler<ForgeOfGodsUpgrade> getFullSyncer() {
-        return GenericListSyncHandler.<ForgeOfGodsUpgrade>builder()
-            .getter(() -> new ArrayList<>(getAllUpgrades()))
-            .serializer((buf, upgrade) -> buf.writeVarInt(upgrade.ordinal()))
-            .deserializer(buf -> ForgeOfGodsUpgrade.VALUES[buf.readVarInt()])
-            .immutableCopy()
+    public GenericListSyncHandler<?> getFullSyncer() {
+        return GenericListSyncHandler.<UpgradeData>builder()
+            .getter(() -> new ArrayList<>(unlockedUpgrades.values()))
+            .setter(values -> {
+                for (int i = 0; i < values.size() && i < ForgeOfGodsUpgrade.VALUES.length; i++) {
+                    unlockedUpgrades.put(ForgeOfGodsUpgrade.VALUES[i], values.get(i));
+                }
+            })
+            .serializer(UpgradeData::writeToBuffer)
+            .deserializer(UpgradeData::readFromBuffer)
             .build();
     }
 
@@ -212,6 +217,24 @@ public class UpgradeStorage {
 
         public boolean isCostPaid() {
             return costPaid;
+        }
+
+        private static void writeToBuffer(PacketBuffer buf, UpgradeData data) {
+            buf.writeBoolean(data.isActive());
+            buf.writeBoolean(data.isCostPaid());
+            for (short amountPaid : data.amountsPaid) {
+                buf.writeShort(amountPaid);
+            }
+        }
+
+        private static UpgradeData readFromBuffer(PacketBuffer buf) {
+            UpgradeData data = new UpgradeData();
+            data.active = buf.readBoolean();
+            data.costPaid = buf.readBoolean();
+            for (int i = 0; i < data.amountsPaid.length; i++) {
+                data.amountsPaid[i] = buf.readShort();
+            }
+            return data;
         }
 
         @Override

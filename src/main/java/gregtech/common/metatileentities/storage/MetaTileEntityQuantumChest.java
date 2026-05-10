@@ -49,7 +49,6 @@ import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
-import lombok.Getter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -69,21 +68,17 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
     private static final String NBT_ITEMSTACK = "ItemStack";
     private static final String NBT_PARTIALSTACK = "PartialStack";
     private static final String NBT_ITEMCOUNT = "ItemAmount";
-    @Getter
     protected final long maxStoredItems;
     private final int tier;
     /** The ItemStack that the Quantum Chest is storing */
     protected ItemStack virtualItemStack = ItemStack.EMPTY;
     protected long itemsStoredInside = 0L;
-    @Getter
     protected IItemHandler outputItemInventory;
     protected ItemStack previousStack;
     protected ItemStack lockedStack = ItemStack.EMPTY;
-    @Getter
     protected long previousStackSize;
     protected boolean voiding;
     private ItemHandlerList combinedInventory;
-    @Getter
     private int coolDown = 0;
 
     public MetaTileEntityQuantumChest(ResourceLocation metaTileEntityId, int tier, long maxStoredItems) {
@@ -95,6 +90,22 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
     protected static boolean areItemStackIdentical(ItemStack first, ItemStack second) {
         return ItemStack.areItemsEqual(first, second) &&
                 ItemStack.areItemStackTagsEqual(first, second);
+    }
+
+    public long getMaxStoredItems() {
+        return maxStoredItems;
+    }
+
+    public IItemHandler getOutputItemInventory() {
+        return outputItemInventory;
+    }
+
+    public long getPreviousStackSize() {
+        return previousStackSize;
+    }
+
+    public int getCoolDown() {
+        return coolDown;
     }
 
     @Override
