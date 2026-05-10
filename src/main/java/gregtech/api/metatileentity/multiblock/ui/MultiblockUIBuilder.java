@@ -449,23 +449,23 @@ public class MultiblockUIBuilder {
     }
 
     /**
-     * Adds a cross-recipe parallel status line showing active/total slots and total EU/t consumption.
+     * Adds a cross-recipe parallel status line showing used/available parallel and total EU/t consumption.
      * <br>
      * Added if structure is formed.
      *
-     * @param runningSlots the number of currently running slots
-     * @param totalSlots   the total number of execution slots
-     * @param totalEUt     the total EU/t being consumed by all active slots
+     * @param runningParallel the number of currently running parallels
+     * @param totalParallel   the total parallel budget
+     * @param totalEUt        the total EU/t being consumed by all active slots
      */
-    public MultiblockUIBuilder addCrossRecipeParallelLine(int runningSlots, int totalSlots, long totalEUt) {
+    public MultiblockUIBuilder addCrossRecipeParallelLine(int runningParallel, int totalParallel, long totalEUt) {
         if (!isStructureFormed) return this;
-        runningSlots = getSyncer().syncInt(runningSlots);
-        totalSlots = getSyncer().syncInt(totalSlots);
+        runningParallel = getSyncer().syncInt(runningParallel);
+        totalParallel = getSyncer().syncInt(totalParallel);
         totalEUt = getSyncer().syncLong(totalEUt);
 
         addKey(KeyUtil.lang(TextFormatting.AQUA,
                 "gregtech.multiblock.cross_recipe_parallel.status",
-                runningSlots, totalSlots,
+                runningParallel, totalParallel,
                 KeyUtil.number(TextFormatting.RED, totalEUt)));
         return this;
     }

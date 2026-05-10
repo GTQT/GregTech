@@ -598,6 +598,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (ticker % TICK_INTERVAL != 0) return;
 
         // Calculate max allowed module count based on ring upgrades
+        updateRingAmount();
         int maxModuleCount = 8;
         if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD)) {
             maxModuleCount += 4;

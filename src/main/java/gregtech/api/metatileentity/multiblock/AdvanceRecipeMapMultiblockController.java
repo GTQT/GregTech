@@ -334,7 +334,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         if (scheduler == null) return;
 
         builder.addCrossRecipeParallelLine(
-                scheduler.getActiveSlotCount(),
+                scheduler.getTotalParallelCount(),
                 scheduler.getParallelLimit(),
                 scheduler.getTotalEnergyConsumption());
 

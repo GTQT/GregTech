@@ -42,8 +42,8 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
     private static final int PARALLEL_LIMIT = 8;
 
     public MetaTileEntitySteamOven(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, RecipeMaps.FURNACE_RECIPES, CONVERSION_RATE, ParallelLogicType.APPEND_ITEMS);
-        this.recipeMapWorkable = new SteamMultiWorkable(this, CONVERSION_RATE, ParallelLogicType.APPEND_ITEMS);
+        super(metaTileEntityId, RecipeMaps.FURNACE_RECIPES, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
+        this.recipeMapWorkable = new SteamMultiWorkable(this, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
         this.recipeMapWorkable.setParallelLimit(PARALLEL_LIMIT);
     }
 

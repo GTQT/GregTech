@@ -53,7 +53,7 @@ public class UpgradeStorage {
                 int alreadyPaid = data.amountsPaid[j];
                 if (alreadyPaid >= costStack.getCount()) continue;
 
-                if (ItemStack.areItemStacksEqual(inputStack, costStack)) {
+                if (matchesCostItem(inputStack, costStack)) {
                     int maxExtract = costStack.getCount() - alreadyPaid;
                     int extractAmount = Math.min(maxExtract, inputStack.getCount());
                     if (extractAmount > 0) {
@@ -75,6 +75,11 @@ public class UpgradeStorage {
             }
         }
         data.costPaid = true;
+    }
+
+    private static boolean matchesCostItem(ItemStack inputStack, ItemStack costStack) {
+        return ItemStack.areItemsEqual(inputStack, costStack)
+            && ItemStack.areItemStackTagsEqual(inputStack, costStack);
     }
 
     public void unlockUpgrade(ForgeOfGodsUpgrade upgrade) {

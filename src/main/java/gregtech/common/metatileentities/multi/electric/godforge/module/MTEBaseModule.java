@@ -54,8 +54,8 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
     protected boolean isMagmatterCapable = false;
     protected boolean isVoltageConfigUnlocked = false;
     protected boolean isInversionUnlocked = false;
-    protected int powerPanelMaxParallel = 0;
-    protected boolean alwaysMaxParallel = false;
+    protected int powerPanelMaxParallel = 1;
+    protected boolean alwaysMaxParallel = true;
     protected BigInteger powerTally = BigInteger.ZERO;
     protected long recipeTally = 0;
     protected long currentRecipeHeat = 0;
@@ -94,7 +94,7 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
                 KeyUtil.number(TextFormatting.AQUA, syncer.syncInt(this::getHeatForOC))));
         keyManager.add(createStatLine(
                 "gt.blockmachines.multimachine.FOG.parallel",
-                KeyUtil.number(TextFormatting.AQUA, syncer.syncInt(this::getCalculatedMaxParallel))));
+                KeyUtil.number(TextFormatting.AQUA, syncer.syncInt(this::getActualParallel))));
         keyManager.add(createStatLine(
                 "gt.blockmachines.multimachine.FOG.speedbonus",
                 formatDouble(syncer.syncDouble(this::getSpeedBonus))));
@@ -245,6 +245,14 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
 
     public void setCalculatedMaxParallel(int parallel) {
         calculatedMaxParallel = parallel;
+    }
+
+    public int getActualParallel() {
+        int calculated = Math.max(1, getCalculatedMaxParallel());
+        if (alwaysMaxParallel || powerPanelMaxParallel <= 0) {
+            return calculated;
+        }
+        return Math.max(1, Math.min(calculated, powerPanelMaxParallel));
     }
 
     public double getSpeedBonus() {
@@ -460,8 +468,8 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
         isMagmatterCapable = data.getBoolean("isMagmatterCapable");
         isVoltageConfigUnlocked = data.getBoolean("isVoltageConfigUnlocked");
         isInversionUnlocked = data.getBoolean("isInversionUnlocked");
-        powerPanelMaxParallel = data.getInteger("powerPanelMaxParallel");
-        alwaysMaxParallel = data.getBoolean("alwaysMaxParallel");
+        powerPanelMaxParallel = data.hasKey("powerPanelMaxParallel") ? data.getInteger("powerPanelMaxParallel") : 1;
+        alwaysMaxParallel = !data.hasKey("alwaysMaxParallel") || data.getBoolean("alwaysMaxParallel");
         String powerTallyStr = data.getString("powerTally");
         powerTally = powerTallyStr.isEmpty() ? BigInteger.ZERO : new BigInteger(powerTallyStr);
         recipeTally = data.getLong("recipeTally");

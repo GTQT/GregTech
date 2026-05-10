@@ -113,22 +113,15 @@ public interface IParallelableRecipeLogic {
                                       @NotNull IItemHandlerModifiable outputs,
                                       @NotNull IMultipleTankHandler fluidOutputs, long maxVoltage, int parallelLimit) {
         if (parallelLimit > 1 && getRecipeMap() != null) {
-            // CROSS_RECIPE mode bypasses traditional parallel building - it uses the scheduler directly.
-            // Return the currentRecipe as-is; the owning RecipeLogic handles slot dispatch separately.
-            if (getParallelLogicType() == ParallelLogicType.CROSS_RECIPE) {
-                return currentRecipe;
-            }
-
             RecipeBuilder<?> parallelBuilder = switch (getParallelLogicType()) {
-                case MULTIPLY -> findMultipliedParallelRecipe(getRecipeMap(), currentRecipe, inputs, fluidInputs,
-                        outputs, fluidOutputs, parallelLimit, maxVoltage, getMetaTileEntity());
+                case MULTIPLY, CROSS_RECIPE -> findMultipliedParallelRecipe(getRecipeMap(), currentRecipe, inputs,
+                        fluidInputs, outputs, fluidOutputs, parallelLimit, maxVoltage, getMetaTileEntity());
                 case APPEND_ITEMS -> findAppendedParallelItemRecipe(getRecipeMap(), inputs, outputs, parallelLimit,
                         maxVoltage, getMetaTileEntity());
                 case APPEND_FLUIDS -> findAppendedParallelFluidRecipe(getRecipeMap(), fluidInputs, fluidOutputs,
                         parallelLimit, maxVoltage, getMetaTileEntity());
                 case APPEND_ALL -> findAppendedParallelRecipe(getRecipeMap(), inputs, fluidInputs, outputs, fluidOutputs,
                         parallelLimit, maxVoltage, getMetaTileEntity());
-                case CROSS_RECIPE -> null; // Handled above, unreachable
             };
 
             // if the builder returned is null, no recipe was found.

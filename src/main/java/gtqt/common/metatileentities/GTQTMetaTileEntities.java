@@ -14,6 +14,8 @@ import gtqt.common.metatileentities.heat.MetaTileEntityHeatSensor;
 import gtqt.common.metatileentities.multi.MetaTileEntityHugeTransformer;
 import gtqt.common.metatileentities.multi.MetaTileEntityLogisticsMaterialDistributor;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityCreativeInputBus;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityCreativeInputHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
@@ -110,6 +112,8 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
     public static MetaTileEntityHugeTransformer HUGE_TRANSFORMER;
     public static MetaTileEntityProgrammingProvider PROGRAMMING_PROVIDER;
+    public static MetaTileEntityCreativeInputBus CREATIVE_INPUT_BUS;
+    public static MetaTileEntityCreativeInputHatch CREATIVE_INPUT_HATCH;
 
     //从2500开始写 与gtceu本体共用一个注册表
     //任务：GTQT内不方便写的内容转移到这里来写
@@ -349,5 +353,10 @@ public class GTQTMetaTileEntities {
         // 可编程提供器, ID 5002
         PROGRAMMING_PROVIDER = registerMetaTileEntity(5002,
                 new MetaTileEntityProgrammingProvider(gregtechId("programming_provider"), GTValues.HV));
+
+        CREATIVE_INPUT_BUS = registerMetaTileEntity(5003,
+                new MetaTileEntityCreativeInputBus(gregtechId("creative_input_bus")));
+        CREATIVE_INPUT_HATCH = registerMetaTileEntity(5004,
+                new MetaTileEntityCreativeInputHatch(gregtechId("creative_input_hatch")));
     }
 }

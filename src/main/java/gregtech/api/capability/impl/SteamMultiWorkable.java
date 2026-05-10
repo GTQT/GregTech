@@ -14,16 +14,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class SteamMultiWorkable extends SteamMultiblockRecipeLogic {
 
-    ParallelLogicType type;
     public SteamMultiWorkable(RecipeMapSteamMultiblockController tileEntity, double conversionRate,ParallelLogicType type) {
         super(tileEntity, tileEntity.recipeMap,tileEntity.getSteamFluidTank(), conversionRate);
-        this.type = type;
     }
 
     @NotNull
     @Override
     public ParallelLogicType getParallelLogicType() {
-        return type;
+        return ParallelLogicType.CROSS_RECIPE;
     }
 
     @Override

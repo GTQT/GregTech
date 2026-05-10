@@ -875,7 +875,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Override
     @NotNull
     public ParallelLogicType getParallelLogicType() {
-        return ParallelLogicType.MULTIPLY;
+        return ParallelLogicType.CROSS_RECIPE;
     }
 
     /**

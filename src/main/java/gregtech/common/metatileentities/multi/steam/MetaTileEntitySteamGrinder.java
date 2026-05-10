@@ -41,7 +41,7 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
     private static final int PARALLEL_LIMIT = 8;
 
     public MetaTileEntitySteamGrinder(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, RecipeMaps.MACERATOR_RECIPES, CONVERSION_RATE, ParallelLogicType.APPEND_ITEMS);
+        super(metaTileEntityId, RecipeMaps.MACERATOR_RECIPES, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
         this.recipeMapWorkable.setParallelLimit(PARALLEL_LIMIT);
     }
 

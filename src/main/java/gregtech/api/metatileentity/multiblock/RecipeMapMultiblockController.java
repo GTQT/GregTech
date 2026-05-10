@@ -190,7 +190,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
             var scheduler = recipeMapWorkable.getCrossRecipeScheduler();
             builder.addCrossRecipeParallelLine(
-                    scheduler.getActiveSlotCount(),
+                    scheduler.getTotalParallelCount(),
                     scheduler.getParallelLimit(),
                     scheduler.getTotalEnergyConsumption());
         } else {
