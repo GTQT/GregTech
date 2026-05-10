@@ -440,7 +440,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         // --- Step 6: Start the slot ---
-        slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel);
+        String recipeDisplayName = getRecipeDisplayName(trimmed, recipeMap, itemOutputs, fluidOutputs);
+        slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel,
+                recipeDisplayName);
         return true;
     }
 
@@ -456,6 +458,37 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         for (FluidStack fluid : fluidOutputs) {
             fluid.amount *= parallelCount;
         }
+    }
+
+    @NotNull
+    protected String getRecipeDisplayName(@NotNull Recipe recipe,
+                                          @NotNull RecipeMap<?> recipeMap,
+                                          @NotNull List<ItemStack> itemOutputs,
+                                          @NotNull List<FluidStack> fluidOutputs) {
+        for (ItemStack stack : itemOutputs) {
+            if (!stack.isEmpty()) {
+                return stack.getDisplayName();
+            }
+        }
+        for (FluidStack fluid : fluidOutputs) {
+            if (fluid != null && fluid.amount > 0) {
+                return fluid.getLocalizedName();
+            }
+        }
+        for (GTRecipeInput input : recipe.getInputs()) {
+            for (ItemStack stack : input.getInputStacks()) {
+                if (!stack.isEmpty()) {
+                    return stack.getDisplayName();
+                }
+            }
+        }
+        for (GTRecipeInput input : recipe.getFluidInputs()) {
+            FluidStack fluid = input.getInputFluidStack();
+            if (fluid != null && fluid.amount > 0) {
+                return fluid.getLocalizedName();
+            }
+        }
+        return recipeMap.getLocalizedName();
     }
 
     /**

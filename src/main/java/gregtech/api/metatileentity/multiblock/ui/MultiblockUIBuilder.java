@@ -481,18 +481,35 @@ public class MultiblockUIBuilder {
      * @param eut         the slot's EU/t consumption
      */
     public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, int progress, int maxProgress, long eut) {
+        return addCrossRecipeSlotLine(slotIndex, "", 1, progress, maxProgress, eut);
+    }
+
+    public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, @NotNull String recipeName, int parallelCount,
+                                                      int progress, int maxProgress, long eut) {
         if (!isStructureFormed) return this;
         slotIndex = getSyncer().syncInt(slotIndex);
+        recipeName = getSyncer().syncString(recipeName);
+        parallelCount = Math.max(1, getSyncer().syncInt(parallelCount));
         progress = getSyncer().syncInt(progress);
         maxProgress = getSyncer().syncInt(maxProgress);
         eut = getSyncer().syncLong(eut);
 
         if (maxProgress > 0) {
-            float percent = (float) progress / maxProgress * 100f;
-            addKey(KeyUtil.lang(TextFormatting.GRAY,
-                    "gregtech.multiblock.cross_recipe_parallel.slot",
-                    slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
-                    KeyUtil.number(TextFormatting.RED, eut)));
+            float percent = Math.min(100f, Math.max(0f, (float) progress / maxProgress * 100f));
+            if (recipeName.isEmpty()) {
+                addKey(KeyUtil.lang(TextFormatting.GRAY,
+                        "gregtech.multiblock.cross_recipe_parallel.slot",
+                        slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
+                        KeyUtil.number(TextFormatting.RED, eut)));
+            } else {
+                addKey(KeyUtil.lang(TextFormatting.GRAY,
+                        "gregtech.multiblock.cross_recipe_parallel.slot_named",
+                        slotIndex + 1,
+                        KeyUtil.string(TextFormatting.YELLOW, recipeName),
+                        parallelCount,
+                        progress / 20f, maxProgress / 20f, percent,
+                        KeyUtil.number(TextFormatting.RED, eut)));
+            }
         }
         return this;
     }

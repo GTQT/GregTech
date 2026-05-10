@@ -5643,6 +5643,7 @@ gregtech.multiblock.parallel_mode.append_all=混合多配方并行 - 允许同�
 gregtech.multiblock.parallel_mode.cross_recipe=跨配方并行 - 多个执行槽位同时运行不同配方，各自独立计时，共享总功率池
 gregtech.multiblock.cross_recipe_parallel.status=跨配方并行：%s/%s 并行运行中，总消耗：%s EU/t
 gregtech.multiblock.cross_recipe_parallel.slot=  槽位%s：%.1f秒 / %.1f秒 (%.0f%%) [%s EU/t]
+gregtech.multiblock.cross_recipe_parallel.slot_named=  槽位%s：%s x%s - %.1f秒 / %.1f秒 (%.0f%%) [%s EU/t]
 
 gregtech.machine.ld_item_endpoint.name=长距离物品管道接口
 gregtech.machine.ld_fluid_endpoint.name=长距离流体管道接口

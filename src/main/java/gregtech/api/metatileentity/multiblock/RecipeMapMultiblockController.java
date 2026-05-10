@@ -21,6 +21,8 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
+import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
@@ -188,14 +190,34 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
         // Cross-recipe parallel display
         if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
-            var scheduler = recipeMapWorkable.getCrossRecipeScheduler();
-            builder.addCrossRecipeParallelLine(
-                    scheduler.getTotalParallelCount(),
-                    scheduler.getParallelLimit(),
-                    scheduler.getTotalEnergyConsumption());
+            addCrossRecipeDisplay(builder, recipeMapWorkable);
         } else {
             builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
                     .addRecipeOutputLine(recipeMapWorkable);
+        }
+    }
+
+    protected void addCrossRecipeDisplay(MultiblockUIBuilder builder, MultiblockRecipeLogic logic) {
+        CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
+        if (scheduler == null) return;
+
+        builder.addCrossRecipeParallelLine(
+                scheduler.getTotalParallelCount(),
+                scheduler.getParallelLimit(),
+                scheduler.getTotalEnergyConsumption());
+
+        List<RecipeSlot> slots = scheduler.getActiveSlots();
+        int displayLimit = Math.min(slots.size(), 8);
+        for (int i = 0; i < displayLimit; i++) {
+            RecipeSlot slot = slots.get(i);
+            if (slot.isRunning()) {
+                builder.addCrossRecipeSlotLine(slot.getSlotIndex(),
+                        slot.getRecipeDisplayName(),
+                        slot.getParallelCount(),
+                        slot.getProgressTime(),
+                        slot.getMaxProgressTime(),
+                        slot.getRecipeEUt());
+            }
         }
     }
 

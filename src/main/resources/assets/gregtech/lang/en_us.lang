@@ -5647,6 +5647,7 @@ gregtech.multiblock.parallel_mode.append_all=Mixed Multi-Recipe Parallel - Allow
 gregtech.multiblock.parallel_mode.cross_recipe=Cross-Recipe Parallel - Multiple execution slots run different recipes concurrently with independent progress, sharing total power budget
 gregtech.multiblock.cross_recipe_parallel.status=Cross-Recipe Parallel: %s/%s parallels active, Total: %s EU/t
 gregtech.multiblock.cross_recipe_parallel.slot=  Slot %s: %.1fs / %.1fs (%.0f%%) [%s EU/t]
+gregtech.multiblock.cross_recipe_parallel.slot_named=  Slot %s: %s x%s - %.1fs / %.1fs (%.0f%%) [%s EU/t]
 
 gregtech.machine.ld_item_endpoint.name=Long Distance Item Pipeline Endpoint
 gregtech.machine.ld_fluid_endpoint.name=Long Distance Fluid Pipeline Endpoint

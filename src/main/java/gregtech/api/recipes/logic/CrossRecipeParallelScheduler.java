@@ -261,6 +261,44 @@ public class CrossRecipeParallelScheduler {
         return Collections.unmodifiableList(activeSlots);
     }
 
+    @Nullable
+    public RecipeSlot getDisplaySlot() {
+        RecipeSlot displaySlot = null;
+        int bestRemaining = Integer.MAX_VALUE;
+        double bestProgress = 0.0;
+
+        for (RecipeSlot slot : activeSlots) {
+            if (!slot.isRunning()) continue;
+
+            int remaining = Math.max(0, slot.getMaxProgressTime() - slot.getProgressTime());
+            double progress = slot.getProgressPercent();
+            if (displaySlot == null ||
+                    remaining < bestRemaining ||
+                    (remaining == bestRemaining && progress > bestProgress)) {
+                displaySlot = slot;
+                bestRemaining = remaining;
+                bestProgress = progress;
+            }
+        }
+
+        return displaySlot;
+    }
+
+    public int getDisplayProgressTime() {
+        RecipeSlot slot = getDisplaySlot();
+        return slot == null ? 0 : Math.min(slot.getProgressTime(), slot.getMaxProgressTime());
+    }
+
+    public int getDisplayMaxProgressTime() {
+        RecipeSlot slot = getDisplaySlot();
+        return slot == null ? 0 : slot.getMaxProgressTime();
+    }
+
+    public double getDisplayProgressPercent() {
+        RecipeSlot slot = getDisplaySlot();
+        return slot == null ? 0.0 : Math.min(1.0, Math.max(0.0, slot.getProgressPercent()));
+    }
+
     // ==================== Internal Helpers ====================
 
     /**

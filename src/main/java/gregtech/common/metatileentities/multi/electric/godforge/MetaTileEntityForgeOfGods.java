@@ -99,9 +99,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
     private long ticker = 0;
     private int lastKnownRingAmount = 1;
+    private int lastKnownClearedRingAmount = 0;
     private long lastStructureFailureLogTime = -1;
     private long lastModuleConnectionLogTime = -1;
     private boolean patternBuiltForRenderActive = false;
+    private int patternBuiltForClearedRingAmount = 0;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -119,12 +121,13 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     protected BlockPattern createStructurePattern() {
         // The main BlockPattern handles initial structure formation and JEI preview.
         // It contains beam_shaft + first_ring merged into a single pattern.
-        // When the star renderer is active, the physical rings are intentionally replaced with air.
+        // When the star renderer owns a ring, that physical ring is intentionally replaced with air.
         String[][] beamShaft = ForgeOfGodsStructureString.BEAM_SHAFT;
-        String[][] firstRing = data.isRenderActive() ?
+        String[][] firstRing = data.isRenderActive() && data.isRingCleared(1) ?
                 ForgeOfGodsStructureString.FIRST_RING_AIR :
                 ForgeOfGodsStructureString.FIRST_RING;
         patternBuiltForRenderActive = data.isRenderActive();
+        patternBuiltForClearedRingAmount = data.getClearedRingAmount();
 
         FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
         for (String[] layer : beamShaft) {
@@ -179,19 +182,19 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     protected MultiPiecePattern createMultiPiecePattern() {
         return MultiPiecePattern.builder()
                 .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
-                .piece("first_ring", getRingTemplate(FIRST_RING_TEMPLATE, FIRST_RING_AIR_TEMPLATE),
+                .piece("first_ring", getRingTemplate(1, FIRST_RING_TEMPLATE, FIRST_RING_AIR_TEMPLATE),
                         FIRST_RING_OFFSET, OffsetMode.RELATIVE)
-                .conditionalPiece("second_ring", getRingTemplate(SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
+                .conditionalPiece("second_ring", getRingTemplate(2, SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
                         SECOND_RING_OFFSET,
-                        OffsetMode.RELATIVE, () -> data.isUpgradeActive(ForgeOfGodsUpgrade.CD))
-                .conditionalPiece("third_ring", getRingTemplate(THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
+                        OffsetMode.RELATIVE, () -> data.getRingAmount() >= 2)
+                .conditionalPiece("third_ring", getRingTemplate(3, THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
                         THIRD_RING_OFFSET,
-                        OffsetMode.RELATIVE, () -> data.isUpgradeActive(ForgeOfGodsUpgrade.END))
+                        OffsetMode.RELATIVE, () -> data.getRingAmount() >= 3)
                 .build();
     }
 
-    private BlockPatternTemplate getRingTemplate(SoftTemplate normalTemplate, SoftTemplate airTemplate) {
-        return data.isRenderActive() ? airTemplate.get() : normalTemplate.get();
+    private BlockPatternTemplate getRingTemplate(int ringIndex, SoftTemplate normalTemplate, SoftTemplate airTemplate) {
+        return data.isRenderActive() && data.isRingCleared(ringIndex) ? airTemplate.get() : normalTemplate.get();
     }
 
     private static BlockPatternTemplate buildBeamShaftTemplate() {
@@ -341,7 +344,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private void ensurePatternMatchesRenderState() {
-        if (patternBuiltForRenderActive != data.isRenderActive()) {
+        if (patternBuiltForRenderActive != data.isRenderActive() ||
+                patternBuiltForClearedRingAmount != data.getClearedRingAmount()) {
             reinitializeStructurePattern();
         }
     }
@@ -350,12 +354,23 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (data.isRenderActive()) return false;
         if (getWorld() == null || getWorld().isRemote || getPos() == null) return false;
         if (data.getInternalBattery() <= 0) return false;
+        if (data.getClearedRingAmount() <= 0) return false;
         if (!isBeamShaftStillFormed()) return false;
         if (!isRingTemplateFormed(FIRST_RING_AIR_TEMPLATE, FIRST_RING_OFFSET)) return false;
+        if (data.getClearedRingAmount() >= 2 &&
+                !isRingTemplateFormed(SECOND_RING_AIR_TEMPLATE, SECOND_RING_OFFSET)) {
+            return false;
+        }
+        if (data.getClearedRingAmount() >= 3 &&
+                !isRingTemplateFormed(THIRD_RING_AIR_TEMPLATE, THIRD_RING_OFFSET)) {
+            return false;
+        }
 
-        GTLog.logger.info("[FOG] recovering persisted rendered structure at {}; first ring is air and battery={}",
-                getPos(), data.getInternalBattery());
+        GTLog.logger.info("[FOG] recovering persisted rendered structure at {}; clearedRings={} and battery={}",
+                getPos(), data.getClearedRingAmount(), data.getInternalBattery());
         data.setRenderActive(true);
+        data.setRingAmount(Math.max(data.getRingAmount(), data.getClearedRingAmount()));
+        markDirty();
         return true;
     }
 
@@ -542,14 +557,21 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private void updateRingAmount() {
-        int rings = 1;
-        if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD)) {
-            rings = 2;
+        int rings = Math.max(1, data.getClearedRingAmount());
+        if (getWorld() != null && !getWorld().isRemote && getPos() != null) {
+            if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD) &&
+                    isRingTemplateFormed(SECOND_RING_TEMPLATE, SECOND_RING_OFFSET)) {
+                rings = Math.max(rings, 2);
+            }
+            if (rings >= 2 && data.isUpgradeActive(ForgeOfGodsUpgrade.END) &&
+                    isRingTemplateFormed(THIRD_RING_TEMPLATE, THIRD_RING_OFFSET)) {
+                rings = Math.max(rings, 3);
+            }
         }
-        if (data.isUpgradeActive(ForgeOfGodsUpgrade.END)) {
-            rings = 3;
+        if (data.getRingAmount() != rings) {
+            data.setRingAmount(rings);
+            markDirty();
         }
-        data.setRingAmount(rings);
     }
 
     // ==================== Rendering ====================
@@ -597,15 +619,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         if (ticker % TICK_INTERVAL != 0) return;
 
-        // Calculate max allowed module count based on ring upgrades
+        // Calculate max allowed module count based on rings that actually exist.
         updateRingAmount();
-        int maxModuleCount = 8;
-        if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD)) {
-            maxModuleCount += 4;
-        }
-        if (data.isUpgradeActive(ForgeOfGodsUpgrade.END)) {
-            maxModuleCount += 4;
-        }
+        int maxModuleCount = 8 + (data.getRingAmount() - 1) * 4;
 
         // === Fuel absorption and battery startup ===
         absorbFuelOrShards();
@@ -664,8 +680,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
 
         // === Ring unlock/respec detection → update renderer and structure ===
-        if (data.getRingAmount() != lastKnownRingAmount) {
+        if (data.getRingAmount() != lastKnownRingAmount ||
+                data.getClearedRingAmount() != lastKnownClearedRingAmount) {
             lastKnownRingAmount = data.getRingAmount();
+            lastKnownClearedRingAmount = data.getClearedRingAmount();
             if (data.isRenderActive() && !data.isRendererDisabled()) {
                 updateRenderer();
             }
@@ -1187,27 +1205,55 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         replaceRenderedRings(true);
 
         data.setRenderActive(false);
+        markDirty();
     }
 
     private void replaceRenderedRings(boolean restoreBlocks) {
         if (getWorld() == null || getWorld().isRemote || getPos() == null) return;
 
+        int ringAmount = restoreBlocks ? data.getClearedRingAmount() : getReplaceableRingAmount();
+        if (ringAmount <= 0) return;
+
         int changed = 0;
-        changed += replaceRingBlocks(ForgeOfGodsStructureString.FIRST_RING, FIRST_RING_OFFSET, FIRST_RING_CENTER,
-                restoreBlocks);
-        if (data.getRingAmount() >= 2) {
+        if (ringAmount >= 1) {
+            changed += replaceRingBlocks(ForgeOfGodsStructureString.FIRST_RING, FIRST_RING_OFFSET, FIRST_RING_CENTER,
+                    restoreBlocks);
+        }
+        if (ringAmount >= 2) {
             changed += replaceRingBlocks(ForgeOfGodsStructureString.SECOND_RING, SECOND_RING_OFFSET,
                     SECOND_RING_CENTER, restoreBlocks);
         }
-        if (data.getRingAmount() >= 3) {
+        if (ringAmount >= 3) {
             changed += replaceRingBlocks(ForgeOfGodsStructureString.THIRD_RING, THIRD_RING_OFFSET, THIRD_RING_CENTER,
                     restoreBlocks);
         }
 
-        if (restoreBlocks || changed > 0) {
-            GTLog.logger.info("[FOG] replaceRenderedRings: restore={}, rings={}, changedBlocks={}",
-                    restoreBlocks, data.getRingAmount(), changed);
+        if (restoreBlocks) {
+            data.setClearedRingAmount(0);
+            data.setRingAmount(ringAmount);
+        } else {
+            data.setClearedRingAmount(ringAmount);
+            data.setRingAmount(Math.max(data.getRingAmount(), ringAmount));
         }
+        markDirty();
+
+        if (restoreBlocks || changed > 0) {
+            GTLog.logger.info("[FOG] replaceRenderedRings: restore={}, rings={}, clearedRings={}, changedBlocks={}",
+                    restoreBlocks, data.getRingAmount(), data.getClearedRingAmount(), changed);
+        }
+    }
+
+    private int getReplaceableRingAmount() {
+        int rings = 1;
+        if (data.isRingCleared(2) || (data.isUpgradeActive(ForgeOfGodsUpgrade.CD) &&
+                isRingTemplateFormed(SECOND_RING_TEMPLATE, SECOND_RING_OFFSET))) {
+            rings = 2;
+        }
+        if (rings >= 2 && (data.isRingCleared(3) || (data.isUpgradeActive(ForgeOfGodsUpgrade.END) &&
+                isRingTemplateFormed(THIRD_RING_TEMPLATE, THIRD_RING_OFFSET)))) {
+            rings = 3;
+        }
+        return rings;
     }
 
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
@@ -1286,6 +1332,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             destroyRendererAt(controllerPos.offset(facing, RENDER_OFFSET));
         }
         data.setRenderActive(false);
+        data.setClearedRingAmount(0);
+        markDirty();
     }
 
     private void destroyRendererAt(BlockPos renderPos) {
@@ -1311,7 +1359,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
         renderTE.setOwnerPos(getPos());
-        renderTE.setRingCount(data.getRingAmount());
+        renderTE.setRingCount(Math.max(1, data.getClearedRingAmount()));
         renderTE.setStarRadius(data.getStarSize());
         renderTE.setRotationSpeed(data.getRotationSpeed());
         renderTE.setColor(
