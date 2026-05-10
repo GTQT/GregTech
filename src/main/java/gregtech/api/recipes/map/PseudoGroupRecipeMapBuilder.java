@@ -1,9 +1,9 @@
 package gregtech.api.recipes.map;
 
-
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.ui.RecipeMapUI;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -88,6 +88,6 @@ public class PseudoGroupRecipeMapBuilder<B extends RecipeBuilder<B>> {
 
     @NotNull
     private RecipeMapUI<?> buildUI(RecipeMap<?> recipeMap) {
-        return new RecipeMapUI<>(recipeMap, false, false, false, false, false);
+        return new RecipeMapUI<>(recipeMap, false, false, false, false);
     }
 }

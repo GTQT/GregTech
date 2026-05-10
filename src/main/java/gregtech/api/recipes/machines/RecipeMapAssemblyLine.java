@@ -25,7 +25,7 @@ public class RecipeMapAssemblyLine<R extends RecipeBuilder<R>> extends RecipeMap
 
     public RecipeMapAssemblyLine(@NotNull String unlocalizedName, @NotNull R defaultRecipeBuilder,
                                  @NotNull RecipeMapUIFunction recipeMapUI) {
-        super(unlocalizedName, defaultRecipeBuilder, recipeMapUI, 16, 1, 4, 0);
+        super(unlocalizedName, defaultRecipeBuilder, recipeMapUI, 16, 1, 4, 0,1);
         setSound(GTSoundEvents.ASSEMBLER);
     }
 

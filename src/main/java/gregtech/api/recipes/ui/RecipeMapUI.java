@@ -58,7 +58,7 @@ public class RecipeMapUI<R extends RecipeMap<?>> {
 
     private final boolean isGenerator;
 
-    private boolean isJEIVisible = true;
+    private boolean isJEIVisible;
 
     /* *********************** MUI 1 *********************** */
 
@@ -94,6 +94,17 @@ public class RecipeMapUI<R extends RecipeMap<?>> {
      * @param modifyFluidOutputs if fluid output amounts can be modified
      */
     public RecipeMapUI(@NotNull R recipeMap, boolean modifyItemInputs, boolean modifyItemOutputs,
+                       boolean modifyFluidInputs, boolean modifyFluidOutputs, boolean isGenerator,boolean isJEIVisible) {
+        this.recipeMap = recipeMap;
+        this.modifyItemInputs = modifyItemInputs;
+        this.modifyItemOutputs = modifyItemOutputs;
+        this.modifyFluidInputs = modifyFluidInputs;
+        this.modifyFluidOutputs = modifyFluidOutputs;
+        this.isGenerator = isGenerator;
+        this.isJEIVisible = isJEIVisible;
+    }
+
+    public RecipeMapUI(@NotNull R recipeMap, boolean modifyItemInputs, boolean modifyItemOutputs,
                        boolean modifyFluidInputs, boolean modifyFluidOutputs, boolean isGenerator) {
         this.recipeMap = recipeMap;
         this.modifyItemInputs = modifyItemInputs;
@@ -101,6 +112,18 @@ public class RecipeMapUI<R extends RecipeMap<?>> {
         this.modifyFluidInputs = modifyFluidInputs;
         this.modifyFluidOutputs = modifyFluidOutputs;
         this.isGenerator = isGenerator;
+        this.isJEIVisible = true;
+    }
+
+    public RecipeMapUI(@NotNull R recipeMap, boolean modifyItemInputs, boolean modifyItemOutputs,
+                       boolean modifyFluidInputs, boolean modifyFluidOutputs) {
+        this.recipeMap = recipeMap;
+        this.modifyItemInputs = modifyItemInputs;
+        this.modifyItemOutputs = modifyItemOutputs;
+        this.modifyFluidInputs = modifyFluidInputs;
+        this.modifyFluidOutputs = modifyFluidOutputs;
+        this.isGenerator = false;
+        this.isJEIVisible = true;
     }
 
     /**

@@ -108,14 +108,9 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
     private int maxFluidInputs;
     private int maxFluidOutputs;
 
-    private final GTRecipeCategory primaryRecipeCategory;
+    private int extraInputs;
 
-    /**
-     * @deprecated {@link RecipeMapUI#isJEIVisible()}
-     */
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.9")
-    @Deprecated
-    public final boolean isHidden = false;
+    private final GTRecipeCategory primaryRecipeCategory;
 
     private boolean allowEmptyOutput= false;
 
@@ -168,6 +163,14 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
 
         this.grsVirtualizedRecipeMap = GregTechAPI.moduleManager.isModuleEnabled(GregTechModules.MODULE_GRS) ?
                 new VirtualizedRecipeMap(this) : null;
+    }
+
+    public RecipeMap(@NotNull String unlocalizedName, @NotNull R defaultRecipeBuilder,
+                     @NotNull RecipeMapUIFunction recipeMapUI, int maxInputs, int maxOutputs, int maxFluidInputs,
+                     int maxFluidOutputs,int extraInputs) {
+        this(unlocalizedName, defaultRecipeBuilder, recipeMapUI, maxInputs, maxOutputs, maxFluidInputs,
+                maxFluidOutputs);
+        this.extraInputs = extraInputs;
     }
 
     @ZenMethod
@@ -309,9 +312,8 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         return this;
     }
 
-    public RecipeMap<R> setGenerator() {
+    public void setGenerator() {
         this.isGenerator = true;
-        return this;
     }
 
     public boolean jeiOverclockButtonEnabled() {
@@ -1390,6 +1392,21 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         if (!recipeMapUI.canModifyItemInputs()) {
             GTLog.logger.warn(
                     "RecipeMap {} ui does not support changing max item inputs. Replace with a supporting UI for proper behavior.",
+                    getUnlocalizedName(), new Throwable());
+        }
+    }
+
+    @ZenGetter("extraInputs")
+    public int getExtraInput() {
+        return extraInputs;
+    }
+
+    @ZenSetter("extraInputs")
+    public void setExtraInputs(int extraInputs) {
+        this.extraInputs = Math.max(this.extraInputs, extraInputs);
+        if (!recipeMapUI.canModifyItemInputs()) {
+            GTLog.logger.warn(
+                    "RecipeMap {} ui does not support changing extra item inputs. Replace with a supporting UI for proper behavior.",
                     getUnlocalizedName(), new Throwable());
         }
     }

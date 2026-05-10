@@ -38,6 +38,7 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
 
     private boolean jeiOverclockButton = true;
     private boolean isGenerator = false;
+    private boolean isJEIVisible = true;
 
     private RecipeMapUIFunction recipeMapUIFunction = this::buildUI;
 
@@ -156,6 +157,16 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
      */
     public @NotNull RecipeMapBuilder<B> generator() {
         this.isGenerator = true;
+        return this;
+    }
+
+    /**
+     * Hide this recipemap from JEI
+     *
+     * @return this
+     */
+    public @NotNull RecipeMapBuilder<B> hideJEI() {
+        this.isJEIVisible = false;
         return this;
     }
 
@@ -293,7 +304,7 @@ public class RecipeMapBuilder<B extends RecipeBuilder<B>> {
      */
     private @NotNull RecipeMapUI<?> buildUI(@NotNull RecipeMap<?> recipeMap) {
         RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, modifyItemInputs, modifyItemOutputs, modifyFluidInputs,
-                modifyFluidOutputs, isGenerator);
+                modifyFluidOutputs, isGenerator,isJEIVisible);
         if (usesMui2 && this.mapUIBuilder != null) {
             ui.buildMui2(this.mapUIBuilder);
         } else {
