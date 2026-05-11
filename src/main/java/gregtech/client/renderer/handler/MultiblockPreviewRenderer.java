@@ -3,7 +3,10 @@ package gregtech.client.renderer.handler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.utils.TrackedDummyWorld;
@@ -141,14 +144,25 @@ public class MultiblockPreviewRenderer {
         opList = GLAllocation.generateDisplayLists(1); // allocate op list
         GlStateManager.glNewList(opList, GL11.GL_COMPILE);
         try {
-            List<MultiblockShapeInfo> shapes = channelValues != null
-                    ? controller.getMatchingShapes(channelValues)
-                    : controller.getMatchingShapes();
-            if (!shapes.isEmpty()) {
-                renderControllerInList(controller, shapes.get(0), layer);
-                // Compute comparison data if compare mode is active
-                if (compareMode) {
-                    computeComparisonFromController(controller, shapes.get(0));
+            // Check if a specific piece is requested via STRUCTURE_PIECE channel
+            int pieceIndex = channelValues != null
+                    ? channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0)
+                    : 0;
+
+            if (pieceIndex > 0) {
+                // Render a specific piece from the MultiPiecePattern
+                renderPiecePreview(controller, pieceIndex);
+            } else {
+                // Default: render the main pattern (backward compatible)
+                List<MultiblockShapeInfo> shapes = channelValues != null
+                        ? controller.getMatchingShapes(channelValues)
+                        : controller.getMatchingShapes();
+                if (!shapes.isEmpty()) {
+                    renderControllerInList(controller, shapes.get(0), layer);
+                    // Compute comparison data if compare mode is active
+                    if (compareMode) {
+                        computeComparisonFromController(controller, shapes.get(0));
+                    }
                 }
             }
         } finally {
@@ -393,6 +407,117 @@ public class MultiblockPreviewRenderer {
         computeComparisonData(expectedBlocks, world);
     }
 
+    /**
+     * Render a specific piece from the MultiPiecePattern at its world-space offset position.
+     * The piece center is computed using the controller's facing and the piece's OffsetMode.
+     *
+     * @param controller the multiblock controller
+     * @param pieceIndex 1-based index into the MultiPiecePattern's piece list
+     */
+    private static void renderPiecePreview(MultiblockControllerBase controller, int pieceIndex) {
+        MultiblockShapeInfo shapeInfo = controller.getMatchingShapeForPiece(pieceIndex, channelValues);
+        if (shapeInfo == null) return;
+
+        MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
+        if (multiPiece == null) return;
+
+        List<StructurePiece> pieces = multiPiece.getPieceList();
+        if (pieceIndex < 1 || pieceIndex > pieces.size()) return;
+        StructurePiece piece = pieces.get(pieceIndex - 1);
+
+        // Compute the piece's center position in world space
+        BlockPos pieceCenterPos = piece.getCenterPos(
+                controller.getPos(),
+                controller.getFrontFacing().getOpposite(),
+                controller.getUpwardsFacing());
+
+        renderPieceInList(controller, shapeInfo, layer, pieceCenterPos, piece);
+    }
+
+    /**
+     * Render a piece's preview blocks at the specified world position.
+     * Unlike renderControllerInList, the piece has no controller block inside it — rendering
+     * is anchored at the piece's computed center position.
+     */
+    private static void renderPieceInList(MultiblockControllerBase controllerBase,
+                                           MultiblockShapeInfo shapeInfo, int layer,
+                                           BlockPos pieceCenterPos, StructurePiece piece) {
+        BlockInfo[][][] blocks = shapeInfo.getBlocks();
+        Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
+        int maxY = 0;
+        for (int x = 0; x < blocks.length; x++) {
+            BlockInfo[][] aisle = blocks[x];
+            maxY = Math.max(maxY, aisle.length);
+            for (int y = 0; y < aisle.length; y++) {
+                BlockInfo[] column = aisle[y];
+                for (int z = 0; z < column.length; z++) {
+                    blockMap.put(new BlockPos(x, y, z), column[z]);
+                }
+            }
+        }
+        TrackedDummyWorld world = new TrackedDummyWorld();
+        world.addBlocks(blockMap);
+        int finalMaxY = layer % (maxY + 1);
+        world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
+
+        Minecraft mc = Minecraft.getMinecraft();
+        BlockRendererDispatcher brd = mc.getBlockRendererDispatcher();
+        Tessellator tes = Tessellator.getInstance();
+        BufferBuilder buff = tes.getBuffer();
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(pieceCenterPos.getX(), pieceCenterPos.getY(), pieceCenterPos.getZ());
+
+        BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
+
+        Set<BlockPos> surfaceBlocks = computeSurfaceBlocks(blockMap);
+
+        // Use the piece's own template for coordinate transformation
+        gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
+        RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
+        int[] centerOffset = pieceTemplate.getCenterOffset();
+        BlockPos pieceCenterInLocal = new BlockPos(centerOffset[0], centerOffset[1], centerOffset[3]);
+
+        GlStateManager.disableLighting();
+        TargetBlockAccess targetBA = new TargetBlockAccess(world, BlockPos.ORIGIN);
+        for (BlockRenderLayer brl : BlockRenderLayer.values()) {
+            buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+            ForgeHooksClient.setRenderLayer(brl);
+            for (BlockPos pos : surfaceBlocks) {
+                IBlockState state = world.getBlockState(pos);
+                if (!state.getBlock().canRenderInLayer(state, brl)) continue;
+                targetBA.setPos(pos);
+                GlStateManager.pushMatrix();
+                BlockPos tPos = transformPieceOffset(pos.subtract(pieceCenterInLocal), structureDir,
+                        controllerBase.getFrontFacing().getOpposite(), controllerBase.getUpwardsFacing(),
+                        controllerBase.isFlipped());
+                GlStateManager.translate(tPos.getX(), tPos.getY(), tPos.getZ());
+                GlStateManager.translate(0.125, 0.125, 0.125);
+                GlStateManager.scale(0.75, 0.75, 0.75);
+                brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
+                GlStateManager.popMatrix();
+            }
+            tes.draw();
+        }
+        GlStateManager.enableLighting();
+        ForgeHooksClient.setRenderLayer(oldLayer);
+
+        GlStateManager.popMatrix();
+    }
+
+    /**
+     * Transform a local preview offset for a piece into world-space offset using the piece's structure directions.
+     */
+    private static BlockPos transformPieceOffset(BlockPos previewOffset, RelativeDirection[] structureDir,
+                                                  EnumFacing frontFacing, EnumFacing upwardsFacing,
+                                                  boolean isFlipped) {
+        int[] localOffset = new int[3];
+        for (int i = 0; i < structureDir.length; i++) {
+            localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.NORTH));
+        }
+        return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
+                frontFacing, upwardsFacing, isFlipped, structureDir);
+    }
+
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                               int layer) {
         BlockPos mbpPos = controllerBase.getPos();
@@ -504,7 +629,7 @@ public class MultiblockPreviewRenderer {
         GlStateManager.translate(targetPos.getX(), targetPos.getY(), targetPos.getZ());
 
         if (mte != null) {
-            // 不在渲染路径中做结构校验，避免大机器卡顿
+            // Do not perform structure validation in the render path to avoid lag
         }
 
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
@@ -540,17 +665,28 @@ public class MultiblockPreviewRenderer {
     }
 
     /**
-     * 计算结构表面方块集合，跳过完全被遮挡的内部方块以提升渲染性能。
-     * 表面方块：至少有一个相邻位置不在 blockMap 中（即暴露在空气中或结构边界）。
+     * Compute the set of surface blocks, skipping fully-occluded internal blocks to improve
+     * rendering performance. A block is considered "surface" if at least one neighbor is
+     * missing from blockMap, is air, or is not a full cube (e.g. glass, slabs).
      */
+    @SuppressWarnings("deprecation")
     private static Set<BlockPos> computeSurfaceBlocks(Map<BlockPos, BlockInfo> blockMap) {
         Set<BlockPos> surface = new HashSet<>();
-        for (BlockPos pos : blockMap.keySet()) {
+        for (Map.Entry<BlockPos, BlockInfo> entry : blockMap.entrySet()) {
+            BlockPos pos = entry.getKey();
+            boolean enclosed = true;
             for (EnumFacing face : EnumFacing.VALUES) {
-                if (!blockMap.containsKey(pos.offset(face))) {
-                    surface.add(pos);
+                BlockPos neighbor = pos.offset(face);
+                BlockInfo neighborInfo = blockMap.get(neighbor);
+                if (neighborInfo == null || neighborInfo.getBlockState() == null
+                        || neighborInfo.getBlockState().getBlock() == Blocks.AIR
+                        || !neighborInfo.getBlockState().isFullCube()) {
+                    enclosed = false;
                     break;
                 }
+            }
+            if (!enclosed) {
+                surface.add(pos);
             }
         }
         return surface;

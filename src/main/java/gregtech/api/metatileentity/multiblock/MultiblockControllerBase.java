@@ -14,6 +14,7 @@ import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
+import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
@@ -511,7 +512,38 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public static TraceabilityPredicate selfPredicateByClass(@NotNull Class<? extends MultiblockControllerBase> controllerClass) {
-        return tilePredicate((state, tile) -> controllerClass.isInstance(tile), null).setCenter();
+        return tilePredicate((state, tile) -> controllerClass.isInstance(tile),
+                getCandidatesByClass(controllerClass)).setCenter();
+    }
+
+    /**
+     * Collect all registered MetaTileEntities whose class matches the given controller class
+     * and return them as candidate BlockInfo array. Used by {@link #selfPredicateByClass} so that
+     * the auto-generated JEI preview can render the controller block.
+     */
+    @NotNull
+    private static Supplier<BlockInfo[]> getCandidatesByClass(
+            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+        return () -> {
+            List<MetaTileEntity> matches = new ArrayList<>();
+            for (var registry : GregTechAPI.mteManager.getRegistries()) {
+                for (MetaTileEntity mte : registry) {
+                    if (controllerClass.isInstance(mte)) {
+                        matches.add(mte);
+                    }
+                }
+            }
+            if (matches.isEmpty()) {
+                return new BlockInfo[] { BlockInfo.EMPTY };
+            }
+            return matches.stream().map(tile -> {
+                MetaTileEntityHolder holder = new MetaTileEntityHolder();
+                holder.setMetaTileEntity(tile);
+                holder.getMetaTileEntity().onPlacement();
+                holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
+                return new BlockInfo(tile.getBlock().getDefaultState(), holder);
+            }).toArray(BlockInfo[]::new);
+        };
     }
 
     @Override
@@ -1247,6 +1279,32 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
         }
         return pages;
+    }
+
+    /**
+     * Get the preview shape for a specific piece from the MultiPiecePattern.
+     * Used by the structure projector to preview individual pieces (e.g. second_ring, third_ring).
+     *
+     * @param pieceIndex    1-based index into the piece list
+     * @param channelValues channel values for tier selection (nullable)
+     * @return the preview shape info, or null if the piece index is invalid or no MultiPiecePattern exists
+     */
+    @Nullable
+    public MultiblockShapeInfo getMatchingShapeForPiece(int pieceIndex,
+                                                        @Nullable Map<String, Integer> channelValues) {
+        if (multiPiecePattern == null) return null;
+        List<StructurePiece> pieces = multiPiecePattern.getPieceList();
+        if (pieceIndex < 1 || pieceIndex > pieces.size()) return null;
+
+        StructurePiece piece = pieces.get(pieceIndex - 1);
+        BlockPatternTemplate pieceTemplate = piece.getTemplate();
+        int[][] aisleRepetitions = pieceTemplate.getAisleRepetitions();
+        int[] repetition = new int[aisleRepetitions.length];
+        for (int i = 0; i < aisleRepetitions.length; i++) {
+            repetition[i] = aisleRepetitions[i][0];
+        }
+        BlockInfo[][][] preview = piece.getState().getPreview(repetition, channelValues);
+        return new MultiblockShapeInfo(preview);
     }
 
     @SideOnly(Side.CLIENT)

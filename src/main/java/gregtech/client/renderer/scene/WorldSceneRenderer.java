@@ -145,16 +145,19 @@ public abstract class WorldSceneRenderer {
     }
 
     /**
-     * Check if a block position is fully enclosed by non-air blocks on all 6 faces.
-     * A block is considered enclosed if every neighbor is present in the rendered set
-     * AND is not air in the world.
+     * Check if a block position is fully enclosed by opaque full-cube blocks on all 6 faces.
+     * A block is considered enclosed only if every neighbor is present in the rendered set,
+     * is not air, AND is a full cube (so transparent/partial blocks like glass or slabs
+     * do not count as occluders).
      */
+    @SuppressWarnings("deprecation")
     private boolean isFullyEnclosed(BlockPos pos) {
         for (EnumFacing facing : EnumFacing.VALUES) {
             BlockPos neighbor = pos.offset(facing);
             if (!this.renderedBlocks.contains(neighbor)) return false;
             IBlockState state = world.getBlockState(neighbor);
             if (state.getBlock() == Blocks.AIR) return false;
+            if (!state.isFullCube()) return false;
         }
         return true;
     }

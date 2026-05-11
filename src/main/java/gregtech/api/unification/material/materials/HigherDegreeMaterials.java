@@ -202,25 +202,30 @@ public class HigherDegreeMaterials {
         // ==================== Forge of the Gods Materials ====================
 
         // Dimensionally Transcendent Residue (DTR) - primary godforge fuel
+        // GT5: ARGB=0x01000000 (near-transparent black), SET_FLUID, animated texture (frametime=4)
         DimensionallyTranscendentResidue = Material.builder(2530, gregtechId("dimensionally_transcendent_residue"))
-                .fluid()
-                .color(0x1A0033).iconSet(DULL)
+                .liquid(new FluidBuilder().customStill())
+                .color(0x050005).iconSet(FLUID)
                 .flags(DISABLE_DECOMPOSITION)
                 .build();
 
-        // Raw Star Matter - secondary godforge fuel
+        // Raw Star Matter (Condensed Raw Stellar Plasma Mixture) - secondary godforge fuel
+        // GT5: ARGB=0xff6401ff (purple), SET_FLUID, animated texture (frametime=2)
         RawStarMatter = Material.builder(2531, gregtechId("raw_star_matter"))
-                .fluid()
-                .color(0xFFFF99).iconSet(SHINY)
+                .liquid(new FluidBuilder().customStill())
+                .color(0x6401FF).iconSet(FLUID)
                 .flags(DISABLE_DECOMPOSITION)
                 .build();
 
         // Magneto-Hydrodynamically Constrained Star Matter (MHDCSM) - tertiary godforge fuel (molten)
+        // GT5: ARGB=0x00ffffff (white), SET_MHDCSM, animated texture (frametime=2), with dust/metal/toolhead/gear/frame
         MagnetoHydrodynamicallyConstrainedStarMatter = Material.builder(2532,
                         gregtechId("magneto_hydrodynamically_constrained_star_matter"))
-                .ingot().fluid()
-                .color(0xE6E6FF).iconSet(METALLIC)
-                .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
+                .ingot().liquid(new FluidBuilder().customStill())
+                .color(0xF0F0FF).iconSet(METALLIC)
+                .flags(DISABLE_DECOMPOSITION, NO_SMELTING,
+                        GENERATE_PLATE, GENERATE_ROD, GENERATE_BOLT_SCREW,
+                        GENERATE_GEAR, GENERATE_FRAME)
                 .build();
 
         // Graviton Shard - godforge upgrade currency

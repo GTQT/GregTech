@@ -317,9 +317,19 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @NotNull
     private ItemStack getControllerStack() {
         if (controller instanceof ParametricMultiblockController<?> parametric) {
-            return parametric.getStackForm(parametric.getVariant());
+            return getParametricStackForm(parametric);
         }
         return controller.getStackForm();
+    }
+
+    /**
+     * Helper method to capture the wildcard type parameter of ParametricMultiblockController,
+     * allowing getStackForm(V) to accept the result of getVariant().
+     */
+    @NotNull
+    private static <V extends Enum<V>> ItemStack getParametricStackForm(
+            @NotNull ParametricMultiblockController<V> parametric) {
+        return parametric.getStackForm(parametric.getVariant());
     }
 
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
