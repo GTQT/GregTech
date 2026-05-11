@@ -24,7 +24,7 @@ public class FuelRecipeLogic extends RecipeLogicEnergy {
     @NotNull
     @Override
     public ParallelLogicType getParallelLogicType() {
-        return ParallelLogicType.MULTIPLY;
+        return ParallelLogicType.CROSS_RECIPE;
     }
 
     @Override

@@ -5,6 +5,7 @@ import static gregtech.api.GTValues.MODID;
 import java.nio.FloatBuffer;
 
 import gregtech.api.util.GTLog;
+import gregtech.client.renderer.godforge.util.DirectTessellator;
 import gregtech.client.renderer.godforge.util.SphereVBOCache;
 import gregtech.client.renderer.godforge.util.StructureVBO;
 import gregtech.client.renderer.godforge.util.TextureUpdateRequester;
@@ -14,7 +15,6 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.multi.electric.godforge.ForgeOfGodsStructureString;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.util.ResourceLocation;
@@ -40,6 +40,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     private static long lastFailedInitLogTime = 0;
     private static long lastInvalidOwnerLogTime = 0;
     private static long lastRenderEntryLogTime = 0;
+    private static long lastBeamDataLogTime = 0;
 
     private static int starProgram = -1;
     private static int u_StarColor = -1, u_StarModelMatrix = -1, u_StarGamma = -1, u_StarTexture = -1;
@@ -48,7 +49,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     private static int a_VertexID = -1;
     private static int u_BeamModelMatrix = -1;
     private static int u_CameraPosition = -1, u_SegmentArray = -1, u_SegmentQuads = -1;
-    private static int u_BeamIntensity = -1, u_BeamColor = -1, u_BeamTime = -1;
+    private static int u_BeamIntensity = -1, u_BeamColor = -1, u_BeamTime = -1, u_BeamTexture = -1;
     private static int beamVboID = -1;
 
     private static int fadeBypassProgram = -1;
@@ -56,6 +57,9 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     private final FloatBuffer softBeamSegmentBuffer = BufferUtils.createFloatBuffer(MAX_SEGMENTS * 3);
     private final FloatBuffer intenseBeamSegmentBuffer = BufferUtils.createFloatBuffer(MAX_SEGMENTS * 3);
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+    private final float[] modelMatrixValues = new float[16];
+    private final float[] transformMatrixValues = new float[16];
+    private final float[] multiplyMatrixValues = new float[16];
 
     private StructureVBO ringOne, ringTwo, ringThree;
 
@@ -89,6 +93,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
             u_BeamColor = GL20.glGetUniformLocation(beamProgram, "u_Color");
             u_BeamIntensity = GL20.glGetUniformLocation(beamProgram, "u_Intensity");
             u_BeamTime = GL20.glGetUniformLocation(beamProgram, "u_Time");
+            u_BeamTexture = GL20.glGetUniformLocation(beamProgram, "u_Texture");
 
             a_VertexID = GL20.glGetAttribLocation(beamProgram, "a_VertexID");
         } catch (Exception e) {
@@ -99,6 +104,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
 
         GL20.glUseProgram(beamProgram);
         GL20.glUniform1f(u_SegmentQuads, (float) BEAM_SEGMENT_QUADS);
+        GL20.glUniform1i(u_BeamTexture, 0);
 
         FloatBuffer buffer = BufferUtils.createFloatBuffer(MAX_SEGMENTS * BEAM_SEGMENT_QUADS * 6 * 3);
 
@@ -221,33 +227,36 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     }
 
     public void renderStarLayer(float r, float g, float b, float a, ResourceLocation texture, float scale,
+                                float translateX, float translateY, float translateZ,
                                 float rotX, float rotY, float rotZ, float degrees) {
         GL11.glPushMatrix();
+        GL11.glPushClientAttrib(GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
 
         bindTexture(texture);
 
-        GL11.glTranslatef(0.5f, 0.5f, 0.5f);
-        GL11.glRotatef(degrees, rotX, rotY, rotZ);
-        GL11.glScalef(scale, scale, scale);
-
         GL20.glUseProgram(starProgram);
 
-        matrixBuffer.clear();
-        matrixBuffer.put(new float[] {
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1
-        });
-        matrixBuffer.flip();
+        setTranslationMatrix(modelMatrixValues, translateX, translateY, translateZ);
+        multiplyRightRotation(modelMatrixValues, degrees, rotX, rotY, rotZ);
+        multiplyRightScale(modelMatrixValues, scale);
+        uploadModelMatrix(modelMatrixValues);
         GL20.glUniformMatrix4(u_StarModelMatrix, false, matrixBuffer);
         GL20.glUniform4f(u_StarColor, r, g, b, a);
 
-        SphereVBOCache.SphereVBO sphere = SphereVBOCache.getOrCreate(128, 128);
+        boolean wasCull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
+        int oldCullMode = GL11.glGetInteger(GL11.GL_CULL_FACE_MODE);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glCullFace(GL11.GL_FRONT);
+        DirectTessellator.DirectVBO sphere = SphereVBOCache.getOrCreate(128, 128);
         sphere.render();
+        GL11.glCullFace(oldCullMode);
+        if (!wasCull) {
+            GL11.glDisable(GL11.GL_CULL_FACE);
+        }
 
         GL20.glUseProgram(0);
 
+        GL11.glPopClientAttrib();
         GL11.glPopMatrix();
     }
 
@@ -264,19 +273,15 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL20.glUseProgram(starProgram);
         GL20.glUniform1f(u_StarGamma, tile.getGamma());
 
-        GL11.glPushMatrix();
-        GL11.glTranslated(x + 0.5, y + 0.5, z + 0.5);
-
         timer *= tile.getRotationSpeed();
 
         renderStarLayer(
                 tile.getColorR(), tile.getColorG(), tile.getColorB(), 1f,
                 STAR_LAYER_0,
                 tile.getStarRadius(),
+                (float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f,
                 0, 1, 1,
                 130 + (timer) % 360000);
-
-        GL11.glPopMatrix();
 
         GL20.glUseProgram(0);
         GL11.glPopAttrib();
@@ -296,15 +301,13 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL20.glUseProgram(starProgram);
         GL20.glUniform1f(u_StarGamma, tile.getGamma());
 
-        GL11.glPushMatrix();
-        GL11.glTranslated(x + 0.5, y + 0.5, z + 0.5);
-
         timer *= tile.getRotationSpeed();
 
         renderStarLayer(
                 tile.getColorR(), tile.getColorG(), tile.getColorB(), 0.4f,
                 STAR_LAYER_1,
                 tile.getStarRadius() * 1.02f,
+                (float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f,
                 1, 1, 0,
                 -49 + (timer) % 360000);
 
@@ -312,10 +315,9 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
                 tile.getColorR(), tile.getColorG(), tile.getColorB(), 0.2f,
                 STAR_LAYER_2,
                 tile.getStarRadius() * 1.04f,
+                (float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f,
                 1, 0, 1,
                 67 + (timer) % 360000);
-
-        GL11.glPopMatrix();
 
         GL20.glUseProgram(0);
         GL11.glPopAttrib();
@@ -396,6 +398,7 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
     public void renderBeamSegment(GodforgeRenderTileEntity tile, double x, double y, double z, float timer,
                                   boolean needsBeamUpdate) {
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        GL11.glPushClientAttrib(GL11.GL_CLIENT_VERTEX_ARRAY_BIT);
 
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glDisable(GL11.GL_LIGHTING);
@@ -406,29 +409,27 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
         bindTexture(BEAM_TEXTURE);
 
-        GL11.glPushMatrix();
-        GL11.glTranslated(x + 0.5, y + 0.5, z + 0.5);
-        GL11.glRotatef(tile.getRotAngle(), tile.getRotAxisX(), tile.getRotAxisY(), tile.getRotAxisZ());
-        GL11.glRotatef(90, 0, 1, 0);
-
         GL20.glUseProgram(beamProgram);
 
         if (needsBeamUpdate) {
             bufferSoftBeam(tile);
             bufferIntenseBeam(tile);
         }
+        float[] cameraLocal = getBeamLocalCamera(tile, x, y, z);
+        logBeamData(tile, x, y, z, timer, needsBeamUpdate, cameraLocal);
 
-        matrixBuffer.clear();
-        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrixBuffer);
-        matrixBuffer.flip();
+        setTranslationMatrix(modelMatrixValues, (float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f);
+        multiplyRightRotation(modelMatrixValues, tile.getRotAngle(), tile.getRotAxisX(), tile.getRotAxisY(),
+                tile.getRotAxisZ());
+        multiplyRightRotation(modelMatrixValues, 90f, 0f, 1f, 0f);
+        uploadModelMatrix(modelMatrixValues);
         GL20.glUniformMatrix4(u_BeamModelMatrix, false, matrixBuffer);
 
-        GL20.glUniform3f(
-                u_CameraPosition,
-                (float) (ActiveRenderInfo.getCameraPosition().x - x - 0.5),
-                (float) (ActiveRenderInfo.getCameraPosition().y - y - 0.5),
-                (float) (ActiveRenderInfo.getCameraPosition().z - z - 0.5));
+        GL20.glUniform3f(u_CameraPosition, cameraLocal[0], cameraLocal[1], cameraLocal[2]);
 
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, beamVboID);
+        GL20.glVertexAttribPointer(a_VertexID, 1, GL11.GL_FLOAT, false, 3 * Float.BYTES, 0);
+        GL11.glVertexPointer(3, GL11.GL_FLOAT, 0, 0);
         GL20.glEnableVertexAttribArray(a_VertexID);
         GL11.glEnableClientState(GL11.GL_VERTEX_ARRAY);
 
@@ -437,21 +438,187 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
         GL20.glUniform1f(u_BeamTime, timer);
         softBeamSegmentBuffer.rewind();
         GL20.glUniform3(u_SegmentArray, softBeamSegmentBuffer);
-        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, MAX_SEGMENTS * BEAM_SEGMENT_QUADS * 6);
+        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, getSoftBeamVertexCount(tile));
 
         GL20.glUniform3f(u_BeamColor, 1, 1, 1);
         GL20.glUniform1f(u_BeamIntensity, 4);
         intenseBeamSegmentBuffer.rewind();
         GL20.glUniform3(u_SegmentArray, intenseBeamSegmentBuffer);
-        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, MAX_SEGMENTS * BEAM_SEGMENT_QUADS * 6);
+        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, getIntenseBeamVertexCount(tile));
 
         GL20.glDisableVertexAttribArray(a_VertexID);
         GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 
         GL20.glUseProgram(0);
 
-        GL11.glPopMatrix();
+        GL11.glPopClientAttrib();
         GL11.glPopAttrib();
+    }
+
+    private void logBeamData(GodforgeRenderTileEntity tile, double x, double y, double z, float timer,
+                             boolean needsBeamUpdate, float[] cameraLocal) {
+        long now = System.currentTimeMillis();
+        if (now - lastBeamDataLogTime < 5000) return;
+        lastBeamDataLogTime = now;
+
+        GTLog.logger.info("[FOG] GodforgeStarRenderer beam data: tile={}, owner={}, renderOffset=({}, {}, {}), " +
+                        "timer={}, needsBeamUpdate={}, radius={}, rings={}, startAngle={}, lens0Distance={}, " +
+                        "lens0Radius={}, rotAngle={}, rotAxis=({}, {}, {}), color=({}, {}, {}), gamma={}, " +
+                        "beamProgram={}, beamVbo={}, attribVertexID={}, uniforms(model={}, camera={}, segments={}, " +
+                        "quads={}, color={}, intensity={}, time={}, texture={}), drawVertices(soft={}, intense={}), " +
+                        "cameraLocal=({}, {}, {}), softSegments={}, intenseSegments={}",
+                tile.getPos(), tile.getOwnerPosForDebug(), x, y, z,
+                timer, needsBeamUpdate, tile.getStarRadius(), tile.getRingCount(), tile.getStartAngle(),
+                tile.getLensDistance(0), tile.getLenRadius(0),
+                tile.getRotAngle(), tile.getRotAxisX(), tile.getRotAxisY(), tile.getRotAxisZ(),
+                tile.getColorR(), tile.getColorG(), tile.getColorB(), tile.getGamma(),
+                beamProgram, beamVboID, a_VertexID, u_BeamModelMatrix, u_CameraPosition, u_SegmentArray,
+                u_SegmentQuads, u_BeamColor, u_BeamIntensity, u_BeamTime, u_BeamTexture,
+                getSoftBeamVertexCount(tile), getIntenseBeamVertexCount(tile),
+                cameraLocal[0], cameraLocal[1], cameraLocal[2],
+                dumpSegments(softBeamSegmentBuffer, tile.getRingCount() + 2),
+                dumpSegments(intenseBeamSegmentBuffer, tile.getRingCount() + 3));
+    }
+
+    private static int getSoftBeamVertexCount(GodforgeRenderTileEntity tile) {
+        return (tile.getRingCount() + 1) * BEAM_SEGMENT_QUADS * 6;
+    }
+
+    private static int getIntenseBeamVertexCount(GodforgeRenderTileEntity tile) {
+        return (tile.getRingCount() + 2) * BEAM_SEGMENT_QUADS * 6;
+    }
+
+    private void uploadModelMatrix(float[] matrix) {
+        matrixBuffer.clear();
+        matrixBuffer.put(matrix);
+        matrixBuffer.flip();
+    }
+
+    private void setTranslationMatrix(float[] matrix, float x, float y, float z) {
+        setIdentityMatrix(matrix);
+        matrix[12] = x;
+        matrix[13] = y;
+        matrix[14] = z;
+    }
+
+    private void multiplyRightScale(float[] matrix, float scale) {
+        matrix[0] *= scale;
+        matrix[1] *= scale;
+        matrix[2] *= scale;
+        matrix[4] *= scale;
+        matrix[5] *= scale;
+        matrix[6] *= scale;
+        matrix[8] *= scale;
+        matrix[9] *= scale;
+        matrix[10] *= scale;
+    }
+
+    private void multiplyRightRotation(float[] matrix, float degrees, float axisX, float axisY, float axisZ) {
+        float axisLengthSq = axisX * axisX + axisY * axisY + axisZ * axisZ;
+        if (axisLengthSq < 1.0e-6f || degrees == 0f) return;
+
+        float invAxisLength = (float) (1.0 / Math.sqrt(axisLengthSq));
+        float x = axisX * invAxisLength;
+        float y = axisY * invAxisLength;
+        float z = axisZ * invAxisLength;
+        float radians = (float) Math.toRadians(degrees);
+        float cos = (float) Math.cos(radians);
+        float sin = (float) Math.sin(radians);
+        float oneMinusCos = 1.0f - cos;
+
+        transformMatrixValues[0] = cos + x * x * oneMinusCos;
+        transformMatrixValues[1] = y * x * oneMinusCos + z * sin;
+        transformMatrixValues[2] = z * x * oneMinusCos - y * sin;
+        transformMatrixValues[3] = 0f;
+        transformMatrixValues[4] = x * y * oneMinusCos - z * sin;
+        transformMatrixValues[5] = cos + y * y * oneMinusCos;
+        transformMatrixValues[6] = z * y * oneMinusCos + x * sin;
+        transformMatrixValues[7] = 0f;
+        transformMatrixValues[8] = x * z * oneMinusCos + y * sin;
+        transformMatrixValues[9] = y * z * oneMinusCos - x * sin;
+        transformMatrixValues[10] = cos + z * z * oneMinusCos;
+        transformMatrixValues[11] = 0f;
+        transformMatrixValues[12] = 0f;
+        transformMatrixValues[13] = 0f;
+        transformMatrixValues[14] = 0f;
+        transformMatrixValues[15] = 1f;
+
+        multiplyMatrices(matrix, transformMatrixValues, multiplyMatrixValues);
+        System.arraycopy(multiplyMatrixValues, 0, matrix, 0, matrix.length);
+    }
+
+    private static void setIdentityMatrix(float[] matrix) {
+        for (int i = 0; i < matrix.length; i++) {
+            matrix[i] = 0f;
+        }
+        matrix[0] = 1f;
+        matrix[5] = 1f;
+        matrix[10] = 1f;
+        matrix[15] = 1f;
+    }
+
+    private static void multiplyMatrices(float[] left, float[] right, float[] result) {
+        for (int column = 0; column < 4; column++) {
+            int columnOffset = column * 4;
+            for (int row = 0; row < 4; row++) {
+                result[columnOffset + row] =
+                        left[row] * right[columnOffset] +
+                        left[4 + row] * right[columnOffset + 1] +
+                        left[8 + row] * right[columnOffset + 2] +
+                        left[12 + row] * right[columnOffset + 3];
+            }
+        }
+    }
+
+    private static float[] getBeamLocalCamera(GodforgeRenderTileEntity tile, double x, double y, double z) {
+        float[] camera = new float[] {
+                (float) -(x + 0.5),
+                (float) -(y + 0.5),
+                (float) -(z + 0.5)
+        };
+        rotateVector(camera, -tile.getRotAngle(), tile.getRotAxisX(), tile.getRotAxisY(), tile.getRotAxisZ());
+        rotateVector(camera, -90f, 0f, 1f, 0f);
+        return camera;
+    }
+
+    private static void rotateVector(float[] vector, float degrees, float axisX, float axisY, float axisZ) {
+        float axisLengthSq = axisX * axisX + axisY * axisY + axisZ * axisZ;
+        if (axisLengthSq < 1.0e-6f || degrees == 0f) return;
+
+        float invAxisLength = (float) (1.0 / Math.sqrt(axisLengthSq));
+        float xAxis = axisX * invAxisLength;
+        float yAxis = axisY * invAxisLength;
+        float zAxis = axisZ * invAxisLength;
+        float radians = (float) Math.toRadians(degrees);
+        float cos = (float) Math.cos(radians);
+        float sin = (float) Math.sin(radians);
+        float oneMinusCos = 1.0f - cos;
+
+        float x = vector[0];
+        float y = vector[1];
+        float z = vector[2];
+        float dot = xAxis * x + yAxis * y + zAxis * z;
+
+        vector[0] = x * cos + (yAxis * z - zAxis * y) * sin + xAxis * dot * oneMinusCos;
+        vector[1] = y * cos + (zAxis * x - xAxis * z) * sin + yAxis * dot * oneMinusCos;
+        vector[2] = z * cos + (xAxis * y - yAxis * x) * sin + zAxis * dot * oneMinusCos;
+    }
+
+    private static String dumpSegments(FloatBuffer buffer, int segmentCount) {
+        FloatBuffer copy = buffer.asReadOnlyBuffer();
+        copy.rewind();
+        int count = Math.min(segmentCount, MAX_SEGMENTS);
+        StringBuilder builder = new StringBuilder("[");
+        for (int i = 0; i < count && copy.remaining() >= 3; i++) {
+            if (i > 0) builder.append(", ");
+            builder.append('(')
+                    .append(copy.get()).append(", ")
+                    .append(copy.get()).append(", ")
+                    .append(copy.get()).append(')');
+        }
+        builder.append(']');
+        return builder.toString();
     }
 
     private void renderRings(GodforgeRenderTileEntity tile, double x, double y, double z, float timer) {
@@ -555,10 +722,21 @@ public class GodforgeStarRenderer extends TileEntitySpecialRenderer<GodforgeRend
                 ? net.minecraft.client.Minecraft.getMinecraft().player.ticksExisted + partialTicks
                 : partialTicks;
 
-        renderStarOpaquePass(tile, x, y, z, timer);
-        renderRings(tile, x, y, z, timer);
-        renderStarTransparentPass(tile, x, y, z, timer);
-        renderBeamSegment(tile, x, y, z, timer, needsBeamUpdate);
+        int previousMatrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        try {
+            renderStarOpaquePass(tile, x, y, z, timer);
+            renderRings(tile, x, y, z, timer);
+            renderStarTransparentPass(tile, x, y, z, timer);
+            renderBeamSegment(tile, x, y, z, timer, needsBeamUpdate);
+        } finally {
+            GL11.glMatrixMode(previousMatrixMode);
+        }
+    }
+
+    @Override
+    public boolean isGlobalRenderer(GodforgeRenderTileEntity tile) {
+        return true;
     }
 
     private static long logThrottled(String message, long lastLogTime) {

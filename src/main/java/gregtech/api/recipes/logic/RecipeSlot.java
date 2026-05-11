@@ -53,6 +53,10 @@ public class RecipeSlot {
     @Nullable
     private transient Recipe sourceRecipe;
 
+    // --- Human-readable recipe label for UI display (serialized for reloads) ---
+    @NotNull
+    private String recipeDisplayName = "";
+
     // --- Parallel multiplier applied to this slot ---
     private int parallelCount = 1;
 
@@ -76,6 +80,14 @@ public class RecipeSlot {
                             @NotNull List<ItemStack> itemOutputs,
                             @NotNull List<FluidStack> fluidOutputs,
                             int parallelCount) {
+        startRecipe(recipe, duration, eut, itemOutputs, fluidOutputs, parallelCount, "");
+    }
+
+    public void startRecipe(@NotNull Recipe recipe, int duration, long eut,
+                            @NotNull List<ItemStack> itemOutputs,
+                            @NotNull List<FluidStack> fluidOutputs,
+                            int parallelCount,
+                            @NotNull String recipeDisplayName) {
         this.sourceRecipe = recipe;
         this.progressTime = 1;
         this.maxProgressTime = duration;
@@ -83,6 +95,7 @@ public class RecipeSlot {
         this.itemOutputs = new ArrayList<>(itemOutputs);
         this.fluidOutputs = new ArrayList<>(fluidOutputs);
         this.parallelCount = parallelCount;
+        this.recipeDisplayName = recipeDisplayName;
         this.state = State.RUNNING;
     }
 
@@ -113,6 +126,7 @@ public class RecipeSlot {
         this.itemOutputs = Collections.emptyList();
         this.fluidOutputs = Collections.emptyList();
         this.sourceRecipe = null;
+        this.recipeDisplayName = "";
         this.parallelCount = 1;
     }
 
@@ -165,6 +179,11 @@ public class RecipeSlot {
         return sourceRecipe;
     }
 
+    @NotNull
+    public String getRecipeDisplayName() {
+        return recipeDisplayName;
+    }
+
     public int getParallelCount() {
         return parallelCount;
     }
@@ -190,6 +209,7 @@ public class RecipeSlot {
             tag.setInteger("progressTime", progressTime);
             tag.setInteger("maxProgressTime", maxProgressTime);
             tag.setLong("recipeEUt", recipeEUt);
+            tag.setString("recipeDisplayName", recipeDisplayName);
 
             NBTTagList itemList = new NBTTagList();
             for (ItemStack stack : itemOutputs) {
@@ -215,6 +235,7 @@ public class RecipeSlot {
             this.progressTime = tag.getInteger("progressTime");
             this.maxProgressTime = tag.getInteger("maxProgressTime");
             this.recipeEUt = tag.getLong("recipeEUt");
+            this.recipeDisplayName = tag.getString("recipeDisplayName");
 
             NBTTagList itemList = tag.getTagList("itemOutputs", Constants.NBT.TAG_COMPOUND);
             this.itemOutputs = new ArrayList<>(itemList.tagCount());

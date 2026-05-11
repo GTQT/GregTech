@@ -20,6 +20,7 @@ public class ForgeOfGodsData {
     public static final int DEFAULT_FUEL_CONSUMPTION_FACTOR = 1;
     public static final int DEFAULT_MAX_BATTERY_CHARGE = 100;
     public static final int DEFAULT_RING_AMOUNT = 1;
+    public static final int MAX_RING_AMOUNT = 3;
     public static final int DEFAULT_ROTATION_SPEED = 5;
     public static final int DEFAULT_STAR_SIZE = 20;
     public static final String DEFAULT_STAR_COLOR = ForgeOfGodsStarColor.DEFAULT.getName();
@@ -49,6 +50,7 @@ public class ForgeOfGodsData {
     private int gravitonShardsAvailable;
     private int gravitonShardsSpent;
     private int ringAmount = DEFAULT_RING_AMOUNT;
+    private int clearedRingAmount;
     private int stellarFuelAmount;
     private int neededStartupFuel;
     private long fuelConsumption;
@@ -137,7 +139,19 @@ public class ForgeOfGodsData {
     }
 
     public void setRingAmount(int ringAmount) {
-        this.ringAmount = ringAmount;
+        this.ringAmount = MathHelper.clamp(ringAmount, DEFAULT_RING_AMOUNT, MAX_RING_AMOUNT);
+    }
+
+    public int getClearedRingAmount() {
+        return clearedRingAmount;
+    }
+
+    public void setClearedRingAmount(int clearedRingAmount) {
+        this.clearedRingAmount = MathHelper.clamp(clearedRingAmount, 0, MAX_RING_AMOUNT);
+    }
+
+    public boolean isRingCleared(int ringIndex) {
+        return clearedRingAmount >= ringIndex;
     }
 
     public int getStellarFuelAmount() {
@@ -438,6 +452,7 @@ public class ForgeOfGodsData {
 
         // --- Structure state: ring amount must survive reload for structure validation ---
         nbt.setInteger("ringAmount", ringAmount);
+        nbt.setInteger("clearedRingAmount", clearedRingAmount);
 
         // --- Milestone progress: graviton shard count depends on these ---
         for (int i = 0; i < milestoneProgress.length; i++) {
@@ -496,7 +511,7 @@ public class ForgeOfGodsData {
 
         // --- Structure state ---
         if (nbt.hasKey("ringAmount")) {
-            ringAmount = nbt.getInteger("ringAmount");
+            setRingAmount(nbt.getInteger("ringAmount"));
         }
 
         // --- Milestone progress ---
@@ -516,6 +531,13 @@ public class ForgeOfGodsData {
         if (nbt.hasKey("rotationSpeed")) rotationSpeed = nbt.getInteger("rotationSpeed");
         if (nbt.hasKey("starSize")) starSize = nbt.getInteger("starSize");
         if (nbt.hasKey("selectedStarColor")) selectedStarColor = nbt.getString("selectedStarColor");
+        if (nbt.hasKey("clearedRingAmount")) {
+            setClearedRingAmount(nbt.getInteger("clearedRingAmount"));
+        } else if (isRenderActive) {
+            // Legacy saves only persisted ringAmount, which used to be derived from upgrades.
+            // Only the first ring is guaranteed to have been physically present before rendering.
+            setClearedRingAmount(DEFAULT_RING_AMOUNT);
+        }
 
         // --- Upgrade window inventory ---
         NBTTagCompound itemTag = nbt.getCompoundTag("upgradeWindowStorage");

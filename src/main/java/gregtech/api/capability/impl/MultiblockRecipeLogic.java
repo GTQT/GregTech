@@ -109,11 +109,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // In CROSS_RECIPE mode, the scheduler manages all progress and energy
         CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
 
-        scheduler.tickSlots(
+        int completedParallel = scheduler.tickSlots(
                 getOutputInventory(),
                 getOutputTank(),
                 (amount, simulate) -> drawEnergy(amount, simulate)
         );
+        if (completedParallel > 0) {
+            onCrossRecipeSlotsCompleted(completedParallel);
+        }
 
         if (scheduler.isHasNotEnoughEnergy()) {
             this.hasNotEnoughEnergy = true;
@@ -128,6 +131,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // Update the parent's recipeEUt to reflect current total consumption (for display purposes)
         this.recipeEUt = scheduler.getTotalEnergyConsumption();
+        this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
 
         // Update active state based on whether any slots are still running
         if (!scheduler.hasActiveSlots()) {
@@ -135,36 +139,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.progressTime = 0;
             setMaxProgress(0);
             this.recipeEUt = 0;
+            this.parallelRecipesPerformed = 0;
             this.wasActiveAndNeedsUpdate = true;
         } else {
             crossRecipeSchedulerActive = true;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
-        }
-    }
-
-    @Override
-    protected void trySearchNewRecipeCombined() {
-        if (!isCrossRecipeMode()) {
-            super.trySearchNewRecipeCombined();
-            return;
-        }
-
-        // In CROSS_RECIPE mode, search for recipes to create new slots
-        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
-        int filled = fillSchedulerSlots(scheduler);
-
-        if (filled > 0) {
-            // Set a dummy progress so the main loop keeps calling updateRecipeProgress()
-            this.progressTime = 1;
-            setMaxProgress(Integer.MAX_VALUE);
-            this.recipeEUt = scheduler.getTotalEnergyConsumption();
-            crossRecipeSchedulerActive = true;
-            if (this.wasActiveAndNeedsUpdate) {
-                this.wasActiveAndNeedsUpdate = false;
-            } else {
-                this.setActive(true);
-            }
         }
     }
 
@@ -207,7 +187,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 lastCrossRecipe = recipe;
             } else {
                 // Setup failed, release the slot back to pool
-                scheduler.getActiveSlots().remove(slot);
+                scheduler.releaseSlot(slot);
             }
         }
     }
@@ -242,7 +222,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
                     filled++;
                 } else {
-                    scheduler.getActiveSlots().remove(slot);
+                    scheduler.releaseSlot(slot);
                 }
             }
         }
@@ -280,7 +260,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                             iterator.exclude(recipe);
                             filled++;
                         } else {
-                            scheduler.getActiveSlots().remove(slot);
+                            scheduler.releaseSlot(slot);
                             // Exclude failed recipe to avoid retrying it
                             iterator.exclude(recipe);
                         }
@@ -460,7 +440,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         // --- Step 6: Start the slot ---
-        slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel);
+        String recipeDisplayName = getRecipeDisplayName(trimmed, recipeMap, itemOutputs, fluidOutputs);
+        slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel,
+                recipeDisplayName);
         return true;
     }
 
@@ -476,6 +458,37 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         for (FluidStack fluid : fluidOutputs) {
             fluid.amount *= parallelCount;
         }
+    }
+
+    @NotNull
+    protected String getRecipeDisplayName(@NotNull Recipe recipe,
+                                          @NotNull RecipeMap<?> recipeMap,
+                                          @NotNull List<ItemStack> itemOutputs,
+                                          @NotNull List<FluidStack> fluidOutputs) {
+        for (ItemStack stack : itemOutputs) {
+            if (!stack.isEmpty()) {
+                return stack.getDisplayName();
+            }
+        }
+        for (FluidStack fluid : fluidOutputs) {
+            if (fluid != null && fluid.amount > 0) {
+                return fluid.getLocalizedName();
+            }
+        }
+        for (GTRecipeInput input : recipe.getInputs()) {
+            for (ItemStack stack : input.getInputStacks()) {
+                if (!stack.isEmpty()) {
+                    return stack.getDisplayName();
+                }
+            }
+        }
+        for (GTRecipeInput input : recipe.getFluidInputs()) {
+            FluidStack fluid = input.getInputFluidStack();
+            if (fluid != null && fluid.amount > 0) {
+                return fluid.getLocalizedName();
+            }
+        }
+        return recipeMap.getLocalizedName();
     }
 
     /**
@@ -507,6 +520,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // Consume item inputs: parallelCount × each input's amount
         for (GTRecipeInput recipeInput : recipe.getInputs()) {
+            if (recipeInput.isNonConsumable()) {
+                continue;
+            }
             int totalRequired = recipeInput.getAmount() * parallelCount;
             int remaining = totalRequired;
 
@@ -525,6 +541,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // Consume fluid inputs: parallelCount × each fluid input's amount
         for (GTRecipeInput recipeFluidInput : recipe.getFluidInputs()) {
+            if (recipeFluidInput.isNonConsumable()) {
+                continue;
+            }
             int totalRequired = recipeFluidInput.getAmount() * parallelCount;
             int remaining = totalRequired;
 
@@ -732,6 +751,25 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * deal with the maintenance and distinct logic in {@link MultiblockRecipeLogic#trySearchNewRecipe()}
      */
     protected void trySearchNewRecipeCombined() {
+        if (isCrossRecipeMode()) {
+            CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+            int filled = fillSchedulerSlots(scheduler);
+
+            if (filled > 0) {
+                this.progressTime = 1;
+                setMaxProgress(Integer.MAX_VALUE);
+                this.recipeEUt = scheduler.getTotalEnergyConsumption();
+                this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
+                crossRecipeSchedulerActive = true;
+                if (this.wasActiveAndNeedsUpdate) {
+                    this.wasActiveAndNeedsUpdate = false;
+                } else {
+                    this.setActive(true);
+                }
+            }
+            return;
+        }
+
         super.trySearchNewRecipe();
     }
 
@@ -815,7 +853,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     filledFromBus = true;
                     lastCrossRecipe = recipe;
                 } else {
-                    scheduler.getActiveSlots().remove(slot);
+                    scheduler.releaseSlot(slot);
                 }
             }
 
@@ -828,6 +866,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.progressTime = 1;
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
+            this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
             crossRecipeSchedulerActive = true;
             if (this.wasActiveAndNeedsUpdate) {
                 this.wasActiveAndNeedsUpdate = false;
@@ -999,6 +1038,19 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 controller.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
             }
         }
+    }
+
+    protected void onCrossRecipeSlotsCompleted(int completedParallel) {
+        int previousParallel = parallelRecipesPerformed;
+        parallelRecipesPerformed = completedParallel;
+        performMufflerOperations();
+        parallelRecipesPerformed = previousParallel;
+    }
+
+    @Override
+    @NotNull
+    public ParallelLogicType getParallelLogicType() {
+        return ParallelLogicType.CROSS_RECIPE;
     }
 
     @Override

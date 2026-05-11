@@ -38,7 +38,6 @@ import com.cleanroommc.modularui.value.sync.SyncHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,7 +68,6 @@ public class MultiblockUIBuilder {
      *
      * @param action the action to apply to this builder
      */
-    @Setter
     private Consumer<MultiblockUIBuilder> action;
     @Nullable
     private InternalSyncer syncer;
@@ -83,6 +81,10 @@ public class MultiblockUIBuilder {
     private IKey pausedKey = IKey.lang("gregtech.multiblock.work_paused").style(TextFormatting.GOLD);
     private IKey runningKey = IKey.lang("gregtech.multiblock.running").style(TextFormatting.GREEN);
     private Runnable onRebuild;
+
+    public void setAction(Consumer<MultiblockUIBuilder> action) {
+        this.action = action;
+    }
 
     private static float calculatePerSecond(int recipeLength, long amount) {
         return ((float) amount / recipeLength) * 20f;
@@ -447,23 +449,23 @@ public class MultiblockUIBuilder {
     }
 
     /**
-     * Adds a cross-recipe parallel status line showing active/total slots and total EU/t consumption.
+     * Adds a cross-recipe parallel status line showing used/available parallel and total EU/t consumption.
      * <br>
      * Added if structure is formed.
      *
-     * @param runningSlots the number of currently running slots
-     * @param totalSlots   the total number of execution slots
-     * @param totalEUt     the total EU/t being consumed by all active slots
+     * @param runningParallel the number of currently running parallels
+     * @param totalParallel   the total parallel budget
+     * @param totalEUt        the total EU/t being consumed by all active slots
      */
-    public MultiblockUIBuilder addCrossRecipeParallelLine(int runningSlots, int totalSlots, long totalEUt) {
+    public MultiblockUIBuilder addCrossRecipeParallelLine(int runningParallel, int totalParallel, long totalEUt) {
         if (!isStructureFormed) return this;
-        runningSlots = getSyncer().syncInt(runningSlots);
-        totalSlots = getSyncer().syncInt(totalSlots);
+        runningParallel = getSyncer().syncInt(runningParallel);
+        totalParallel = getSyncer().syncInt(totalParallel);
         totalEUt = getSyncer().syncLong(totalEUt);
 
         addKey(KeyUtil.lang(TextFormatting.AQUA,
                 "gregtech.multiblock.cross_recipe_parallel.status",
-                runningSlots, totalSlots,
+                runningParallel, totalParallel,
                 KeyUtil.number(TextFormatting.RED, totalEUt)));
         return this;
     }
@@ -479,18 +481,35 @@ public class MultiblockUIBuilder {
      * @param eut         the slot's EU/t consumption
      */
     public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, int progress, int maxProgress, long eut) {
+        return addCrossRecipeSlotLine(slotIndex, "", 1, progress, maxProgress, eut);
+    }
+
+    public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, @NotNull String recipeName, int parallelCount,
+                                                      int progress, int maxProgress, long eut) {
         if (!isStructureFormed) return this;
         slotIndex = getSyncer().syncInt(slotIndex);
+        recipeName = getSyncer().syncString(recipeName);
+        parallelCount = Math.max(1, getSyncer().syncInt(parallelCount));
         progress = getSyncer().syncInt(progress);
         maxProgress = getSyncer().syncInt(maxProgress);
         eut = getSyncer().syncLong(eut);
 
         if (maxProgress > 0) {
-            float percent = (float) progress / maxProgress * 100f;
-            addKey(KeyUtil.lang(TextFormatting.GRAY,
-                    "gregtech.multiblock.cross_recipe_parallel.slot",
-                    slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
-                    KeyUtil.number(TextFormatting.RED, eut)));
+            float percent = Math.min(100f, Math.max(0f, (float) progress / maxProgress * 100f));
+            if (recipeName.isEmpty()) {
+                addKey(KeyUtil.lang(TextFormatting.GRAY,
+                        "gregtech.multiblock.cross_recipe_parallel.slot",
+                        slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
+                        KeyUtil.number(TextFormatting.RED, eut)));
+            } else {
+                addKey(KeyUtil.lang(TextFormatting.GRAY,
+                        "gregtech.multiblock.cross_recipe_parallel.slot_named",
+                        slotIndex + 1,
+                        KeyUtil.string(TextFormatting.YELLOW, recipeName),
+                        parallelCount,
+                        progress / 20f, maxProgress / 20f, percent,
+                        KeyUtil.number(TextFormatting.RED, eut)));
+            }
         }
         return this;
     }

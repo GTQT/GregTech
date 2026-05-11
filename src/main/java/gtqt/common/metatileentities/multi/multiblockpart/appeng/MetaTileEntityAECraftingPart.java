@@ -58,8 +58,6 @@ import appeng.util.item.AEItemStack;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -99,49 +97,105 @@ public abstract class MetaTileEntityAECraftingPart extends MetaTileEntityAEHosta
     // AE
     protected BlockPos AEProxy_pos = new BlockPos(0, 0, 0);
 
-    @Setter
-    @Getter
     protected boolean useProxy;
 
-    @Setter
-    @Getter
     protected boolean export = false;
 
-    @Setter
-    @Getter
     protected boolean needPatternSync = true;
 
-    @Getter
     protected boolean autoCollapse;
 
-    @Setter
-    @Getter
     protected boolean blockedMode = true;
 
-    @Setter
-    @Getter
     protected boolean advancedCircuit = false;
     // SLOTS
-    @Getter
     protected IItemHandlerModifiable actualImportItems;
     @Nullable
     protected ItemStackHandler extraItem;
-    @Getter
     @Nullable
     protected ItemStackHandler patternSlot;
-    @Getter
     @Nullable
     protected DualHandler dualHandler;
 
-    @Getter
-    @Setter
     protected String showName = this.getMetaFullName();
-    @Getter
-    @Setter
     protected boolean hideInfo = false;
 
     public MetaTileEntityAECraftingPart(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
+    }
+
+    public boolean isUseProxy() {
+        return useProxy;
+    }
+
+    public void setUseProxy(boolean useProxy) {
+        this.useProxy = useProxy;
+    }
+
+    public boolean isExport() {
+        return export;
+    }
+
+    public void setExport(boolean export) {
+        this.export = export;
+    }
+
+    public boolean isNeedPatternSync() {
+        return needPatternSync;
+    }
+
+    public void setNeedPatternSync(boolean needPatternSync) {
+        this.needPatternSync = needPatternSync;
+    }
+
+    public boolean isAutoCollapse() {
+        return autoCollapse;
+    }
+
+    public boolean isBlockedMode() {
+        return blockedMode;
+    }
+
+    public void setBlockedMode(boolean blockedMode) {
+        this.blockedMode = blockedMode;
+    }
+
+    public boolean isAdvancedCircuit() {
+        return advancedCircuit;
+    }
+
+    public void setAdvancedCircuit(boolean advancedCircuit) {
+        this.advancedCircuit = advancedCircuit;
+    }
+
+    public IItemHandlerModifiable getActualImportItems() {
+        return actualImportItems;
+    }
+
+    @Nullable
+    public ItemStackHandler getPatternSlot() {
+        return patternSlot;
+    }
+
+    @Nullable
+    public DualHandler getDualHandler() {
+        return dualHandler;
+    }
+
+    public String getShowName() {
+        return showName;
+    }
+
+    public void setShowName(String showName) {
+        this.showName = showName;
+    }
+
+    public boolean isHideInfo() {
+        return hideInfo;
+    }
+
+    public void setHideInfo(boolean hideInfo) {
+        this.hideInfo = hideInfo;
     }
 
     public void pushToGridCache() {

@@ -32,7 +32,6 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,7 +42,6 @@ import java.util.function.Function;
 public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity implements IActiveOutputSide {
 
     private static final int FONT_HEIGHT = 9; // Minecraft's FontRenderer FONT_HEIGHT value
-    @Getter
     double efficiency;
 
     public SimpleGeneratorMetaTileEntity(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
@@ -60,6 +58,10 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
         super(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction, handlesRecipeOutputs);
         this.efficiency = efficiency;
         workable.setEnergyEfficiency(efficiency);
+    }
+
+    public double getEfficiency() {
+        return efficiency;
     }
 
     @Override

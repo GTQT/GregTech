@@ -46,8 +46,6 @@ import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import gtqt.api.util.GTQTUtility;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;
@@ -77,22 +75,16 @@ public abstract class AbstractRecipeLogic extends MTETrait
         return ocResult;
     }
     public RecipeMap<?> recipeMap;
-    @Setter
     public int progressTime;
     protected Recipe previousRecipe;
     protected Recipe showRecipes;
     protected int parallelRecipesPerformed;
-    @Getter
-    @Setter
     protected boolean canRecipeProgress = true;
     protected int maxProgressTime;
-    @Setter
     protected long recipeEUt;
     @NotNull
-    @Setter
     protected List<FluidStack> fluidOutputs = Collections.emptyList();
     @NotNull
-    @Setter
     protected List<ItemStack> itemOutputs = Collections.emptyList();
     protected boolean isActive;
     protected boolean workingEnabled = true;
@@ -101,15 +93,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean isOutputsFull;
     protected boolean invalidInputsForRecipes;
     protected boolean hasPerfectOC;
-    @Setter
-    @Getter
     protected String whyFailed = "";
     private double euDiscount = -1;
     private double euEfficiency = 1;
     private double speedBonus = -1;
     private boolean allowOverclocking = true;
-    @Setter
-    @Getter
     private long overclockVoltage;
     private boolean enableBatch = false;
     private boolean lockRecipe = false;
@@ -124,23 +112,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * List of non-chanced item outputs.The actual non-chanced item outputs are taken from the item outputs saved list,
      * taking the first n elements.
      */
-    @Setter
     private int nonChancedItemAmt = 0;
     /**
      * Map of chanced item outputs to their boosted chance, for this recipe.
      */
-    @Setter
     private List<Pair<ItemStack, Integer>> chancedItemOutputs = null;
     /**
      * Number of non-chanced fluid outputs. The actual non-chanced fluid outputs are taken from the fluid outputs saved
      * list, taking the first n elements.
      */
-    @Setter
     private int nonChancedFluidAmt = 0;
     /**
      * Map of chanced item outputs to their boosted chance, for this recipe.
      */
-    @Setter
     private List<Pair<FluidStack, Integer>> chancedFluidOutputs = null;
 
     public AbstractRecipeLogic(MetaTileEntity tileEntity, RecipeMap<?> recipeMap) {
@@ -152,6 +136,62 @@ public abstract class AbstractRecipeLogic extends MTETrait
         super(tileEntity);
         this.recipeMap = recipeMap;
         this.hasPerfectOC = hasPerfectOC;
+    }
+
+    public void setProgressTime(int progressTime) {
+        this.progressTime = progressTime;
+    }
+
+    public boolean isCanRecipeProgress() {
+        return canRecipeProgress;
+    }
+
+    public void setCanRecipeProgress(boolean canRecipeProgress) {
+        this.canRecipeProgress = canRecipeProgress;
+    }
+
+    public void setRecipeEUt(long recipeEUt) {
+        this.recipeEUt = recipeEUt;
+    }
+
+    public void setFluidOutputs(@NotNull List<FluidStack> fluidOutputs) {
+        this.fluidOutputs = fluidOutputs;
+    }
+
+    public void setItemOutputs(@NotNull List<ItemStack> itemOutputs) {
+        this.itemOutputs = itemOutputs;
+    }
+
+    public String getWhyFailed() {
+        return whyFailed;
+    }
+
+    public void setWhyFailed(String whyFailed) {
+        this.whyFailed = whyFailed;
+    }
+
+    public long getOverclockVoltage() {
+        return overclockVoltage;
+    }
+
+    public void setOverclockVoltage(long overclockVoltage) {
+        this.overclockVoltage = overclockVoltage;
+    }
+
+    public void setNonChancedItemAmt(int nonChancedItemAmt) {
+        this.nonChancedItemAmt = nonChancedItemAmt;
+    }
+
+    public void setChancedItemOutputs(List<Pair<ItemStack, Integer>> chancedItemOutputs) {
+        this.chancedItemOutputs = chancedItemOutputs;
+    }
+
+    public void setNonChancedFluidAmt(int nonChancedFluidAmt) {
+        this.nonChancedFluidAmt = nonChancedFluidAmt;
+    }
+
+    public void setChancedFluidOutputs(List<Pair<FluidStack, Integer>> chancedFluidOutputs) {
+        this.chancedFluidOutputs = chancedFluidOutputs;
     }
 
     /**
@@ -835,7 +875,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @Override
     @NotNull
     public ParallelLogicType getParallelLogicType() {
-        return ParallelLogicType.MULTIPLY;
+        return ParallelLogicType.CROSS_RECIPE;
     }
 
     /**

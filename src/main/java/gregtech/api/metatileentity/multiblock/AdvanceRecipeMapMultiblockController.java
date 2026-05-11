@@ -19,8 +19,6 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
-import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
-import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -329,25 +327,9 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     /**
      * Adds cross-recipe parallel scheduler status display for a single RecipeLogic.
      */
+    @Override
     protected void addCrossRecipeDisplay(MultiblockUIBuilder builder, MultiblockRecipeLogic logic) {
-        CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
-        if (scheduler == null) return;
-
-        builder.addCrossRecipeParallelLine(
-                scheduler.getActiveSlotCount(),
-                scheduler.getParallelLimit(),
-                scheduler.getTotalEnergyConsumption());
-
-        // Show per-slot progress (limit display to avoid UI overflow)
-        List<RecipeSlot> slots = scheduler.getActiveSlots();
-        int displayLimit = Math.min(slots.size(), 8);
-        for (int j = 0; j < displayLimit; j++) {
-            RecipeSlot slot = slots.get(j);
-            if (slot.isRunning()) {
-                builder.addCrossRecipeSlotLine(j,
-                        slot.getProgressTime(), slot.getMaxProgressTime(), slot.getRecipeEUt());
-            }
-        }
+        super.addCrossRecipeDisplay(builder, logic);
     }
 
     protected void addCustomCapacity(KeyManager keyManager, UISyncer syncer) {

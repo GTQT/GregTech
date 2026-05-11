@@ -6,7 +6,6 @@ import java.util.HashSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -59,6 +58,7 @@ public class StructureVBO {
 
     public void build() {
         blockAccess = new StructureBlockAccess(structure, mapper);
+        FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(blockAccess);
 
         BlockRenderLayer oldRenderLayer = MinecraftForgeClient.getRenderLayer();
 
@@ -68,7 +68,6 @@ public class StructureVBO {
 
                 BufferBuilder buffer = Tessellator.getInstance().getBuffer();
                 buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-                BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
                 int sizeX = structure.length;
                 int sizeY = structure[0].length;
@@ -97,7 +96,10 @@ public class StructureVBO {
                             Block block = state.getBlock();
                             if (block == Blocks.AIR) continue;
                             if (block.canRenderInLayer(state, layer)) {
-                                dispatcher.renderBlock(state, renderPos, blockAccess, buffer);
+                                FaceVisibility faceVisibility = getVisibleFaces(x, y, z);
+                                if (!faceVisibility.isEntireObscured()) {
+                                    renderer.renderBlock(state, renderPos, faceVisibility, buffer);
+                                }
                             }
                         }
                     }
@@ -114,6 +116,34 @@ public class StructureVBO {
         }
 
         built = true;
+    }
+
+    private boolean isOpaqueAt(int x, int y, int z) {
+        if (x < 0 || x >= structure.length) return false;
+        if (y < 0 || y >= structure[0].length) return false;
+        if (z < 0 || z >= structure[0][0].length()) return false;
+
+        char letter = structure[x][y].charAt(z);
+        if (letter == ' ') return false;
+        Pair<Block, Integer> info = mapper.get(letter);
+        if (info == null || info.getLeft() == Blocks.AIR) return false;
+        return info.getLeft().getStateFromMeta(info.getRight()).isOpaqueCube();
+    }
+
+    private FaceVisibility getVisibleFaces(int x, int y, int z) {
+        FaceVisibility visibility = new FaceVisibility();
+        int maxX = structure.length - 1;
+        int maxY = structure[0].length - 1;
+        int maxZ = structure[0][0].length() - 1;
+
+        if (x > 0 && isOpaqueAt(x - 1, y, z)) visibility.left = false;
+        if (x < maxX && isOpaqueAt(x + 1, y, z)) visibility.right = false;
+        if (y > 0 && isOpaqueAt(x, y - 1, z)) visibility.top = false;
+        if (y < maxY && isOpaqueAt(x, y + 1, z)) visibility.bottom = false;
+        if (z > 0 && isOpaqueAt(x, y, z - 1)) visibility.back = false;
+        if (z < maxZ && isOpaqueAt(x, y, z + 1)) visibility.front = false;
+
+        return visibility;
     }
 
     public void render() {

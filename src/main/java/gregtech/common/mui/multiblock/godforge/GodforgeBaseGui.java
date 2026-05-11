@@ -4,11 +4,11 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
@@ -114,7 +114,7 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
     }
 
     /** Text content displayed inside the terminal display area. */
-    protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
+    protected Widget<?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         return new ListWidget<>().widthRel(1)
             .align(Alignment.TopCenter);
     }
@@ -137,7 +137,7 @@ public abstract class GodforgeBaseGui<T extends MultiblockControllerBase> {
 
     protected ToggleButton createMuffleButton() {
         return new ToggleButton().size(7)
-            .value(new BoolValue.Dynamic(multiblock::isMuffled, muffled -> {
+            .value(new BooleanSyncValue(multiblock::isMuffled, muffled -> {
                 if (muffled != multiblock.isMuffled()) {
                     multiblock.toggleMuffled();
                 }

@@ -26,7 +26,7 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     private int previousDuration = 0;
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity) {
-        this(tileEntity, ParallelLogicType.MULTIPLY);
+        this(tileEntity, ParallelLogicType.CROSS_RECIPE);
     }
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity, ParallelLogicType type) {

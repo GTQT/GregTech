@@ -56,7 +56,6 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,7 +72,6 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
     private IItemHandlerModifiable actualImportItems;
 
     private boolean workingEnabled;
-    @Getter
     private boolean autoCollapse;
 
     public MetaTileEntityMoldItemBus(ResourceLocation metaTileEntityId, int tier) {
@@ -399,6 +397,10 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
             notifyBlockUpdate();
             markDirty();
         }
+    }
+
+    public boolean isAutoCollapse() {
+        return autoCollapse;
     }
 
     @Override

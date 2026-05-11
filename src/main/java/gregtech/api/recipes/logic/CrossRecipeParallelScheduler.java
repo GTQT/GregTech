@@ -116,7 +116,12 @@ public class CrossRecipeParallelScheduler {
      *
      * @param slot the slot to release
      */
-    private void releaseSlot(@NotNull RecipeSlot slot) {
+    public void releaseSlot(@NotNull RecipeSlot slot) {
+        activeSlots.remove(slot);
+        returnSlotToPool(slot);
+    }
+
+    private void returnSlotToPool(@NotNull RecipeSlot slot) {
         slot.reset();
         slotPool.add(slot);
     }
@@ -138,10 +143,11 @@ public class CrossRecipeParallelScheduler {
      * @param energyDrawer    a function that attempts to draw the specified amount of energy.
      *                        Returns true if the draw was successful.
      */
-    public void tickSlots(@NotNull IItemHandlerModifiable outputInventory,
-                          @NotNull IMultipleTankHandler outputFluids,
-                          @NotNull EnergyDrawer energyDrawer) {
+    public int tickSlots(@NotNull IItemHandlerModifiable outputInventory,
+                         @NotNull IMultipleTankHandler outputFluids,
+                         @NotNull EnergyDrawer energyDrawer) {
         long totalEUt = getTotalEnergyConsumption();
+        int completedParallel = 0;
 
         // Attempt to draw energy for all active slots
         if (totalEUt > 0) {
@@ -150,7 +156,7 @@ public class CrossRecipeParallelScheduler {
                 hasNotEnoughEnergy = false;
             } else {
                 hasNotEnoughEnergy = true;
-                return;
+                return 0;
             }
         }
 
@@ -161,17 +167,20 @@ public class CrossRecipeParallelScheduler {
             if (slot.isRunning()) {
                 if (slot.tick()) {
                     // Slot just completed - output results and return to pool
+                    completedParallel += Math.max(1, slot.getParallelCount());
                     outputSlotResults(slot, outputInventory, outputFluids);
                     it.remove();
-                    slotPool.add(slot);
+                    returnSlotToPool(slot);
                 }
             } else if (slot.isCompleted()) {
                 // Shouldn't normally reach here, but handle gracefully
+                completedParallel += Math.max(1, slot.getParallelCount());
                 outputSlotResults(slot, outputInventory, outputFluids);
                 it.remove();
-                slotPool.add(slot);
+                returnSlotToPool(slot);
             }
         }
+        return completedParallel;
     }
 
     // ==================== Query Methods ====================
@@ -250,6 +259,44 @@ public class CrossRecipeParallelScheduler {
     @NotNull
     public List<RecipeSlot> getActiveSlots() {
         return Collections.unmodifiableList(activeSlots);
+    }
+
+    @Nullable
+    public RecipeSlot getDisplaySlot() {
+        RecipeSlot displaySlot = null;
+        int bestRemaining = Integer.MAX_VALUE;
+        double bestProgress = 0.0;
+
+        for (RecipeSlot slot : activeSlots) {
+            if (!slot.isRunning()) continue;
+
+            int remaining = Math.max(0, slot.getMaxProgressTime() - slot.getProgressTime());
+            double progress = slot.getProgressPercent();
+            if (displaySlot == null ||
+                    remaining < bestRemaining ||
+                    (remaining == bestRemaining && progress > bestProgress)) {
+                displaySlot = slot;
+                bestRemaining = remaining;
+                bestProgress = progress;
+            }
+        }
+
+        return displaySlot;
+    }
+
+    public int getDisplayProgressTime() {
+        RecipeSlot slot = getDisplaySlot();
+        return slot == null ? 0 : Math.min(slot.getProgressTime(), slot.getMaxProgressTime());
+    }
+
+    public int getDisplayMaxProgressTime() {
+        RecipeSlot slot = getDisplaySlot();
+        return slot == null ? 0 : slot.getMaxProgressTime();
+    }
+
+    public double getDisplayProgressPercent() {
+        RecipeSlot slot = getDisplaySlot();
+        return slot == null ? 0.0 : Math.min(1.0, Math.max(0.0, slot.getProgressPercent()));
     }
 
     // ==================== Internal Helpers ====================

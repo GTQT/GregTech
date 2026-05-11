@@ -61,7 +61,6 @@ import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.Rotation;
-import lombok.Getter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
@@ -119,7 +118,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * @return boolean 返回是否应该延迟检查的标识， 当前实现固定返回false表示不延迟
      */
     boolean delayCheck = false;
-    @Getter
     private boolean structureFormed;
     private int delayStructureCheckStandby = 20;
     private int delayStructureCheckWork = 20;
@@ -136,6 +134,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public MultiblockControllerBase(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    @Override
+    public boolean isStructureFormed() {
+        return structureFormed;
     }
 
     public static TraceabilityPredicate tilePredicate(

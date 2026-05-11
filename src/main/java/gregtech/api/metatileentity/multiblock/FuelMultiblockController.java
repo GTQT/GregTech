@@ -31,7 +31,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -70,7 +69,6 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
         return gasType.NONE;
     }
 
-    @Getter
     public enum gasType {
         NONE(null),
         LOW(Materials.ExhaustGas),
@@ -81,6 +79,10 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
 
         gasType(Material exhaustGas) {
             this.exhaustGas = exhaustGas;
+        }
+
+        public Material getExhaustGas() {
+            return exhaustGas;
         }
     }
 

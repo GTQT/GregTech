@@ -303,6 +303,9 @@ public class GodforgeMath {
     }
 
     public static boolean allowModuleConnection(MTEBaseModule module, ForgeOfGodsData data) {
+        if (!data.isUpgradeActive(ForgeOfGodsUpgrade.START)) {
+            return false;
+        }
 
         if (module instanceof MTEMoltenModule && data.isUpgradeActive(ForgeOfGodsUpgrade.FDIM)) {
             return true;

@@ -6,29 +6,41 @@ import java.util.List;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextFormatting;
 
+import com.cleanroommc.modularui.api.drawable.IKey;
 import org.jetbrains.annotations.NotNull;
 
 import gregtech.api.GTValues;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IGodforgeModule;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.KeyUtil;
+import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
 
-public abstract class MTEBaseModule extends RecipeMapMultiblockController implements IGodforgeModule {
+public abstract class MTEBaseModule extends RecipeMapMultiblockController
+        implements IGodforgeModule, IMultiblockAbilityPart<IGodforgeModule> {
 
     protected boolean isConnected = false;
+    private MultiblockControllerBase attachedGodforge;
     protected int machineHeat = 0;
     protected int overclockHeat = 0;
     protected int calculatedMaxParallel = 0;
@@ -42,8 +54,8 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
     protected boolean isMagmatterCapable = false;
     protected boolean isVoltageConfigUnlocked = false;
     protected boolean isInversionUnlocked = false;
-    protected int powerPanelMaxParallel = 0;
-    protected boolean alwaysMaxParallel = false;
+    protected int powerPanelMaxParallel = 1;
+    protected boolean alwaysMaxParallel = true;
     protected BigInteger powerTally = BigInteger.ZERO;
     protected long recipeTally = 0;
     protected long currentRecipeHeat = 0;
@@ -60,6 +72,52 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
     @Override
     protected MultiblockUIFactory createUIFactory() {
         return new ModuleUIFactory(this, createModuleGui());
+    }
+
+    public void configureModuleDisplayText(MultiblockUIBuilder builder) {
+        builder.title(getMetaFullName())
+                .structureFormed(isStructureFormed());
+        configureDisplayText(builder);
+        builder.addCustom(this::addModuleDisplayText);
+    }
+
+    private void addModuleDisplayText(KeyManager keyManager, UISyncer syncer) {
+        if (!syncer.syncBoolean(this::isStructureFormed)) {
+            return;
+        }
+
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.heat",
+                KeyUtil.number(TextFormatting.AQUA, syncer.syncInt(this::getHeat))));
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.effectiveheat",
+                KeyUtil.number(TextFormatting.AQUA, syncer.syncInt(this::getHeatForOC))));
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.parallel",
+                KeyUtil.number(TextFormatting.AQUA, syncer.syncInt(this::getActualParallel))));
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.speedbonus",
+                formatDouble(syncer.syncDouble(this::getSpeedBonus))));
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.energydiscount",
+                formatDouble(syncer.syncDouble(this::getEnergyDiscount))));
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.ocdivisor",
+                formatDouble(syncer.syncDouble(this::getOverclockTimeFactor))));
+        keyManager.add(createStatLine(
+                "gt.blockmachines.multimachine.FOG.processingvoltage",
+                KeyUtil.number(TextFormatting.AQUA, syncer.syncLong(this::getProcessingVoltage), " EU/t")));
+    }
+
+    private static IKey createStatLine(String labelKey, IKey value) {
+        return IKey.comp(
+                IKey.lang(labelKey).style(TextFormatting.GRAY),
+                KeyUtil.string(TextFormatting.GRAY, ": "),
+                value);
+    }
+
+    private static IKey formatDouble(double value) {
+        return KeyUtil.string(TextFormatting.AQUA, TextFormattingUtil.formatNumbers(value));
     }
 
     // endregion
@@ -114,6 +172,39 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
     }
 
     @Override
+    public MultiblockAbility<IGodforgeModule> getAbility() {
+        return MultiblockAbility.GODFORGE_MODULE;
+    }
+
+    @Override
+    public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
+        abilityInstances.add(this);
+    }
+
+    @Override
+    public boolean isAttachedToMultiBlock() {
+        return attachedGodforge != null;
+    }
+
+    @Override
+    public void addToMultiBlock(MultiblockControllerBase controllerBase) {
+        attachedGodforge = controllerBase;
+    }
+
+    @Override
+    public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {
+        if (attachedGodforge == controllerBase) {
+            attachedGodforge = null;
+            disconnect();
+        }
+    }
+
+    @Override
+    public boolean canPartShare() {
+        return true;
+    }
+
+    @Override
     public void connect() {
         isConnected = true;
     }
@@ -154,6 +245,14 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
 
     public void setCalculatedMaxParallel(int parallel) {
         calculatedMaxParallel = parallel;
+    }
+
+    public int getActualParallel() {
+        int calculated = Math.max(1, getCalculatedMaxParallel());
+        if (alwaysMaxParallel || powerPanelMaxParallel <= 0) {
+            return calculated;
+        }
+        return Math.max(1, Math.min(calculated, powerPanelMaxParallel));
     }
 
     public double getSpeedBonus() {
@@ -369,8 +468,8 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController implem
         isMagmatterCapable = data.getBoolean("isMagmatterCapable");
         isVoltageConfigUnlocked = data.getBoolean("isVoltageConfigUnlocked");
         isInversionUnlocked = data.getBoolean("isInversionUnlocked");
-        powerPanelMaxParallel = data.getInteger("powerPanelMaxParallel");
-        alwaysMaxParallel = data.getBoolean("alwaysMaxParallel");
+        powerPanelMaxParallel = data.hasKey("powerPanelMaxParallel") ? data.getInteger("powerPanelMaxParallel") : 1;
+        alwaysMaxParallel = !data.hasKey("alwaysMaxParallel") || data.getBoolean("alwaysMaxParallel");
         String powerTallyStr = data.getString("powerTally");
         powerTally = powerTallyStr.isEmpty() ? BigInteger.ZERO : new BigInteger(powerTallyStr);
         recipeTally = data.getLong("recipeTally");
