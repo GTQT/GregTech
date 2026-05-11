@@ -305,6 +305,17 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
                     } else if (logic.getRecipeMap() != null) {
                         registerRecipeMapCatalyst(registry, logic.getRecipeMap(), metaTileEntity);
                     }
+                } else {
+                    // Fallback for machines where CAPABILITY_CONTROLLABLE returns the MTE itself
+                    // (e.g. MetaTileEntityBaseWithControl subclasses) instead of AbstractRecipeLogic.
+                    // Retrieve recipe maps directly from the MTE.
+                    if (metaTileEntity instanceof IMultipleRecipeMaps multiMapMetaTileEntity) {
+                        for (RecipeMap<?> recipeMap : multiMapMetaTileEntity.getAvailableRecipeMaps()) {
+                            registerRecipeMapCatalyst(registry, recipeMap, metaTileEntity);
+                        }
+                    } else if (metaTileEntity.getRecipeMap() != null) {
+                        registerRecipeMapCatalyst(registry, metaTileEntity.getRecipeMap(), metaTileEntity);
+                    }
                 }
             }
 

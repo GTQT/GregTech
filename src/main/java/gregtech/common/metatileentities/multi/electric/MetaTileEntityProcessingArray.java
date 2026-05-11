@@ -190,9 +190,15 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                     }
                 })
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
+                .addWorkingStatusLine();
+
+        // Cross-recipe parallel display
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            addCrossRecipeDisplay(builder, recipeMapWorkable);
+        } else {
+            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
+                    .addRecipeOutputLine(recipeMapWorkable);
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -436,8 +442,9 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         protected int getNumberOfOCs(long recipeEUt) {
             if (!isAllowOverclocking()) return 0;
 
-            int recipeTier = Math.max(0,
-                    GTUtility.getTierByVoltage(recipeEUt / Math.max(1, this.parallelRecipesPerformed)));
+            // recipeEUt is the single-recipe EUt (not multiplied by parallel).
+            // OC count is limited by the machine tier of the inserted single-block machines.
+            int recipeTier = Math.max(0, GTUtility.getTierByVoltage(recipeEUt));
             int maximumTier = Math.min(this.machineTier, GTUtility.getTierByVoltage(getMaxVoltage()));
 
             // The maximum number of overclocks is determined by the difference between the tier the recipe is running

@@ -328,21 +328,23 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         inputParallel = outputParallel;
 
-        // --- Step 2: Overclock + 1tOC (sub-tick parallel) ---
-        // Use the paralleled total EUt as the base for overclocking.
-        // The OC is applied per single recipe instance (baseEUt, baseDuration).
-        // subTickParallelOC handles: OC until 1 tick → remaining OCs become sub-tick parallel.
+        // --- Step 2: Overclock the whole paralleled batch ---
+        // GT5-style: overclock is applied to the total paralleled EUt (baseEUt × inputParallel).
+        // This ensures parallel consumes power budget first, and only leftover budget is used for OC.
+        // getNumberOfOCs uses single-recipe EUt to determine the tier-based OC count,
+        // while the actual OC algorithm runs on the total EUt and is bounded by slotMaxVoltage.
+        long totalBaseEUt = baseEUt * inputParallel;
         OCParams params = new OCParams();
         OCResult result = new OCResult();
-        params.initialize(baseEUt, baseDuration, getNumberOfOCs(baseEUt));
+        params.initialize(totalBaseEUt, baseDuration, getNumberOfOCs(baseEUt));
         modifyOverclockPre(params, trimmed.propertyStorage());
 
         if (params.ocAmount() <= 0) {
             result.init(params.eut(), params.duration());
         } else {
-            // This automatically handles: OC duration → when duration=1 → convert to sub-tick parallel
-            subTickParallelOC(params, result, slotMaxVoltage,
-                    getOverclockingDurationFactor(), getOverclockingVoltageFactor());
+            // OC the whole batch: EUt is the total paralleled EUt, maxVoltage is slotMaxVoltage.
+            // Delegates to runOverclockingLogic so subclasses (e.g. Godforge heat OC) can override.
+            runOverclockingLogic(params, result, trimmed.propertyStorage(), slotMaxVoltage);
         }
         modifyOverclockPost(result, trimmed.propertyStorage());
 
@@ -354,15 +356,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Total parallel = inputParallel (from MULTIPLY) × subTickParallel (from 1tOC)
         long totalParallel = (long) inputParallel * subTickParallel;
 
-        // Verify total EUt doesn't exceed slot budget
-        // Total EUt = overclockedEUt (per single recipe after OC) × inputParallel
-        // Note: subTickParallel is already accounted for in overclockedEUt via the OC algorithm
+        // Total EUt is the overclocked whole-batch EUt (already includes inputParallel).
+        // For sub-tick OC, parallelEUt is the actual total power draw.
         long totalSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
-        totalSlotEUt *= inputParallel;
 
         if (totalSlotEUt > slotMaxVoltage) {
-            // Reduce input parallel to fit within power budget
-            long perParallelEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
+            // Power budget exceeded after OC — should not normally happen since OC is bounded by
+            // slotMaxVoltage, but handle gracefully by reducing inputParallel.
+            long perParallelEUt = Math.max(1, totalSlotEUt / inputParallel);
             inputParallel = (int) (slotMaxVoltage / Math.max(1, perParallelEUt));
             if (inputParallel <= 0) return false;
             totalSlotEUt = perParallelEUt * inputParallel;
@@ -1051,6 +1052,32 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @NotNull
     public ParallelLogicType getParallelLogicType() {
         return ParallelLogicType.CROSS_RECIPE;
+    }
+
+    // ==================== Cross-Recipe Progress Display Overrides ====================
+
+    /**
+     * In cross-recipe mode, returns the display slot's progress time for external consumers
+     * (TOP, HWYLA, GUI progress bar, etc.) instead of the internal sentinel value (1).
+     */
+    @Override
+    public int getProgress() {
+        if (isCrossRecipeMode() && crossRecipeScheduler != null && crossRecipeScheduler.hasActiveSlots()) {
+            return crossRecipeScheduler.getDisplayProgressTime();
+        }
+        return super.getProgress();
+    }
+
+    /**
+     * In cross-recipe mode, returns the display slot's max progress time for external consumers
+     * instead of the internal sentinel value (Integer.MAX_VALUE).
+     */
+    @Override
+    public int getMaxProgress() {
+        if (isCrossRecipeMode() && crossRecipeScheduler != null && crossRecipeScheduler.hasActiveSlots()) {
+            return crossRecipeScheduler.getDisplayMaxProgressTime();
+        }
+        return super.getMaxProgress();
     }
 
     @Override

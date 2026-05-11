@@ -392,6 +392,18 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return String.format("%s.machine.%s", metaTileEntityId.getNamespace(), metaTileEntityId.getPath());
     }
 
+    /**
+     * Returns the translation key base for a specific ItemStack.
+     * Override this for MTE types that store variant information in ItemStack NBT
+     * (e.g. {@link ParametricMetaTileEntity}).
+     *
+     * @param stack the ItemStack to determine the name for
+     * @return the unlocalized name base (without ".name" suffix)
+     */
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getMetaName();
+    }
+
     public final String getMetaFullName() {
         return getMetaName() + ".name";
     }

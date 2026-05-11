@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.multi.electric.godforge.module;
 
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
@@ -19,7 +20,7 @@ import gregtech.common.mui.multiblock.godforge.MTESmeltingModuleGui;
 /**
  * Godforge Smelting Module.
  * Normal mode: runs Electric Blast Furnace recipes (temperature check applies).
- * Furnace mode: runs Arc Furnace recipes (no temperature requirement).
+ * Furnace mode: runs Furnace recipes (no temperature requirement).
  * The module's heat value is set by {@code GodforgeMath.calculateMaxHeatForModules()},
  * allowing access to recipes that require extreme temperatures unreachable by normal EBFs.
  */
@@ -27,7 +28,7 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
 
     private static final RecipeMap<?>[] AVAILABLE_MAPS = {
             RecipeMaps.BLAST_RECIPES,
-            RecipeMaps.ARC_FURNACE_RECIPES
+            RecipeMaps.FURNACE_RECIPES
     };
 
     private boolean furnaceMode;
@@ -56,7 +57,7 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
         if (furnaceMode) {
-            // Arc furnace recipes have no temperature requirement
+            // Furnace recipes have no temperature requirement
             return true;
         }
         // Check that module heat meets recipe temperature requirement
@@ -73,7 +74,7 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
 
     @Override
     public RecipeMap<?> getCurrentRecipeMap() {
-        return furnaceMode ? RecipeMaps.ARC_FURNACE_RECIPES : RecipeMaps.BLAST_RECIPES;
+        return furnaceMode ? RecipeMaps.FURNACE_RECIPES : RecipeMaps.BLAST_RECIPES;
     }
 
     @Override
@@ -94,5 +95,24 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
 
     public void setFurnaceMode(boolean furnaceMode) {
         this.furnaceMode = furnaceMode;
+        if (getWorld() != null && !getWorld().isRemote) {
+            this.recipeMapWorkable.forceRecipeRecheck();
+            markDirty();
+        }
+    }
+
+    // ==================== NBT Persistence ====================
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound data) {
+        super.writeToNBT(data);
+        data.setBoolean("furnaceMode", furnaceMode);
+        return data;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound data) {
+        super.readFromNBT(data);
+        furnaceMode = data.getBoolean("furnaceMode");
     }
 }

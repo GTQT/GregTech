@@ -42,8 +42,16 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
 
     // region Variant Access
 
+    /**
+     * Returns the current variant of this multiblock part instance.
+     * When rendering as an item (renderContextStack is set), reads variant from the ItemStack NBT
+     * to ensure each sub-item renders with its own appearance.
+     */
     @NotNull
     public V getVariant() {
+        if (getWorld() == null && renderContextStack != null) {
+            return getVariantFromStack(renderContextStack);
+        }
         return variant;
     }
 
@@ -171,7 +179,12 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
 
     @Override
     public String getMetaName() {
-        return getVariantTranslationPrefix() + "." + variant.name().toLowerCase();
+        return getVariantTranslationPrefix() + "." + getVariant().name().toLowerCase();
+    }
+
+    @Override
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getVariantTranslationPrefix() + "." + getVariantFromStack(stack).name().toLowerCase();
     }
 
     // endregion

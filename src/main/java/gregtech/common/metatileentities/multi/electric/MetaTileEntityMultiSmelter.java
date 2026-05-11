@@ -126,9 +126,15 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
                         richText.add(KeyUtil.setHover(bodyText, hoverText));
                     }
                 })
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
+                .addWorkingStatusLine();
+
+        // Cross-recipe parallel display
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            addCrossRecipeDisplay(builder, recipeMapWorkable);
+        } else {
+            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
+                    .addRecipeOutputLine(recipeMapWorkable);
+        }
     }
 
     @Override

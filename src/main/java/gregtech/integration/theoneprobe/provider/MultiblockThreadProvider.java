@@ -5,6 +5,8 @@ import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AdvanceRecipeMapMultiblockController;
+import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
+import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.util.TextFormattingUtil;
 
 import net.minecraft.block.state.IBlockState;
@@ -21,12 +23,17 @@ import mcjty.theoneprobe.api.NumberFormat;
 import mcjty.theoneprobe.api.ProbeMode;
 import mcjty.theoneprobe.api.TextStyleClass;
 
-public class MultiblockThreadProvider implements  IProbeInfoProvider {
+import java.util.List;
+
+public class MultiblockThreadProvider implements IProbeInfoProvider {
+
+    private static final int MAX_SLOT_DISPLAY = 2;
 
     @Override
     public String getID() {
         return GTValues.MODID + ":multiblock_thread_provider";
     }
+
     private static IProbeInfo newVertical(final IProbeInfo probeInfo) {
         return probeInfo.vertical(probeInfo.defaultLayoutStyle().spacing(0));
     }
@@ -34,9 +41,12 @@ public class MultiblockThreadProvider implements  IProbeInfoProvider {
     private static IProbeInfo newBox(final IProbeInfo info) {
         return info.horizontal(info.defaultLayoutStyle().borderColor(0x801E90FF));
     }
+
     @Override
-    public void addProbeInfo(ProbeMode probeMode, IProbeInfo iProbeInfo, EntityPlayer entityPlayer, World world, IBlockState iBlockState, IProbeHitData iProbeHitData) {
-        IProbeInfo horizontalPane = iProbeInfo.horizontal(iProbeInfo.defaultLayoutStyle().alignment(ElementAlignment.ALIGN_CENTER));
+    public void addProbeInfo(ProbeMode probeMode, IProbeInfo iProbeInfo, EntityPlayer entityPlayer, World world,
+                             IBlockState iBlockState, IProbeHitData iProbeHitData) {
+        IProbeInfo horizontalPane = iProbeInfo.horizontal(
+                iProbeInfo.defaultLayoutStyle().alignment(ElementAlignment.ALIGN_CENTER));
         if (iBlockState.getBlock().hasTileEntity(iBlockState)) {
             TileEntity te = world.getTileEntity(iProbeHitData.getPos());
             if (te instanceof IGregTechTileEntity igtte) {
@@ -44,17 +54,18 @@ public class MultiblockThreadProvider implements  IProbeInfoProvider {
 
                 if (mte instanceof AdvanceRecipeMapMultiblockController controller) {
 
-                    if(controller.getThread()==1)return;
+                    if (controller.getThread() == 1) return;
 
                     horizontalPane.text(TextStyleClass.INFO + "{*gregtech.top.tread*}");
-                    horizontalPane.text(TextStyleClass.INFO + " " +TextFormatting.RED+controller.getThread()+ " ");
+                    horizontalPane.text(
+                            TextStyleClass.INFO + " " + TextFormatting.RED + controller.getThread() + " ");
 
                     IProbeInfo box;
                     IProbeInfo leftInfo;
 
                     for (MultiblockRecipeLogic multiblockRecipeLogic : controller.getRecipeMapWorkableList()) {
 
-                        if(!multiblockRecipeLogic.isActive())continue;
+                        if (!multiblockRecipeLogic.isActive()) continue;
 
                         box = newBox(iProbeInfo);
                         leftInfo = newVertical(box);
@@ -80,11 +91,68 @@ public class MultiblockThreadProvider implements  IProbeInfoProvider {
                                     .borderColor(0xFF555555).numberFormat(NumberFormat.COMMAS));
                         }
 
-                        leftInfo.text("{*gregtech.top.parallel*}" + TextFormatting.DARK_PURPLE + multiblockRecipeLogic.getParallelLimit());
+                        leftInfo.text("{*gregtech.top.parallel*}" + TextFormatting.DARK_PURPLE +
+                                multiblockRecipeLogic.getParallelLimit());
 
+                        // Cross-recipe parallel: show active slot details
+                        if (multiblockRecipeLogic.isCrossRecipeMode() &&
+                                multiblockRecipeLogic.getCrossRecipeScheduler() != null) {
+                            addCrossRecipeSlotInfo(leftInfo,
+                                    multiblockRecipeLogic.getCrossRecipeScheduler());
+                        }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Appends cross-recipe parallel slot details to the TOP display.
+     * Shows up to {@link #MAX_SLOT_DISPLAY} active slots, with "..." if more exist.
+     */
+    private static void addCrossRecipeSlotInfo(IProbeInfo probeInfo, CrossRecipeParallelScheduler scheduler) {
+        List<RecipeSlot> slots = scheduler.getActiveSlots();
+        if (slots.isEmpty()) return;
+
+        int displayed = 0;
+        for (RecipeSlot slot : slots) {
+            if (!slot.isRunning()) continue;
+            if (displayed >= MAX_SLOT_DISPLAY) {
+                probeInfo.text(TextStyleClass.INFO + TextFormatting.GRAY.toString() + "...");
+                break;
+            }
+            probeInfo.text(TextStyleClass.INFO + formatSlotLine(slot));
+            displayed++;
+        }
+    }
+
+    private static String formatSlotLine(RecipeSlot slot) {
+        int progress = slot.getProgressTime();
+        int maxProgress = slot.getMaxProgressTime();
+        float percent = maxProgress > 0 ? (float) progress / maxProgress * 100f : 0f;
+
+        String name = slot.getRecipeDisplayName();
+        int parallel = slot.getParallelCount();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(TextFormatting.GRAY).append("  #").append(slot.getSlotIndex() + 1).append(": ");
+
+        if (!name.isEmpty()) {
+            sb.append(TextFormatting.YELLOW).append(name);
+            if (parallel > 1) {
+                sb.append(TextFormatting.AQUA).append(" x").append(parallel);
+            }
+            sb.append(TextFormatting.GRAY).append(" - ");
+        }
+
+        sb.append(TextFormatting.WHITE);
+        if (maxProgress < 20) {
+            sb.append(progress).append("/").append(maxProgress).append("t");
+        } else {
+            sb.append(String.format("%.1fs/%.1fs", progress / 20f, maxProgress / 20f));
+        }
+        sb.append(TextFormatting.GRAY).append(String.format(" (%.0f%%)", percent));
+
+        return sb.toString();
     }
 }

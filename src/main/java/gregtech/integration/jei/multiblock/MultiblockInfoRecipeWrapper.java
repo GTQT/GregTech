@@ -5,6 +5,7 @@ import gregtech.api.gui.GuiTextures;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -305,7 +306,20 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @Override
     public void getIngredients(IIngredients ingredients) {
         ingredients.setInputs(VanillaTypes.ITEM, allItemStackInputs);
-        ingredients.setOutput(VanillaTypes.ITEM, controller.getStackForm());
+        ingredients.setOutput(VanillaTypes.ITEM, getControllerStack());
+    }
+
+    /**
+     * Returns the correct ItemStack for this controller instance.
+     * For {@link ParametricMultiblockController}, includes variant NBT so JEI can
+     * distinguish between different variant recipes.
+     */
+    @NotNull
+    private ItemStack getControllerStack() {
+        if (controller instanceof ParametricMultiblockController<?> parametric) {
+            return parametric.getStackForm(parametric.getVariant());
+        }
+        return controller.getStackForm();
     }
 
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {

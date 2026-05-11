@@ -59,9 +59,14 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
 
     /**
      * Returns the current variant of this MTE instance.
+     * When rendering as an item (renderContextStack is set), reads variant from the ItemStack NBT
+     * to ensure each sub-item renders with its own appearance.
      */
     @NotNull
     public V getVariant() {
+        if (getWorld() == null && renderContextStack != null) {
+            return getVariantFromStack(renderContextStack);
+        }
         return variant;
     }
 
@@ -204,7 +209,12 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
 
     @Override
     public String getMetaName() {
-        return getVariantTranslationPrefix() + "." + variant.name().toLowerCase();
+        return getVariantTranslationPrefix() + "." + getVariant().name().toLowerCase();
+    }
+
+    @Override
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getVariantTranslationPrefix() + "." + getVariantFromStack(stack).name().toLowerCase();
     }
 
     // endregion

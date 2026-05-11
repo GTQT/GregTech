@@ -81,7 +81,7 @@ public class MachineItemBlock extends ItemBlock {
     @Override
     public String getTranslationKey(@NotNull ItemStack stack) {
         MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(stack);
-        return metaTileEntity == null ? "unnamed" : metaTileEntity.getMetaName();
+        return metaTileEntity == null ? "unnamed" : metaTileEntity.getMetaName(stack);
     }
 
     @Override
@@ -161,7 +161,7 @@ public class MachineItemBlock extends ItemBlock {
         MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(stack);
         if (metaTileEntity == null) return;
         // item specific tooltip like: gregtech.machine.lathe.lv.tooltip
-        String tooltipLocale = metaTileEntity.getMetaName() + ".tooltip";
+        String tooltipLocale = metaTileEntity.getMetaName(stack) + ".tooltip";
         if (I18n.hasKey(tooltipLocale)) {
             Collections.addAll(tooltip, LocalizationUtils.formatLines(tooltipLocale));
         }

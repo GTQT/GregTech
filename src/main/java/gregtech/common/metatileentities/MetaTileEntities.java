@@ -9,6 +9,7 @@ import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
@@ -1634,11 +1635,40 @@ public class MetaTileEntities {
 
         if (Mods.JustEnoughItems.isModLoaded() && mte instanceof MultiblockControllerBase controller &&
                 controller.shouldShowInJei()) {
-            MultiblockInfoCategory.registerMultiblock(controller);
+            registerMultiblockForJei(controller);
         }
 
         mte.getRegistry().register(id, mte.metaTileEntityId, mte);
         return mte;
+    }
+
+    /**
+     * Registers multiblock controller(s) to JEI.
+     * For {@link ParametricMultiblockController}, creates a variant copy for each enum value
+     * so that JEI shows all variants with correct names and structure patterns.
+     */
+    @SuppressWarnings("unchecked")
+    private static void registerMultiblockForJei(MultiblockControllerBase controller) {
+        if (controller instanceof ParametricMultiblockController<?> parametric) {
+            registerParametricMultiblockVariantsForJei(parametric);
+        } else {
+            MultiblockInfoCategory.registerMultiblock(controller);
+        }
+    }
+
+    /**
+     * Creates a variant copy of the parametric multiblock for each enum constant
+     * and registers each as a separate JEI recipe entry.
+     */
+    private static <V extends Enum<V>> void registerParametricMultiblockVariantsForJei(
+            ParametricMultiblockController<V> parametric) {
+        for (V variant : parametric.getVariantClass().getEnumConstants()) {
+            ParametricMultiblockController<V> copy =
+                    (ParametricMultiblockController<V>) parametric.createMetaTileEntity(null);
+            copy.setVariant(variant);
+            copy.reinitializeStructurePattern();
+            MultiblockInfoCategory.registerMultiblock(copy);
+        }
     }
 
     @SuppressWarnings("unused")

@@ -75,16 +75,22 @@ public abstract class ParametricMultiblockController<V extends Enum<V>>
 
     /**
      * Returns the current variant of this multiblock instance.
+     * When rendering as an item (renderContextStack is set), reads variant from the ItemStack NBT
+     * to ensure each sub-item renders with its own appearance.
      */
     @NotNull
     public V getVariant() {
+        if (getWorld() == null && renderContextStack != null) {
+            return getVariantFromStack(renderContextStack);
+        }
         return variant;
     }
 
     /**
-     * Sets the variant. Should only be called during initialization (NBT load, item placement).
+     * Sets the variant. Called during initialization (NBT load, item placement)
+     * or when creating variant copies for JEI integration.
      */
-    protected void setVariant(@NotNull V variant) {
+    public void setVariant(@NotNull V variant) {
         this.variant = variant;
     }
 
@@ -260,7 +266,12 @@ public abstract class ParametricMultiblockController<V extends Enum<V>>
 
     @Override
     public String getMetaName() {
-        return getVariantTranslationPrefix() + "." + variant.name().toLowerCase();
+        return getVariantTranslationPrefix() + "." + getVariant().name().toLowerCase();
+    }
+
+    @Override
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getVariantTranslationPrefix() + "." + getVariantFromStack(stack).name().toLowerCase();
     }
 
     // endregion

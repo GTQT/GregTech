@@ -123,9 +123,15 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
                     textList.add(KeyUtil.setHover(base, hover));
                 })
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
+                .addWorkingStatusLine();
+
+        // Cross-recipe parallel display
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            addCrossRecipeDisplay(builder, recipeMapWorkable);
+        } else {
+            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
+                    .addRecipeOutputLine(recipeMapWorkable);
+        }
     }
 
     @Override

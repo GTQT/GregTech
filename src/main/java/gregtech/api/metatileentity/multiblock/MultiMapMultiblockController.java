@@ -157,9 +157,15 @@ public abstract class MultiMapMultiblockController extends RecipeMapMultiblockCo
                 .addEnergyUsageLine(this.getEnergyContainer())
                 .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.getMaxVoltage()))
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
+                .addWorkingStatusLine();
+
+        // Cross-recipe parallel display
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            addCrossRecipeDisplay(builder, recipeMapWorkable);
+        } else {
+            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
+                    .addRecipeOutputLine(recipeMapWorkable);
+        }
     }
 
     @Override

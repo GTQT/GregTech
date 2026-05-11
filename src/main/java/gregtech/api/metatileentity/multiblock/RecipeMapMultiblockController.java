@@ -337,7 +337,11 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     @Override
     public List<ITextComponent> getDataInfo() {
         List<ITextComponent> list = new ArrayList<>();
-        if (recipeMapWorkable.getMaxProgress() > 0) {
+
+        // Cross-recipe parallel: show slot details instead of single progress
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            addCrossRecipeTricorderInfo(list, recipeMapWorkable.getCrossRecipeScheduler());
+        } else if (recipeMapWorkable.getMaxProgress() > 0) {
             list.add(new TextComponentTranslation("behavior.tricorder.workable_progress",
                     new TextComponentTranslation(TextFormattingUtil.formatNumbers(recipeMapWorkable.getProgress() / 20))
                             .setStyle(new Style().setColor(TextFormatting.GREEN)),
@@ -380,6 +384,47 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         }
 
         return list;
+    }
+
+    /**
+     * Appends cross-recipe parallel slot details to the Tricorder data info.
+     * Shows up to 2 active slots, with "..." if more exist.
+     */
+    protected static void addCrossRecipeTricorderInfo(@NotNull List<ITextComponent> list,
+                                                      @NotNull CrossRecipeParallelScheduler scheduler) {
+        List<RecipeSlot> slots = scheduler.getActiveSlots();
+        if (slots.isEmpty()) return;
+
+        int displayed = 0;
+        for (RecipeSlot slot : slots) {
+            if (!slot.isRunning()) continue;
+            if (displayed >= 2) {
+                list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.more")
+                        .setStyle(new Style().setColor(TextFormatting.GRAY)));
+                break;
+            }
+            int progress = slot.getProgressTime();
+            int maxProgress = slot.getMaxProgressTime();
+            String name = slot.getRecipeDisplayName();
+            int parallel = slot.getParallelCount();
+
+            String slotLabel = "#" + (slot.getSlotIndex() + 1);
+            if (!name.isEmpty()) {
+                slotLabel += " " + name;
+                if (parallel > 1) {
+                    slotLabel += " x" + parallel;
+                }
+            }
+
+            list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.slot",
+                    new TextComponentTranslation(slotLabel)
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW)),
+                    new TextComponentTranslation(TextFormattingUtil.formatNumbers(progress / 20))
+                            .setStyle(new Style().setColor(TextFormatting.GREEN)),
+                    new TextComponentTranslation(TextFormattingUtil.formatNumbers(maxProgress / 20))
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW))));
+            displayed++;
+        }
     }
 
     @Nullable

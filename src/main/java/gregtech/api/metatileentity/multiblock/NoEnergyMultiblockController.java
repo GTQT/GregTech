@@ -60,9 +60,15 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
                 .addEnergyTierLine(GTUtility.getTierByVoltage(recipeMapWorkable.getMaxVoltage()))
                 .addCustom(this::addCustomCapacity)
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
-                .addWorkingStatusLine()
-                .addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                .addRecipeOutputLine(recipeMapWorkable);
+                .addWorkingStatusLine();
+
+        // Cross-recipe parallel display
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            addCrossRecipeDisplay(builder, recipeMapWorkable);
+        } else {
+            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
+                    .addRecipeOutputLine(recipeMapWorkable);
+        }
     }
 
     public void addCustomCapacity(KeyManager keyManager, UISyncer syncer) {
@@ -72,7 +78,12 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
     @Override
     public List<ITextComponent> getDataInfo() {
         List<ITextComponent> list = new ArrayList<>();
-        if (recipeMapWorkable.getMaxProgress() > 0) {
+
+        // Cross-recipe parallel: show slot details instead of single progress
+        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+            RecipeMapMultiblockController.addCrossRecipeTricorderInfo(list,
+                    recipeMapWorkable.getCrossRecipeScheduler());
+        } else if (recipeMapWorkable.getMaxProgress() > 0) {
             list.add(new TextComponentTranslation("behavior.tricorder.workable_progress",
                     new TextComponentTranslation(
                             TextFormattingUtil.formatNumbers(recipeMapWorkable.getProgress() / 20)).setStyle(
