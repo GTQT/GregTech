@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -581,8 +582,7 @@ public class MultiblockUIBuilder {
 
         // Use merged display slots to combine fragmented slots with the same recipe and duration
         List<CrossRecipeParallelScheduler.MergedSlotDisplay> mergedSlots =
-                (scheduler != null) ? scheduler.getMergedDisplaySlots() : List.of();
-
+                (scheduler != null) ? scheduler.getMergedDisplaySlots() : Collections.emptyList();
         // Sync merged slot count to ensure both sides iterate the same number of times
         int slotCount = getSyncer().syncInt(
                 () -> Math.min(mergedSlots.size(), MAX_CROSS_RECIPE_DISPLAY_SLOTS));
