@@ -46,6 +46,26 @@ import java.util.List;
  * subclass. The owning RecipeLogic delegates its tick/search/output logic to this scheduler when
  * {@link gregtech.api.metatileentity.multiblock.ParallelLogicType#CROSS_RECIPE} is active.
  *
+ * <p><b>Known limitation — Slot Fragmentation (Temporal Drift):</b>
+ * <br>When the power budget cannot perfectly divide by a recipe's base EUt (i.e.,
+ * {@code maxVoltage / baseEUt < parallelLimit}), the first slot will take slightly fewer
+ * parallels than the full budget, leaving a small remainder. This remainder is filled by a
+ * secondary slot with very few parallels (often just 1). Because these two slots are created
+ * in the same or adjacent ticks but complete at slightly different times (1-tick offset), a
+ * cascading fragmentation effect occurs:
+ * <ol>
+ *   <li>The large slot completes first. {@code refillScheduler} is called, but the small slot
+ *       is still running, occupying a small portion of both the parallel budget and power budget.</li>
+ *   <li>The new large slot can only claim {@code parallelLimit - smallSlotParallel} parallels,
+ *       which is 1 fewer than the previous cycle.</li>
+ *   <li>This creates yet another small remainder slot, compounding the fragmentation.</li>
+ *   <li>Over many cycles, the primary slot's parallel count gradually decreases while the number
+ *       of trailing small slots increases.</li>
+ * </ol>
+ * This fragmentation has <b>negligible performance impact</b> — each slot's per-tick cost is just
+ * an integer increment and comparison. The total throughput remains correct; only the visual
+ * representation in the UI shows multiple slots instead of one unified slot.
+ *
  * @see RecipeSlot
  */
 public class CrossRecipeParallelScheduler {
@@ -297,6 +317,92 @@ public class CrossRecipeParallelScheduler {
     public double getDisplayProgressPercent() {
         RecipeSlot slot = getDisplaySlot();
         return slot == null ? 0.0 : Math.min(1.0, Math.max(0.0, slot.getProgressPercent()));
+    }
+
+    // ==================== Display Merging ====================
+
+    /**
+     * Immutable snapshot of merged slot data for display purposes.
+     * Slots running the same recipe (same {@code recipeDisplayName}) with the same
+     * {@code maxProgressTime} are merged into a single entry, with parallel counts summed
+     * and progress taken from the slot closest to completion.
+     *
+     * <p>This avoids the visual fragmentation caused by temporal drift
+     * (see class Javadoc "Slot Fragmentation" section).
+     */
+    public static class MergedSlotDisplay {
+
+        public final int slotIndex;
+        @NotNull
+        public final String recipeName;
+        public final int totalParallelCount;
+        public final int progress;
+        public final int maxProgress;
+        public final long totalEUt;
+
+        public MergedSlotDisplay(int slotIndex, @NotNull String recipeName, int totalParallelCount,
+                                 int progress, int maxProgress, long totalEUt) {
+            this.slotIndex = slotIndex;
+            this.recipeName = recipeName;
+            this.totalParallelCount = totalParallelCount;
+            this.progress = progress;
+            this.maxProgress = maxProgress;
+            this.totalEUt = totalEUt;
+        }
+    }
+
+    /**
+     * Returns a merged view of active slots for display purposes.
+     * Slots with the same {@code recipeDisplayName} and {@code maxProgressTime} are combined:
+     * <ul>
+     *   <li>Parallel counts are summed.</li>
+     *   <li>EUt values are summed.</li>
+     *   <li>Progress is taken from the slot closest to completion (highest progressTime).</li>
+     *   <li>Slot index is taken from the first slot in the group.</li>
+     * </ul>
+     *
+     * @return a list of merged display entries, one per unique (recipeName, maxProgressTime) pair
+     */
+    @NotNull
+    public List<MergedSlotDisplay> getMergedDisplaySlots() {
+        if (activeSlots.isEmpty()) return Collections.emptyList();
+
+        List<MergedSlotDisplay> result = new ArrayList<>();
+
+        for (RecipeSlot slot : activeSlots) {
+            if (!slot.isRunning()) continue;
+
+            String name = slot.getRecipeDisplayName();
+            int maxProg = slot.getMaxProgressTime();
+            boolean merged = false;
+
+            for (int i = 0; i < result.size(); i++) {
+                MergedSlotDisplay existing = result.get(i);
+                if (existing.recipeName.equals(name) && existing.maxProgress == maxProg) {
+                    result.set(i, new MergedSlotDisplay(
+                            existing.slotIndex,
+                            existing.recipeName,
+                            existing.totalParallelCount + slot.getParallelCount(),
+                            Math.max(existing.progress, slot.getProgressTime()),
+                            existing.maxProgress,
+                            existing.totalEUt + slot.getRecipeEUt()));
+                    merged = true;
+                    break;
+                }
+            }
+
+            if (!merged) {
+                result.add(new MergedSlotDisplay(
+                        slot.getSlotIndex(),
+                        name,
+                        slot.getParallelCount(),
+                        slot.getProgressTime(),
+                        maxProg,
+                        slot.getRecipeEUt()));
+            }
+        }
+
+        return result;
     }
 
     // ==================== Internal Helpers ====================

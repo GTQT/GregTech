@@ -592,7 +592,13 @@ public class MultiblockState {
                                 if (nonHatchInfos.isEmpty()) {
                                     // All candidates in infos are hatches. Search all predicates
                                     // (both common and limited) for a non-hatch casing candidate.
+                                    // Skip predicates that have already reached their maxGlobalCount
+                                    // to avoid placing excess blocks (e.g. a second coil when max=1).
                                     for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
+                                        if (sp.maxGlobalCount != -1 &&
+                                                cacheGlobal.getOrDefault(sp, 0) >= sp.maxGlobalCount) {
+                                            continue;
+                                        }
                                         if (!cacheInfos.containsKey(sp)) {
                                             cacheInfos.put(sp,
                                                     sp.candidates == null ? null : sp.candidates.get());

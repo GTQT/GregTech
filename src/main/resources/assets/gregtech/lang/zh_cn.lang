@@ -2870,6 +2870,7 @@ behavior.tricorder.debug_machine_invalid_null=无效！MetaTileEntity == null！
 behavior.tricorder.debug_cpu_load=%2$s刻内平均CPU负载约%1$sns，最差情况为%sns。
 behavior.tricorder.debug_cpu_load_seconds=负载秒数为%s秒。
 behavior.tricorder.debug_lag_count=已在服务器中造成%s次延迟尖峰警告（任何大于%sms的情况）。
+gregtech.machine.lag_broadcast=§c[延迟警告]§r 位于 [%s, %s, %s] 维度 %s 的机器 (%s) 在最近 %s 秒内造成了 %s 次延迟尖峰 (>100ms)。
 behavior.tricorder.mte_owner=所有者：%s
 behavior.tricorder.mte_owner_offline=所有者已离线或不在本维度！
 behavior.tricorder.mte_owner_null=这不是玩家放置的！

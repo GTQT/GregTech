@@ -718,19 +718,79 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         } else if (context == null && structureFormed) {
             invalidateStructure();
         } else if (context != null) {
-            // ensure flip is ok, possibly not necessary but good to check just in case
+            // Structure still valid but blocks may have changed (e.g. hatch swapped in).
+            // Perform a soft reassembly: re-collect parts/abilities without full invalidation
+            // to avoid interrupting running recipes.
+
+            // ensure flip is ok
             if (context.neededFlip() != isFlipped()) {
                 setFlipped(context.neededFlip());
             }
 
-            // Re-register if cache was refreshed (e.g. after facing change + clearCache)
+            // Re-collect parts and abilities from the new context
+            Set<IMultiblockPart> newPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
+            ArrayList<IMultiblockPart> newParts = new ArrayList<>(newPartsSet);
+            // Verify new parts can attach (respect part sharing rules)
+            for (IMultiblockPart part : newParts) {
+                if (part.isAttachedToMultiBlock() && !this.multiblockParts.contains(part)) {
+                    if (!part.canPartShare()) {
+                        return;
+                    }
+                }
+            }
+
+            // Diff: find removed and added parts
+            Set<IMultiblockPart> oldPartsSet = new HashSet<>(this.multiblockParts);
+            Set<IMultiblockPart> removedParts = new HashSet<>(oldPartsSet);
+            removedParts.removeAll(newPartsSet);
+            Set<IMultiblockPart> addedParts = new HashSet<>(newPartsSet);
+            addedParts.removeAll(oldPartsSet);
+
+            // Only reassemble if parts actually changed
+            if (!removedParts.isEmpty() || !addedParts.isEmpty()) {
+                // Remove old parts that are no longer in the structure
+                removedParts.forEach(part -> part.removeFromMultiBlock(this));
+
+                // Re-collect abilities from all new parts
+                newParts.sort(Comparator.comparing(
+                        it -> multiblockPartSorter().apply(((MetaTileEntity) it).getPos())));
+                Map<MultiblockAbility<Object>, AbilityInstances> newAbilities = new HashMap<>();
+                for (IMultiblockPart part : newParts) {
+                    if (part instanceof IMultiblockAbilityPart abilityPart) {
+                        List<MultiblockAbility> abilityList = abilityPart.getAbilities();
+                        for (MultiblockAbility ability : abilityList) {
+                            if (!checkAbilityPart(ability, ((MetaTileEntity) abilityPart).getPos()))
+                                continue;
+
+                            AbilityInstances instances = newAbilities.computeIfAbsent(ability,
+                                    AbilityInstances::new);
+                            abilityPart.registerAbilities(instances);
+                        }
+                    }
+                }
+
+                // Replace parts and abilities lists
+                this.multiblockParts.clear();
+                this.multiblockParts.addAll(newParts);
+                this.multiblockAbilities.clear();
+                this.multiblockAbilities.putAll(newAbilities);
+
+                // Attach newly added parts
+                addedParts.forEach(part -> part.addToMultiBlock(this));
+
+                // Update channel values and re-invoke subclass initialization
+                this.formedChannelValues = StructureChannelValues.fromContext(context);
+                formStructure(context);
+            }
+
+            // Re-register with event-driven system if cache was refreshed
             if (multiblockState != null && !multiblockState.cache.isEmpty()
                     && !(getWorld() instanceof DummyWorld)) {
                 MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
-                if (!worldData.isRegistered(this)) {
-                    LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
-                    worldData.registerMultiblock(this, positions);
-                }
+                // Always re-register to update positions (cache may have new block positions)
+                worldData.unregisterMultiblock(this);
+                LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
+                worldData.registerMultiblock(this, positions);
             }
         }
     }

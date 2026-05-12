@@ -366,23 +366,7 @@ public class MultiblockPreviewRenderer {
         if (world == null) return;
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
-        BlockPos controllerPos = BlockPos.ORIGIN;
-
-        // Find controller position in the shape
-        for (int x = 0; x < blocks.length; x++) {
-            BlockInfo[][] aisle = blocks[x];
-            for (int y = 0; y < aisle.length; y++) {
-                BlockInfo[] column = aisle[y];
-                for (int z = 0; z < column.length; z++) {
-                    MetaTileEntity metaTE = column[z].getTileEntity() instanceof IGregTechTileEntity ?
-                            ((IGregTechTileEntity) column[z].getTileEntity()).getMetaTileEntity() : null;
-                    if (metaTE instanceof MultiblockControllerBase &&
-                            metaTE.metaTileEntityId.equals(controller.metaTileEntityId)) {
-                        controllerPos = new BlockPos(x, y, z);
-                    }
-                }
-            }
-        }
+        BlockPos controllerPos = findControllerInPreview(blocks, controller);
 
         // Build expected blocks map in world coordinates
         Map<BlockPos, IBlockState> expectedBlocks = new HashMap<>();
@@ -521,8 +505,6 @@ public class MultiblockPreviewRenderer {
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                               int layer) {
         BlockPos mbpPos = controllerBase.getPos();
-        BlockPos controllerPos = BlockPos.ORIGIN;
-        MultiblockControllerBase mte = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
         int maxY = 0;
@@ -533,16 +515,10 @@ public class MultiblockPreviewRenderer {
                 BlockInfo[] column = aisle[y];
                 for (int z = 0; z < column.length; z++) {
                     blockMap.put(new BlockPos(x, y, z), column[z]);
-                    MetaTileEntity metaTE = column[z].getTileEntity() instanceof IGregTechTileEntity ?
-                            ((IGregTechTileEntity) column[z].getTileEntity()).getMetaTileEntity() : null;
-                    if (metaTE instanceof MultiblockControllerBase &&
-                            metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
-                        controllerPos = new BlockPos(x, y, z);
-                        mte = (MultiblockControllerBase) metaTE;
-                    }
                 }
             }
         }
+        BlockPos controllerPos = findControllerInPreview(blocks, controllerBase);
         TrackedDummyWorld world = new TrackedDummyWorld();
         world.addBlocks(blockMap);
         int finalMaxY = layer % (maxY + 1);
@@ -554,10 +530,6 @@ public class MultiblockPreviewRenderer {
         BufferBuilder buff = tes.getBuffer();
         GlStateManager.pushMatrix();
         GlStateManager.translate(mbpPos.getX(), mbpPos.getY(), mbpPos.getZ());
-
-        if (mte != null) {
-            // 不在渲染路径中做结构校验，避免大机器卡顿
-        }
 
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
 
@@ -593,8 +565,6 @@ public class MultiblockPreviewRenderer {
 
     public static void renderControllerInList(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                               int layer, BlockPos targetPos) {
-        BlockPos controllerPos = BlockPos.ORIGIN;
-        MultiblockControllerBase mte = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
         int maxY = 0;
@@ -605,17 +575,10 @@ public class MultiblockPreviewRenderer {
                 BlockInfo[] column = aisle[y];
                 for (int z = 0; z < column.length; z++) {
                     blockMap.put(new BlockPos(x, y, z), column[z]);
-                    MetaTileEntity metaTE = column[z].getTileEntity() instanceof IGregTechTileEntity ?
-                            ((IGregTechTileEntity) column[z].getTileEntity()).getMetaTileEntity() : null;
-                    if (metaTE instanceof MultiblockControllerBase &&
-                            metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
-                        controllerPos = new BlockPos(x, y, z);
-                        mte = (MultiblockControllerBase) metaTE;
-                        break;
-                    }
                 }
             }
         }
+        BlockPos controllerPos = findControllerInPreview(blocks, controllerBase);
         TrackedDummyWorld world = new TrackedDummyWorld();
         world.addBlocks(blockMap);
         int finalMaxY = layer % (maxY + 1);
@@ -627,10 +590,6 @@ public class MultiblockPreviewRenderer {
         BufferBuilder buff = tes.getBuffer();
         GlStateManager.pushMatrix();
         GlStateManager.translate(targetPos.getX(), targetPos.getY(), targetPos.getZ());
-
-        if (mte != null) {
-            // Do not perform structure validation in the render path to avoid lag
-        }
 
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
 
@@ -714,6 +673,42 @@ public class MultiblockPreviewRenderer {
 
         return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
                 getStructureFacing(controller), controller.getUpwardsFacing(), controller.isFlipped(), structureDir);
+    }
+
+    /**
+     * Find the controller position in a preview shape's block array.
+     * Uses a two-pass strategy for maximum compatibility:
+     * 1. First pass: exact metaTileEntityId match (precise, handles normal multiblocks)
+     * 2. Second pass (fallback): class-based match (handles selfPredicateByClass variants
+     *    where multiple IDs share the same class, e.g. FluidDrill, LargeMiner)
+     *
+     * @param blocks         the preview block array [x][y][z]
+     * @param controllerBase the actual controller in the world
+     * @return the controller's position in the array, or BlockPos.ORIGIN if not found
+     */
+    private static BlockPos findControllerInPreview(BlockInfo[][][] blocks,
+                                                     MultiblockControllerBase controllerBase) {
+        BlockPos classFallback = null;
+        for (int x = 0; x < blocks.length; x++) {
+            BlockInfo[][] aisle = blocks[x];
+            for (int y = 0; y < aisle.length; y++) {
+                BlockInfo[] column = aisle[y];
+                for (int z = 0; z < column.length; z++) {
+                    MetaTileEntity metaTE = column[z].getTileEntity() instanceof IGregTechTileEntity ?
+                            ((IGregTechTileEntity) column[z].getTileEntity()).getMetaTileEntity() : null;
+                    if (metaTE instanceof MultiblockControllerBase) {
+                        if (metaTE.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
+                            return new BlockPos(x, y, z);
+                        }
+                        if (classFallback == null &&
+                                controllerBase.getClass().isInstance(metaTE)) {
+                            classFallback = new BlockPos(x, y, z);
+                        }
+                    }
+                }
+            }
+        }
+        return classFallback != null ? classFallback : BlockPos.ORIGIN;
     }
 
     private static int getAxisComponent(BlockPos pos, EnumFacing axis) {

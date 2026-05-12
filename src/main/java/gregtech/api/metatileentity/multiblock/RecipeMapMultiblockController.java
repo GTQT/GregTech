@@ -389,40 +389,38 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     /**
      * Appends cross-recipe parallel slot details to the Tricorder data info.
-     * Shows up to 2 active slots, with "..." if more exist.
+     * Slots with the same recipe name and duration are merged into a single entry.
+     * Shows up to 2 merged entries, with "..." if more exist.
      */
     protected static void addCrossRecipeTricorderInfo(@NotNull List<ITextComponent> list,
                                                       @NotNull CrossRecipeParallelScheduler scheduler) {
-        List<RecipeSlot> slots = scheduler.getActiveSlots();
-        if (slots.isEmpty()) return;
+        List<CrossRecipeParallelScheduler.MergedSlotDisplay> mergedSlots = scheduler.getMergedDisplaySlots();
+        if (mergedSlots.isEmpty()) return;
 
         int displayed = 0;
-        for (RecipeSlot slot : slots) {
-            if (!slot.isRunning()) continue;
+        for (CrossRecipeParallelScheduler.MergedSlotDisplay merged : mergedSlots) {
             if (displayed >= 2) {
                 list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.more")
                         .setStyle(new Style().setColor(TextFormatting.GRAY)));
                 break;
             }
-            int progress = slot.getProgressTime();
-            int maxProgress = slot.getMaxProgressTime();
-            String name = slot.getRecipeDisplayName();
-            int parallel = slot.getParallelCount();
 
-            String slotLabel = "#" + (slot.getSlotIndex() + 1);
-            if (!name.isEmpty()) {
-                slotLabel += " " + name;
-                if (parallel > 1) {
-                    slotLabel += " x" + parallel;
+            String slotLabel = "#" + (merged.slotIndex + 1);
+            if (!merged.recipeName.isEmpty()) {
+                slotLabel += " " + merged.recipeName;
+                if (merged.totalParallelCount > 1) {
+                    slotLabel += " x" + merged.totalParallelCount;
                 }
             }
 
             list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.slot",
                     new TextComponentTranslation(slotLabel)
                             .setStyle(new Style().setColor(TextFormatting.YELLOW)),
-                    new TextComponentTranslation(TextFormattingUtil.formatNumbers(progress / 20))
+                    new TextComponentTranslation(
+                            TextFormattingUtil.formatNumbers(merged.progress / 20))
                             .setStyle(new Style().setColor(TextFormatting.GREEN)),
-                    new TextComponentTranslation(TextFormattingUtil.formatNumbers(maxProgress / 20))
+                    new TextComponentTranslation(
+                            TextFormattingUtil.formatNumbers(merged.maxProgress / 20))
                             .setStyle(new Style().setColor(TextFormatting.YELLOW))));
             displayed++;
         }

@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AdvanceRecipeMapMultiblockController;
 import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
-import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.util.TextFormattingUtil;
 
 import net.minecraft.block.state.IBlockState;
@@ -108,48 +107,48 @@ public class MultiblockThreadProvider implements IProbeInfoProvider {
 
     /**
      * Appends cross-recipe parallel slot details to the TOP display.
-     * Shows up to {@link #MAX_SLOT_DISPLAY} active slots, with "..." if more exist.
+     * Slots with the same recipe name and duration are merged into a single line.
+     * Shows up to {@link #MAX_SLOT_DISPLAY} merged entries, with "..." if more exist.
      */
     private static void addCrossRecipeSlotInfo(IProbeInfo probeInfo, CrossRecipeParallelScheduler scheduler) {
-        List<RecipeSlot> slots = scheduler.getActiveSlots();
-        if (slots.isEmpty()) return;
+        List<CrossRecipeParallelScheduler.MergedSlotDisplay> mergedSlots = scheduler.getMergedDisplaySlots();
+        if (mergedSlots.isEmpty()) return;
 
         int displayed = 0;
-        for (RecipeSlot slot : slots) {
-            if (!slot.isRunning()) continue;
+        for (CrossRecipeParallelScheduler.MergedSlotDisplay merged : mergedSlots) {
             if (displayed >= MAX_SLOT_DISPLAY) {
                 probeInfo.text(TextStyleClass.INFO + TextFormatting.GRAY.toString() + "...");
                 break;
             }
-            probeInfo.text(TextStyleClass.INFO + formatSlotLine(slot));
+            probeInfo.text(TextStyleClass.INFO + formatMergedSlotLine(merged));
             displayed++;
         }
     }
 
-    private static String formatSlotLine(RecipeSlot slot) {
-        int progress = slot.getProgressTime();
-        int maxProgress = slot.getMaxProgressTime();
-        float percent = maxProgress > 0 ? (float) progress / maxProgress * 100f : 0f;
-
-        String name = slot.getRecipeDisplayName();
-        int parallel = slot.getParallelCount();
+    /**
+     * Formats a merged slot display entry into a compact display line.
+     * Format: "  #1: RecipeName x64 - 3.5s/7.0s (50%)" or "  #1: 2.5s/8.0s (31%)"
+     */
+    private static String formatMergedSlotLine(CrossRecipeParallelScheduler.MergedSlotDisplay merged) {
+        float percent = merged.maxProgress > 0
+                ? (float) merged.progress / merged.maxProgress * 100f : 0f;
 
         StringBuilder sb = new StringBuilder();
-        sb.append(TextFormatting.GRAY).append("  #").append(slot.getSlotIndex() + 1).append(": ");
+        sb.append(TextFormatting.GRAY).append("  #").append(merged.slotIndex + 1).append(": ");
 
-        if (!name.isEmpty()) {
-            sb.append(TextFormatting.YELLOW).append(name);
-            if (parallel > 1) {
-                sb.append(TextFormatting.AQUA).append(" x").append(parallel);
+        if (!merged.recipeName.isEmpty()) {
+            sb.append(TextFormatting.YELLOW).append(merged.recipeName);
+            if (merged.totalParallelCount > 1) {
+                sb.append(TextFormatting.AQUA).append(" x").append(merged.totalParallelCount);
             }
             sb.append(TextFormatting.GRAY).append(" - ");
         }
 
         sb.append(TextFormatting.WHITE);
-        if (maxProgress < 20) {
-            sb.append(progress).append("/").append(maxProgress).append("t");
+        if (merged.maxProgress < 20) {
+            sb.append(merged.progress).append("/").append(merged.maxProgress).append("t");
         } else {
-            sb.append(String.format("%.1fs/%.1fs", progress / 20f, maxProgress / 20f));
+            sb.append(String.format("%.1fs/%.1fs", merged.progress / 20f, merged.maxProgress / 20f));
         }
         sb.append(TextFormatting.GRAY).append(String.format(" (%.0f%%)", percent));
 

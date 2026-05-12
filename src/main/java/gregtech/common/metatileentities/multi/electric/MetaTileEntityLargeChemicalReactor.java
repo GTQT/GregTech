@@ -52,7 +52,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                     .where('S', selfPredicate(GTUtility.gregtechId("large_chemical_reactor")))
                     .where('P', states(getPipeCasingState()))
                     .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
-                            .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1)
+                            .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(0)
                                     .setMaxGlobalLimited(2).setPreviewCount(1))
                             .or(abilities(MultiblockAbility.MAINTENANCE_HATCH).setMinGlobalLimited(0)
                                     .setMaxGlobalLimited(1).setPreviewCount(0))
@@ -65,7 +65,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                             .or(states(getCasingState())))
                     .casing('X', CasingDefinition.simple(getCasingState(),
                             "gregtech.machine.casing.ptfe_inert"))
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                        .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 2)
                         .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
                         .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
                         .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)

@@ -18,6 +18,7 @@ import gregtech.core.network.packets.PacketRecoverMTE;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
@@ -33,6 +34,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IWorldNameable;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants.NBT;
 import net.minecraftforge.fml.common.Optional.Interface;
@@ -78,6 +80,10 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
     private GTNameTagParticle nameTagParticle;
     private int timeStatisticsIndex = 0;
     private int lagWarningCount = 0;
+
+    // --- Windowed lag broadcast state ---
+    private long windowStartTick = -1;
+    private int windowLagCount = 0;
 
     public MetaTileEntity getMetaTileEntity() {
         return metaTileEntity;
@@ -221,10 +227,15 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
                 timeStatistics[timeStatisticsIndex] = (int) tickTime;
                 timeStatisticsIndex = (timeStatisticsIndex + 1) % timeStatistics.length;
             }
-            if (tickTime > 100_000_000L && getMetaTileEntity().doTickProfileMessage() && lagWarningCount++ < 10)
-                GTLog.logger.warn("WARNING: Possible Lag Source at [" + getPos().getX() + ", " + getPos().getY() +
-                        ", " + getPos().getZ() + "] in Dimension " + world.provider.getDimension() + " with " +
-                        tickTime + "ns caused by an instance of " + getMetaTileEntity().getClass());
+            if (tickTime > 100_000_000L && getMetaTileEntity().doTickProfileMessage()) {
+                if (lagWarningCount++ < 10) {
+                    GTLog.logger.warn("WARNING: Possible Lag Source at [" + getPos().getX() + ", " + getPos().getY() +
+                            ", " + getPos().getZ() + "] in Dimension " + world.provider.getDimension() + " with " +
+                            tickTime + "ns caused by an instance of " + getMetaTileEntity().getClass());
+                }
+                // Windowed lag broadcast to all online players
+                handleLagBroadcast(tickTime);
+            }
         }
 
         // increment only after current tick, so meta tile entities will get first tick as timer == 0
@@ -301,6 +312,59 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
             return new double[] { averageTickTime, worstTickTime };
         }
         return null;
+    }
+
+    /**
+     * Handles the windowed lag broadcast logic.
+     * Accumulates lag events within a configurable time window, and when the threshold
+     * is reached, broadcasts a warning to all online players and resets the window.
+     *
+     * @param tickTimeNs the tick time in nanoseconds that triggered this call
+     */
+    private void handleLagBroadcast(long tickTimeNs) {
+        if (!ConfigHolder.misc.lagBroadcastEnabled) return;
+
+        long currentWorldTick = world.getTotalWorldTime();
+        int windowSize = ConfigHolder.misc.lagBroadcastWindowTicks;
+        int threshold = ConfigHolder.misc.lagBroadcastThreshold;
+
+        // Reset window if expired
+        if (windowStartTick < 0 || (currentWorldTick - windowStartTick) > windowSize) {
+            windowStartTick = currentWorldTick;
+            windowLagCount = 0;
+        }
+
+        windowLagCount++;
+
+        if (windowLagCount >= threshold) {
+            // Broadcast to all online players
+            ITextComponent message = new TextComponentTranslation(
+                    "gregtech.machine.lag_broadcast",
+                    new TextComponentString(String.valueOf(getPos().getX()))
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW)),
+                    new TextComponentString(String.valueOf(getPos().getY()))
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW)),
+                    new TextComponentString(String.valueOf(getPos().getZ()))
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW)),
+                    new TextComponentString(String.valueOf(world.provider.getDimension()))
+                            .setStyle(new Style().setColor(TextFormatting.AQUA)),
+                    new TextComponentString(getMetaTileEntity().getClass().getSimpleName())
+                            .setStyle(new Style().setColor(TextFormatting.RED)),
+                    new TextComponentString(String.valueOf(windowLagCount))
+                            .setStyle(new Style().setColor(TextFormatting.RED)),
+                    new TextComponentString(String.format("%.0f", windowSize / 20.0))
+                            .setStyle(new Style().setColor(TextFormatting.GOLD)));
+
+            if (world instanceof WorldServer worldServer) {
+                for (EntityPlayerMP player : worldServer.getMinecraftServer().getPlayerList().getPlayers()) {
+                    player.sendMessage(message);
+                }
+            }
+
+            // Reset window after broadcast
+            windowStartTick = currentWorldTick;
+            windowLagCount = 0;
+        }
     }
 
     @Override

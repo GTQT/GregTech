@@ -150,6 +150,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     /**
      * Dispatches scheduler slot filling to the appropriate method based on whether Distinct mode is active.
+     *
+     * <p><b>Note:</b> This method is called every tick when slots have remaining budget, including
+     * immediately after a slot completes. If slots were created with a 1-tick offset (e.g., the primary
+     * slot in Phase 1 and a remainder slot in Phase 2 or a subsequent refill), they will complete on
+     * different ticks. When the larger slot completes first, the still-running smaller slot(s) consume
+     * part of the parallel and power budgets, causing the newly created slot to receive fewer parallels.
+     * This leads to gradual slot fragmentation over time. See {@link CrossRecipeParallelScheduler} class
+     * Javadoc for full details on this known limitation.
      */
     protected void refillScheduler(@NotNull CrossRecipeParallelScheduler scheduler) {
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;

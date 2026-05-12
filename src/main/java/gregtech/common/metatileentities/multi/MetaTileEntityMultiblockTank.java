@@ -222,7 +222,7 @@ public class MetaTileEntityMultiblockTank extends ParametricMultiblockController
     public enum TankMaterial {
 
         // Sorted by tech level (ascending): Primitive -> LV -> MV -> HV -> EV -> IV -> LuV -> UV -> UHV -> MAX
-        // Designed with Aluminium (HV) = 10M as anchor. Each tier roughly doubles.
+        // Designed with Aluminium (MV) = 10M as anchor. Each tier roughly doubles.
         // Multiblock tanks should have more capacity than same-tier Super Tanks (single block).
         WOOD(250_000, null, null),
         COPPER(500_000, Materials.Copper, BlockTankCasing.TankCasingType.COPPER),

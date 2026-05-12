@@ -431,6 +431,28 @@ public class ConfigHolder {
         @Config.RequiresMcRestart
         public boolean showFluidsForAutoFillingMultiblocks = true;
 
+        @Config.Comment({
+                "Whether to broadcast lag warnings to all online players in chat.",
+                "When a machine exceeds 100ms per tick multiple times within a time window,",
+                "a warning message is sent to all players.", "Default: true"
+        })
+        public boolean lagBroadcastEnabled = true;
+
+        @Config.Comment({
+                "Time window size (in ticks) for lag broadcast accumulation.",
+                "If a machine triggers lag warnings more than 'lagBroadcastThreshold' times",
+                "within this window, a chat broadcast is sent.", "Default: 6000 (5 minutes)"
+        })
+        @Config.RangeInt(min = 200, max = 72000)
+        public int lagBroadcastWindowTicks = 6000;
+
+        @Config.Comment({
+                "Number of lag warnings within the time window required to trigger a chat broadcast.",
+                "Default: 5"
+        })
+        @Config.RangeInt(min = 1, max = 100)
+        public int lagBroadcastThreshold = 5;
+
     }
 
     public static class ClientOptions {

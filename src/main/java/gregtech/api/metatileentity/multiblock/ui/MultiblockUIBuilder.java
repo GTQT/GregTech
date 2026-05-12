@@ -562,6 +562,10 @@ public class MultiblockUIBuilder {
     /**
      * Internal helper that renders all cross-recipe parallel scheduler data with proper syncer
      * calls for each dynamic field, ensuring server/client buffer alignment.
+     *
+     * <p>Slots with the same recipe name and duration are merged into a single display line
+     * to avoid visual fragmentation from temporal drift (see {@link CrossRecipeParallelScheduler}
+     * class Javadoc).
      */
     private void addSyncedCrossRecipeDisplay(@NotNull MultiblockRecipeLogic logic) {
         CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
@@ -575,29 +579,28 @@ public class MultiblockUIBuilder {
                 totalParallel, parallelLimit,
                 KeyUtil.number(TextFormatting.RED, totalEUt)));
 
-        // Sync slot count to ensure both sides iterate the same number of times
-        int slotCount = getSyncer().syncInt(() -> {
-            if (scheduler == null) return 0;
-            return Math.min(scheduler.getActiveSlots().size(), MAX_CROSS_RECIPE_DISPLAY_SLOTS);
-        });
+        // Use merged display slots to combine fragmented slots with the same recipe and duration
+        List<CrossRecipeParallelScheduler.MergedSlotDisplay> mergedSlots =
+                (scheduler != null) ? scheduler.getMergedDisplaySlots() : List.of();
 
-        List<RecipeSlot> slots = (scheduler != null) ? scheduler.getActiveSlots() : List.of();
+        // Sync merged slot count to ensure both sides iterate the same number of times
+        int slotCount = getSyncer().syncInt(
+                () -> Math.min(mergedSlots.size(), MAX_CROSS_RECIPE_DISPLAY_SLOTS));
 
         for (int i = 0; i < slotCount; i++) {
-            RecipeSlot slot = (i < slots.size()) ? slots.get(i) : null;
+            CrossRecipeParallelScheduler.MergedSlotDisplay merged =
+                    (i < mergedSlots.size()) ? mergedSlots.get(i) : null;
 
-            // Sync whether this slot is running (branch condition for display)
-            boolean running = getSyncer().syncBoolean(slot != null && slot.isRunning());
+            // Always sync slot data to keep buffer alignment
+            int slotIndex = getSyncer().syncInt(merged != null ? merged.slotIndex : 0);
+            String recipeName = getSyncer().syncString(merged != null ? merged.recipeName : "");
+            int parallelCount = Math.max(1, getSyncer().syncInt(
+                    merged != null ? merged.totalParallelCount : 1));
+            int progress = getSyncer().syncInt(merged != null ? merged.progress : 0);
+            int maxProgress = getSyncer().syncInt(merged != null ? merged.maxProgress : 0);
+            long eut = getSyncer().syncLong(merged != null ? merged.totalEUt : 0);
 
-            // Always sync slot data to keep buffer alignment, regardless of running state
-            int slotIndex = getSyncer().syncInt(slot != null ? slot.getSlotIndex() : 0);
-            String recipeName = getSyncer().syncString(slot != null ? slot.getRecipeDisplayName() : "");
-            int parallelCount = Math.max(1, getSyncer().syncInt(slot != null ? slot.getParallelCount() : 1));
-            int progress = getSyncer().syncInt(slot != null ? slot.getProgressTime() : 0);
-            int maxProgress = getSyncer().syncInt(slot != null ? slot.getMaxProgressTime() : 0);
-            long eut = getSyncer().syncLong(slot != null ? slot.getRecipeEUt() : 0);
-
-            if (running && maxProgress > 0) {
+            if (maxProgress > 0) {
                 float percent = Math.min(100f, Math.max(0f, (float) progress / maxProgress * 100f));
                 if (recipeName.isEmpty()) {
                     addKey(KeyUtil.lang(TextFormatting.GRAY,
