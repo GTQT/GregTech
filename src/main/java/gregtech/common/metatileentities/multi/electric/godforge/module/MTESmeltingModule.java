@@ -96,7 +96,9 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
     public void setFurnaceMode(boolean furnaceMode) {
         this.furnaceMode = furnaceMode;
         if (getWorld() != null && !getWorld().isRemote) {
-            this.recipeMapWorkable.forceRecipeRecheck();
+            // Use lazy invalidation instead of synchronous forceRecipeRecheck() to avoid
+            // lag spikes. The next updateWorkable() tick will search from the new RecipeMap.
+            ((GodforgeModuleRecipeLogic) this.recipeMapWorkable).invalidateForRecipeMapChange();
             markDirty();
         }
     }

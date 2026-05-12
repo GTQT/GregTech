@@ -28,7 +28,7 @@ public class BlockTankCasing extends VariantBlock<BlockTankCasing.TankCasingType
         setHardness(4.0f);
         setResistance(8.0f);
         setSoundType(SoundType.METAL);
-        setDefaultState(getState(TankCasingType.BRONZE));
+        setDefaultState(getState(TankCasingType.COPPER));
     }
 
     @Override
@@ -39,13 +39,15 @@ public class BlockTankCasing extends VariantBlock<BlockTankCasing.TankCasingType
 
     public enum TankCasingType implements IStringSerializable, IStateHarvestLevel, IStateSoundType {
 
+        // Sorted by tech level (ascending), matching TankMaterial order.
+        // Wood and Steel are excluded as they use existing casing blocks.
+        COPPER("copper", 1),
+        LEAD("lead", 1),
+        IRON("iron", 1),
         BRONZE("bronze", 1),
         GOLD("gold", 1),
-        COPPER("copper", 1),
-        IRON("iron", 1),
-        LEAD("lead", 1),
-        CHROME("chrome", 2),
         ALUMINIUM("aluminium", 1),
+        CHROME("chrome", 2),
         STAINLESS_STEEL("stainless_steel", 2),
         TITANIUM("titanium", 2),
         TUNGSTEN("tungsten", 3),

@@ -192,13 +192,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
                 .addWorkingStatusLine();
 
-        // Cross-recipe parallel display
-        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
-            addCrossRecipeDisplay(builder, recipeMapWorkable);
-        } else {
-            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                    .addRecipeOutputLine(recipeMapWorkable);
-        }
+        // Cross-recipe parallel display (synced via builder to prevent client/server buffer desync)
+        builder.addCrossRecipeOrProgressDisplay(recipeMapWorkable);
     }
 
     @SideOnly(Side.CLIENT)

@@ -218,28 +218,30 @@ public class MetaTileEntityMultiblockTank extends ParametricMultiblockController
 
     /**
      * Defines all available tank materials with their properties.
-     * Capacities are scaled from Drum capacities by a factor of 15.625 (250000/16000).
      */
     public enum TankMaterial {
 
+        // Sorted by tech level (ascending): Primitive -> LV -> MV -> HV -> EV -> IV -> LuV -> UV -> UHV -> MAX
+        // Designed with Aluminium (HV) = 10M as anchor. Each tier roughly doubles.
+        // Multiblock tanks should have more capacity than same-tier Super Tanks (single block).
         WOOD(250_000, null, null),
-        BRONZE(375_000, Materials.Bronze, BlockTankCasing.TankCasingType.BRONZE),
-        GOLD(500_000, Materials.Gold, BlockTankCasing.TankCasingType.GOLD),
-        COPPER(625_000, Materials.Copper, BlockTankCasing.TankCasingType.COPPER),
-        IRON(750_000, Materials.Iron, BlockTankCasing.TankCasingType.IRON),
-        LEAD(875_000, Materials.Lead, BlockTankCasing.TankCasingType.LEAD),
-        STEEL(1_000_000, Materials.Steel, null),
-        CHROME(1_500_000, Materials.Chrome, BlockTankCasing.TankCasingType.CHROME),
-        ALUMINIUM(2_000_000, Materials.Aluminium, BlockTankCasing.TankCasingType.ALUMINIUM),
-        STAINLESS_STEEL(4_000_000, Materials.StainlessSteel, BlockTankCasing.TankCasingType.STAINLESS_STEEL),
-        TITANIUM(8_000_000, Materials.Titanium, BlockTankCasing.TankCasingType.TITANIUM),
-        TUNGSTEN(12_000_000, Materials.Tungsten, BlockTankCasing.TankCasingType.TUNGSTEN),
-        TUNGSTENSTEEL(16_000_000, Materials.TungstenSteel, BlockTankCasing.TankCasingType.TUNGSTENSTEEL),
-        IRIDIUM(24_000_000, Materials.Iridium, BlockTankCasing.TankCasingType.IRIDIUM),
-        RHODIUM_PLATED_PALLADIUM(32_000_000, Materials.RhodiumPlatedPalladium, BlockTankCasing.TankCasingType.RHODIUM_PLATED_PALLADIUM),
-        NAQUADAH_ALLOY(64_000_000, Materials.NaquadahAlloy, BlockTankCasing.TankCasingType.NAQUADAH_ALLOY),
-        DARMSTADTIUM(128_000_000, Materials.Darmstadtium, BlockTankCasing.TankCasingType.DARMSTADTIUM),
-        NEUTRONIUM(256_000_000, Materials.Neutronium, BlockTankCasing.TankCasingType.NEUTRONIUM);
+        COPPER(500_000, Materials.Copper, BlockTankCasing.TankCasingType.COPPER),
+        LEAD(750_000, Materials.Lead, BlockTankCasing.TankCasingType.LEAD),
+        IRON(1_000_000, Materials.Iron, BlockTankCasing.TankCasingType.IRON),
+        BRONZE(1_500_000, Materials.Bronze, BlockTankCasing.TankCasingType.BRONZE),
+        GOLD(2_500_000, Materials.Gold, BlockTankCasing.TankCasingType.GOLD),
+        STEEL(5_000_000, Materials.Steel, null),
+        ALUMINIUM(10_000_000, Materials.Aluminium, BlockTankCasing.TankCasingType.ALUMINIUM),
+        CHROME(10_000_000, Materials.Chrome, BlockTankCasing.TankCasingType.CHROME),
+        STAINLESS_STEEL(20_000_000, Materials.StainlessSteel, BlockTankCasing.TankCasingType.STAINLESS_STEEL),
+        TITANIUM(40_000_000, Materials.Titanium, BlockTankCasing.TankCasingType.TITANIUM),
+        TUNGSTEN(80_000_000, Materials.Tungsten, BlockTankCasing.TankCasingType.TUNGSTEN),
+        TUNGSTENSTEEL(160_000_000, Materials.TungstenSteel, BlockTankCasing.TankCasingType.TUNGSTENSTEEL),
+        IRIDIUM(320_000_000, Materials.Iridium, BlockTankCasing.TankCasingType.IRIDIUM),
+        RHODIUM_PLATED_PALLADIUM(640_000_000, Materials.RhodiumPlatedPalladium, BlockTankCasing.TankCasingType.RHODIUM_PLATED_PALLADIUM),
+        NAQUADAH_ALLOY(1_000_000_000, Materials.NaquadahAlloy, BlockTankCasing.TankCasingType.NAQUADAH_ALLOY),
+        DARMSTADTIUM(1_500_000_000, Materials.Darmstadtium, BlockTankCasing.TankCasingType.DARMSTADTIUM),
+        NEUTRONIUM(2_000_000_000, Materials.Neutronium, BlockTankCasing.TankCasingType.NEUTRONIUM);
 
         private final int capacity;
         @Nullable

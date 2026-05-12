@@ -337,15 +337,16 @@ public class MetaTileEntityCrate extends ParametricMetaTileEntity<MetaTileEntity
      */
     public enum CrateMaterial {
 
+        // Sorted by tech level (ascending): Primitive -> LV -> MV -> HV -> EV -> IV -> LuV -> UV -> UHV -> MAX
         WOOD(Materials.Wood, 27, 9),
         COPPER(Materials.Copper, 36, 9),
-        IRON(Materials.Iron, 45, 9),
-        BRONZE(Materials.Bronze, 54, 9),
-        SILVER(Materials.Silver, 63, 9),
+        IRON(Materials.Iron, 36, 9),
+        BRONZE(Materials.Bronze, 45, 9),
+        SILVER(Materials.Silver, 45, 9),
+        GOLD(Materials.Gold, 54, 9),
         STEEL(Materials.Steel, 72, 9),
-        GOLD(Materials.Gold, 81, 9),
+        DIAMOND(Materials.Diamond, 81, 9),
         ALUMINIUM(Materials.Aluminium, 90, 10),
-        DIAMOND(Materials.Diamond, 100, 10),
         STAINLESS_STEEL(Materials.StainlessSteel, 108, 12),
         TITANIUM(Materials.Titanium, 126, 14),
         TUNGSTENSTEEL(Materials.TungstenSteel, 144, 16),

@@ -3,6 +3,7 @@ package gregtech.integration.jei.multiblock;
 import gregtech.api.GregTechAPI;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
@@ -330,6 +331,30 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static <V extends Enum<V>> ItemStack getParametricStackForm(
             @NotNull ParametricMultiblockController<V> parametric) {
         return parametric.getStackForm(parametric.getVariant());
+    }
+
+    /**
+     * Replaces the controller MTE in the preview block map with a copy that carries
+     * the correct variant from {@link #controller}. This ensures the JEI 3D preview
+     * renders the variant-specific controller model/texture instead of the default one.
+     */
+    @SuppressWarnings("unchecked")
+    private <V extends Enum<V>> void replaceControllerVariantInPreview(
+            @NotNull Map<BlockPos, BlockInfo> blockMap,
+            @NotNull BlockPos controllerPos,
+            @NotNull MultiblockControllerBase previewController) {
+        ParametricMultiblockController<V> source = (ParametricMultiblockController<V>) controller;
+        ParametricMultiblockController<V> target = (ParametricMultiblockController<V>) previewController;
+        V desiredVariant = source.getVariant();
+        if (desiredVariant == target.getVariant()) return;
+
+        target.setVariant(desiredVariant);
+        MetaTileEntityHolder holder = new MetaTileEntityHolder();
+        holder.setMetaTileEntity(target);
+        holder.getMetaTileEntity().onPlacement();
+        holder.getMetaTileEntity().setFrontFacing(target.getFrontFacing());
+        blockMap.put(controllerPos, new BlockInfo(
+                target.getBlock().getDefaultState(), holder));
     }
 
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
@@ -902,6 +927,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private MBPattern initializePattern(@NotNull MultiblockShapeInfo shapeInfo, @NotNull Set<ItemStack> parts) {
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
         MultiblockControllerBase controllerBase = null;
+        BlockPos controllerBlockPos = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         for (int x = 0; x < blocks.length; x++) {
             BlockInfo[][] aisle = blocks[x];
@@ -913,10 +939,21 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                                     .getMetaTileEntity() instanceof MultiblockControllerBase) {
                         controllerBase = (MultiblockControllerBase) ((IGregTechTileEntity) column[z].getTileEntity())
                                 .getMetaTileEntity();
+                        controllerBlockPos = new BlockPos(x, y, z);
                     }
                     blockMap.put(new BlockPos(x, y, z), column[z]);
                 }
             }
+        }
+
+        // For parametric multiblocks, replace the controller block in the preview
+        // with a copy that has the correct variant set. The preview's controller
+        // comes from selfPredicateByClass candidates (registry instance with default
+        // variant), so we need to patch it to match the JEI variant copy.
+        if (controllerBlockPos != null
+                && controller instanceof ParametricMultiblockController<?>
+                && controllerBase instanceof ParametricMultiblockController<?>) {
+            replaceControllerVariantInPreview(blockMap, controllerBlockPos, controllerBase);
         }
 
         TrackedDummyWorld world = new TrackedDummyWorld();

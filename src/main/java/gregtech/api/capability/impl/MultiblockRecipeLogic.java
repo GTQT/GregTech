@@ -50,12 +50,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     // Cross-recipe parallel scheduler (lazy initialized when ParallelLogicType.CROSS_RECIPE is active)
     @Nullable
-    private CrossRecipeParallelScheduler crossRecipeScheduler;
-    private boolean crossRecipeSchedulerActive = false;
+    protected CrossRecipeParallelScheduler crossRecipeScheduler;
+    protected boolean crossRecipeSchedulerActive = false;
 
     // Cached last successful recipe for "same recipe first" strategy
     @Nullable
-    private Recipe lastCrossRecipe;
+    protected Recipe lastCrossRecipe;
 
     public MultiblockRecipeLogic(RecipeMapMultiblockController tileEntity) {
         super(tileEntity, tileEntity.recipeMap);

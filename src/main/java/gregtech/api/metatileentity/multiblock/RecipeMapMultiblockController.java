@@ -188,15 +188,16 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                 .addParallelsLine(recipeMapWorkable.getParallelLimit())
                 .addWorkingStatusLine();
 
-        // Cross-recipe parallel display
-        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
-            addCrossRecipeDisplay(builder, recipeMapWorkable);
-        } else {
-            builder.addProgressLine(recipeMapWorkable.getProgress(), recipeMapWorkable.getMaxProgress())
-                    .addRecipeOutputLine(recipeMapWorkable);
-        }
+        // Cross-recipe parallel display (synced via builder to prevent client/server buffer desync)
+        builder.addCrossRecipeOrProgressDisplay(recipeMapWorkable);
     }
 
+    /**
+     * @deprecated Use {@link MultiblockUIBuilder#addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead.
+     *             This method does not sync branch conditions via the builder's syncer, causing client/server
+     *             buffer desynchronization.
+     */
+    @Deprecated
     protected void addCrossRecipeDisplay(MultiblockUIBuilder builder, MultiblockRecipeLogic logic) {
         CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
         if (scheduler == null) return;

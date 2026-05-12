@@ -344,24 +344,25 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityD
      */
     public enum DrumMaterial {
 
-        WOOD(Materials.Wood, 16000),
-        BRONZE(Materials.Bronze, 24000),
-        GOLD(Materials.Gold, 32000),
-        COPPER(Materials.Copper, 40000),
-        IRON(Materials.Iron, 48000),
-        LEAD(Materials.Lead, 56000),
-        STEEL(Materials.Steel, 64000),
-        CHROME(Materials.Chrome, 96000),
-        ALUMINIUM(Materials.Aluminium, 128000),
-        STAINLESS_STEEL(Materials.StainlessSteel, 256000),
-        TITANIUM(Materials.Titanium, 512000),
-        TUNGSTEN(Materials.Tungsten, 768000),
-        TUNGSTENSTEEL(Materials.TungstenSteel, 1024000),
-        IRIDIUM(Materials.Iridium, 1536000),
-        RHODIUM_PLATED_PALLADIUM(Materials.RhodiumPlatedPalladium, 2048000),
-        NAQUADAH_ALLOY(Materials.NaquadahAlloy, 4096000),
-        DARMSTADTIUM(Materials.Darmstadtium, 8192000),
-        NEUTRONIUM(Materials.Neutronium, 16384000);
+        // Sorted by tech level (ascending): Primitive -> LV -> MV -> HV -> EV -> IV -> LuV -> UV -> UHV -> MAX
+        WOOD(Materials.Wood, 16_000),
+        COPPER(Materials.Copper, 24_000),
+        LEAD(Materials.Lead, 24_000),
+        IRON(Materials.Iron, 32_000),
+        BRONZE(Materials.Bronze, 40_000),
+        GOLD(Materials.Gold, 48_000),
+        STEEL(Materials.Steel, 64_000),
+        ALUMINIUM(Materials.Aluminium, 128_000),
+        CHROME(Materials.Chrome, 128_000),
+        STAINLESS_STEEL(Materials.StainlessSteel, 256_000),
+        TITANIUM(Materials.Titanium, 512_000),
+        TUNGSTEN(Materials.Tungsten, 768_000),
+        TUNGSTENSTEEL(Materials.TungstenSteel, 1_024_000),
+        IRIDIUM(Materials.Iridium, 1_536_000),
+        RHODIUM_PLATED_PALLADIUM(Materials.RhodiumPlatedPalladium, 2_048_000),
+        NAQUADAH_ALLOY(Materials.NaquadahAlloy, 4_096_000),
+        DARMSTADTIUM(Materials.Darmstadtium, 8_192_000),
+        NEUTRONIUM(Materials.Neutronium, 16_384_000);
 
         private final Material material;
         private final int tankSize;

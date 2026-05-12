@@ -284,13 +284,8 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                     .addParallelsLine(logic.getParallelLimit())
                     .addWorkingStatusLine();
 
-            // Cross-recipe parallel display
-            if (logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null) {
-                addCrossRecipeDisplay(builder, logic);
-            } else {
-                builder.addProgressLine(logic.getProgress(), logic.getMaxProgress())
-                        .addRecipeOutputLine(logic);
-            }
+            // Cross-recipe parallel display (synced via builder to prevent client/server buffer desync)
+            builder.addCrossRecipeOrProgressDisplay(logic);
 
             builder.addCustom(this::addCustomCapacity);
         } else if (syncsParallel > 1) {
@@ -305,13 +300,17 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
             for (int i = 0; i < Math.min(syncsParallel, recipeMapWorkable.size()); i++) {
                 MultiblockRecipeLogic logic = recipeMapWorkable.get(i);
+                final int threadIndex = i;
+
+                // Sync the branch condition so both sides take the same path
+                boolean isCrossRecipe = builder.getSyncer().syncBoolean(
+                        logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null);
 
                 // Cross-recipe parallel display per thread
-                if (logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null) {
-                    final int threadIndex = i;
+                if (isCrossRecipe) {
                     builder.addCustom((list, syncer) -> list.add(
                             KeyUtil.lang(TextFormatting.GOLD, ">>线程 %s：", threadIndex + 1)));
-                    addCrossRecipeDisplay(builder, logic);
+                    builder.addCrossRecipeOrProgressDisplay(logic);
                     builder.addEmptyLine();
                 } else {
                     builder.addCustom((list, syncer) -> list.add(KeyUtil.lang(TextFormatting.GOLD, ">>线程：")))
@@ -325,8 +324,9 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     }
 
     /**
-     * Adds cross-recipe parallel scheduler status display for a single RecipeLogic.
+     * @deprecated Use {@link MultiblockUIBuilder#addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead.
      */
+    @Deprecated
     @Override
     protected void addCrossRecipeDisplay(MultiblockUIBuilder builder, MultiblockRecipeLogic logic) {
         super.addCrossRecipeDisplay(builder, logic);

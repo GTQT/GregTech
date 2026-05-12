@@ -250,6 +250,22 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
         return storage.get(TemperatureProperty.getInstance(), 0);
     }
 
+    // ==================== Recipe Map Switch Support ====================
+
+    /**
+     * Called when the module's recipe map changes (e.g. furnace mode toggle).
+     * Clears cached recipe references so that new recipe searches use the updated RecipeMap.
+     * Does NOT stop currently running recipes in the scheduler — they are allowed to complete
+     * naturally. The refillScheduler() path will automatically use the new RecipeMap for any
+     * subsequent recipe searches.
+     */
+    public void invalidateForRecipeMapChange() {
+        this.previousRecipe = null;
+        this.lastCrossRecipe = null;
+        this.invalidInputsForRecipes = false;
+        this.isOutputsFull = false;
+    }
+
     @Override
     public IEnergyContainer getEnergyContainer() {
         return IEnergyContainer.DEFAULT;

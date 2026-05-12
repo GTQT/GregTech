@@ -4,6 +4,9 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.ComputationRecipeLogic;
+import gregtech.api.capability.impl.MultiblockRecipeLogic;
+import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
+import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.mui.GTByteBufAdapters;
 import gregtech.api.mui.drawable.GTObjectDrawable;
@@ -122,7 +125,7 @@ public class MultiblockUIBuilder {
     }
 
     @NotNull
-    InternalSyncer getSyncer() {
+    public InternalSyncer getSyncer() {
         if (this.syncer == null) {
             this.syncer = new InternalSyncer(isServer());
         }
@@ -456,7 +459,10 @@ public class MultiblockUIBuilder {
      * @param runningParallel the number of currently running parallels
      * @param totalParallel   the total parallel budget
      * @param totalEUt        the total EU/t being consumed by all active slots
+     * @deprecated Use {@link #addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead, which properly
+     *             syncs the branch condition and slot iteration to prevent client/server buffer desynchronization.
      */
+    @Deprecated
     public MultiblockUIBuilder addCrossRecipeParallelLine(int runningParallel, int totalParallel, long totalEUt) {
         if (!isStructureFormed) return this;
         runningParallel = getSyncer().syncInt(runningParallel);
@@ -479,11 +485,19 @@ public class MultiblockUIBuilder {
      * @param progress    the slot's current progress (ticks)
      * @param maxProgress the slot's max progress (ticks)
      * @param eut         the slot's EU/t consumption
+     * @deprecated Use {@link #addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead, which properly
+     *             syncs the branch condition and slot iteration to prevent client/server buffer desynchronization.
      */
+    @Deprecated
     public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, int progress, int maxProgress, long eut) {
         return addCrossRecipeSlotLine(slotIndex, "", 1, progress, maxProgress, eut);
     }
 
+    /**
+     * @deprecated Use {@link #addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead, which properly
+     *             syncs the branch condition and slot iteration to prevent client/server buffer desynchronization.
+     */
+    @Deprecated
     public MultiblockUIBuilder addCrossRecipeSlotLine(int slotIndex, @NotNull String recipeName, int parallelCount,
                                                       int progress, int maxProgress, long eut) {
         if (!isStructureFormed) return this;
@@ -512,6 +526,95 @@ public class MultiblockUIBuilder {
             }
         }
         return this;
+    }
+
+    /**
+     * Maximum number of cross-recipe parallel slots displayed in the GUI.
+     */
+    private static final int MAX_CROSS_RECIPE_DISPLAY_SLOTS = 8;
+
+    /**
+     * Adds either cross-recipe parallel display or standard progress + recipe output display,
+     * depending on the logic's current mode. The branch condition is synced via the internal
+     * syncer so that server and client always take the same path, preventing buffer read/write
+     * desynchronization.
+     * <br>
+     * Added if the structure is formed.
+     *
+     * @param logic the multiblock recipe logic to display
+     */
+    public MultiblockUIBuilder addCrossRecipeOrProgressDisplay(@NotNull MultiblockRecipeLogic logic) {
+        if (!isStructureFormed) return this;
+
+        // Sync the branch condition so both sides take the same path
+        boolean isCrossRecipe = getSyncer().syncBoolean(
+                logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null);
+
+        if (isCrossRecipe) {
+            addSyncedCrossRecipeDisplay(logic);
+        } else {
+            addProgressLine(logic.getProgress(), logic.getMaxProgress())
+                    .addRecipeOutputLine(logic);
+        }
+        return this;
+    }
+
+    /**
+     * Internal helper that renders all cross-recipe parallel scheduler data with proper syncer
+     * calls for each dynamic field, ensuring server/client buffer alignment.
+     */
+    private void addSyncedCrossRecipeDisplay(@NotNull MultiblockRecipeLogic logic) {
+        CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
+
+        int totalParallel = getSyncer().syncInt(scheduler == null ? 0 : scheduler.getTotalParallelCount());
+        int parallelLimit = getSyncer().syncInt(scheduler == null ? 0 : scheduler.getParallelLimit());
+        long totalEUt = getSyncer().syncLong(scheduler == null ? 0 : scheduler.getTotalEnergyConsumption());
+
+        addKey(KeyUtil.lang(TextFormatting.AQUA,
+                "gregtech.multiblock.cross_recipe_parallel.status",
+                totalParallel, parallelLimit,
+                KeyUtil.number(TextFormatting.RED, totalEUt)));
+
+        // Sync slot count to ensure both sides iterate the same number of times
+        int slotCount = getSyncer().syncInt(() -> {
+            if (scheduler == null) return 0;
+            return Math.min(scheduler.getActiveSlots().size(), MAX_CROSS_RECIPE_DISPLAY_SLOTS);
+        });
+
+        List<RecipeSlot> slots = (scheduler != null) ? scheduler.getActiveSlots() : List.of();
+
+        for (int i = 0; i < slotCount; i++) {
+            RecipeSlot slot = (i < slots.size()) ? slots.get(i) : null;
+
+            // Sync whether this slot is running (branch condition for display)
+            boolean running = getSyncer().syncBoolean(slot != null && slot.isRunning());
+
+            // Always sync slot data to keep buffer alignment, regardless of running state
+            int slotIndex = getSyncer().syncInt(slot != null ? slot.getSlotIndex() : 0);
+            String recipeName = getSyncer().syncString(slot != null ? slot.getRecipeDisplayName() : "");
+            int parallelCount = Math.max(1, getSyncer().syncInt(slot != null ? slot.getParallelCount() : 1));
+            int progress = getSyncer().syncInt(slot != null ? slot.getProgressTime() : 0);
+            int maxProgress = getSyncer().syncInt(slot != null ? slot.getMaxProgressTime() : 0);
+            long eut = getSyncer().syncLong(slot != null ? slot.getRecipeEUt() : 0);
+
+            if (running && maxProgress > 0) {
+                float percent = Math.min(100f, Math.max(0f, (float) progress / maxProgress * 100f));
+                if (recipeName.isEmpty()) {
+                    addKey(KeyUtil.lang(TextFormatting.GRAY,
+                            "gregtech.multiblock.cross_recipe_parallel.slot",
+                            slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
+                            KeyUtil.number(TextFormatting.RED, eut)));
+                } else {
+                    addKey(KeyUtil.lang(TextFormatting.GRAY,
+                            "gregtech.multiblock.cross_recipe_parallel.slot_named",
+                            slotIndex + 1,
+                            KeyUtil.string(TextFormatting.YELLOW, recipeName),
+                            parallelCount,
+                            progress / 20f, maxProgress / 20f, percent,
+                            KeyUtil.number(TextFormatting.RED, eut)));
+                }
+            }
+        }
     }
 
     /**
