@@ -53,9 +53,9 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
                                           @NotNull RecipeMap<?> recipeMap,
                                           @NotNull IItemHandlerModifiable importInventory,
                                           @NotNull IMultipleTankHandler importFluids,
-                                          long slotMaxVoltage, int maxParallelBudget) {
+                                          long remainingPower, int maxParallelBudget) {
         return super.setupSlotWithRecipe(slot, applyGodforgeModifiers(recipe), recipeMap, importInventory, importFluids,
-                slotMaxVoltage, maxParallelBudget);
+                remainingPower, maxParallelBudget);
     }
 
     private Recipe applyGodforgeModifiers(@NotNull Recipe recipe) {

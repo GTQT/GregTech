@@ -50,21 +50,28 @@ import java.util.List;
  * <br>When the power budget cannot perfectly divide by a recipe's base EUt (i.e.,
  * {@code maxVoltage / baseEUt < parallelLimit}), the first slot will take slightly fewer
  * parallels than the full budget, leaving a small remainder. This remainder is filled by a
- * secondary slot with very few parallels (often just 1). Because these two slots are created
- * in the same or adjacent ticks but complete at slightly different times (1-tick offset), a
- * cascading fragmentation effect occurs:
+ * secondary slot with very few parallels (often just 1).
+ *
+ * <p>These two slots will typically have <b>different durations</b>: the large slot's total EUt
+ * ({@code baseEUt × parallelCount}) is too high to overclock within the voltage budget, so it
+ * keeps the original duration. The small slot's total EUt is much lower, allowing it to overclock
+ * successfully, resulting in a shorter duration (e.g., half). This duration mismatch causes the
+ * slots to complete at different times, triggering a cascading fragmentation effect:
  * <ol>
- *   <li>The large slot completes first. {@code refillScheduler} is called, but the small slot
- *       is still running, occupying a small portion of both the parallel budget and power budget.</li>
- *   <li>The new large slot can only claim {@code parallelLimit - smallSlotParallel} parallels,
- *       which is 1 fewer than the previous cycle.</li>
- *   <li>This creates yet another small remainder slot, compounding the fragmentation.</li>
+ *   <li>The small slot completes first (shorter duration). {@code refillScheduler} is called,
+ *       but the large slot is still running, occupying most of the parallel and power budget.</li>
+ *   <li>A new small slot is created with the remaining budget, again getting a different
+ *       (shorter) duration due to overclocking.</li>
+ *   <li>When the large slot eventually completes, the small slot(s) are still running, so
+ *       the new large slot gets fewer parallels ({@code parallelLimit - runningSmallSlots}).</li>
  *   <li>Over many cycles, the primary slot's parallel count gradually decreases while the number
  *       of trailing small slots increases.</li>
  * </ol>
  * This fragmentation has <b>negligible performance impact</b> — each slot's per-tick cost is just
  * an integer increment and comparison. The total throughput remains correct; only the visual
- * representation in the UI shows multiple slots instead of one unified slot.
+ * representation in the UI shows multiple slots instead of one unified slot. The display layer
+ * merges slots with the same recipe name and duration via {@link #getMergedDisplaySlots()} to
+ * reduce visual clutter.
  *
  * @see RecipeSlot
  */
@@ -72,7 +79,10 @@ public class CrossRecipeParallelScheduler {
 
     // --- Configuration ---
     private int parallelLimit;
+    // Overclock reference voltage (used for OC tier calculation, from getMaximumOverclockVoltage())
     private long maxVoltage;
+    // Total power budget = sum of each energy hatch's (voltage × amperage), used for parallel/power limiting
+    private long totalPowerBudget;
 
     // --- Active execution slots (dynamically managed) ---
     @NotNull
@@ -102,12 +112,25 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
-     * Sets the maximum voltage (total power budget) for this scheduler.
+     * Sets the overclock reference voltage for this scheduler.
+     * This is used as the ceiling for OC tier calculation (from getMaximumOverclockVoltage()),
+     * NOT for power budget limiting.
      *
-     * @param maxVoltage the maximum EU/t available
+     * @param maxVoltage the overclock reference voltage
      */
     public void setMaxVoltage(long maxVoltage) {
         this.maxVoltage = maxVoltage;
+    }
+
+    /**
+     * Sets the total power budget for this scheduler.
+     * Calculated as the raw sum of each energy hatch's voltage × amperage.
+     * This limits the total EU/t that all active slots can consume simultaneously.
+     *
+     * @param totalPowerBudget the total power budget in EU/t
+     */
+    public void setTotalPowerBudget(long totalPowerBudget) {
+        this.totalPowerBudget = totalPowerBudget;
     }
 
     // ==================== Slot Lifecycle ====================
@@ -226,10 +249,10 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
-     * @return the remaining power budget available for new recipes
+     * @return the remaining power budget available for new recipes (based on totalPowerBudget)
      */
     public long getRemainingPowerBudget() {
-        return maxVoltage - getTotalEnergyConsumption();
+        return totalPowerBudget - getTotalEnergyConsumption();
     }
 
     /**
@@ -274,6 +297,10 @@ public class CrossRecipeParallelScheduler {
 
     public long getMaxVoltage() {
         return maxVoltage;
+    }
+
+    public long getTotalPowerBudget() {
+        return totalPowerBudget;
     }
 
     @NotNull
@@ -438,6 +465,7 @@ public class CrossRecipeParallelScheduler {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setInteger("parallelLimit", parallelLimit);
         tag.setLong("maxVoltage", maxVoltage);
+        tag.setLong("totalPowerBudget", totalPowerBudget);
 
         NBTTagList slotList = new NBTTagList();
         for (RecipeSlot slot : activeSlots) {
@@ -451,6 +479,7 @@ public class CrossRecipeParallelScheduler {
     public void deserializeNBT(@NotNull NBTTagCompound tag) {
         this.parallelLimit = tag.getInteger("parallelLimit");
         this.maxVoltage = tag.getLong("maxVoltage");
+        this.totalPowerBudget = tag.getLong("totalPowerBudget");
 
         NBTTagList slotList = tag.getTagList("slots", Constants.NBT.TAG_COMPOUND);
         this.activeSlots = new ArrayList<>(slotList.tagCount());

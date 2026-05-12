@@ -83,8 +83,37 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             crossRecipeScheduler = new CrossRecipeParallelScheduler(getParallelLimit());
         }
         crossRecipeScheduler.setMaxVoltage(getMaximumOverclockVoltage());
+        crossRecipeScheduler.setTotalPowerBudget(getTotalPowerBudget());
         crossRecipeScheduler.setParallelLimit(getParallelLimit());
         return crossRecipeScheduler;
+    }
+
+    /**
+     * Calculates the total power budget by directly summing each energy container's
+     * voltage × amperage without any tier compression.
+     * This gives the raw maximum EU/t throughput for parallel/power limiting.
+     *
+     * @return the total power budget in EU/t
+     */
+    protected long getTotalPowerBudget() {
+        IEnergyContainer energyContainer = getEnergyContainer();
+        if (energyContainer instanceof EnergyContainerList) {
+            // Directly sum V×A from the EnergyContainerList's computed values
+            long voltage;
+            long amperage;
+            if (energyContainer.getInputVoltage() > energyContainer.getOutputVoltage()) {
+                voltage = energyContainer.getInputVoltage();
+                amperage = energyContainer.getInputAmperage();
+            } else {
+                voltage = energyContainer.getOutputVoltage();
+                amperage = energyContainer.getOutputAmperage();
+            }
+            return voltage * amperage;
+        }
+        // Single energy container: voltage × amperage
+        long voltage = Math.max(energyContainer.getInputVoltage(), energyContainer.getOutputVoltage());
+        long amperage = Math.max(energyContainer.getInputAmperage(), energyContainer.getOutputAmperage());
+        return voltage * Math.max(1, amperage);
     }
 
     /**
@@ -284,10 +313,21 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * Sets up a specific slot with a known recipe.
      * Unified execution order: Parallel (MULTIPLY) → Overclock → 1tOC (Sub-tick Parallel) → Consume → Output.
      *
+     * <p>Power budget model:
+     * <ul>
+     *   <li>Total power budget = sum of all energy hatches' (voltage × amperage)</li>
+     *   <li>Remaining power = totalPowerBudget - sum of all running slots' EUt</li>
+     *   <li>Parallel count is limited by: min(parallelBudget, remainingPower / baseEUt)</li>
+     *   <li>OC tier count is determined by: getNumberOfOCs(baseEUt) using getMaximumOverclockVoltage()</li>
+     *   <li>OC execution voltage ceiling = remainingPower / inputParallel (per-parallel power limit)</li>
+     *   <li>Final totalSlotEUt must not exceed remainingPower</li>
+     * </ul>
+     *
      * <p>Flow:
      * <ol>
-     *   <li>MULTIPLY: Determine how many copies of this recipe can run based on input availability</li>
-     *   <li>Overclock: Reduce duration using available voltage</li>
+     *   <li>MULTIPLY: Determine how many copies of this recipe can run based on input availability
+     *       and remaining power budget</li>
+     *   <li>Overclock: Reduce duration using per-parallel power headroom</li>
      *   <li>1tOC: If duration reaches 1 tick and still has OC budget, convert remaining to sub-tick parallel</li>
      *   <li>Final parallel = inputParallel × subTickParallel</li>
      *   <li>Consume totalParallel × inputs, produce totalParallel × outputs</li>
@@ -298,7 +338,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * @param recipeMap         the recipe map
      * @param importInventory   the input inventory
      * @param importFluids      the input fluid tanks
-     * @param slotMaxVoltage    the maximum voltage for this slot
+     * @param remainingPower    the remaining power budget from the scheduler (totalPowerBudget - running slots)
      * @param maxParallelBudget the remaining parallel budget from the scheduler
      * @return true if the slot was successfully started
      */
@@ -307,7 +347,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                                           @NotNull RecipeMap<?> recipeMap,
                                           @NotNull IItemHandlerModifiable importInventory,
                                           @NotNull IMultipleTankHandler importFluids,
-                                          long slotMaxVoltage,
+                                          long remainingPower,
                                           int maxParallelBudget) {
         // Trim recipe outputs
         Recipe trimmed = Recipe.trimRecipeOutputs(recipe, recipeMap, metaTileEntity.getItemOutputLimit(),
@@ -316,9 +356,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         long baseEUt = trimmed.getEUt();
         int baseDuration = trimmed.getDuration();
 
-        // --- Step 1: MULTIPLY parallel (from inputs) ---
-        // Cap parallel by: min(parallelBudget, slotMaxVoltage / baseEUt)
-        int maxInputParallel = (int) Math.min(maxParallelBudget, slotMaxVoltage / Math.max(1, baseEUt));
+        // --- Power check: remaining power must be enough for at least 1 recipe ---
+        if (remainingPower < baseEUt) return false;
+
+        // --- Step 1: MULTIPLY parallel (from inputs, limited by remaining power) ---
+        // Parallel is limited by: min(parallelBudget, remainingPower / baseEUt)
+        int maxInputParallel = (int) Math.min(maxParallelBudget, remainingPower / Math.max(1, baseEUt));
         maxInputParallel = Math.max(1, maxInputParallel);
 
         int inputParallel = ParallelLogic.getMaxRecipeMultiplier(
@@ -336,11 +379,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         inputParallel = outputParallel;
 
-        // --- Step 2: Overclock the whole paralleled batch ---
-        // GT5-style: overclock is applied to the total paralleled EUt (baseEUt × inputParallel).
-        // This ensures parallel consumes power budget first, and only leftover budget is used for OC.
-        // getNumberOfOCs uses single-recipe EUt to determine the tier-based OC count,
-        // while the actual OC algorithm runs on the total EUt and is bounded by slotMaxVoltage.
+        // --- Step 2: Overclock ---
+        // OC tier count is based on single-recipe baseEUt vs getMaximumOverclockVoltage()
+        // OC execution voltage ceiling = remainingPower / inputParallel (per-parallel power headroom)
+        long perParallelPowerCeiling = remainingPower / inputParallel;
         long totalBaseEUt = baseEUt * inputParallel;
         OCParams params = new OCParams();
         OCResult result = new OCResult();
@@ -350,9 +392,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (params.ocAmount() <= 0) {
             result.init(params.eut(), params.duration());
         } else {
-            // OC the whole batch: EUt is the total paralleled EUt, maxVoltage is slotMaxVoltage.
-            // Delegates to runOverclockingLogic so subclasses (e.g. Godforge heat OC) can override.
-            runOverclockingLogic(params, result, trimmed.propertyStorage(), slotMaxVoltage);
+            // OC the whole batch: EUt is the total paralleled EUt.
+            // maxVoltage for OC execution = perParallelPowerCeiling × inputParallel = remainingPower.
+            // This ensures OC doesn't exceed the remaining power budget.
+            runOverclockingLogic(params, result, trimmed.propertyStorage(), remainingPower);
         }
         modifyOverclockPost(result, trimmed.propertyStorage());
 
@@ -368,11 +411,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // For sub-tick OC, parallelEUt is the actual total power draw.
         long totalSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
 
-        if (totalSlotEUt > slotMaxVoltage) {
-            // Power budget exceeded after OC — should not normally happen since OC is bounded by
-            // slotMaxVoltage, but handle gracefully by reducing inputParallel.
+        // Clamp totalSlotEUt to remaining power budget
+        if (totalSlotEUt > remainingPower) {
             long perParallelEUt = Math.max(1, totalSlotEUt / inputParallel);
-            inputParallel = (int) (slotMaxVoltage / Math.max(1, perParallelEUt));
+            inputParallel = (int) (remainingPower / Math.max(1, perParallelEUt));
             if (inputParallel <= 0) return false;
             totalSlotEUt = perParallelEUt * inputParallel;
             totalParallel = (long) inputParallel * subTickParallel;
