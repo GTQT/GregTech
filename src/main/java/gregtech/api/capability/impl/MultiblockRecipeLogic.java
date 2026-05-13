@@ -21,6 +21,7 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
@@ -155,6 +156,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         if (scheduler.canAcceptMoreRecipes()) {
+            // [DEBUG] Log refill trigger state (only when slots completed to reduce noise)
+            if (completedParallel > 0) {
+                GTLog.logger.info("[CrossRecipe-DEBUG] refill triggered: completedParallel={}, " +
+                        "activeSlots={}, remainingBudget={}/{}, remainingPower={}/{}",
+                        completedParallel, scheduler.getActiveSlotCount(),
+                        scheduler.getRemainingParallelBudget(), scheduler.getParallelLimit(),
+                        scheduler.getRemainingPowerBudget(), scheduler.getTotalPowerBudget());
+            }
             refillScheduler(scheduler);
         }
 
@@ -250,6 +259,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         IMultipleTankHandler importFluids = getInputTank();
 
         int filled = 0;
+
+        // [DEBUG] Log scheduler state at fill entry
+        GTLog.logger.info("[CrossRecipe-DEBUG] fillSchedulerSlots: activeSlots={}, parallelBudget={}/{}, " +
+                "powerBudget={}/{}, totalEnergyConsumption={}",
+                scheduler.getActiveSlotCount(),
+                scheduler.getRemainingParallelBudget(), scheduler.getParallelLimit(),
+                scheduler.getRemainingPowerBudget(), scheduler.getTotalPowerBudget(),
+                scheduler.getTotalEnergyConsumption());
 
         // Phase 1: Try cached recipe first (fast path, avoids full recipe search)
         if (lastCrossRecipe != null && scheduler.canAcceptMoreRecipes()) {
@@ -379,6 +396,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         inputParallel = outputParallel;
 
+        // [DEBUG] Log parallel calculation steps
+        GTLog.logger.info("[CrossRecipe-DEBUG] setupSlot: baseEUt={}, remainingPower={}, maxParallelBudget={}, " +
+                "maxInputParallel={}, getMaxRecipeMultiplier={}, outputParallel={}, " +
+                "canVoidItems={}, canVoidFluids={}",
+                baseEUt, remainingPower, maxParallelBudget,
+                maxInputParallel, inputParallel, outputParallel,
+                metaTileEntity.canVoidRecipeItemOutputs(),
+                metaTileEntity.canVoidRecipeFluidOutputs());
+
         // --- Step 2: Overclock ---
         // OC tier count is based on single-recipe baseEUt vs getMaximumOverclockVoltage()
         // OC execution voltage ceiling = remainingPower / inputParallel (per-parallel power headroom)
@@ -437,6 +463,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         int finalParallel = (int) Math.min(Integer.MAX_VALUE, totalParallel);
+
+        // [DEBUG] Log OC and final parallel results
+        GTLog.logger.info("[CrossRecipe-DEBUG] afterOC: overclockedEUt={}, overclockedDuration={}, " +
+                "subTickParallel={}, totalSlotEUt={}, inputParallel={}, finalParallel={}, " +
+                "powerClamp={}, outputRecheck={}",
+                overclockedEUt, overclockedDuration, subTickParallel, totalSlotEUt,
+                inputParallel, finalParallel,
+                totalSlotEUt > remainingPower, totalParallel > outputParallel);
 
         // --- Step 3.5: Batch processing (if enabled and duration is short enough) ---
         int batchMultiplier = 1;

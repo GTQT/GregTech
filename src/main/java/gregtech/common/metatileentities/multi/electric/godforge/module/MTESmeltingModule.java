@@ -3,6 +3,9 @@ package gregtech.common.metatileentities.multi.electric.godforge.module;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
 import org.jetbrains.annotations.NotNull;
 
 import gregtech.api.capability.IMultipleRecipeMaps;
@@ -85,6 +88,22 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
     @Override
     public void setRecipeMapIndex(int index) {
         setFurnaceMode(index == 1);
+    }
+
+    // ==================== Tooltip ====================
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public String recipeMapsToString() {
+        RecipeMap<?>[] recipeMaps = getAvailableRecipeMaps();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < recipeMaps.length; i++) {
+            sb.append(recipeMaps[i].getLocalizedName());
+            if (i < recipeMaps.length - 1) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 
     // ==================== Mode ====================

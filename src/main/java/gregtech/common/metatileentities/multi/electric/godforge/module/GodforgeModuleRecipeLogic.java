@@ -161,6 +161,15 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
         return module.getProcessingVoltage();
     }
 
+    /**
+     * Godforge modules use wireless energy with effectively unlimited power budget.
+     * Return the processing voltage as total budget since there is no real energy hatch.
+     */
+    @Override
+    protected long getTotalPowerBudget() {
+        return module.getProcessingVoltage();
+    }
+
     @Override
     public int getParallelLimit() {
         return module.getActualParallel();

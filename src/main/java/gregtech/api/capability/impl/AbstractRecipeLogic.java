@@ -435,6 +435,14 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return true if recipes should be searched for
      */
     protected boolean shouldSearchForRecipes() {
+        // When outputs change (e.g. output bus cleared), reset the input invalidation flag.
+        // This fixes the case where a recipe was found but outputs were full, causing
+        // invalidInputsForRecipes to be set. Without this reset, clearing the output bus
+        // alone would never trigger a new recipe search — the player would have to
+        // also re-insert input items to unblock the search.
+        if (hasNotifiedOutputs()) {
+            this.invalidInputsForRecipes = false;
+        }
         return canWorkWithInputs() && canFitNewOutputs();
     }
 
