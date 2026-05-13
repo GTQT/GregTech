@@ -357,6 +357,23 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 target.getBlock().getDefaultState(), holder));
     }
 
+    /**
+     * Replaces the controller MTE in the preview block map when the preview contains a
+     * different controller instance from the same class (selfPredicateByClass scenario).
+     * Creates a fresh copy of {@link #controller} to ensure the correct model/texture is rendered.
+     */
+    private void replaceControllerInPreview(
+            @NotNull Map<BlockPos, BlockInfo> blockMap,
+            @NotNull BlockPos controllerPos) {
+        MetaTileEntity copy = controller.createMetaTileEntity(null);
+        MetaTileEntityHolder holder = new MetaTileEntityHolder();
+        holder.setMetaTileEntity(copy);
+        holder.getMetaTileEntity().onPlacement();
+        holder.getMetaTileEntity().setFrontFacing(controller.getFrontFacing());
+        blockMap.put(controllerPos, new BlockInfo(
+                copy.getBlock().getDefaultState(), holder));
+    }
+
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
         this.recipeLayout = layout;
 
@@ -946,14 +963,19 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             }
         }
 
-        // For parametric multiblocks, replace the controller block in the preview
-        // with a copy that has the correct variant set. The preview's controller
-        // comes from selfPredicateByClass candidates (registry instance with default
-        // variant), so we need to patch it to match the JEI variant copy.
-        if (controllerBlockPos != null
-                && controller instanceof ParametricMultiblockController<?>
-                && controllerBase instanceof ParametricMultiblockController<?>) {
-            replaceControllerVariantInPreview(blockMap, controllerBlockPos, controllerBase);
+        // When using selfPredicateByClass, the preview's controller block comes from the
+        // first matching candidate in the registry, which may not be the actual controller
+        // for this JEI recipe entry. Replace it with the correct controller instance.
+        if (controllerBlockPos != null && controllerBase != null) {
+            if (controller instanceof ParametricMultiblockController<?>
+                    && controllerBase instanceof ParametricMultiblockController<?>) {
+                // Parametric controllers: same MTE ID but different variant stored in NBT
+                replaceControllerVariantInPreview(blockMap, controllerBlockPos, controllerBase);
+            } else if (!controller.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
+                // Non-parametric controllers with selfPredicateByClass: different MTE IDs
+                // sharing the same class (e.g. LargeMiner, LargeBoiler, LargeTurbine)
+                replaceControllerInPreview(blockMap, controllerBlockPos);
+            }
         }
 
         TrackedDummyWorld world = new TrackedDummyWorld();

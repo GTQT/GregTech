@@ -660,7 +660,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         delayStructureCheckWork = Math.max(Math.min(1200, delay), 20);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void checkStructurePattern() {
         if (multiblockState == null) return;
         PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
@@ -678,20 +677,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
             this.setFlipped(context.neededFlip());
             parts.sort(Comparator.comparing(it -> multiblockPartSorter().apply(((MetaTileEntity) it).getPos())));
-            Map<MultiblockAbility<Object>, AbilityInstances> abilities = new HashMap<>();
-            for (IMultiblockPart part : parts) {
-                if (part instanceof IMultiblockAbilityPart abilityPart) {
-                    List<MultiblockAbility> abilityList = abilityPart.getAbilities();
-                    for (MultiblockAbility ability : abilityList) {
-                        if (!checkAbilityPart(ability, ((MetaTileEntity) abilityPart).getPos()))
-                            continue;
-
-                        AbilityInstances instances = abilities.computeIfAbsent(ability,
-                                AbilityInstances::new);
-                        abilityPart.registerAbilities(instances);
-                    }
-                }
-            }
+            Map<MultiblockAbility<Object>, AbilityInstances> abilities = collectAbilities(parts);
             this.multiblockParts.addAll(parts);
             this.multiblockAbilities.putAll(abilities);
             parts.forEach(part -> part.addToMultiBlock(this));
@@ -754,20 +740,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 // Re-collect abilities from all new parts
                 newParts.sort(Comparator.comparing(
                         it -> multiblockPartSorter().apply(((MetaTileEntity) it).getPos())));
-                Map<MultiblockAbility<Object>, AbilityInstances> newAbilities = new HashMap<>();
-                for (IMultiblockPart part : newParts) {
-                    if (part instanceof IMultiblockAbilityPart abilityPart) {
-                        List<MultiblockAbility> abilityList = abilityPart.getAbilities();
-                        for (MultiblockAbility ability : abilityList) {
-                            if (!checkAbilityPart(ability, ((MetaTileEntity) abilityPart).getPos()))
-                                continue;
-
-                            AbilityInstances instances = newAbilities.computeIfAbsent(ability,
-                                    AbilityInstances::new);
-                            abilityPart.registerAbilities(instances);
-                        }
-                    }
-                }
+                Map<MultiblockAbility<Object>, AbilityInstances> newAbilities = collectAbilities(newParts);
 
                 // Replace parts and abilities lists
                 this.multiblockParts.clear();
@@ -793,6 +766,35 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 worldData.registerMultiblock(this, positions);
             }
         }
+    }
+
+    /**
+     * Collects abilities from a sorted list of multiblock parts.
+     * Each part's abilities are checked via {@link #checkAbilityPart} and registered
+     * into the appropriate {@link AbilityInstances}.
+     *
+     * @param parts the sorted list of parts to collect abilities from
+     * @return a map of ability type to ability instances
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @NotNull
+    private Map<MultiblockAbility<Object>, AbilityInstances> collectAbilities(
+            @NotNull List<IMultiblockPart> parts) {
+        Map<MultiblockAbility<Object>, AbilityInstances> abilities = new HashMap<>();
+        for (IMultiblockPart part : parts) {
+            if (part instanceof IMultiblockAbilityPart abilityPart) {
+                List<MultiblockAbility> abilityList = abilityPart.getAbilities();
+                for (MultiblockAbility ability : abilityList) {
+                    if (!checkAbilityPart(ability, ((MetaTileEntity) abilityPart).getPos()))
+                        continue;
+
+                    AbilityInstances instances = abilities.computeIfAbsent(ability,
+                            AbilityInstances::new);
+                    abilityPart.registerAbilities(instances);
+                }
+            }
+        }
+        return abilities;
     }
 
     /**

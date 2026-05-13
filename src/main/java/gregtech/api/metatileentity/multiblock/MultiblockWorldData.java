@@ -48,6 +48,14 @@ public class MultiblockWorldData {
     private final Set<MultiblockControllerBase> pendingRecheck = ConcurrentHashMap.newKeySet();
 
     /**
+     * Controllers that are currently suppressing event-driven recheck notifications.
+     * Used by multiblocks (e.g., Forge of Gods) that intentionally modify blocks within
+     * their own structure (e.g., replacing rings with air for rendering). Block changes
+     * during suppression are silently ignored instead of triggering a recheck.
+     */
+    private final Set<MultiblockControllerBase> suppressedControllers = ConcurrentHashMap.newKeySet();
+
+    /**
      * Controller -> server tick at which the last block-change event was received.
      * Used together with {@link #RECHECK_COOLDOWN_TICKS} to debounce rapid block changes.
      */
@@ -140,6 +148,11 @@ public class MultiblockWorldData {
         for (MultiblockControllerBase controller : controllers) {
             LongSet positions = controllerPositions.get(controller);
             if (positions != null && positions.contains(posLong)) {
+                // Skip controllers that are suppressing recheck (e.g., during ring replacement)
+                if (suppressedControllers.contains(controller)) {
+                    affected = true;
+                    continue;
+                }
                 // Check if this controller uses multi-piece pattern
                 MultiPiecePattern piecePattern = controllerPiecePatterns.get(controller);
                 if (piecePattern != null) {
@@ -214,5 +227,30 @@ public class MultiblockWorldData {
         controllerPiecePatterns.clear();
         pendingRecheck.clear();
         lastChangedTick.clear();
+        suppressedControllers.clear();
+    }
+
+    /**
+     * Suppress event-driven recheck notifications for the given controller.
+     * While suppressed, block changes within the controller's registered positions
+     * will be silently ignored. Call {@link #unsuppressRecheck} after the modification
+     * is complete.
+     *
+     * @param controller the controller to suppress
+     */
+    public void suppressRecheck(MultiblockControllerBase controller) {
+        suppressedControllers.add(controller);
+    }
+
+    /**
+     * Re-enable event-driven recheck notifications for the given controller.
+     * Also clears any pending recheck that may have been queued before suppression.
+     *
+     * @param controller the controller to unsuppress
+     */
+    public void unsuppressRecheck(MultiblockControllerBase controller) {
+        suppressedControllers.remove(controller);
+        pendingRecheck.remove(controller);
+        lastChangedTick.remove(controller);
     }
 }
