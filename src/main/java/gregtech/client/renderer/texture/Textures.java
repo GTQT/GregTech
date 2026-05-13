@@ -23,6 +23,7 @@ import gregtech.client.renderer.texture.custom.LargeTurbineRenderer;
 import gregtech.client.renderer.texture.custom.QuantumStorageRenderer;
 import gregtech.client.renderer.texture.custom.SafeRenderer;
 import gregtech.client.texture.IconRegistrar;
+import gregtech.common.blocks.BlockTankCasing;
 
 import net.minecraft.client.renderer.chunk.CompiledChunk;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -98,8 +99,8 @@ public class Textures {
     public static final SimpleOverlayRenderer TURBINE_TUNGSTENSTEEL_CASING = new SimpleOverlayRenderer(
             "casings/mechanic/machine_casing_turbine_tungstensteel");
 
-
-
+    public static final SimpleOverlayRenderer[] TANK_CASINGS = new SimpleOverlayRenderer[
+            BlockTankCasing.TankCasingType.values().length];
     public static final SimpleOverlayRenderer STURDY_HSSE_CASING = new SimpleOverlayRenderer(
             "casings/solid/machine_casing_sturdy_hsse");
     public static final SimpleOverlayRenderer PALLADIUM_SUBSTATION_CASING = new SimpleOverlayRenderer(
@@ -717,6 +718,9 @@ public class Textures {
         for (int i = 0; i < VOLTAGE_CASINGS.length; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
             VOLTAGE_CASINGS[i] = new SimpleSidedCubeRenderer("casings/voltage/" + voltageName);
+        }
+        for (BlockTankCasing.TankCasingType type : BlockTankCasing.TankCasingType.values()) {
+            TANK_CASINGS[type.ordinal()] = new SimpleOverlayRenderer("casings/tank/tank_casing_" + type.getName());
         }
         if (GTValues.isClientSide()) {
             RENDER_STATE = new ThreadLocal<>();

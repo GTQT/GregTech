@@ -346,22 +346,48 @@ public class GodforgeMath {
         module.setInversionConfig(data.isInversion());
     }
 
+    private static double getBigIntegerRatio(BigInteger numerator, BigInteger denominator) {
+        if (numerator.signum() <= 0) {
+            return 0;
+        }
+        double directRatio = numerator.doubleValue() / denominator.doubleValue();
+        if (Double.isFinite(directRatio)) {
+            return directRatio;
+        }
+        return Math.exp(logBigInteger(numerator) - logBigInteger(denominator));
+    }
+
+    private static double logBigInteger(BigInteger value) {
+        if (value.signum() <= 0) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        int bitLength = value.bitLength();
+        if (bitLength < 1024) {
+            return Math.log(value.doubleValue());
+        }
+        int shift = bitLength - 53;
+        long topBits = value.shiftRight(shift)
+            .longValue();
+        return Math.log(topBits) + shift * Math.log(2);
+    }
+
     public static void determineChargeMilestone(ForgeOfGodsData data) {
         if (!data.isInversion()) {
-            float charge = (float) Math.max(
-                (Math.log(
-                    (data.getTotalPowerConsumed()
-                        .divide(BigInteger.valueOf(ForgeOfGodsData.POWER_MILESTONE_CONSTANT))).longValue())
-                    / ForgeOfGodsData.POWER_LOG_CONSTANT + 1),
-                0) / 7;
+            double total = getBigIntegerRatio(
+                data.getTotalPowerConsumed(),
+                BigInteger.valueOf(ForgeOfGodsData.POWER_MILESTONE_CONSTANT));
+            float charge = (float) (Math.max(
+                Math.log(total) / ForgeOfGodsData.POWER_LOG_CONSTANT + 1,
+                0) / 7);
             data.setPowerMilestonePercentage(charge);
+            data.setInvertedPowerMilestonePercentage(0);
             data.setMilestoneProgress(0, (int) Math.floor(data.getPowerMilestonePercentage() * 7));
             return;
         }
 
-        float rawProgress = (data.getTotalPowerConsumed()
-            .divide(ForgeOfGodsData.POWER_MILESTONE_T7_CONSTANT)
-            .floatValue() - 1) / 7;
+        float rawProgress = (float) ((getBigIntegerRatio(
+            data.getTotalPowerConsumed(),
+            ForgeOfGodsData.POWER_MILESTONE_T7_CONSTANT) - 1) / 7);
         int closestRelevantSeven = (int) Math.floor(rawProgress);
         float actualProgress = rawProgress - closestRelevantSeven;
         data.setMilestoneProgress(0, 7 + (int) Math.floor(rawProgress * 7));

@@ -3348,6 +3348,7 @@ gregtech.machine.workbench.tab.crafting=合成
 gregtech.machine.workbench.tab.container=存储
 
 # Tanks
+gregtech.machine.tank_valve.name=储罐阀门
 gregtech.machine.tank_valve.wood.name=木制储罐阀门
 gregtech.machine.tank.wood.name=木制多方块储罐
 gregtech.machine.tank_valve.steel.name=钢制储罐阀门
@@ -5652,6 +5653,7 @@ gregtech.multiblock.parallel_mode.cross_recipe=跨配方并行 - 多个执行槽
 gregtech.multiblock.cross_recipe_parallel.status=跨配方并行：%s/%s 并行运行中，总消耗：%s EU/t
 gregtech.multiblock.cross_recipe_parallel.slot=  槽位%s：%.1f秒 / %.1f秒 (%.0f%%) [%s EU/t]
 gregtech.multiblock.cross_recipe_parallel.slot_named=  槽位%s：%s x%s - %.1f秒 / %.1f秒 (%.0f%%) [%s EU/t]
+gregtech.multiblock.cross_recipe_parallel.slot_named_batch=  槽位%s：%s x%s(×%s批处理) - %.1f秒 / %.1f秒 (%.0f%%) [%s EU/t]
 
 gregtech.machine.ld_item_endpoint.name=长距离物品管道接口
 gregtech.machine.ld_fluid_endpoint.name=长距离流体管道接口

@@ -197,15 +197,12 @@ public abstract class MTEBaseModuleGui<T extends MTEBaseModule> extends Godforge
 
     @Override
     protected IWidget createBatchModeButton(PanelSyncManager syncManager) {
-        return ((ToggleButton) super.createBatchModeButton(syncManager)).size(16)
+        return new ToggleButton().size(16)
             .background(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
             .selectedBackground(GTGuiTextures.TT_BUTTON_CELESTIAL_32x32)
-            .overlay(new DynamicDrawable(() -> {
-                if (multiblock.isBatchModeEnabled()) {
-                    return GTGuiTextures.TT_OVERLAY_BUTTON_BATCH_MODE;
-                }
-                return GTGuiTextures.TT_OVERLAY_BUTTON_BATCH_MODE_OFF;
-            }))
+            .value(new BooleanSyncValue(multiblock::isBatchModeEnabled, multiblock::setBatchEnable))
+            .overlay(true, GTGuiTextures.TT_OVERLAY_BUTTON_BATCH_MODE)
+            .overlay(false, GTGuiTextures.TT_OVERLAY_BUTTON_BATCH_MODE_OFF)
             .tooltipShowUpTimer(TOOLTIP_DELAY);
     }
 

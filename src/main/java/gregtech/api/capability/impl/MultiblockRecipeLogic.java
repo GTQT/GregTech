@@ -21,7 +21,7 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
-import gregtech.api.util.GTLog;
+
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
@@ -156,14 +156,6 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         if (scheduler.canAcceptMoreRecipes()) {
-            // [DEBUG] Log refill trigger state (only when slots completed to reduce noise)
-            if (completedParallel > 0) {
-                GTLog.logger.info("[CrossRecipe-DEBUG] refill triggered: completedParallel={}, " +
-                        "activeSlots={}, remainingBudget={}/{}, remainingPower={}/{}",
-                        completedParallel, scheduler.getActiveSlotCount(),
-                        scheduler.getRemainingParallelBudget(), scheduler.getParallelLimit(),
-                        scheduler.getRemainingPowerBudget(), scheduler.getTotalPowerBudget());
-            }
             refillScheduler(scheduler);
         }
 
@@ -227,9 +219,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             Recipe recipe = findRecipe(scheduler.getRemainingPowerBudget(), bus, busFluidTank);
             if (recipe == null || !checkRecipe(recipe)) continue;
 
+            long remainingPower = scheduler.getRemainingPowerBudget();
+            int remainingParallel = scheduler.getRemainingParallelBudget();
             RecipeSlot slot = scheduler.acquireSlot();
             if (setupSlotWithRecipe(slot, recipe, recipeMap, bus, busFluidTank,
-                    scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                    remainingPower, remainingParallel)) {
                 lastCrossRecipe = recipe;
             } else {
                 // Setup failed, release the slot back to pool
@@ -260,20 +254,16 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         int filled = 0;
 
-        // [DEBUG] Log scheduler state at fill entry
-        GTLog.logger.info("[CrossRecipe-DEBUG] fillSchedulerSlots: activeSlots={}, parallelBudget={}/{}, " +
-                "powerBudget={}/{}, totalEnergyConsumption={}",
-                scheduler.getActiveSlotCount(),
-                scheduler.getRemainingParallelBudget(), scheduler.getParallelLimit(),
-                scheduler.getRemainingPowerBudget(), scheduler.getTotalPowerBudget(),
-                scheduler.getTotalEnergyConsumption());
-
         // Phase 1: Try cached recipe first (fast path, avoids full recipe search)
         if (lastCrossRecipe != null && scheduler.canAcceptMoreRecipes()) {
             if (lastCrossRecipe.matches(false, importInventory, importFluids)) {
+                // Snapshot budgets before acquireSlot to avoid the unconfigured slot (parallelCount=1)
+                // from being counted in getRemainingParallelBudget() / getRemainingPowerBudget().
+                long remainingPower = scheduler.getRemainingPowerBudget();
+                int remainingParallel = scheduler.getRemainingParallelBudget();
                 RecipeSlot slot = scheduler.acquireSlot();
                 if (setupSlotWithRecipe(slot, lastCrossRecipe, recipeMap, importInventory, importFluids,
-                        scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                        remainingPower, remainingParallel)) {
                     filled++;
                 } else {
                     scheduler.releaseSlot(slot);
@@ -307,9 +297,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         Recipe recipe = iterator.next();
                         if (recipe == null || !checkRecipe(recipe)) continue;
 
+                        long slotRemainingPower = scheduler.getRemainingPowerBudget();
+                        int slotRemainingParallel = scheduler.getRemainingParallelBudget();
                         RecipeSlot slot = scheduler.acquireSlot();
                         if (setupSlotWithRecipe(slot, recipe, recipeMap, importInventory, importFluids,
-                                scheduler.getRemainingPowerBudget(), scheduler.getRemainingParallelBudget())) {
+                                slotRemainingPower, slotRemainingParallel)) {
                             lastCrossRecipe = recipe;
                             iterator.exclude(recipe);
                             filled++;
@@ -396,19 +388,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         inputParallel = outputParallel;
 
-        // [DEBUG] Log parallel calculation steps
-        GTLog.logger.info("[CrossRecipe-DEBUG] setupSlot: baseEUt={}, remainingPower={}, maxParallelBudget={}, " +
-                "maxInputParallel={}, getMaxRecipeMultiplier={}, outputParallel={}, " +
-                "canVoidItems={}, canVoidFluids={}",
-                baseEUt, remainingPower, maxParallelBudget,
-                maxInputParallel, inputParallel, outputParallel,
-                metaTileEntity.canVoidRecipeItemOutputs(),
-                metaTileEntity.canVoidRecipeFluidOutputs());
-
         // --- Step 2: Overclock ---
         // OC tier count is based on single-recipe baseEUt vs getMaximumOverclockVoltage()
-        // OC execution voltage ceiling = remainingPower / inputParallel (per-parallel power headroom)
-        long perParallelPowerCeiling = remainingPower / inputParallel;
+        // OC execution is bounded by remainingPower (total power budget minus running slots)
         long totalBaseEUt = baseEUt * inputParallel;
         OCParams params = new OCParams();
         OCResult result = new OCResult();
@@ -418,9 +400,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (params.ocAmount() <= 0) {
             result.init(params.eut(), params.duration());
         } else {
-            // OC the whole batch: EUt is the total paralleled EUt.
-            // maxVoltage for OC execution = perParallelPowerCeiling × inputParallel = remainingPower.
-            // This ensures OC doesn't exceed the remaining power budget.
+            // OC bounded by remainingPower (total power budget minus running slots)
             runOverclockingLogic(params, result, trimmed.propertyStorage(), remainingPower);
         }
         modifyOverclockPost(result, trimmed.propertyStorage());
@@ -429,9 +409,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         int overclockedDuration = result.duration();
         int subTickParallel = Math.max(1, result.parallel());
 
-        // --- Step 3: Calculate total parallel ---
-        // Total parallel = inputParallel (from MULTIPLY) × subTickParallel (from 1tOC)
-        long totalParallel = (long) inputParallel * subTickParallel;
+        // --- Step 3: Calculate parallel and total operations ---
+        // totalParallelBasis = inputParallel × subTickParallel (total recipes per batch, includes 1tOC).
+        // Sub-tick OC (1tOC) does NOT consume scheduler parallel budget — only inputParallel does.
+        long totalParallelBasis = (long) inputParallel * subTickParallel;
 
         // Total EUt is the overclocked whole-batch EUt (already includes inputParallel).
         // For sub-tick OC, parallelEUt is the actual total power draw.
@@ -443,49 +424,38 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             inputParallel = (int) (remainingPower / Math.max(1, perParallelEUt));
             if (inputParallel <= 0) return false;
             totalSlotEUt = perParallelEUt * inputParallel;
-            totalParallel = (long) inputParallel * subTickParallel;
+            totalParallelBasis = (long) inputParallel * subTickParallel;
         }
 
-        // Re-check output space with final total parallel
-        if (totalParallel > outputParallel) {
+        // Re-check output space against total operations including sub-tick OC
+        if (totalParallelBasis > outputParallel) {
             outputParallel = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
-                    (int) Math.min(Integer.MAX_VALUE, totalParallel),
+                    (int) Math.min(Integer.MAX_VALUE, totalParallelBasis),
                     metaTileEntity.canVoidRecipeItemOutputs(),
                     metaTileEntity.canVoidRecipeFluidOutputs());
             if (outputParallel == 0) {
                 this.isOutputsFull = true;
                 return false;
             }
-            totalParallel = outputParallel;
+            totalParallelBasis = outputParallel;
             // Recalculate inputParallel based on reduced total
-            inputParallel = (int) Math.max(1, totalParallel / subTickParallel);
-            totalParallel = (long) inputParallel * subTickParallel;
+            inputParallel = (int) Math.max(1, totalParallelBasis / subTickParallel);
+            totalParallelBasis = (long) inputParallel * subTickParallel;
         }
 
-        int finalParallel = (int) Math.min(Integer.MAX_VALUE, totalParallel);
-
-        // [DEBUG] Log OC and final parallel results
-        GTLog.logger.info("[CrossRecipe-DEBUG] afterOC: overclockedEUt={}, overclockedDuration={}, " +
-                "subTickParallel={}, totalSlotEUt={}, inputParallel={}, finalParallel={}, " +
-                "powerClamp={}, outputRecheck={}",
-                overclockedEUt, overclockedDuration, subTickParallel, totalSlotEUt,
-                inputParallel, finalParallel,
-                totalSlotEUt > remainingPower, totalParallel > outputParallel);
+        // Scheduler-facing parallel: inputParallel only (no subTickParallel, no batchMultiplier)
+        int finalParallel = inputParallel;
 
         // --- Step 3.5: Batch processing (if enabled and duration is short enough) ---
+        // Batch mode accumulates multiple batches into one slot, capping total duration at 128 ticks.
         int batchMultiplier = 1;
-        int finalDuration = overclockedDuration;
         if (isBatchEnable() && overclockedDuration <= 64 && overclockedDuration > 0) {
             int maxBatch = (int) Math.floor(128.0 / overclockedDuration);
-            // Find the maximum batch multiplier that inputs can sustain
-            // Total inputs needed = inputParallel × batchMultiplier
-            int batchInputParallel = inputParallel;
             int bestBatch = 1;
             int lo = 1, hi = maxBatch;
             while (lo <= hi) {
                 int mid = lo + (hi - lo) / 2;
-                int neededParallel = batchInputParallel * mid;
-                // Check if this many inputs are available
+                int neededParallel = (int) Math.min(Integer.MAX_VALUE, totalParallelBasis * mid);
                 int available = ParallelLogic.getMaxRecipeMultiplier(
                         trimmed, importInventory, importFluids, neededParallel);
                 if (available >= neededParallel) {
@@ -497,21 +467,21 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
             if (bestBatch > 1) {
                 batchMultiplier = bestBatch;
-                finalDuration = overclockedDuration * batchMultiplier;
             }
         }
 
-        // Total input consumption = inputParallel × batchMultiplier
-        int totalInputConsume = inputParallel * batchMultiplier;
+        // Total operations = per-batch recipes × batch count
+        int totalOperations = (int) Math.min(Integer.MAX_VALUE, totalParallelBasis * batchMultiplier);
+        int finalDuration = overclockedDuration * batchMultiplier;
 
-        // --- Step 4: Consume inputs (inputParallel × batchMultiplier copies) ---
-        if (!consumeRecipeInputs(trimmed, importInventory, importFluids, totalInputConsume)) {
+        // --- Step 4: Consume inputs (totalOperations copies) ---
+        if (!consumeRecipeInputs(trimmed, importInventory, importFluids, totalOperations)) {
             return false;
         }
         this.metaTileEntity.addNotifiedInput(importInventory);
         this.isOutputsFull = false;
 
-        // --- Step 5: Calculate outputs (multiplied by finalParallel × batchMultiplier) ---
+        // --- Step 5: Calculate outputs (multiplied by totalOperations) ---
         int recipeTier = GTUtility.getTierByVoltage(baseEUt);
         int machineTier = getOverclockForTier(getMaximumOverclockVoltage());
         List<ItemStack> itemOutputs = GTUtility.copyStackList(
@@ -519,15 +489,16 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         List<FluidStack> fluidOutputs = GTUtility.copyFluidList(
                 trimmed.getResultFluidOutputs(recipeTier, machineTier, recipeMap));
 
-        int outputMultiplier = finalParallel * batchMultiplier;
-        if (outputMultiplier > 1) {
-            multiplyOutputs(itemOutputs, fluidOutputs, outputMultiplier);
+        if (totalOperations > 1) {
+            multiplyOutputs(itemOutputs, fluidOutputs, totalOperations);
         }
 
         // --- Step 6: Start the slot ---
+        // Slot parallelCount = finalParallel (inputParallel only, for scheduler budget).
+        // Slot totalOperations = total recipe completions when slot finishes (for completion reporting).
         String recipeDisplayName = getRecipeDisplayName(trimmed, recipeMap, itemOutputs, fluidOutputs);
         slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel,
-                recipeDisplayName);
+                totalOperations, recipeDisplayName);
         return true;
     }
 

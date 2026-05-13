@@ -106,7 +106,8 @@ public class WorkableInfoProvider extends CapabilityInfoProvider<IWorkable> {
 
     /**
      * Formats a merged slot display entry into a compact display line.
-     * Format: "  #1: RecipeName x64 - 3.5s/7.0s (50%)" or "  #1: 2.5s/8.0s (31%)"
+     * Format: "  #1: RecipeName x64(×4) - 3.5s/7.0s (50%)" when batched,
+     *         "  #1: RecipeName x64 - 3.5s/7.0s (50%)" normally.
      */
     @NotNull
     private static String formatMergedSlotLine(
@@ -114,13 +115,19 @@ public class WorkableInfoProvider extends CapabilityInfoProvider<IWorkable> {
         float percent = merged.maxProgress > 0
                 ? (float) merged.progress / merged.maxProgress * 100f : 0f;
 
+        int displayCount = Math.max(merged.totalParallelCount, merged.totalOperations);
+        boolean isBatched = merged.totalOperations > merged.totalParallelCount;
+
         StringBuilder sb = new StringBuilder();
         sb.append(TextFormatting.GRAY).append("  #").append(merged.slotIndex + 1).append(": ");
 
         if (!merged.recipeName.isEmpty()) {
             sb.append(TextFormatting.YELLOW).append(merged.recipeName);
-            if (merged.totalParallelCount > 1) {
-                sb.append(TextFormatting.AQUA).append(" x").append(merged.totalParallelCount);
+            if (displayCount > 1) {
+                sb.append(TextFormatting.AQUA).append(" x").append(displayCount);
+                if (isBatched) {
+                    sb.append(TextFormatting.GOLD).append("(×").append(merged.totalOperations / Math.max(1, merged.totalParallelCount)).append(")");
+                }
             }
             sb.append(TextFormatting.GRAY).append(" - ");
         }

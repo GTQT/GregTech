@@ -98,7 +98,7 @@ public class MilestonePanel {
 
         // Milestone progress bar
         parent.child(
-            new ProgressWidget().progress(progressSyncer::getDoubleValue)
+            new ProgressWidget().value(progressSyncer)
                 .texture(
                     GTGuiTextures.PROGRESSBAR_GODFORGE_MILESTONE_BACKGROUND,
                     milestone.getProgressBarMainOverlay(),
@@ -108,7 +108,7 @@ public class MilestonePanel {
                 .widthRel(1.0f)
                 .height(MILESTONE_PROGRESS_BAR_H));
         parent.child(
-            new ProgressWidget().progress(invertedProgressSyncer::getDoubleValue)
+            new ProgressWidget().value(invertedProgressSyncer)
                 .texture(GTGuiTextures.BLANK_TRANSPARENT, milestone.getProgressBarInvertedOverlay(), -1)
                 .direction(Direction.LEFT)
                 .alignY(Alignment.CENTER)

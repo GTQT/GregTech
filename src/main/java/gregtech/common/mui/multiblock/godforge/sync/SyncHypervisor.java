@@ -40,6 +40,20 @@ public final class SyncHypervisor {
     public void setMultiblock(MetaTileEntityForgeOfGods multiblock) {
         this.multiblock = multiblock;
         this.data = multiblock != null ? multiblock.getData() : null;
+        if (multiblock != null) {
+            multiblock.setSyncHypervisor(this);
+        }
+    }
+
+    public void clearMultiblock() {
+        if (multiblock != null) {
+            multiblock.clearSyncHypervisor(this);
+        }
+        multiblock = null;
+        data = null;
+        modules.clear();
+        panels.clear();
+        syncManagers.clear();
     }
 
     public MetaTileEntityForgeOfGods getMultiblock() {

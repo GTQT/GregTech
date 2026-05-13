@@ -596,23 +596,36 @@ public class MultiblockUIBuilder {
             String recipeName = getSyncer().syncString(merged != null ? merged.recipeName : "");
             int parallelCount = Math.max(1, getSyncer().syncInt(
                     merged != null ? merged.totalParallelCount : 1));
+            int totalOperations = getSyncer().syncInt(
+                    merged != null ? merged.totalOperations : 1);
             int progress = getSyncer().syncInt(merged != null ? merged.progress : 0);
             int maxProgress = getSyncer().syncInt(merged != null ? merged.maxProgress : 0);
             long eut = getSyncer().syncLong(merged != null ? merged.totalEUt : 0);
 
             if (maxProgress > 0) {
                 float percent = Math.min(100f, Math.max(0f, (float) progress / maxProgress * 100f));
+                int displayCount = Math.max(parallelCount, totalOperations);
+                boolean isBatched = totalOperations > parallelCount;
                 if (recipeName.isEmpty()) {
                     addKey(KeyUtil.lang(TextFormatting.GRAY,
                             "gregtech.multiblock.cross_recipe_parallel.slot",
                             slotIndex + 1, progress / 20f, maxProgress / 20f, percent,
+                            KeyUtil.number(TextFormatting.RED, eut)));
+                } else if (isBatched) {
+                    int batchMultiplier = totalOperations / Math.max(1, parallelCount);
+                    addKey(KeyUtil.lang(TextFormatting.GRAY,
+                            "gregtech.multiblock.cross_recipe_parallel.slot_named_batch",
+                            slotIndex + 1,
+                            KeyUtil.string(TextFormatting.YELLOW, recipeName),
+                            displayCount, batchMultiplier,
+                            progress / 20f, maxProgress / 20f, percent,
                             KeyUtil.number(TextFormatting.RED, eut)));
                 } else {
                     addKey(KeyUtil.lang(TextFormatting.GRAY,
                             "gregtech.multiblock.cross_recipe_parallel.slot_named",
                             slotIndex + 1,
                             KeyUtil.string(TextFormatting.YELLOW, recipeName),
-                            parallelCount,
+                            displayCount,
                             progress / 20f, maxProgress / 20f, percent,
                             KeyUtil.number(TextFormatting.RED, eut)));
                 }

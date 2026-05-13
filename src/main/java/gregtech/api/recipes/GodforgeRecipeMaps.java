@@ -40,7 +40,7 @@ public final class GodforgeRecipeMaps {
     public static final RecipeMap<SimpleRecipeBuilder> GODFORGE_EXOTIC_MATTER_RECIPES = new RecipeMapBuilder<>(
             "godforge_exotic",
             new SimpleRecipeBuilder())
-            .itemInputs(1)
+            .itemInputs(4)
             .itemOutputs(1)
             .fluidInputs(2)
             .fluidOutputs(1)

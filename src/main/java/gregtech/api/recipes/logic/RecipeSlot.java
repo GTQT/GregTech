@@ -60,6 +60,12 @@ public class RecipeSlot {
     // --- Parallel multiplier applied to this slot ---
     private int parallelCount = 1;
 
+    // --- Total recipe operations this slot will complete ---
+    // = inputParallel × subTickParallel × batchMultiplier.
+    // Used for completion reporting (recipe tally). Defaults to parallelCount.
+    // Not used for scheduler budget — that's tracked by parallelCount alone.
+    private int totalOperations = 1;
+
     public RecipeSlot(int slotIndex) {
         this.slotIndex = slotIndex;
     }
@@ -80,13 +86,22 @@ public class RecipeSlot {
                             @NotNull List<ItemStack> itemOutputs,
                             @NotNull List<FluidStack> fluidOutputs,
                             int parallelCount) {
-        startRecipe(recipe, duration, eut, itemOutputs, fluidOutputs, parallelCount, "");
+        startRecipe(recipe, duration, eut, itemOutputs, fluidOutputs, parallelCount, parallelCount, "");
     }
 
     public void startRecipe(@NotNull Recipe recipe, int duration, long eut,
                             @NotNull List<ItemStack> itemOutputs,
                             @NotNull List<FluidStack> fluidOutputs,
                             int parallelCount,
+                            @NotNull String recipeDisplayName) {
+        startRecipe(recipe, duration, eut, itemOutputs, fluidOutputs, parallelCount, parallelCount, recipeDisplayName);
+    }
+
+    public void startRecipe(@NotNull Recipe recipe, int duration, long eut,
+                            @NotNull List<ItemStack> itemOutputs,
+                            @NotNull List<FluidStack> fluidOutputs,
+                            int parallelCount,
+                            int totalOperations,
                             @NotNull String recipeDisplayName) {
         this.sourceRecipe = recipe;
         this.progressTime = 1;
@@ -95,6 +110,7 @@ public class RecipeSlot {
         this.itemOutputs = new ArrayList<>(itemOutputs);
         this.fluidOutputs = new ArrayList<>(fluidOutputs);
         this.parallelCount = parallelCount;
+        this.totalOperations = totalOperations;
         this.recipeDisplayName = recipeDisplayName;
         this.state = State.RUNNING;
     }
@@ -128,6 +144,7 @@ public class RecipeSlot {
         this.sourceRecipe = null;
         this.recipeDisplayName = "";
         this.parallelCount = 1;
+        this.totalOperations = 1;
     }
 
     // ==================== Getters ====================
@@ -188,6 +205,10 @@ public class RecipeSlot {
         return parallelCount;
     }
 
+    public int getTotalOperations() {
+        return totalOperations;
+    }
+
     /**
      * @return progress as a percentage (0.0 to 1.0)
      */
@@ -204,6 +225,7 @@ public class RecipeSlot {
         tag.setInteger("state", state.ordinal());
         tag.setInteger("slotIndex", slotIndex);
         tag.setInteger("parallelCount", parallelCount);
+        tag.setInteger("totalOperations", totalOperations);
 
         if (state == State.RUNNING || state == State.COMPLETED) {
             tag.setInteger("progressTime", progressTime);
@@ -230,6 +252,7 @@ public class RecipeSlot {
     public void deserializeNBT(@NotNull NBTTagCompound tag) {
         this.state = State.values()[tag.getInteger("state")];
         this.parallelCount = tag.getInteger("parallelCount");
+        this.totalOperations = tag.getInteger("totalOperations");
 
         if (state == State.RUNNING || state == State.COMPLETED) {
             this.progressTime = tag.getInteger("progressTime");
@@ -259,6 +282,7 @@ public class RecipeSlot {
                 ", progress=" + progressTime + "/" + maxProgressTime +
                 ", eut=" + recipeEUt +
                 ", parallel=" + parallelCount +
+                ", ops=" + totalOperations +
                 '}';
     }
 }

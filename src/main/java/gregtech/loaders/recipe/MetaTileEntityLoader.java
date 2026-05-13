@@ -920,14 +920,12 @@ public class MetaTileEntityLoader {
                     MetaTileEntities.MULTIBLOCK_TANK.getStackForm(mat), " R ", toolRow, " R ",
                     'R', new UnificationEntry(OrePrefix.ring, recipeMat),
                     'C', casingStack);
-
-            // Tank valve recipe
-            ModHandler.addShapedRecipe(true, matName + "_tank_valve",
-                    MetaTileEntities.MULTIBLOCK_TANK_VALVE.getStackForm(mat), " R ", toolRow, " O ",
-                    'O', new UnificationEntry(OrePrefix.rotor, recipeMat),
-                    'R', new UnificationEntry(OrePrefix.ring, recipeMat),
-                    'C', casingStack);
         }
+        ModHandler.addShapedRecipe(true, "multiblock_tank_valve",
+                MetaTileEntities.MULTIBLOCK_TANK_VALVE.getStackForm(), " R ", "hCw", " O ",
+                'O', new UnificationEntry(OrePrefix.rotor, Materials.Steel),
+                'R', new UnificationEntry(OrePrefix.ring, Materials.Steel),
+                'C', MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
 
         ModHandler.addShapedRecipe(true, "alarm", MetaTileEntities.ALARM.getStackForm(), "WRW", "CHL", "WPW", 'W',
                 new UnificationEntry(OrePrefix.cableGtSingle, Materials.Tin), 'P', MetaItems.ELECTRIC_PUMP_LV, 'L',

@@ -273,6 +273,7 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
         this.lastCrossRecipe = null;
         this.invalidInputsForRecipes = false;
         this.isOutputsFull = false;
+        this.invalidatedInputList.clear();
     }
 
     @Override

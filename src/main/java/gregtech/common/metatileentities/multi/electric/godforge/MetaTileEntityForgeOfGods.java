@@ -7,6 +7,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IGodforgeModule;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWorldData;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
@@ -42,6 +43,9 @@ import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmelti
 import gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade;
 import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
 import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMath;
+import gregtech.common.mui.multiblock.godforge.sync.Panels;
+import gregtech.common.mui.multiblock.godforge.sync.SyncHypervisor;
+import gregtech.common.mui.multiblock.godforge.sync.SyncValues;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -95,8 +99,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     // Core tick interval: every 100 ticks (5 seconds) just like GT5
     private static final int TICK_INTERVAL = 100;
+    private static final int RING_REPLACEMENT_BLOCK_BUDGET = 1024;
 
     private final ForgeOfGodsData data = new ForgeOfGodsData();
+    private SyncHypervisor syncHypervisor;
     private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
     private long ticker = 0;
     private int lastKnownRingAmount = 1;
@@ -105,6 +111,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private long lastModuleConnectionLogTime = -1;
     private boolean patternBuiltForRenderActive = false;
     private int patternBuiltForClearedRingAmount = 0;
+    private boolean pendingStructureRefresh = false;
 
     /**
      * Dirty flag for ring block replacement. Set when ring state changes
@@ -113,6 +120,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
      * every 100 ticks when nothing has changed.
      */
     private boolean ringsDirty = false;
+    private RingReplacementTask ringReplacementTask;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -326,12 +334,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private static TraceabilityPredicate godforgeController() {
-        ResourceLocation controllerId = GTUtility.gregtechId("forge_of_gods");
-        return tilePredicate((state, tile) -> tile != null && controllerId.equals(tile.metaTileEntityId),
-                () -> new gregtech.api.util.BlockInfo[] {
-                        new gregtech.api.util.BlockInfo(
-                                getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
-                }).setCenter();
+        return MultiblockControllerBase.selfPredicate(GTUtility.gregtechId("forge_of_gods"));
     }
 
     // ==================== Structure Lifecycle ====================
@@ -506,10 +509,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public void onRemoval() {
         if (getWorld() != null && !getWorld().isRemote) {
+            pendingStructureRefresh = false;
             destroyRenderer();
+            completeRingReplacement();
             cleanupPossibleRendererBlocks();
             disconnectAllModules();
             moduleHatches.clear();
+        }
+        if (syncHypervisor != null) {
+            syncHypervisor.clearMultiblock();
         }
         super.onRemoval();
     }
@@ -618,7 +626,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public void update() {
         super.update();
-        if (getWorld() == null || getWorld().isRemote || isStructureFormed()) return;
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        if (isStructureFormed() && ringsDirty) {
+            ringsDirty = false;
+            replaceRenderedRings(false);
+        }
+        processRingReplacement();
+        if (isStructureFormed()) return;
 
         if (data.isRenderActive()) {
             destroyRenderer();
@@ -659,17 +674,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             replaceRenderedRings(false);
         }
 
-        // === Milestone calculations ===
-        determineCompositionMilestoneLevel();
-        determineMilestoneProgress();
-        checkInversionStatus();
-        determineGravitonShardAmount();
-
-        // === Graviton shard ejection (if END upgrade active and ejection enabled) ===
-        if (data.isUpgradeActive(ForgeOfGodsUpgrade.END) && data.isGravitonShardEjection()) {
-            ejectGravitonShards();
-        }
-
         // === Module parameter calculation and connection management ===
         logModuleConnectionSummary(maxModuleCount);
         if (!moduleHatches.isEmpty() && data.getInternalBattery() > 0
@@ -706,6 +710,18 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
 
         // === Ring unlock/respec detection → update renderer and structure ===
+        // === Milestone calculations ===
+        determineCompositionMilestoneLevel();
+        determineMilestoneProgress();
+        pushMilestoneProgress();
+        checkInversionStatus();
+        determineGravitonShardAmount();
+
+        // === Graviton shard ejection (if END upgrade active and ejection enabled) ===
+        if (data.isUpgradeActive(ForgeOfGodsUpgrade.END) && data.isGravitonShardEjection()) {
+            ejectGravitonShards();
+        }
+
         if (data.getRingAmount() != lastKnownRingAmount ||
                 data.getClearedRingAmount() != lastKnownClearedRingAmount) {
             lastKnownRingAmount = data.getRingAmount();
@@ -1010,6 +1026,18 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         GodforgeMath.determineCompositionMilestone(data);
     }
 
+    private void pushMilestoneProgress() {
+        if (syncHypervisor == null) return;
+        SyncValues.MILESTONE_CHARGE_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_CHARGE_PROGRESS_INVERTED.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_CONVERSION_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_CONVERSION_PROGRESS_INVERTED.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_CATALYST_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_CATALYST_PROGRESS_INVERTED.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_COMPOSITION_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+        SyncValues.MILESTONE_COMPOSITION_PROGRESS_INVERTED.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
+    }
+
     /**
      * Checks if all milestones have reached tier 7 to enable inversion.
      */
@@ -1140,6 +1168,16 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return data;
     }
 
+    public void setSyncHypervisor(SyncHypervisor hypervisor) {
+        this.syncHypervisor = hypervisor;
+    }
+
+    public void clearSyncHypervisor(SyncHypervisor hypervisor) {
+        if (this.syncHypervisor == hypervisor) {
+            this.syncHypervisor = null;
+        }
+    }
+
     public List<MTEBaseModule> getModuleHatches() {
         return moduleHatches;
     }
@@ -1150,6 +1188,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (isStructureFormed()) {
             invalidateStructure();
         }
+        if (ringReplacementTask != null) {
+            pendingStructureRefresh = true;
+            markDirty();
+            return;
+        }
+        refreshStructureNow();
+    }
+
+    private void refreshStructureNow() {
         reinitializeStructurePattern();
         checkStructurePattern();
         markDirty();
@@ -1238,44 +1285,58 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private void replaceRenderedRings(boolean restoreBlocks) {
         if (getWorld() == null || getWorld().isRemote || getPos() == null) return;
 
-        int ringAmount = restoreBlocks ? data.getClearedRingAmount() : getReplaceableRingAmount();
+        int ringAmount = restoreBlocks ? getRestorableRingAmount() : getReplaceableRingAmount();
         if (ringAmount <= 0) return;
+
+        ringReplacementTask = new RingReplacementTask(restoreBlocks, ringAmount);
+    }
+
+    private void processRingReplacement() {
+        if (ringReplacementTask == null) return;
+        if (getWorld() == null || getWorld().isRemote || getPos() == null) {
+            ringReplacementTask = null;
+            return;
+        }
 
         // Suppress event-driven recheck during ring replacement to prevent cascading
         // structure invalidation from our own intentional block modifications.
         MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
         worldData.suppressRecheck(this);
         try {
-            int changed = 0;
-            if (ringAmount >= 1) {
-                changed += replaceRingBlocks(ForgeOfGodsStructureString.FIRST_RING, FIRST_RING_OFFSET,
-                        FIRST_RING_CENTER, restoreBlocks);
-            }
-            if (ringAmount >= 2) {
-                changed += replaceRingBlocks(ForgeOfGodsStructureString.SECOND_RING, SECOND_RING_OFFSET,
-                        SECOND_RING_CENTER, restoreBlocks);
-            }
-            if (ringAmount >= 3) {
-                changed += replaceRingBlocks(ForgeOfGodsStructureString.THIRD_RING, THIRD_RING_OFFSET,
-                        THIRD_RING_CENTER, restoreBlocks);
-            }
-
-            if (restoreBlocks) {
-                data.setClearedRingAmount(0);
-                data.setRingAmount(ringAmount);
-            } else {
-                data.setClearedRingAmount(ringAmount);
-                data.setRingAmount(Math.max(data.getRingAmount(), ringAmount));
-            }
-            markDirty();
-
-            if (restoreBlocks || changed > 0) {
-                GTLog.logger.info(
-                        "[FOG] replaceRenderedRings: restore={}, rings={}, clearedRings={}, changedBlocks={}",
-                        restoreBlocks, data.getRingAmount(), data.getClearedRingAmount(), changed);
+            if (ringReplacementTask.process(RING_REPLACEMENT_BLOCK_BUDGET)) {
+                finishRingReplacement(ringReplacementTask);
+                ringReplacementTask = null;
             }
         } finally {
             worldData.unsuppressRecheck(this);
+        }
+    }
+
+    private void completeRingReplacement() {
+        while (ringReplacementTask != null) {
+            processRingReplacement();
+        }
+    }
+
+    private void finishRingReplacement(RingReplacementTask task) {
+        if (task.restoreBlocks) {
+            data.setClearedRingAmount(0);
+            data.setRingAmount(task.ringAmount);
+        } else {
+            data.setClearedRingAmount(task.ringAmount);
+            data.setRingAmount(Math.max(data.getRingAmount(), task.ringAmount));
+        }
+        markDirty();
+
+        if (task.restoreBlocks || task.changedBlocks > 0) {
+            GTLog.logger.info(
+                    "[FOG] replaceRenderedRings: restore={}, rings={}, clearedRings={}, changedBlocks={}",
+                    task.restoreBlocks, data.getRingAmount(), data.getClearedRingAmount(), task.changedBlocks);
+        }
+
+        if (task.restoreBlocks && pendingStructureRefresh) {
+            pendingStructureRefresh = false;
+            refreshStructureNow();
         }
     }
 
@@ -1293,6 +1354,53 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             rings = 3;
         }
         return rings;
+    }
+
+    private int getRestorableRingAmount() {
+        int rings = data.getClearedRingAmount();
+        if (ringReplacementTask != null && !ringReplacementTask.restoreBlocks) {
+            rings = Math.max(rings, ringReplacementTask.ringAmount);
+        }
+        return rings;
+    }
+
+    private static String[][] getRingShape(int ringIndex) {
+        switch (ringIndex) {
+            case 1:
+                return ForgeOfGodsStructureString.FIRST_RING;
+            case 2:
+                return ForgeOfGodsStructureString.SECOND_RING;
+            case 3:
+                return ForgeOfGodsStructureString.THIRD_RING;
+            default:
+                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
+        }
+    }
+
+    private static Vec3i getRingOffset(int ringIndex) {
+        switch (ringIndex) {
+            case 1:
+                return FIRST_RING_OFFSET;
+            case 2:
+                return SECOND_RING_OFFSET;
+            case 3:
+                return THIRD_RING_OFFSET;
+            default:
+                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
+        }
+    }
+
+    private static int[] getRingCenter(int ringIndex) {
+        switch (ringIndex) {
+            case 1:
+                return FIRST_RING_CENTER;
+            case 2:
+                return SECOND_RING_CENTER;
+            case 3:
+                return THIRD_RING_CENTER;
+            default:
+                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
+        }
     }
 
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
@@ -1332,6 +1440,77 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             }
         }
         return changed;
+    }
+
+    private final class RingReplacementTask {
+
+        private final boolean restoreBlocks;
+        private final int ringAmount;
+        private int ringIndex = 1;
+        private int x;
+        private int y;
+        private int z;
+        private int changedBlocks;
+
+        private RingReplacementTask(boolean restoreBlocks, int ringAmount) {
+            this.restoreBlocks = restoreBlocks;
+            this.ringAmount = ringAmount;
+        }
+
+        private boolean process(int blockBudget) {
+            int processedBlocks = 0;
+            while (ringIndex <= ringAmount && processedBlocks < blockBudget) {
+                String[][] shape = getRingShape(ringIndex);
+                Vec3i pieceOffset = getRingOffset(ringIndex);
+                int[] centerOffset = getRingCenter(ringIndex);
+                BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
+                        new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
+                        getFrontFacing().getOpposite(), getUpwardsFacing());
+
+                while (z < shape.length && processedBlocks < blockBudget) {
+                    String[] layer = shape[z];
+                    while (y < layer.length && processedBlocks < blockBudget) {
+                        String row = layer[y];
+                        while (x < row.length() && processedBlocks < blockBudget) {
+                            int currentX = x++;
+                            char marker = row.charAt(currentX);
+                            IBlockState state = restoreBlocks ? getRingBlockState(marker) : getAirReplacement(marker);
+                            if (state == null) continue;
+
+                            processedBlocks++;
+                            BlockPos relativePos = RelativeDirection.setActualRelativeOffset(
+                                    currentX - centerOffset[0],
+                                    y - centerOffset[1],
+                                    z - centerOffset[2],
+                                    getFrontFacing().getOpposite(),
+                                    getUpwardsFacing(),
+                                    isFlipped(),
+                                    GODFORGE_STRUCTURE_DIRECTIONS);
+                            BlockPos worldPos = pieceOrigin.add(relativePos);
+                            if (!getWorld().isBlockLoaded(worldPos)) continue;
+
+                            if (!getWorld().getBlockState(worldPos).equals(state)) {
+                                getWorld().setBlockState(worldPos, state, 2);
+                                changedBlocks++;
+                            }
+                        }
+                        if (x >= row.length()) {
+                            x = 0;
+                            y++;
+                        }
+                    }
+                    if (y >= layer.length) {
+                        y = 0;
+                        z++;
+                    }
+                }
+                if (z >= shape.length) {
+                    z = 0;
+                    ringIndex++;
+                }
+            }
+            return ringIndex > ringAmount;
+        }
     }
 
     @Nullable

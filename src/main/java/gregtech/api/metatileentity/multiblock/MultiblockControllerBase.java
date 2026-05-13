@@ -518,8 +518,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * Collect all registered MetaTileEntities whose class matches the given controller class
-     * and return them as candidate BlockInfo array. Used by {@link #selfPredicateByClass} so that
-     * the auto-generated JEI preview can render the controller block.
+     * and return them as candidate BlockInfo array.
      */
     @NotNull
     private static Supplier<BlockInfo[]> getCandidatesByClass(

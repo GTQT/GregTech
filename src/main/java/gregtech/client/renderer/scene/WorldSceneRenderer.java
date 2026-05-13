@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.util.Position;
 import gregtech.api.util.PositionedRect;
 import gregtech.api.util.Size;
+import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.utils.RenderUtil;
 
 import net.minecraft.block.Block;
@@ -17,6 +18,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -477,7 +479,11 @@ public abstract class WorldSceneRenderer {
             state = state.getActualState(world, pos);
             if (block == Blocks.AIR) continue;
             if (block.canRenderInLayer(state, layer)) {
-                blockrendererdispatcher.renderBlock(state, pos, world, buffer);
+                if (block.getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
+                    MetaTileEntityRenderer.INSTANCE.renderBlock(world, pos, state, buffer);
+                } else {
+                    blockrendererdispatcher.renderBlock(state, pos, world, buffer);
+                }
             }
         }
     }

@@ -311,7 +311,7 @@ public class MetaTileEntityMultiblockTank extends ParametricMultiblockController
             return switch (this) {
                 case WOOD -> Textures.WOOD_WALL;
                 case STEEL -> Textures.SOLID_STEEL_CASING;
-                default -> Textures.SOLID_STEEL_CASING; // TODO: add dedicated tank casing textures
+                default -> Textures.TANK_CASINGS[casingType.ordinal()];
             };
         }
     }

@@ -210,14 +210,14 @@ public class CrossRecipeParallelScheduler {
             if (slot.isRunning()) {
                 if (slot.tick()) {
                     // Slot just completed - output results and return to pool
-                    completedParallel += Math.max(1, slot.getParallelCount());
+                    completedParallel += Math.max(1, slot.getTotalOperations());
                     outputSlotResults(slot, outputInventory, outputFluids);
                     it.remove();
                     returnSlotToPool(slot);
                 }
             } else if (slot.isCompleted()) {
                 // Shouldn't normally reach here, but handle gracefully
-                completedParallel += Math.max(1, slot.getParallelCount());
+                completedParallel += Math.max(1, slot.getTotalOperations());
                 outputSlotResults(slot, outputInventory, outputFluids);
                 it.remove();
                 returnSlotToPool(slot);
@@ -363,15 +363,17 @@ public class CrossRecipeParallelScheduler {
         @NotNull
         public final String recipeName;
         public final int totalParallelCount;
+        public final int totalOperations;
         public final int progress;
         public final int maxProgress;
         public final long totalEUt;
 
         public MergedSlotDisplay(int slotIndex, @NotNull String recipeName, int totalParallelCount,
-                                 int progress, int maxProgress, long totalEUt) {
+                                 int totalOperations, int progress, int maxProgress, long totalEUt) {
             this.slotIndex = slotIndex;
             this.recipeName = recipeName;
             this.totalParallelCount = totalParallelCount;
+            this.totalOperations = totalOperations;
             this.progress = progress;
             this.maxProgress = maxProgress;
             this.totalEUt = totalEUt;
@@ -410,6 +412,7 @@ public class CrossRecipeParallelScheduler {
                             existing.slotIndex,
                             existing.recipeName,
                             existing.totalParallelCount + slot.getParallelCount(),
+                            existing.totalOperations + slot.getTotalOperations(),
                             Math.max(existing.progress, slot.getProgressTime()),
                             existing.maxProgress,
                             existing.totalEUt + slot.getRecipeEUt()));
@@ -423,6 +426,7 @@ public class CrossRecipeParallelScheduler {
                         slot.getSlotIndex(),
                         name,
                         slot.getParallelCount(),
+                        slot.getTotalOperations(),
                         slot.getProgressTime(),
                         maxProg,
                         slot.getRecipeEUt()));

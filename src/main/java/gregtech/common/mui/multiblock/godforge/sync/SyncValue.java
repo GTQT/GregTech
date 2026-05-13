@@ -29,12 +29,15 @@ public abstract class SyncValue<T extends ValueSyncHandler<?>> {
     @SuppressWarnings("unchecked")
     public T lookupFrom(Modules<?> fromModule, Panels fromPanel, SyncHypervisor hypervisor) {
         PanelSyncManager syncManager = hypervisor.getSyncManager(fromModule, fromPanel);
-        return (T) syncManager.findSyncHandler(getSyncId(fromModule, fromPanel, hypervisor));
+        if (syncManager == null) return null;
+        return (T) syncManager.findSyncHandlerNullable(getSyncId(fromModule, fromPanel, hypervisor));
     }
 
     public void notifyUpdateFrom(Modules<?> fromModule, Panels fromPanel, SyncHypervisor hypervisor) {
         T syncer = lookupFrom(fromModule, fromPanel, hypervisor);
-        syncer.notifyUpdate();
+        if (syncer != null && syncer.isValid()) {
+            syncer.notifyUpdate();
+        }
     }
 
     protected String getSyncId(Modules<?> fromModule, Panels fromPanel, SyncHypervisor hypervisor) {
