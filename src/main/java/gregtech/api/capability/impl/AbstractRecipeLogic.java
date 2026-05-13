@@ -99,7 +99,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private double speedBonus = -1;
     private boolean allowOverclocking = true;
     private long overclockVoltage;
-    private boolean enableBatch = false;
+    private boolean enableBatch = true;
     private boolean lockRecipe = false;
     private boolean overflowMode = false;
     private boolean lackEnergyWarning = false;

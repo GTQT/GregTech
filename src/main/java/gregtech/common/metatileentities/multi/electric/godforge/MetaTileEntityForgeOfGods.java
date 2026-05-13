@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.multiblock.IGodforgeModule;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.MultiblockWorldData;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
@@ -104,6 +105,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private long lastModuleConnectionLogTime = -1;
     private boolean patternBuiltForRenderActive = false;
     private int patternBuiltForClearedRingAmount = 0;
+
+    /**
+     * Dirty flag for ring block replacement. Set when ring state changes
+     * (e.g., renderer created/destroyed, ring unlocked/respec). Cleared after
+     * replaceRenderedRings() is executed. This avoids scanning ~1M block positions
+     * every 100 ticks when nothing has changed.
+     */
+    private boolean ringsDirty = false;
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
@@ -376,14 +385,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     @Override
     public void doStructureCheck() {
-        if (getWorld() != null && !getWorld().isRemote && isStructureFormed() && data.isRenderActive()) {
-            if (getOffsetTimer() % TICK_INTERVAL == 0 && !isBeamShaftStillFormed()) {
-                GTLog.logger.warn("[FOG] beam shaft check failed while renderer is active; invalidating controller={}",
-                        getPos());
-                invalidateStructure();
-            }
-            return;
-        }
+        // When the renderer is active, rings are replaced with air. The event-driven system
+        // (MultiblockWorldData) monitors beam_shaft positions and will trigger a recheck if
+        // any block in the registered structure changes. We delegate to super which handles
+        // event-driven, async, and fallback polling modes automatically.
         super.doStructureCheck();
     }
 
@@ -556,16 +561,29 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 modules.length() == 0 ? "[]" : modules);
     }
 
+    /**
+     * Determines the ring amount from structure template checks.
+     * Only called during formStructure() and GUI-triggered refresh, NOT during tick loops.
+     * When the renderer is active (rings replaced with air), uses the persisted clearedRingAmount
+     * instead of doing expensive template checks against physical blocks.
+     */
     private void updateRingAmount() {
-        int rings = Math.max(1, data.getClearedRingAmount());
-        if (getWorld() != null && !getWorld().isRemote && getPos() != null) {
-            if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD) &&
-                    isRingTemplateFormed(SECOND_RING_TEMPLATE, SECOND_RING_OFFSET)) {
-                rings = Math.max(rings, 2);
-            }
-            if (rings >= 2 && data.isUpgradeActive(ForgeOfGodsUpgrade.END) &&
-                    isRingTemplateFormed(THIRD_RING_TEMPLATE, THIRD_RING_OFFSET)) {
-                rings = Math.max(rings, 3);
+        int rings;
+        if (data.isRenderActive()) {
+            // Rings are air — trust the persisted cleared ring amount
+            rings = Math.max(1, data.getClearedRingAmount());
+        } else {
+            // Rings are physical blocks — check templates
+            rings = Math.max(1, data.getClearedRingAmount());
+            if (getWorld() != null && !getWorld().isRemote && getPos() != null) {
+                if (data.isUpgradeActive(ForgeOfGodsUpgrade.CD) &&
+                        isRingTemplateFormed(SECOND_RING_TEMPLATE, SECOND_RING_OFFSET)) {
+                    rings = Math.max(rings, 2);
+                }
+                if (rings >= 2 && data.isUpgradeActive(ForgeOfGodsUpgrade.END) &&
+                        isRingTemplateFormed(THIRD_RING_TEMPLATE, THIRD_RING_OFFSET)) {
+                    rings = Math.max(rings, 3);
+                }
             }
         }
         if (data.getRingAmount() != rings) {
@@ -619,8 +637,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         if (ticker % TICK_INTERVAL != 0) return;
 
-        // Calculate max allowed module count based on rings that actually exist.
-        updateRingAmount();
+        // Ring amount is determined at formStructure() time, not in the tick loop.
+        // During runtime, ring count only changes through GUI operations (upgrade/respec)
+        // which call refreshStructureFromGui() → formStructure() → updateRingAmount().
         int maxModuleCount = 8 + (data.getRingAmount() - 1) * 4;
 
         // === Fuel absorption and battery startup ===
@@ -631,7 +650,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             drainFuel();
         }
 
+        // === Renderer integrity check (lightweight: single getBlockState call) ===
         ensureRendererState();
+
+        // === Ring block replacement (only when state has actually changed) ===
+        if (ringsDirty) {
+            ringsDirty = false;
+            replaceRenderedRings(false);
+        }
 
         // === Milestone calculations ===
         determineCompositionMilestoneLevel();
@@ -851,6 +877,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
     }
 
+    /**
+     * Lightweight renderer integrity check. Only verifies that the render block exists
+     * at the expected position (single getBlockState call). If missing, recreates it.
+     * Ring block replacement is handled separately by the ringsDirty flag.
+     */
     private void ensureRendererState() {
         if (!isStructureFormed()) {
             if (data.isRenderActive()) {
@@ -873,12 +904,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 GTLog.logger.info("[FOG] ensureRendererState: render block missing, recreating. isRenderActive={}", data.isRenderActive());
                 data.setRenderActive(false);
                 createRenderer();
-            } else {
-                TileEntity te = getWorld().getTileEntity(renderPos);
-                if (te instanceof GodforgeRenderTileEntity) {
-                    ((GodforgeRenderTileEntity) te).setOwnerPos(getPos());
-                }
-                replaceRenderedRings(false);
             }
             return;
         }
@@ -890,12 +915,13 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     private void logModuleConnectionSummary(int maxModuleCount) {
         if (getWorld() == null || getWorld().isRemote) return;
+        if (!GTLog.logger.isDebugEnabled()) return;
 
         long worldTime = getWorld().getTotalWorldTime();
         if (lastModuleConnectionLogTime >= 0 && worldTime - lastModuleConnectionLogTime < TICK_INTERVAL) return;
         lastModuleConnectionLogTime = worldTime;
 
-        GTLog.logger.info("[FOG] module connection tick: controller={}, formed={}, battery={}, modules={}, " +
+        GTLog.logger.debug("[FOG] module connection tick: controller={}, formed={}, battery={}, modules={}, " +
                         "maxModules={}, ringAmount={}, fuelType={}, fuelFactor={}, upgrades={}, shouldProcess={}",
                 getPos(), isStructureFormed(), data.getInternalBattery(), moduleHatches.size(), maxModuleCount,
                 data.getRingAmount(), data.getSelectedFuelType(), data.getFuelConsumptionFactor(),
@@ -906,8 +932,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private void logModuleConnectionDecision(MTEBaseModule module, boolean wasConnected, boolean allowConnection,
                                              boolean antiCheeseDisconnect) {
         if (getWorld() == null || getWorld().isRemote) return;
+        if (!GTLog.logger.isDebugEnabled()) return;
 
-        GTLog.logger.info("[FOG] module connection decision: controller={}, module={}, wasConnected={}, " +
+        GTLog.logger.debug("[FOG] module connection decision: controller={}, module={}, wasConnected={}, " +
                         "allowConnection={}, antiCheeseDisconnect={}, nowConnected={}, heat={}, ocHeat={}, " +
                         "maxParallel={}, voltage={}, currentRecipeHeat={}",
                 getPos(), describeModule(module), wasConnected, allowConnection, antiCheeseDisconnect,
@@ -1182,7 +1209,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             renderTE.setOwnerPos(getPos());
             renderTE.setRenderRotation(getFrontFacing());
             data.setRenderActive(true);
-            replaceRenderedRings(false);
+            ringsDirty = true;
             updateRenderer();
             GTLog.logger.info("[FOG] createRenderer: SUCCESS at {}", renderPos);
         } else {
@@ -1214,43 +1241,55 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         int ringAmount = restoreBlocks ? data.getClearedRingAmount() : getReplaceableRingAmount();
         if (ringAmount <= 0) return;
 
-        int changed = 0;
-        if (ringAmount >= 1) {
-            changed += replaceRingBlocks(ForgeOfGodsStructureString.FIRST_RING, FIRST_RING_OFFSET, FIRST_RING_CENTER,
-                    restoreBlocks);
-        }
-        if (ringAmount >= 2) {
-            changed += replaceRingBlocks(ForgeOfGodsStructureString.SECOND_RING, SECOND_RING_OFFSET,
-                    SECOND_RING_CENTER, restoreBlocks);
-        }
-        if (ringAmount >= 3) {
-            changed += replaceRingBlocks(ForgeOfGodsStructureString.THIRD_RING, THIRD_RING_OFFSET, THIRD_RING_CENTER,
-                    restoreBlocks);
-        }
+        // Suppress event-driven recheck during ring replacement to prevent cascading
+        // structure invalidation from our own intentional block modifications.
+        MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
+        worldData.suppressRecheck(this);
+        try {
+            int changed = 0;
+            if (ringAmount >= 1) {
+                changed += replaceRingBlocks(ForgeOfGodsStructureString.FIRST_RING, FIRST_RING_OFFSET,
+                        FIRST_RING_CENTER, restoreBlocks);
+            }
+            if (ringAmount >= 2) {
+                changed += replaceRingBlocks(ForgeOfGodsStructureString.SECOND_RING, SECOND_RING_OFFSET,
+                        SECOND_RING_CENTER, restoreBlocks);
+            }
+            if (ringAmount >= 3) {
+                changed += replaceRingBlocks(ForgeOfGodsStructureString.THIRD_RING, THIRD_RING_OFFSET,
+                        THIRD_RING_CENTER, restoreBlocks);
+            }
 
-        if (restoreBlocks) {
-            data.setClearedRingAmount(0);
-            data.setRingAmount(ringAmount);
-        } else {
-            data.setClearedRingAmount(ringAmount);
-            data.setRingAmount(Math.max(data.getRingAmount(), ringAmount));
-        }
-        markDirty();
+            if (restoreBlocks) {
+                data.setClearedRingAmount(0);
+                data.setRingAmount(ringAmount);
+            } else {
+                data.setClearedRingAmount(ringAmount);
+                data.setRingAmount(Math.max(data.getRingAmount(), ringAmount));
+            }
+            markDirty();
 
-        if (restoreBlocks || changed > 0) {
-            GTLog.logger.info("[FOG] replaceRenderedRings: restore={}, rings={}, clearedRings={}, changedBlocks={}",
-                    restoreBlocks, data.getRingAmount(), data.getClearedRingAmount(), changed);
+            if (restoreBlocks || changed > 0) {
+                GTLog.logger.info(
+                        "[FOG] replaceRenderedRings: restore={}, rings={}, clearedRings={}, changedBlocks={}",
+                        restoreBlocks, data.getRingAmount(), data.getClearedRingAmount(), changed);
+            }
+        } finally {
+            worldData.unsuppressRecheck(this);
         }
     }
 
+    /**
+     * Returns the number of rings that can be replaced with air during rendering.
+     * Uses the already-determined ring amount from formStructure() and persisted
+     * cleared ring state, avoiding expensive runtime template checks.
+     */
     private int getReplaceableRingAmount() {
         int rings = 1;
-        if (data.isRingCleared(2) || (data.isUpgradeActive(ForgeOfGodsUpgrade.CD) &&
-                isRingTemplateFormed(SECOND_RING_TEMPLATE, SECOND_RING_OFFSET))) {
+        if (data.isRingCleared(2) || data.getRingAmount() >= 2) {
             rings = 2;
         }
-        if (rings >= 2 && (data.isRingCleared(3) || (data.isUpgradeActive(ForgeOfGodsUpgrade.END) &&
-                isRingTemplateFormed(THIRD_RING_TEMPLATE, THIRD_RING_OFFSET)))) {
+        if (rings >= 2 && (data.isRingCleared(3) || data.getRingAmount() >= 3)) {
             rings = 3;
         }
         return rings;
@@ -1283,7 +1322,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                     if (!getWorld().isBlockLoaded(worldPos)) continue;
 
                     if (!getWorld().getBlockState(worldPos).equals(state)) {
-                        getWorld().setBlockState(worldPos, state, 3);
+                        // flag=2: send to client only, no neighbor notifications.
+                        // Ring blocks are structural and do not need neighborChanged callbacks.
+                        // This avoids ~6M neighborChanged calls when replacing three rings.
+                        getWorld().setBlockState(worldPos, state, 2);
                         changed++;
                     }
                 }
