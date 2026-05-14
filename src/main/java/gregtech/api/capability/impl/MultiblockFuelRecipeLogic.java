@@ -1,10 +1,16 @@
 package gregtech.api.capability.impl;
 
+import gregtech.api.capability.IGenerator;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.IRotorHolder;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.recipes.Recipe;
+import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
@@ -22,25 +28,52 @@ import java.util.List;
 public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
     protected long totalContinuousRunningTime;
+    /**
+     * @deprecated This field is null when using the general-purpose constructor.
+     *             Use {@code (IGenerator) getMetaTileEntity()} instead.
+     */
+    @Deprecated
     public FuelMultiblockController metaTileEntity;
     private int previousDuration = 0;
 
+    /**
+     * @deprecated Use the general-purpose constructor accepting {@link IRecipeMapHolder} + {@link IGenerator}.
+     */
+    @Deprecated
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity) {
         this(tileEntity, ParallelLogicType.CROSS_RECIPE);
     }
 
+    /**
+     * @deprecated Use the general-purpose constructor accepting {@link IRecipeMapHolder} + {@link IGenerator}.
+     */
+    @Deprecated
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity, ParallelLogicType type) {
         super(tileEntity);
         this.metaTileEntity = tileEntity;
+    }
+
+    /**
+     * General-purpose constructor for any MetaTileEntity that implements both
+     * {@link IRecipeMapHolder} and {@link IGenerator}. Enables use with
+     * ParametricFuelController and other non-RMMC fuel multiblocks.
+     */
+    public <T extends MetaTileEntity & IRecipeMapHolder & IGenerator> MultiblockFuelRecipeLogic(T tileEntity,
+                                                                                                RecipeMap<?> recipeMap) {
+        super(tileEntity, recipeMap);
+        this.metaTileEntity = null;
     }
 
     @Override
     protected void performMufflerOperations() {
 
         // output muffler items
-        if (metaTileEntity.hasMufflerMechanics()) {
-            metaTileEntity.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
-            metaTileEntity.outputRecoveryFluid(progressTime);
+        MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) getMetaTileEntity();
+        if (controller.hasMufflerMechanics()) {
+            controller.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
+            if (controller instanceof FuelMultiblockController fuelController) {
+                fuelController.outputRecoveryFluid(progressTime);
+            }
         }
 
     }
@@ -122,7 +155,8 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     }
 
     public String getRecipeFluidInputInfo() {
-        List<IRotorHolder> abilities = metaTileEntity.getAbilities(MultiblockAbility.ROTOR_HOLDER);
+        MultiblockControllerBase controller = (MultiblockControllerBase) getMetaTileEntity();
+        List<IRotorHolder> abilities = controller.getAbilities(MultiblockAbility.ROTOR_HOLDER);
         IRotorHolder rotorHolder = abilities.size() > 0 ? abilities.get(0) : null;
 
         // Previous Recipe is always null on first world load, so try to acquire a new recipe
@@ -171,7 +205,8 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public boolean shouldWorking() {
-        return workingEnabled && (metaTileEntity.isEnergyOverFlow() || !metaTileEntity.isDynamoFull());
+        IGenerator generator = (IGenerator) getMetaTileEntity();
+        return workingEnabled && (generator.isEnergyOverFlow() || !generator.isDynamoFull());
     }
 
     // generators always run recipes

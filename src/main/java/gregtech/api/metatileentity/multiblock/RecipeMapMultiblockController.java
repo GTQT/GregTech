@@ -6,12 +6,9 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.IRecipeControl;
-import gregtech.api.capability.impl.EnergyContainerList;
-import gregtech.api.capability.impl.FluidTankList;
-import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.IDataInfoProvider;
 import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
@@ -45,7 +42,6 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,9 +52,11 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                                                                                                  ICleanroomReceiver,
                                                                                                  IDistinctBusController,
                                                                                                  IControllable, IBatch,
-                                                                                                 IRecipeControl {
+                                                                                                 IRecipeControl,
+                                                                                                 IRecipeMapHolder {
 
     public final RecipeMap<?> recipeMap;
+    protected final RecipeAbilityManager abilityManager;
     protected MultiblockRecipeLogic recipeMapWorkable;
     protected IItemHandlerModifiable inputInventory;
     protected IItemHandlerModifiable outputInventory;
@@ -75,6 +73,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     public RecipeMapMultiblockController(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap) {
         super(metaTileEntityId);
         this.recipeMap = recipeMap;
+        this.abilityManager = new RecipeAbilityManager(this);
         this.recipeMapWorkable = new MultiblockRecipeLogic(this);
         this.refreshBeforeConsumptions = new ArrayList<>();
         resetTileAbilities();
@@ -85,32 +84,39 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         return recipeMapWorkable != null && recipeMapWorkable.isActive();
     }
 
+    @Override
     public void refreshAllBeforeConsumption() {
         for (IRefreshBeforeConsumption refresh : refreshBeforeConsumptions) {
             refresh.refreshBeforeConsumption();
         }
     }
 
+    @Override
     public IEnergyContainer getEnergyContainer() {
         return energyContainer;
     }
 
+    @Override
     public IItemHandlerModifiable getInputInventory() {
         return inputInventory;
     }
 
+    @Override
     public IItemHandlerModifiable getOutputInventory() {
         return outputInventory;
     }
 
+    @Override
     public IMultipleTankHandler getInputFluidInventory() {
         return inputFluidInventory;
     }
 
+    @Override
     public IMultipleTankHandler getOutputFluidInventory() {
         return outputFluidInventory;
     }
 
+    @Override
     public MultiblockRecipeLogic getRecipeMapWorkable() {
         return recipeMapWorkable;
     }
@@ -118,6 +124,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     /**
      * Performs extra checks for validity of given recipe before multiblock will start it's processing.
      */
+    @Override
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
         return true;
     }
@@ -148,32 +155,26 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     protected void initializeAbilities() {
-        this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        this.inputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
-                getAbilities(MultiblockAbility.IMPORT_FLUIDS));
-        this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
-        this.outputFluidInventory = new FluidTankList(allowSameFluidFillForOutputs(),
-                getAbilities(MultiblockAbility.EXPORT_FLUIDS));
-
-        List<IEnergyContainer> inputEnergy = new ArrayList<>(getAbilities(MultiblockAbility.INPUT_ENERGY));
-        inputEnergy.addAll(getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
-        inputEnergy.addAll(getAbilities(MultiblockAbility.INPUT_LASER));
-        this.energyContainer = new EnergyContainerList(inputEnergy);
-
-        for (IMultiblockPart part : getMultiblockParts()) {
-            if (part instanceof IRefreshBeforeConsumption refresh) {
-                refreshBeforeConsumptions.add(refresh);
-            }
-        }
+        abilityManager.initialize(allowSameFluidFillForOutputs());
+        syncFromAbilityManager();
     }
 
     private void resetTileAbilities() {
-        this.inputInventory = new GTItemStackHandler(this, 0);
-        this.inputFluidInventory = new FluidTankList(true);
-        this.outputInventory = new GTItemStackHandler(this, 0);
-        this.outputFluidInventory = new FluidTankList(true);
-        this.energyContainer = new EnergyContainerList(Lists.newArrayList());
-        this.refreshBeforeConsumptions.clear();
+        abilityManager.reset();
+        syncFromAbilityManager();
+    }
+
+    /**
+     * Synchronizes protected fields from the ability manager.
+     * This ensures backward compatibility with subclasses that read fields directly.
+     */
+    private void syncFromAbilityManager() {
+        this.inputInventory = abilityManager.getInputInventory();
+        this.outputInventory = abilityManager.getOutputInventory();
+        this.inputFluidInventory = abilityManager.getInputFluidInventory();
+        this.outputFluidInventory = abilityManager.getOutputFluidInventory();
+        this.energyContainer = abilityManager.getEnergyContainer();
+        this.refreshBeforeConsumptions = abilityManager.getRefreshBeforeConsumptions();
     }
 
     public boolean allowSameFluidFillForOutputs() {

@@ -2,12 +2,16 @@ package gregtech.api.capability.impl;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
+import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.capability.IMultipleNotifiableHandler;
 import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IRecipeMapHolder;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
@@ -64,6 +68,19 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     public MultiblockRecipeLogic(RecipeMapMultiblockController tileEntity, boolean hasPerfectOC) {
         super(tileEntity, tileEntity.recipeMap, hasPerfectOC);
+    }
+
+    /**
+     * General-purpose constructor for any MetaTileEntity that implements {@link IRecipeMapHolder}.
+     * This enables ParametricMultiblockController subclasses to use MultiblockRecipeLogic
+     * without inheriting from RecipeMapMultiblockController.
+     *
+     * @param tileEntity the MTE that also implements IRecipeMapHolder
+     * @param recipeMap  the recipe map to use
+     */
+    public <T extends MetaTileEntity & IRecipeMapHolder> MultiblockRecipeLogic(T tileEntity,
+                                                                                RecipeMap<?> recipeMap) {
+        super(tileEntity, recipeMap);
     }
 
     @Override
@@ -191,7 +208,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     protected void refillScheduler(@NotNull CrossRecipeParallelScheduler scheduler) {
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;
-        if (controller instanceof RecipeMapMultiblockController distinctController &&
+        if (controller instanceof IDistinctBusController distinctController &&
                 distinctController.canBeDistinct() && distinctController.isDistinct() &&
                 getInputInventory().getSlots() > 0) {
             fillSchedulerSlotsDistinct(scheduler);
@@ -645,40 +662,43 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     public IEnergyContainer getEnergyContainer() {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
-        return controller.getEnergyContainer();
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        return holder.getEnergyContainer();
     }
 
     @Override
     protected IItemHandlerModifiable getInputInventory() {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
-        return controller.getInputInventory();
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        return holder.getInputInventory();
     }
 
     // Used for distinct bus recipe checking
     protected List<IItemHandlerModifiable> getInputBuses() {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
+        MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
         return controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
     }
 
     @Override
     protected IItemHandlerModifiable getOutputInventory() {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
-        return controller.getOutputInventory();
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        return holder.getOutputInventory();
     }
 
     @Override
     protected IMultipleTankHandler getInputTank() {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
-        if (controller.canBeDistinct() && controller.isDistinct() && getInputInventory().getSlots() > 0) {
-            return controller.getInputFluidInventory();
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        if (metaTileEntity instanceof IDistinctBusController distinctCtrl &&
+                distinctCtrl.canBeDistinct() && distinctCtrl.isDistinct() &&
+                getInputInventory().getSlots() > 0) {
+            return holder.getInputFluidInventory();
         }
 
         //检查总成，如果有合并流体
+        MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
         List<IItemHandlerModifiable> itemHandlers = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
         List<IMultipleTankHandler> inputFluids = new ArrayList<>();
-        boolean allowMerge = controller.getInputFluidInventory().allowSameFluidFill();
-        inputFluids.add(controller.getInputFluidInventory());
+        boolean allowMerge = holder.getInputFluidInventory().allowSameFluidFill();
+        inputFluids.add(holder.getInputFluidInventory());
         // 遍历所有物品总线，检查是否是 DualHandler
         for (IItemHandlerModifiable bus : itemHandlers) {
             if (bus instanceof IMultipleTankHandler dualHandler) {
@@ -706,12 +726,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected IMultipleTankHandler getOutputTank() {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
         //检查总成，如果有合并流体
         List<IItemHandlerModifiable> itemHandlers = controller.getAbilities(MultiblockAbility.EXPORT_ITEMS);
         List<IMultipleTankHandler> outputFluids = new ArrayList<>();
-        boolean allowMerge = controller.getOutputFluidInventory().allowSameFluidFill();
-        outputFluids.add(controller.getOutputFluidInventory());
+        boolean allowMerge = holder.getOutputFluidInventory().allowSameFluidFill();
+        outputFluids.add(holder.getOutputFluidInventory());
         // 遍历所有物品总线，检查是否是 DualHandler
         for (IItemHandlerModifiable bus : itemHandlers) {
             if (bus instanceof IMultipleTankHandler dualHandler) {
@@ -725,7 +746,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     protected boolean canWorkWithInputs() {
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;
-        if (controller instanceof RecipeMapMultiblockController distinctController) {
+        if (controller instanceof IDistinctBusController distinctController) {
 
             if (distinctController.canBeDistinct() && distinctController.isDistinct() &&
                     getInputInventory().getSlots() > 0) {
@@ -789,8 +810,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return;
         }
 
-        // Distinct buses only apply to some multiblocks, so check the controller against a lower class
-        if (controller instanceof RecipeMapMultiblockController distinctController) {
+        // Distinct buses only apply to some multiblocks, so check the controller against the interface
+        if (controller instanceof IDistinctBusController distinctController) {
 
             if (distinctController.canBeDistinct() && distinctController.isDistinct() &&
                     getInputInventory().getSlots() > 0) {
@@ -935,8 +956,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     public void invalidateInputs() {
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;
-        RecipeMapMultiblockController distinctController = (RecipeMapMultiblockController) controller;
-        if (distinctController.canBeDistinct() && distinctController.isDistinct() &&
+        if (controller instanceof IDistinctBusController distinctController &&
+                distinctController.canBeDistinct() && distinctController.isDistinct() &&
                 getInputInventory().getSlots() > 0) {
             invalidatedInputList.add(currentDistinctInputBus);
         } else {
@@ -1050,9 +1071,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe) {
-        RecipeMapMultiblockController controller = (RecipeMapMultiblockController) metaTileEntity;
-        if (controller.checkRecipe(recipe, false)) {
-            controller.checkRecipe(recipe, true);
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        if (holder.checkRecipe(recipe, false)) {
+            holder.checkRecipe(recipe, true);
             return super.checkRecipe(recipe);
         }
         return false;

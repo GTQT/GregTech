@@ -36,6 +36,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @deprecated Use {@link ParametricFuelController} for new fuel multiblocks.
+ *             This class is retained solely for backward compatibility with addons
+ *             that may reference it via {@code instanceof} checks or constructor calls.
+ *             All internal GT:CE fuel multiblocks have been migrated to
+ *             {@link ParametricFuelController} + {@link gregtech.api.capability.IGenerator}.
+ */
+@Deprecated
 public abstract class FuelMultiblockController extends RecipeMapMultiblockController implements IGenerator,
                                                                                                 ITieredMetaTileEntity {
 

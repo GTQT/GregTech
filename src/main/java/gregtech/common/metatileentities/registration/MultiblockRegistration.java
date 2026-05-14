@@ -116,40 +116,40 @@ public final class MultiblockRegistration {
                 new MetaTileEntityDistillationTower(gregtechId("distillation_tower"), true));
         MULTI_FURNACE = registerMetaTileEntity(1006, new MetaTileEntityMultiSmelter(gregtechId("multi_furnace")));
 
-        // Large Combustion Engines registration via EnumMap
-        int combustionStartId = 1007;
+        // Large Combustion Engines - Single ID with NBT variants (ID 1007)
+        MetaTileEntityLargeCombustionEngine engine = registerMetaTileEntity(1007,
+                new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine")));
         for (LargeCombustionEngineType type : LargeCombustionEngineType.values()) {
-            MetaTileEntityLargeCombustionEngine engine = registerMetaTileEntity(combustionStartId++,
-                    new MetaTileEntityLargeCombustionEngine(gregtechId(type.getName()), type));
             LARGE_COMBUSTION_ENGINES.put(type, engine);
         }
-        LARGE_COMBUSTION_ENGINE = LARGE_COMBUSTION_ENGINES.get(LargeCombustionEngineType.REGULAR);
-        EXTREME_COMBUSTION_ENGINE = LARGE_COMBUSTION_ENGINES.get(LargeCombustionEngineType.EXTREME);
+        // Legacy references for backward compatibility (addons may use these)
+        LARGE_COMBUSTION_ENGINE = engine;
+        EXTREME_COMBUSTION_ENGINE = engine;
 
         CRACKER = registerMetaTileEntity(1009, new MetaTileEntityCrackingUnit(gregtechId("cracker")));
 
-        // Large Turbines registration via EnumMap
-        int turbineStartId = 1010;
+        // Large Turbines - Single ID with NBT variants (ID 1010)
+        MetaTileEntityLargeTurbine turbine = registerMetaTileEntity(1010,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine")));
         for (LargeTurbineType type : LargeTurbineType.values()) {
-            MetaTileEntityLargeTurbine turbine = registerMetaTileEntity(turbineStartId++,
-                    new MetaTileEntityLargeTurbine(gregtechId("large_turbine." + type.getName()), type));
             LARGE_TURBINES.put(type, turbine);
         }
-        LARGE_STEAM_TURBINE = LARGE_TURBINES.get(LargeTurbineType.STEAM);
-        LARGE_GAS_TURBINE = LARGE_TURBINES.get(LargeTurbineType.GAS);
-        LARGE_PLASMA_TURBINE = LARGE_TURBINES.get(LargeTurbineType.PLASMA);
+        // Legacy references for backward compatibility (addons may use these)
+        LARGE_STEAM_TURBINE = turbine;
+        LARGE_GAS_TURBINE = turbine;
+        LARGE_PLASMA_TURBINE = turbine;
 
-        // Large Boilers registration via EnumMap
-        int boilerStartId = 1013;
+        // Large Boilers - Single ID with NBT variants (ID 1013)
+        MetaTileEntityLargeBoiler boiler = registerMetaTileEntity(1013,
+                new MetaTileEntityLargeBoiler(gregtechId("large_boiler")));
         for (BoilerType type : BoilerType.values()) {
-            MetaTileEntityLargeBoiler boiler = registerMetaTileEntity(boilerStartId++,
-                    new MetaTileEntityLargeBoiler(gregtechId("large_boiler." + type.getName()), type));
             LARGE_BOILERS.put(type, boiler);
         }
-        LARGE_BRONZE_BOILER = LARGE_BOILERS.get(BoilerType.BRONZE);
-        LARGE_STEEL_BOILER = LARGE_BOILERS.get(BoilerType.STEEL);
-        LARGE_TITANIUM_BOILER = LARGE_BOILERS.get(BoilerType.TITANIUM);
-        LARGE_TUNGSTENSTEEL_BOILER = LARGE_BOILERS.get(BoilerType.TUNGSTENSTEEL);
+        // Legacy references for backward compatibility (addons may use these)
+        LARGE_BRONZE_BOILER = boiler;
+        LARGE_STEEL_BOILER = boiler;
+        LARGE_TITANIUM_BOILER = boiler;
+        LARGE_TUNGSTENSTEEL_BOILER = boiler;
 
         ASSEMBLY_LINE = registerMetaTileEntity(1019, new MetaTileEntityAssemblyLine(gregtechId("assembly_line")));
         FUSION_REACTOR[0] = registerMetaTileEntity(1020,

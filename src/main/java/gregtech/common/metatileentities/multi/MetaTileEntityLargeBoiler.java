@@ -11,7 +11,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
@@ -76,13 +76,25 @@ import java.util.Map;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
-                                                                                    IControllable, ISteamMachine {
+public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<BoilerType>
+        implements ProgressBarMultiblock, IControllable, ISteamMachine {
 
     // Static template cache: one SoftTemplate per BoilerType variant
     private static final Map<BoilerType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
             "gregtech:large_boiler", BoilerType.class,
             type -> () -> buildTemplate(type));
+
+    @Override
+    @NotNull
+    protected Map<BoilerType, SoftTemplate> getTemplateCache() {
+        return TEMPLATES;
+    }
+
+    @Override
+    @NotNull
+    protected String getVariantTranslationPrefix() {
+        return "gregtech.machine.large_boiler";
+    }
 
     private static BlockPatternTemplate buildTemplate(BoilerType type) {
         return DeclarativePatternBuilder.start()
@@ -111,8 +123,17 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     private int throttlePercentage = 100;
 
+    // Primary constructor: single-ID with variant
+    public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, BoilerType.class, BoilerType.BRONZE);
+        this.boilerType = BoilerType.BRONZE;
+        this.recipeLogic = new BoilerRecipeLogic(this);
+        resetTileAbilities();
+    }
+
+    // Variant-specific constructor
     public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId, BoilerType boilerType) {
-        super(metaTileEntityId);
+        super(metaTileEntityId, BoilerType.class, boilerType);
         this.boilerType = boilerType;
         this.recipeLogic = new BoilerRecipeLogic(this);
         resetTileAbilities();
@@ -120,7 +141,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityLargeBoiler(metaTileEntityId, boilerType);
+        return new MetaTileEntityLargeBoiler(metaTileEntityId, getVariant());
     }
 
     @Override
@@ -341,7 +362,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES.get(boilerType).get();
+        return TEMPLATES.get(getVariant()).get();
     }
 
     @Override

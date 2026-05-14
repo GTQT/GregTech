@@ -2,9 +2,10 @@ package gregtech.integration.opencomputers.drivers;
 
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -46,17 +47,17 @@ public class DriverRecipeMapMultiblockController extends DriverSidedTileEntity {
     public ManagedEnvironment createEnvironment(World world, BlockPos pos, EnumFacing side) {
         TileEntity tileEntity = world.getTileEntity(pos);
         if (tileEntity instanceof IGregTechTileEntity) {
-            if (((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof RecipeMapMultiblockController)
+            if (((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof IRecipeMapHolder)
                 return new EnvironmentMultiblockRecipeLogic((IGregTechTileEntity) tileEntity,
-                        (RecipeMapMultiblockController) ((IGregTechTileEntity) tileEntity).getMetaTileEntity());
+                        (IRecipeMapHolder) ((IGregTechTileEntity) tileEntity).getMetaTileEntity());
         }
         return null;
     }
 
     public final static class EnvironmentMultiblockRecipeLogic extends
-                                                               EnvironmentMetaTileEntity<RecipeMapMultiblockController> {
+                                                               EnvironmentMetaTileEntity<IRecipeMapHolder> {
 
-        public EnvironmentMultiblockRecipeLogic(IGregTechTileEntity holder, RecipeMapMultiblockController capability) {
+        public EnvironmentMultiblockRecipeLogic(IGregTechTileEntity holder, IRecipeMapHolder capability) {
             super(holder, capability, "gt_multiblockRecipeLogic");
         }
 
@@ -155,7 +156,10 @@ public class DriverRecipeMapMultiblockController extends DriverSidedTileEntity {
 
         @Callback(doc = "function():number -- Gets the number of maintenance problems.")
         public Object[] getMaintenanceProblems(final Context context, final Arguments args) {
-            return new Object[] { tileEntity.getNumMaintenanceProblems() };
+            if (tileEntity instanceof MultiblockWithDisplayBase multiblock) {
+                return new Object[] { multiblock.getNumMaintenanceProblems() };
+            }
+            return new Object[] { 0 };
         }
     }
 }

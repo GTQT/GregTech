@@ -115,14 +115,7 @@ public class MilestonePanel {
                 .direction(Direction.RIGHT)
                 .alignY(Alignment.CENTER)
                 .widthRel(1.0f)
-                .height(MILESTONE_PROGRESS_BAR_H)
-                // DEBUG: tooltip to show current progress value in real-time
-                .dynamicTooltip(() -> {
-                    float p = progressSyncer != null ? progressSyncer.getFloatValue() : -1;
-                    float ip = invertedProgressSyncer != null ? invertedProgressSyncer.getFloatValue() : -1;
-                    return java.util.Collections.singletonList(
-                        IKey.str("DEBUG " + milestone.name() + " progress=" + p + " inv=" + ip));
-                }));
+                .height(MILESTONE_PROGRESS_BAR_H));
         parent.child(
             new ProgressWidget().value(invertedProgressSyncer)
                 .texture(GTGuiTextures.BLANK_TRANSPARENT, milestone.getProgressBarInvertedOverlay(), -1)

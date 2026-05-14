@@ -9,7 +9,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTUtility;
@@ -182,7 +182,7 @@ public class MetaTileEntityThreadHatch extends MetaTileEntityMultiblockPart
             else
                 overlayRenderer = Textures.THREAD_HATCH_MK4_OVERLAY;
 
-            if (getController() != null && getController() instanceof RecipeMapMultiblockController) {
+            if (getController() != null && getController() instanceof IRecipeMapHolder) {
                 overlayRenderer.renderOrientedState(renderState, translation, pipeline, getFrontFacing(),
                         getController().isActive(),
                         getController().getCapability(GregtechTileCapabilities.CAPABILITY_CONTROLLABLE, null)

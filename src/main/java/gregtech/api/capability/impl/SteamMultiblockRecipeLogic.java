@@ -7,7 +7,7 @@ import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
@@ -70,7 +70,7 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     protected boolean canWorkWithInputs() {
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;
-        if (controller instanceof RecipeMapMultiblockController distinctController) {
+        if (controller instanceof IDistinctBusController distinctController) {
 
             if (distinctController.canBeDistinct() && distinctController.isDistinct() &&
                     getInputInventory().getSlots() > 0) {
@@ -134,8 +134,8 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
             return;
         }
 
-        // Distinct buses only apply to some multiblocks, so check the controller against a lower class
-        if (controller instanceof RecipeMapMultiblockController distinctController) {
+        // Distinct buses only apply to some multiblocks, so check the controller against the interface
+        if (controller instanceof IDistinctBusController distinctController) {
 
             if (distinctController.canBeDistinct() && distinctController.isDistinct() &&
                     getInputInventory().getSlots() > 0) {
@@ -201,8 +201,8 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     public void invalidateInputs() {
         MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) metaTileEntity;
-        RecipeMapMultiblockController distinctController = (RecipeMapMultiblockController) controller;
-        if (distinctController.canBeDistinct() && distinctController.isDistinct() &&
+        if (controller instanceof IDistinctBusController distinctController &&
+                distinctController.canBeDistinct() && distinctController.isDistinct() &&
                 getInputInventory().getSlots() > 0) {
             invalidatedInputList.add(currentDistinctInputBus);
         } else {

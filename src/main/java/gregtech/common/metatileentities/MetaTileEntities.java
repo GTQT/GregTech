@@ -562,23 +562,23 @@ public class MetaTileEntities {
 
     // ---- Registration utility methods (used by Registration classes) ----
 
-    private static void registerSimpleMetaTileEntity(SimpleMachineMetaTileEntity[] machines,
-                                                     int startId,
-                                                     String name,
-                                                     RecipeMap<?> map,
-                                                     ICubeRenderer texture,
-                                                     boolean hasFrontFacing,
-                                                     Function<Integer, Integer> tankScalingFunction) {
+    public static void registerSimpleMetaTileEntity(SimpleMachineMetaTileEntity[] machines,
+                                                    int startId,
+                                                    String name,
+                                                    RecipeMap<?> map,
+                                                    ICubeRenderer texture,
+                                                    boolean hasFrontFacing,
+                                                    Function<Integer, Integer> tankScalingFunction) {
         registerSimpleMetaTileEntity(machines, startId, name, map, texture, hasFrontFacing, GTUtility::gregtechId,
                 tankScalingFunction);
     }
 
-    private static void registerSimpleMetaTileEntity(SimpleMachineMetaTileEntity[] machines,
-                                                     int startId,
-                                                     String name,
-                                                     RecipeMap<?> map,
-                                                     ICubeRenderer texture,
-                                                     boolean hasFrontFacing) {
+    public static void registerSimpleMetaTileEntity(SimpleMachineMetaTileEntity[] machines,
+                                                    int startId,
+                                                    String name,
+                                                    RecipeMap<?> map,
+                                                    ICubeRenderer texture,
+                                                    boolean hasFrontFacing) {
         registerSimpleMetaTileEntity(machines, startId, name, map, texture, hasFrontFacing,
                 GTUtility.defaultTankSizeFunction);
     }

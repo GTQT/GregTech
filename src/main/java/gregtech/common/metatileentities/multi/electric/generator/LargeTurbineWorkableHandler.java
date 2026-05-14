@@ -2,11 +2,13 @@ package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMap;
@@ -29,9 +31,32 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     private final int BASE_EU_OUTPUT;
     private long excessVoltage;
 
+    /**
+     * @deprecated Use the general-purpose constructor with {@link IRecipeMapHolder} + {@link gregtech.api.capability.IGenerator}.
+     */
+    @Deprecated
     public LargeTurbineWorkableHandler(FuelMultiblockController metaTileEntity, int tier) {
         super(metaTileEntity);
         this.BASE_EU_OUTPUT = (int) GTValues.V[tier] * 2;
+    }
+
+    /**
+     * General-purpose constructor for any MetaTileEntity that provides rotor holder access.
+     */
+    public <T extends MetaTileEntity & IRecipeMapHolder & gregtech.api.capability.IGenerator> LargeTurbineWorkableHandler(
+            T metaTileEntity, RecipeMap<?> recipeMap, int tier) {
+        super(metaTileEntity, recipeMap);
+        this.BASE_EU_OUTPUT = (int) GTValues.V[tier] * 2;
+    }
+
+    /**
+     * @return the first rotor holder from the multiblock's abilities, or null if none
+     */
+    @Nullable
+    private IRotorHolder getRotorHolder() {
+        MultiblockControllerBase controller = (MultiblockControllerBase) getMetaTileEntity();
+        List<IRotorHolder> abilities = controller.getAbilities(MultiblockAbility.ROTOR_HOLDER);
+        return abilities.isEmpty() ? null : abilities.get(0);
     }
 
     @Override
@@ -57,7 +82,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     @Override
     public long getMaxVoltage() {
-        IRotorHolder rotorHolder = ((MetaTileEntityLargeTurbine) metaTileEntity).getRotorHolder();
+        IRotorHolder rotorHolder = getRotorHolder();
         if (rotorHolder != null && rotorHolder.hasRotor())
             return (long) BASE_EU_OUTPUT * rotorHolder.getTotalPower() / 100;
         return 0;
@@ -65,7 +90,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     @Override
     protected long boostProduction(long production) {
-        IRotorHolder rotorHolder = ((MetaTileEntityLargeTurbine) metaTileEntity).getRotorHolder();
+        IRotorHolder rotorHolder = getRotorHolder();
         if (rotorHolder != null && rotorHolder.hasRotor()) {
             int maxSpeed = rotorHolder.getMaxRotorHolderSpeed();
             int currentSpeed = rotorHolder.getRotorSpeed();
@@ -88,7 +113,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     }
 
     private boolean canDoRecipeWithParallel(Recipe recipe) {
-        IRotorHolder rotorHolder = ((MetaTileEntityLargeTurbine) metaTileEntity).getRotorHolder();
+        IRotorHolder rotorHolder = getRotorHolder();
         if (rotorHolder == null || !rotorHolder.hasRotor())
             return false;
 
@@ -133,7 +158,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     @Override
     public boolean prepareRecipe(Recipe recipe) {
-        IRotorHolder rotorHolder = ((MetaTileEntityLargeTurbine) metaTileEntity).getRotorHolder();
+        IRotorHolder rotorHolder = getRotorHolder();
         if (rotorHolder == null || !rotorHolder.hasRotor())
             return false;
 
@@ -149,8 +174,9 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
             if (parallel <= 0) return false;
 
-            // 确保刷新流体状态
-            ((RecipeMapMultiblockController) metaTileEntity).refreshAllBeforeConsumption();
+            // Refresh fluid state before consumption
+            IRecipeMapHolder holder = (IRecipeMapHolder) getMetaTileEntity();
+            holder.refreshAllBeforeConsumption();
 
             FluidStack inputFluid = getInputFluidStack();
             if (inputFluid == null || inputFluid.amount < recipeFluidStack.amount * parallel) {
@@ -184,7 +210,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     }
 
     public void updateTanks() {
-        FuelMultiblockController controller = (FuelMultiblockController) this.metaTileEntity;
+        MultiblockControllerBase controller = (MultiblockControllerBase) getMetaTileEntity();
         List<IFluidHandler> tanks = controller.getNotifiedFluidInputList();
         for (IFluidTank tank : controller.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
             tanks.add((IFluidHandler) tank);

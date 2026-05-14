@@ -15,6 +15,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SimpleGeneratorMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
+import gregtech.api.capability.IGenerator;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
@@ -645,6 +646,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         if (metaTileEntity instanceof IMufflerHatch) return true;
         if (metaTileEntity instanceof SimpleGeneratorMetaTileEntity) return true;
         if (metaTileEntity instanceof FuelMultiblockController) return true;
+        if (metaTileEntity instanceof IGenerator) return true;
         if (metaTileEntity instanceof MetaTileEntityLargeMiner) return true;
         if (metaTileEntity instanceof MetaTileEntityFluidDrill) return true;
         if (metaTileEntity instanceof MetaTileEntityCentralMonitor) return true;

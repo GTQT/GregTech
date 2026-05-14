@@ -4,22 +4,22 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
+import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.ParametricFuelController;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMap;
@@ -45,17 +45,29 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
-public class MetaTileEntityLargeTurbine extends FuelMultiblockController
-        implements ITieredMetaTileEntity, ProgressBarMultiblock {
+public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTurbineType>
+        implements ProgressBarMultiblock {
 
     // Static template cache: one SoftTemplate per LargeTurbineType variant
     private static final Map<LargeTurbineType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
             "gregtech:large_turbine", LargeTurbineType.class,
             type -> () -> buildTemplate(type));
+
+    @Override
+    @NotNull
+    protected Map<LargeTurbineType, SoftTemplate> getTemplateCache() {
+        return TEMPLATES;
+    }
+
+    @Override
+    @NotNull
+    protected String getVariantTranslationPrefix() {
+        return "gregtech.machine.large_turbine";
+    }
 
     private static BlockPatternTemplate buildTemplate(LargeTurbineType type) {
         return DeclarativePatternBuilder.start()
@@ -82,56 +94,50 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                 .buildTemplate();
     }
 
-    public final LargeTurbineType turbineType;
-    public final IBlockState casingState;
-    public final IBlockState gearboxState;
-    public final ICubeRenderer casingRenderer;
-    public final boolean hasMufflerHatch;
-    public final ICubeRenderer frontOverlay;
-
     private static final int MIN_DURABILITY_TO_WARN = 10;
 
     public IFluidHandler exportFluidHandler;
 
-    // Primary constructor: enum-based variant configuration
-    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, LargeTurbineType turbineType) {
-        super(metaTileEntityId, turbineType.getRecipeMap(), turbineType.getTier());
-        this.turbineType = turbineType;
-        this.casingState = turbineType.getCasingState();
-        this.gearboxState = turbineType.getGearboxState();
-        this.casingRenderer = turbineType.getCasingRenderer();
-        this.hasMufflerHatch = turbineType.hasMufflerHatch();
-        this.frontOverlay = turbineType.getFrontOverlay();
-        this.tier = turbineType.getTier();
-        this.recipeMapWorkable = new LargeTurbineWorkableHandler(this, tier);
-        this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
+    // Primary constructor: single-ID with variant
+    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, LargeTurbineType.class, LargeTurbineType.STEAM,
+                LargeTurbineType.STEAM.getRecipeMap(), LargeTurbineType.STEAM.getTier());
     }
 
-    // Compatibility constructor: preserved for addons that create custom turbine variants
-    @Deprecated
-    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap, int tier,
-                                      IBlockState casingState, IBlockState gearboxState, ICubeRenderer casingRenderer,
-                                      boolean hasMufflerHatch, ICubeRenderer frontOverlay) {
-        super(metaTileEntityId, recipeMap, tier);
-        this.turbineType = null;
-        this.casingState = casingState;
-        this.gearboxState = gearboxState;
-        this.casingRenderer = casingRenderer;
-        this.hasMufflerHatch = hasMufflerHatch;
-        this.frontOverlay = frontOverlay;
-        this.tier = tier;
-        this.recipeMapWorkable = new LargeTurbineWorkableHandler(this, tier);
+    // Variant-specific constructor for direct instantiation
+    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, LargeTurbineType turbineType) {
+        super(metaTileEntityId, LargeTurbineType.class, turbineType,
+                turbineType.getRecipeMap(), turbineType.getTier());
+    }
+
+    @Override
+    @NotNull
+    protected MultiblockRecipeLogic createWorkable() {
+        LargeTurbineType type = getVariant();
+        return new LargeTurbineWorkableHandler(this, getRecipeMapForVariant(type), type.getTier());
+    }
+
+    @Override
+    @NotNull
+    protected RecipeMap<?> getRecipeMapForVariant(@NotNull LargeTurbineType variant) {
+        return variant.getRecipeMap();
+    }
+
+    @Override
+    protected void onVariantChanged() {
+        super.onVariantChanged();
+        LargeTurbineType type = getVariant();
+        this.tier = type.getTier();
+        this.recipeMapWorkable = createWorkable();
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        if (turbineType != null) {
-            return new MetaTileEntityLargeTurbine(metaTileEntityId, turbineType);
-        }
-        return new MetaTileEntityLargeTurbine(metaTileEntityId, recipeMap, tier, casingState, gearboxState,
-                casingRenderer, hasMufflerHatch, frontOverlay);
+        return new MetaTileEntityLargeTurbine(metaTileEntityId, getVariant());
     }
+
+    // region Turbine Logic
 
     public IRotorHolder getRotorHolder() {
         List<IRotorHolder> abilities = getAbilities(MultiblockAbility.ROTOR_HOLDER);
@@ -175,6 +181,10 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
             return 0L;
         }
     }
+
+    // endregion
+
+    // region Display
 
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
@@ -245,34 +255,13 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         tooltip.add(I18n.format("gregtech.multiblock.turbine.efficiency_tooltip", GTValues.VNF[tier]));
     }
 
+    // endregion
+
+    // region Structure
+
     @Override
     protected BlockPatternTemplate createStructureTemplate() {
-        if (turbineType != null) {
-            return TEMPLATES.get(turbineType).get();
-        }
-        // Fallback for addon-created instances using deprecated constructor
-        return DeclarativePatternBuilder.start()
-                .aisle("CCCC", "CHHC", "CCCC")
-                .aisle("CHHC", "RGGR", "CHHC")
-                .aisle("CCCC", "CSHC", "CCCC")
-                .where('S', selfPredicate())
-                .where('G', states(getGearBoxState()))
-                .where('C', states(getCasingState()))
-                .where('R', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.ROTOR_HOLDER).stream()
-                        .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
-                                (((ITieredMetaTileEntity) mte).getTier() >= tier))
-                        .toArray(MetaTileEntity[]::new))
-                        .addTooltips("gregtech.multiblock.pattern.clear_amount_3")
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[tier])
-                        .setExactLimit(1)
-                        .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
-                .casing('H', CasingDefinition.simple(getCasingState(),
-                        "gregtech.machine.casing.turbine"))
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, hasMufflerHatch ? 1 : 0)
-                .buildTemplate();
+        return TEMPLATES.get(getVariant()).get();
     }
 
     @Override
@@ -281,29 +270,29 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     }
 
     public IBlockState getCasingState() {
-        return casingState;
+        return getVariant().getCasingState();
     }
 
     public IBlockState getGearBoxState() {
-        return gearboxState;
+        return getVariant().getGearboxState();
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return casingRenderer;
+        return getVariant().getCasingRenderer();
     }
 
     @SideOnly(Side.CLIENT)
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return frontOverlay;
+        return getVariant().getFrontOverlay();
     }
 
     @Override
     public boolean hasMufflerMechanics() {
-        return hasMufflerHatch;
+        return getVariant().hasMufflerHatch();
     }
 
     @Override
@@ -311,10 +300,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         return super.isStructureObstructed() || !isRotorFaceFree();
     }
 
-    @Override
-    public int getTier() {
-        return tier;
-    }
+    // endregion
+
+    // region Voiding
 
     @Override
     public boolean canVoidRecipeItemOutputs() {
@@ -330,6 +318,10 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     public boolean shouldShowVoidingModeButton() {
         return false;
     }
+
+    // endregion
+
+    // region Progress Bars
 
     @Override
     public int getProgressBarCount() {
@@ -464,4 +456,6 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         }
         return new int[2];
     }
+
+    // endregion
 }
