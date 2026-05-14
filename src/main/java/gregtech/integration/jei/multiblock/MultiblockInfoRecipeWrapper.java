@@ -167,7 +167,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             // first check if the block is a GT machine
             TileEntity tileEntity = world.getTileEntity(pos);
             if (tileEntity instanceof IGregTechTileEntity) {
-                stack = ((IGregTechTileEntity) tileEntity).getMetaTileEntity().getStackForm();
+                MetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+                // For parametric controllers, include variant NBT so the correct
+                // variant item is shown in the JEI parts list
+                if (mte instanceof ParametricMultiblockController<?> parametric) {
+                    stack = getParametricStackForm(parametric);
+                } else {
+                    stack = mte.getStackForm();
+                }
             }
             if (stack.isEmpty()) {
                 // first, see what the block has to say for itself before forcing it to use a particular meta value
@@ -364,12 +371,13 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      */
     private void replaceControllerInPreview(
             @NotNull Map<BlockPos, BlockInfo> blockMap,
-            @NotNull BlockPos controllerPos) {
+            @NotNull BlockPos controllerPos,
+            @NotNull MultiblockControllerBase previewController) {
         MetaTileEntity copy = controller.createMetaTileEntity(null);
         MetaTileEntityHolder holder = new MetaTileEntityHolder();
         holder.setMetaTileEntity(copy);
         holder.getMetaTileEntity().onPlacement();
-        holder.getMetaTileEntity().setFrontFacing(controller.getFrontFacing());
+        holder.getMetaTileEntity().setFrontFacing(previewController.getFrontFacing());
         blockMap.put(controllerPos, new BlockInfo(
                 copy.getBlock().getDefaultState(), holder));
     }
@@ -974,7 +982,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             } else if (!controller.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
                 // Non-parametric controllers with selfPredicateByClass: different MTE IDs
                 // sharing the same class (e.g. LargeMiner, LargeBoiler, LargeTurbine)
-                replaceControllerInPreview(blockMap, controllerBlockPos);
+                replaceControllerInPreview(blockMap, controllerBlockPos, controllerBase);
             }
         }
 

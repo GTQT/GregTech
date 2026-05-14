@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.ProgressWidget.Direction;
 
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.util.GTLog;
 import gregtech.common.metatileentities.multi.electric.godforge.data.Milestones;
 import gregtech.common.mui.multiblock.godforge.ForgeOfGodsGuiUtil;
 import gregtech.common.mui.multiblock.godforge.sync.Panels;
@@ -76,6 +77,14 @@ public class MilestonePanel {
         FloatSyncValue invertedProgressSyncer = milestone.getProgressInvertedSyncer()
             .lookupFrom(Panels.MILESTONE, hypervisor);
 
+        // DEBUG: Log syncer state at panel creation time
+        GTLog.logger.info("[FOG Milestone DEBUG] createMilestone {} - progressSyncer={}, " +
+            "invertedProgressSyncer={}, isClient={}",
+            milestone.name(),
+            progressSyncer != null ? progressSyncer.getFloatValue() : "NULL",
+            invertedProgressSyncer != null ? invertedProgressSyncer.getFloatValue() : "NULL",
+            hypervisor.isClient());
+
         ParentWidget<?> parent = new ParentWidget<>().size(MILESTONE_BUTTON_SIZE_W, MILESTONE_BUTTON_SIZE_H)
             .align(milestone.getPosition())
             .margin(MILESTONE_BUTTON_MARGIN_X, MILESTONE_BUTTON_MARGIN_Y);
@@ -106,7 +115,14 @@ public class MilestonePanel {
                 .direction(Direction.RIGHT)
                 .alignY(Alignment.CENTER)
                 .widthRel(1.0f)
-                .height(MILESTONE_PROGRESS_BAR_H));
+                .height(MILESTONE_PROGRESS_BAR_H)
+                // DEBUG: tooltip to show current progress value in real-time
+                .dynamicTooltip(() -> {
+                    float p = progressSyncer != null ? progressSyncer.getFloatValue() : -1;
+                    float ip = invertedProgressSyncer != null ? invertedProgressSyncer.getFloatValue() : -1;
+                    return java.util.Collections.singletonList(
+                        IKey.str("DEBUG " + milestone.name() + " progress=" + p + " inv=" + ip));
+                }));
         parent.child(
             new ProgressWidget().value(invertedProgressSyncer)
                 .texture(GTGuiTextures.BLANK_TRANSPARENT, milestone.getProgressBarInvertedOverlay(), -1)
