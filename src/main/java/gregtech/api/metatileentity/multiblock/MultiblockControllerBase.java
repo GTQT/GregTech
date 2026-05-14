@@ -93,9 +93,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * @deprecated Use {@link #patternTemplate} + {@link #multiblockState} for new code.
-     *             Retained for backward compatibility during migration.
+     *             Retained for backward compatibility during migration. Will be removed in version 2.10.
      */
     @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     @Nullable
     public BlockPattern structurePattern;
 
@@ -247,6 +248,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         reinitializeStructurePattern();
     }
 
+    @SuppressWarnings("deprecation")
     public void reinitializeStructurePattern() {
         // Template-first approach: create shared template, then per-instance state
         this.patternTemplate = createStructureTemplate();
@@ -343,8 +345,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * @deprecated Override {@link #createStructureTemplate()} instead for new code.
      *             This method is retained for backward compatibility with existing subclasses.
      *             The default implementation of {@link #createStructureTemplate()} delegates to this method.
+     *             Will be removed in version 2.10.
      */
     @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     @NotNull
     protected BlockPattern createStructurePattern() {
         throw new UnsupportedOperationException(
@@ -366,6 +370,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * @see FactoryBlockPattern#buildTemplate()
      */
     @NotNull
+    @SuppressWarnings("deprecation")
     protected BlockPatternTemplate createStructureTemplate() {
         return createStructurePattern().getTemplate();
     }

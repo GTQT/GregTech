@@ -15,7 +15,7 @@ import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.GTUtility;
 
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
+import gregtech.client.renderer.handler.GhostBlockRenderer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -249,9 +249,9 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         } else {
             // Right-click: Show hologram preview / error info
             if (world.isRemote) {
-                MultiblockPreviewRenderer.setCompareMode(compareMode);
-                MultiblockPreviewRenderer.setChannelValues(channelValues);
-                MultiblockPreviewRenderer.renderMultiBlockPreview(multiblock, 10000);
+                GhostBlockRenderer.setCompareMode(compareMode);
+                GhostBlockRenderer.setChannelValues(channelValues);
+                GhostBlockRenderer.renderGhostPreview(multiblock, 10000);
                 return EnumActionResult.SUCCESS;
             }
 

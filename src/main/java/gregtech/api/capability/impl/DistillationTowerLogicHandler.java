@@ -17,6 +17,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -63,8 +64,10 @@ public class DistillationTowerLogicHandler {
      *
      * @param structurePattern the structure pattern
      * @deprecated Use {@link #determineLayerCount(gregtech.api.pattern.MultiblockState)} instead.
+     *             Will be removed in version 2.10.
      */
     @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public void determineLayerCount(@NotNull BlockPattern structurePattern) {
         this.setLayerCount(structurePattern.formedRepetitionCount[1] + 1);
     }

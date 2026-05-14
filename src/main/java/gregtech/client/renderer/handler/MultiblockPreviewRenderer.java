@@ -32,7 +32,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL14;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -94,24 +93,16 @@ public class MultiblockPreviewRenderer {
             // per-vertex lightmap UVs (consistent with WorldSceneRenderer approach).
             mc.entityRenderer.disableLightmap();
 
-            // Enable blending with GL_CONSTANT_ALPHA to achieve semi-transparent hologram.
-            // Per-vertex color in BLOCK format has alpha=255, so GL state color alpha is
-            // overridden; GL_CONSTANT_ALPHA uses the blend color alpha instead.
-            GlStateManager.enableBlend();
-            GL14.glBlendColor(1.0F, 1.0F, 1.0F, 0.6F);
-            GlStateManager.tryBlendFuncSeparate(
-                    GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA,
-                    GL11.GL_ONE, GL11.GL_ZERO);
-
-            // Render VBOs for each layer
+            // Render VBOs for each layer (fully opaque, no blending)
             renderVBOs();
 
             // Render comparison overlay (colored outlines for missing/wrong blocks)
             if (compareMode && (!missingPositions.isEmpty() || !wrongPositions.isEmpty())) {
+                GlStateManager.enableBlend();
                 PreviewRenderUtils.renderComparisonOverlay(missingPositions, wrongPositions);
+                GlStateManager.disableBlend();
             }
 
-            GlStateManager.disableBlend();
             GlStateManager.enableLighting();
             mc.entityRenderer.enableLightmap();
             GlStateManager.popMatrix();
@@ -191,6 +182,8 @@ public class MultiblockPreviewRenderer {
 
     private static void rebuildMultiblockPreview(MultiblockControllerBase controller, long durTimeMillis) {
         resetMultiblockRender();
+        // Cancel any active ghost block preview (mutual exclusion)
+        GhostBlockRenderer.resetGhostRender();
         mbpPos = controller.getPos();
         mbpEndTime = System.currentTimeMillis() + durTimeMillis;
         lastBuildTime = System.currentTimeMillis();

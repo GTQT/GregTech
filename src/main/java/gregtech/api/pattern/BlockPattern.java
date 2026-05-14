@@ -10,6 +10,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,9 +24,11 @@ import java.util.Map;
  * <p>For new code, prefer using {@link BlockPatternTemplate} and {@link MultiblockState} directly.
  *
  * @deprecated Use {@link BlockPatternTemplate} + {@link MultiblockState} directly for new code.
- *             This class is retained for backward compatibility during migration.
+ *             This class is retained for backward compatibility during migration and will be
+ *             removed in version 2.10.
  */
 @Deprecated
+@ApiStatus.ScheduledForRemoval(inVersion = "2.10")
 public class BlockPattern {
 
     private final BlockPatternTemplate template;

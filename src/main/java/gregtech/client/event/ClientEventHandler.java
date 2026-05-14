@@ -10,6 +10,7 @@ import gregtech.api.util.CapesRegistry;
 import gregtech.client.particle.GTParticleManager;
 import gregtech.client.renderer.handler.BlockHighlightRenderer;
 import gregtech.client.renderer.handler.BlockPosHighlightRenderer;
+import gregtech.client.renderer.handler.GhostBlockRenderer;
 import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.DepthTextureUtil;
@@ -89,6 +90,7 @@ public class ClientEventHandler {
     public static void onRenderWorldLast(RenderWorldLastEvent event) {
         DepthTextureUtil.renderWorld(event);
         MultiblockPreviewRenderer.renderWorldLastEvent(event);
+        GhostBlockRenderer.renderWorldLastEvent(event);
         BlockPosHighlightRenderer.renderWorldLastEvent(event);
         GTParticleManager.renderWorld(event);
     }

@@ -37,7 +37,8 @@ import java.util.Set;
 
 /**
  * Shared utility methods for multiblock preview rendering, used by both
- * {@link MultiblockPreviewRenderer} for both controller and projector preview rendering.
+ * {@link MultiblockPreviewRenderer} (VBO-based controller preview) and
+ * {@link GhostBlockRenderer} (immediate-mode projector preview).
  */
 @SideOnly(Side.CLIENT)
 public final class PreviewRenderUtils {

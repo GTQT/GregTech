@@ -12,6 +12,7 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -159,7 +160,11 @@ public class DeclarativePatternBuilder {
      * Also generates and attaches structure description to the template for tooltip display.
      *
      * @return the built BlockPattern (with template + state)
+     * @deprecated Use {@link #buildTemplate()} for the new template-based architecture.
+     *             Will be removed in version 2.10.
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     @SuppressWarnings("deprecation")
     public BlockPattern build() {
         processSlots();
@@ -414,6 +419,10 @@ public class DeclarativePatternBuilder {
             return builder.tieredCasing(symbol, group);
         }
 
+        /** @deprecated Use {@link #buildTemplate()} instead. Will be removed in version 2.10. */
+        @Deprecated
+        @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
+        @SuppressWarnings("deprecation")
         public BlockPattern build() {
             return builder.build();
         }
@@ -476,6 +485,10 @@ public class DeclarativePatternBuilder {
             return builder.tieredCasing(symbol, group);
         }
 
+        /** @deprecated Use {@link #buildTemplate()} instead. Will be removed in version 2.10. */
+        @Deprecated
+        @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
+        @SuppressWarnings("deprecation")
         public BlockPattern build() {
             return builder.build();
         }

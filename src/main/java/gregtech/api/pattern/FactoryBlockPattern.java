@@ -5,6 +5,7 @@ import gregtech.api.util.RelativeDirection;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
@@ -186,8 +187,10 @@ public class FactoryBlockPattern {
      *
      * @deprecated Use {@link #buildTemplate()} and create per-instance state via
      *             {@link BlockPatternTemplate#createState()} for better memory efficiency.
+     *             Will be removed in version 2.10.
      */
     @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public BlockPattern build() {
         return new BlockPattern(buildTemplate());
     }
