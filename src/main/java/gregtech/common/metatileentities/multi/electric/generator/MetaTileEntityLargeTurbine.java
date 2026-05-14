@@ -45,7 +45,7 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumMap;
+import java.util.Map;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -53,12 +53,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
     // Static template cache: one SoftTemplate per LargeTurbineType variant
-    private static final EnumMap<LargeTurbineType, SoftTemplate> TEMPLATES = new EnumMap<>(LargeTurbineType.class);
-    static {
-        for (LargeTurbineType type : LargeTurbineType.values()) {
-            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_turbine/" + type.name().toLowerCase(), () -> buildTemplate(type)));
-        }
-    }
+    private static final Map<LargeTurbineType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
+            "gregtech:large_turbine", LargeTurbineType.class,
+            type -> () -> buildTemplate(type));
 
     private static BlockPatternTemplate buildTemplate(LargeTurbineType type) {
         return DeclarativePatternBuilder.start()

@@ -394,6 +394,19 @@ public class DeclarativePatternBuilder {
         }
 
         /**
+         * Apply a reusable hatch preset to this casing slot.
+         * Presets encapsulate common hatch combinations to reduce boilerplate.
+         *
+         * @param preset the hatch preset to apply
+         * @return this CasingSlot for chaining
+         * @see HatchPresets for standard presets
+         */
+        public CasingSlot applyPreset(@NotNull IHatchPreset preset) {
+            preset.apply(this);
+            return this;
+        }
+
+        /**
          * Finish declaring hatches for this slot and return to the main builder.
          * (Also allows chaining back to builder methods directly through the CasingSlot.)
          */

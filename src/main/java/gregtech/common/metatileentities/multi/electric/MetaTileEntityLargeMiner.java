@@ -75,7 +75,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.Map;
 import java.util.List;
 
 import static gregtech.api.unification.material.Materials.DrillingFluid;
@@ -86,12 +86,9 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     private static final int CHUNK_LENGTH = 16;
 
     // Static template cache: one SoftTemplate per LargeMinerType variant
-    private static final EnumMap<LargeMinerType, SoftTemplate> TEMPLATES = new EnumMap<>(LargeMinerType.class);
-    static {
-        for (LargeMinerType type : LargeMinerType.values()) {
-            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_miner/" + type.name().toLowerCase(), () -> buildTemplate(type)));
-        }
-    }
+    private static final Map<LargeMinerType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
+            "gregtech:large_miner", LargeMinerType.class,
+            type -> () -> buildTemplate(type));
 
     private static BlockPatternTemplate buildTemplate(LargeMinerType type) {
         return DeclarativePatternBuilder.start()

@@ -123,19 +123,14 @@ public abstract class ParametricMultiblockController<V extends Enum<V>>
      * @param enumClass     the variant enum class
      * @param factory       function that creates a template Supplier for each variant
      * @return immutable EnumMap of variant → SoftTemplate
+     * @see TemplatePool#buildEnumCache(String, Class, Function) for the underlying implementation
      */
     @NotNull
     protected static <V extends Enum<V>> Map<V, SoftTemplate> buildTemplateCache(
             @NotNull String poolKeyPrefix,
             @NotNull Class<V> enumClass,
             @NotNull Function<V, Supplier<BlockPatternTemplate>> factory) {
-        Map<V, SoftTemplate> cache = new EnumMap<>(enumClass);
-        TemplatePool pool = TemplatePool.getInstance();
-        for (V value : enumClass.getEnumConstants()) {
-            String key = poolKeyPrefix + "/" + value.name().toLowerCase();
-            cache.put(value, pool.register(key, factory.apply(value)));
-        }
-        return cache;
+        return TemplatePool.buildEnumCache(poolKeyPrefix, enumClass, factory);
     }
 
     @Override

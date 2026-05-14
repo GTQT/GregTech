@@ -16,6 +16,7 @@ import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -74,13 +75,7 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
                                 abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
                     .casing('C', CasingDefinition.simple(getFrontState(),
                             "gregtech.machine.casing.high_power"))
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
+                        .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
                     .buildTemplate()
     );
 

@@ -22,6 +22,7 @@ import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
@@ -75,12 +76,7 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF),
                             "gregtech.machine.casing.invar_heatproof"))
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                        .applyPreset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)
                     .buildTemplate()

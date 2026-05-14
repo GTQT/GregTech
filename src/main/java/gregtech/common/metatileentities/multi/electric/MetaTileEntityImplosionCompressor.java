@@ -3,7 +3,6 @@ package gregtech.common.metatileentities.multi.electric;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
@@ -11,6 +10,7 @@ import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
@@ -39,13 +39,7 @@ public class MetaTileEntityImplosionCompressor extends RecipeMapMultiblockContro
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID),
                             "gregtech.machine.casing.steel_solid"))
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 2)
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                        .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
                     .buildTemplate()
     );
 

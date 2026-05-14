@@ -65,7 +65,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.Map;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -73,12 +73,9 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         implements ITieredMetaTileEntity, IWorkable, ProgressBarMultiblock {
 
     // Static template cache: one SoftTemplate per FluidDrillType variant
-    private static final EnumMap<FluidDrillType, SoftTemplate> TEMPLATES = new EnumMap<>(FluidDrillType.class);
-    static {
-        for (FluidDrillType type : FluidDrillType.values()) {
-            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:fluid_drill/" + type.name().toLowerCase(), () -> buildTemplate(type)));
-        }
-    }
+    private static final Map<FluidDrillType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
+            "gregtech:fluid_drill", FluidDrillType.class,
+            type -> () -> buildTemplate(type));
 
     private static BlockPatternTemplate buildTemplate(FluidDrillType type) {
         return DeclarativePatternBuilder.start()

@@ -23,6 +23,7 @@ import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.KeyUtil;
@@ -53,19 +54,16 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumMap;
+import java.util.Map;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockController implements ProgressBarMultiblock {
 
     // Static template cache: one SoftTemplate per LargeCombustionEngineType variant
-    private static final EnumMap<LargeCombustionEngineType, SoftTemplate> TEMPLATES = new EnumMap<>(LargeCombustionEngineType.class);
-    static {
-        for (LargeCombustionEngineType type : LargeCombustionEngineType.values()) {
-            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_combustion_engine/" + type.name().toLowerCase(), () -> buildTemplate(type)));
-        }
-    }
+    private static final Map<LargeCombustionEngineType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
+            "gregtech:large_combustion_engine", LargeCombustionEngineType.class,
+            type -> () -> buildTemplate(type));
 
     private static BlockPatternTemplate buildTemplate(LargeCombustionEngineType type) {
         return DeclarativePatternBuilder.start()
@@ -88,12 +86,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .where('Y', selfPredicateByClass(MetaTileEntityLargeCombustionEngine.class))
                 .casing('C', CasingDefinition.simple(type.getCasingState(),
                         "gregtech.machine.casing." + (type.isExtreme() ? "tungstensteel_robust" : "titanium_stable")))
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .applyPreset(HatchPresets.MUFFLER_IO)
                 .buildTemplate();
     }
 
@@ -214,12 +207,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .where('Y', selfPredicate())
                 .casing('C', CasingDefinition.simple(getCasingState(),
                         "gregtech.machine.casing." + (isExtreme ? "tungstensteel_robust" : "titanium_stable")))
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
+                    .applyPreset(HatchPresets.MUFFLER_IO)
                 .buildTemplate();
     }
 

@@ -14,6 +14,7 @@ import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.tooltips.TooltipBuilder;
@@ -65,13 +66,8 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                             .or(states(getCasingState())))
                     .casing('X', CasingDefinition.simple(getCasingState(),
                             "gregtech.machine.casing.ptfe_inert"))
+                        .applyPreset(HatchPresets.MUFFLER_IO)
                         .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 2)
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
                     .buildTemplate()
     );
 

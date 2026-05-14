@@ -72,7 +72,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.Map;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -80,12 +80,9 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                                                                                     IControllable, ISteamMachine {
 
     // Static template cache: one SoftTemplate per BoilerType variant
-    private static final EnumMap<BoilerType, SoftTemplate> TEMPLATES = new EnumMap<>(BoilerType.class);
-    static {
-        for (BoilerType type : BoilerType.values()) {
-            TEMPLATES.put(type, TemplatePool.getInstance().register("gregtech:large_boiler/" + type.name().toLowerCase(), () -> buildTemplate(type)));
-        }
-    }
+    private static final Map<BoilerType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
+            "gregtech:large_boiler", BoilerType.class,
+            type -> () -> buildTemplate(type));
 
     private static BlockPatternTemplate buildTemplate(BoilerType type) {
         return DeclarativePatternBuilder.start()

@@ -6,8 +6,11 @@ import gregtech.common.ConfigHolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -139,6 +142,45 @@ public final class TemplatePool {
      */
     public boolean isRegistered(@NotNull String key) {
         return pool.containsKey(key);
+    }
+
+    /**
+     * Build an EnumMap-based template cache for enum-keyed multi-variant machines.
+     * Each enum constant gets its own {@link SoftTemplate} registered in this pool.
+     *
+     * <p>This eliminates the common boilerplate pattern:
+     * <pre>{@code
+     * // Before (6 lines of boilerplate per class):
+     * private static final EnumMap<Type, SoftTemplate> TEMPLATES = new EnumMap<>(Type.class);
+     * static {
+     *     for (Type type : Type.values()) {
+     *         TEMPLATES.put(type, TemplatePool.getInstance().register("prefix/" + type.name().toLowerCase(), () -> buildTemplate(type)));
+     *     }
+     * }
+     *
+     * // After (1 line):
+     * private static final Map<Type, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
+     *         "gregtech:large_turbine", Type.class, type -> () -> buildTemplate(type));
+     * }</pre>
+     *
+     * @param poolKeyPrefix the pool key prefix (e.g. "gregtech:large_turbine")
+     * @param enumClass     the variant enum class
+     * @param factory       function that creates a template Supplier for each enum constant
+     * @param <V>           the enum type
+     * @return unmodifiable EnumMap of variant → SoftTemplate
+     */
+    @NotNull
+    public static <V extends Enum<V>> Map<V, SoftTemplate> buildEnumCache(
+            @NotNull String poolKeyPrefix,
+            @NotNull Class<V> enumClass,
+            @NotNull Function<V, Supplier<BlockPatternTemplate>> factory) {
+        Map<V, SoftTemplate> cache = new EnumMap<>(enumClass);
+        TemplatePool pool = getInstance();
+        for (V value : enumClass.getEnumConstants()) {
+            String key = poolKeyPrefix + "/" + value.name().toLowerCase();
+            cache.put(value, pool.register(key, factory.apply(value)));
+        }
+        return cache;
     }
 
     /**
