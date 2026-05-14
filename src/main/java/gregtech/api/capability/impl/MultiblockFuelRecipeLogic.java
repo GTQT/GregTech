@@ -6,6 +6,7 @@ import gregtech.api.capability.IRotorHolder;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.ParametricFuelController;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
@@ -73,6 +74,8 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
             controller.outputRecoveryItems(Math.max(parallelRecipesPerformed, 1));
             if (controller instanceof FuelMultiblockController fuelController) {
                 fuelController.outputRecoveryFluid(progressTime);
+            } else if (controller instanceof ParametricFuelController<?> parametricFuel) {
+                parametricFuel.outputRecoveryFluid(progressTime);
             }
         }
 

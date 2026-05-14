@@ -125,7 +125,6 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
 
     @Override
     protected void onVariantChanged() {
-        super.onVariantChanged();
         LargeTurbineType type = getVariant();
         this.tier = type.getTier();
         this.recipeMapWorkable = createWorkable();

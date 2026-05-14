@@ -128,7 +128,6 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
     @Override
     protected void onVariantChanged() {
-        super.onVariantChanged();
         LargeCombustionEngineType type = getVariant();
         this.tier = type.getTier();
         this.recipeMapWorkable = createWorkable();
