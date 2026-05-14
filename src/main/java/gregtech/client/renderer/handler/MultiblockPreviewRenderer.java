@@ -39,14 +39,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Predicate;
 
 @SideOnly(Side.CLIENT)
 public class MultiblockPreviewRenderer {
 
     // Preview block scale factor and centering offset
-    private static final float BLOCK_SCALE = 0.75F;
-    private static final float BLOCK_OFFSET = 0.125F;
+    private static final float BLOCK_SCALE = 1.0F;
+    private static final float BLOCK_OFFSET = 0.0F;
+    private static final FaceVisibility FULL_BLOCK_VISIBILITY = new FaceVisibility();
     // Minimum interval between VBO rebuilds to prevent stutter from rapid right-clicks
     private static final long REBUILD_COOLDOWN_MS = 500L;
 
@@ -343,9 +344,8 @@ public class MultiblockPreviewRenderer {
         TrackedDummyWorld world = new TrackedDummyWorld();
         world.addBlocks(blockMap);
         int finalMaxY = layer % (maxY + 1);
-        world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
-
-        Set<BlockPos> surfaceBlocks = PreviewRenderUtils.computeSurfaceBlocks(blockMap);
+        Predicate<BlockPos> renderFilter = pos -> finalMaxY == 0 || pos.getY() + 1 == finalMaxY;
+        world.setRenderFilter(renderFilter);
 
         // Use the piece's own template for coordinate transformation
         gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
@@ -354,6 +354,7 @@ public class MultiblockPreviewRenderer {
         BlockPos pieceCenterInLocal = new BlockPos(centerOffset[0], centerOffset[1], centerOffset[3]);
 
         FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(world);
+        PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(world);
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
 
         try {
@@ -363,13 +364,11 @@ public class MultiblockPreviewRenderer {
                 BufferBuilder buffer = Tessellator.getInstance().getBuffer();
                 buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
 
-                for (BlockPos pos : surfaceBlocks) {
+                for (BlockPos pos : blockMap.keySet()) {
+                    if (!renderFilter.test(pos)) continue;
                     IBlockState state = world.getBlockState(pos);
                     if (state.getBlock() == Blocks.AIR) continue;
                     if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
-
-                    FaceVisibility faceVisibility = PreviewRenderUtils.computeFaceVisibility(pos, blockMap);
-                    if (faceVisibility.isEntireObscured()) continue;
 
                     // Compute world-space position for this block
                     BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
@@ -379,8 +378,7 @@ public class MultiblockPreviewRenderer {
                             controller.isFlipped());
                     BlockPos worldPos = pieceCenterPos.add(tPos);
 
-                    renderer.renderBlockScaled(state, pos, worldPos, BLOCK_SCALE, BLOCK_OFFSET,
-                            faceVisibility, buffer);
+                    renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
                 }
 
                 buffer.finishDrawing();
@@ -427,11 +425,11 @@ public class MultiblockPreviewRenderer {
         TrackedDummyWorld world = new TrackedDummyWorld();
         world.addBlocks(blockMap);
         int finalMaxY = layer % (maxY + 1);
-        world.setRenderFilter(pos -> pos.getY() + 1 == finalMaxY || finalMaxY == 0);
-
-        Set<BlockPos> surfaceBlocks = PreviewRenderUtils.computeSurfaceBlocks(blockMap);
+        Predicate<BlockPos> renderFilter = pos -> finalMaxY == 0 || pos.getY() + 1 == finalMaxY;
+        world.setRenderFilter(renderFilter);
 
         FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(world);
+        PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(world);
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
 
         try {
@@ -441,22 +439,19 @@ public class MultiblockPreviewRenderer {
                 BufferBuilder buffer = Tessellator.getInstance().getBuffer();
                 buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
 
-                for (BlockPos pos : surfaceBlocks) {
+                for (BlockPos pos : blockMap.keySet()) {
+                    if (!renderFilter.test(pos)) continue;
                     if (pos.equals(controllerPos)) continue;
                     IBlockState state = world.getBlockState(pos);
                     if (state.getBlock() == Blocks.AIR) continue;
                     if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
-
-                    FaceVisibility faceVisibility = PreviewRenderUtils.computeFaceVisibility(pos, blockMap);
-                    if (faceVisibility.isEntireObscured()) continue;
 
                     // Compute world-space position for this block
                     BlockPos tPos = PreviewRenderUtils.transformPreviewOffset(
                             controllerBase, pos.subtract(controllerPos));
                     BlockPos worldPos = targetPos.add(tPos);
 
-                    renderer.renderBlockScaled(state, pos, worldPos, BLOCK_SCALE, BLOCK_OFFSET,
-                            faceVisibility, buffer);
+                    renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
                 }
 
                 buffer.finishDrawing();
@@ -470,5 +465,21 @@ public class MultiblockPreviewRenderer {
         }
 
         vboBuilt = true;
+    }
+
+    private static void renderPreviewBlock(FaceCulledRenderBlocks renderer,
+                                           PreviewRenderUtils.OffsetBlockAccess mteAccess,
+                                           IBlockState state,
+                                           BlockPos localPos,
+                                           BlockPos worldPos,
+                                           BufferBuilder buffer) {
+        if (state.getBlock().getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
+            mteAccess.setPos(localPos, worldPos, true);
+            MetaTileEntityRenderer.INSTANCE.renderBlock(mteAccess, worldPos, state, buffer);
+            return;
+        }
+
+        renderer.renderBlockScaled(state, localPos, worldPos, BLOCK_SCALE, BLOCK_OFFSET,
+                FULL_BLOCK_VISIBILITY, buffer);
     }
 }

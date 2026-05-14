@@ -35,7 +35,7 @@ public class CPacketRequestNetworkInfo implements IMessage {
                 WirelessNetworkView view = service.getView(playerId);
                 if (!view.isEmpty()) {
                     NetworkHandler.INSTANCE.sendTo(new SPacketWirelessNetworkInfo(
-                            view.getStored(), view.getCapacity(),
+                            view.getStored(),
                             view.getInputPerSecond(), view.getOutputPerSecond()), player);
                 }
             });

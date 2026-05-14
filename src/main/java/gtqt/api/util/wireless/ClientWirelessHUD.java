@@ -25,16 +25,15 @@ public class ClientWirelessHUD {
     private static final String[] ENERGY_UNITS = {" EU", " KEU", " MEU", " GEU", " TEU", " PEU", " EEU", " ZEU", " YEU"};
 
     private static volatile BigInteger stored = BigInteger.ZERO;
-    private static volatile BigInteger capacity = BigInteger.ZERO;
     private static volatile BigInteger lastStored = BigInteger.ZERO;
     private static volatile BigInteger inputRate = BigInteger.ZERO;
     private static volatile BigInteger outputRate = BigInteger.ZERO;
     private static volatile boolean hasNetwork = false;
     private static volatile String throughputString = "";
     private static int tickCounter = 0;
-    private static final int REQUEST_INTERVAL = 20; // 1秒 (20 ticks)
+    private static final int REQUEST_INTERVAL = 20;
 
-    public static void updateInfo(BigInteger newStored, BigInteger newCapacity, BigInteger newInputRate, BigInteger newOutputRate) {
+    public static void updateInfo(BigInteger newStored, BigInteger newInputRate, BigInteger newOutputRate) {
         if (lastStored.compareTo(BigInteger.ZERO) != 0) {
             BigInteger delta = newStored.subtract(lastStored);
             BigDecimal ratePerSecond = new BigDecimal(delta);
@@ -44,7 +43,6 @@ public class ClientWirelessHUD {
         }
 
         stored = newStored;
-        capacity = newCapacity;
         lastStored = newStored;
         inputRate = newInputRate;
         outputRate = newOutputRate;
@@ -70,7 +68,6 @@ public class ClientWirelessHUD {
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Text event) {
         if (!hasNetwork) return;
-        if (capacity.compareTo(BigInteger.ZERO) == 0) return;
 
         Minecraft mc = Minecraft.getMinecraft();
         ScaledResolution res = new ScaledResolution(mc);
@@ -78,16 +75,10 @@ public class ClientWirelessHUD {
         int y = res.getScaledHeight() - ConfigHolder.client.wirelessHud.hudOffsetY;
 
         String storedStr = formatEnergy(stored);
-        String capacityStr = formatEnergy(capacity);
-        double percent = capacity.compareTo(BigInteger.ZERO) == 0 ? 0 :
-                stored.doubleValue() / capacity.doubleValue() * 100;
-        String percentStr = String.format("%.1f%%", percent);
-
-        String combined = "系统蓄能: " + storedStr + " / " + capacityStr + " (" + percentStr + ")";
 
         int currentY = y;
         mc.fontRenderer.drawStringWithShadow("无线网络", x, currentY, 0xFFFFFF); currentY += 10;
-        mc.fontRenderer.drawStringWithShadow(combined, x, currentY, 0xFFFF55); currentY += 10;
+        mc.fontRenderer.drawStringWithShadow("储能: " + storedStr, x, currentY, 0xFFFF55); currentY += 10;
 
         if (!throughputString.isEmpty()) {
             int throughputColor;

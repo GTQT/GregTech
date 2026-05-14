@@ -1,10 +1,7 @@
 package gregtech.common.command.wireless;
 
-import gregtech.api.wireless.WirelessNodeId;
-import gregtech.api.wireless.WirelessStorageNodeSnapshot;
 import gregtech.common.wireless.WirelessEnergyNetwork;
 import gregtech.common.wireless.WirelessEnergySavedData;
-import gregtech.common.wireless.WirelessEnergyServiceImpl;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -12,10 +9,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 
-import gregtech.api.util.GTUtility;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -25,8 +19,8 @@ import java.util.UUID;
 
 /**
  * /gt wireless cleanup
- * Scans all networks for stale nodes (chunks loaded but tile entity missing/invalid)
- * and removes them. Admin only (permission level 2).
+ * Removes empty wireless networks (stored = 0 and no activity).
+ * Admin only (permission level 2).
  */
 public class CommandWirelessCleanup extends CommandBase {
 
@@ -56,42 +50,25 @@ public class CommandWirelessCleanup extends CommandBase {
         }
 
         int totalRemoved = 0;
+        List<UUID> emptyNetworks = new ArrayList<>();
 
         for (Map.Entry<UUID, WirelessEnergyNetwork> entry : savedData.getAllNetworks().entrySet()) {
             WirelessEnergyNetwork network = entry.getValue();
-            List<WirelessNodeId> staleNodes = new ArrayList<>();
-
-            for (Map.Entry<WirelessNodeId, WirelessStorageNodeSnapshot> nodeEntry : network.getNodes().entrySet()) {
-                WirelessNodeId nodeId = nodeEntry.getKey();
-                if (isNodeStale(server, nodeId)) {
-                    staleNodes.add(nodeId);
-                }
+            if (network.getStored().signum() == 0) {
+                emptyNetworks.add(entry.getKey());
             }
+        }
 
-            for (WirelessNodeId staleId : staleNodes) {
-                network.unregisterNode(staleId);
+        for (UUID id : emptyNetworks) {
+            // Only remove if still empty (race condition safety)
+            WirelessEnergyNetwork network = savedData.getNetwork(id);
+            if (network != null && network.getStored().signum() == 0) {
+                savedData.removeNetwork(id);
                 totalRemoved++;
             }
         }
 
         sender.sendMessage(new TextComponentString(
-                TextFormatting.GREEN + "Cleanup complete. Removed " + totalRemoved + " stale node(s)."));
-    }
-
-    /**
-     * Checks if a node is stale: the chunk is loaded but the expected tile entity is not present.
-     */
-    private boolean isNodeStale(MinecraftServer server, WirelessNodeId nodeId) {
-        World world = server.getWorld(nodeId.getDimension());
-        if (world == null) return false;
-
-        if (!world.isBlockLoaded(nodeId.getPos())) {
-            // Chunk not loaded, cannot verify - not considered stale
-            return false;
-        }
-
-        // Chunk loaded but no valid MTE at position = stale
-        var mte = GTUtility.getMetaTileEntity(world, nodeId.getPos());
-        return mte == null;
+                TextFormatting.GREEN + "Cleanup complete. Removed " + totalRemoved + " empty network(s)."));
     }
 }

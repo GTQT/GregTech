@@ -24,14 +24,16 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     protected long totalContinuousRunningTime;
     public FuelMultiblockController metaTileEntity;
     private int previousDuration = 0;
+    private final ParallelLogicType parallelLogicType;
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity) {
-        this(tileEntity, ParallelLogicType.CROSS_RECIPE);
+        this(tileEntity, ParallelLogicType.MULTIPLY);
     }
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity, ParallelLogicType type) {
         super(tileEntity);
         this.metaTileEntity = tileEntity;
+        this.parallelLogicType = type;
     }
 
     @Override
@@ -87,6 +89,19 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     public int getParallelLimit() {
         // parallel is limited by voltage
         return Integer.MAX_VALUE;
+    }
+
+    @Override
+    public boolean isCrossRecipeMode() {
+        // Fuel multiblocks keep custom continuous generation state in updateRecipeProgress().
+        // The generic cross-recipe scheduler owns its own slot progress, so mixing it with
+        // this logic leaves TOP/HWYLA slot progress stuck and bypasses generator-specific boosts.
+        return false;
+    }
+
+    @Override
+    public ParallelLogicType getParallelLogicType() {
+        return parallelLogicType;
     }
 
     @Override

@@ -37,6 +37,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     @Override
     protected void updateRecipeProgress() {
         if (canRecipeProgress) {
+            this.recipeEUt = getCurrentProduction();
             drawEnergy(recipeEUt, false);
             if (++progressTime > maxProgressTime) {
                 completeRecipe();
@@ -61,6 +62,16 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
         if (rotorHolder != null && rotorHolder.hasRotor())
             return (long) BASE_EU_OUTPUT * rotorHolder.getTotalPower() / 100;
         return 0;
+    }
+
+    private long getCurrentProduction() {
+        return boostProduction(getMaxVoltage());
+    }
+
+    @Override
+    protected void setupRecipe(@NotNull Recipe recipe) {
+        super.setupRecipe(recipe);
+        this.recipeEUt = getCurrentProduction();
     }
 
     @Override

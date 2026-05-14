@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Unified WorldSavedData for the wireless energy network system.
- * Replaces both {@code GregTech_WirelessEUWorldSavedData} and {@code gtqt_network_data}.
  * <p>
- * On first load, migrates data from the legacy sources if the new data file does not yet exist.
+ * On first load, migrates data from the legacy GT5-style global energy data
+ * and old network database.
  */
 public class WirelessEnergySavedData extends WorldSavedData {
 
@@ -48,10 +48,6 @@ public class WirelessEnergySavedData extends WorldSavedData {
         return instance;
     }
 
-    /**
-     * Loads or creates the saved data instance for the given overworld.
-     * Should be called once during world load (dimension 0).
-     */
     public static WirelessEnergySavedData loadOrCreate(World world) {
         MapStorage storage = world.getMapStorage();
         if (storage == null) {
@@ -65,7 +61,6 @@ public class WirelessEnergySavedData extends WorldSavedData {
         if (data == null) {
             data = new WirelessEnergySavedData();
             storage.setData(DATA_NAME, data);
-            // First time: attempt migration from legacy data sources
             data.migrateFromLegacy(world);
         }
         instance = data;
@@ -88,6 +83,10 @@ public class WirelessEnergySavedData extends WorldSavedData {
 
     public Map<UUID, WirelessEnergyNetwork> getAllNetworks() {
         return Collections.unmodifiableMap(networks);
+    }
+
+    public WirelessEnergyNetwork removeNetwork(UUID networkId) {
+        return networks.remove(networkId);
     }
 
     // ==================== Persistence ====================
@@ -153,10 +152,6 @@ public class WirelessEnergySavedData extends WorldSavedData {
         }
     }
 
-    /**
-     * Called by the service layer each tick to batch dirty marking.
-     * Only marks the WorldSavedData as dirty if any network has pending changes.
-     */
     public void flushDirtyNetworks() {
         boolean anyDirty = false;
         for (WirelessEnergyNetwork network : networks.values()) {
@@ -177,26 +172,15 @@ public class WirelessEnergySavedData extends WorldSavedData {
     private static final String LEGACY_GLOBAL_ENERGY_NBT_ENERGY = "energy";
     private static final String LEGACY_NETWORK_DB_DATA_NAME = "gtqt_network_data";
 
-    /**
-     * Migrates data from the old GregTech_WirelessEUWorldSavedData (GT5-style global balance)
-     * and NetworkDatabase (PSS node positions) into the unified format.
-     */
     private void migrateFromLegacy(World world) {
         GTLog.logger.info("WirelessEnergySavedData: Performing first-time migration from legacy data sources.");
-
         migrateFromGlobalEnergy(world);
         migrateFromNetworkDatabase(world);
-
         migrated = true;
         markDirty();
         GTLog.logger.info("WirelessEnergySavedData: Migration complete. {} networks created.", networks.size());
     }
 
-    /**
-     * Migrates global energy balances by directly reading the old WorldSavedData NBT.
-     * Each UUID->BigInteger entry becomes a network with that stored value.
-     * Capacity is set equal to stored as a placeholder until PSS nodes register in P3.
-     */
     private void migrateFromGlobalEnergy(World world) {
         try {
             MapStorage storage = world.getMapStorage();
@@ -204,20 +188,14 @@ public class WirelessEnergySavedData extends WorldSavedData {
 
             WorldSavedData legacyData = storage.getOrLoadData(LegacyGlobalEnergySavedData.class,
                     LEGACY_GLOBAL_ENERGY_DATA_NAME);
-            if (legacyData == null) {
-                GTLog.logger.info("WirelessEnergySavedData: No legacy global energy data to migrate.");
-                return;
-            }
+            if (legacyData == null) return;
 
             LegacyGlobalEnergySavedData legacy = (LegacyGlobalEnergySavedData) legacyData;
             Map<UUID, BigInteger> globalEnergy = legacy.getEnergyMap();
 
-            if (globalEnergy.isEmpty()) {
-                GTLog.logger.info("WirelessEnergySavedData: Legacy global energy data is empty.");
-                return;
-            }
+            if (globalEnergy.isEmpty()) return;
 
-            GTLog.logger.info("WirelessEnergySavedData: Migrating {} entries from GregTech_WirelessEUWorldSavedData.",
+            GTLog.logger.info("WirelessEnergySavedData: Migrating {} entries from legacy global energy data.",
                     globalEnergy.size());
 
             for (Map.Entry<UUID, BigInteger> entry : globalEnergy.entrySet()) {
@@ -226,21 +204,13 @@ public class WirelessEnergySavedData extends WorldSavedData {
                 if (energy.signum() <= 0) continue;
 
                 WirelessEnergyNetwork network = getOrCreateNetwork(networkId, "Migrated Network");
-                // Set stored from legacy balance; capacity set to stored as placeholder
-                // (real capacity comes from PSS nodes in P3)
                 network.setStored(network.getStored().add(energy));
-                network.setCapacity(network.getCapacity().add(energy));
             }
         } catch (RuntimeException e) {
             GTLog.logger.warn("WirelessEnergySavedData: Error migrating from legacy global energy data", e);
         }
     }
 
-    /**
-     * Migrates PSS node positions from the old gtqt_network_data WorldSavedData.
-     * Only migrates the network registration (owner -> name).
-     * Actual stored/capacity will be populated when PSS tiles load and register with the service.
-     */
     private void migrateFromNetworkDatabase(World world) {
         try {
             MapStorage storage = world.getMapStorage();
@@ -248,41 +218,26 @@ public class WirelessEnergySavedData extends WorldSavedData {
 
             WorldSavedData legacyData = storage.getOrLoadData(
                     LegacyNetworkDatabaseSavedData.class, LEGACY_NETWORK_DB_DATA_NAME);
-            if (legacyData == null) {
-                GTLog.logger.info("WirelessEnergySavedData: No legacy NetworkDatabase to migrate.");
-                return;
-            }
+            if (legacyData == null) return;
 
             LegacyNetworkDatabaseSavedData legacy = (LegacyNetworkDatabaseSavedData) legacyData;
             Map<UUID, String> legacyNetworks = legacy.getNetworkNames();
-            GTLog.logger.info("WirelessEnergySavedData: Migrating {} entries from NetworkDatabase.",
-                    legacyNetworks.size());
 
             for (Map.Entry<UUID, String> entry : legacyNetworks.entrySet()) {
                 UUID ownerId = entry.getKey();
                 String networkName = entry.getValue();
-
-                // Resolve to canonical network ID
                 UUID networkId = WirelessTeamResolver.resolveNetworkId(ownerId);
                 getOrCreateNetwork(networkId,
                         networkName != null && !networkName.isEmpty() ? networkName : "Wireless Network");
-
-                GTLog.logger.info("WirelessEnergySavedData: Migrated network for owner {} -> network {}",
-                        ownerId, networkId);
             }
         } catch (RuntimeException e) {
             GTLog.logger.warn("WirelessEnergySavedData: Error migrating from NetworkDatabase", e);
         }
     }
 
-    // ==================== Legacy Data Reader ====================
+    // ==================== Legacy Data Readers ====================
 
-    /**
-     * Minimal WorldSavedData subclass used solely to read the old GregTech_WirelessEUWorldSavedData
-     * NBT format during migration. Not used for any active storage.
-     */
     public static class LegacyGlobalEnergySavedData extends WorldSavedData {
-
         private final Map<UUID, BigInteger> energyMap = new ConcurrentHashMap<>();
 
         public LegacyGlobalEnergySavedData() {
@@ -302,17 +257,13 @@ public class WirelessEnergySavedData extends WorldSavedData {
                 try {
                     UUID uuid = UUID.fromString(entry.getString(LEGACY_GLOBAL_ENERGY_NBT_UUID));
                     byte[] energyBytes = entry.getByteArray(LEGACY_GLOBAL_ENERGY_NBT_ENERGY);
-                    BigInteger energy = new BigInteger(energyBytes);
-                    energyMap.put(uuid, energy);
-                } catch (RuntimeException ignored) {
-                    // malformed uuid or energy data, skip this entry
-                }
+                    energyMap.put(uuid, new BigInteger(energyBytes));
+                } catch (RuntimeException ignored) {}
             }
         }
 
         @Override
         public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
-            // Read-only for migration, no need to write
             return nbt;
         }
 
@@ -321,12 +272,7 @@ public class WirelessEnergySavedData extends WorldSavedData {
         }
     }
 
-    /**
-     * Minimal WorldSavedData subclass used solely to read the old gtqt_network_data
-     * NBT format during migration. Not used for any active storage.
-     */
     public static class LegacyNetworkDatabaseSavedData extends WorldSavedData {
-
         private final Map<UUID, String> networkNames = new ConcurrentHashMap<>();
 
         public LegacyNetworkDatabaseSavedData() {
@@ -347,15 +293,12 @@ public class WirelessEnergySavedData extends WorldSavedData {
                     UUID owner = UUID.fromString(nodeTag.getString("owner"));
                     String networkName = nodeTag.getString("name");
                     networkNames.put(owner, networkName);
-                } catch (RuntimeException ignored) {
-                    // malformed entry, skip
-                }
+                } catch (RuntimeException ignored) {}
             }
         }
 
         @Override
         public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
-            // Read-only for migration, no need to write
             return nbt;
         }
 

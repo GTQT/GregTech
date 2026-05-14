@@ -171,9 +171,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @Override
     protected long getMaxVoltage() {
         long maxProduction = recipeMapWorkable.getMaxVoltage();
-        long currentProduction = ((LargeTurbineWorkableHandler) recipeMapWorkable).boostProduction((int) maxProduction);
+        long currentProduction = ((LargeTurbineWorkableHandler) recipeMapWorkable).boostProduction(maxProduction);
         if (isActive() && currentProduction <= maxProduction) {
-            return recipeMapWorkable.getMaxVoltage();
+            return currentProduction;
         } else {
             return 0L;
         }
@@ -356,24 +356,8 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         syncManager.syncValue("fuel_amount", fuelValue);
         syncManager.syncValue("fuel_name", fuelNameValue);
 
-        IntSyncValue rotorSpeedValue = new IntSyncValue(() -> {
-            IRotorHolder rotorHolder = getRotorHolder();
-            if (rotorHolder == null) {
-                return 0;
-            }
-            return rotorHolder.getRotorSpeed();
-        });
-
-        IntSyncValue rotorMaxSpeedValue = new IntSyncValue(() -> {
-            IRotorHolder rotorHolder = getRotorHolder();
-            if (rotorHolder == null) {
-                return 0;
-            }
-            return rotorHolder.getMaxRotorHolderSpeed();
-        });
-
+        FixedIntArraySyncValue rotorSpeedValue = new FixedIntArraySyncValue(this::getRotorSpeedData);
         syncManager.syncValue("rotor_speed", rotorSpeedValue);
-        syncManager.syncValue("rotor_max_speed", rotorMaxSpeedValue);
         IntSyncValue durabilityValue = new IntSyncValue(() -> {
             IRotorHolder rotorHolder = getRotorHolder();
             if (rotorHolder == null) {
@@ -399,13 +383,13 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                 .tooltipBuilder(t -> createFuelTooltip(t, fuelValue, fuelNameValue)));
 
         bars.add(barTest -> barTest
-                .progress(() -> rotorMaxSpeedValue.getIntValue() == 0 ? 0 :
-                        1.0 * rotorSpeedValue.getIntValue() / rotorMaxSpeedValue.getIntValue())
+                .progress(() -> rotorSpeedValue.getValue(1) == 0 ? 0 :
+                        1.0 * rotorSpeedValue.getValue(0) / rotorSpeedValue.getValue(1))
                 .texture(GTGuiTextures.PROGRESS_BAR_TURBINE_ROTOR_SPEED)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {
-                        int speed = rotorSpeedValue.getIntValue();
-                        int maxSpeed = rotorMaxSpeedValue.getIntValue();
+                        int speed = rotorSpeedValue.getValue(0);
+                        int maxSpeed = rotorSpeedValue.getValue(1);
 
                         t.addLine(KeyUtil.lang("gregtech.multiblock.turbine.rotor_speed",
                                 getSpeedFormat(maxSpeed, speed), speed, maxSpeed));
@@ -451,6 +435,17 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         } else {
             return TextFormatting.GREEN;
         }
+    }
+
+    /**
+     * @return an array of [rotor speed, rotor max speed]
+     */
+    private int[] getRotorSpeedData() {
+        IRotorHolder rotorHolder = getRotorHolder();
+        if (rotorHolder == null) {
+            return new int[2];
+        }
+        return new int[] { rotorHolder.getRotorSpeed(), rotorHolder.getMaxRotorHolderSpeed() };
     }
 
     /**

@@ -3,11 +3,8 @@ package gregtech.common.wireless;
 import gregtech.api.util.GTLog;
 import gregtech.api.wireless.TransferContext;
 import gregtech.api.wireless.TransferResult;
-import gregtech.api.wireless.UnregisterMode;
 import gregtech.api.wireless.WirelessEnergyService;
 import gregtech.api.wireless.WirelessNetworkView;
-import gregtech.api.wireless.WirelessNodeId;
-import gregtech.api.wireless.WirelessStorageNodeSnapshot;
 
 import net.minecraft.world.World;
 import net.minecraftforge.event.world.WorldEvent;
@@ -15,11 +12,17 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.math.BigInteger;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Implementation of the unified wireless energy service.
  * Singleton instance that manages all wireless energy network operations.
+ * <p>
+ * The wireless pool is a truly unbounded "bank account" per team —
+ * no capacity limits, no per-node tracking. Physical PSS units
+ * periodically rebalance against the pool.
  * <p>
  * Lifecycle:
  * <ul>
@@ -27,8 +30,6 @@ import java.util.UUID;
  *   <li>Ticks statistics and flushes dirty data each server tick.</li>
  *   <li>Cleared on world unload.</li>
  * </ul>
- * <p>
- * Thread safety: All mutation is expected on the server main thread only.
  */
 public class WirelessEnergyServiceImpl implements WirelessEnergyService {
 
@@ -44,10 +45,6 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         return INSTANCE;
     }
 
-    /**
-     * Gets the global service instance, creating it if needed.
-     * Returns null if the service has not been initialized yet (world not loaded).
-     */
     public static WirelessEnergyService getService() {
         return INSTANCE;
     }
@@ -84,13 +81,27 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         if (event.phase != TickEvent.Phase.END) return;
         if (savedData == null) return;
 
-        // Advance statistics windows for all networks
-        for (WirelessEnergyNetwork network : savedData.getAllNetworks().values()) {
+        // Single pass: advance stats + flush dirty in one iteration
+        boolean anyDirty = false;
+        Iterator<Map.Entry<UUID, WirelessEnergyNetwork>> it = savedData.getAllNetworks().entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, WirelessEnergyNetwork> entry = it.next();
+            WirelessEnergyNetwork network = entry.getValue();
             network.tickStats();
+            if (network.checkAndClearDirty()) {
+                anyDirty = true;
+            }
+            // Clean up empty stale networks
+            if (network.getStored().signum() == 0 && network.getInputPerSecond().signum() == 0
+                    && network.getOutputPerSecond().signum() == 0) {
+                // Keep networks with nodes (they will have activity when PSS reconnects)
+                // Only remove networks that have been idle for very long periods
+                // For now: skip cleanup, the map is small
+            }
         }
-
-        // Batch flush dirty data to WorldSavedData
-        savedData.flushDirtyNetworks();
+        if (anyDirty) {
+            savedData.markDirty();
+        }
     }
 
     // ==================== WirelessEnergyService Implementation ====================
@@ -105,7 +116,10 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         WirelessEnergyNetwork network = savedData.getNetwork(networkId);
         if (network == null) return WirelessNetworkView.EMPTY;
 
-        return network.createView();
+        return new WirelessNetworkView(
+                network.getNetworkId(), network.getNetworkName(),
+                network.getStored(),
+                network.getInputPerSecond(), network.getOutputPerSecond());
     }
 
     @Override
@@ -116,16 +130,9 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         UUID networkId = WirelessTeamResolver.resolveNetworkId(actor);
         if (networkId == null) return TransferResult.noNetwork();
 
-        WirelessEnergyNetwork network = getOrCreateNetworkForTransfer(networkId);
-
-        long accepted = network.insert(amount, context.isAllowOverflow());
-        if (accepted == amount) {
-            return TransferResult.success(accepted);
-        } else if (accepted > 0) {
-            return TransferResult.partial(accepted);
-        } else {
-            return TransferResult.networkFull();
-        }
+        WirelessEnergyNetwork network = savedData.getOrCreateNetwork(networkId, "Wireless Network");
+        long accepted = network.insert(amount);
+        return TransferResult.success(accepted);
     }
 
     @Override
@@ -176,16 +183,9 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         UUID networkId = WirelessTeamResolver.resolveNetworkId(actor);
         if (networkId == null) return TransferResult.noNetwork();
 
-        WirelessEnergyNetwork network = getOrCreateNetworkForTransfer(networkId);
-
-        BigInteger accepted = network.insert(amount, context.isAllowOverflow());
-        if (accepted.compareTo(amount) == 0) {
-            return TransferResult.success(accepted);
-        } else if (accepted.signum() > 0) {
-            return TransferResult.partial(accepted);
-        } else {
-            return TransferResult.networkFull();
-        }
+        WirelessEnergyNetwork network = savedData.getOrCreateNetwork(networkId, "Wireless Network");
+        BigInteger accepted = network.insert(amount);
+        return TransferResult.success(accepted);
     }
 
     @Override
@@ -226,44 +226,5 @@ public class WirelessEnergyServiceImpl implements WirelessEnergyService {
         } else {
             return TransferResult.insufficientEnergy();
         }
-    }
-
-    @Override
-    public void registerStorageNode(WirelessStorageNodeSnapshot node) {
-        if (savedData == null) return;
-
-        UUID networkId = node.getOwnerNetworkId();
-        WirelessEnergyNetwork network = savedData.getOrCreateNetwork(networkId, "Wireless Network");
-        network.registerNode(node);
-    }
-
-    @Override
-    public void updateStorageNode(WirelessStorageNodeSnapshot node) {
-        if (savedData == null) return;
-
-        UUID networkId = node.getOwnerNetworkId();
-        WirelessEnergyNetwork network = savedData.getNetwork(networkId);
-        if (network == null) return;
-
-        network.updateNode(node);
-    }
-
-    @Override
-    public void unregisterStorageNode(WirelessNodeId nodeId, UnregisterMode mode) {
-        if (savedData == null) return;
-
-        // Find which network owns this node
-        for (WirelessEnergyNetwork network : savedData.getAllNetworks().values()) {
-            if (network.getNodes().containsKey(nodeId)) {
-                network.unregisterNode(nodeId);
-                return;
-            }
-        }
-    }
-
-    // ==================== Internal Helpers ====================
-
-    private WirelessEnergyNetwork getOrCreateNetworkForTransfer(UUID networkId) {
-        return savedData.getOrCreateNetwork(networkId, "Wireless Network");
     }
 }
