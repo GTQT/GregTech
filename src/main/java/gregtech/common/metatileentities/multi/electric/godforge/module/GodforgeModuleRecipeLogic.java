@@ -24,6 +24,7 @@ import gregtech.common.wireless.WirelessEnergyServiceImpl;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
 
@@ -49,13 +50,14 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
     }
 
     @Override
-    protected boolean setupSlotWithRecipe(@NotNull RecipeSlot slot, @NotNull Recipe recipe,
-                                          @NotNull RecipeMap<?> recipeMap,
-                                          @NotNull IItemHandlerModifiable importInventory,
-                                          @NotNull IMultipleTankHandler importFluids,
-                                          long remainingPower, int maxParallelBudget) {
-        return super.setupSlotWithRecipe(slot, applyGodforgeModifiers(recipe), recipeMap, importInventory, importFluids,
-                remainingPower, maxParallelBudget);
+    @Nullable
+    protected SlotAllocation allocateSlotParallel(@NotNull RecipeSlot slot, @NotNull Recipe recipe,
+                                                  @NotNull RecipeMap<?> recipeMap,
+                                                  @NotNull IItemHandlerModifiable importInventory,
+                                                  @NotNull IMultipleTankHandler importFluids,
+                                                  long remainingBasePower, int maxParallelBudget) {
+        return super.allocateSlotParallel(slot, applyGodforgeModifiers(recipe), recipeMap, importInventory, importFluids,
+                remainingBasePower, maxParallelBudget);
     }
 
     private Recipe applyGodforgeModifiers(@NotNull Recipe recipe) {

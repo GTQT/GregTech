@@ -33,7 +33,12 @@ import java.util.List;
  * <p>Design principles:
  * <ul>
  *   <li><b>Shared Power Pool</b>: All active slots share the machine's total power budget.
- *       The sum of all slots' EUt must not exceed maxVoltage.</li>
+ *       The sum of all slots' EUt must not exceed totalPowerBudget.</li>
+ *   <li><b>Two-Phase Allocation</b>: Parallel allocation (Phase 1) uses only base EUt to
+ *       determine how many recipes each slot can run. Overclocking (Phase 2) distributes the
+ *       surplus power (totalPowerBudget - sum of all base demands) proportionally among all
+ *       allocated slots based on their base power demand. This prevents early slots from
+ *       monopolizing overclock headroom.</li>
  *   <li><b>Same Recipe First</b>: When filling, the scheduler first tries to maximize the first recipe's
  *       parallel count, using all remaining parallel budget. Then searches for different recipes.</li>
  *   <li><b>Immediate Refill</b>: When a slot completes and outputs are extracted, the scheduler
@@ -47,27 +52,14 @@ import java.util.List;
  * {@link gregtech.api.metatileentity.multiblock.ParallelLogicType#CROSS_RECIPE} is active.
  *
  * <p><b>Known limitation — Slot Fragmentation (Temporal Drift):</b>
- * <br>When the power budget cannot perfectly divide by a recipe's base EUt (i.e.,
- * {@code maxVoltage / baseEUt < parallelLimit}), the first slot will take slightly fewer
- * parallels than the full budget, leaving a small remainder. This remainder is filled by a
- * secondary slot with very few parallels (often just 1).
+ * <br>Even with proportional power distribution, slots running different recipes will likely have
+ * different overclocked durations. When one slot completes earlier than another, refill creates a
+ * new slot in the remaining budget. Since the still-running slot occupies parallel and power budget,
+ * the new slot may receive fewer parallels. Over many cycles this can cause a gradual shift in
+ * slot sizes, though the proportional overclock distribution significantly reduces the severity
+ * compared to the original greedy approach.
  *
- * <p>These two slots will typically have <b>different durations</b>: the large slot's total EUt
- * ({@code baseEUt × parallelCount}) is too high to overclock within the voltage budget, so it
- * keeps the original duration. The small slot's total EUt is much lower, allowing it to overclock
- * successfully, resulting in a shorter duration (e.g., half). This duration mismatch causes the
- * slots to complete at different times, triggering a cascading fragmentation effect:
- * <ol>
- *   <li>The small slot completes first (shorter duration). {@code refillScheduler} is called,
- *       but the large slot is still running, occupying most of the parallel and power budget.</li>
- *   <li>A new small slot is created with the remaining budget, again getting a different
- *       (shorter) duration due to overclocking.</li>
- *   <li>When the large slot eventually completes, the small slot(s) are still running, so
- *       the new large slot gets fewer parallels ({@code parallelLimit - runningSmallSlots}).</li>
- *   <li>Over many cycles, the primary slot's parallel count gradually decreases while the number
- *       of trailing small slots increases.</li>
- * </ol>
- * This fragmentation has <b>negligible performance impact</b> — each slot's per-tick cost is just
+ * <p>This fragmentation has <b>negligible performance impact</b> — each slot's per-tick cost is just
  * an integer increment and comparison. The total throughput remains correct; only the visual
  * representation in the UI shows multiple slots instead of one unified slot. The display layer
  * merges slots with the same recipe name and duration via {@link #getMergedDisplaySlots()} to
