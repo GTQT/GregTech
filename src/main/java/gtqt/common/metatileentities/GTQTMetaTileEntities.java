@@ -270,8 +270,10 @@ public class GTQTMetaTileEntities {
         //无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {
             String tier = VN[i].toLowerCase();
-            //管理单元
-            WIRELESS_CONTROLLERS[i] = registerMetaTileEntity(2980 + i, new MetaTileEntityWirelessController(gregtechId("wireless_controller." + tier), i));
+            // Wireless controllers only available at UHV (tier 9) and above
+            if (i >= GTValues.UHV) {
+                WIRELESS_CONTROLLERS[i] = registerMetaTileEntity(2980 + i, new MetaTileEntityWirelessController(gregtechId("wireless_controller." + tier), i));
+            }
 
             if(isModLoaded(FTB_LIB)) {
                 WIRELESS_INPUT_ENERGY_HATCH[i] = registerMetaTileEntity(3000 + i,

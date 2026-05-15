@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPart
@@ -42,29 +43,19 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     // Rebalance every 60 seconds (PSS rebalance is infrequent by design)
     private static final int REBALANCE_INTERVAL = 1200;
 
-    // Base retention ratios by tier — higher tier = more energy shared to wireless pool
-    // tier < LuV:  80% local retention (low tier, keep most energy local)
-    // LuV-ZPM:     50%
-    // UV-UHV:      30%
-    // UEV-UMV:     10%
-    // UXV+:        5%
+    // Base retention ratios by tier (indexed by tier - UHV)
+    // UHV: 60%, UEV: 50%, UIV: 40%, UXV: 30%, OpV: 20%, MAX: 10%
     private static final double[] RETENTION_RATIOS = {
-            0.80, 0.80, 0.80, 0.80, 0.80,  // ULV, LV, MV, HV, EV
-            0.80, 0.50, 0.50,               // IV, LuV, ZPM
-            0.30, 0.30,                      // UV, UHV
-            0.10, 0.10, 0.10,               // UEV, UIV, UXV
-            0.05, 0.05                       // OpV, MAX
+            0.60,  // UHV
+            0.50,  // UEV
+            0.40,  // UIV
+            0.30,  // UXV
+            0.20,  // OpV
+            0.10   // MAX
     };
 
-    // Wireless amperage by tier — higher tier = more concurrent transfer throughput
-    // ULV-HV: 1A, EV-IV: 2A, LuV-ZPM: 4A, UV-UHV: 8A, UEV+: 16A
-    private static final long[] WIRELESS_AMPERAGES = {
-            1, 1, 1, 1, 1,    // ULV, LV, MV, HV, EV
-            2, 4, 4,          // IV, LuV, ZPM
-            8, 8,             // UV, UHV
-            16, 16, 16,       // UEV, UIV, UXV
-            16, 16            // OpV, MAX
-    };
+    // Wireless transfer rate formula multiplier
+    private static final long TRANSFER_RATE_BASE_MULTIPLIER = 7;
 
     private int priority;
     private int rebalanceTimer = 0;
@@ -96,7 +87,15 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         tooltip.add(I18n.format("PSS的存储能量将定期与无线网络进行双向重平衡："));
         tooltip.add(I18n.format("· 本地能量超出阈值 → 自动推入无线网络供远程使用"));
         tooltip.add(I18n.format("· 本地能量不足阈值 → 自动从无线网络提取补充"));
-        tooltip.add(I18n.format("监控器等级越高，本地保留比例越低，传输速度越快。"));
+        tooltip.add(I18n.format("§e传输速率公式:"));
+        tooltip.add(I18n.format("§f  7 * Σ(N_i * V_i * 2^(T_i - UHV) * 5^(C - UHV)) EU/t"));
+        tooltip.add(I18n.format("§7  N_i = 该等级电容数量, V_i = 电容电压"));
+        tooltip.add(I18n.format("§7  T_i = 电容等级, C = 监控器等级"));
+        tooltip.add(I18n.format("§7  仅UHV及以上等级的电容参与计算"));
+        int tier = getTier();
+        int index = Math.min(tier - GTValues.UHV, RETENTION_RATIOS.length - 1);
+        double ratio = RETENTION_RATIOS[Math.max(index, 0)];
+        tooltip.add(I18n.format("§b本地保留比例: §f" + (int) (ratio * 100) + "%%"));
         tooltip.add(I18n.format("FTB同组玩家自动共享同一网络，无需额外操作。"));
     }
 
@@ -164,6 +163,8 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
         BigInteger localStored = pss.getStoredByBigInteger();
         long maxTransfer = getMaxTransferPerTick() * REBALANCE_INTERVAL;
+        // No transfer capacity (controller tier < UHV or no UHV+ capacitors)
+        if (maxTransfer <= 0) return;
 
         if (localStored.compareTo(threshold) > 0) {
             // PSS has excess → push to wireless pool
@@ -193,18 +194,56 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     }
 
     private double getRetentionRatio() {
-        int tier = getTier();
-        if (tier < 0) tier = 0;
-        if (tier >= RETENTION_RATIOS.length) tier = RETENTION_RATIOS.length - 1;
-        return RETENTION_RATIOS[tier];
+        int index = getTier() - GTValues.UHV;
+        if (index < 0) index = 0;
+        if (index >= RETENTION_RATIOS.length) index = RETENTION_RATIOS.length - 1;
+        return RETENTION_RATIOS[index];
     }
 
+    /**
+     * Calculates max transfer per tick using the formula:
+     * 7 * Σ(count_i * V[capacitor_tier_i] * 2^(capacitor_tier_i - UHV) * 5^(controller_tier - UHV))
+     * Only capacitors at UHV tier and above contribute to the transfer rate.
+     * Each voltage tier's capacitors are counted separately.
+     */
     private long getMaxTransferPerTick() {
-        int tier = getTier();
-        if (tier < 0) tier = 0;
-        if (tier >= GTValues.V.length) tier = GTValues.V.length - 1;
-        long amperage = WIRELESS_AMPERAGES[tier >= WIRELESS_AMPERAGES.length ? WIRELESS_AMPERAGES.length - 1 : tier];
-        return GTValues.V[tier] * amperage;
+        MetaTileEntityPowerSubstation pss = getPSS();
+        if (pss == null) return 0;
+
+        Map<Integer, Integer> batteryTierCounts = pss.getBatteryTierCounts();
+        if (batteryTierCounts.isEmpty()) return 0;
+
+        int controllerTier = getTier();
+        int controllerTierOffset = controllerTier - GTValues.UHV;
+        if (controllerTierOffset < 0) return 0;
+
+        long controllerPowerOf5 = longPow(5, controllerTierOffset);
+        long totalTransfer = 0;
+
+        for (Map.Entry<Integer, Integer> entry : batteryTierCounts.entrySet()) {
+            int capacitorTier = entry.getKey();
+            // Only capacitors at UHV and above contribute
+            if (capacitorTier < GTValues.UHV) continue;
+
+            int count = entry.getValue();
+            int capacitorTierOffset = capacitorTier - GTValues.UHV;
+            long voltage = GTValues.V[Math.min(capacitorTier, GTValues.V.length - 1)];
+            long powerOf2 = 1L << capacitorTierOffset;
+
+            // count * V[tier] * 2^(capacitor_tier - UHV) * 5^(controller_tier - UHV)
+            long contribution = (long) count * voltage * powerOf2 * controllerPowerOf5;
+            totalTransfer += contribution;
+        }
+
+        return TRANSFER_RATE_BASE_MULTIPLIER * totalTransfer;
+    }
+
+    private static long longPow(long base, int exponent) {
+        long result = 1;
+        for (int i = 0; i < exponent; i++) {
+            result *= base;
+        }
+        return result;
     }
 
     // ==================== IWirelessController ====================

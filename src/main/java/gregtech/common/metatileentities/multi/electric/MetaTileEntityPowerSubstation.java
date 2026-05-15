@@ -71,6 +71,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -159,6 +160,8 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private EnergyContainerList outputHatches;
     private long passiveDrain;
     private boolean isActive, isWorkingEnabled = true;
+    // Battery tier → count mapping for wireless transfer rate calculation
+    private Map<Integer, Integer> batteryTierCounts = new HashMap<>();
     // Stats tracked for UI display
     private long netInLastSec;
     private long averageInLastSec;
@@ -220,11 +223,17 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         this.outputHatches = new EnergyContainerList(outputs);
 
         List<IBatteryData> parts = new ArrayList<>();
+        Map<Integer, Integer> tierCounts = new HashMap<>();
         for (Map.Entry<String, Object> battery : context.entrySet()) {
             if (battery.getKey().startsWith(PMC_BATTERY_HEADER) &&
                     battery.getValue() instanceof BatteryMatchWrapper wrapper) {
                 for (int i = 0; i < wrapper.amount; i++) {
                     parts.add(wrapper.partType);
+                }
+                // Accumulate battery count per tier for wireless transfer rate formula
+                int tier = wrapper.partType.getTier();
+                if (tier >= 0) {
+                    tierCounts.merge(tier, wrapper.amount, Integer::sum);
                 }
             }
         }
@@ -233,6 +242,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
             invalidateStructure();
             return;
         }
+        this.batteryTierCounts = tierCounts;
         if (this.energyBank == null) {
             this.energyBank = new PowerStationEnergyBank(parts);
         } else {
@@ -262,6 +272,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         averageInLastSec = 0;
         netOutLastSec = 0;
         averageOutLastSec = 0;
+        batteryTierCounts = new HashMap<>();
         super.invalidateStructure();
     }
 
@@ -628,6 +639,14 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     public long getAverageOutLastSec() {
         return averageOutLastSec;
+    }
+
+    /**
+     * Returns battery count per voltage tier for wireless transfer rate calculation.
+     * Key = voltage tier index (e.g., GTValues.UHV = 9), Value = number of battery blocks.
+     */
+    public Map<Integer, Integer> getBatteryTierCounts() {
+        return batteryTierCounts;
     }
 
     @Override
