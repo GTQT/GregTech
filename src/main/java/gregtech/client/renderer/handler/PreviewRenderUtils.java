@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Shared utility methods for multiblock preview rendering, used by both
@@ -109,14 +110,27 @@ public final class PreviewRenderUtils {
      */
     @SuppressWarnings("deprecation")
     public static Set<BlockPos> computeSurfaceBlocks(Map<BlockPos, BlockInfo> blockMap) {
+        return computeSurfaceBlocks(blockMap, pos -> true);
+    }
+
+    /**
+     * Compute surface blocks against the subset that will actually be rendered. This keeps layer
+     * previews from treating hidden layers as occluding neighbors.
+     */
+    @SuppressWarnings("deprecation")
+    public static Set<BlockPos> computeSurfaceBlocks(Map<BlockPos, BlockInfo> blockMap,
+                                                     Predicate<BlockPos> renderFilter) {
         Set<BlockPos> surface = new HashSet<>();
         for (Map.Entry<BlockPos, BlockInfo> entry : blockMap.entrySet()) {
             BlockPos pos = entry.getKey();
+            if (!renderFilter.test(pos)) continue;
+
             boolean enclosed = true;
             for (EnumFacing face : EnumFacing.VALUES) {
                 BlockPos neighbor = pos.offset(face);
                 BlockInfo neighborInfo = blockMap.get(neighbor);
-                if (neighborInfo == null || neighborInfo.getBlockState() == null
+                if (!renderFilter.test(neighbor)
+                        || neighborInfo == null || neighborInfo.getBlockState() == null
                         || neighborInfo.getBlockState().getBlock() == Blocks.AIR
                         || !neighborInfo.getBlockState().isFullCube()) {
                     enclosed = false;
@@ -138,11 +152,21 @@ public final class PreviewRenderUtils {
      */
     @SuppressWarnings("deprecation")
     public static FaceVisibility computeFaceVisibility(BlockPos pos, Map<BlockPos, BlockInfo> blockMap) {
+        return computeFaceVisibility(pos, blockMap, neighbor -> true);
+    }
+
+    /**
+     * Compute visible faces against the subset that will actually be rendered.
+     */
+    @SuppressWarnings("deprecation")
+    public static FaceVisibility computeFaceVisibility(BlockPos pos, Map<BlockPos, BlockInfo> blockMap,
+                                                       Predicate<BlockPos> renderFilter) {
         FaceVisibility visibility = new FaceVisibility();
         for (EnumFacing face : EnumFacing.VALUES) {
             BlockPos neighbor = pos.offset(face);
             BlockInfo neighborInfo = blockMap.get(neighbor);
-            boolean opaque = neighborInfo != null && neighborInfo.getBlockState() != null
+            boolean opaque = renderFilter.test(neighbor)
+                    && neighborInfo != null && neighborInfo.getBlockState() != null
                     && neighborInfo.getBlockState().getBlock() != Blocks.AIR
                     && neighborInfo.getBlockState().isOpaqueCube();
             if (opaque) {
@@ -423,6 +447,85 @@ public final class PreviewRenderUtils {
         @Override
         public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean _default) {
             return pos.equals(BlockPos.ORIGIN) && delegate.isSideSolid(targetPos, side, _default);
+        }
+    }
+
+    /**
+     * An IBlockAccess adapter that exposes a local dummy-world block at an arbitrary
+     * render position, preserving relative neighbor lookups for side masks.
+     */
+    @SideOnly(Side.CLIENT)
+    public static class OffsetBlockAccess implements IBlockAccess {
+
+        private final IBlockAccess delegate;
+        private BlockPos sourcePos = BlockPos.ORIGIN;
+        private BlockPos renderPos = BlockPos.ORIGIN;
+        private boolean isolated;
+
+        public OffsetBlockAccess(IBlockAccess delegate) {
+            this.delegate = delegate;
+        }
+
+        public void setPos(BlockPos sourcePos, BlockPos renderPos) {
+            setPos(sourcePos, renderPos, false);
+        }
+
+        public void setPos(BlockPos sourcePos, BlockPos renderPos, boolean isolated) {
+            this.sourcePos = sourcePos;
+            this.renderPos = renderPos;
+            this.isolated = isolated;
+        }
+
+        private BlockPos mapPos(BlockPos pos) {
+            return sourcePos.add(pos.subtract(renderPos));
+        }
+
+        private boolean canUseDelegate(BlockPos pos) {
+            return !isolated || pos.equals(renderPos);
+        }
+
+        @Override
+        public TileEntity getTileEntity(BlockPos pos) {
+            if (!canUseDelegate(pos)) return null;
+            return delegate.getTileEntity(mapPos(pos));
+        }
+
+        @Override
+        public int getCombinedLight(BlockPos pos, int lightValue) {
+            return 15 << 20 | 15 << 4;
+        }
+
+        @Override
+        public IBlockState getBlockState(BlockPos pos) {
+            if (!canUseDelegate(pos)) return Blocks.AIR.getDefaultState();
+            return delegate.getBlockState(mapPos(pos));
+        }
+
+        @Override
+        public boolean isAirBlock(BlockPos pos) {
+            if (!canUseDelegate(pos)) return true;
+            return delegate.isAirBlock(mapPos(pos));
+        }
+
+        @Override
+        public Biome getBiome(BlockPos pos) {
+            return delegate.getBiome(mapPos(pos));
+        }
+
+        @Override
+        public int getStrongPower(BlockPos pos, EnumFacing direction) {
+            return 0;
+        }
+
+        @Override
+        public WorldType getWorldType() {
+            return delegate.getWorldType();
+        }
+
+        @Override
+        public boolean isSideSolid(BlockPos pos, EnumFacing side, boolean _default) {
+            if (!canUseDelegate(pos)) return false;
+            return delegate.isSideSolid(mapPos(pos), side, _default);
         }
     }
 }

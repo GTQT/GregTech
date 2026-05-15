@@ -12,16 +12,13 @@ import java.math.BigInteger;
 
 public class SPacketWirelessNetworkInfo implements IMessage {
     private BigInteger stored;
-    private BigInteger capacity;
     private BigInteger totalInput;
     private BigInteger totalOutput;
 
     public SPacketWirelessNetworkInfo() {}
 
-    public SPacketWirelessNetworkInfo(BigInteger stored, BigInteger capacity, BigInteger totalInput,
-                                      BigInteger totalOutput) {
+    public SPacketWirelessNetworkInfo(BigInteger stored, BigInteger totalInput, BigInteger totalOutput) {
         this.stored = stored;
-        this.capacity = capacity;
         this.totalInput = totalInput;
         this.totalOutput = totalOutput;
     }
@@ -32,11 +29,6 @@ public class SPacketWirelessNetworkInfo implements IMessage {
         byte[] storedBytes = new byte[storedLen];
         buf.readBytes(storedBytes);
         stored = new BigInteger(storedBytes);
-
-        int capLen = buf.readInt();
-        byte[] capBytes = new byte[capLen];
-        buf.readBytes(capBytes);
-        capacity = new BigInteger(capBytes);
 
         int totalInputLen = buf.readInt();
         byte[] totalInputBytes = new byte[totalInputLen];
@@ -55,10 +47,6 @@ public class SPacketWirelessNetworkInfo implements IMessage {
         buf.writeInt(storedBytes.length);
         buf.writeBytes(storedBytes);
 
-        byte[] capBytes = capacity.toByteArray();
-        buf.writeInt(capBytes.length);
-        buf.writeBytes(capBytes);
-
         byte[] totalInputBytes = totalInput.toByteArray();
         buf.writeInt(totalInputBytes.length);
         buf.writeBytes(totalInputBytes);
@@ -72,7 +60,8 @@ public class SPacketWirelessNetworkInfo implements IMessage {
         @Override
         public IMessage onMessage(SPacketWirelessNetworkInfo message, MessageContext ctx) {
             if (ctx.side.isClient()) {
-                Minecraft.getMinecraft().addScheduledTask(() -> ClientWirelessHUD.updateInfo(message.stored, message.capacity, message.totalInput, message.totalOutput));
+                Minecraft.getMinecraft().addScheduledTask(() ->
+                        ClientWirelessHUD.updateInfo(message.stored, message.totalInput, message.totalOutput));
             }
             return null;
         }

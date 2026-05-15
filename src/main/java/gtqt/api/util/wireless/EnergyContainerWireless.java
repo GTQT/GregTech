@@ -11,44 +11,46 @@ import java.util.UUID;
 
 public class EnergyContainerWireless extends EnergyContainerHandler {
 
-    boolean isExport;
+    private static final int TRANSFER_INTERVAL = 20; // batch every second
+
+    private final boolean isExport;
+    private int timer;
 
     public EnergyContainerWireless(MetaTileEntity tileEntity, boolean isExport, long voltage, long amperage) {
-        this(tileEntity, voltage * amperage * 320, isExport ? 0 : voltage, amperage, isExport ? voltage : 0, amperage);
+        super(tileEntity, voltage * amperage * 320,
+                isExport ? 0 : voltage, amperage,
+                isExport ? voltage : 0, amperage);
         this.isExport = isExport;
-    }
-
-    public EnergyContainerWireless(MetaTileEntity tileEntity, long maxCapacity, long maxInputVoltage,
-                                   long maxInputAmperage, long maxOutputVoltage, long maxOutputAmperage) {
-        super(tileEntity, maxCapacity, maxInputVoltage, maxInputAmperage, maxOutputVoltage, maxOutputAmperage);
+        this.timer = tileEntity.getWorld() != null
+                ? (int) (tileEntity.getWorld().getTotalWorldTime() % TRANSFER_INTERVAL)
+                : 0;
     }
 
     @Override
     public void update() {
         super.update();
-        if (!this.metaTileEntity.getWorld().isRemote) {
-            UUID ownerId = this.metaTileEntity.getOwnerGT();
-            if (ownerId == null) return;
+        if (this.metaTileEntity.getWorld().isRemote) return;
+        if (++timer % TRANSFER_INTERVAL != 0) return;
 
-            WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
-            if (service == null) return;
+        UUID ownerId = this.metaTileEntity.getOwnerGT();
+        if (ownerId == null) return;
 
-            if (isExport) {
-                // Dynamo hatch: push local buffer into wireless network
-                if (this.energyStored > 0) {
-                    TransferResult result = service.insert(ownerId, this.energyStored, TransferContext.HATCH);
-                    if (result.isSuccess()) {
-                        this.removeEnergy(result.getAmountLong());
-                    }
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return;
+
+        if (isExport) {
+            if (this.energyStored > 0) {
+                TransferResult result = service.insert(ownerId, this.energyStored, TransferContext.HATCH);
+                if (result.isSuccess()) {
+                    this.removeEnergy(result.getAmountLong());
                 }
-            } else {
-                // Energy hatch: pull from wireless network into local buffer
-                long needEnergy = this.getEnergyCapacity() - this.getEnergyStored();
-                if (needEnergy > 0) {
-                    TransferResult result = service.extractUpTo(ownerId, needEnergy, TransferContext.HATCH);
-                    if (result.isSuccess()) {
-                        this.addEnergy(result.getAmountLong());
-                    }
+            }
+        } else {
+            long needEnergy = this.getEnergyCapacity() - this.getEnergyStored();
+            if (needEnergy > 0) {
+                TransferResult result = service.extractUpTo(ownerId, needEnergy, TransferContext.HATCH);
+                if (result.isSuccess()) {
+                    this.addEnergy(result.getAmountLong());
                 }
             }
         }

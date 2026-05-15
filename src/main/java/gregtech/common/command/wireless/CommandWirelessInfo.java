@@ -17,10 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import java.math.BigInteger;
 import java.util.UUID;
 
-/**
- * /gt wireless info [player]
- * Displays wireless network information for the sender or specified player.
- */
 public class CommandWirelessInfo extends CommandBase {
 
     @NotNull
@@ -80,14 +76,9 @@ public class CommandWirelessInfo extends CommandBase {
         sender.sendMessage(new TextComponentString(
                 TextFormatting.WHITE + "Stored: " + TextFormatting.AQUA + formatBigInteger(view.getStored()) + " EU"));
         sender.sendMessage(new TextComponentString(
-                TextFormatting.WHITE + "Capacity: " + TextFormatting.AQUA + formatBigInteger(view.getCapacity()) + " EU"));
-        sender.sendMessage(new TextComponentString(
                 TextFormatting.WHITE + "Input/s: " + TextFormatting.GREEN + formatBigInteger(view.getInputPerSecond()) + " EU/s"));
         sender.sendMessage(new TextComponentString(
                 TextFormatting.WHITE + "Output/s: " + TextFormatting.RED + formatBigInteger(view.getOutputPerSecond()) + " EU/s"));
-        sender.sendMessage(new TextComponentString(
-                TextFormatting.WHITE + "Nodes: " + TextFormatting.YELLOW + view.getOnlineNodeCount() +
-                        "/" + view.getNodeCount() + " online"));
     }
 
     private static String formatBigInteger(BigInteger value) {

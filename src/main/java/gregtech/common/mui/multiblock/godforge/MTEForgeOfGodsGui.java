@@ -43,6 +43,7 @@ public class MTEForgeOfGodsGui extends GodforgeBaseGui<MetaTileEntityForgeOfGods
 
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
+        hypervisor.setMultiblock(multiblock);
         super.registerSyncValues(syncManager);
         hypervisor.setSyncManager(Panels.MAIN, syncManager);
         syncManager.addCloseListener(player -> hypervisor.clearMultiblock());

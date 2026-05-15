@@ -1,5 +1,6 @@
 package gregtech.api.pattern.casing;
 
+import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.BlockPattern;
@@ -18,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -293,7 +295,11 @@ public class DeclarativePatternBuilder {
     private TraceabilityPredicate createCasingPredicate(@NotNull ICasing casing) {
         IBlockState state = casing.getBlockState();
         return new TraceabilityPredicate(
-                blockWorldState -> blockWorldState.getBlockState().equals(state),
+                blockWorldState -> {
+                    if (!blockWorldState.getBlockState().equals(state)) return false;
+                    trackVariantActiveBlock(blockWorldState);
+                    return true;
+                },
                 () -> new BlockInfo[] { new BlockInfo(state, null) });
     }
 
@@ -310,6 +316,7 @@ public class DeclarativePatternBuilder {
             IBlockState blockState = blockWorldState.getBlockState();
             ICasing matched = stateMap.get(blockState);
             if (matched == null) return false;
+            trackVariantActiveBlock(blockWorldState);
 
             if (requiresUniform) {
                 Object existing = blockWorldState.getMatchContext().getOrPut(channelName, matched);
@@ -339,6 +346,13 @@ public class DeclarativePatternBuilder {
         }
 
         return predicate;
+    }
+
+    private static void trackVariantActiveBlock(@NotNull BlockWorldState blockWorldState) {
+        if (blockWorldState.getBlockState().getBlock() instanceof VariantActiveBlock) {
+            blockWorldState.getMatchContext().getOrPut("VABlock", new LinkedList<>())
+                    .add(blockWorldState.getPos());
+        }
     }
 
     // --- CasingSlot fluent API ---

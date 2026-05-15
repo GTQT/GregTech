@@ -128,7 +128,7 @@ public class GhostBlockRenderer {
     }
 
     /**
-     * Render all ghost blocks using immediate-mode per-block rendering.
+     * Render all ghost blocks using immediate-mode rendering, batched per render layer.
      * Each block is rendered at its world-space position with 0.75x scale.
      */
     private static void renderGhostBlocks() {
@@ -144,38 +144,47 @@ public class GhostBlockRenderer {
                 new PreviewRenderUtils.TargetBlockAccess(virtualWorld, BlockPos.ORIGIN);
 
         int finalMaxY = layer % (maxY + 1);
+        boolean isLayerMode = finalMaxY != 0;
 
-        for (GhostBlock ghost : ghostBlocks) {
-            // Layer filter
-            if (finalMaxY != 0 && ghost.localPos.getY() + 1 != finalMaxY) continue;
-            // Surface filter
-            if (surfaceBlocks != null && !surfaceBlocks.contains(ghost.localPos)) continue;
-            // Skip controller position
-            if (ghost.localPos.equals(controllerPos)) continue;
-
-            IBlockState state = virtualWorld.getBlockState(ghost.localPos);
-            if (state.getBlock() == Blocks.AIR) continue;
-
-            targetBA.setPos(ghost.localPos);
-
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(ghost.worldPos.getX(), ghost.worldPos.getY(), ghost.worldPos.getZ());
-            GlStateManager.translate(BLOCK_OFFSET, BLOCK_OFFSET, BLOCK_OFFSET);
-            GlStateManager.scale(BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE);
-
-            buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+        try {
             for (BlockRenderLayer brl : BlockRenderLayer.values()) {
-                if (state.getBlock().canRenderInLayer(state, brl)) {
+                boolean hasBlocks = false;
+                buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+
+                for (GhostBlock ghost : ghostBlocks) {
+                    if (isLayerMode && ghost.localPos.getY() + 1 != finalMaxY) continue;
+                    // Surface filter only in all-layers mode; in layer mode, blocks
+                    // occluded in the full structure may become visible at this slice
+                    if (!isLayerMode && surfaceBlocks != null && !surfaceBlocks.contains(ghost.localPos)) continue;
+                    if (ghost.localPos.equals(controllerPos)) continue;
+
+                    IBlockState state = virtualWorld.getBlockState(ghost.localPos);
+                    if (state.getBlock() == Blocks.AIR) continue;
+                    if (!state.getBlock().canRenderInLayer(state, brl)) continue;
+
+                    targetBA.setPos(ghost.localPos);
+
+                    GlStateManager.pushMatrix();
+                    GlStateManager.translate(ghost.worldPos.getX(), ghost.worldPos.getY(), ghost.worldPos.getZ());
+                    GlStateManager.translate(BLOCK_OFFSET, BLOCK_OFFSET, BLOCK_OFFSET);
+                    GlStateManager.scale(BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE);
+
                     ForgeHooksClient.setRenderLayer(brl);
                     brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
+                    hasBlocks = true;
+
+                    GlStateManager.popMatrix();
+                }
+
+                if (hasBlocks) {
+                    tes.draw();
+                } else {
+                    buff.reset();
                 }
             }
-            tes.draw();
-
-            GlStateManager.popMatrix();
+        } finally {
+            ForgeHooksClient.setRenderLayer(oldLayer);
         }
-
-        ForgeHooksClient.setRenderLayer(oldLayer);
     }
 
     // ========== Activation API ==========
