@@ -2,7 +2,9 @@ package gregtech.common.metatileentities.electric;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.impl.EnergyContainerHandler;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.TieredMetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.client.renderer.texture.Textures;
@@ -35,29 +37,33 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Abstract base class for all A-series disposable (single-use) battery blocks.
+ * Concrete MTE class for all A-series disposable (single-use) battery blocks.
  *
- * <p>Each concrete subclass fixes a {@code maxStoredEU} value at construction time.
- * The block emits energy every server tick via the {@link EnergyContainerHandler} emitter
- * path (no RecipeMap involved), and calls the abstract hook {@link #onDepleted()} once
- * when the internal charge reaches zero.
+ * <p>Each instance is parameterised by a {@link DisposableBatteryType} enum constant
+ * that defines the voltage tier, EU capacity, and depletion byproducts.  No per-variant
+ * subclasses are needed — new battery chemistries are added by extending the enum.
+ *
+ * <p>The block emits energy every server tick via the {@link EnergyContainerHandler}
+ * emitter path (no RecipeMap involved), and drops chemical byproducts once when the
+ * internal charge reaches zero.
  *
  * <p>Energy state is persisted automatically by {@link EnergyContainerHandler}'s own
  * NBT serialisation.  A separate {@code depleted} flag is written to the MTE's own NBT
  * so the depletion action is not re-triggered after a chunk reload.
  */
-public abstract class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
+public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
 
     /** Fixed output amperage for all disposable battery blocks. */
     protected static final long OUTPUT_AMPERAGE = 4L;
 
     private static final String NBT_KEY_DEPLETED = "Depleted";
 
+    /** The battery variant this instance represents. */
+    private final DisposableBatteryType batteryType;
+
     /**
      * Total EU capacity baked into this block at craft time.
-     * Must be set before {@link #reinitializeEnergyContainer()} is called, so it is
-     * declared here and assigned in {@link #onPostConstruct()} rather than the
-     * constructor body.
+     * Cached from {@link DisposableBatteryType#getMaxStoredEU()} for fast access.
      */
     protected final long maxStoredEU;
 
@@ -66,20 +72,24 @@ public abstract class MetaTileEntityDisposableBatteryBase extends TieredMetaTile
 
     /**
      * @param metaTileEntityId unique registry ResourceLocation
-     * @param tier             GT voltage tier constant (e.g. {@link GTValues#LV})
-     * @param maxStoredEU      total EU this block can supply over its lifetime
+     * @param batteryType      enum constant defining tier, capacity and byproducts
      */
-    protected MetaTileEntityDisposableBatteryBase(@NotNull ResourceLocation metaTileEntityId,
-                                                  int tier,
-                                                  long maxStoredEU) {
-        super(metaTileEntityId, tier);
-        this.maxStoredEU = maxStoredEU;
+    public MetaTileEntityDisposableBatteryBase(@NotNull ResourceLocation metaTileEntityId,
+                                               @NotNull DisposableBatteryType batteryType) {
+        super(metaTileEntityId, batteryType.getTier());
+        this.batteryType = batteryType;
+        this.maxStoredEU = batteryType.getMaxStoredEU();
         // The parent constructor already called reinitializeEnergyContainer() with
         // the default capacity (tierVoltage * 64). We must re-initialise now that
         // maxStoredEU is assigned so the handler holds the correct capacity.
         reinitializeEnergyContainer();
         // Pre-fill to maximum on first construction (fresh item placement)
         ((EnergyContainerHandler) energyContainer).setEnergyStored(maxStoredEU);
+    }
+
+    @Override
+    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        return new MetaTileEntityDisposableBatteryBase(metaTileEntityId, batteryType);
     }
 
     // -------------------------------------------------------------------------
@@ -136,11 +146,11 @@ public abstract class MetaTileEntityDisposableBatteryBase extends TieredMetaTile
 
     /**
      * Called exactly once on the server side when the internal charge reaches zero.
-     *
-     * <p>Implementations must call {@link #depleteAndDrop(ItemStack...)} to spawn
-     * chemical byproducts and remove the block.
+     * Retrieves byproduct stacks from the {@link DisposableBatteryType} and drops them.
      */
-    protected abstract void onDepleted();
+    private void onDepleted() {
+        depleteAndDrop(batteryType.createByproducts());
+    }
 
     // -------------------------------------------------------------------------
     // Shared depletion utility

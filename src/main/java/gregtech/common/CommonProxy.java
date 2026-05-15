@@ -329,6 +329,7 @@ public class CommonProxy {
         registry.register(createItemBlock(CLEANROOM_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(COMPUTER_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(BATTERY_BLOCK, VariantItemBlock::new));
+        registry.register(createItemBlock(TANK_CASING, VariantItemBlock::new));
         // Forge of the Gods blocks
         registry.register(createItemBlock(GODFORGE_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(GODFORGE_GLASS, VariantItemBlock::new));

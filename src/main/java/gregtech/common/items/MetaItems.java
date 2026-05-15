@@ -153,6 +153,15 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem ZINC_MANGANESE_CELL_HULL;
     public static MetaItem<?>.MetaValueItem LITHIUM_MANGANESE_CELL_HULL;
     public static MetaItem<?>.MetaValueItem NICKEL_CADMIUM_CELL_HULL;
+    public static MetaItem<?>.MetaValueItem LEAD_ACID_BATTERY_HULL;
+    public static MetaItem<?>.MetaValueItem VANADIUM_FLOW_CELL_HULL;
+    public static MetaItem<?>.MetaValueItem LFP_BATTERY_HULL;
+    public static MetaItem<?>.MetaValueItem LCO_BATTERY_HULL;
+    public static MetaItem<?>.MetaValueItem NMC_BATTERY_HULL;
+
+    // Disposable Battery Block components (A-series shared intermediates)
+    public static MetaItem<?>.MetaValueItem ION_EXCHANGE_MEMBRANE;
+    public static MetaItem<?>.MetaValueItem CARBON_NANOTUBE_FILM;
 
     public static MetaItem<?>.MetaValueItem BATTERY_ULV_TANTALUM;
     public static MetaItem<?>.MetaValueItem BATTERY_LV_CADMIUM;

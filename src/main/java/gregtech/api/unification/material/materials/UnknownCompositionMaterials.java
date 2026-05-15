@@ -727,5 +727,93 @@ public class UnknownCompositionMaterials {
                 .fluid()
                 .color(0x2A3C3A)
                 .build();
+
+        // ---- A3 — Lead-Acid Battery intermediates ----
+
+        // LeadAcidElectrode — PbO₂/Pb electrode plate pair produced by sulfuric acid bath;
+        // dark grey metallic plate representing both oxidised cathode and pure anode
+        LeadAcidElectrode = Material.builder(1708, gregtechId("lead_acid_electrode"))
+                .dust()
+                .color(0x3A3A4A)
+                .build();
+
+        // LeadAcidElectrolyte — dilute H₂SO₄ electrolyte fluid for cell filling
+        LeadAcidElectrolyte = Material.builder(1709, gregtechId("lead_acid_electrolyte"))
+                .fluid()
+                .color(0x8B8070)
+                .build();
+
+        // ---- A4 — Vanadium Flow Battery intermediates ----
+
+        // VanadiumPentoxide — V₂O₅, orange-red powder; primary vanadium compound used in VRFB
+        VanadiumPentoxide = Material.builder(1710, gregtechId("vanadium_pentoxide"))
+                .dust()
+                .color(0xCC6600)
+                .build();
+
+        // VanadiumElectrolyte — V₂O₅ dissolved in H₂SO₄; the active redox-couple carrier fluid
+        VanadiumElectrolyte = Material.builder(1711, gregtechId("vanadium_electrolyte"))
+                .fluid()
+                .color(0x4040AA)
+                .build();
+
+        // VanadiumFlowElectrode — carbon-felt electrode impregnated with vanadium catalyst;
+        // represents the assembled electrode stack ready for installation in the flow cell
+        VanadiumFlowElectrode = Material.builder(1712, gregtechId("vanadium_flow_electrode"))
+                .dust()
+                .color(0x1A1A2E)
+                .build();
+
+        // ---- A5 — LFP (Lithium Iron Phosphate) Battery intermediates ----
+
+        // IronIIIPhosphate — FePO₄, delithiated cathode residue; off-white/tan powder
+        IronIIIPhosphate = Material.builder(1713, gregtechId("iron_iii_phosphate"))
+                .dust()
+                .color(0xC8B070)
+                .build();
+
+        // LFPCathodePowder — LiFePO₄ active cathode material; olive-grey powder
+        LFPCathodePowder = Material.builder(1714, gregtechId("lfp_cathode_powder"))
+                .dust()
+                .color(0x6B7B4F)
+                .build();
+
+        // CarbonNanotubeFilm — conductive current collector film; black with metallic sheen
+        // Registered as dust (plate-like form in recipes) for simplicity
+        CarbonNanotubeFilm = Material.builder(1715, gregtechId("carbon_nanotube_film"))
+                .dust()
+                .color(0x0A0A0A)
+                .build();
+
+        // ---- A6 — LCO (Lithium Cobalt Oxide) Battery intermediates ----
+
+        // LithiumCobaltOxide — LiCoO₂, layered oxide cathode material; dark blue-black powder
+        LithiumCobaltOxide = Material.builder(1716, gregtechId("lithium_cobalt_oxide"))
+                .dust()
+                .color(0x1A1A5A)
+                .build();
+
+        // PVDF — Polyvinylidene Fluoride, binder polymer for electrode slurry;
+        // white thermoplastic fluoropolymer used in liquid form as binder
+        PVDF = Material.builder(1717, gregtechId("pvdf"))
+                .fluid()
+                .color(0xE8E8E8)
+                .build();
+
+        // ---- A7 — NMC (Nickel-Manganese-Cobalt) Battery intermediates ----
+
+        // NMCCathodePowder — Li(Ni₀.₈Mn₀.₁Co₀.₁)O₂ ternary layered oxide cathode material;
+        // dark grey-green powder with high energy density
+        NMCCathodePowder = Material.builder(1718, gregtechId("nmc_cathode_powder"))
+                .dust()
+                .color(0x3A4A3A)
+                .build();
+
+        // LithiumHexafluorophosphate — LiPF₆, standard lithium-ion electrolyte salt
+        // dissolved in organic carbonate solvent; clear colourless fluid
+        LithiumHexafluorophosphate = Material.builder(1719, gregtechId("lithium_hexafluorophosphate"))
+                .fluid()
+                .color(0xC0D0E0)
+                .build();
     }
 }

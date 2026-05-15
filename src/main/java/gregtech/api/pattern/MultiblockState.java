@@ -722,12 +722,10 @@ public class MultiblockState {
                                 if (holder instanceof IGregTechTileEntity igtte) {
                                     MetaTileEntity sampleMetaTileEntity = igtteInfo.getMetaTileEntity();
                                     if (sampleMetaTileEntity != null) {
-                                        MetaTileEntity metaTileEntity = igtte.setMetaTileEntity(sampleMetaTileEntity);
+                                        MetaTileEntity metaTileEntity = igtte.setMetaTileEntity(
+                                                sampleMetaTileEntity, null, found.getTagCompound());
                                         metaTileEntity.onPlacement(player);
                                         blocks.put(pos, metaTileEntity);
-                                        if (found.getTagCompound() != null) {
-                                            metaTileEntity.initFromItemStackData(found.getTagCompound());
-                                        }
                                     }
                                 }
                             }

@@ -1230,6 +1230,12 @@ public class MetaItem1 extends StandardMetaItem {
         LITHIUM_MANGANESE_CELL_HULL = addItem(726, "disposable.battery.hull.lithium_manganese");
         // A2 HV Nickel-Cadmium cell housing
         NICKEL_CADMIUM_CELL_HULL = addItem(727, "disposable.battery.hull.nickel_cadmium");
+        // A3 EV Lead-Acid battery housing
+        LEAD_ACID_BATTERY_HULL = addItem(728, "disposable.battery.hull.lead_acid");
+        // A4 IV Vanadium Flow Cell housing
+        VANADIUM_FLOW_CELL_HULL = addItem(729, "disposable.battery.hull.vanadium_flow");
+        // Ion exchange membrane — separator sheet used in vanadium flow cells
+        ION_EXCHANGE_MEMBRANE = addItem(730, "component.ion_exchange_membrane");
 
         // Batteries: 731-775
         BATTERY_ULV_TANTALUM = addItem(731, "battery.re.ulv.tantalum")
@@ -1378,6 +1384,15 @@ public class MetaItem1 extends StandardMetaItem {
         PLUGIN_FAKE_GUI = addItem(781, "plugin.fake_gui").addComponents(new FakeGuiPluginBehavior());
         PLUGIN_ONLINE_PIC = addItem(782, "plugin.online_pic").addComponents(new OnlinePicPluginBehavior());
         PLUGIN_TEXT = addItem(783, "plugin.text").addComponents(new TextPluginBehavior());
+
+        // Disposable Battery Block hulls & components (A5+): ID 785+
+        LFP_BATTERY_HULL = addItem(785, "disposable.battery.hull.lfp");
+        // Carbon nanotube film — conductive current collector for high-tier batteries
+        CARBON_NANOTUBE_FILM = addItem(786, "component.carbon_nanotube_film");
+        // A6 ZPM Lithium Cobalt Oxide battery housing
+        LCO_BATTERY_HULL = addItem(787, "disposable.battery.hull.lco");
+        // A7 UV NMC (Ternary Lithium) battery housing
+        NMC_BATTERY_HULL = addItem(788, "disposable.battery.hull.nmc");
 
         // Records: 800-819
         SUS_RECORD = addItem(800, "record.sus").addComponents(new MusicDiscStats(GTSoundEvents.SUS_RECORD))

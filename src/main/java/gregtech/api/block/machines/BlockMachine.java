@@ -299,11 +299,9 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
                 removed.forEach(mteTag::removeTag);
             }
         }
-        MetaTileEntity metaTileEntity = holder.setMetaTileEntity(sampleMetaTileEntity, mteTag);
+        MetaTileEntity metaTileEntity = holder.setMetaTileEntity(sampleMetaTileEntity, mteTag,
+                mteTag == null ? stackTag : null);
         if (mteTag == null) {
-            if (stackTag != null && !stackTag.isEmpty())
-                metaTileEntity.initFromItemStackData(stackTag);
-
             if (metaTileEntity.isValidFrontFacing(EnumFacing.UP)) {
                 metaTileEntity.setFrontFacing(EnumFacing.getDirectionFromEntityLiving(pos, placer));
             } else {

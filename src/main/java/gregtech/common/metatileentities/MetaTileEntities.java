@@ -41,9 +41,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
-import gregtech.common.metatileentities.electric.MetaTileEntityZincManganeseCell;
-import gregtech.common.metatileentities.electric.MetaTileEntityLithiumManganeseCell;
-import gregtech.common.metatileentities.electric.MetaTileEntityNickelCadmiumCell;
+import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
 import gregtech.common.metatileentities.electric.SimpleMachineMetaTileEntityResizable;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
@@ -471,9 +469,14 @@ public class MetaTileEntities {
     public static MTEExoticModule GODFORGE_EXOTIC_MODULE;
 
     // DISPOSABLE BATTERY BLOCKS (A-series), IDs 2105+
-    public static MetaTileEntityZincManganeseCell ZINC_MANGANESE_CELL;
-    public static MetaTileEntityLithiumManganeseCell LITHIUM_MANGANESE_CELL;
-    public static MetaTileEntityNickelCadmiumCell NICKEL_CADMIUM_CELL;
+    public static MetaTileEntityDisposableBatteryBase ZINC_MANGANESE_CELL;
+    public static MetaTileEntityDisposableBatteryBase LITHIUM_MANGANESE_CELL;
+    public static MetaTileEntityDisposableBatteryBase NICKEL_CADMIUM_CELL;
+    public static MetaTileEntityDisposableBatteryBase LEAD_ACID_BATTERY;
+    public static MetaTileEntityDisposableBatteryBase VANADIUM_FLOW_CELL;
+    public static MetaTileEntityDisposableBatteryBase LFP_BATTERY;
+    public static MetaTileEntityDisposableBatteryBase LCO_BATTERY;
+    public static MetaTileEntityDisposableBatteryBase NMC_BATTERY;
 
     // STORAGE SECTION
     // Single-ID multiblock tank and valve (material variants stored in NBT)

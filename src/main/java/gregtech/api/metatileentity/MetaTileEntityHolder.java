@@ -96,11 +96,16 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
      */
     @Override
     public MetaTileEntity setMetaTileEntity(@NotNull MetaTileEntity sampleMetaTileEntity,
-                                            @Nullable NBTTagCompound tagCompound) {
+                                            @Nullable NBTTagCompound tagCompound,
+                                            @Nullable NBTTagCompound itemStackData) {
         Preconditions.checkNotNull(sampleMetaTileEntity, "metaTileEntity");
         setRawMetaTileEntity(sampleMetaTileEntity.createMetaTileEntity(this));
         if (tagCompound != null && !tagCompound.isEmpty())
             getMetaTileEntity().readFromNBT(tagCompound);
+        // Apply ItemStack data (e.g. variant ordinal) before sending initial sync,
+        // so the client receives the correct variant in the first packet.
+        if (itemStackData != null && !itemStackData.isEmpty())
+            getMetaTileEntity().initFromItemStackData(itemStackData);
         if (hasWorld() && !getWorld().isRemote) {
             updateBlockOpacity();
             writeCustomData(INITIALIZE_MTE, buffer -> {

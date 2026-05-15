@@ -18,15 +18,14 @@ import gregtech.common.metatileentities.electric.MetaTileEntityDiode;
 import gregtech.common.metatileentities.electric.MetaTileEntityFisher;
 import gregtech.common.metatileentities.electric.MetaTileEntityHull;
 import gregtech.common.metatileentities.electric.MetaTileEntityItemCollector;
-import gregtech.common.metatileentities.electric.MetaTileEntityLithiumManganeseCell;
+import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
+import gregtech.common.metatileentities.electric.DisposableBatteryType;
 import gregtech.common.metatileentities.electric.MetaTileEntityMagicEnergyAbsorber;
-import gregtech.common.metatileentities.electric.MetaTileEntityNickelCadmiumCell;
 import gregtech.common.metatileentities.electric.MetaTileEntityPump;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
-import gregtech.common.metatileentities.electric.MetaTileEntityZincManganeseCell;
 import gregtech.common.metatileentities.storage.MetaTileEntityBuffer;
 import gregtech.common.metatileentities.storage.MetaTileEntityCrate;
 import gregtech.common.metatileentities.storage.MetaTileEntityCreativeChest;
@@ -247,11 +246,29 @@ public final class InfrastructureRegistration {
     private static void registerBatteryBlocks() {
         // Disposable Battery Blocks (A-series), IDs 2105+
         ZINC_MANGANESE_CELL = registerMetaTileEntity(2105,
-                new MetaTileEntityZincManganeseCell(gregtechId("zinc_manganese_cell")));
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("zinc_manganese_cell"), DisposableBatteryType.ZINC_MANGANESE));
         LITHIUM_MANGANESE_CELL = registerMetaTileEntity(2106,
-                new MetaTileEntityLithiumManganeseCell(gregtechId("lithium_manganese_cell")));
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lithium_manganese_cell"), DisposableBatteryType.LITHIUM_MANGANESE));
         NICKEL_CADMIUM_CELL = registerMetaTileEntity(2107,
-                new MetaTileEntityNickelCadmiumCell(gregtechId("nickel_cadmium_cell")));
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("nickel_cadmium_cell"), DisposableBatteryType.NICKEL_CADMIUM));
+        LEAD_ACID_BATTERY = registerMetaTileEntity(2108,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lead_acid_battery"), DisposableBatteryType.LEAD_ACID));
+        VANADIUM_FLOW_CELL = registerMetaTileEntity(2109,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("vanadium_flow_cell"), DisposableBatteryType.VANADIUM_FLOW));
+        LFP_BATTERY = registerMetaTileEntity(2110,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lfp_battery"), DisposableBatteryType.LFP));
+        LCO_BATTERY = registerMetaTileEntity(2111,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lco_battery"), DisposableBatteryType.LCO));
+        NMC_BATTERY = registerMetaTileEntity(2112,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("nmc_battery"), DisposableBatteryType.NMC));
     }
 
     // ---- Storage: Quantum, Drums, Crates ----

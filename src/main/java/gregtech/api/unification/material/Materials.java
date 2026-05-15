@@ -823,4 +823,26 @@ public class Materials {
     public static Material NickelCadmiumElectrode;
     public static Material NickelOxide;
     public static Material NickelCadmiumElectrolyte;
+
+    // A3 — Lead-Acid intermediates
+    public static Material LeadAcidElectrode;
+    public static Material LeadAcidElectrolyte;
+
+    // A4 — Vanadium Flow intermediates
+    public static Material VanadiumPentoxide;
+    public static Material VanadiumElectrolyte;
+    public static Material VanadiumFlowElectrode;
+
+    // A5 — LFP (Lithium Iron Phosphate) intermediates
+    public static Material IronIIIPhosphate;
+    public static Material LFPCathodePowder;
+    public static Material CarbonNanotubeFilm;
+
+    // A6 — LCO (Lithium Cobalt Oxide) intermediates
+    public static Material LithiumCobaltOxide;
+    public static Material PVDF;
+
+    // A7 — NMC (Nickel-Manganese-Cobalt) intermediates
+    public static Material NMCCathodePowder;
+    public static Material LithiumHexafluorophosphate;
 }

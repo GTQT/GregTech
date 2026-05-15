@@ -25,6 +25,11 @@ public class DisposableBatteryRecipes {
         zincManganeseCellRecipes();
         lithiumManganeseCellRecipes();
         nickelCadmiumCellRecipes();
+        leadAcidBatteryRecipes();
+        vanadiumFlowCellRecipes();
+        lfpBatteryRecipes();
+        lcoBatteryRecipes();
+        nmcBatteryRecipes();
     }
 
     // -------------------------------------------------------------------------
@@ -199,6 +204,403 @@ public class DisposableBatteryRecipes {
                 .fluidInputs(NickelCadmiumElectrolyte.getFluid(2400))
                 .outputs(MetaTileEntities.NICKEL_CADMIUM_CELL.getStackForm())
                 .duration(200).EUt(VA[HV])
+                .buildAndRegister();
+    }
+
+    // -------------------------------------------------------------------------
+    // A3 — Lead-Acid Battery Block (EV)
+    //
+    // Real chemistry: lead-acid (flooded) cell
+    //   Anode:   Pb → PbSO₄ + 2 e⁻
+    //   Cathode: PbO₂ + 4 H⁺ + SO₄²⁻ + 2 e⁻ → PbSO₄ + 2 H₂O
+    //   Electrolyte: H₂SO₄(aq) — dilute sulfuric acid
+    //
+    // Pipeline (5 steps):
+    //   Chem 1 — chemical bath: immerse lead plates in sulfuric acid → PbO₂/Pb electrode pair
+    //   Chem 2 — mixer: dilute sulfuric acid with water → lead-acid electrolyte fluid
+    //   Chem 3 — chemical reactor: form lead oxide coating (forming charge step)
+    //   Hull   — assembler: build titanium casing with glass plates and electrodes
+    //   Fill   — canner: inject electrolyte into hull and seal
+    // -------------------------------------------------------------------------
+    private static void leadAcidBatteryRecipes() {
+
+        // Step 1 — Chemical Bath: immerse lead plates in concentrated sulfuric acid
+        // This represents the "formation" process where lead is partially oxidised to PbO₂
+        // on one plate while the other remains as pure Pb, creating the electrode pair:
+        //   Pb(plate, 6) + H₂SO₄(2000 mB) → LeadAcidElectrode(6)
+        CHEMICAL_BATH_RECIPES.recipeBuilder()
+                .input(plate, Lead, 6)
+                .fluidInputs(SulfuricAcid.getFluid(2000))
+                .output(dust, LeadAcidElectrode, 6)
+                .duration(400).EUt(VA[MV])
+                .buildAndRegister();
+
+        // Step 2 — Mixer: dilute sulfuric acid with water to produce the electrolyte fluid
+        // Real lead-acid batteries use ~37% H₂SO₄(aq); excess water lowers specific gravity
+        // to operational range (~1.265 g/cm³ at full charge):
+        //   H₂SO₄(1500 mB) + H₂O(1500 mB) → LeadAcidElectrolyte(3000 mB)
+        MIXER_RECIPES.recipeBuilder()
+                .fluidInputs(SulfuricAcid.getFluid(1500))
+                .fluidInputs(Water.getFluid(1500))
+                .fluidOutputs(LeadAcidElectrolyte.getFluid(3000))
+                .duration(200).EUt(VA[MV])
+                .buildAndRegister();
+
+        // Step 3 — Chemical Reactor: electrochemical forming charge
+        // Passes current through the electrode pair in dilute acid to fully develop
+        // the PbO₂ cathode layer; the electrode pair is "activated" and ready for use:
+        //   LeadAcidElectrode(6) + H₂SO₄(500 mB) → LeadAcidElectrode(6, formed)
+        // (In-game, this is modelled as consuming electrodes + acid → same output,
+        //  to represent the non-trivial energy-intensive forming step)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, LeadAcidElectrode, 6)
+                .fluidInputs(SulfuricAcid.getFluid(500))
+                .output(dust, LeadAcidElectrode, 8)
+                .duration(300).EUt(VA[HV])
+                .buildAndRegister();
+
+        // Step 4 — Assembler: build the titanium casing with glass separators and electrodes
+        // Titanium frame provides the EV-grade structural integrity; glass plates act as
+        // separator sheets between electrode pairs; aluminium double cables provide
+        // 8 192 EU/t rated output terminals; electrodes are seated inside;
+        // Polyethylene seals the hull before electrolyte injection
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(frameGt, Titanium)
+                .input(plate, Glass, 4)
+                .input(cableGtDouble, Aluminium, 4)
+                .input(dust, LeadAcidElectrode, 8)
+                .fluidInputs(Polyethylene.getFluid(576))
+                .output(MetaItems.LEAD_ACID_BATTERY_HULL)
+                .duration(300).EUt(VA[EV])
+                .buildAndRegister();
+
+        // Step 5 — Canner: inject dilute sulfuric acid electrolyte into electrode-loaded hull
+        // Electrolyte fills the void space between electrode plates and glass separators;
+        // final crimping/sealing produces the ready-to-use lead-acid battery block
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(MetaItems.LEAD_ACID_BATTERY_HULL.getStackForm())
+                .fluidInputs(LeadAcidElectrolyte.getFluid(3000))
+                .outputs(MetaTileEntities.LEAD_ACID_BATTERY.getStackForm())
+                .duration(300).EUt(VA[EV])
+                .buildAndRegister();
+    }
+
+    // -------------------------------------------------------------------------
+    // A4 — Vanadium Redox Flow Battery Block (IV)
+    //
+    // Real chemistry: All-Vanadium Redox Flow Battery (VRFB)
+    //   Positive half-cell: VO₂⁺ + 2 H⁺ + e⁻ ⇌ VO²⁺ + H₂O  (V⁵⁺/V⁴⁺)
+    //   Negative half-cell: V³⁺ + e⁻ ⇌ V²⁺
+    //   Electrolyte: V₂O₅ dissolved in dilute H₂SO₄
+    //   Membrane: ion-selective membrane (Nafion-type) separates half-cells
+    //
+    // Pipeline (7 steps):
+    //   Chem 1 — chemical reactor: oxidise vanadium dust to V₂O₅ (vanadium pentoxide)
+    //   Chem 2 — chemical reactor: dissolve V₂O₅ in H₂SO₄ → vanadium electrolyte fluid
+    //   Chem 3 — chemical reactor: impregnate carbon felt with vanadium catalyst → electrode
+    //   Chem 4 — chemical bath: sulphonate PTFE membrane → ion exchange membrane
+    //   Hull   — assembler: build titanium casing with electrodes + membranes
+    //   Fill   — canner: inject vanadium electrolyte and seal
+    // -------------------------------------------------------------------------
+    private static void vanadiumFlowCellRecipes() {
+
+        // Step 1 — Chemical Reactor: oxidise vanadium metal to V₂O₅
+        // In reality, vanadium is roasted in air to form the pentoxide;
+        // here we use oxygen fluid as the oxidant:
+        //   V(dust, 2) + O₂(5000 mB) → V₂O₅(dust, 4)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Vanadium, 2)
+                .fluidInputs(Oxygen.getFluid(5000))
+                .output(dust, VanadiumPentoxide, 4)
+                .duration(300).EUt(VA[EV])
+                .buildAndRegister();
+
+        // Step 2 — Chemical Reactor: dissolve V₂O₅ in sulfuric acid to produce electrolyte
+        // The active vanadium species are dissolved into the acid carrier;
+        // output is a coloured fluid representing the mixed V²⁺/V³⁺/V⁴⁺/V⁵⁺ solution:
+        //   V₂O₅(dust, 4) + H₂SO₄(3000 mB) → VanadiumElectrolyte(3000 mB)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, VanadiumPentoxide, 4)
+                .fluidInputs(SulfuricAcid.getFluid(3000))
+                .fluidOutputs(VanadiumElectrolyte.getFluid(3000))
+                .duration(400).EUt(VA[EV])
+                .buildAndRegister();
+
+        // Step 3 — Chemical Reactor: impregnate graphite felt with vanadium catalyst
+        // Carbon felt acts as the electrode substrate; vanadium pentoxide provides
+        // catalytic surface sites for the redox reactions:
+        //   Graphite(dust, 4) + V₂O₅(dust, 2) → VanadiumFlowElectrode(dust, 6)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Graphite, 4)
+                .input(dust, VanadiumPentoxide, 2)
+                .output(dust, VanadiumFlowElectrode, 6)
+                .duration(300).EUt(VA[EV])
+                .buildAndRegister();
+
+        // Step 4 — Chemical Bath: sulphonate PTFE film to produce ion exchange membrane
+        // Nafion-type membranes are perfluorosulphonic acid polymers; here PTFE is treated
+        // with sulfuric acid to introduce sulphonate groups for proton conductivity:
+        //   PTFE(fluid, 576 mB) + H₂SO₄(1000 mB) → Ion Exchange Membrane(2)
+        CHEMICAL_BATH_RECIPES.recipeBuilder()
+                .fluidInputs(Polytetrafluoroethylene.getFluid(576))
+                .fluidInputs(SulfuricAcid.getFluid(1000))
+                .output(MetaItems.ION_EXCHANGE_MEMBRANE, 2)
+                .duration(400).EUt(VA[HV])
+                .buildAndRegister();
+
+        // Step 5 — Assembler: build titanium casing with electrodes and membranes
+        // Titanium frame + plates for IV-grade structural integrity;
+        // tungsten double cables for high-current output terminals;
+        // ion exchange membranes separate the two half-cell compartments;
+        // vanadium flow electrodes seated inside; PTFE seals the hull
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(frameGt, Titanium)
+                .input(plate, Titanium, 4)
+                .input(cableGtDouble, Tungsten, 4)
+                .inputs(MetaItems.ION_EXCHANGE_MEMBRANE.getStackForm(2))
+                .input(dust, VanadiumFlowElectrode, 6)
+                .fluidInputs(Polytetrafluoroethylene.getFluid(576))
+                .output(MetaItems.VANADIUM_FLOW_CELL_HULL)
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+
+        // Step 6 — Canner: inject vanadium electrolyte into the assembled flow cell hull
+        // Electrolyte fills both half-cell compartments separated by the membrane;
+        // final sealing produces the ready-to-use vanadium flow battery block
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(MetaItems.VANADIUM_FLOW_CELL_HULL.getStackForm())
+                .fluidInputs(VanadiumElectrolyte.getFluid(3000))
+                .outputs(MetaTileEntities.VANADIUM_FLOW_CELL.getStackForm())
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+    }
+
+    // -------------------------------------------------------------------------
+    // A5 — Lithium Iron Phosphate (LFP) Battery Block (LuV)
+    //
+    // Real chemistry: olivine-structure LiFePO₄ intercalation cathode
+    //   Cathode: LiFePO₄ ⇌ FePO₄ + Li⁺ + e⁻
+    //   Anode:   graphite intercalation (Li⁺ + e⁻ + C₆ → LiC₆)
+    //   Electrolyte: LiPF₆ in organic solvent (simplified to PBI polymer seal)
+    //
+    // Pipeline (6 steps):
+    //   Chem 1 — chemical reactor: iron + phosphoric acid → iron III phosphate
+    //   Chem 2 — chemical reactor: lithium + iron III phosphate → LFP cathode powder
+    //   Chem 3 — chemical reactor: carbon + iron catalyst → carbon nanotube film
+    //   Chem 4 — mixer: LFP cathode powder + CNT film binder activation
+    //   Hull   — assembler: build iridium casing with cathode powder + CNT film
+    //   Fill   — canner: seal with polybenzimidazole high-temperature polymer
+    // -------------------------------------------------------------------------
+    private static void lfpBatteryRecipes() {
+
+        // Step 1 — Chemical Reactor: precipitate iron III phosphate from iron and phosphoric acid
+        // FePO₄ is the delithiated cathode framework structure:
+        //   Fe(dust, 4) + H₃PO₄(2000 mB) → FePO₄(dust, 8) + H₂(fluid, byproduct simplified)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Iron, 4)
+                .fluidInputs(PhosphoricAcid.getFluid(2000))
+                .output(dust, IronIIIPhosphate, 8)
+                .duration(300).EUt(VA[EV])
+                .buildAndRegister();
+
+        // Step 2 — Chemical Reactor: lithiate iron phosphate to form LFP cathode material
+        // Lithium intercalates into the FePO₄ olivine framework:
+        //   Li(dust, 4) + FePO₄(dust, 8) → LiFePO₄ cathode powder(dust, 12)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Lithium, 4)
+                .input(dust, IronIIIPhosphate, 8)
+                .output(dust, LFPCathodePowder, 12)
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+
+        // Step 3 — Chemical Reactor: catalytic CVD growth of carbon nanotubes on substrate
+        // Iron nanoparticles catalyse the decomposition of carbon into tubular structures;
+        // the result is a thin conductive film used as current collector:
+        //   Carbon(dust, 8) + Iron(dustSmall, 2 — catalyst) + H₂(1000 mB carrier)
+        //   → CarbonNanotubeFilm(dust, 4)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Carbon, 8)
+                .input(dustSmall, Iron, 2)
+                .fluidInputs(Hydrogen.getFluid(1000))
+                .output(dust, CarbonNanotubeFilm, 4)
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+
+        // Step 4 — Assembler: build the iridium casing with cathode and current collectors
+        // Iridium frame + plates provide LuV-grade structural integrity;
+        // tungsten quadruple cables deliver 131 072 EU/t rated output;
+        // LFP cathode powder and CNT film are layered inside the cell;
+        // Polybenzimidazole seals the hull at high temperature
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(frameGt, Iridium)
+                .input(plate, Iridium, 4)
+                .input(cableGtQuadruple, Tungsten, 4)
+                .input(dust, LFPCathodePowder, 12)
+                .input(dust, CarbonNanotubeFilm, 2)
+                .fluidInputs(Polybenzimidazole.getFluid(576))
+                .output(MetaItems.LFP_BATTERY_HULL)
+                .duration(500).EUt(VA[LuV])
+                .buildAndRegister();
+
+        // Step 5 — Canner: final electrolyte injection and hermetic seal
+        // In real LFP cells the electrolyte is LiPF₆ in organic solvent;
+        // here simplified as additional PBI polymer injection to represent
+        // the electrolyte-soaked separator + final thermal seal:
+        //   Hull + PBI(1152 mB) → LFP Battery Block
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(MetaItems.LFP_BATTERY_HULL.getStackForm())
+                .fluidInputs(Polybenzimidazole.getFluid(1152))
+                .outputs(MetaTileEntities.LFP_BATTERY.getStackForm())
+                .duration(500).EUt(VA[LuV])
+                .buildAndRegister();
+    }
+
+    // -------------------------------------------------------------------------
+    // A6 — Lithium Cobalt Oxide (LCO) Battery Block (ZPM)
+    //
+    // Real chemistry: layered LiCoO₂ intercalation cathode
+    //   Cathode: LiCoO₂ → Li₁₋ₓCoO₂ + x Li⁺ + x e⁻
+    //   Anode:   graphite intercalation (x Li⁺ + x e⁻ + C₆ → LiₓC₆)
+    //   Electrolyte: LiPF₆ in organic solvent; binder: PVDF
+    //
+    // Pipeline (5 steps):
+    //   Chem 1 — chemical reactor: lithium + cobalt oxide → lithium cobalt oxide
+    //   Chem 2 — chemical reactor: synthesise PVDF binder fluid
+    //   Chem 3 — chemical reactor: coat LiCoO₂ with PVDF binder → electrode slurry
+    //   Hull   — assembler: build osmium casing with cathode + CNT collectors
+    //   Fill   — canner: inject PVDF-sealed electrolyte and seal
+    // -------------------------------------------------------------------------
+    private static void lcoBatteryRecipes() {
+
+        // Step 1 — Chemical Reactor: solid-state synthesis of LiCoO₂ cathode powder
+        // Lithium reacts with cobalt oxide at high temperature to form the layered structure:
+        //   Li(dust, 2) + CoO(dust, 4) → LiCoO₂(dust, 6)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Lithium, 2)
+                .input(dust, CobaltOxide, 4)
+                .output(dust, LithiumCobaltOxide, 6)
+                .duration(500).EUt(VA[LuV])
+                .buildAndRegister();
+
+        // Step 2 — Chemical Reactor: polymerise VDF monomer into PVDF binder fluid
+        // In reality PVDF is produced by radical polymerisation of CH₂=CF₂;
+        // here simplified as fluorine + polyethylene decomposition route:
+        //   Polyethylene(fluid, 576 mB) + Fluorine(fluid, 2000 mB)
+        //   → PVDF(fluid, 1000 mB)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .fluidInputs(Polyethylene.getFluid(576))
+                .fluidInputs(Fluorine.getFluid(2000))
+                .fluidOutputs(PVDF.getFluid(1000))
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+
+        // Step 3 — Assembler: build the osmium casing with cathode, CNT collectors and wiring
+        // Osmium frame + plates provide ZPM-grade structural integrity;
+        // naquadah quadruple cables deliver the extreme 524 288 EU/t current;
+        // LiCoO₂ cathode powder is layered with CNT film current collectors;
+        // PVDF binder fluid bonds the electrode layers inside the hull
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(frameGt, Osmium)
+                .input(plate, Osmium, 4)
+                .input(cableGtQuadruple, Naquadah, 4)
+                .input(dust, LithiumCobaltOxide, 12)
+                .input(dust, CarbonNanotubeFilm, 4)
+                .fluidInputs(PVDF.getFluid(576))
+                .output(MetaItems.LCO_BATTERY_HULL)
+                .duration(600).EUt(VA[ZPM])
+                .buildAndRegister();
+
+        // Step 4 — Canner: inject remaining PVDF electrolyte binder and hermetically seal
+        // Additional PVDF injection fills the inter-electrode void space and creates
+        // the sealed electrolyte-saturated environment:
+        //   Hull + PVDF(1000 mB) → LCO Battery Block
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(MetaItems.LCO_BATTERY_HULL.getStackForm())
+                .fluidInputs(PVDF.getFluid(1000))
+                .outputs(MetaTileEntities.LCO_BATTERY.getStackForm())
+                .duration(600).EUt(VA[ZPM])
+                .buildAndRegister();
+    }
+
+    // -------------------------------------------------------------------------
+    // A7 — NMC Ternary Lithium Battery Block (UV)
+    //
+    // Real chemistry: layered Li(NiₓMnᵧCo_z)O₂ (NMC 811/622/532 family)
+    //   Cathode: Li(NiMnCo)O₂ → Li₁₋ₓ(NiMnCo)O₂ + x Li⁺ + x e⁻
+    //   Anode:   Si/C composite intercalation
+    //   Electrolyte: LiPF₆ in organic carbonate solvent
+    //
+    // Pipeline (6 steps):
+    //   Chem 1 — chemical reactor: Ni + Mn + Co oxide → NMC precursor
+    //   Chem 2 — chemical reactor: lithiate NMC precursor → NMC cathode powder
+    //   Chem 3 — chemical reactor: LiF + PF₅ equivalent → LiPF₆ electrolyte fluid
+    //   Hull   — assembler: build darmstadtium casing with cathode + CNT + wiring
+    //   Fill   — canner: inject LiPF₆ electrolyte and seal
+    // -------------------------------------------------------------------------
+    private static void nmcBatteryRecipes() {
+
+        // Step 1 — Chemical Reactor: co-precipitate ternary NMC precursor hydroxide
+        // Nickel, manganese and cobalt oxides react to form the mixed transition metal
+        // hydroxide precursor in an 8:1:1 ratio (NMC 811 stoichiometry):
+        //   Ni(dust, 4) + Mn(dust, 1) + CobaltOxide(dust, 1) + O₂(2000 mB)
+        //   → NMCCathodePowder(dust, 6)  (precursor stage)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Nickel, 4)
+                .input(dust, Manganese, 1)
+                .input(dust, CobaltOxide, 1)
+                .fluidInputs(Oxygen.getFluid(2000))
+                .output(dust, NMCCathodePowder, 6)
+                .duration(400).EUt(VA[LuV])
+                .buildAndRegister();
+
+        // Step 2 — Chemical Reactor: lithiate NMC precursor at high temperature
+        // Lithium intercalates into the layered NMC oxide framework:
+        //   NMCCathodePowder(dust, 6) + Li(dust, 4) → NMCCathodePowder(dust, 12)
+        // (doubled output represents the fully lithiated, activated cathode material)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, NMCCathodePowder, 6)
+                .input(dust, Lithium, 4)
+                .output(dust, NMCCathodePowder, 12)
+                .duration(500).EUt(VA[ZPM])
+                .buildAndRegister();
+
+        // Step 3 — Chemical Reactor: synthesise LiPF₆ electrolyte salt solution
+        // Lithium fluoride reacts with phosphorus pentafluoride (simplified as
+        // HydrofluoricAcid + PhosphoricAcid route) to form LiPF₆ in solution:
+        //   Li(dust, 2) + HF(2000 mB) + H₃PO₄(1000 mB)
+        //   → LithiumHexafluorophosphate(3000 mB)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Lithium, 2)
+                .fluidInputs(HydrofluoricAcid.getFluid(2000))
+                .fluidInputs(PhosphoricAcid.getFluid(1000))
+                .fluidOutputs(LithiumHexafluorophosphate.getFluid(3000))
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+
+        // Step 4 — Assembler: build the darmstadtium casing with cathode and collectors
+        // Darmstadtium frame + plates provide UV-grade structural integrity;
+        // europium quadruple cables deliver the extreme 2 097 152 EU/t current;
+        // NMC cathode powder and CNT film current collectors are layered inside;
+        // PVDF binder bonds the electrode stack
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(frameGt, Darmstadtium)
+                .input(plate, Darmstadtium, 4)
+                .input(cableGtQuadruple, Europium, 4)
+                .input(dust, NMCCathodePowder, 12)
+                .input(dust, CarbonNanotubeFilm, 4)
+                .fluidInputs(PVDF.getFluid(576))
+                .output(MetaItems.NMC_BATTERY_HULL)
+                .duration(800).EUt(VA[UV])
+                .buildAndRegister();
+
+        // Step 5 — Canner: inject LiPF₆ electrolyte into the sealed hull
+        // Electrolyte permeates the electrode stack through the separator;
+        // final hermetic sealing produces the ready-to-use NMC battery block
+        CANNER_RECIPES.recipeBuilder()
+                .inputs(MetaItems.NMC_BATTERY_HULL.getStackForm())
+                .fluidInputs(LithiumHexafluorophosphate.getFluid(3000))
+                .outputs(MetaTileEntities.NMC_BATTERY.getStackForm())
+                .duration(800).EUt(VA[UV])
                 .buildAndRegister();
     }
 }

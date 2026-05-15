@@ -19,10 +19,27 @@ public interface IGregTechTileEntity extends IHasWorldObjectAndCoords, INeighbor
     MetaTileEntity getMetaTileEntity();
 
     default MetaTileEntity setMetaTileEntity(MetaTileEntity metaTileEntity) {
-        return setMetaTileEntity(metaTileEntity, null);
+        return setMetaTileEntity(metaTileEntity, null, null);
     }
 
-    MetaTileEntity setMetaTileEntity(@NotNull MetaTileEntity metaTileEntity, @Nullable NBTTagCompound tagCompound);
+    default MetaTileEntity setMetaTileEntity(@NotNull MetaTileEntity metaTileEntity,
+                                             @Nullable NBTTagCompound tagCompound) {
+        return setMetaTileEntity(metaTileEntity, tagCompound, null);
+    }
+
+    /**
+     * Sets the meta tile entity, creating a copy of the sample.
+     * If {@code tagCompound} is non-null, it is applied via {@link MetaTileEntity#readFromNBT(NBTTagCompound)}.
+     * If {@code itemStackData} is non-null, it is applied via {@link MetaTileEntity#initFromItemStackData(NBTTagCompound)}
+     * <em>before</em> the initial sync packet is sent, ensuring variant data reaches the client correctly.
+     *
+     * @param metaTileEntity the sample MTE from the registry
+     * @param tagCompound    optional full MTE NBT (e.g. from clipboard paste / BLOCK_ENTITY_TAG)
+     * @param itemStackData  optional ItemStack tag for lightweight init (e.g. variant ordinal)
+     */
+    MetaTileEntity setMetaTileEntity(@NotNull MetaTileEntity metaTileEntity,
+                                     @Nullable NBTTagCompound tagCompound,
+                                     @Nullable NBTTagCompound itemStackData);
 
     long getOffsetTimer(); // todo might not keep this one
 
