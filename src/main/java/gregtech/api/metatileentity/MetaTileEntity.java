@@ -984,13 +984,13 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return 1.0F;
     }
 
-    public final @NotNull ItemStack getStackForm(int amount) {
+    public @NotNull ItemStack getStackForm(int amount) {
         int metaTileEntityIntId = registry.getIdByObjectName(metaTileEntityId);
         return new ItemStack(registry.getBlock(), amount, metaTileEntityIntId);
     }
 
     @Override
-    public final @NotNull ItemStack getStackForm() {
+    public @NotNull ItemStack getStackForm() {
         return getStackForm(1);
     }
 

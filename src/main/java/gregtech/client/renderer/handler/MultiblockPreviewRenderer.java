@@ -362,30 +362,39 @@ public class MultiblockPreviewRenderer {
                 ForgeHooksClient.setRenderLayer(renderLayer);
 
                 BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-                buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                boolean drawing = false;
+                try {
+                    buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                    drawing = true;
 
-                for (BlockPos pos : blockMap.keySet()) {
-                    if (!renderFilter.test(pos)) continue;
-                    IBlockState state = world.getBlockState(pos);
-                    if (state.getBlock() == Blocks.AIR) continue;
-                    if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
+                    for (BlockPos pos : blockMap.keySet()) {
+                        if (!renderFilter.test(pos)) continue;
+                        IBlockState state = world.getBlockState(pos);
+                        if (state.getBlock() == Blocks.AIR) continue;
+                        if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
 
-                    // Compute world-space position for this block
-                    BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
-                            pos.subtract(pieceCenterInLocal), structureDir,
-                            controller.getFrontFacing().getOpposite(),
-                            controller.getUpwardsFacing(),
-                            controller.isFlipped());
-                    BlockPos worldPos = pieceCenterPos.add(tPos);
+                        // Compute world-space position for this block
+                        BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
+                                pos.subtract(pieceCenterInLocal), structureDir,
+                                controller.getFrontFacing().getOpposite(),
+                                controller.getUpwardsFacing(),
+                                controller.isFlipped());
+                        BlockPos worldPos = pieceCenterPos.add(tPos);
 
-                    renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
+                        renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
+                    }
+
+                    buffer.finishDrawing();
+                    drawing = false;
+                    VertexBuffer vbo = new VertexBuffer(DefaultVertexFormats.BLOCK);
+                    vbo.bufferData(buffer.getByteBuffer());
+                    vbos[renderLayer.ordinal()] = vbo;
+                } finally {
+                    if (drawing) {
+                        finishDrawingQuietly(buffer);
+                    }
+                    buffer.reset();
                 }
-
-                buffer.finishDrawing();
-                VertexBuffer vbo = new VertexBuffer(DefaultVertexFormats.BLOCK);
-                vbo.bufferData(buffer.getByteBuffer());
-                vbos[renderLayer.ordinal()] = vbo;
-                buffer.reset();
             }
         } finally {
             ForgeHooksClient.setRenderLayer(oldLayer);
@@ -437,28 +446,37 @@ public class MultiblockPreviewRenderer {
                 ForgeHooksClient.setRenderLayer(renderLayer);
 
                 BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-                buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                boolean drawing = false;
+                try {
+                    buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                    drawing = true;
 
-                for (BlockPos pos : blockMap.keySet()) {
-                    if (!renderFilter.test(pos)) continue;
-                    if (pos.equals(controllerPos)) continue;
-                    IBlockState state = world.getBlockState(pos);
-                    if (state.getBlock() == Blocks.AIR) continue;
-                    if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
+                    for (BlockPos pos : blockMap.keySet()) {
+                        if (!renderFilter.test(pos)) continue;
+                        if (pos.equals(controllerPos)) continue;
+                        IBlockState state = world.getBlockState(pos);
+                        if (state.getBlock() == Blocks.AIR) continue;
+                        if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
 
-                    // Compute world-space position for this block
-                    BlockPos tPos = PreviewRenderUtils.transformPreviewOffset(
-                            controllerBase, pos.subtract(controllerPos));
-                    BlockPos worldPos = targetPos.add(tPos);
+                        // Compute world-space position for this block
+                        BlockPos tPos = PreviewRenderUtils.transformPreviewOffset(
+                                controllerBase, pos.subtract(controllerPos));
+                        BlockPos worldPos = targetPos.add(tPos);
 
-                    renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
+                        renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
+                    }
+
+                    buffer.finishDrawing();
+                    drawing = false;
+                    VertexBuffer vbo = new VertexBuffer(DefaultVertexFormats.BLOCK);
+                    vbo.bufferData(buffer.getByteBuffer());
+                    vbos[renderLayer.ordinal()] = vbo;
+                } finally {
+                    if (drawing) {
+                        finishDrawingQuietly(buffer);
+                    }
+                    buffer.reset();
                 }
-
-                buffer.finishDrawing();
-                VertexBuffer vbo = new VertexBuffer(DefaultVertexFormats.BLOCK);
-                vbo.bufferData(buffer.getByteBuffer());
-                vbos[renderLayer.ordinal()] = vbo;
-                buffer.reset();
             }
         } finally {
             ForgeHooksClient.setRenderLayer(oldLayer);
@@ -481,5 +499,13 @@ public class MultiblockPreviewRenderer {
 
         renderer.renderBlockScaled(state, localPos, worldPos, BLOCK_SCALE, BLOCK_OFFSET,
                 FULL_BLOCK_VISIBILITY, buffer);
+    }
+
+    private static void finishDrawingQuietly(BufferBuilder buffer) {
+        try {
+            buffer.finishDrawing();
+        } catch (IllegalStateException ignored) {
+            // BufferBuilder.reset() does not clear isDrawing in 1.12; finishDrawing does.
+        }
     }
 }

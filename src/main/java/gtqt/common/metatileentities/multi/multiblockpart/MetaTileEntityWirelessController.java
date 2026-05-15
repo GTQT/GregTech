@@ -59,7 +59,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
     private int priority;
     private int rebalanceTimer = 0;
-    private long lastLocalStored; // dirty detection: only rebalance when PSS stored changes
+    private long lastLocalStored;
 
     public MetaTileEntityWirelessController(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
@@ -135,18 +135,12 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
     /**
      * Bidirectional rebalance between PSS local energyBank and the wireless pool.
-     * Only executes when PSS local stored has actually changed (dirty detection).
      * <p>
      * Threshold = PSS capacity × retentionRatio[tier]
      * - PSS stored > threshold → push excess to wireless pool
      * - PSS stored < threshold → pull deficit from wireless pool
      */
     private void tryRebalance(MetaTileEntityPowerSubstation pss) {
-        long currentStored = pss.getStoredLong();
-        // Dirty check: only rebalance if local stored actually changed
-        if (currentStored == lastLocalStored) return;
-        lastLocalStored = currentStored;
-
         UUID ownerId = this.getOwnerGT();
         if (ownerId == null) return;
 
@@ -162,7 +156,10 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
                 .toBigInteger();
 
         BigInteger localStored = pss.getStoredByBigInteger();
-        long maxTransfer = getMaxTransferPerTick() * REBALANCE_INTERVAL;
+        lastLocalStored = pss.getStoredLong();
+
+        long transferPerTick = getMaxTransferPerTick();
+        long maxTransfer = saturatingMultiply(transferPerTick, REBALANCE_INTERVAL);
         // No transfer capacity (controller tier < UHV or no UHV+ capacitors)
         if (maxTransfer <= 0) return;
 
@@ -231,11 +228,13 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
             long powerOf2 = 1L << capacitorTierOffset;
 
             // count * V[tier] * 2^(capacitor_tier - UHV) * 5^(controller_tier - UHV)
-            long contribution = (long) count * voltage * powerOf2 * controllerPowerOf5;
-            totalTransfer += contribution;
+            long contribution = saturatingMultiply(count, voltage);
+            contribution = saturatingMultiply(contribution, powerOf2);
+            contribution = saturatingMultiply(contribution, controllerPowerOf5);
+            totalTransfer = saturatingAdd(totalTransfer, contribution);
         }
 
-        return TRANSFER_RATE_BASE_MULTIPLIER * totalTransfer;
+        return saturatingMultiply(TRANSFER_RATE_BASE_MULTIPLIER, totalTransfer);
     }
 
     private static long longPow(long base, int exponent) {
@@ -246,12 +245,25 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         return result;
     }
 
+    private static long saturatingAdd(long left, long right) {
+        if (left <= 0) return Math.max(right, 0);
+        if (right <= 0) return left;
+        if (Long.MAX_VALUE - left < right) return Long.MAX_VALUE;
+        return left + right;
+    }
+
+    private static long saturatingMultiply(long left, long right) {
+        if (left <= 0 || right <= 0) return 0;
+        if (left > Long.MAX_VALUE / right) return Long.MAX_VALUE;
+        return left * right;
+    }
+
     // ==================== IWirelessController ====================
 
     @Override
     public void sentMTE() {
         // Wireless pool is now stateless with respect to nodes — no registration needed.
-        // Initialize dirty tracking on next rebalance.
+        // Initialize the persisted local energy snapshot.
         MetaTileEntityPowerSubstation pss = getPSS();
         if (pss != null) {
             lastLocalStored = pss.getStoredLong();

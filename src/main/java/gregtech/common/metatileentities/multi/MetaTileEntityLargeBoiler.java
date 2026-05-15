@@ -115,7 +115,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
                 .buildTemplate();
     }
 
-    public final BoilerType boilerType;
+    public BoilerType boilerType;
     protected BoilerRecipeLogic recipeLogic;
     private FluidTankList fluidImportInventory;
     private ItemHandlerList itemImportInventory;
@@ -137,6 +137,16 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
         this.boilerType = boilerType;
         this.recipeLogic = new BoilerRecipeLogic(this);
         resetTileAbilities();
+    }
+
+    @Override
+    protected void onVariantChanged() {
+        this.boilerType = getVariant();
+    }
+
+    @NotNull
+    public BoilerType getBoilerType() {
+        return getVariant();
     }
 
     @Override
@@ -197,7 +207,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     @Override
     public double getPollutionAmount() {
-        return switch (boilerType) {
+        return switch (getBoilerType()) {
             case BRONZE -> 0.01;
             case STEEL -> 0.012;
             case TITANIUM -> 0.015;
@@ -227,7 +237,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     @Override
     public GTGuiTheme getUITheme() {
-        return switch (this.boilerType) {
+        return switch (getBoilerType()) {
             case BRONZE -> GTGuiTheme.BRONZE;
             case STEEL -> GTGuiTheme.STEEL;
             default -> super.getUITheme();
@@ -374,19 +384,25 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        TooltipBuilder.create().add(new BoilerInformation()).build(this, tooltip);
+        TooltipBuilder.create().add(new BoilerInformation(getVariantFromStack(stack))).build(this, tooltip);
     }
 
     public class BoilerInformation extends AbstractTooltipComponent {
+
+        private final BoilerType type;
+
+        public BoilerInformation(BoilerType type) {
+            this.type = type;
+        }
 
         @Override
         public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
             tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
                     TextFormattingUtil
-                            .formatNumbers((int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));
+                            .formatNumbers((int) (type.steamPerTick() * 20 * type.runtimeBoost(200) / 20.0))));
             tooltip.add(
-                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip", boilerType.getTicksToBoiling() / 20));
-            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", boilerType.steamPerTick()));
+                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip", type.getTicksToBoiling() / 20));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", type.steamPerTick()));
             tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.multiblock.large_boiler.explosion_tooltip"));
         }
     }
@@ -402,7 +418,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return boilerType.frontOverlay;
+        return getBoilerType().frontOverlay;
     }
 
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
@@ -412,10 +428,11 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+        BoilerType type = getBoilerType();
         if (sourcePart != null && isFireboxPart(sourcePart)) {
-            return isActive() ? boilerType.fireboxActiveRenderer : boilerType.fireboxIdleRenderer;
+            return isActive() ? type.fireboxActiveRenderer : type.fireboxIdleRenderer;
         }
-        return boilerType.casingRenderer;
+        return type.casingRenderer;
     }
 
     @Override

@@ -5,14 +5,15 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
+import gregtech.client.renderer.godforge.util.FaceCulledRenderBlocks;
+import gregtech.client.renderer.godforge.util.FaceVisibility;
 import gregtech.client.utils.TrackedDummyWorld;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldVertexBufferUploader;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
@@ -42,8 +43,8 @@ import java.util.Set;
  *
  * <p>Unlike {@link MultiblockPreviewRenderer} which builds VBOs on right-click (causing
  * a one-time stutter for large structures), this renderer computes only a block position
- * list on activation (near-zero cost) and renders all blocks every frame using
- * {@link BlockRendererDispatcher#renderBlock}.</p>
+ * list on activation (near-zero cost) and batches all visible blocks into one
+ * client-side buffer per render layer.</p>
  *
  * <p>Trade-off: no first-click stutter, but slightly higher per-frame cost for very large
  * structures. Suitable for projector use cases where rapid toggling is common.</p>
@@ -57,6 +58,9 @@ public class GhostBlockRenderer {
     // Preview block scale factor and centering offset (same as controller preview)
     private static final float BLOCK_SCALE = 0.75F;
     private static final float BLOCK_OFFSET = 0.125F;
+    private static final FaceVisibility FULL_BLOCK_VISIBILITY = new FaceVisibility();
+    private static final BufferBuilder GHOST_BUFFER = new BufferBuilder(2 * 1024 * 1024);
+    private static final WorldVertexBufferUploader GHOST_UPLOADER = new WorldVertexBufferUploader();
 
     private static BlockPos ghostPos;
     private static long ghostEndTime;
@@ -112,7 +116,7 @@ public class GhostBlockRenderer {
                 GL11.GL_CONSTANT_ALPHA, GL11.GL_ONE_MINUS_CONSTANT_ALPHA,
                 GL11.GL_ONE, GL11.GL_ZERO);
 
-        // Immediate-mode rendering: draw each ghost block every frame
+        // Immediate-mode rendering: batch visible ghost blocks every frame
         renderGhostBlocks();
 
         // Comparison overlay
@@ -134,56 +138,75 @@ public class GhostBlockRenderer {
     private static void renderGhostBlocks() {
         if (virtualWorld == null) return;
 
-        Minecraft mc = Minecraft.getMinecraft();
-        BlockRendererDispatcher brd = mc.getBlockRendererDispatcher();
-        Tessellator tes = Tessellator.getInstance();
-        BufferBuilder buff = tes.getBuffer();
+        FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(virtualWorld);
+        PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(virtualWorld);
 
         BlockRenderLayer oldLayer = MinecraftForgeClient.getRenderLayer();
-        PreviewRenderUtils.TargetBlockAccess targetBA =
-                new PreviewRenderUtils.TargetBlockAccess(virtualWorld, BlockPos.ORIGIN);
 
         int finalMaxY = layer % (maxY + 1);
         boolean isLayerMode = finalMaxY != 0;
 
         try {
             for (BlockRenderLayer brl : BlockRenderLayer.values()) {
-                boolean hasBlocks = false;
-                buff.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                ForgeHooksClient.setRenderLayer(brl);
+                boolean drawing = false;
+                try {
+                    GHOST_BUFFER.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+                    drawing = true;
 
-                for (GhostBlock ghost : ghostBlocks) {
-                    if (isLayerMode && ghost.localPos.getY() + 1 != finalMaxY) continue;
-                    // Surface filter only in all-layers mode; in layer mode, blocks
-                    // occluded in the full structure may become visible at this slice
-                    if (!isLayerMode && surfaceBlocks != null && !surfaceBlocks.contains(ghost.localPos)) continue;
-                    if (ghost.localPos.equals(controllerPos)) continue;
+                    for (GhostBlock ghost : ghostBlocks) {
+                        if (isLayerMode && ghost.localPos.getY() + 1 != finalMaxY) continue;
+                        // Surface filter only in all-layers mode; in layer mode, blocks
+                        // occluded in the full structure may become visible at this slice
+                        if (!isLayerMode && surfaceBlocks != null && !surfaceBlocks.contains(ghost.localPos)) continue;
+                        if (ghost.localPos.equals(controllerPos)) continue;
 
-                    IBlockState state = virtualWorld.getBlockState(ghost.localPos);
-                    if (state.getBlock() == Blocks.AIR) continue;
-                    if (!state.getBlock().canRenderInLayer(state, brl)) continue;
+                        IBlockState state = virtualWorld.getBlockState(ghost.localPos);
+                        if (state.getBlock() == Blocks.AIR) continue;
+                        if (!state.getBlock().canRenderInLayer(state, brl)) continue;
 
-                    targetBA.setPos(ghost.localPos);
+                        renderGhostBlock(renderer, mteAccess, state, ghost);
+                    }
 
-                    GlStateManager.pushMatrix();
-                    GlStateManager.translate(ghost.worldPos.getX(), ghost.worldPos.getY(), ghost.worldPos.getZ());
-                    GlStateManager.translate(BLOCK_OFFSET, BLOCK_OFFSET, BLOCK_OFFSET);
-                    GlStateManager.scale(BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE);
+                    GHOST_BUFFER.finishDrawing();
+                    drawing = false;
 
-                    ForgeHooksClient.setRenderLayer(brl);
-                    brd.renderBlock(state, BlockPos.ORIGIN, targetBA, buff);
-                    hasBlocks = true;
-
-                    GlStateManager.popMatrix();
-                }
-
-                if (hasBlocks) {
-                    tes.draw();
-                } else {
-                    buff.reset();
+                    if (GHOST_BUFFER.getVertexCount() > 0) {
+                        GHOST_UPLOADER.draw(GHOST_BUFFER);
+                    } else {
+                        GHOST_BUFFER.reset();
+                    }
+                } finally {
+                    if (drawing) {
+                        finishDrawingQuietly(GHOST_BUFFER);
+                    }
+                    GHOST_BUFFER.reset();
                 }
             }
         } finally {
             ForgeHooksClient.setRenderLayer(oldLayer);
+        }
+    }
+
+    private static void renderGhostBlock(FaceCulledRenderBlocks renderer,
+                                         PreviewRenderUtils.OffsetBlockAccess mteAccess,
+                                         IBlockState state,
+                                         GhostBlock ghost) {
+        if (state.getBlock().getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
+            mteAccess.setPos(ghost.localPos, ghost.worldPos, true);
+            MetaTileEntityRenderer.INSTANCE.renderBlock(mteAccess, ghost.worldPos, state, GHOST_BUFFER);
+            return;
+        }
+
+        renderer.renderBlockScaled(state, ghost.localPos, ghost.worldPos, BLOCK_SCALE, BLOCK_OFFSET,
+                FULL_BLOCK_VISIBILITY, GHOST_BUFFER);
+    }
+
+    private static void finishDrawingQuietly(BufferBuilder buffer) {
+        try {
+            buffer.finishDrawing();
+        } catch (IllegalStateException ignored) {
+            // BufferBuilder.reset() does not clear isDrawing in 1.12; finishDrawing does.
         }
     }
 

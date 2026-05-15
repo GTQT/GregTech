@@ -72,7 +72,13 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
     @Override
     @NotNull
     protected String getVariantTranslationPrefix() {
-        return "gregtech.machine.large_combustion_engine";
+        return "gregtech.machine";
+    }
+
+    @Override
+    @NotNull
+    protected String getVariantName(@NotNull LargeCombustionEngineType variant) {
+        return variant.getName();
     }
 
     private static BlockPatternTemplate buildTemplate(LargeCombustionEngineType type) {
@@ -195,14 +201,16 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_eut", GTValues.V[tier]));
+        LargeCombustionEngineType type = getVariantFromStack(stack);
+        int variantTier = type.getTier();
+        tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_eut", GTValues.V[variantTier]));
         tooltip.add(I18n.format("gregtech.universal.tooltip.uses_per_hour_lubricant", 1000));
-        if (isExtreme()) {
+        if (type.isExtreme()) {
             tooltip.add(I18n.format("gregtech.machine.large_combustion_engine.tooltip.boost_extreme",
-                    GTValues.V[tier] * 4));
+                    GTValues.V[variantTier] * 4));
         } else {
             tooltip.add(I18n.format("gregtech.machine.large_combustion_engine.tooltip.boost_regular",
-                    GTValues.V[tier] * 3));
+                    GTValues.V[variantTier] * 3));
         }
     }
 

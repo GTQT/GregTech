@@ -65,6 +65,7 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
                                                                                                 RecipeMap<?> recipeMap) {
         super(tileEntity, recipeMap);
         this.metaTileEntity = null;
+        this.parallelLogicType = ParallelLogicType.MULTIPLY;
     }
 
     @Override

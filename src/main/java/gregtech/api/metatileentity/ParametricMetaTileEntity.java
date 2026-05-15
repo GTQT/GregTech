@@ -115,6 +115,7 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
     public void receiveInitialSyncData(@NotNull PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
         this.variant = readVariantFromOrdinal(buf.readByte());
+        onVariantChanged();
     }
 
     @Override
@@ -164,7 +165,15 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
     @Override
     public String getItemSubTypeId(ItemStack itemStack) {
         V mat = getVariantFromStack(itemStack);
-        return mat.name().toLowerCase();
+        return getVariantName(mat);
+    }
+
+    @Override
+    @NotNull
+    public ItemStack getStackForm(int amount) {
+        ItemStack stack = super.getStackForm(amount);
+        writeStackVariant(stack, variant);
+        return stack;
     }
 
     /**
@@ -172,14 +181,18 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
      */
     @NotNull
     public ItemStack getStackForm(@NotNull V variantValue) {
-        ItemStack stack = getStackForm();
+        ItemStack stack = super.getStackForm();
+        writeStackVariant(stack, variantValue);
+        return stack;
+    }
+
+    private void writeStackVariant(@NotNull ItemStack stack, @NotNull V variantValue) {
         NBTTagCompound tag = stack.getTagCompound();
         if (tag == null) {
             tag = new NBTTagCompound();
             stack.setTagCompound(tag);
         }
         tag.setInteger(NBT_KEY_VARIANT, variantValue.ordinal());
-        return stack;
     }
 
     /**
@@ -207,14 +220,19 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
     @NotNull
     protected abstract String getVariantTranslationPrefix();
 
+    @NotNull
+    protected String getVariantName(@NotNull V variantValue) {
+        return variantValue.name().toLowerCase();
+    }
+
     @Override
     public String getMetaName() {
-        return getVariantTranslationPrefix() + "." + getVariant().name().toLowerCase();
+        return getVariantTranslationPrefix() + "." + getVariantName(getVariant());
     }
 
     @Override
     public String getMetaName(@NotNull ItemStack stack) {
-        return getVariantTranslationPrefix() + "." + getVariantFromStack(stack).name().toLowerCase();
+        return getVariantTranslationPrefix() + "." + getVariantName(getVariantFromStack(stack));
     }
 
     // endregion

@@ -1,5 +1,6 @@
 package gtqt.api.util.wireless;
 
+import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.client.Minecraft;
@@ -74,7 +75,7 @@ public class ClientWirelessHUD {
         int x = ConfigHolder.client.wirelessHud.hudOffsetX;
         int y = res.getScaledHeight() - ConfigHolder.client.wirelessHud.hudOffsetY;
 
-        String storedStr = formatEnergy(stored);
+        String storedStr = formatStoredEnergy(stored);
 
         int currentY = y;
         mc.fontRenderer.drawStringWithShadow("无线网络", x, currentY, 0xFFFFFF); currentY += 10;
@@ -120,6 +121,10 @@ public class ClientWirelessHUD {
             unitIndex++;
         }
         return value.stripTrailingZeros().toPlainString() + ENERGY_UNITS[unitIndex];
+    }
+
+    private static String formatStoredEnergy(BigInteger energy) {
+        return TextFormattingUtil.formatBigIntToScientificString(energy, 4) + " EU";
     }
 
     private static String formatRate(BigDecimal rate) {

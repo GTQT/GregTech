@@ -717,7 +717,6 @@ public class MetaTileEntities {
             ParametricMultiblockController<V> copy =
                     (ParametricMultiblockController<V>) parametric.createMetaTileEntity(null);
             copy.setVariant(variant);
-            copy.reinitializeStructurePattern();
             MultiblockInfoCategory.registerMultiblock(copy);
         }
     }

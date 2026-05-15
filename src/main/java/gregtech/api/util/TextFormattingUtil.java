@@ -81,6 +81,46 @@ public class TextFormattingUtil {
                 .toString();
     }
 
+    public static String formatBigIntToScientificString(BigInteger value, int precision) {
+        if (BigInteger.ZERO.equals(value)) {
+            return "0";
+        }
+        if (precision < 1) {
+            precision = 1;
+        }
+
+        StringBuilder stb = new StringBuilder();
+        if (value.signum() < 0) {
+            stb.append('-');
+            value = value.abs();
+        }
+
+        String digits = value.toString();
+        int exponent = digits.length() - 1;
+        int digitCount = Math.min(precision, digits.length());
+        String significant = digits.substring(0, digitCount);
+
+        if (digits.length() > digitCount && digits.charAt(digitCount) >= '5') {
+            significant = new BigInteger(significant).add(BigInteger.ONE).toString();
+            if (significant.length() > digitCount) {
+                exponent++;
+                significant = significant.substring(0, digitCount);
+            }
+        }
+
+        int end = significant.length();
+        while (end > 1 && significant.charAt(end - 1) == '0') {
+            end--;
+        }
+        significant = significant.substring(0, end);
+
+        stb.append(significant.charAt(0));
+        if (significant.length() > 1) {
+            stb.append('.').append(significant, 1, significant.length());
+        }
+        return stb.append('E').append(exponent).toString();
+    }
+
     public static String formatLongToCompactString(long value) {
         return formatLongToCompactString(value, 3);
     }

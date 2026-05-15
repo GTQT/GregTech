@@ -92,7 +92,7 @@ public class BoilerRecipeLogic extends AbstractRecipeLogic implements ICategoryO
                     fuelStack.amount >= dieselRecipe.getFluidInputs().get(0).getAmount() * FLUID_DRAIN_MULTIPLIER) {
                 fluidTank.drain(dieselRecipe.getFluidInputs().get(0).getAmount() * FLUID_DRAIN_MULTIPLIER, true);
                 // divide by 2, as it is half burntime for combustion
-                setMaxProgress(adjustBurnTimeForThrottle(Math.max(1, boiler.boilerType.runtimeBoost(
+                setMaxProgress(adjustBurnTimeForThrottle(Math.max(1, boiler.getBoilerType().runtimeBoost(
                         GTUtility.safeCastLongToInt((Math.abs(dieselRecipe.getEUt()) * dieselRecipe.getDuration()) /
                                 FLUID_BURNTIME_TO_EU / 2)))));
                 didStartRecipe = true;
@@ -108,7 +108,7 @@ public class BoilerRecipeLogic extends AbstractRecipeLogic implements ICategoryO
                 // multiply by 2, as it is 2x burntime for semi-fluid
                 setMaxProgress(adjustBurnTimeForThrottle(
                         Math.max(1,
-                                boiler.boilerType
+                                boiler.getBoilerType()
                                         .runtimeBoost(GTUtility.safeCastLongToInt((Math.abs(denseFuelRecipe.getEUt()) *
                                                 denseFuelRecipe.getDuration() / FLUID_BURNTIME_TO_EU * 2))))));
                 didStartRecipe = true;
@@ -127,7 +127,7 @@ public class BoilerRecipeLogic extends AbstractRecipeLogic implements ICategoryO
                     int excessProgress = this.excessFuel / 8;
                     this.excessFuel %= 8;
                     setMaxProgress(excessProgress +
-                            adjustBurnTimeForThrottle(boiler.boilerType.runtimeBoost(fuelBurnTime / 8)));
+                            adjustBurnTimeForThrottle(boiler.getBoilerType().runtimeBoost(fuelBurnTime / 8)));
                     stack.shrink(1);
                     didStartRecipe = true;
                     break;
@@ -136,7 +136,7 @@ public class BoilerRecipeLogic extends AbstractRecipeLogic implements ICategoryO
         }
         if (didStartRecipe) {
             this.progressTime = 1;
-            this.recipeEUt = adjustEUtForThrottle(boiler.boilerType.steamPerTick());
+            this.recipeEUt = adjustEUtForThrottle(boiler.getBoilerType().steamPerTick());
             if (wasActiveAndNeedsUpdate) {
                 wasActiveAndNeedsUpdate = false;
             } else {
@@ -190,7 +190,7 @@ public class BoilerRecipeLogic extends AbstractRecipeLogic implements ICategoryO
 
     private int adjustBurnTimeForThrottle(int rawBurnTime) {
         MetaTileEntityLargeBoiler boiler = (MetaTileEntityLargeBoiler) metaTileEntity;
-        int EUt = boiler.boilerType.steamPerTick();
+        int EUt = boiler.getBoilerType().steamPerTick();
         int adjustedEUt = adjustEUtForThrottle(EUt);
         int adjustedBurnTime = rawBurnTime * EUt / adjustedEUt;
         this.excessProjectedEU += (EUt * rawBurnTime) - (adjustedEUt * adjustedBurnTime);
@@ -200,7 +200,7 @@ public class BoilerRecipeLogic extends AbstractRecipeLogic implements ICategoryO
     }
 
     private int getMaximumHeat() {
-        return ((MetaTileEntityLargeBoiler) metaTileEntity).boilerType.getTicksToBoiling();
+        return ((MetaTileEntityLargeBoiler) metaTileEntity).getBoilerType().getTicksToBoiling();
     }
 
     public int getHeatScaled() {

@@ -14,7 +14,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldVertexBufferUploader;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
@@ -47,6 +47,8 @@ public final class PreviewRenderUtils {
     // Tint colors for comparison mode overlay
     public static final float MISSING_R = 0.3F, MISSING_G = 0.6F, MISSING_B = 1.0F, MISSING_A = 0.5F;
     public static final float WRONG_R = 1.0F, WRONG_G = 0.3F, WRONG_B = 0.3F, WRONG_A = 0.6F;
+    private static final BufferBuilder COMPARISON_BUFFER = new BufferBuilder(256 * 1024);
+    private static final WorldVertexBufferUploader COMPARISON_UPLOADER = new WorldVertexBufferUploader();
 
     private PreviewRenderUtils() {}
 
@@ -197,30 +199,46 @@ public final class PreviewRenderUtils {
                 GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
                 GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
 
-        Tessellator tes = Tessellator.getInstance();
-        BufferBuilder buff = tes.getBuffer();
-
         // Render missing blocks (blue)
         if (!missingPositions.isEmpty()) {
-            buff.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-            for (BlockPos pos : missingPositions) {
-                renderColoredBox(buff, pos, MISSING_R, MISSING_G, MISSING_B, MISSING_A);
-            }
-            tes.draw();
+            renderColoredBoxes(missingPositions, MISSING_R, MISSING_G, MISSING_B, MISSING_A);
         }
 
         // Render wrong blocks (red)
         if (!wrongPositions.isEmpty()) {
-            buff.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-            for (BlockPos pos : wrongPositions) {
-                renderColoredBox(buff, pos, WRONG_R, WRONG_G, WRONG_B, WRONG_A);
-            }
-            tes.draw();
+            renderColoredBoxes(wrongPositions, WRONG_R, WRONG_G, WRONG_B, WRONG_A);
         }
 
         GlStateManager.depthMask(true);
         GlStateManager.enableTexture2D();
         GlStateManager.enableLighting();
+    }
+
+    private static void renderColoredBoxes(List<BlockPos> positions, float r, float g, float b, float a) {
+        boolean drawing = false;
+        try {
+            COMPARISON_BUFFER.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+            drawing = true;
+            for (BlockPos pos : positions) {
+                renderColoredBox(COMPARISON_BUFFER, pos, r, g, b, a);
+            }
+            COMPARISON_BUFFER.finishDrawing();
+            drawing = false;
+            COMPARISON_UPLOADER.draw(COMPARISON_BUFFER);
+        } finally {
+            if (drawing) {
+                finishDrawingQuietly(COMPARISON_BUFFER);
+            }
+            COMPARISON_BUFFER.reset();
+        }
+    }
+
+    private static void finishDrawingQuietly(BufferBuilder buffer) {
+        try {
+            buffer.finishDrawing();
+        } catch (IllegalStateException ignored) {
+            // BufferBuilder.reset() does not clear isDrawing in 1.12; finishDrawing does.
+        }
     }
 
     /**

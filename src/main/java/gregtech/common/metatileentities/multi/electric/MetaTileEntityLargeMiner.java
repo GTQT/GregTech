@@ -210,9 +210,15 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     public boolean drainFluid(boolean simulate) {
         FluidStack drillingFluid = DrillingFluid
                 .getFluid(this.drillingFluidConsumePerTick * this.minerLogic.getOverclockAmount());
-        FluidStack fluidStack = inputFluidInventory.getTankAt(0).getFluid();
-        if (fluidStack != null && fluidStack.isFluidEqual(DrillingFluid.getFluid(1)) &&
-                fluidStack.amount >= drillingFluid.amount) {
+        if (drillingFluid == null || drillingFluid.amount <= 0) {
+            return true;
+        }
+        if (inputFluidInventory == null || inputFluidInventory.getTanks() == 0) {
+            return false;
+        }
+
+        FluidStack drained = inputFluidInventory.drain(drillingFluid, false);
+        if (drained != null && drained.amount >= drillingFluid.amount) {
             if (!simulate)
                 inputFluidInventory.drain(drillingFluid, true);
             return true;

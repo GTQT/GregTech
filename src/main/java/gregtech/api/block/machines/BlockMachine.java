@@ -212,7 +212,12 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
         MetaTileEntity metaTileEntity = getMetaTileEntity(world, pos);
         if (metaTileEntity == null)
             return ItemStack.EMPTY;
-        return metaTileEntity.getStackForm();
+        ItemStack itemStack = metaTileEntity.getStackForm();
+        NBTTagCompound tagCompound = new NBTTagCompound();
+        metaTileEntity.writeItemStackData(tagCompound);
+        if (!tagCompound.isEmpty())
+            itemStack.setTagCompound(tagCompound);
+        return itemStack;
     }
 
     @Override

@@ -341,7 +341,7 @@ public class DisposableBatteryRecipes {
         // Nafion-type membranes are perfluorosulphonic acid polymers; here PTFE is treated
         // with sulfuric acid to introduce sulphonate groups for proton conductivity:
         //   PTFE(fluid, 576 mB) + H₂SO₄(1000 mB) → Ion Exchange Membrane(2)
-        CHEMICAL_BATH_RECIPES.recipeBuilder()
+        CHEMICAL_RECIPES.recipeBuilder()
                 .fluidInputs(Polytetrafluoroethylene.getFluid(576))
                 .fluidInputs(SulfuricAcid.getFluid(1000))
                 .output(MetaItems.ION_EXCHANGE_MEMBRANE, 2)
@@ -544,7 +544,7 @@ public class DisposableBatteryRecipes {
         // hydroxide precursor in an 8:1:1 ratio (NMC 811 stoichiometry):
         //   Ni(dust, 4) + Mn(dust, 1) + CobaltOxide(dust, 1) + O₂(2000 mB)
         //   → NMCCathodePowder(dust, 6)  (precursor stage)
-        CHEMICAL_RECIPES.recipeBuilder()
+        LARGE_CHEMICAL_RECIPES.recipeBuilder()
                 .input(dust, Nickel, 4)
                 .input(dust, Manganese, 1)
                 .input(dust, CobaltOxide, 1)
