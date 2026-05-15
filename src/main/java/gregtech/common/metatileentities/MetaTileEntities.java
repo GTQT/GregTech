@@ -297,7 +297,7 @@ public class MetaTileEntities {
     public static final MetaTileEntityQuantumChest[] QUANTUM_CHEST = new MetaTileEntityQuantumChest[10];
     public static final MetaTileEntityQuantumTank[] QUANTUM_TANK = new MetaTileEntityQuantumTank[10];
     public static final MetaTileEntityBuffer[] BUFFER = new MetaTileEntityBuffer[5];
-    public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[9];
+    public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[8];
     public static final MetaTileEntityBlockBreaker[] BLOCK_BREAKER = new MetaTileEntityBlockBreaker[4];
     public static final MetaTileEntityMagicEnergyAbsorber[] MAGIC_ENERGY_ABSORBER = new MetaTileEntityMagicEnergyAbsorber[5];
     public static final MetaTileEntityItemCollector[] ITEM_COLLECTOR = new MetaTileEntityItemCollector[5];
@@ -1046,7 +1046,7 @@ public class MetaTileEntities {
         }
 
         //1300-
-        // Energy Input/Output Hatches, IDs 1210-1269, 1800-1829
+        // Energy Input/Output Hatches, IDs 1300-1420
         endPos = GregTechAPI.isHighTier() ? ENERGY_INPUT_HATCH.length - 1 :
                 Math.min(ENERGY_INPUT_HATCH.length - 1, GTValues.UV + 2);
         for (int i = 0; i < endPos; i++) {

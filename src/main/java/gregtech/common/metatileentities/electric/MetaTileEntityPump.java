@@ -37,7 +37,6 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
-import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -62,7 +61,6 @@ import static gregtech.api.capability.GregtechDataCodes.PUMP_HEAD_LEVEL;
 
 public class MetaTileEntityPump extends TieredMetaTileEntity {
 
-    private static final Cuboid6 PIPE_CUBOID = new Cuboid6(6 / 16.0, 0.0, 6 / 16.0, 10 / 16.0, 1.0, 10 / 16.0);
     private static final int BASE_PUMP_RANGE = 32;
     private static final int EXTRA_PUMP_RANGE = 8;
     private static final int PUMP_SPEED_BASE = 80;

@@ -1010,6 +1010,8 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                                             "Recipe duplicate or conflict found in RecipeMap {} and was not added. See next lines for details",
                                             this.unlocalizedName);
 
+                                    GTLog.logger.warn("Stack trace:", new Exception("Recipe addition stack trace"));
+
                                     GTLog.logger.warn("Attempted to add Recipe: {}", recipe.toString());
 
                                     if (v.left().isPresent()) {

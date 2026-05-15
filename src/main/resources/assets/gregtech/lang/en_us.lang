@@ -706,8 +706,6 @@ metaitem.circuit.integrated.tooltip=Use to open configuration GUI/n/nShift-Right
 metaitem.circuit.integrated.gui=Circuit Configuration
 metaitem.circuit.integrated.jei_description=JEI is only showing recipes for the given configuration.\n\nYou can select a configuration in the Programmed Circuit configuration tab.
 
-metaitem.tool.mutliblock_preview.name=Multiblock Preview
-
 item.glass.lens=Glass Lens (White)
 metaitem.glass_lens.orange.name=Glass Lens (Orange)
 metaitem.glass_lens.magenta.name=Glass Lens (Magenta)
@@ -1369,6 +1367,8 @@ metaitem.tool.multiblock_builder.tooltip2=Sneak and right-click Multiblock contr
 metaitem.tool.multiblock_remover.name=Multiblock demolition
 metaitem.tool.multiblock_remover.tooltip=Dismantle your Multiblock structure！
 metaitem.tool.multiblock_remover.tooltip2=Hold down the SHIFT key and right-click on the Multiblock structure controller to automatically dismantle it
+
+metaitem.tool.mutliblock_preview.name=Multiblock Preview
 
 metaarmor.nms.nightvision.enabled=NanoMuscle™ Suite: NightVision Enabled
 metaarmor.nms.nightvision.disabled=NanoMuscle™ Suite: NightVision Disabled
@@ -5289,6 +5289,9 @@ gregtech.machine.recycler.opv.name=Legendary Recycler
 gregtech.machine.recycler.opv.tooltip=Molecular Decomposition Device
 
 # Vulcanizing Press
+gregtech.machine.steam_vulcanizing_press_bronze.name=蒸汽硫化机
+gregtech.machine.steam_vulcanizing_press_steel.name=高压蒸汽硫化机
+
 gregtech.machine.vulcanizing_press.lv.name=Basic Vulcanizing Press
 gregtech.machine.vulcanizing_press.lv.tooltip=Rubber Manufacturer
 gregtech.machine.vulcanizing_press.mv.name=Advanced Vulcanizing Press

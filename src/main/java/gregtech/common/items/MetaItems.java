@@ -12,8 +12,6 @@ import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.common.items.armor.MetaArmor;
-import gtqt.client.renderer.handler.ProgrammableCircuitRenderer;
-import gtqt.common.items.GTQTMetaItems;
 
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -25,6 +23,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.google.common.base.CaseFormat;
+import gtqt.client.renderer.handler.ProgrammableCircuitRenderer;
+import gtqt.common.items.GTQTMetaItems;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -321,8 +321,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem TOOL_DATA_ORB;
     public static MetaItem<?>.MetaValueItem TOOL_DATA_MODULE;
 
-    public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
-    public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
+
 
     public static final Map<MarkerMaterial, MetaValueItem> GLASS_LENSES = new HashMap<>();
 
@@ -639,6 +638,8 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem LOGO;
 
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_BUILDER;
+    public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
+    public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
 
     private static final List<OrePrefix> orePrefixes = new ArrayList<>();
 

@@ -1396,13 +1396,13 @@ public class MetaItem1 extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        MULTIBLOCK_PREVIEW = addItem(1005, "tool.mutliblock_preview").addComponents(new RenderItemBehavior())
+        MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        MULTIBLOCK_REMOVER = addItem(1006, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
+
+        MULTIBLOCK_PREVIEW = addItem(1006, "tool.mutliblock_preview").addComponents(new RenderItemBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
     }
 }

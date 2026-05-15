@@ -706,8 +706,6 @@ metaitem.circuit.integrated.tooltip=右击以打开配置界面/n/n手持并潜�
 metaitem.circuit.integrated.gui=电路配置
 metaitem.circuit.integrated.jei_description=JEI将仅显示匹配当前编程电路配置的配方。/n/n在编程电路配置界面中调整配置以查看对应配方。
 
-metaitem.tool.mutliblock_preview.name=多方块预览器
-
 item.glass.lens=玻璃透镜（白色）
 metaitem.glass_lens.orange.name=玻璃透镜（橙色）
 metaitem.glass_lens.magenta.name=玻璃透镜（品红色）
@@ -1367,6 +1365,8 @@ metaitem.tool.multiblock_builder.tooltip2=按住SHIFT键后右键单击多方块
 metaitem.tool.multiblock_remover.name=多方块拆除器
 metaitem.tool.multiblock_remover.tooltip=拆除你的多方块结构！
 metaitem.tool.multiblock_remover.tooltip2=按住SHIFT键后右键单击多方块结构控制器以自动拆除
+
+metaitem.tool.mutliblock_preview.name=多方块预览器
 
 metaarmor.nms.nightvision.enabled=纳米肌体™套装：夜视已启用
 metaarmor.nms.nightvision.disabled=纳米肌体™套装：夜视已禁用
@@ -5285,6 +5285,9 @@ gregtech.machine.recycler.opv.name=传奇回收机
 gregtech.machine.recycler.opv.tooltip=分子级分解装置
 
 # Vulcanizing Press
+gregtech.machine.steam_vulcanizing_press_bronze.name=蒸汽硫化机
+gregtech.machine.steam_vulcanizing_press_steel.name=高压蒸汽硫化机
+
 gregtech.machine.vulcanizing_press.lv.name=基础硫化机
 gregtech.machine.vulcanizing_press.lv.tooltip=橡胶制造厂
 gregtech.machine.vulcanizing_press.mv.name=进阶硫化机
