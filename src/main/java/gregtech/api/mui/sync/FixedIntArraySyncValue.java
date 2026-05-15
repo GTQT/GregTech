@@ -67,8 +67,9 @@ public class FixedIntArraySyncValue extends ValueSyncHandler<int[]> {
 
     @Override
     public boolean updateCacheFromSource(boolean isFirstSync) {
-        if (isFirstSync || !Arrays.equals(this.getter.get(), this.cache)) {
-            setValue(this.getter.get(), false, false);
+        int[] current = this.getter.get();
+        if (isFirstSync || !Arrays.equals(current, this.cache)) {
+            setValue(current, false, false);
             return true;
         }
         return false;

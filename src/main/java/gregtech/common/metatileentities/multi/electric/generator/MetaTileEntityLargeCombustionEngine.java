@@ -45,6 +45,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
+import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
@@ -296,6 +297,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
     @Override
     public void registerBars(List<UnaryOperator<TemplateBarBuilder>> bars, PanelSyncManager syncManager) {
+        // Fuel amount sync (int array for tooltip raw values)
         FixedIntArraySyncValue fuelValue = new FixedIntArraySyncValue(this::getFuelAmount);
         syncManager.syncValue("fuel_amount", fuelValue);
         StringSyncValue fuelNameValue = new StringSyncValue(() -> {
@@ -310,6 +312,8 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
             return fluid.getName();
         });
         syncManager.syncValue("fuel_name", fuelNameValue);
+
+        // Lubricant and oxygen amount sync (int array for tooltip raw values)
         FixedIntArraySyncValue lubricantValue = new FixedIntArraySyncValue(this::getLubricantAmount);
         syncManager.syncValue("lubricant_amount", lubricantValue);
         FixedIntArraySyncValue oxygenValue = new FixedIntArraySyncValue(this::getOxygenAmount);
@@ -317,15 +321,34 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         BooleanSyncValue boostValue = new BooleanSyncValue(this::isBoostAllowed);
         syncManager.syncValue("boost_allowed", boostValue);
 
+        // Progress DoubleSyncValues for reliable client rendering
+        DoubleSyncValue fuelProgressValue = new DoubleSyncValue(() -> {
+            int[] fuel = getFuelAmount();
+            return fuel[1] == 0 ? 0 : 1.0 * fuel[0] / fuel[1];
+        });
+        syncManager.syncValue("fuel_progress", fuelProgressValue);
+
+        DoubleSyncValue lubricantProgressValue = new DoubleSyncValue(() -> {
+            int[] lub = getLubricantAmount();
+            return lub[1] == 0 ? 0 : 1.0 * lub[0] / lub[1];
+        });
+        syncManager.syncValue("lubricant_progress", lubricantProgressValue);
+
+        DoubleSyncValue oxygenProgressValue = new DoubleSyncValue(() -> {
+            int[] oxy = getOxygenAmount();
+            return oxy[1] == 0 ? 0 : 1.0 * oxy[0] / oxy[1];
+        });
+        syncManager.syncValue("oxygen_progress", oxygenProgressValue);
+
+        // Fuel bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .progress(() -> fuelValue.getValue(1) == 0 ? 0 :
-                        1.0 * fuelValue.getValue(0) / fuelValue.getValue(1))
+                .value(fuelProgressValue)
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_FUEL)
                 .tooltipBuilder(t -> createFuelTooltip(t, fuelValue, fuelNameValue)));
 
+        // Lubricant bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .progress(() -> lubricantValue.getValue(1) == 0 ? 0 :
-                        1.0 * lubricantValue.getValue(0) / lubricantValue.getValue(1))
+                .value(lubricantProgressValue)
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_LUBRICANT)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {
@@ -340,9 +363,9 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
                     }
                 }));
 
+        // Oxygen bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .progress(() -> oxygenValue.getValue(1) == 0 ? 0 :
-                        1.0 * oxygenValue.getValue(0) / oxygenValue.getValue(1))
+                .value(oxygenProgressValue)
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_OXYGEN)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {

@@ -104,7 +104,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private final ForgeOfGodsData data = new ForgeOfGodsData();
     private SyncHypervisor syncHypervisor;
     private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
-    private long ticker = 0;
+    // Start at TICK_INTERVAL-1 so the first updateFormedValid tick immediately
+    // runs the full logic (milestone recalculation, module connections, etc.)
+    private long ticker = TICK_INTERVAL - 1;
     private int lastKnownRingAmount = 1;
     private int lastKnownClearedRingAmount = 0;
     private long lastStructureFailureLogTime = -1;
@@ -490,6 +492,10 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         super.formStructure(context);
         updateRingAmount();
         discoverModules();
+
+        // Ensure milestone percentages are up-to-date when structure forms,
+        // so the GUI shows correct progress immediately.
+        determineMilestoneProgress();
 
         // Restore renderer if battery was active before structure broke
         if (data.getInternalBattery() != 0 && !data.isRenderActive() && !data.isRendererDisabled()) {
@@ -1636,6 +1642,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         this.data.readFromNBT(data);
+        // Recalculate milestone percentages immediately after loading,
+        // since they are not persisted in NBT but derived from totals.
+        determineMilestoneProgress();
         reinitializeStructurePattern();
     }
 }

@@ -39,6 +39,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
@@ -329,6 +330,7 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
 
     @Override
     public void registerBars(List<UnaryOperator<TemplateBarBuilder>> bars, PanelSyncManager syncManager) {
+        // Fuel amount sync (int array for tooltip raw values)
         FixedIntArraySyncValue fuelValue = new FixedIntArraySyncValue(this::getFuelAmount);
         StringSyncValue fuelNameValue = new StringSyncValue(() -> {
             FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getInputFluidStack();
@@ -344,8 +346,25 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
         syncManager.syncValue("fuel_amount", fuelValue);
         syncManager.syncValue("fuel_name", fuelNameValue);
 
+        // Fuel progress as DoubleSyncValue for reliable client rendering
+        DoubleSyncValue fuelProgressValue = new DoubleSyncValue(() -> {
+            int[] fuel = getFuelAmount();
+            return fuel[1] == 0 ? 0 : 1.0 * fuel[0] / fuel[1];
+        });
+        syncManager.syncValue("fuel_progress", fuelProgressValue);
+
+        // Rotor speed sync (int array for tooltip raw values)
         FixedIntArraySyncValue rotorSpeedValue = new FixedIntArraySyncValue(this::getRotorSpeedData);
         syncManager.syncValue("rotor_speed", rotorSpeedValue);
+
+        // Rotor speed progress as DoubleSyncValue for reliable client rendering
+        DoubleSyncValue rotorSpeedProgressValue = new DoubleSyncValue(() -> {
+            int[] data = getRotorSpeedData();
+            return data[1] == 0 ? 0 : 1.0 * data[0] / data[1];
+        });
+        syncManager.syncValue("rotor_speed_progress", rotorSpeedProgressValue);
+
+        // Rotor durability and efficiency (for tooltip)
         IntSyncValue durabilityValue = new IntSyncValue(() -> {
             IRotorHolder rotorHolder = getRotorHolder();
             if (rotorHolder == null) {
@@ -360,19 +379,28 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
             }
             return rotorHolder.getRotorEfficiency();
         });
-
         syncManager.syncValue("rotor_durability", durabilityValue);
         syncManager.syncValue("rotor_efficiency", efficiencyValue);
 
+        // Rotor durability progress as DoubleSyncValue for reliable client rendering
+        DoubleSyncValue durabilityProgressValue = new DoubleSyncValue(() -> {
+            IRotorHolder rotorHolder = getRotorHolder();
+            if (rotorHolder == null) {
+                return 0.0;
+            }
+            return rotorHolder.getRotorDurabilityPercent() / 100.0;
+        });
+        syncManager.syncValue("rotor_durability_progress", durabilityProgressValue);
+
+        // Fuel bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .progress(() -> fuelValue.getValue(1) == 0 ? 0 :
-                        1.0 * fuelValue.getValue(0) / fuelValue.getValue(1))
+                .value(fuelProgressValue)
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_FUEL)
                 .tooltipBuilder(t -> createFuelTooltip(t, fuelValue, fuelNameValue)));
 
+        // Rotor speed bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .progress(() -> rotorSpeedValue.getValue(1) == 0 ? 0 :
-                        1.0 * rotorSpeedValue.getValue(0) / rotorSpeedValue.getValue(1))
+                .value(rotorSpeedProgressValue)
                 .texture(GTGuiTextures.PROGRESS_BAR_TURBINE_ROTOR_SPEED)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {
@@ -386,8 +414,9 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
                     }
                 }));
 
+        // Rotor durability bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .progress(() -> durabilityValue.getIntValue() / 100.0)
+                .value(durabilityProgressValue)
                 .texture(GTGuiTextures.PROGRESS_BAR_TURBINE_ROTOR_DURABILITY)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {
