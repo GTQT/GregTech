@@ -71,7 +71,6 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreez
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityMonitorScreen;
 import gregtech.common.metatileentities.multi.electric.generator.LargeCombustionEngineType;
-import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineType;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
 import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
@@ -155,6 +154,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -419,12 +419,9 @@ public class MetaTileEntities {
             LargeCombustionEngineType.class);
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;
-    // Large Turbine EnumMap cache and compatibility fields
-    public static final EnumMap<LargeTurbineType, MetaTileEntityLargeTurbine> LARGE_TURBINES = new EnumMap<>(
-            LargeTurbineType.class);
-    public static MetaTileEntityLargeTurbine LARGE_STEAM_TURBINE;
-    public static MetaTileEntityLargeTurbine LARGE_GAS_TURBINE;
-    public static MetaTileEntityLargeTurbine LARGE_PLASMA_TURBINE;
+    // Large Turbine variant cache
+    public static final Map<ResourceLocation, MetaTileEntityLargeTurbine> LARGE_TURBINE_VARIANTS =
+            new LinkedHashMap<>();
     // Large Boiler EnumMap cache and compatibility fields
     public static final EnumMap<BoilerType, MetaTileEntityLargeBoiler> LARGE_BOILERS = new EnumMap<>(BoilerType.class);
     public static MetaTileEntityLargeBoiler LARGE_BRONZE_BOILER;
@@ -693,7 +690,7 @@ public class MetaTileEntities {
 
     /**
      * Registers multiblock controller(s) to JEI. For {@link ParametricMultiblockController}, creates a variant copy for
-     * each enum value so that JEI shows all variants with correct names and structure patterns.
+     * each registered value so that JEI shows all variants with correct names and structure patterns.
      */
     @SuppressWarnings("unchecked")
     private static void registerMultiblockForJei(MultiblockControllerBase controller) {
@@ -705,12 +702,12 @@ public class MetaTileEntities {
     }
 
     /**
-     * Creates a variant copy of the parametric multiblock for each enum constant and registers each as a separate JEI
+     * Creates a variant copy of the parametric multiblock for each registered variant and registers each as a separate JEI
      * recipe entry.
      */
-    private static <V extends Enum<V>> void registerParametricMultiblockVariantsForJei(
+    private static <V> void registerParametricMultiblockVariantsForJei(
             ParametricMultiblockController<V> parametric) {
-        for (V variant : parametric.getVariantClass().getEnumConstants()) {
+        for (V variant : parametric.getVariants()) {
             ParametricMultiblockController<V> copy =
                     (ParametricMultiblockController<V>) parametric.createMetaTileEntity(null);
             copy.setVariant(variant);

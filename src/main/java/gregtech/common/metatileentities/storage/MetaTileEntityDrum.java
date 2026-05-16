@@ -7,10 +7,11 @@ import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.ParametricMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.variant.ParametricVariantRegistries;
+import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
-import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
@@ -52,25 +53,62 @@ import java.io.IOException;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_AUTO_OUTPUT;
-import static net.minecraft.util.text.TextFormatting.AQUA;
 
 /**
- * Single-ID drum supporting multiple material variants via NBT.
- * Extends {@link ParametricMetaTileEntity} for automatic variant serialization,
- * sub-item generation, and localization.
+ * Single-ID drum supporting multiple material variants via stable registry ids in NBT.
  */
-public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityDrum.DrumMaterial> {
+public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
+
+    private final boolean fixedVariantRegistry;
 
     private FilteredFluidHandler fluidTank;
     private boolean isAutoOutput = false;
 
     public MetaTileEntityDrum(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, DrumMaterial.class, DrumMaterial.WOOD);
+        this(metaTileEntityId, DrumVariants.registry(), DrumVariants.WOOD, false);
+    }
+
+    private MetaTileEntityDrum(@NotNull ResourceLocation metaTileEntityId,
+                               @NotNull DrumVariant fixedVariant) {
+        this(metaTileEntityId, ParametricVariantRegistries.single(fixedVariant.getId(), fixedVariant),
+                fixedVariant, true);
+    }
+
+    private MetaTileEntityDrum(@NotNull ResourceLocation metaTileEntityId,
+                               @NotNull ParametricVariantRegistry<DrumVariant> variantRegistry,
+                               @NotNull DrumVariant defaultVariant,
+                               boolean fixedVariantRegistry) {
+        super(metaTileEntityId, variantRegistry, defaultVariant);
+        this.fixedVariantRegistry = fixedVariantRegistry;
         initializeInventory();
+    }
+
+    /**
+     * @deprecated Drums are now a single parametric MTE using {@link DrumVariant}. Add new drum variants through
+     *             {@link DrumVariants#register(DrumVariant)} instead of registering separate MTEs with this constructor.
+     */
+    @Deprecated
+    public MetaTileEntityDrum(ResourceLocation metaTileEntityId, @NotNull Material material, int tankSize) {
+        this(metaTileEntityId, DrumVariant.legacy(metaTileEntityId,
+                DrumVariant.getFluidFilterForMaterial(material),
+                ModHandler.isMaterialWood(material), material.getMaterialRGB(), tankSize));
+    }
+
+    /**
+     * @deprecated Drums are now a single parametric MTE using {@link DrumVariant}. This constructor remains for addons
+     *             that still extend/register separate drum-like MTEs.
+     */
+    @Deprecated
+    public MetaTileEntityDrum(ResourceLocation metaTileEntityId, @NotNull IPropertyFluidFilter fluidFilter,
+                              boolean isWood, int color, int tankSize) {
+        this(metaTileEntityId, DrumVariant.legacy(metaTileEntityId, fluidFilter, isWood, color, tankSize));
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        if (fixedVariantRegistry) {
+            return new MetaTileEntityDrum(metaTileEntityId, getVariant());
+        }
         MetaTileEntityDrum drum = new MetaTileEntityDrum(metaTileEntityId);
         drum.setVariant(getVariant());
         drum.initializeInventory();
@@ -100,11 +138,11 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityD
 
     @Override
     protected void initializeInventory() {
-        DrumMaterial mat = getVariant();
-        if (mat == null) return;
+        DrumVariant variant = getVariant();
+        if (variant == null) return;
 
         super.initializeInventory();
-        this.fluidTank = new FilteredFluidHandler(mat.getTankSize()).setFilter(mat.getFluidFilter());
+        this.fluidTank = new FilteredFluidHandler(variant.getTankSize()).setFilter(variant.getFluidFilter());
         this.fluidInventory = this.fluidTank;
     }
 
@@ -133,8 +171,8 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityD
 
     @Override
     public ICapabilityProvider initItemStackCapabilities(ItemStack itemStack) {
-        DrumMaterial mat = getVariantFromStack(itemStack);
-        return new GTFluidHandlerItemStack(itemStack, mat.getTankSize()).setFilter(mat.getFluidFilter());
+        DrumVariant variant = getVariantFromStack(itemStack);
+        return new GTFluidHandlerItemStack(itemStack, variant.getTankSize()).setFilter(variant.getFluidFilter());
     }
 
     // endregion
@@ -275,9 +313,8 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityD
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
-        DrumMaterial mat = getVariantFromStack(stack);
         tooltip.add(I18n.format("gregtech.machine.quantum_tank.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", mat.getTankSize()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", getTankSize(stack)));
 
         NBTTagCompound tagCompound = stack.getTagCompound();
         if (tagCompound != null && tagCompound.hasKey("Fluid", Constants.NBT.TAG_COMPOUND)) {
@@ -287,7 +324,7 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityD
                     fluidStack.amount));
         }
 
-        mat.getFluidFilter().appendTooltips(tooltip, true, true);
+        getFluidFilter(stack).appendTooltips(tooltip, true, true);
 
         if (TooltipHelper.isShiftDown()) {
             tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
@@ -332,70 +369,96 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<MetaTileEntityD
         return getVariant().getTankSize();
     }
 
+    public int getTankSize(@NotNull ItemStack stack) {
+        return getVariantFromStack(stack).getTankSize();
+    }
+
     @NotNull
     @Override
     public SoundType getSoundType() {
         return getVariant().isWood() ? SoundType.WOOD : SoundType.METAL;
     }
 
+    @Override
+    public String getMetaName() {
+        return getVariant().getTranslationKey();
+    }
+
+    @Override
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getVariantFromStack(stack).getTranslationKey();
+    }
+
+    @Deprecated
+    @NotNull
+    public ItemStack getStackForm(@NotNull DrumMaterial material) {
+        return getStackForm(material.getVariant());
+    }
+
+    private IPropertyFluidFilter getFluidFilter(@NotNull ItemStack stack) {
+        return getVariantFromStack(stack).getFluidFilter();
+    }
+
     /**
-     * Defines all available drum materials with their properties.
-     * Each entry encapsulates the material, tank size, color, and fluid filter.
+     * @deprecated Built-in drum materials now live in {@link DrumVariants}; use {@link DrumVariant} for new code.
      */
+    @Deprecated
     public enum DrumMaterial {
 
-        // Sorted by tech level (ascending): Primitive -> LV -> MV -> HV -> EV -> IV -> LuV -> UV -> UHV -> MAX
-        WOOD(Materials.Wood, 16_000),
-        COPPER(Materials.Copper, 24_000),
-        LEAD(Materials.Lead, 24_000),
-        IRON(Materials.Iron, 32_000),
-        BRONZE(Materials.Bronze, 40_000),
-        GOLD(Materials.Gold, 48_000),
-        STEEL(Materials.Steel, 64_000),
-        ALUMINIUM(Materials.Aluminium, 128_000),
-        CHROME(Materials.Chrome, 128_000),
-        STAINLESS_STEEL(Materials.StainlessSteel, 256_000),
-        TITANIUM(Materials.Titanium, 512_000),
-        TUNGSTEN(Materials.Tungsten, 768_000),
-        TUNGSTENSTEEL(Materials.TungstenSteel, 1_024_000),
-        IRIDIUM(Materials.Iridium, 1_536_000),
-        RHODIUM_PLATED_PALLADIUM(Materials.RhodiumPlatedPalladium, 2_048_000),
-        NAQUADAH_ALLOY(Materials.NaquadahAlloy, 4_096_000),
-        DARMSTADTIUM(Materials.Darmstadtium, 8_192_000),
-        NEUTRONIUM(Materials.Neutronium, 16_384_000);
+        WOOD(DrumVariants.WOOD),
+        COPPER(DrumVariants.COPPER),
+        LEAD(DrumVariants.LEAD),
+        IRON(DrumVariants.IRON),
+        BRONZE(DrumVariants.BRONZE),
+        GOLD(DrumVariants.GOLD),
+        STEEL(DrumVariants.STEEL),
+        ALUMINIUM(DrumVariants.ALUMINIUM),
+        CHROME(DrumVariants.CHROME),
+        STAINLESS_STEEL(DrumVariants.STAINLESS_STEEL),
+        TITANIUM(DrumVariants.TITANIUM),
+        TUNGSTEN(DrumVariants.TUNGSTEN),
+        TUNGSTENSTEEL(DrumVariants.TUNGSTENSTEEL),
+        IRIDIUM(DrumVariants.IRIDIUM),
+        RHODIUM_PLATED_PALLADIUM(DrumVariants.RHODIUM_PLATED_PALLADIUM),
+        NAQUADAH_ALLOY(DrumVariants.NAQUADAH_ALLOY),
+        DARMSTADTIUM(DrumVariants.DARMSTADTIUM),
+        NEUTRONIUM(DrumVariants.NEUTRONIUM);
 
-        private final Material material;
-        private final int tankSize;
+        private final DrumVariant variant;
 
-        DrumMaterial(@NotNull Material material, int tankSize) {
-            this.material = material;
-            this.tankSize = tankSize;
+        DrumMaterial(@NotNull DrumVariant variant) {
+            this.variant = variant;
+        }
+
+        @NotNull
+        public DrumVariant getVariant() {
+            return variant;
         }
 
         @NotNull
         public Material getMaterial() {
+            Material material = variant.getMaterial();
+            if (material == null) {
+                throw new IllegalStateException("Drum material " + name() + " is not backed by a Material");
+            }
             return material;
         }
 
         public int getTankSize() {
-            return tankSize;
+            return variant.getTankSize();
         }
 
         public int getColor() {
-            return material.getMaterialRGB();
+            return variant.getColor();
         }
 
         public boolean isWood() {
-            return ModHandler.isMaterialWood(material);
+            return variant.isWood();
         }
 
         @NotNull
         public IPropertyFluidFilter getFluidFilter() {
-            IPropertyFluidFilter filter = material.getProperty(PropertyKey.FLUID_PIPE);
-            if (filter == null) {
-                throw new IllegalStateException("Material " + material + " requires FluidPipeProperty for Drums");
-            }
-            return filter;
+            return variant.getFluidFilter();
         }
     }
 }

@@ -45,7 +45,7 @@ public class RenderItemMixin {
         FluidStack fluid = FluidUtil.getFluidContained(stack);
         if (fluid == null || fluid.amount <= 0) return;
 
-        int tankCapacity = drum.getTankSize();
+        int tankCapacity = drum.getTankSize(stack);
         double fillRate = fluid.amount / (double) tankCapacity;
 
         Color color = new Color(GTUtility.convertRGBtoOpaqueRGBA_MC(RenderUtil.getFluidColor(fluid)));

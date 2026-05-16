@@ -8,10 +8,11 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.metatileentity.variant.ParametricVariantRegistries;
+import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.unification.material.Materials;
@@ -48,7 +49,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Single-ID multiblock tank supporting multiple material variants via NBT.
@@ -57,8 +57,8 @@ import java.util.Map;
  */
 public class MetaTileEntityMultiblockTank extends ParametricMultiblockController<MetaTileEntityMultiblockTank.TankMaterial> {
 
-    private static final Map<TankMaterial, SoftTemplate> TEMPLATES = buildTemplateCache(
-            "gregtech:multiblock_tank", TankMaterial.class, mat -> () -> buildTemplate(mat));
+    private static final ParametricVariantRegistry<TankMaterial> VARIANTS =
+            ParametricVariantRegistries.enumRegistry("gregtech", TankMaterial.class, TankMaterial.WOOD);
 
     private static BlockPatternTemplate buildTemplate(TankMaterial tankMaterial) {
         IBlockState casingState = tankMaterial.getCasingState();
@@ -76,7 +76,7 @@ public class MetaTileEntityMultiblockTank extends ParametricMultiblockController
     }
 
     public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, TankMaterial.class, TankMaterial.WOOD);
+        super(metaTileEntityId, VARIANTS);
         initializeInventory();
     }
 
@@ -110,8 +110,8 @@ public class MetaTileEntityMultiblockTank extends ParametricMultiblockController
 
     @Override
     @NotNull
-    protected Map<TankMaterial, SoftTemplate> getTemplateCache() {
-        return TEMPLATES;
+    protected BlockPatternTemplate buildStructureTemplate(@NotNull TankMaterial variantValue) {
+        return buildTemplate(variantValue);
     }
 
     @Override
