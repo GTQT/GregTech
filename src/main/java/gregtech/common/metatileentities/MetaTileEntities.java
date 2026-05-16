@@ -2,7 +2,6 @@ package gregtech.common.metatileentities;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.capability.FeCompat;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SimpleGeneratorMetaTileEntity;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
@@ -11,22 +10,17 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.recipes.RecipeMap;
-import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
-import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.client.renderer.texture.Textures;
-import gregtech.common.ConfigHolder;
-import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.converter.MetaTileEntityConverter;
 import gregtech.common.metatileentities.electric.MetaTileEntityAlarm;
 import gregtech.common.metatileentities.electric.MetaTileEntityBatteryBuffer;
 import gregtech.common.metatileentities.electric.MetaTileEntityBlockBreaker;
 import gregtech.common.metatileentities.electric.MetaTileEntityCharger;
 import gregtech.common.metatileentities.electric.MetaTileEntityDiode;
+import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
 import gregtech.common.metatileentities.electric.MetaTileEntityFisher;
 import gregtech.common.metatileentities.electric.MetaTileEntityGasCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityHull;
@@ -39,10 +33,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntitySingleCombustion;
 import gregtech.common.metatileentities.electric.MetaTileEntitySingleTurbine;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
-import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
-import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
-import gregtech.common.metatileentities.electric.SimpleMachineMetaTileEntityResizable;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
@@ -54,12 +45,9 @@ import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
+import gregtech.common.metatileentities.multi.electric.FluidDrillType;
+import gregtech.common.metatileentities.multi.electric.LargeMinerType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
-import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
-import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExoticModule;
-import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
-import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
-import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAssemblyLine;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCleanroom;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCrackingUnit;
@@ -67,13 +55,11 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityDataBank;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityDistillationTower;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityElectricBlastFurnace;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityFluidDrill;
-import gregtech.common.metatileentities.multi.electric.FluidDrillType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityFusionReactor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityHPCA;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityImplosionCompressor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeChemicalReactor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeMiner;
-import gregtech.common.metatileentities.multi.electric.LargeMinerType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyFurnace;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
@@ -88,6 +74,11 @@ import gregtech.common.metatileentities.multi.electric.generator.LargeCombustion
 import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineType;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
+import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExoticModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
+import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComputationHatch;
@@ -110,12 +101,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityReser
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityRotorHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntitySterileCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntitySubstationEnergyHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEInputBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEInputHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOutputBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOutputHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEStockingBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEStockingHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAAdvancedComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAAdvancedCooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCABridge;
@@ -174,7 +159,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static gregtech.api.GTValues.*;
 import static gregtech.api.util.GTUtility.gregtechId;
 
 public class MetaTileEntities {
@@ -266,17 +250,25 @@ public class MetaTileEntities {
     public static final SimpleMachineMetaTileEntity[] TOOL_CASTER = new SimpleMachineMetaTileEntity[5];
     public static final SimpleMachineMetaTileEntity[] BATH_CONDENSER = new SimpleMachineMetaTileEntity[5];
     public static final SimpleMachineMetaTileEntity[] POLISHER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] LAMINATOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] POLYMERIZATION_TANK = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] DESULFURIZER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] BIO_REACTOR = new SimpleMachineMetaTileEntity[GTValues.V.length -1];
-    public static final SimpleMachineMetaTileEntity[] COMPONENT_ASSEMBLER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] LAMINATOR = new SimpleMachineMetaTileEntity[GTValues.V.length -
+            1];
+    public static final SimpleMachineMetaTileEntity[] POLYMERIZATION_TANK = new SimpleMachineMetaTileEntity[
+            GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] DESULFURIZER = new SimpleMachineMetaTileEntity[GTValues.V.length -
+            1];
+    public static final SimpleMachineMetaTileEntity[] BIO_REACTOR = new SimpleMachineMetaTileEntity[GTValues.V.length -
+            1];
+    public static final SimpleMachineMetaTileEntity[] COMPONENT_ASSEMBLER = new SimpleMachineMetaTileEntity[
+            GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] LOOM = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] ROASTER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] CHEMICAL_DEHYDRATOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] LIGHTNING_PROCESSOR = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] CHEMICAL_DEHYDRATOR = new SimpleMachineMetaTileEntity[
+            GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] LIGHTNING_PROCESSOR = new SimpleMachineMetaTileEntity[
+            GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] RECYCLER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static final SimpleMachineMetaTileEntity[] VULCANIZING_PRESS = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
+    public static final SimpleMachineMetaTileEntity[] VULCANIZING_PRESS = new SimpleMachineMetaTileEntity[
+            GTValues.V.length - 1];
 
     // GENERATORS SECTION
     public static final SimpleGeneratorMetaTileEntity[] COMBUSTION_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
@@ -308,19 +300,20 @@ public class MetaTileEntities {
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_INPUT_HATCH = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_OUTPUT_HATCH = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityRotorHolder[] ROTOR_HOLDER = new MetaTileEntityRotorHolder[12]; // HV, EV, IV, LuV, ZPM, UV, UHV, UEV, UIV, UXV, OPV,MAX
-    public static final MetaTileEntityMufflerHatch[] MUFFLER_HATCH = new MetaTileEntityMufflerHatch[GTValues.UHV + 1]; // LV-UHV
+    public static final MetaTileEntityMufflerHatch[] MUFFLER_HATCH = new MetaTileEntityMufflerHatch[GTValues.UHV +
+            1]; // LV-UHV
     public static final MetaTileEntityFusionReactor[] FUSION_REACTOR = new MetaTileEntityFusionReactor[3];
     public static final MetaTileEntityQuantumChest[] QUANTUM_CHEST = new MetaTileEntityQuantumChest[10];
     public static final MetaTileEntityQuantumTank[] QUANTUM_TANK = new MetaTileEntityQuantumTank[10];
     public static final MetaTileEntityBuffer[] BUFFER = new MetaTileEntityBuffer[5];
     public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[9];
     public static final MetaTileEntityBlockBreaker[] BLOCK_BREAKER = new MetaTileEntityBlockBreaker[4];
-    public static final MetaTileEntityWindGenerator[] WIND_GENERATOR = new MetaTileEntityWindGenerator[5];
     public static final MetaTileEntityMagicEnergyAbsorber[] MAGIC_ENERGY_ABSORBER = new MetaTileEntityMagicEnergyAbsorber[5];
     public static final MetaTileEntityItemCollector[] ITEM_COLLECTOR = new MetaTileEntityItemCollector[5];
     public static final MetaTileEntityFisher[] FISHER = new MetaTileEntityFisher[4];
-    public static final MetaTileEntityWorldAccelerator[] WORLD_ACCELERATOR = new MetaTileEntityWorldAccelerator[GTValues.V.length-1];
-    public static final MetaTileEntityTeleporter[] TELEPORTER = new MetaTileEntityTeleporter[GTValues.V.length-1];
+    public static final MetaTileEntityWorldAccelerator[] WORLD_ACCELERATOR = new MetaTileEntityWorldAccelerator[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityTeleporter[] TELEPORTER = new MetaTileEntityTeleporter[GTValues.V.length - 1];
     // Used for addons if they wish to disable certain tiers of machines
     private static final Map<String, Boolean> MID_TIER = new HashMap<>();
     private static final Map<String, Boolean> HIGH_TIER = new HashMap<>();
@@ -422,11 +415,13 @@ public class MetaTileEntities {
     public static MetaTileEntityMultiAlloyFurnace MULTI_ALLOY_FURNACE;
     public static MetaTileEntitySawMill SAW_MILL;
     // Large Combustion Engine EnumMap cache and compatibility fields
-    public static final EnumMap<LargeCombustionEngineType, MetaTileEntityLargeCombustionEngine> LARGE_COMBUSTION_ENGINES = new EnumMap<>(LargeCombustionEngineType.class);
+    public static final EnumMap<LargeCombustionEngineType, MetaTileEntityLargeCombustionEngine> LARGE_COMBUSTION_ENGINES = new EnumMap<>(
+            LargeCombustionEngineType.class);
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;
     // Large Turbine EnumMap cache and compatibility fields
-    public static final EnumMap<LargeTurbineType, MetaTileEntityLargeTurbine> LARGE_TURBINES = new EnumMap<>(LargeTurbineType.class);
+    public static final EnumMap<LargeTurbineType, MetaTileEntityLargeTurbine> LARGE_TURBINES = new EnumMap<>(
+            LargeTurbineType.class);
     public static MetaTileEntityLargeTurbine LARGE_STEAM_TURBINE;
     public static MetaTileEntityLargeTurbine LARGE_GAS_TURBINE;
     public static MetaTileEntityLargeTurbine LARGE_PLASMA_TURBINE;
@@ -441,14 +436,16 @@ public class MetaTileEntities {
     public static MetaTileEntitySteamOven STEAM_OVEN;
     public static MetaTileEntitySteamGrinder STEAM_GRINDER;
     // Large Miner EnumMap cache and compatibility fields
-    public static final EnumMap<LargeMinerType, MetaTileEntityLargeMiner> LARGE_MINERS = new EnumMap<>(LargeMinerType.class);
+    public static final EnumMap<LargeMinerType, MetaTileEntityLargeMiner> LARGE_MINERS = new EnumMap<>(
+            LargeMinerType.class);
     public static MetaTileEntityLargeMiner BASIC_LARGE_MINER;
     public static MetaTileEntityLargeMiner LARGE_MINER;
     public static MetaTileEntityLargeMiner ADVANCED_LARGE_MINER;
     public static MetaTileEntityProcessingArray PROCESSING_ARRAY;
     public static MetaTileEntityProcessingArray ADVANCED_PROCESSING_ARRAY;
     // Fluid Drill EnumMap cache and compatibility fields
-    public static final EnumMap<FluidDrillType, MetaTileEntityFluidDrill> FLUID_DRILLS = new EnumMap<>(FluidDrillType.class);
+    public static final EnumMap<FluidDrillType, MetaTileEntityFluidDrill> FLUID_DRILLS = new EnumMap<>(
+            FluidDrillType.class);
     public static MetaTileEntityFluidDrill BASIC_FLUID_DRILLING_RIG;
     public static MetaTileEntityFluidDrill FLUID_DRILLING_RIG;
     public static MetaTileEntityFluidDrill ADVANCED_FLUID_DRILLING_RIG;
@@ -602,14 +599,15 @@ public class MetaTileEntities {
 
     /**
      * 注册单方块发电机的基础方法
-     * @param generators 发电机数组
-     * @param startId 起始ID
-     * @param name 发电机名称
-     * @param recipeMap 配方地图
-     * @param texture 纹理
-     * @param generatorClass 发电机类（Combustion或Turbine）
+     *
+     * @param generators          发电机数组
+     * @param startId             起始ID
+     * @param name                发电机名称
+     * @param recipeMap           配方地图
+     * @param texture             纹理
+     * @param generatorClass      发电机类（Combustion或Turbine）
      * @param tankScalingFunction 流体槽大小函数
-     * @param efficiencyFunction 效率函数
+     * @param efficiencyFunction  效率函数
      */
     public static void registerSimpleGeneratorMetaTileEntity(
             MetaTileEntity[] generators,
@@ -694,9 +692,8 @@ public class MetaTileEntities {
     }
 
     /**
-     * Registers multiblock controller(s) to JEI.
-     * For {@link ParametricMultiblockController}, creates a variant copy for each enum value
-     * so that JEI shows all variants with correct names and structure patterns.
+     * Registers multiblock controller(s) to JEI. For {@link ParametricMultiblockController}, creates a variant copy for
+     * each enum value so that JEI shows all variants with correct names and structure patterns.
      */
     @SuppressWarnings("unchecked")
     private static void registerMultiblockForJei(MultiblockControllerBase controller) {
@@ -708,8 +705,8 @@ public class MetaTileEntities {
     }
 
     /**
-     * Creates a variant copy of the parametric multiblock for each enum constant
-     * and registers each as a separate JEI recipe entry.
+     * Creates a variant copy of the parametric multiblock for each enum constant and registers each as a separate JEI
+     * recipe entry.
      */
     private static <V extends Enum<V>> void registerParametricMultiblockVariantsForJei(
             ParametricMultiblockController<V> parametric) {

@@ -20,17 +20,17 @@ public enum LargeTurbineType {
     STEAM("steam", RecipeMaps.STEAM_TURBINE_FUELS, GTValues.HV,
             TurbineCasingType.STEEL_TURBINE_CASING,
             TurbineCasingType.STEEL_GEARBOX,
-            Textures.TURBINE_STEEL_CASING, false, Textures.LARGE_STEAM_TURBINE_OVERLAY),
+            Textures.TURBINE_STEEL_CASING, Textures.LARGE_STEAM_TURBINE_OVERLAY),
 
     GAS("gas", RecipeMaps.GAS_TURBINE_FUELS, GTValues.EV,
             TurbineCasingType.STAINLESS_TURBINE_CASING,
             TurbineCasingType.STAINLESS_STEEL_GEARBOX,
-            Textures.TURBINE_STAINLESS_STEEL_CASING, true, Textures.LARGE_GAS_TURBINE_OVERLAY),
+            Textures.TURBINE_STAINLESS_STEEL_CASING, Textures.LARGE_GAS_TURBINE_OVERLAY),
 
     PLASMA("plasma", RecipeMaps.PLASMA_GENERATOR_FUELS, GTValues.IV,
             TurbineCasingType.TUNGSTENSTEEL_TURBINE_CASING,
             TurbineCasingType.TUNGSTENSTEEL_GEARBOX,
-            Textures.TURBINE_TUNGSTENSTEEL_CASING, false, Textures.LARGE_PLASMA_TURBINE_OVERLAY);
+            Textures.TURBINE_TUNGSTENSTEEL_CASING, Textures.LARGE_PLASMA_TURBINE_OVERLAY);
 
     // Registration Data
     private final String name;
@@ -47,20 +47,15 @@ public enum LargeTurbineType {
     private final ICubeRenderer casingRenderer;
     private final ICubeRenderer frontOverlay;
 
-    // Behavioral Data
-    private final boolean hasMufflerHatch;
-
     LargeTurbineType(String name, RecipeMap<?> recipeMap, int tier,
                      TurbineCasingType casingType, TurbineCasingType gearboxType,
-                     ICubeRenderer casingRenderer, boolean hasMufflerHatch,
-                     ICubeRenderer frontOverlay) {
+                     ICubeRenderer casingRenderer, ICubeRenderer frontOverlay) {
         this.name = name;
         this.recipeMap = recipeMap;
         this.tier = tier;
         this.casingType = casingType;
         this.gearboxType = gearboxType;
         this.casingRenderer = casingRenderer;
-        this.hasMufflerHatch = hasMufflerHatch;
         this.frontOverlay = frontOverlay;
     }
 
@@ -96,9 +91,6 @@ public enum LargeTurbineType {
         return casingRenderer;
     }
 
-    public boolean hasMufflerHatch() {
-        return hasMufflerHatch;
-    }
 
     public ICubeRenderer getFrontOverlay() {
         return frontOverlay;

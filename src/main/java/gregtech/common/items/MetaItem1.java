@@ -50,8 +50,8 @@ import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
 import gregtech.common.items.behaviors.PipeNetPainterBehavior;
 import gregtech.common.items.behaviors.ProspectorScannerBehavior;
-import gregtech.common.items.behaviors.StructureProjectorBehavior;
 import gregtech.common.items.behaviors.ScrapBoxBehavior;
+import gregtech.common.items.behaviors.StructureProjectorBehavior;
 import gregtech.common.items.behaviors.Terminal2Behavior;
 import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
@@ -1419,6 +1419,8 @@ public class MetaItem1 extends StandardMetaItem {
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         MULTIBLOCK_PREVIEW = addItem(1006, "tool.mutliblock_preview").addComponents(new StructureProjectorBehavior())
                 .setMaxStackSize(1)

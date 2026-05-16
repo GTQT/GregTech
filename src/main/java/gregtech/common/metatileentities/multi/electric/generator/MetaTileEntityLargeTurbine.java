@@ -91,7 +91,7 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
                     .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
                     .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
                     .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
+                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH,1)
                 .buildTemplate();
     }
 
@@ -293,7 +293,7 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
 
     @Override
     public boolean hasMufflerMechanics() {
-        return getVariant().hasMufflerHatch();
+        return true;
     }
 
     @Override

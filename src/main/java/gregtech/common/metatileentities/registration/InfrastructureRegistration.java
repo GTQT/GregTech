@@ -5,27 +5,27 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.capability.FeCompat;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
-import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.MetaTileEntityClipboard;
 import gregtech.common.metatileentities.converter.MetaTileEntityConverter;
+import gregtech.common.metatileentities.electric.DisposableBatteryType;
 import gregtech.common.metatileentities.electric.MetaTileEntityAlarm;
 import gregtech.common.metatileentities.electric.MetaTileEntityBatteryBuffer;
 import gregtech.common.metatileentities.electric.MetaTileEntityBlockBreaker;
 import gregtech.common.metatileentities.electric.MetaTileEntityCharger;
 import gregtech.common.metatileentities.electric.MetaTileEntityDiode;
+import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
 import gregtech.common.metatileentities.electric.MetaTileEntityFisher;
 import gregtech.common.metatileentities.electric.MetaTileEntityHull;
 import gregtech.common.metatileentities.electric.MetaTileEntityItemCollector;
-import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
-import gregtech.common.metatileentities.electric.DisposableBatteryType;
 import gregtech.common.metatileentities.electric.MetaTileEntityMagicEnergyAbsorber;
 import gregtech.common.metatileentities.electric.MetaTileEntityPump;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
-import gregtech.common.metatileentities.electric.MetaTileEntityWindGenerator;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
+import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
+import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityMonitorScreen;
 import gregtech.common.metatileentities.storage.MetaTileEntityBuffer;
 import gregtech.common.metatileentities.storage.MetaTileEntityCrate;
 import gregtech.common.metatileentities.storage.MetaTileEntityCreativeChest;
@@ -39,13 +39,9 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumProxy;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumStorageController;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
 import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
-import gregtech.common.metatileentities.MetaTileEntityClipboard;
-import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
-import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityMonitorScreen;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
 
-import static gregtech.api.GTValues.*;
 import static gregtech.api.util.GTUtility.gregtechId;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 
@@ -196,13 +192,6 @@ public final class InfrastructureRegistration {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
             BATH_CONDENSER[i] = new SimpleMachineMetaTileEntity(gregtechId("bath_condenser." + voltageName), RecipeMaps.BATH_CONDENSER_RECIPES, Textures.BATH_CONDENSER_OVERLAY, i+1,true);
             registerMetaTileEntity(750 + i, BATH_CONDENSER[i]);
-        }
-
-        // Wind Generator, IDs 970-974
-        for (int i = 0; i < WIND_GENERATOR.length; i++){
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
-            WIND_GENERATOR[i] = registerMetaTileEntity(970 + i,
-                    new MetaTileEntityWindGenerator(gregtechId("wind_generator." + voltageName), i + 1));
         }
 
         // Magic Energy Absorber, IDs 975-979
