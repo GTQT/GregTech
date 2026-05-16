@@ -50,8 +50,7 @@ import java.util.List;
  * @see FuelMultiblockController
  * @see IGenerator
  */
-public abstract class ParametricFuelController<V extends Enum<V>>
-        extends ParametricRecipeMapController<V>
+public abstract class ParametricFuelController<V extends Enum<V>> extends ParametricRecipeMapController<V>
         implements IGenerator, ITieredMetaTileEntity, IDataInfoProvider {
 
     protected int tier;
