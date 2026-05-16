@@ -1,13 +1,23 @@
 package gregtech.api.metatileentity;
 
+import gregtech.api.metatileentity.variant.ParametricVariantRegistries;
+import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
+
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.util.Constants;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Base class for single-block MTEs that support multiple variants stored as NBT sub-types
@@ -15,44 +25,68 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>This drastically reduces ID consumption and memory usage: instead of registering
  * N separate MTEs for N variants, only one MTE is registered and the variant is
- * stored in NBT.
+ * stored in NBT.</p>
  *
- * <h3>Usage Example:</h3>
- * <pre>{@code
- * public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumMaterial> {
- *
- *     public MetaTileEntityDrum(ResourceLocation id) {
- *         super(id, DrumMaterial.class, DrumMaterial.WOOD);
- *     }
- *
- *     @Override protected String getVariantTranslationPrefix() { return "gregtech.machine.drum"; }
- * }
- * }</pre>
- *
- * <h3>Memory Model:</h3>
- * <ul>
- *   <li>1 MTE ID in the registry (regardless of variant count)</li>
- *   <li>Variant stored in NBT for TileEntity persistence, ItemStack, and network sync</li>
- * </ul>
- *
- * @param <V> the variant enum type
+ * @param <V> the variant value type
  * @see gregtech.api.metatileentity.multiblock.ParametricMultiblockController for the multiblock equivalent
  */
-public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTileEntity {
+public abstract class ParametricMetaTileEntity<V> extends MetaTileEntity {
 
     protected static final String NBT_KEY_VARIANT = "Variant";
 
+    private final ParametricVariantRegistry<V> variantRegistry;
+    @Nullable
     private final Class<V> variantClass;
     private final V defaultVariant;
     private V variant;
 
     protected ParametricMetaTileEntity(@NotNull ResourceLocation metaTileEntityId,
-                                       @NotNull Class<V> variantClass,
+                                       @NotNull ParametricVariantRegistry<V> variantRegistry) {
+        this(metaTileEntityId, variantRegistry, variantRegistry.getDefaultVariant());
+    }
+
+    protected ParametricMetaTileEntity(@NotNull ResourceLocation metaTileEntityId,
+                                       @NotNull ParametricVariantRegistry<V> variantRegistry,
                                        @NotNull V defaultVariant) {
+        this(metaTileEntityId, variantRegistry, defaultVariant, null);
+    }
+
+    /**
+     * @deprecated Prefer passing a {@link ParametricVariantRegistry}. This constructor keeps enum-backed
+     *             parametric single-block MTEs source-compatible while the base class moves to open registries.
+     */
+    @Deprecated
+    protected ParametricMetaTileEntity(@NotNull ResourceLocation metaTileEntityId,
+                                       @NotNull Class<V> enumClass,
+                                       @NotNull V defaultVariant) {
+        this(metaTileEntityId, createEnumRegistry(metaTileEntityId.getNamespace(), enumClass, defaultVariant),
+                defaultVariant, enumClass);
+    }
+
+    private ParametricMetaTileEntity(@NotNull ResourceLocation metaTileEntityId,
+                                     @NotNull ParametricVariantRegistry<V> variantRegistry,
+                                     @NotNull V defaultVariant,
+                                     @Nullable Class<V> variantClass) {
         super(metaTileEntityId);
+        this.variantRegistry = Objects.requireNonNull(variantRegistry, "variantRegistry");
         this.variantClass = variantClass;
-        this.defaultVariant = defaultVariant;
+        this.defaultVariant = Objects.requireNonNull(defaultVariant, "defaultVariant");
+        this.variantRegistry.getId(defaultVariant);
         this.variant = defaultVariant;
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @NotNull
+    private static <V> ParametricVariantRegistry<V> createEnumRegistry(@NotNull String namespace,
+                                                                       @NotNull Class<V> enumClass,
+                                                                       @NotNull V defaultVariant) {
+        Objects.requireNonNull(enumClass, "enumClass");
+        Objects.requireNonNull(defaultVariant, "defaultVariant");
+        if (!Enum.class.isAssignableFrom(enumClass) || !(defaultVariant instanceof Enum)) {
+            throw new IllegalArgumentException("Legacy parametric constructor requires an enum variant class");
+        }
+        return (ParametricVariantRegistry<V>) ParametricVariantRegistries.enumRegistry(namespace,
+                (Class) enumClass.asSubclass(Enum.class), (Enum) defaultVariant);
     }
 
     // region Variant Access
@@ -81,18 +115,35 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
         if (!force && this.variant == variant) {
             return;
         }
-        this.variant = variant;
+        this.variant = Objects.requireNonNull(variant, "variant");
         onVariantChanged();
     }
 
+    /**
+     * @deprecated Open registries do not necessarily have an enum class. Use {@link #getVariantRegistry()} instead.
+     */
+    @Deprecated
     @NotNull
     public Class<V> getVariantClass() {
+        if (variantClass == null) {
+            throw new UnsupportedOperationException("This parametric MTE is backed by an open registry");
+        }
         return variantClass;
     }
 
     @NotNull
     public V getDefaultVariant() {
         return defaultVariant;
+    }
+
+    @NotNull
+    public ParametricVariantRegistry<V> getVariantRegistry() {
+        return variantRegistry;
+    }
+
+    @NotNull
+    public Collection<V> getVariants() {
+        return variantRegistry.getVariants();
     }
 
     // endregion
@@ -102,25 +153,25 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
-        data.setInteger(NBT_KEY_VARIANT, variant.ordinal());
+        data.setString(NBT_KEY_VARIANT, variantRegistry.getId(variant).toString());
         return data;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
-        applyVariant(readVariantFromOrdinal(data.getInteger(NBT_KEY_VARIANT)), true);
+        applyVariant(readVariantFromNBT(data), true);
         super.readFromNBT(data);
     }
 
     @Override
     public void writeInitialSyncData(@NotNull PacketBuffer buf) {
-        buf.writeByte(variant.ordinal());
+        buf.writeString(variantRegistry.getId(variant).toString());
         super.writeInitialSyncData(buf);
     }
 
     @Override
     public void receiveInitialSyncData(@NotNull PacketBuffer buf) {
-        applyVariant(readVariantFromOrdinal(buf.readByte()), true);
+        applyVariant(readVariantFromId(buf.readString(32767)), true);
         super.receiveInitialSyncData(buf);
     }
 
@@ -128,26 +179,55 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
     public void initFromItemStackData(NBTTagCompound itemStack) {
         super.initFromItemStackData(itemStack);
         if (itemStack.hasKey(NBT_KEY_VARIANT)) {
-            applyVariant(readVariantFromOrdinal(itemStack.getInteger(NBT_KEY_VARIANT)), true);
+            applyVariant(readVariantFromNBT(itemStack), true);
         }
     }
 
     @Override
     public void writeItemStackData(NBTTagCompound itemStack) {
         super.writeItemStackData(itemStack);
-        itemStack.setInteger(NBT_KEY_VARIANT, variant.ordinal());
+        itemStack.setString(NBT_KEY_VARIANT, variantRegistry.getId(variant).toString());
     }
 
     /**
-     * Safely reads a variant from an ordinal value with bounds checking.
+     * Safely reads a variant from a legacy ordinal value with bounds checking.
      */
     @NotNull
-    private V readVariantFromOrdinal(int ordinal) {
-        V[] values = variantClass.getEnumConstants();
-        if (ordinal >= 0 && ordinal < values.length) {
-            return values[ordinal];
+    protected V readVariantFromOrdinal(int ordinal) {
+        List<V> values = new ArrayList<>(variantRegistry.getVariants());
+        if (ordinal >= 0 && ordinal < values.size()) {
+            return values.get(ordinal);
         }
         return defaultVariant;
+    }
+
+    /**
+     * Reads the current NBT variant format, falling back to the legacy ordinal format.
+     */
+    @NotNull
+    protected V readVariantFromNBT(@NotNull NBTTagCompound data) {
+        if (data.hasKey(NBT_KEY_VARIANT, Constants.NBT.TAG_STRING)) {
+            return readVariantFromId(data.getString(NBT_KEY_VARIANT));
+        }
+        if (data.hasKey(NBT_KEY_VARIANT, Constants.NBT.TAG_INT)) {
+            return readVariantFromOrdinal(data.getInteger(NBT_KEY_VARIANT));
+        }
+        return defaultVariant;
+    }
+
+    /**
+     * Resolves a stable variant id string.
+     */
+    @NotNull
+    protected V readVariantFromId(@Nullable String variantId) {
+        if (variantId == null || variantId.isEmpty()) {
+            return defaultVariant;
+        }
+        try {
+            return variantRegistry.getOrDefault(new ResourceLocation(variantId));
+        } catch (RuntimeException ignored) {
+            return defaultVariant;
+        }
     }
 
     /**
@@ -162,7 +242,7 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
 
     @Override
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
-        for (V value : variantClass.getEnumConstants()) {
+        for (V value : variantRegistry.getVariants()) {
             subItems.add(getStackForm(value));
         }
     }
@@ -197,7 +277,7 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
             tag = new NBTTagCompound();
             stack.setTagCompound(tag);
         }
-        tag.setInteger(NBT_KEY_VARIANT, variantValue.ordinal());
+        tag.setString(NBT_KEY_VARIANT, variantRegistry.getId(variantValue).toString());
     }
 
     /**
@@ -207,7 +287,7 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
     public V getVariantFromStack(@NotNull ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
         if (tag != null && tag.hasKey(NBT_KEY_VARIANT)) {
-            return readVariantFromOrdinal(tag.getInteger(NBT_KEY_VARIANT));
+            return readVariantFromNBT(tag);
         }
         return defaultVariant;
     }
@@ -218,16 +298,14 @@ public abstract class ParametricMetaTileEntity<V extends Enum<V>> extends MetaTi
 
     /**
      * Returns the translation key prefix for variant-specific names.
-     * The full key will be: {@code prefix + "." + variant_name_lowercase + ".name"}
-     *
-     * <p>Example: prefix = "gregtech.machine.drum" → key = "gregtech.machine.drum.bronze.name"
+     * The full key will be: {@code prefix + "." + variant_name + ".name"}
      */
     @NotNull
     protected abstract String getVariantTranslationPrefix();
 
     @NotNull
     protected String getVariantName(@NotNull V variantValue) {
-        return variantValue.name().toLowerCase();
+        return variantRegistry.getName(variantValue);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package gregtech.api.metatileentity.multiblock;
+package gregtech.api.metatileentity.variant;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -9,9 +9,8 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * @deprecated Use {@link gregtech.api.metatileentity.variant.ParametricVariantRegistries}.
+ * Factory helpers for common parametric variant registry shapes.
  */
-@Deprecated
 public final class ParametricVariantRegistries {
 
     private ParametricVariantRegistries() {}

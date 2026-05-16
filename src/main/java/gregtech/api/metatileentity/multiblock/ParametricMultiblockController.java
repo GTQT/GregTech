@@ -61,14 +61,14 @@ public abstract class ParametricMultiblockController<V>
 
     protected static final String NBT_KEY_VARIANT = "Variant";
 
-    private final ParametricVariantRegistry<V> variantRegistry;
+    private final gregtech.api.metatileentity.variant.ParametricVariantRegistry<V> variantRegistry;
     private final Class<V> variantClass;
     private final V defaultVariant;
     private final Map<ResourceLocation, SoftTemplate> templateCache = new ConcurrentHashMap<>();
     private V variant;
 
     protected ParametricMultiblockController(@NotNull ResourceLocation metaTileEntityId,
-                                             @NotNull ParametricVariantRegistry<V> variantRegistry) {
+                                             @NotNull gregtech.api.metatileentity.variant.ParametricVariantRegistry<V> variantRegistry) {
         super(metaTileEntityId);
         this.variantRegistry = variantRegistry;
         this.variantClass = null;
@@ -93,13 +93,15 @@ public abstract class ParametricMultiblockController<V>
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @NotNull
-    private static <V> ParametricVariantRegistry<V> createEnumRegistry(@NotNull String namespace,
-                                                                       @NotNull Class<V> variantClass,
-                                                                       @NotNull V defaultVariant) {
+    private static <V> gregtech.api.metatileentity.variant.ParametricVariantRegistry<V> createEnumRegistry(
+            @NotNull String namespace,
+            @NotNull Class<V> variantClass,
+            @NotNull V defaultVariant) {
         if (!Enum.class.isAssignableFrom(variantClass)) {
             throw new IllegalArgumentException("Legacy parametric constructor requires an enum variant class");
         }
-        return (ParametricVariantRegistry<V>) ParametricVariantRegistries.enumRegistry(namespace,
+        return (gregtech.api.metatileentity.variant.ParametricVariantRegistry<V>)
+                gregtech.api.metatileentity.variant.ParametricVariantRegistries.enumRegistry(namespace,
                 (Class) variantClass.asSubclass(Enum.class), (Enum) defaultVariant);
     }
 
@@ -151,7 +153,7 @@ public abstract class ParametricMultiblockController<V>
     }
 
     @NotNull
-    public ParametricVariantRegistry<V> getVariantRegistry() {
+    public gregtech.api.metatileentity.variant.ParametricVariantRegistry<V> getVariantRegistry() {
         return variantRegistry;
     }
 

@@ -1,8 +1,8 @@
 package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
-import gregtech.api.metatileentity.multiblock.ParametricVariantRegistry;
-import gregtech.api.metatileentity.multiblock.SimpleParametricVariantRegistry;
+import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
+import gregtech.api.metatileentity.variant.SimpleParametricVariantRegistry;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockTurbineCasing.TurbineCasingType;

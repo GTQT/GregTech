@@ -57,7 +57,7 @@ public abstract class ParametricFuelController<V>
     protected int tier;
 
     protected ParametricFuelController(@NotNull ResourceLocation metaTileEntityId,
-                                       @NotNull ParametricVariantRegistry<V> variantRegistry,
+                                       @NotNull gregtech.api.metatileentity.variant.ParametricVariantRegistry<V> variantRegistry,
                                        @NotNull RecipeMap<?> recipeMap,
                                        int tier) {
         super(metaTileEntityId, variantRegistry, recipeMap);

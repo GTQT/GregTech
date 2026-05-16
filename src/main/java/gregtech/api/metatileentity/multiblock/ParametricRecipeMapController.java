@@ -60,7 +60,7 @@ public abstract class ParametricRecipeMapController<V>
     protected MultiblockRecipeLogic recipeMapWorkable;
 
     protected ParametricRecipeMapController(@NotNull ResourceLocation metaTileEntityId,
-                                            @NotNull ParametricVariantRegistry<V> variantRegistry,
+                                            @NotNull gregtech.api.metatileentity.variant.ParametricVariantRegistry<V> variantRegistry,
                                             @NotNull RecipeMap<?> recipeMap) {
         super(metaTileEntityId, variantRegistry);
         this.defaultRecipeMap = recipeMap;

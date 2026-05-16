@@ -71,7 +71,6 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreez
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityMonitorScreen;
 import gregtech.common.metatileentities.multi.electric.generator.LargeCombustionEngineType;
-import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineType;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
 import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
@@ -420,18 +419,9 @@ public class MetaTileEntities {
             LargeCombustionEngineType.class);
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;
-    // Large Turbine variant cache and compatibility fields
+    // Large Turbine variant cache
     public static final Map<ResourceLocation, MetaTileEntityLargeTurbine> LARGE_TURBINE_VARIANTS =
             new LinkedHashMap<>();
-    @Deprecated
-    public static final EnumMap<LargeTurbineType, MetaTileEntityLargeTurbine> LARGE_TURBINES = new EnumMap<>(
-            LargeTurbineType.class);
-    @Deprecated
-    public static MetaTileEntityLargeTurbine LARGE_STEAM_TURBINE;
-    @Deprecated
-    public static MetaTileEntityLargeTurbine LARGE_GAS_TURBINE;
-    @Deprecated
-    public static MetaTileEntityLargeTurbine LARGE_PLASMA_TURBINE;
     // Large Boiler EnumMap cache and compatibility fields
     public static final EnumMap<BoilerType, MetaTileEntityLargeBoiler> LARGE_BOILERS = new EnumMap<>(BoilerType.class);
     public static MetaTileEntityLargeBoiler LARGE_BRONZE_BOILER;

@@ -37,7 +37,6 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchSta
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreezer;
 import gregtech.common.metatileentities.multi.electric.generator.LargeCombustionEngineType;
 import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineVariant;
-import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineType;
 import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineVariants;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
@@ -139,13 +138,6 @@ public final class MultiblockRegistration {
                     variant == LargeTurbineVariants.STEAM ? turbine :
                             new MetaTileEntityLargeTurbine(gregtechId("large_turbine"), variant));
         }
-        // Legacy references for backward compatibility (addons may use these)
-        LARGE_STEAM_TURBINE = LARGE_TURBINE_VARIANTS.get(LargeTurbineVariants.STEAM.getId());
-        LARGE_GAS_TURBINE = LARGE_TURBINE_VARIANTS.get(LargeTurbineVariants.GAS.getId());
-        LARGE_PLASMA_TURBINE = LARGE_TURBINE_VARIANTS.get(LargeTurbineVariants.PLASMA.getId());
-        LARGE_TURBINES.put(LargeTurbineType.STEAM, LARGE_STEAM_TURBINE);
-        LARGE_TURBINES.put(LargeTurbineType.GAS, LARGE_GAS_TURBINE);
-        LARGE_TURBINES.put(LargeTurbineType.PLASMA, LARGE_PLASMA_TURBINE);
 
         // Large Boilers - Single ID with NBT variants (ID 1013)
         MetaTileEntityLargeBoiler boiler = registerMetaTileEntity(1013,

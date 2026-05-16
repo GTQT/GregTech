@@ -31,8 +31,9 @@ import gregtech.common.blocks.StoneVariantBlock;
 import gregtech.common.blocks.StoneVariantBlock.StoneVariant;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.storage.DrumVariant;
+import gregtech.common.metatileentities.storage.DrumVariants;
 import gregtech.common.metatileentities.storage.MetaTileEntityCrate;
-import gregtech.common.metatileentities.storage.MetaTileEntityDrum;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
 import gregtech.loaders.recipe.chemistry.AssemblerRecipeLoader;
@@ -43,11 +44,13 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.oredict.OreDictionary;
 
 import gtqt.api.util.recipeUtility;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -936,13 +939,15 @@ public class MachineRecipeLoader {
                     .duration(200).circuitMeta(1).buildAndRegister();
         }
 
-        //Drum - assembler recipes (all non-wood materials via loop)
-        for (MetaTileEntityDrum.DrumMaterial mat : MetaTileEntityDrum.DrumMaterial.values()) {
-            if (mat.isWood()) continue;
+        //Drum - assembler recipes (all non-wood material-backed variants)
+        for (DrumVariant variant : DrumVariants.values()) {
+            if (variant.isWood()) continue;
+            Material recipeMaterial = variant.getMaterial();
+            if (recipeMaterial == null) continue;
             ASSEMBLER_RECIPES.recipeBuilder().EUt(16)
-                    .input(stickLong, mat.getMaterial(), 2)
-                    .input(plate, mat.getMaterial(), 4)
-                    .outputs(DRUM.getStackForm(mat))
+                    .input(stickLong, recipeMaterial, 2)
+                    .input(plate, recipeMaterial, 4)
+                    .outputs(DRUM.getStackForm(variant))
                     .duration(200).circuitMeta(2).buildAndRegister();
         }
 
@@ -1468,10 +1473,10 @@ public class MachineRecipeLoader {
             }
 
         // Drums - NBT clearing recipes
-        for (MetaTileEntityDrum.DrumMaterial mat : MetaTileEntityDrum.DrumMaterial.values()) {
-            String matName = mat.name().toLowerCase();
-            ItemStack drumStack = MetaTileEntities.DRUM.getStackForm(mat);
-            ModHandler.addShapelessNBTClearingRecipe("drum_nbt_" + matName, drumStack, drumStack);
+        for (DrumVariant variant : DrumVariants.values()) {
+            String variantName = getVariantRecipeName(variant);
+            ItemStack drumStack = MetaTileEntities.DRUM.getStackForm(variant);
+            ModHandler.addShapelessNBTClearingRecipe("drum_nbt_" + variantName, drumStack, drumStack);
         }
         // Cells
         ModHandler.addShapedNBTClearingRecipe("cell_nbt_regular", MetaItems.FLUID_CELL.getStackForm(), " C", "  ", 'C',
@@ -1627,5 +1632,10 @@ public class MachineRecipeLoader {
                     HUGE_STEAM_IMPORT_HATCH.getStackForm(),
                     "d", "B", 'B', HUGE_STEAM_EXPORT_HATCH.getStackForm());
         }
+    }
+
+    private static String getVariantRecipeName(@NotNull DrumVariant variant) {
+        ResourceLocation id = variant.getId();
+        return GTValues.MODID.equals(id.getNamespace()) ? id.getPath() : id.getNamespace() + "_" + id.getPath();
     }
 }
