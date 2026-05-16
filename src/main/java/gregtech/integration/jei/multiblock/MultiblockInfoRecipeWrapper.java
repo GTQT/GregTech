@@ -91,6 +91,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static final int PARTS_WIDTH = PARTS_COLUMNS * SLOT_SIZE + 4;
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
+    private static final int INFO_ICON_Y = 22;
+    private static final int LAYER_BUTTON_Y = INFO_ICON_Y + ICON_SIZE + 2;
+    private static final int CANDIDATE_SLOT_START_Y = LAYER_BUTTON_Y + ICON_SIZE + 2;
     // Right candidates panel layout constants
     private static final int CANDIDATES_COLUMNS = 1;
     private static final int CANDIDATES_PER_COL = 6;
@@ -145,7 +148,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 .map(it -> initializePattern(it, drops))
                 .toArray(MBPattern[]::new);
         allItemStackInputs.addAll(drops);
-        this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), 70, ICON_SIZE, ICON_SIZE, "");
+        this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), LAYER_BUTTON_Y, ICON_SIZE,
+                ICON_SIZE, "");
 
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
         this.predicates = new ArrayList<>();
@@ -398,6 +402,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             this.father = null;
             lastWrapper = this;
             this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
+            this.nextLayerButton.y = LAYER_BUTTON_Y;
             Vector3f size = ((TrackedDummyWorld) getCurrentRenderer().world).getSize();
             float max = Math.max(Math.max(Math.max(size.x, size.y), size.z), 1);
             this.zoom = (float) (3.5 * Math.sqrt(max));
@@ -444,14 +449,18 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (renderer != null) {
             TrackedDummyWorld world = ((TrackedDummyWorld) renderer.world);
             resetCenter(world);
+            renderer.disableClipPlanes();
+            renderer.renderedBlocks.clear();
             int minY = (int) world.getMinPos().getY();
+            Collection<BlockPos> renderBlocks;
             if (newLayer == -1) {
-                // Show all layers: disable clip planes
-                renderer.disableClipPlanes();
+                renderBlocks = world.renderedBlocks;
             } else {
-                // Show single layer: use GL clip planes (no VBO rebuild needed)
-                renderer.setClipPlanes(minY + newLayer, minY + newLayer + 1.0);
+                renderBlocks = world.renderedBlocks.stream()
+                        .filter(pos -> pos.getY() - minY == newLayer)
+                        .collect(Collectors.toSet());
             }
+            renderer.addRenderedBlocks(renderBlocks);
         }
     }
 
@@ -459,6 +468,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         Vector3f size = world.getSize();
         Vector3f minPos = world.getMinPos();
         center = new Vector3f(minPos.x + size.x / 2, minPos.y + size.y / 2, minPos.z + size.z / 2);
+        if (layerIndex != -1) {
+            center.y = minPos.y + layerIndex + 0.5f;
+        }
         getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
     }
 
@@ -564,7 +576,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         // Draw info icon (top-right corner)
         int iconX = recipeWidth - (ICON_SIZE + RIGHT_PADDING);
-        int iconY = 49;
+        int iconY = INFO_ICON_Y;
         this.infoIcon.draw(minecraft, iconX, iconY);
         this.drawInfoIcon = mouseX >= iconX && mouseX <= iconX + ICON_SIZE &&
                 mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
@@ -584,7 +596,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             int col = i / CANDIDATES_PER_COL;
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
-            int slotY = row * SLOT_SIZE + 70;
+            int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
             this.slot.draw(minecraft, slotX, slotY);
         }
 
@@ -868,7 +880,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             int col = i / CANDIDATES_PER_COL;
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
-            int slotY = row * SLOT_SIZE + 70;
+            int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
             itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
             itemStackGroup.set(i + MAX_PARTS, predicates.get(i).getCandidates());
         }
