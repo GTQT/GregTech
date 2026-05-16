@@ -28,6 +28,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidStack;
@@ -53,6 +54,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_AUTO_OUTPUT;
+import static gregtech.api.capability.GregtechDataCodes.UPDATE_FLUID;
 
 /**
  * Single-ID drum supporting multiple material variants via stable registry ids in NBT.
@@ -142,7 +144,7 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
         if (variant == null) return;
 
         super.initializeInventory();
-        this.fluidTank = new FilteredFluidHandler(variant.getTankSize()).setFilter(variant.getFluidFilter());
+        this.fluidTank = new DrumFluidHandler(variant.getTankSize()).setFilter(variant.getFluidFilter());
         this.fluidInventory = this.fluidTank;
     }
 
@@ -175,6 +177,14 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
         return new GTFluidHandlerItemStack(itemStack, variant.getTankSize()).setFilter(variant.getFluidFilter());
     }
 
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY && fluidTank != null) {
+            return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(fluidTank);
+        }
+        return super.getCapability(capability, side);
+    }
+
     // endregion
 
     // region Network sync
@@ -182,27 +192,14 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
     @Override
     public void writeInitialSyncData(@NotNull PacketBuffer buf) {
         super.writeInitialSyncData(buf);
-        FluidStack fluidStack = fluidTank.getFluid();
-        buf.writeBoolean(fluidStack != null);
-        if (fluidStack != null) {
-            NBTTagCompound tagCompound = new NBTTagCompound();
-            fluidStack.writeToNBT(tagCompound);
-            buf.writeCompoundTag(tagCompound);
-        }
+        writeFluidTankSync(buf);
         buf.writeBoolean(isAutoOutput);
     }
 
     @Override
     public void receiveInitialSyncData(@NotNull PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
-        FluidStack fluidStack = null;
-        if (buf.readBoolean()) {
-            try {
-                NBTTagCompound tagCompound = buf.readCompoundTag();
-                fluidStack = FluidStack.loadFluidStackFromNBT(tagCompound);
-            } catch (IOException ignored) {}
-        }
-        fluidTank.setFluid(fluidStack);
+        fluidTank.setFluid(readFluidTankSync(buf));
         isAutoOutput = buf.readBoolean();
     }
 
@@ -212,7 +209,41 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
         if (dataId == UPDATE_AUTO_OUTPUT) {
             this.isAutoOutput = buf.readBoolean();
             scheduleRenderUpdate();
+        } else if (dataId == UPDATE_FLUID) {
+            fluidTank.setFluid(readFluidTankSync(buf));
+            scheduleRenderUpdate();
         }
+    }
+
+    private void writeFluidTankSync(@NotNull PacketBuffer buf) {
+        FluidStack fluidStack = fluidTank == null ? null : fluidTank.getFluid();
+        buf.writeBoolean(fluidStack != null);
+        if (fluidStack != null) {
+            NBTTagCompound tagCompound = new NBTTagCompound();
+            fluidStack.writeToNBT(tagCompound);
+            buf.writeCompoundTag(tagCompound);
+        }
+    }
+
+    @Nullable
+    private FluidStack readFluidTankSync(@NotNull PacketBuffer buf) {
+        if (!buf.readBoolean()) {
+            return null;
+        }
+        try {
+            NBTTagCompound tagCompound = buf.readCompoundTag();
+            return FluidStack.loadFluidStackFromNBT(tagCompound);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private void onFluidContentsChanged() {
+        if (getWorld() == null || getWorld().isRemote) {
+            return;
+        }
+        markDirty();
+        writeCustomData(UPDATE_FLUID, this::writeFluidTankSync);
     }
 
     // endregion
@@ -232,9 +263,8 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
     @Override
     public boolean onRightClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                 CuboidRayTraceResult hitResult) {
-        if (playerIn.getHeldItem(hand).hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null)) {
-            return getWorld().isRemote ||
-                    (!playerIn.isSneaking() && FluidUtil.interactWithFluidHandler(playerIn, hand, fluidTank));
+        if (!playerIn.isSneaking() && FluidUtil.getFluidHandler(playerIn.getHeldItem(hand)) != null) {
+            return getWorld().isRemote || FluidUtil.interactWithFluidHandler(playerIn, hand, fluidTank);
         }
         return super.onRightClick(playerIn, hand, facing, hitResult);
     }
@@ -397,6 +427,18 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
 
     private IPropertyFluidFilter getFluidFilter(@NotNull ItemStack stack) {
         return getVariantFromStack(stack).getFluidFilter();
+    }
+
+    private class DrumFluidHandler extends FilteredFluidHandler {
+
+        private DrumFluidHandler(int capacity) {
+            super(capacity);
+        }
+
+        @Override
+        protected void onContentsChanged() {
+            onFluidContentsChanged();
+        }
     }
 
     /**
