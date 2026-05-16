@@ -1,5 +1,6 @@
 package gregtech.common.items.behaviors.spray;
 
+import gregtech.api.color.ColorMode;
 import gregtech.api.color.ColoredBlockContainer;
 import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.stats.IItemColorProvider;
@@ -9,17 +10,19 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.drawable.DynamicColorRectangle;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
-import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
@@ -55,34 +58,32 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BooleanSupplier;
-import java.util.function.IntConsumer;
 
 import static gregtech.api.util.ColorUtil.ARGBHelper;
 
 public class CreativeSprayBehavior extends AbstractSprayBehavior implements ItemUIFactory, IItemColorProvider,
                                                                             IItemNameProvider, IMouseEventHandler {
 
-    private static final String NBT_KEY_COLOR = "color";
-    private static final String NBT_KEY_USES_RGB = "usesRGB";
-    private static final String NBT_KEY_RGB_COLOR = "rgbColor";
+    private static final String KEY_COLOR = "color";
+    private static final String KEY_USES_RGB = "usesRGB";
+    private static final String KEY_RGB_COLOR = "rgbColor";
 
     @Override
     public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         ItemStack usedStack = guiData.getUsedItemStack();
         IntSyncValue colorSync = SyncHandlers.intNumber(() -> getColorOrdinal(usedStack),
                 newColor -> setColorOrdinal(usedStack, newColor));
-        guiSyncManager.syncValue("color", 0, colorSync);
+        guiSyncManager.syncValue(KEY_COLOR, 0, colorSync);
         BooleanSyncValue usesRGBSync = SyncHandlers.bool(() -> usesRGB(usedStack), bool -> useRGB(usedStack, bool));
-        guiSyncManager.syncValue("usesRGB", 0, usesRGBSync);
+        guiSyncManager.syncValue(KEY_USES_RGB, 0, usesRGBSync);
         // Doesn't use getColorInt because the slider widgets take a moment to update so it ended up showing the normal
         // can colors when you switched to RGB mode.
         IntSyncValue rgbColorSync = SyncHandlers.intNumber(
-                () -> GTUtility.getOrCreateNbtCompound(usedStack).getInteger(NBT_KEY_RGB_COLOR),
+                () -> GTUtility.getOrCreateNbtCompound(usedStack).getInteger(KEY_RGB_COLOR),
                 newColor -> setColor(usedStack, newColor));
-        guiSyncManager.syncValue("rgbColor", 0, rgbColorSync);
+        guiSyncManager.syncValue(KEY_RGB_COLOR, 0, rgbColorSync);
 
-        var pageController = new InterceptedPageController(page -> usesRGBSync.setBoolValue(page == 1));
-        guiSyncManager.syncValue("page_controller", 0, new PagedWidgetSyncHandler(pageController));
+        PagedWidget.Controller pageController = new PagedWidget.Controller();
 
         return GTGuis.createPanel(usedStack, 176, 95)
                 .child(Flow.row()
@@ -106,11 +107,13 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
                         .asWidget()
                         .left(7)
                         .top(7))
-                .child(new DefaultPagePagedWidget<>(usesRGBSync.getIntValue())
+                .child(new PagedWidget<>()
                         .margin(7, 7, 22, 7)
                         .widthRel(1.0f)
                         .heightRel(1.0f)
                         .controller(pageController)
+                        .onPageChange(usesRGBSync::setIntValue)
+                        .initialPage(usesRGBSync.getIntValue())
                         .addPage(SlotGroupWidget.builder()
                                 .matrix("SCCCCCCCC",
                                         "CCCCCCCC")
@@ -142,7 +145,7 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
                                             .addTooltipLine(IKey.lang("metaitem.spray.creative." + color));
                                 })
                                 .build()
-                                .alignY(0.5f))
+                                .topRel(0.5f).anchorTop(0.5f))
                         .addPage(Flow.column()
                                 .widthRel(1.0f)
                                 .heightRel(1.0f)
@@ -151,8 +154,8 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
                                 .child(createColorRow(ARGBHelper.BLUE, rgbColorSync, usesRGBSync::getBoolValue))));
     }
 
-    private static Flow createColorRow(@NotNull ARGBHelper helper, @NotNull IntSyncValue rgbColorSync,
-                                       @NotNull BooleanSupplier allowSetting) {
+    protected static Flow createColorRow(@NotNull ARGBHelper helper, @NotNull IntSyncValue rgbColorSync,
+                                         @NotNull BooleanSupplier allowSetting) {
         return Flow.row()
                 .widthRel(1.0f)
                 .coverChildrenHeight()
@@ -186,10 +189,18 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
     }
 
     @Override
+    public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
+        if (!world.isRemote) {
+            MetaItemGuiFactory.open(player, hand);
+        }
+        return ActionResult.newResult(EnumActionResult.SUCCESS, player.getHeldItem(hand));
+    }
+
+    @Override
     public @Nullable EnumDyeColor getColor(@NotNull ItemStack sprayCan) {
         NBTTagCompound tag = GTUtility.getOrCreateNbtCompound(sprayCan);
-        if (tag.hasKey(NBT_KEY_COLOR, Constants.NBT.TAG_INT)) {
-            int color = tag.getInteger(NBT_KEY_COLOR);
+        if (tag.hasKey(KEY_COLOR, Constants.NBT.TAG_INT)) {
+            int color = tag.getInteger(KEY_COLOR);
             if (color < 0 || color > 15) return null;
             return EnumDyeColor.values()[color];
         }
@@ -200,28 +211,33 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
     @Override
     public int getColorInt(@NotNull ItemStack sprayCan) {
         NBTTagCompound tag = GTUtility.getOrCreateNbtCompound(sprayCan);
-        return tag.getBoolean(NBT_KEY_USES_RGB) ? tag.getInteger(NBT_KEY_RGB_COLOR) : super.getColorInt(sprayCan);
+        return tag.getBoolean(KEY_USES_RGB) ? tag.getInteger(KEY_RGB_COLOR) : super.getColorInt(sprayCan);
     }
 
-    public static void setColor(@NotNull ItemStack sprayCan, @Nullable EnumDyeColor color) {
-        GTUtility.getOrCreateNbtCompound(sprayCan).setInteger(NBT_KEY_COLOR, color == null ? -1 : color.ordinal());
+    @Override
+    public @NotNull ColorMode getColorMode(@NotNull ItemStack sprayCan) {
+        return usesRGB(sprayCan) ? ColorMode.ARGB : ColorMode.DYE;
     }
 
-    public static void setColorOrdinal(@NotNull ItemStack sprayCan, int ordinal) {
-        GTUtility.getOrCreateNbtCompound(sprayCan).setInteger(NBT_KEY_COLOR,
+    public void setColor(@NotNull ItemStack sprayCan, @Nullable EnumDyeColor color) {
+        GTUtility.getOrCreateNbtCompound(sprayCan).setInteger(KEY_COLOR, color == null ? -1 : color.ordinal());
+    }
+
+    public void setColorOrdinal(@NotNull ItemStack sprayCan, int ordinal) {
+        GTUtility.getOrCreateNbtCompound(sprayCan).setInteger(KEY_COLOR,
                 ordinal >= 0 && ordinal <= 15 ? ordinal : -1);
     }
 
-    public static void setColor(@NotNull ItemStack sprayCan, int argbColor) {
-        GTUtility.getOrCreateNbtCompound(sprayCan).setInteger(NBT_KEY_RGB_COLOR, argbColor);
+    public void setColor(@NotNull ItemStack sprayCan, int argbColor) {
+        GTUtility.getOrCreateNbtCompound(sprayCan).setInteger(KEY_RGB_COLOR, argbColor);
     }
 
-    public static boolean usesRGB(@NotNull ItemStack sprayCan) {
-        return GTUtility.getOrCreateNbtCompound(sprayCan).getBoolean(NBT_KEY_USES_RGB);
+    public boolean usesRGB(@NotNull ItemStack sprayCan) {
+        return GTUtility.getOrCreateNbtCompound(sprayCan).getBoolean(KEY_USES_RGB);
     }
 
-    public static void useRGB(@NotNull ItemStack sprayCan, boolean bool) {
-        GTUtility.getOrCreateNbtCompound(sprayCan).setBoolean(NBT_KEY_USES_RGB, bool);
+    public void useRGB(@NotNull ItemStack sprayCan, boolean bool) {
+        GTUtility.getOrCreateNbtCompound(sprayCan).setBoolean(KEY_USES_RGB, bool);
     }
 
     @Override
@@ -250,42 +266,68 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
         // Middle click pressed down
         if (event.getButton() == 2 && event.isButtonstate()) {
             event.setCanceled(true);
+            if (tryCopyColor(playerClient, hand, sprayCan)) return;
 
-            RayTraceResult rayTrace = RayTracer.retrace(playerClient);
-            if (rayTrace != null && rayTrace.typeOfHit == RayTraceResult.Type.BLOCK) {
-                World world = playerClient.world;
-                BlockPos pos = rayTrace.getBlockPos();
-                EnumFacing facing = rayTrace.sideHit;
-                ColoredBlockContainer container = ColoredBlockContainer.getContainer(world, pos, facing,
-                        playerClient);
-
-                if (container.isValid(world, pos, facing, playerClient)) {
-                    if (usesRGB(sprayCan) && container.supportsARGB() &&
-                            !container.colorMatches(world, pos, facing, playerClient, getColorInt(sprayCan))) {
-                        int color = container.getColorInt(world, pos, facing, playerClient);
-                        if (color != -1) {
-                            setColor(sprayCan, color);
-                            sendToServer(hand, buf -> buf
-                                    .writeByte(1)
-                                    .writeInt(color));
-                            return;
-                        }
-                    } else if (!container.colorMatches(world, pos, facing, playerClient, getColor(sprayCan))) {
-                        EnumDyeColor color = container.getColor(world, pos, facing, playerClient);
-                        if (color != null) {
-                            setColor(sprayCan, color);
-                            sendToServer(hand, buf -> buf
-                                    .writeByte(2)
-                                    .writeByte(color.ordinal()));
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // If the player isn't sneaking and wasn't looking at a colored block, open gui
+            // If the player wasn't looking at a colored block, open gui
             sendToServer(hand, buf -> buf.writeByte(0));
         }
+    }
+
+    protected boolean tryCopyColor(@NotNull EntityPlayerSP playerClient, @NotNull EnumHand hand,
+                                   @NotNull ItemStack sprayCan) {
+        RayTraceResult rayTrace = RayTracer.retrace(playerClient);
+        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) return false;
+
+        World world = playerClient.world;
+        BlockPos pos = rayTrace.getBlockPos();
+        EnumFacing facing = rayTrace.sideHit;
+        ColoredBlockContainer container = ColoredBlockContainer.getContainer(world, pos, facing, playerClient);
+        if (container == null) return false;
+
+        return switch (getColorMode(sprayCan)) {
+            case DYE, PREFER_DYE -> {
+                if (tryCopyDyeColor(container, world, pos, facing, playerClient, hand, sprayCan)) {
+                    yield true;
+                }
+
+                yield tryCopyARGBColor(container, world, pos, facing, playerClient, hand, sprayCan);
+            }
+            case ARGB, PREFER_ARGB -> {
+                if (tryCopyARGBColor(container, world, pos, facing, playerClient, hand, sprayCan)) {
+                    yield true;
+                }
+
+                yield tryCopyDyeColor(container, world, pos, facing, playerClient, hand, sprayCan);
+            }
+        };
+    }
+
+    protected boolean tryCopyDyeColor(@NotNull ColoredBlockContainer container, @NotNull World world,
+                                      @NotNull BlockPos pos, @NotNull EnumFacing facing,
+                                      @NotNull EntityPlayerSP playerClient, @NotNull EnumHand hand,
+                                      @NotNull ItemStack sprayCan) {
+        EnumDyeColor blockColor = container.getColor(world, pos, facing, playerClient);
+        if (blockColor == null || blockColor == getColor(sprayCan)) return false;
+
+        setColor(sprayCan, blockColor);
+        sendToServer(hand, buf -> buf
+                .writeByte(2)
+                .writeByte(blockColor.ordinal()));
+        return true;
+    }
+
+    protected boolean tryCopyARGBColor(@NotNull ColoredBlockContainer container, @NotNull World world,
+                                       @NotNull BlockPos pos, @NotNull EnumFacing facing,
+                                       @NotNull EntityPlayerSP playerClient, @NotNull EnumHand hand,
+                                       @NotNull ItemStack sprayCan) {
+        int blockColor = container.getColorInt(world, pos, facing, playerClient);
+        if (blockColor == -1 || blockColor == getColorInt(sprayCan)) return false;
+
+        setColor(sprayCan, blockColor);
+        sendToServer(hand, buf -> buf
+                .writeByte(1)
+                .writeInt(blockColor));
+        return true;
     }
 
     @Override
@@ -295,48 +337,6 @@ public class CreativeSprayBehavior extends AbstractSprayBehavior implements Item
             case 0 -> MetaItemGuiFactory.open(playerServer, EnumHand.MAIN_HAND);
             case 1 -> setColor(sprayCan, buf.readInt());
             case 2 -> setColor(sprayCan, EnumDyeColor.values()[buf.readByte()]);
-        }
-    }
-
-    private static class InterceptedPageController extends PagedWidget.Controller {
-
-        @NotNull
-        private final IntConsumer onPageSwitch;
-
-        public InterceptedPageController(@NotNull IntConsumer onPageSwitch) {
-            this.onPageSwitch = onPageSwitch;
-        }
-
-        @Override
-        public void setPage(int page) {
-            super.setPage(page);
-            onPageSwitch.accept(getActivePageIndex());
-        }
-
-        @Override
-        public void nextPage() {
-            super.nextPage();
-            onPageSwitch.accept(getActivePageIndex());
-        }
-
-        @Override
-        public void previousPage() {
-            super.previousPage();
-            onPageSwitch.accept(getActivePageIndex());
-        }
-    }
-
-    private static class DefaultPagePagedWidget<T extends PagedWidget<T>> extends PagedWidget<T> {
-
-        private final int defaultPage;
-
-        public DefaultPagePagedWidget(int defaultPage) {
-            this.defaultPage = defaultPage;
-        }
-
-        @Override
-        public void afterInit() {
-            setPage(defaultPage);
         }
     }
 }

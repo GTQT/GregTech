@@ -5,6 +5,7 @@ import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
 import static gregtech.api.unification.ore.OrePrefix.ingotHot;
+import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class NaquadahRecipes {
 
@@ -44,89 +45,90 @@ public class NaquadahRecipes {
                 .fluidOutputs(Hydrogen.getFluid(2000))
                 .buildAndRegister();
 
-        // STARTING POINT
+        if(!isModLoaded("gtqtcore")) {
+            // STARTING POINT
+            LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[LuV]).duration(600)
+                    .fluidInputs(FluoroantimonicAcid.getFluid(1000))
+                    .input(dust, Naquadah, 6)
+                    .fluidOutputs(ImpureEnrichedNaquadahSolution.getFluid(2000))
+                    .fluidOutputs(ImpureNaquadriaSolution.getFluid(2000))
+                    .output(dust, TitaniumTrifluoride, 4)
+                    .buildAndRegister();
 
-        LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[LuV]).duration(600)
-                .fluidInputs(FluoroantimonicAcid.getFluid(1000))
-                .input(dust, Naquadah, 6)
-                .fluidOutputs(ImpureEnrichedNaquadahSolution.getFluid(2000))
-                .fluidOutputs(ImpureNaquadriaSolution.getFluid(2000))
-                .output(dust, TitaniumTrifluoride, 4)
-                .buildAndRegister();
+            // ENRICHED NAQUADAH PROCESS
 
-        // ENRICHED NAQUADAH PROCESS
+            CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[EV]).duration(400)
+                    .fluidInputs(ImpureEnrichedNaquadahSolution.getFluid(2000))
+                    .output(dust, TriniumSulfide)
+                    .output(dust, AntimonyTrifluoride, 2)
+                    .fluidOutputs(EnrichedNaquadahSolution.getFluid(1000))
+                    .buildAndRegister();
 
-        CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[EV]).duration(400)
-                .fluidInputs(ImpureEnrichedNaquadahSolution.getFluid(2000))
-                .output(dust, TriniumSulfide)
-                .output(dust, AntimonyTrifluoride, 2)
-                .fluidOutputs(EnrichedNaquadahSolution.getFluid(1000))
-                .buildAndRegister();
+            MIXER_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
+                    .fluidInputs(EnrichedNaquadahSolution.getFluid(1000))
+                    .fluidInputs(SulfuricAcid.getFluid(2000))
+                    .fluidOutputs(AcidicEnrichedNaquadahSolution.getFluid(3000))
+                    .buildAndRegister();
 
-        MIXER_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
-                .fluidInputs(EnrichedNaquadahSolution.getFluid(1000))
-                .fluidInputs(SulfuricAcid.getFluid(2000))
-                .fluidOutputs(AcidicEnrichedNaquadahSolution.getFluid(3000))
-                .buildAndRegister();
+            CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
+                    .fluidInputs(AcidicEnrichedNaquadahSolution.getFluid(3000))
+                    .fluidOutputs(EnrichedNaquadahWaste.getFluid(2000))
+                    .fluidOutputs(Fluorine.getFluid(250))
+                    .output(dust, EnrichedNaquadahSulfate, 6) // Nq+SO4
+                    .buildAndRegister();
 
-        CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
-                .fluidInputs(AcidicEnrichedNaquadahSolution.getFluid(3000))
-                .fluidOutputs(EnrichedNaquadahWaste.getFluid(2000))
-                .fluidOutputs(Fluorine.getFluid(250))
-                .output(dust, EnrichedNaquadahSulfate, 6) // Nq+SO4
-                .buildAndRegister();
+            BLAST_RECIPES.recipeBuilder().EUt(VA[IV]).duration(500).blastFurnaceTemp(7000)
+                    .input(dust, EnrichedNaquadahSulfate, 6)
+                    .fluidInputs(Hydrogen.getFluid(2000))
+                    .output(ingotHot, NaquadahEnriched)
+                    .fluidOutputs(SulfuricAcid.getFluid(1000))
+                    .buildAndRegister();
 
-        BLAST_RECIPES.recipeBuilder().EUt(VA[IV]).duration(500).blastFurnaceTemp(7000)
-                .input(dust, EnrichedNaquadahSulfate, 6)
-                .fluidInputs(Hydrogen.getFluid(2000))
-                .output(ingotHot, NaquadahEnriched)
-                .fluidOutputs(SulfuricAcid.getFluid(1000))
-                .buildAndRegister();
+            DISTILLATION_RECIPES.recipeBuilder().EUt(VA[HV]).duration(300)
+                    .fluidInputs(EnrichedNaquadahWaste.getFluid(2000))
+                    .chancedOutput(dust, BariumSulfide, 5000, 0)
+                    .fluidOutputs(SulfuricAcid.getFluid(500))
+                    .fluidOutputs(EnrichedNaquadahSolution.getFluid(350))
+                    .fluidOutputs(NaquadriaSolution.getFluid(150))
+                    .buildAndRegister();
 
-        DISTILLATION_RECIPES.recipeBuilder().EUt(VA[HV]).duration(300)
-                .fluidInputs(EnrichedNaquadahWaste.getFluid(2000))
-                .chancedOutput(dust, BariumSulfide, 5000, 0)
-                .fluidOutputs(SulfuricAcid.getFluid(500))
-                .fluidOutputs(EnrichedNaquadahSolution.getFluid(350))
-                .fluidOutputs(NaquadriaSolution.getFluid(150))
-                .buildAndRegister();
+            // NAQUADRIA PROCESS
 
-        // NAQUADRIA PROCESS
+            CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[EV]).duration(400)
+                    .fluidInputs(ImpureNaquadriaSolution.getFluid(2000))
+                    .output(dust, IndiumPhosphide)
+                    .output(dust, AntimonyTrifluoride, 2)
+                    .fluidOutputs(NaquadriaSolution.getFluid(1000))
+                    .buildAndRegister();
 
-        CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[EV]).duration(400)
-                .fluidInputs(ImpureNaquadriaSolution.getFluid(2000))
-                .output(dust, IndiumPhosphide)
-                .output(dust, AntimonyTrifluoride, 2)
-                .fluidOutputs(NaquadriaSolution.getFluid(1000))
-                .buildAndRegister();
+            MIXER_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
+                    .fluidInputs(NaquadriaSolution.getFluid(1000))
+                    .fluidInputs(SulfuricAcid.getFluid(2000))
+                    .fluidOutputs(AcidicNaquadriaSolution.getFluid(3000))
+                    .buildAndRegister();
 
-        MIXER_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
-                .fluidInputs(NaquadriaSolution.getFluid(1000))
-                .fluidInputs(SulfuricAcid.getFluid(2000))
-                .fluidOutputs(AcidicNaquadriaSolution.getFluid(3000))
-                .buildAndRegister();
+            CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
+                    .fluidInputs(AcidicNaquadriaSolution.getFluid(3000))
+                    .fluidOutputs(NaquadriaWaste.getFluid(2000))
+                    .fluidOutputs(Fluorine.getFluid(250))
+                    .output(dust, NaquadriaSulfate, 6)
+                    .buildAndRegister();
 
-        CENTRIFUGE_RECIPES.recipeBuilder().EUt(VA[HV]).duration(100)
-                .fluidInputs(AcidicNaquadriaSolution.getFluid(3000))
-                .fluidOutputs(NaquadriaWaste.getFluid(2000))
-                .fluidOutputs(Fluorine.getFluid(250))
-                .output(dust, NaquadriaSulfate, 6)
-                .buildAndRegister();
+            BLAST_RECIPES.recipeBuilder().EUt(VA[ZPM]).duration(600).blastFurnaceTemp(9000)
+                    .input(dust, NaquadriaSulfate, 6)
+                    .fluidInputs(Hydrogen.getFluid(2000))
+                    .output(ingotHot, Naquadria)
+                    .fluidOutputs(SulfuricAcid.getFluid(1000))
+                    .buildAndRegister();
 
-        BLAST_RECIPES.recipeBuilder().EUt(VA[ZPM]).duration(600).blastFurnaceTemp(9000)
-                .input(dust, NaquadriaSulfate, 6)
-                .fluidInputs(Hydrogen.getFluid(2000))
-                .output(ingotHot, Naquadria)
-                .fluidOutputs(SulfuricAcid.getFluid(1000))
-                .buildAndRegister();
-
-        DISTILLATION_RECIPES.recipeBuilder().EUt(VA[HV]).duration(300)
-                .fluidInputs(NaquadriaWaste.getFluid(2000))
-                .chancedOutput(dust, GalliumSulfide, 5000, 0)
-                .fluidOutputs(SulfuricAcid.getFluid(500))
-                .fluidOutputs(NaquadriaSolution.getFluid(350))
-                .fluidOutputs(EnrichedNaquadahSolution.getFluid(150))
-                .buildAndRegister();
+            DISTILLATION_RECIPES.recipeBuilder().EUt(VA[HV]).duration(300)
+                    .fluidInputs(NaquadriaWaste.getFluid(2000))
+                    .chancedOutput(dust, GalliumSulfide, 5000, 0)
+                    .fluidOutputs(SulfuricAcid.getFluid(500))
+                    .fluidOutputs(NaquadriaSolution.getFluid(350))
+                    .fluidOutputs(EnrichedNaquadahSolution.getFluid(150))
+                    .buildAndRegister();
+        }
 
         // TRINIUM
 

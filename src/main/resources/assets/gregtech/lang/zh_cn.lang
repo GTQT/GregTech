@@ -706,8 +706,6 @@ metaitem.circuit.integrated.tooltip=右击以打开配置界面/n/n手持并潜�
 metaitem.circuit.integrated.gui=电路配置
 metaitem.circuit.integrated.jei_description=JEI将仅显示匹配当前编程电路配置的配方。/n/n在编程电路配置界面中调整配置以查看对应配方。
 
-metaitem.tool.mutliblock_preview.name=多方块投影仪
-
 # Structure Projector
 gregtech.tool.projector.tooltip1=§7右键多方块控制器：显示全息预览
 gregtech.tool.projector.tooltip2=§7Shift+右键多方块控制器：自动建造结构
@@ -1169,6 +1167,8 @@ item.gt.tool.behavior.crop_harvesting=§a庄稼收割：§f收获成熟的作物
 item.gt.tool.behavior.plunger=§9水管工人：§f抽干流体
 item.gt.tool.behavior.block_rotation=§2精械师傅：§f旋转方块
 item.gt.tool.behavior.damage_boost=§4伤害增益：§f对%s造成额外伤害
+item.gt.tool.behavior.pipeliner=§6管线工人：§f递归操作相邻的管道
+item.gt.tool.tooltip.pipeliner=§7按住§f[%s]§7以激活§6管线工人§7模式
 
 gt.tool.class.sword=剑
 gt.tool.class.pickaxe=镐
@@ -1401,6 +1401,8 @@ metaitem.tool.multiblock_builder.tooltip2=按住SHIFT键后右键单击多方块
 metaitem.tool.multiblock_remover.name=多方块拆除器
 metaitem.tool.multiblock_remover.tooltip=拆除你的多方块结构！
 metaitem.tool.multiblock_remover.tooltip2=按住SHIFT键后右键单击多方块结构控制器以自动拆除
+
+metaitem.tool.mutliblock_preview.name=多方块预览器
 
 metaitem.stellar_fuel.name=恒星燃料
 metaitem.stellar_fuel.tooltip=§5浓缩恒星点火催化剂
@@ -2941,37 +2943,6 @@ behavior.vajra.tooltip.other_energy_cost=%s耗电: %s EU/次
 behavior.vajra.tooltip.energy=能量: %s / %s EU (%s%%)
 behavior.vajra.tooltip.available_uses=可用次数: %s 次
 
-metaitem.wind_meter.name=风力计
-# 风力计消息
-behavior.wind_meter.mode.simple=简单模式
-behavior.wind_meter.mode.detailed=详细模式
-behavior.wind_meter.mode_switched=风力计模式已切换至: %s (%s EU/次)
-behavior.wind_meter.insufficient_energy=能量不足! 需要 %s EU
-
-behavior.wind_meter.header.simple=§b=== 风力测量结果 ===
-behavior.wind_meter.header.detailed=§b=== 详细风力分析 ===
-behavior.wind_meter.total_efficiency=§a总风力效率: §e%s%%
-behavior.wind_meter.height_efficiency=§a高度效率: §f%s%%§7 (Y:%s)
-behavior.wind_meter.weather_efficiency=§a天气效率: §f%s%%
-behavior.wind_meter.biome_efficiency=§a生物群系效率: §f%s%%
-behavior.wind_meter.position=§a位置: §fX:%s Y:%s Z:%s
-behavior.wind_meter.position_detailed=§7位置: X:%s Y:%s Z:%s
-
-behavior.wind_meter.rating.excellent=§6★ 优秀的风力发电位置！
-behavior.wind_meter.rating.good=§a✓ 良好的风力发电位置
-behavior.wind_meter.rating.average=§e○ 一般的风力发电位置
-behavior.wind_meter.rating.poor=§c✗ 较差的风力发电位置
-# 风力计工具提示
-behavior.wind_meter.tooltip.use1=§b右键测量当前位置风力
-behavior.wind_meter.tooltip.use2=§b右键方块测量该位置风力
-behavior.wind_meter.tooltip.use3=§bShift+右键切换模式
-behavior.wind_meter.tooltip.current_mode=§6当前模式: §e%s
-behavior.wind_meter.tooltip.current_energy_cost=§a当前耗电: §f%s EU/次
-behavior.wind_meter.tooltip.other_mode=§7其他模式: §8%s (%s EU/次)
-behavior.wind_meter.tooltip.purpose=§a用于测量风力发电机的最佳位置
-behavior.wind_meter.tooltip.energy=§b能量: %s§7 / §b%s EU §7(%s%%)
-behavior.wind_meter.tooltip.available_uses=§d可用次数: §f%s 次
-
 metaitem.item_magnet.lv.name=低压物品磁铁
 metaitem.item_magnet.hv.name=高压物品磁铁
 behavior.item_magnet.enabled=§a磁场已启用
@@ -3628,18 +3599,6 @@ gregtech.machine.plasma_generator.iv.name=等离子发电机-MKII
 gregtech.machine.plasma_generator.luv.name=等离子发电机-MKIII
 gregtech.machine.plasma_generator.zpm.name=等离子发电机-MKIV
 gregtech.machine.plasma_generator.uv.name=等离子发电机-MKV
-
-
-gregtech.machine.wind_generator.lv.name=基础风力发电机
-gregtech.machine.wind_generator.mv.name=进阶风力发电机
-gregtech.machine.wind_generator.hv.name=涡轮风力发电机
-gregtech.machine.wind_generator.ev.name=涡轮风力发电机II
-gregtech.machine.wind_generator.iv.name=涡轮风力发电机III
-tooltip.wind_generator.tooltip1=基础发电量：V[转子等级]（随转子等级提升）
-tooltip.wind_generator.tooltip2=发电效率随高度提升：每50格+10%效率
-tooltip.wind_generator.tooltip3=天气影响：雨天+15%/雷暴+30%效率，但会增加转子损耗
-tooltip.wind_generator.tooltip4=生物群系影响：开阔地形+10%效率，茂密森林-10%效率
-tooltip.wind_generator.tooltip5=需要安装对应等级的转子才能发电
 
 gregtech.machine.magic_energy_absorber.lv.name=魔法能源吸收器-MKI
 gregtech.machine.magic_energy_absorber.mv.name=魔法能源吸收器-MKII
@@ -5513,6 +5472,9 @@ gregtech.machine.recycler.opv.name=传奇回收机
 gregtech.machine.recycler.opv.tooltip=分子级分解装置
 
 # Vulcanizing Press
+gregtech.machine.steam_vulcanizing_press_bronze.name=蒸汽硫化机
+gregtech.machine.steam_vulcanizing_press_steel.name=高压蒸汽硫化机
+
 gregtech.machine.vulcanizing_press.lv.name=基础硫化机
 gregtech.machine.vulcanizing_press.lv.tooltip=橡胶制造厂
 gregtech.machine.vulcanizing_press.mv.name=进阶硫化机
@@ -7674,7 +7636,7 @@ item.gt.comb.americium.name=镅蜂窝
 item.gt.comb.neutronium.name=中子素蜂窝
 item.gt.comb.phosphorus.name=磷蜂窝
 item.gt.comb.indium.name=铟蜂窝
-item.gt.comb.trinium.name=凯金蜂窝v
+item.gt.comb.trinium.name=凯金蜂窝
 item.gt.comb.helium.name=氦蜂窝
 item.gt.comb.argon.name=氩蜂窝
 item.gt.comb.xenon.name=氙蜂窝

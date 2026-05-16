@@ -327,7 +327,7 @@ public final class RecipeMaps {
     @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> CANNER_RECIPES = new RecipeMapFluidCanner("canner",
             new SimpleRecipeBuilder(), recipeMap -> {
-        RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, true, true, true, true, false);
+        RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, true, true, true, true);
         return ui.buildMui2(b -> b
                 .itemSlotOverlay(GTGuiTextures.CANNER_OVERLAY, false, false)
                 .itemSlotOverlay(GTGuiTextures.CANISTER_OVERLAY, false, true)
@@ -1067,7 +1067,7 @@ public final class RecipeMaps {
     @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> FURNACE_RECIPES = new RecipeMapFurnace("electric_furnace",
             new SimpleRecipeBuilder(), recipeMap -> {
-        RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, true, true, true, true, false);
+        RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, true, true, true, true);
         return ui.buildMui2(b -> b
                 .itemSlotOverlay(GTGuiTextures.FURNACE_OVERLAY_1, false)
                 .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW, Direction.RIGHT));
@@ -1575,7 +1575,7 @@ public final class RecipeMaps {
     @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> SCANNER_RECIPES = new RecipeMapScanner("scanner",
             new SimpleRecipeBuilder(), recipeMap -> {
-        RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, true, true, true, true, false);
+        RecipeMapUI<?> ui = new RecipeMapUI<>(recipeMap, true, true, true, true);
         return ui.buildMui2(b -> b
                 .itemSlotOverlay(GTGuiTextures.DATA_ORB_OVERLAY, false, false)
                 .itemSlotOverlay(GTGuiTextures.SCANNER_OVERLAY, false, true)

@@ -1170,6 +1170,8 @@ item.gt.tool.behavior.crop_harvesting=§aHarvester: §fHarvests Crops
 item.gt.tool.behavior.plunger=§9Plumber: §fDrains Fluids
 item.gt.tool.behavior.block_rotation=§2Mechanic: §fRotates Blocks
 item.gt.tool.behavior.damage_boost=§4Damage Boost: §fExtra damage against %s
+item.gt.tool.behavior.pipeliner=§6管线工人：§f递归操作相邻的管道
+item.gt.tool.tooltip.pipeliner=§7按住§f[%s]§7以激活§6管线工人§7模式
 
 gt.tool.class.sword=Sword
 gt.tool.class.pickaxe=Pickaxe
@@ -2517,7 +2519,6 @@ gregtech.material.graviton_shard=Graviton Shard
 gregtech.material.quark_gluon_plasma=Quark-Gluon Plasma
 gregtech.material.mag_matter=Mag Matter
 
-
 # Marker Material Tiers
 gregtech.material.primitive=Primitive
 gregtech.material.basic=Basic
@@ -2944,37 +2945,6 @@ behavior.vajra.tooltip.current_energy_cost=Current Energy Cost: %s EU/use
 behavior.vajra.tooltip.other_energy_cost=%s Energy Cost: %s EU/use
 behavior.vajra.tooltip.energy=Energy: %s / %s EU (%s%%)
 behavior.vajra.tooltip.available_uses=Available Uses: %s times
-
-metaitem.wind_meter.name=Wind Meter
-# Wind Meter Messages
-behavior.wind_meter.mode.simple=Simple Mode
-behavior.wind_meter.mode.detailed=Detailed Mode
-behavior.wind_meter.mode_switched=Wind meter mode switched to: %s (%s EU/use)
-behavior.wind_meter.insufficient_energy=Insufficient energy! Requires %s EU
-
-behavior.wind_meter.header.simple=§b=== Wind Measurement Results ===
-behavior.wind_meter.header.detailed=§b=== Detailed Wind Analysis ===
-behavior.wind_meter.total_efficiency=§aTotal Wind Efficiency: §e%s%%
-behavior.wind_meter.height_efficiency=§aHeight Efficiency: §f%s%%§7 (Y:%s)
-behavior.wind_meter.weather_efficiency=§aWeather Efficiency: §f%s%%
-behavior.wind_meter.biome_efficiency=§aBiome Efficiency: §f%s%%
-behavior.wind_meter.position=§aPosition: §fX:%s Y:%s Z:%s
-behavior.wind_meter.position_detailed=§7Position: X:%s Y:%s Z:%s
-
-behavior.wind_meter.rating.excellent=§6★ Excellent wind power location!
-behavior.wind_meter.rating.good=§a✓ Good wind power location
-behavior.wind_meter.rating.average=§e○ Average wind power location
-behavior.wind_meter.rating.poor=§c✗ Poor wind power location
-# Wind Meter Tooltips
-behavior.wind_meter.tooltip.use1=§bRight-click to measure wind at current position
-behavior.wind_meter.tooltip.use2=§bRight-click block to measure wind at that position
-behavior.wind_meter.tooltip.use3=§bShift+Right-click to switch mode
-behavior.wind_meter.tooltip.current_mode=§6Current Mode: §e%s
-behavior.wind_meter.tooltip.current_energy_cost=§aCurrent Energy Cost: §f%s EU/use
-behavior.wind_meter.tooltip.other_mode=§7Other Mode: §8%s (%s EU/use)
-behavior.wind_meter.tooltip.purpose=§aUsed to find optimal locations for wind generators
-behavior.wind_meter.tooltip.energy=§bEnergy: %s§7 / §b%s EU §7(%s%%)
-behavior.wind_meter.tooltip.available_uses=§dAvailable Uses: §f%s times
 
 metaitem.item_magnet.lv.name=Low Voltage Item Magnet
 metaitem.item_magnet.hv.name=High Voltage Item Magnet
@@ -3633,18 +3603,6 @@ gregtech.machine.plasma_generator.iv.name=Plasma Generator-MKII
 gregtech.machine.plasma_generator.luv.name=Plasma Generator-MKIII
 gregtech.machine.plasma_generator.zpm.name=Plasma Generator-MKIV
 gregtech.machine.plasma_generator.uv.name=Plasma Generator-MKV
-
-
-gregtech.machine.wind_generator.lv.name=Basic Wind Generator
-gregtech.machine.wind_generator.mv.name=Advanced Wind Generator
-gregtech.machine.wind_generator.hv.name=Turbine Wind Generator
-gregtech.machine.wind_generator.ev.name=Turbine Wind Generator II
-gregtech.machine.wind_generator.iv.name=Turbine Wind Generator III
-tooltip.wind_generator.tooltip1=Base Output: V[rotor tier] (scales with rotor tier)
-tooltip.wind_generator.tooltip2=Efficiency increases with height: +10% per 50 blocks
-tooltip.wind_generator.tooltip3=Weather effects: Rain +15%/Thunderstorm +30% efficiency, but increases rotor wear
-tooltip.wind_generator.tooltip4=Biome effects: Open terrain +10%, dense forests -10% efficiency
-tooltip.wind_generator.tooltip5=Requires installation of appropriate tier rotor
 
 gregtech.machine.magic_energy_absorber.lv.name=Magic Energy Absorber-MKI
 gregtech.machine.magic_energy_absorber.mv.name=Magic Energy Absorber-MKII
@@ -5517,6 +5475,9 @@ gregtech.machine.recycler.opv.name=Legendary Recycler
 gregtech.machine.recycler.opv.tooltip=Molecular Decomposition Device
 
 # Vulcanizing Press
+gregtech.machine.steam_vulcanizing_press_bronze.name=蒸汽硫化机
+gregtech.machine.steam_vulcanizing_press_steel.name=高压蒸汽硫化机
+
 gregtech.machine.vulcanizing_press.lv.name=Basic Vulcanizing Press
 gregtech.machine.vulcanizing_press.lv.tooltip=Rubber Manufacturer
 gregtech.machine.vulcanizing_press.mv.name=Advanced Vulcanizing Press

@@ -6,6 +6,7 @@ import gregtech.api.GregTechAPIInternal;
 import gregtech.api.block.IHeatingCoilBlockStats;
 import gregtech.api.block.coil.CoilManager;
 import gregtech.api.capability.SimpleCapabilityManager;
+import gregtech.api.color.ColoredBlockContainer;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.fluids.GTFluidRegistration;
 import gregtech.api.gui.UIFactory;
@@ -321,6 +322,7 @@ public class CoreModule implements IGregTechModule {
         }
 
         ModHandler.postInit();
+        ColoredBlockContainer.registerCEuContainers();
     }
 
     @Override

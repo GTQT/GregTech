@@ -48,6 +48,7 @@ import gregtech.common.items.behaviors.MiningLaserBehavior;
 import gregtech.common.items.behaviors.MultiblockBuilderBehavior;
 import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
+import gregtech.common.items.behaviors.PipeNetPainterBehavior;
 import gregtech.common.items.behaviors.ProspectorScannerBehavior;
 import gregtech.common.items.behaviors.StructureProjectorBehavior;
 import gregtech.common.items.behaviors.ScrapBoxBehavior;
@@ -56,7 +57,6 @@ import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
-import gregtech.common.items.behaviors.WindMeterBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -290,12 +290,14 @@ public class MetaItem1 extends StandardMetaItem {
         // out of registry order so it can reference the Empty Spray Can
         SPRAY_SOLVENT = addItem(90, "spray.solvent").setMaxStackSize(1)
                 .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 1024, null))
+                .addComponents(new PipeNetPainterBehavior(1024, SPRAY_EMPTY.getStackForm(), -1))
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         for (EnumDyeColor color : EnumDyeColor.values()) {
             SPRAY_CAN_DYES.put(color, addItem(92 + color.ordinal(), "spray.can.dyes." + color.getName())
                     .setMaxStackSize(1)
                     .addComponents(new DurabilitySprayBehavior(SPRAY_EMPTY.getStackForm(), 512, color))
+                    .addComponents(new PipeNetPainterBehavior(512, SPRAY_EMPTY.getStackForm(), color.ordinal()))
                     .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS));
         }
 
@@ -1058,13 +1060,6 @@ public class MetaItem1 extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        //风力计
-        WIND_METER = addItem(512, "wind_meter")
-                .addComponents(ElectricStats.createElectricItem(400000L, GTValues.MV),
-                        new WindMeterBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
         // Circuit Components: ID 516-565
         VACUUM_TUBE = addItem(516, "circuit.vacuum_tube").setUnificationData(OrePrefix.circuit, Tier.ULV);
         GLASS_TUBE = addItem(517, "component.glass.tube")
@@ -1423,11 +1418,9 @@ public class MetaItem1 extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        MULTIBLOCK_PREVIEW = addItem(1005, "tool.mutliblock_preview").addComponents(new StructureProjectorBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
 
-        MULTIBLOCK_REMOVER = addItem(1006, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
+        MULTIBLOCK_PREVIEW = addItem(1006, "tool.mutliblock_preview").addComponents(new StructureProjectorBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 

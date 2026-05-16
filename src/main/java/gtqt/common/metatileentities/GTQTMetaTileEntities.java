@@ -1,13 +1,13 @@
 package gtqt.common.metatileentities;
 
 import gregtech.api.GTValues;
-import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
-import gregtech.api.recipes.RecipeMaps;
-import gregtech.client.renderer.texture.Textures;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityEnergyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityGasHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntitySubstationEnergyHatch;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 
 import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
+import gtqt.common.metatileentities.electric.MetaTileEntityProgrammingProvider;
 import gtqt.common.metatileentities.heat.MetaTileEntityElectricHeater;
 import gtqt.common.metatileentities.heat.MetaTileEntityHeatHatch;
 import gtqt.common.metatileentities.heat.MetaTileEntityHeatSensor;
@@ -35,12 +35,10 @@ import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityME
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityPatternProviderMappingSlave;
-import gtqt.common.metatileentities.electric.MetaTileEntityProgrammingProvider;
 import gtqt.common.metatileentities.store.MetaTileEntityHugeBuffer;
 
 import static gregtech.api.GTValues.VN;
 import static gregtech.api.util.GTUtility.gregtechId;
-import static gregtech.api.util.Mods.Names.FORESTRY;
 import static gregtech.api.util.Mods.Names.FTB_LIB;
 import static gregtech.common.metatileentities.MetaTileEntities.registerMetaTileEntity;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
@@ -105,8 +103,15 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_INPUT_ENERGY_HATCH_1048576A = new MetaTileEntityWirelessEnergyHatch[15];
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_OUTPUT_ENERGY_HATCH_1048576A = new MetaTileEntityWirelessEnergyHatch[15];
 
+    public static final MetaTileEntityEnergyHatch[] ENERGY_INPUT_HATCH_64A = new MetaTileEntityEnergyHatch[GTValues.V.length];
+    public static final MetaTileEntityEnergyHatch[] ENERGY_INPUT_HATCH_256A = new MetaTileEntityEnergyHatch[GTValues.V.length];
+    public static final MetaTileEntityEnergyHatch[] ENERGY_OUTPUT_HATCH_64A = new MetaTileEntityEnergyHatch[GTValues.V.length];
+    public static final MetaTileEntityEnergyHatch[] ENERGY_OUTPUT_HATCH_256A = new MetaTileEntityEnergyHatch[GTValues.V.length];
+    public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_INPUT_HATCH_256A = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
+    public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_OUTPUT_HATCH_256A = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
+
     public static final MetaTileEntityWirelessController[] WIRELESS_CONTROLLERS = new MetaTileEntityWirelessController[15];
-    public static final SimpleMachineMetaTileEntity[] BEE_ATTRACTORS = new SimpleMachineMetaTileEntity[15];
+
     public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
 
     public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
@@ -115,12 +120,10 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityCreativeInputBus CREATIVE_INPUT_BUS;
     public static MetaTileEntityCreativeInputHatch CREATIVE_INPUT_HATCH;
 
-    //从2500开始写 与gtceu本体共用一个注册表
-    //任务：GTQT内不方便写的内容转移到这里来写
-    //例如 高等级的能源仓 激光仓等等
     public static void initialization() {
+        // # 存储
 
-        // Multi Super / Quantum Tanks, IDs 2400-
+        // Multi Super / Quantum Tanks, IDs 2400 - 2410
         for (int i = 0; i < 5; i++) {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
             MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_super_tank." + voltageName), i + 1,
@@ -135,7 +138,9 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2400 + i, MULTI_QUANTUM_TANK[i]);
         }
 
-        //总成类, IDs 2500-
+        // # 仓口
+
+        // 总成类, IDs 2500-
         for(int i=0;i<DUAL_IMPORT_HATCH.length;i++)
         {
             String voltageName = GTValues.VN[i+1].toLowerCase();
@@ -169,6 +174,7 @@ public class GTQTMetaTileEntities {
         ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"),GTValues.IV);
         ME_PATTERN_MANAGER = new MetaTileEntityMEPatternManager(gregtechId("me_pattern_manager"),6,false);
 
+        // ME设备, IDs 2700-
         registerMetaTileEntity(2700, ME_DUAL_IMPORT_HATCH);
         registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
         registerMetaTileEntity(2702, ME_PATTERN_PROVIDER_PROXY);
@@ -246,20 +252,6 @@ public class GTQTMetaTileEntities {
 
         HEAT_SENSOR = registerMetaTileEntity(2936, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));
 
-        // 引蜂器，IDs 2940-2955
-        if(isModLoaded(FORESTRY))
-        {
-            //引蜂器
-            for (int i = 0; i < 15; i++) {
-                String tier = VN[i].toLowerCase();
-                BEE_ATTRACTORS[i] = registerMetaTileEntity(2940 + i,
-                        new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),
-                                RecipeMaps.ATTRACTOR_RECIPES,
-                                Textures.BEE_ATTRACTOR_OVERLAY, i, false));
-            }
-        }
-
-        //
         // Huge Buffers, IDs 2960-2964
         HUGE_BUFFER[0] = registerMetaTileEntity(2960, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.lv"), 1));
         HUGE_BUFFER[1] = registerMetaTileEntity(2961, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.mv"), 2));
@@ -267,7 +259,7 @@ public class GTQTMetaTileEntities {
         HUGE_BUFFER[3] = registerMetaTileEntity(2963, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.ev"), 4));
         HUGE_BUFFER[4] = registerMetaTileEntity(2964, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
 
-        //无线能源仓注册 ID 3000+
+        // 无线能源仓注册 ID 3000+
         for (int i = 0; i < 15; i++) {
             String tier = VN[i].toLowerCase();
             // Wireless controllers only available at UHV (tier 9) and above
@@ -345,7 +337,30 @@ public class GTQTMetaTileEntities {
             }
         }
 
-        //5000+
+        /*
+        // 更多能源仓 ID 3500+
+        int endPos = GregTechAPI.isHighTier() ? ENERGY_INPUT_HATCH_256A.length - 1 :
+                Math.min(ENERGY_INPUT_HATCH_256A.length - 1, GTValues.UV + 2);
+        for (int i = 0; i < endPos; i++) {
+            String voltageName = GTValues.VN[i].toLowerCase();
+            ENERGY_INPUT_HATCH_64A[i] = registerMetaTileEntity(3500 + i,
+                    new MetaTileEntityEnergyHatch(gregtechId("energy_hatch.input_64a." + voltageName), i, 64, false));
+            ENERGY_OUTPUT_HATCH_64A[i] = registerMetaTileEntity(3515 + i,
+                    new MetaTileEntityEnergyHatch(gregtechId("energy_hatch.output_64a." + voltageName), i, 64, true));
+            ENERGY_INPUT_HATCH_256A[i] = registerMetaTileEntity(3530 + i,
+                    new MetaTileEntityEnergyHatch(gregtechId("energy_hatch.input_256a." + voltageName), i, 256, false));
+            ENERGY_OUTPUT_HATCH_256A[i] = registerMetaTileEntity(3545 + i,
+                    new MetaTileEntityEnergyHatch(gregtechId("energy_hatch.output_256a." + voltageName), i, 256, true));
+            SUBSTATION_ENERGY_INPUT_HATCH_256A[i] = registerMetaTileEntity(3560 + i,
+                    new MetaTileEntitySubstationEnergyHatch(gregtechId("substation_hatch.input_256a." + voltageName), i,
+                            256, false));
+            SUBSTATION_ENERGY_OUTPUT_HATCH_256A[i] = registerMetaTileEntity(3575 + i,
+                    new MetaTileEntitySubstationEnergyHatch(gregtechId("substation_hatch.output_256a." + voltageName), i,
+                            256, true));
+        }
+         */
+
+        // 5000+
         LOGISTICS_MATERIAL_DISTRIBUTOR = registerMetaTileEntity(5000,
                 new MetaTileEntityLogisticsMaterialDistributor(gregtechId("logistics_material_distributor")));
 

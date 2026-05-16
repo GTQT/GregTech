@@ -70,8 +70,8 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
                 .isItemEqual(MetaItems.QUANTUM_CHESTPLATE.getStackForm()) &&
                 !player.getItemStackFromSlot(EntityEquipmentSlot.CHEST)
                         .isItemEqual(MetaItems.QUANTUM_CHESTPLATE_ADVANCED.getStackForm())) {
-                            if (!world.isRemote) player.isImmuneToFire = false;
-                        }
+            if (!world.isRemote) player.isImmuneToFire = false;
+        }
 
         boolean ret = false;
         if (SLOT == EntityEquipmentSlot.HEAD) {
@@ -124,8 +124,7 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
                 if (!nightvision && item.getCharge() >= 4) {
                     nightvision = true;
                     if (!world.isRemote)
-                        player.sendStatusMessage(new TextComponentTranslation("metaarmor.qts.nightvision.enabled"),
-                                true);
+                        player.sendStatusMessage(new TextComponentTranslation("metaarmor.qts.nightvision.enabled"), true);
                 } else if (nightvision) {
                     nightvision = false;
                     disableNightVision(world, player, true);
@@ -134,10 +133,7 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
                         player.sendStatusMessage(new TextComponentTranslation("metaarmor.qts.nightvision.error"), true);
                     }
                 }
-
-                if (!world.isRemote) {
-                    data.setBoolean("Nightvision", nightvision);
-                }
+                data.setBoolean("Nightvision", nightvision);
             }
 
             if (nightvision && !world.isRemote && item.getCharge() >= energyPerUse) {
@@ -146,10 +142,10 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
                 item.discharge(4, this.tier, true, false, false);
             }
 
-            if (!world.isRemote && toggleTimer > 0) {
+            if (toggleTimer > 0) {
                 --toggleTimer;
-                data.setByte("toggleTimer", toggleTimer);
             }
+            data.setByte("toggleTimer", toggleTimer);
         } else if (SLOT == EntityEquipmentSlot.CHEST && !player.isImmuneToFire) {
             player.isImmuneToFire = true;
             if (player.isBurning())
@@ -174,22 +170,22 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
                 }
                 player.moveRelative(0.0F, 0.0F, 1.0F, speed);
             } else
-                if (item.canUse(energyPerUse / 100) && player.isInWater() && KeyBind.VANILLA_SNEAK.isKeyDown(player) ||
-                        KeyBind.VANILLA_JUMP.isKeyDown(player)) {
-                            byte consumerTicks = data.getByte("consumerTicks");
-                            ++consumerTicks;
-                            if (consumerTicks >= 10) {
-                                consumerTicks = 0;
-                                item.discharge(energyPerUse / 100, item.getTier(), true, false, false);
-                                ret = true;
-                            }
-                            data.setByte("consumerTicks", consumerTicks);
-                            double acceleration = 0.085D;
-                            if (KeyBind.VANILLA_SNEAK.isKeyDown(player))
-                                player.motionY -= acceleration;
-                            if (KeyBind.VANILLA_JUMP.isKeyDown(player))
-                                player.motionY += acceleration;
-                        }
+            if (item.canUse(energyPerUse / 100) && player.isInWater() && KeyBind.VANILLA_SNEAK.isKeyDown(player) ||
+                    KeyBind.VANILLA_JUMP.isKeyDown(player)) {
+                byte consumerTicks = data.getByte("consumerTicks");
+                ++consumerTicks;
+                if (consumerTicks >= 10) {
+                    consumerTicks = 0;
+                    item.discharge(energyPerUse / 100, item.getTier(), true, false, false);
+                    ret = true;
+                }
+                data.setByte("consumerTicks", consumerTicks);
+                double acceleration = 0.085D;
+                if (KeyBind.VANILLA_SNEAK.isKeyDown(player))
+                    player.motionY -= acceleration;
+                if (KeyBind.VANILLA_JUMP.isKeyDown(player))
+                    player.motionY += acceleration;
+            }
         } else if (SLOT == EntityEquipmentSlot.FEET) {
             if (!world.isRemote) {
                 boolean onGround = !data.hasKey("onGround") || data.getBoolean("onGround");
@@ -227,6 +223,7 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
             player.inventoryContainer.detectAndSendChanges();
         }
     }
+
 
     public static void disableNightVision(@NotNull World world, EntityPlayer player, boolean sendMsg) {
         if (!world.isRemote) {

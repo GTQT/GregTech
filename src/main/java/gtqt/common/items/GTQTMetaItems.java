@@ -33,13 +33,6 @@ public class GTQTMetaItems {
     public static MetaItem<?>.MetaValueItem FLUID_CELL_NAQUADAH_ALLOY;
     public static MetaItem<?>.MetaValueItem FLUID_CELL_NEUTRONIUM;
 
-    public static MetaItem<?>.MetaValueItem WIND_ROTOR_STEEL;
-    public static MetaItem<?>.MetaValueItem WIND_ROTOR_ALUMINIUM;
-    public static MetaItem<?>.MetaValueItem WIND_ROTOR_STAINLESSSTEEL;
-    public static MetaItem<?>.MetaValueItem WIND_ROTOR_TITANIUM;
-    public static MetaItem<?>.MetaValueItem WIND_ROTOR_TUNGSTENSTEEL;
-    public static MetaItem<?>.MetaValueItem WIND_ROTOR_RHODIUMPLATEDPALLADIUM;
-
     public static MetaItem<?>.MetaValueItem CASTING_MOLD_EMPTY;
     public static MetaItem<?>.MetaValueItem CASTING_MOLD_SAW;
     public static MetaItem<?>.MetaValueItem CASTING_MOLD_HARD_HAMMER;

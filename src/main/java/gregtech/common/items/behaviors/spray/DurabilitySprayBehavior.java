@@ -1,5 +1,6 @@
 package gregtech.common.items.behaviors.spray;
 
+import gregtech.api.color.ColorMode;
 import gregtech.api.items.metaitem.stats.IItemDurabilityManager;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GradientUtil;
@@ -59,7 +60,7 @@ public class DurabilitySprayBehavior extends AbstractSprayBehavior implements II
                 // Update held item to replacement stack
                 sprayCan.setItemDamage(replacementStack.getItemDamage());
                 // Clear NBT from old can
-                sprayCan.setTagCompound(new NBTTagCompound());
+                sprayCan.setTagCompound(null);
                 // Play sound manually since we aren't using player.setHeldItem(...)
                 player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_GENERIC, 1.0f, 1.0f);
             }
@@ -75,6 +76,11 @@ public class DurabilitySprayBehavior extends AbstractSprayBehavior implements II
     @Override
     public @Nullable EnumDyeColor getColor(@NotNull ItemStack stack) {
         return this.color;
+    }
+
+    @Override
+    public @NotNull ColorMode getColorMode(@NotNull ItemStack sprayCan) {
+        return ColorMode.DYE;
     }
 
     protected int getUsesLeft(@NotNull ItemStack stack) {

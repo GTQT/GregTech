@@ -548,10 +548,10 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
         // so add the yellow warning
         // LCR and fusion get manual overrides for now
         double duration = Math.floor(recipe.getDuration() /
-                Math.pow(recipeMap == RecipeMaps.LARGE_CHEMICAL_RECIPES ? 4 : 2, tierDifference));
+                Math.pow(2, tierDifference));
         result[2] = duration <= 0.5 ? 0xFFFF55 : 0x111111;
         result[0] = Math.abs(recipe.getEUt()) *
-                (int) Math.pow(recipeMap == RecipeMaps.FUSION_RECIPES ? 2 : 4, tierDifference);
+                (int) Math.pow(4, tierDifference);
         result[1] = Math.max(1, (int) duration);
 
         return result;

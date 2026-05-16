@@ -5,7 +5,9 @@ import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.StandardMetaItem;
 import gregtech.api.items.toolitem.IGTTool;
 import gregtech.api.items.toolitem.ItemGTTool;
+import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.modules.GregTechModule;
+import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.machines.RecipeMapScanner;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
@@ -16,6 +18,7 @@ import gregtech.api.unification.material.properties.OreProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.Mods;
+import gregtech.client.renderer.texture.Textures;
 import gregtech.common.items.ToolItems;
 import gregtech.integration.IntegrationModule;
 import gregtech.integration.IntegrationSubmodule;
@@ -61,16 +64,19 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 
+import static gregtech.api.GTValues.VN;
+import static gregtech.api.util.GTUtility.gregtechId;
+import static gregtech.common.metatileentities.MetaTileEntities.registerMetaTileEntity;
+
 @GregTechModule(
-                moduleID = GregTechModules.MODULE_FR,
-                containerID = GTValues.MODID,
-                modDependencies = Mods.Names.FORESTRY,
-                name = "GregTech Forestry Integration",
-                description = "Forestry Integration Module")
+        moduleID = GregTechModules.MODULE_FR,
+        containerID = GTValues.MODID,
+        modDependencies = Mods.Names.FORESTRY,
+        name = "GregTech Forestry Integration",
+        description = "Forestry Integration Module")
 public class ForestryModule extends IntegrationSubmodule {
 
-    private static MetaItem<?> forestryMetaItem;
-
+    public static final SimpleMachineMetaTileEntity[] BEE_ATTRACTORS = new SimpleMachineMetaTileEntity[GTValues.V.length-1];
     public static GTItemFrame FRAME_ACCELERATED;
     public static GTItemFrame FRAME_MUTAGENIC;
     public static GTItemFrame FRAME_WORKING;
@@ -98,114 +104,7 @@ public class ForestryModule extends IntegrationSubmodule {
 
     public static GTDropItem DROPS;
     public static GTCombItem COMBS;
-
-    @NotNull
-    @Override
-    public List<Class<?>> getEventBusSubscribers() {
-        return Collections.singletonList(ForestryModule.class);
-    }
-
-    @Override
-    public void preInit(FMLPreInitializationEvent event) {
-        forestryMetaItem = new StandardMetaItem();
-        forestryMetaItem.setRegistryName("forestry_meta_item");
-
-        // GT Frames
-        if (ForestryConfig.enableGTFrames) {
-            if (Mods.ForestryApiculture.isModLoaded()) {
-                FRAME_ACCELERATED = new GTItemFrame(GTFrameType.ACCELERATED);
-                FRAME_MUTAGENIC = new GTItemFrame(GTFrameType.MUTAGENIC);
-                FRAME_WORKING = new GTItemFrame(GTFrameType.WORKING);
-                FRAME_DECAYING = new GTItemFrame(GTFrameType.DECAYING);
-                FRAME_SLOWING = new GTItemFrame(GTFrameType.SLOWING);
-                FRAME_STABILIZING = new GTItemFrame(GTFrameType.STABILIZING);
-                FRAME_ARBORIST = new GTItemFrame(GTFrameType.ARBORIST);
-            } else {
-                getLogger()
-                        .warn("GregTech Frames are enabled, but Forestry Apiculture module is disabled. Skipping...");
-            }
-        }
-
-        // GT Scoop
-        if (ForestryConfig.enableGTScoop) {
-            SCOOP = ToolItems.register(ItemGTTool.Builder.of(GTValues.MODID, "scoop")
-                    .toolStats(b -> b
-                            .cannotAttack().attackSpeed(-2.4F)
-                            .behaviors(ScoopBehavior.INSTANCE))
-                    .toolClasses("scoop")
-                    .oreDict("toolScoop"));
-        }
-
-        // GT Bees
-        if (ForestryConfig.enableGTBees) {
-            if (Mods.ForestryApiculture.isModLoaded()) {
-                DROPS = new GTDropItem();
-                COMBS = new GTCombItem();
-            } else {
-                getLogger().warn("GregTech Bees are enabled, but Forestry Apiculture module is disabled. Skipping...");
-            }
-        }
-
-        // Remove duplicate/conflicting bees from other Forestry addons.
-        // Done in init to have our changes applied before their registration,
-        // since we load after other Forestry addons purposefully.
-        if (ForestryConfig.disableConflictingBees && Mods.ForestryApiculture.isModLoaded()) {
-            BeeRemovals.init();
-        }
-
-        // Custom scanner logic for scanning Forestry bees, saplings, etc
-        RecipeMapScanner.registerCustomScannerLogic(new ForestryScannerLogic());
-    }
-
-    @Override
-    public void init(FMLInitializationEvent event) {
-        // Yes, this recipe stuff has to be done in init. Because Forestry refuses to move their recipes
-        // to the event, causing removals to need to be done in init instead of registry event.
-        // See https://github.com/ForestryMC/ForestryMC/issues/2599
-        if (ForestryConfig.enableGTElectronTubes) {
-            ForestryElectrodeRecipes.onInit();
-        }
-
-        if (Mods.ForestryApiculture.isModLoaded()) {
-            if (ForestryConfig.harderForestryRecipes) {
-                ForestryMiscRecipes.initRemoval();
-            }
-
-            if (ForestryConfig.enableGTBees) {
-                GTAlleleBeeSpecies.setupAlleles();
-                GTBeeDefinition.initBees();
-            }
-        }
-
-        if (Mods.ExtraBees.isModLoaded()) {
-            registerAlvearyMutators();
-        }
-
-        if (event.getSide() == Side.CLIENT) {
-            if (Mods.ForestryApiculture.isModLoaded()) {
-                if (ForestryConfig.enableGTBees) {
-                    Minecraft.getMinecraft().getItemColors().registerItemColorHandler((stack, tintIndex) -> {
-                        if (stack.getItem() instanceof IColoredItem coloredItem) {
-                            return coloredItem.getColorFromItemstack(stack, tintIndex);
-                        }
-                        return 0xFFFFFF;
-                    }, DROPS, COMBS);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void postInit(FMLPostInitializationEvent event) {
-        if (Mods.ForestryApiculture.isModLoaded()) {
-            getLogger().info("Copying Forestry Centrifuge recipes to GT Centrifuge");
-            CombRecipes.initForestryCombs();
-        }
-        if(ForestryConfig.enableGTWoodenCraftingTable){
-            ForestryWoodRecipe.init();
-        }
-        BeeAttractorRecipeBuild.initAttactorRecipes();
-    }
+    private static MetaItem<?> forestryMetaItem;
 
     @SubscribeEvent
     public static void registerItems(RegistryEvent.Register<Item> event) {
@@ -395,5 +294,122 @@ public class ForestryModule extends IntegrationSubmodule {
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             IntegrationModule.logger.error("Could not register GT Alveary mutators!");
         }
+    }
+
+    @NotNull
+    @Override
+    public List<Class<?>> getEventBusSubscribers() {
+        return Collections.singletonList(ForestryModule.class);
+    }
+
+    @Override
+    public void preInit(FMLPreInitializationEvent event) {
+        forestryMetaItem = new StandardMetaItem();
+        forestryMetaItem.setRegistryName("forestry_meta_item");
+
+        // GT Frames
+        if (ForestryConfig.enableGTFrames) {
+            if (Mods.ForestryApiculture.isModLoaded()) {
+                FRAME_ACCELERATED = new GTItemFrame(GTFrameType.ACCELERATED);
+                FRAME_MUTAGENIC = new GTItemFrame(GTFrameType.MUTAGENIC);
+                FRAME_WORKING = new GTItemFrame(GTFrameType.WORKING);
+                FRAME_DECAYING = new GTItemFrame(GTFrameType.DECAYING);
+                FRAME_SLOWING = new GTItemFrame(GTFrameType.SLOWING);
+                FRAME_STABILIZING = new GTItemFrame(GTFrameType.STABILIZING);
+                FRAME_ARBORIST = new GTItemFrame(GTFrameType.ARBORIST);
+            } else {
+                getLogger()
+                        .warn("GregTech Frames are enabled, but Forestry Apiculture module is disabled. Skipping...");
+            }
+        }
+
+        // GT Scoop
+        if (ForestryConfig.enableGTScoop) {
+            SCOOP = ToolItems.register(ItemGTTool.Builder.of(GTValues.MODID, "scoop")
+                    .toolStats(b -> b
+                            .cannotAttack().attackSpeed(-2.4F)
+                            .behaviors(ScoopBehavior.INSTANCE))
+                    .toolClasses("scoop")
+                    .oreDict("toolScoop"));
+        }
+
+        // GT Bees
+        if (ForestryConfig.enableGTBees) {
+            if (Mods.ForestryApiculture.isModLoaded()) {
+                DROPS = new GTDropItem();
+                COMBS = new GTCombItem();
+            } else {
+                getLogger().warn("GregTech Bees are enabled, but Forestry Apiculture module is disabled. Skipping...");
+            }
+        }
+
+        // 引蜂器，IDs 2940-2955
+        for (int i = 0; i < BEE_ATTRACTORS.length; i++) {
+            String tier = VN[i].toLowerCase();
+            BEE_ATTRACTORS[i] = registerMetaTileEntity(2940 + i,
+                    new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),
+                            RecipeMaps.ATTRACTOR_RECIPES,
+                            Textures.BEE_ATTRACTOR_OVERLAY, i, false));
+        }
+
+        // Remove duplicate/conflicting bees from other Forestry addons.
+        // Done in init to have our changes applied before their registration,
+        // since we load after other Forestry addons purposefully.
+        if (ForestryConfig.disableConflictingBees && Mods.ForestryApiculture.isModLoaded()) {
+            BeeRemovals.init();
+        }
+
+        // Custom scanner logic for scanning Forestry bees, saplings, etc
+        RecipeMapScanner.registerCustomScannerLogic(new ForestryScannerLogic());
+    }
+
+    @Override
+    public void init(FMLInitializationEvent event) {
+        // Yes, this recipe stuff has to be done in init. Because Forestry refuses to move their recipes
+        // to the event, causing removals to need to be done in init instead of registry event.
+        // See https://github.com/ForestryMC/ForestryMC/issues/2599
+        if (ForestryConfig.enableGTElectronTubes) {
+            ForestryElectrodeRecipes.onInit();
+        }
+
+        if (Mods.ForestryApiculture.isModLoaded()) {
+            if (ForestryConfig.harderForestryRecipes) {
+                ForestryMiscRecipes.initRemoval();
+            }
+
+            if (ForestryConfig.enableGTBees) {
+                GTAlleleBeeSpecies.setupAlleles();
+                GTBeeDefinition.initBees();
+            }
+        }
+
+        if (Mods.ExtraBees.isModLoaded()) {
+            registerAlvearyMutators();
+        }
+
+        if (event.getSide() == Side.CLIENT) {
+            if (Mods.ForestryApiculture.isModLoaded()) {
+                if (ForestryConfig.enableGTBees) {
+                    Minecraft.getMinecraft().getItemColors().registerItemColorHandler((stack, tintIndex) -> {
+                        if (stack.getItem() instanceof IColoredItem coloredItem) {
+                            return coloredItem.getColorFromItemstack(stack, tintIndex);
+                        }
+                        return 0xFFFFFF;
+                    }, DROPS, COMBS);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void postInit(FMLPostInitializationEvent event) {
+        if (Mods.ForestryApiculture.isModLoaded()) {
+            getLogger().info("Copying Forestry Centrifuge recipes to GT Centrifuge");
+            CombRecipes.initForestryCombs();
+        }
+        if (ForestryConfig.enableGTWoodenCraftingTable) {
+            ForestryWoodRecipe.init();
+        }
+        BeeAttractorRecipeBuild.initAttactorRecipes();
     }
 }
