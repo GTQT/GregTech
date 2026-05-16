@@ -21,6 +21,7 @@ import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.RelativeDirection;
@@ -157,7 +158,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
 
         builder.where('S', selfPredicate());
-        applySharedPredicates(builder);
+        applySharedPredicates(builder, false);
         return builder.build();
     }
 
@@ -221,7 +222,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.BEAM_SHAFT) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, true);
+        applyAllPredicates(builder, true, true);
         return builder.buildTemplate();
     }
 
@@ -230,7 +231,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.FIRST_RING) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, false);
+        applyAllPredicates(builder, false, false);
         return builder.buildTemplate(FIRST_RING_CENTER);
     }
 
@@ -239,7 +240,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.FIRST_RING_AIR) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, false);
+        applyAllPredicates(builder, false, false);
         return builder.buildTemplate(FIRST_RING_CENTER);
     }
 
@@ -248,7 +249,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.SECOND_RING) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, false);
+        applyAllPredicates(builder, false, false);
         return builder.buildTemplate(SECOND_RING_CENTER);
     }
 
@@ -257,7 +258,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.SECOND_RING_AIR) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, false);
+        applyAllPredicates(builder, false, false);
         return builder.buildTemplate(SECOND_RING_CENTER);
     }
 
@@ -266,7 +267,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.THIRD_RING) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, false);
+        applyAllPredicates(builder, false, false);
         return builder.buildTemplate(THIRD_RING_CENTER);
     }
 
@@ -275,7 +276,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         for (String[] layer : ForgeOfGodsStructureString.THIRD_RING_AIR) {
             builder.aisle(layer);
         }
-        applyAllPredicates(builder, false);
+        applyAllPredicates(builder, false, false);
         return builder.buildTemplate(THIRD_RING_CENTER);
     }
 
@@ -284,18 +285,21 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
      * Includes all characters used across all pieces.
      *
      * @param builder          the factory block pattern builder
-     * @param includeController true to include 'S' -> selfPredicate() (only for beam_shaft)
+     * @param includeController     true to include 'S' -> selfPredicate() (only for beam_shaft)
+     * @param allowEmptyModuleSlots true when validating an already formed beam shaft, so module hotswaps
+     *                              do not invalidate the whole Forge of Gods while a slot is briefly empty
      */
-    private static void applyAllPredicates(FactoryBlockPattern builder, boolean includeController) {
+    private static void applyAllPredicates(FactoryBlockPattern builder, boolean includeController,
+                                           boolean allowEmptyModuleSlots) {
         if (includeController) {
             builder.where('S', godforgeController());
         }
-        applySharedPredicates(builder);
+        applySharedPredicates(builder, allowEmptyModuleSlots);
     }
 
     // ==================== Block State Helpers ====================
 
-    private static void applySharedPredicates(FactoryBlockPattern builder) {
+    private static void applySharedPredicates(FactoryBlockPattern builder, boolean allowEmptyModuleSlots) {
         builder.where('A', hatches())
                 .where('B', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
                 .where('C', states(getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING)))
@@ -304,8 +308,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .where('F', states(getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
                 .where('G', states(getCasingState(BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR)))
                 .where('H', states(getGlassState()))
-                .where('J', godforgeModules()
-                        .or(states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))))
+                .where('J', godforgeModuleSlot(allowEmptyModuleSlots))
                 .where('I', states(getCasingState(BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR)))
                 .where('K', states(getCasingState(BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR)))
                 .where('L', air());
@@ -333,6 +336,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 MetaTileEntities.GODFORGE_MOLTEN_MODULE,
                 MetaTileEntities.GODFORGE_PLASMA_MODULE,
                 MetaTileEntities.GODFORGE_EXOTIC_MODULE);
+    }
+
+    private static TraceabilityPredicate godforgeModuleSlot(boolean allowEmptyModuleSlots) {
+        TraceabilityPredicate predicate = godforgeModules()
+                .or(states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)));
+        return allowEmptyModuleSlots ? predicate.or(air()) : predicate;
     }
 
     private static TraceabilityPredicate godforgeController() {
@@ -395,6 +404,31 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         // any block in the registered structure changes. We delegate to super which handles
         // event-driven, async, and fallback polling modes automatically.
         super.doStructureCheck();
+    }
+
+    @Override
+    protected void checkMultiPieceStructure() {
+        if (multiPiecePattern == null) return;
+
+        StructurePiece beamShaft = multiPiecePattern.getPiece("beam_shaft");
+        boolean beamShaftDirty = beamShaft != null && beamShaft.isActive() && beamShaft.isDirty();
+
+        boolean allValid = multiPiecePattern.checkDirtyPieces(
+                getWorld(), getPos(), getFrontFacing().getOpposite(),
+                getUpwardsFacing(), allowsFlip());
+
+        if (!allValid && isStructureFormed()) {
+            invalidateStructure();
+            return;
+        }
+
+        if (beamShaftDirty && beamShaft != null && beamShaft.isValidated()) {
+            boolean reassembled = reassembleStructure(beamShaft.getState().getMatchContext());
+            if (reassembled && getWorld() != null && !getWorld().isRemote) {
+                MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
+                registerMultiPiecePattern();
+            }
+        }
     }
 
     private boolean isBeamShaftStillFormed() {

@@ -33,7 +33,8 @@ import java.util.List;
  * <p>Design principles:
  * <ul>
  *   <li><b>Shared Power Pool</b>: All active slots share the machine's total power budget.
- *       The sum of all slots' EUt must not exceed totalPowerBudget.</li>
+ *       The sum of all slots' Phase 1 power reservations must not exceed totalPowerBudget;
+ *       actual EU/t is still drawn from each slot's overclocked EU/t.</li>
  *   <li><b>Two-Phase Allocation</b>: Parallel allocation (Phase 1) uses only base EUt to
  *       determine how many recipes each slot can run. Overclocking (Phase 2) distributes the
  *       surplus power (totalPowerBudget - sum of all base demands) proportionally among all
@@ -234,6 +235,19 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
+     * @return the total Phase 1 power reservation held by all active slots
+     */
+    public long getTotalPowerReservation() {
+        long total = 0;
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isRunning()) {
+                total += slot.getPowerReservation();
+            }
+        }
+        return total;
+    }
+
+    /**
      * @return the remaining parallel budget available for new recipes
      */
     public int getRemainingParallelBudget() {
@@ -241,10 +255,10 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
-     * @return the remaining power budget available for new recipes (based on totalPowerBudget)
+     * @return the remaining power budget available for new recipes (based on Phase 1 reservations)
      */
     public long getRemainingPowerBudget() {
-        return totalPowerBudget - getTotalEnergyConsumption();
+        return totalPowerBudget - getTotalPowerReservation();
     }
 
     /**

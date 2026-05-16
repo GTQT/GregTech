@@ -56,7 +56,15 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
     }
 
     protected void setVariant(@NotNull V variant) {
+        applyVariant(variant, false);
+    }
+
+    private void applyVariant(@NotNull V variant, boolean force) {
+        if (!force && this.variant == variant) {
+            return;
+        }
         this.variant = variant;
+        onVariantChanged();
     }
 
     @NotNull
@@ -82,30 +90,27 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
+        applyVariant(readVariantFromOrdinal(data.getInteger(NBT_KEY_VARIANT)), true);
         super.readFromNBT(data);
-        this.variant = readVariantFromOrdinal(data.getInteger(NBT_KEY_VARIANT));
-        onVariantChanged();
     }
 
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
-        super.writeInitialSyncData(buf);
         buf.writeByte(variant.ordinal());
+        super.writeInitialSyncData(buf);
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
+        applyVariant(readVariantFromOrdinal(buf.readByte()), true);
         super.receiveInitialSyncData(buf);
-        this.variant = readVariantFromOrdinal(buf.readByte());
-        onVariantChanged();
     }
 
     @Override
     public void initFromItemStackData(NBTTagCompound itemStack) {
         super.initFromItemStackData(itemStack);
         if (itemStack.hasKey(NBT_KEY_VARIANT)) {
-            this.variant = readVariantFromOrdinal(itemStack.getInteger(NBT_KEY_VARIANT));
-            onVariantChanged();
+            applyVariant(readVariantFromOrdinal(itemStack.getInteger(NBT_KEY_VARIANT)), true);
         }
     }
 

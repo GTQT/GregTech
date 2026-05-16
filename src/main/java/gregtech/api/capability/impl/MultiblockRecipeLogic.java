@@ -557,7 +557,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // --- Start the slot ---
         String recipeDisplayName = getRecipeDisplayName(trimmed, alloc.recipeMap, itemOutputs, fluidOutputs);
         alloc.slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel,
-                totalOperations, recipeDisplayName);
+                totalOperations, recipeDisplayName, alloc.basePowerDemand);
         return true;
     }
 

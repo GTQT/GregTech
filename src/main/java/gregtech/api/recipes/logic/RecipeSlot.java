@@ -42,6 +42,7 @@ public class RecipeSlot {
     private int progressTime;
     private int maxProgressTime;
     private long recipeEUt;
+    private long powerReservation;
 
     // --- Outputs to produce on completion ---
     @NotNull
@@ -103,10 +104,22 @@ public class RecipeSlot {
                             int parallelCount,
                             int totalOperations,
                             @NotNull String recipeDisplayName) {
+        startRecipe(recipe, duration, eut, itemOutputs, fluidOutputs, parallelCount, totalOperations,
+                recipeDisplayName, eut);
+    }
+
+    public void startRecipe(@NotNull Recipe recipe, int duration, long eut,
+                            @NotNull List<ItemStack> itemOutputs,
+                            @NotNull List<FluidStack> fluidOutputs,
+                            int parallelCount,
+                            int totalOperations,
+                            @NotNull String recipeDisplayName,
+                            long powerReservation) {
         this.sourceRecipe = recipe;
         this.progressTime = 1;
         this.maxProgressTime = duration;
         this.recipeEUt = eut;
+        this.powerReservation = Math.max(0L, powerReservation);
         this.itemOutputs = new ArrayList<>(itemOutputs);
         this.fluidOutputs = new ArrayList<>(fluidOutputs);
         this.parallelCount = parallelCount;
@@ -139,6 +152,7 @@ public class RecipeSlot {
         this.progressTime = 0;
         this.maxProgressTime = 0;
         this.recipeEUt = 0;
+        this.powerReservation = 0;
         this.itemOutputs = Collections.emptyList();
         this.fluidOutputs = Collections.emptyList();
         this.sourceRecipe = null;
@@ -179,6 +193,10 @@ public class RecipeSlot {
 
     public long getRecipeEUt() {
         return recipeEUt;
+    }
+
+    public long getPowerReservation() {
+        return powerReservation;
     }
 
     @NotNull
@@ -231,6 +249,7 @@ public class RecipeSlot {
             tag.setInteger("progressTime", progressTime);
             tag.setInteger("maxProgressTime", maxProgressTime);
             tag.setLong("recipeEUt", recipeEUt);
+            tag.setLong("powerReservation", powerReservation);
             tag.setString("recipeDisplayName", recipeDisplayName);
 
             NBTTagList itemList = new NBTTagList();
@@ -258,6 +277,8 @@ public class RecipeSlot {
             this.progressTime = tag.getInteger("progressTime");
             this.maxProgressTime = tag.getInteger("maxProgressTime");
             this.recipeEUt = tag.getLong("recipeEUt");
+            this.powerReservation = tag.hasKey("powerReservation", Constants.NBT.TAG_LONG) ?
+                    tag.getLong("powerReservation") : Math.max(0L, this.recipeEUt);
             this.recipeDisplayName = tag.getString("recipeDisplayName");
 
             NBTTagList itemList = tag.getTagList("itemOutputs", Constants.NBT.TAG_COMPOUND);
@@ -281,6 +302,7 @@ public class RecipeSlot {
                 ", state=" + state +
                 ", progress=" + progressTime + "/" + maxProgressTime +
                 ", eut=" + recipeEUt +
+                ", reserved=" + powerReservation +
                 ", parallel=" + parallelCount +
                 ", ops=" + totalOperations +
                 '}';

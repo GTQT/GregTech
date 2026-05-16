@@ -130,6 +130,15 @@ public class MultiblockState {
     }
 
     /**
+     * Returns the current match context for this state. The context is refreshed
+     * whenever a full pattern check succeeds.
+     */
+    @NotNull
+    public PatternMatchContext getMatchContext() {
+        return matchContext;
+    }
+
+    /**
      * Fast pattern check using cache, then full check if needed.
      */
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,

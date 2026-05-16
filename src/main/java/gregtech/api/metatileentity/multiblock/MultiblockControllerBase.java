@@ -711,54 +711,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             // Structure still valid but blocks may have changed (e.g. hatch swapped in).
             // Perform a soft reassembly: re-collect parts/abilities without full invalidation
             // to avoid interrupting running recipes.
-
-            // ensure flip is ok
-            if (context.neededFlip() != isFlipped()) {
-                setFlipped(context.neededFlip());
-            }
-
-            // Re-collect parts and abilities from the new context
-            Set<IMultiblockPart> newPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
-            ArrayList<IMultiblockPart> newParts = new ArrayList<>(newPartsSet);
-            // Verify new parts can attach (respect part sharing rules)
-            for (IMultiblockPart part : newParts) {
-                if (part.isAttachedToMultiBlock() && !this.multiblockParts.contains(part)) {
-                    if (!part.canPartShare()) {
-                        return;
-                    }
-                }
-            }
-
-            // Diff: find removed and added parts
-            Set<IMultiblockPart> oldPartsSet = new HashSet<>(this.multiblockParts);
-            Set<IMultiblockPart> removedParts = new HashSet<>(oldPartsSet);
-            removedParts.removeAll(newPartsSet);
-            Set<IMultiblockPart> addedParts = new HashSet<>(newPartsSet);
-            addedParts.removeAll(oldPartsSet);
-
-            // Only reassemble if parts actually changed
-            if (!removedParts.isEmpty() || !addedParts.isEmpty()) {
-                // Remove old parts that are no longer in the structure
-                removedParts.forEach(part -> part.removeFromMultiBlock(this));
-
-                // Re-collect abilities from all new parts
-                newParts.sort(Comparator.comparing(
-                        it -> multiblockPartSorter().apply(((MetaTileEntity) it).getPos())));
-                Map<MultiblockAbility<Object>, AbilityInstances> newAbilities = collectAbilities(newParts);
-
-                // Replace parts and abilities lists
-                this.multiblockParts.clear();
-                this.multiblockParts.addAll(newParts);
-                this.multiblockAbilities.clear();
-                this.multiblockAbilities.putAll(newAbilities);
-
-                // Attach newly added parts
-                addedParts.forEach(part -> part.addToMultiBlock(this));
-
-                // Update channel values and re-invoke subclass initialization
-                this.formedChannelValues = StructureChannelValues.fromContext(context);
-                formStructure(context);
-            }
+            reassembleStructure(context);
 
             // Re-register with event-driven system if cache was refreshed
             if (multiblockState != null && !multiblockState.cache.isEmpty()
@@ -770,6 +723,66 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 worldData.registerMultiblock(this, positions);
             }
         }
+    }
+
+    /**
+     * Re-collects structure parts and abilities from a successful pattern match
+     * without invalidating the whole multiblock. This is used by normal cached
+     * checks and by large multi-piece structures when only one piece changed.
+     *
+     * @return true if the part/ability set changed and subclass form logic was re-run
+     */
+    protected boolean reassembleStructure(@NotNull PatternMatchContext context) {
+        // ensure flip is ok
+        if (context.neededFlip() != isFlipped()) {
+            setFlipped(context.neededFlip());
+        }
+
+        // Re-collect parts and abilities from the new context
+        Set<IMultiblockPart> newPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
+        ArrayList<IMultiblockPart> newParts = new ArrayList<>(newPartsSet);
+        // Verify new parts can attach (respect part sharing rules)
+        for (IMultiblockPart part : newParts) {
+            if (part.isAttachedToMultiBlock() && !this.multiblockParts.contains(part)) {
+                if (!part.canPartShare()) {
+                    return false;
+                }
+            }
+        }
+
+        // Diff: find removed and added parts
+        Set<IMultiblockPart> oldPartsSet = new HashSet<>(this.multiblockParts);
+        Set<IMultiblockPart> removedParts = new HashSet<>(oldPartsSet);
+        removedParts.removeAll(newPartsSet);
+        Set<IMultiblockPart> addedParts = new HashSet<>(newPartsSet);
+        addedParts.removeAll(oldPartsSet);
+
+        // Only reassemble if parts actually changed
+        if (removedParts.isEmpty() && addedParts.isEmpty()) {
+            return false;
+        }
+
+        // Remove old parts that are no longer in the structure
+        removedParts.forEach(part -> part.removeFromMultiBlock(this));
+
+        // Re-collect abilities from all new parts
+        newParts.sort(Comparator.comparing(
+                it -> multiblockPartSorter().apply(((MetaTileEntity) it).getPos())));
+        Map<MultiblockAbility<Object>, AbilityInstances> newAbilities = collectAbilities(newParts);
+
+        // Replace parts and abilities lists
+        this.multiblockParts.clear();
+        this.multiblockParts.addAll(newParts);
+        this.multiblockAbilities.clear();
+        this.multiblockAbilities.putAll(newAbilities);
+
+        // Attach newly added parts
+        addedParts.forEach(part -> part.addToMultiBlock(this));
+
+        // Update channel values and re-invoke subclass initialization
+        this.formedChannelValues = StructureChannelValues.fromContext(context);
+        formStructure(context);
+        return true;
     }
 
     /**
