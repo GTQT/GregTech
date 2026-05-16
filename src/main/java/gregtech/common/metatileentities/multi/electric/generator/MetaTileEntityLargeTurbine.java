@@ -11,6 +11,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParametricFuelController;
+import gregtech.api.metatileentity.multiblock.ParametricVariantRegistries;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
@@ -18,8 +19,6 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMap;
@@ -47,22 +46,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
-public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTurbineType>
+public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTurbineVariant>
         implements ProgressBarMultiblock {
 
-    // Static template cache: one SoftTemplate per LargeTurbineType variant
-    private static final Map<LargeTurbineType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
-            "gregtech:large_turbine", LargeTurbineType.class,
-            type -> () -> buildTemplate(type));
-
-    @Override
-    @NotNull
-    protected Map<LargeTurbineType, SoftTemplate> getTemplateCache() {
-        return TEMPLATES;
-    }
+    private final boolean fixedVariantRegistry;
 
     @Override
     @NotNull
@@ -70,7 +59,7 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
         return "gregtech.machine.large_turbine";
     }
 
-    private static BlockPatternTemplate buildTemplate(LargeTurbineType type) {
+    private static BlockPatternTemplate buildTemplate(LargeTurbineVariant type) {
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
@@ -101,32 +90,64 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
 
     // Primary constructor: single-ID with variant
     public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, LargeTurbineType.class, LargeTurbineType.STEAM,
-                LargeTurbineType.STEAM.getRecipeMap(), LargeTurbineType.STEAM.getTier());
+        this(metaTileEntityId, LargeTurbineVariants.STEAM);
+    }
+
+    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, LargeTurbineVariant turbineVariant) {
+        this(metaTileEntityId, turbineVariant, false);
     }
 
     // Variant-specific constructor for direct instantiation
-    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, LargeTurbineType turbineType) {
-        super(metaTileEntityId, LargeTurbineType.class, turbineType,
-                turbineType.getRecipeMap(), turbineType.getTier());
+    @Deprecated
+    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId, @NotNull LargeTurbineType turbineType) {
+        this(metaTileEntityId, turbineType.getVariant());
+    }
+
+    /**
+     * @deprecated Compatibility constructor for addons that registered large turbine
+     *             variants as independent MTE IDs before large turbines became parametric.
+     */
+    @Deprecated
+    public MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId,
+                                      RecipeMap<?> recipeMap,
+                                      int tier,
+                                      IBlockState casingState,
+                                      IBlockState gearboxState,
+                                      ICubeRenderer casingRenderer,
+                                      boolean hasMufflerHatch,
+                                      ICubeRenderer frontOverlay) {
+        this(metaTileEntityId, LargeTurbineVariant.legacy(metaTileEntityId, recipeMap, tier,
+                casingState, gearboxState, casingRenderer, hasMufflerHatch, frontOverlay), true);
+    }
+
+    private MetaTileEntityLargeTurbine(ResourceLocation metaTileEntityId,
+                                       LargeTurbineVariant turbineVariant,
+                                       boolean fixedVariantRegistry) {
+        super(metaTileEntityId,
+                fixedVariantRegistry ?
+                        ParametricVariantRegistries.single(turbineVariant.getId(), turbineVariant) :
+                        LargeTurbineVariants.registry(),
+                turbineVariant.getRecipeMap(), turbineVariant.getTier());
+        this.fixedVariantRegistry = fixedVariantRegistry;
+        setVariant(turbineVariant);
     }
 
     @Override
     @NotNull
     protected MultiblockRecipeLogic createWorkable() {
-        LargeTurbineType type = getVariant();
+        LargeTurbineVariant type = getVariant();
         return new LargeTurbineWorkableHandler(this, getRecipeMapForVariant(type), type.getTier());
     }
 
     @Override
     @NotNull
-    protected RecipeMap<?> getRecipeMapForVariant(@NotNull LargeTurbineType variant) {
+    protected RecipeMap<?> getRecipeMapForVariant(@NotNull LargeTurbineVariant variant) {
         return variant.getRecipeMap();
     }
 
     @Override
     protected void onVariantChanged() {
-        LargeTurbineType type = getVariant();
+        LargeTurbineVariant type = getVariant();
         this.tier = type.getTier();
         this.recipeMapWorkable = createWorkable();
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
@@ -134,7 +155,20 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityLargeTurbine(metaTileEntityId, getVariant());
+        return new MetaTileEntityLargeTurbine(metaTileEntityId, getVariant(), fixedVariantRegistry);
+    }
+
+    @Override
+    @NotNull
+    protected LargeTurbineVariant readVariantFromOrdinal(int ordinal) {
+        if (fixedVariantRegistry) {
+            return getDefaultVariant();
+        }
+        return switch (ordinal) {
+            case 1 -> LargeTurbineVariants.GAS;
+            case 2 -> LargeTurbineVariants.PLASMA;
+            default -> LargeTurbineVariants.STEAM;
+        };
     }
 
     // region Turbine Logic
@@ -261,8 +295,9 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
     // region Structure
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES.get(getVariant()).get();
+    @NotNull
+    protected BlockPatternTemplate buildStructureTemplate(@NotNull LargeTurbineVariant variantValue) {
+        return buildTemplate(variantValue);
     }
 
     @Override
@@ -293,7 +328,17 @@ public class MetaTileEntityLargeTurbine extends ParametricFuelController<LargeTu
 
     @Override
     public boolean hasMufflerMechanics() {
-        return true;
+        return getVariant().hasMufflerMechanics();
+    }
+
+    @Override
+    public String getMetaName() {
+        return getVariant().getTranslationKey();
+    }
+
+    @Override
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getVariantFromStack(stack).getTranslationKey();
     }
 
     @Override

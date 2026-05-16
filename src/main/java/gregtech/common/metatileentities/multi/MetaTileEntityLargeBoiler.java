@@ -12,6 +12,8 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
+import gregtech.api.metatileentity.multiblock.ParametricVariantRegistries;
+import gregtech.api.metatileentity.multiblock.ParametricVariantRegistry;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
@@ -23,8 +25,6 @@ import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.PatternMatchContext;
@@ -72,23 +72,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<BoilerType>
         implements ProgressBarMultiblock, IControllable, ISteamMachine {
 
-    // Static template cache: one SoftTemplate per BoilerType variant
-    private static final Map<BoilerType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
-            "gregtech:large_boiler", BoilerType.class,
-            type -> () -> buildTemplate(type));
-
-    @Override
-    @NotNull
-    protected Map<BoilerType, SoftTemplate> getTemplateCache() {
-        return TEMPLATES;
-    }
+    private static final ParametricVariantRegistry<BoilerType> VARIANTS =
+            ParametricVariantRegistries.enumRegistry("gregtech", BoilerType.class, BoilerType.BRONZE);
 
     @Override
     @NotNull
@@ -125,7 +116,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     // Primary constructor: single-ID with variant
     public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, BoilerType.class, BoilerType.BRONZE);
+        super(metaTileEntityId, VARIANTS);
         this.boilerType = BoilerType.BRONZE;
         this.recipeLogic = new BoilerRecipeLogic(this);
         resetTileAbilities();
@@ -133,7 +124,8 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     // Variant-specific constructor
     public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId, BoilerType boilerType) {
-        super(metaTileEntityId, BoilerType.class, boilerType);
+        super(metaTileEntityId, VARIANTS);
+        setVariant(boilerType);
         this.boilerType = boilerType;
         this.recipeLogic = new BoilerRecipeLogic(this);
         resetTileAbilities();
@@ -371,8 +363,9 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     }
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES.get(getVariant()).get();
+    @NotNull
+    protected BlockPatternTemplate buildStructureTemplate(@NotNull BoilerType variantValue) {
+        return buildTemplate(variantValue);
     }
 
     @Override

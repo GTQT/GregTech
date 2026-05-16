@@ -12,6 +12,8 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParametricFuelController;
+import gregtech.api.metatileentity.multiblock.ParametricVariantRegistries;
+import gregtech.api.metatileentity.multiblock.ParametricVariantRegistry;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
@@ -19,8 +21,6 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -52,22 +52,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeCombustionEngine extends ParametricFuelController<LargeCombustionEngineType>
         implements ProgressBarMultiblock {
 
-    // Static template cache: one SoftTemplate per LargeCombustionEngineType variant
-    private static final Map<LargeCombustionEngineType, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
-            "gregtech:large_combustion_engine", LargeCombustionEngineType.class,
-            type -> () -> buildTemplate(type));
-
-    @Override
-    @NotNull
-    protected Map<LargeCombustionEngineType, SoftTemplate> getTemplateCache() {
-        return TEMPLATES;
-    }
+    private static final ParametricVariantRegistry<LargeCombustionEngineType> VARIANTS =
+            ParametricVariantRegistries.enumRegistry("gregtech", LargeCombustionEngineType.class,
+                    LargeCombustionEngineType.REGULAR);
 
     @Override
     @NotNull
@@ -110,15 +102,15 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
     // Primary constructor: single-ID with variant
     public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, LargeCombustionEngineType.class, LargeCombustionEngineType.REGULAR,
-                RecipeMaps.COMBUSTION_GENERATOR_FUELS, LargeCombustionEngineType.REGULAR.getTier());
+        super(metaTileEntityId, VARIANTS, RecipeMaps.COMBUSTION_GENERATOR_FUELS,
+                LargeCombustionEngineType.REGULAR.getTier());
     }
 
     // Variant-specific constructor for direct instantiation
     public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId,
                                                LargeCombustionEngineType engineType) {
-        super(metaTileEntityId, LargeCombustionEngineType.class, engineType,
-                RecipeMaps.COMBUSTION_GENERATOR_FUELS, engineType.getTier());
+        super(metaTileEntityId, VARIANTS, RecipeMaps.COMBUSTION_GENERATOR_FUELS, engineType.getTier());
+        setVariant(engineType);
     }
 
     @Override
@@ -219,8 +211,9 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
     // region Structure
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES.get(getVariant()).get();
+    @NotNull
+    protected BlockPatternTemplate buildStructureTemplate(@NotNull LargeCombustionEngineType variantValue) {
+        return buildTemplate(variantValue);
     }
 
     @SideOnly(Side.CLIENT)

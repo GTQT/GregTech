@@ -46,12 +46,12 @@ import org.jetbrains.annotations.Nullable;
  * }
  * }</pre>
  *
- * @param <V> the variant enum type
+ * @param <V> the variant value type
  * @see ParametricMultiblockController
  * @see IRecipeMapHolder
  * @see RecipeAbilityManager
  */
-public abstract class ParametricRecipeMapController<V extends Enum<V>>
+public abstract class ParametricRecipeMapController<V>
         extends ParametricMultiblockController<V>
         implements IRecipeMapHolder, IControllable, IDistinctBusController {
 
@@ -59,6 +59,20 @@ public abstract class ParametricRecipeMapController<V extends Enum<V>>
     protected final RecipeAbilityManager abilityManager;
     protected MultiblockRecipeLogic recipeMapWorkable;
 
+    protected ParametricRecipeMapController(@NotNull ResourceLocation metaTileEntityId,
+                                            @NotNull ParametricVariantRegistry<V> variantRegistry,
+                                            @NotNull RecipeMap<?> recipeMap) {
+        super(metaTileEntityId, variantRegistry);
+        this.defaultRecipeMap = recipeMap;
+        this.abilityManager = new RecipeAbilityManager(this);
+        this.recipeMapWorkable = createWorkable();
+    }
+
+    /**
+     * @deprecated Prefer passing a {@link ParametricVariantRegistry}. This constructor keeps enum-backed
+     *             parametric multiblocks source-compatible while the base class moves to open registries.
+     */
+    @Deprecated
     protected ParametricRecipeMapController(@NotNull ResourceLocation metaTileEntityId,
                                             @NotNull Class<V> variantClass,
                                             @NotNull V defaultVariant,

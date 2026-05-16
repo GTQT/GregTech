@@ -1,7 +1,5 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import net.minecraft.creativetab.CreativeTabs;
@@ -10,8 +8,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.util.Constants;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Base class for multiblock parts that support multiple variants stored as NBT sub-types
@@ -20,24 +24,52 @@ import org.jetbrains.annotations.NotNull;
  * <p>Mirrors the design of {@link ParametricMultiblockController} but for multiblock parts
  * (hatches, valves, etc.) that also need material/variant differentiation.
  *
- * @param <V> the variant enum type
+ * @param <V> the variant value type
  * @see ParametricMultiblockController
  */
-public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTileEntityMultiblockPart {
+public abstract class ParametricMultiblockPart<V> extends MetaTileEntityMultiblockPart {
 
     protected static final String NBT_KEY_VARIANT = "Variant";
 
+    private final ParametricVariantRegistry<V> variantRegistry;
     private final Class<V> variantClass;
     private final V defaultVariant;
     private V variant;
 
     protected ParametricMultiblockPart(@NotNull ResourceLocation metaTileEntityId,
+                                       @NotNull ParametricVariantRegistry<V> variantRegistry) {
+        super(metaTileEntityId, 0);
+        this.variantRegistry = variantRegistry;
+        this.variantClass = null;
+        this.defaultVariant = variantRegistry.getDefaultVariant();
+        this.variant = defaultVariant;
+    }
+
+    /**
+     * @deprecated Prefer passing a {@link ParametricVariantRegistry}. This constructor keeps enum-backed
+     *             parametric multiblock parts source-compatible while the base class moves to open registries.
+     */
+    @Deprecated
+    protected ParametricMultiblockPart(@NotNull ResourceLocation metaTileEntityId,
                                        @NotNull Class<V> variantClass,
                                        @NotNull V defaultVariant) {
         super(metaTileEntityId, 0);
+        this.variantRegistry = createEnumRegistry(metaTileEntityId.getNamespace(), variantClass, defaultVariant);
         this.variantClass = variantClass;
         this.defaultVariant = defaultVariant;
         this.variant = defaultVariant;
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @NotNull
+    private static <V> ParametricVariantRegistry<V> createEnumRegistry(@NotNull String namespace,
+                                                                       @NotNull Class<V> variantClass,
+                                                                       @NotNull V defaultVariant) {
+        if (!Enum.class.isAssignableFrom(variantClass)) {
+            throw new IllegalArgumentException("Legacy parametric constructor requires an enum variant class");
+        }
+        return (ParametricVariantRegistry<V>) ParametricVariantRegistries.enumRegistry(namespace,
+                (Class) variantClass.asSubclass(Enum.class), (Enum) defaultVariant);
     }
 
     // region Variant Access
@@ -69,12 +101,25 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
 
     @NotNull
     public Class<V> getVariantClass() {
+        if (variantClass == null) {
+            throw new UnsupportedOperationException("This parametric multiblock part is backed by an open registry");
+        }
         return variantClass;
     }
 
     @NotNull
     public V getDefaultVariant() {
         return defaultVariant;
+    }
+
+    @NotNull
+    public ParametricVariantRegistry<V> getVariantRegistry() {
+        return variantRegistry;
+    }
+
+    @NotNull
+    public Collection<V> getVariants() {
+        return variantRegistry.getVariants();
     }
 
     // endregion
@@ -84,25 +129,25 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
-        data.setInteger(NBT_KEY_VARIANT, variant.ordinal());
+        data.setString(NBT_KEY_VARIANT, variantRegistry.getId(variant).toString());
         return data;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
-        applyVariant(readVariantFromOrdinal(data.getInteger(NBT_KEY_VARIANT)), true);
+        applyVariant(readVariantFromNBT(data), true);
         super.readFromNBT(data);
     }
 
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
-        buf.writeByte(variant.ordinal());
+        buf.writeString(variantRegistry.getId(variant).toString());
         super.writeInitialSyncData(buf);
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
-        applyVariant(readVariantFromOrdinal(buf.readByte()), true);
+        applyVariant(readVariantFromId(buf.readString(32767)), true);
         super.receiveInitialSyncData(buf);
     }
 
@@ -110,23 +155,46 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
     public void initFromItemStackData(NBTTagCompound itemStack) {
         super.initFromItemStackData(itemStack);
         if (itemStack.hasKey(NBT_KEY_VARIANT)) {
-            applyVariant(readVariantFromOrdinal(itemStack.getInteger(NBT_KEY_VARIANT)), true);
+            applyVariant(readVariantFromNBT(itemStack), true);
         }
     }
 
     @Override
     public void writeItemStackData(NBTTagCompound itemStack) {
         super.writeItemStackData(itemStack);
-        itemStack.setInteger(NBT_KEY_VARIANT, variant.ordinal());
+        itemStack.setString(NBT_KEY_VARIANT, variantRegistry.getId(variant).toString());
     }
 
     @NotNull
-    private V readVariantFromOrdinal(int ordinal) {
-        V[] values = variantClass.getEnumConstants();
-        if (ordinal >= 0 && ordinal < values.length) {
-            return values[ordinal];
+    protected V readVariantFromOrdinal(int ordinal) {
+        List<V> values = new ArrayList<>(variantRegistry.getVariants());
+        if (ordinal >= 0 && ordinal < values.size()) {
+            return values.get(ordinal);
         }
         return defaultVariant;
+    }
+
+    @NotNull
+    protected V readVariantFromNBT(@NotNull NBTTagCompound data) {
+        if (data.hasKey(NBT_KEY_VARIANT, Constants.NBT.TAG_STRING)) {
+            return readVariantFromId(data.getString(NBT_KEY_VARIANT));
+        }
+        if (data.hasKey(NBT_KEY_VARIANT, Constants.NBT.TAG_INT)) {
+            return readVariantFromOrdinal(data.getInteger(NBT_KEY_VARIANT));
+        }
+        return defaultVariant;
+    }
+
+    @NotNull
+    protected V readVariantFromId(@Nullable String variantId) {
+        if (variantId == null || variantId.isEmpty()) {
+            return defaultVariant;
+        }
+        try {
+            return variantRegistry.getOrDefault(new ResourceLocation(variantId));
+        } catch (RuntimeException ignored) {
+            return defaultVariant;
+        }
     }
 
     /**
@@ -141,7 +209,7 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
 
     @Override
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
-        for (V value : variantClass.getEnumConstants()) {
+        for (V value : variantRegistry.getVariants()) {
             subItems.add(getStackForm(value));
         }
     }
@@ -173,14 +241,14 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
             tag = new NBTTagCompound();
             stack.setTagCompound(tag);
         }
-        tag.setInteger(NBT_KEY_VARIANT, variantValue.ordinal());
+        tag.setString(NBT_KEY_VARIANT, variantRegistry.getId(variantValue).toString());
     }
 
     @NotNull
     public V getVariantFromStack(@NotNull ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
         if (tag != null && tag.hasKey(NBT_KEY_VARIANT)) {
-            return readVariantFromOrdinal(tag.getInteger(NBT_KEY_VARIANT));
+            return readVariantFromNBT(tag);
         }
         return defaultVariant;
     }
@@ -197,7 +265,7 @@ public abstract class ParametricMultiblockPart<V extends Enum<V>> extends MetaTi
 
     @NotNull
     protected String getVariantName(@NotNull V variantValue) {
-        return variantValue.name().toLowerCase();
+        return variantRegistry.getName(variantValue);
     }
 
     @Override

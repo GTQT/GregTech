@@ -45,17 +45,31 @@ import java.util.List;
  * <p>This enables variant-based fuel multiblocks (e.g., LargeCombustionEngine variants)
  * to be consolidated into a single MTE ID while retaining full generator behavior.
  *
- * @param <V> the variant enum type
+ * @param <V> the variant value type
  * @see ParametricRecipeMapController
  * @see FuelMultiblockController
  * @see IGenerator
  */
-public abstract class ParametricFuelController<V extends Enum<V>>
+public abstract class ParametricFuelController<V>
         extends ParametricRecipeMapController<V>
         implements IGenerator, ITieredMetaTileEntity, IDataInfoProvider {
 
     protected int tier;
 
+    protected ParametricFuelController(@NotNull ResourceLocation metaTileEntityId,
+                                       @NotNull ParametricVariantRegistry<V> variantRegistry,
+                                       @NotNull RecipeMap<?> recipeMap,
+                                       int tier) {
+        super(metaTileEntityId, variantRegistry, recipeMap);
+        this.tier = tier;
+        this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
+    }
+
+    /**
+     * @deprecated Prefer passing a {@link ParametricVariantRegistry}. This constructor keeps enum-backed
+     *             parametric multiblocks source-compatible while the base class moves to open registries.
+     */
+    @Deprecated
     protected ParametricFuelController(@NotNull ResourceLocation metaTileEntityId,
                                        @NotNull Class<V> variantClass,
                                        @NotNull V defaultVariant,

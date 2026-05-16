@@ -339,7 +339,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * allowing getStackForm(V) to accept the result of getVariant().
      */
     @NotNull
-    private static <V extends Enum<V>> ItemStack getParametricStackForm(
+    private static <V> ItemStack getParametricStackForm(
             @NotNull ParametricMultiblockController<V> parametric) {
         return parametric.getStackForm(parametric.getVariant());
     }
@@ -350,7 +350,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * renders the variant-specific controller model/texture instead of the default one.
      */
     @SuppressWarnings("unchecked")
-    private <V extends Enum<V>> void replaceControllerVariantInPreview(
+    private <V> void replaceControllerVariantInPreview(
             @NotNull Map<BlockPos, BlockInfo> blockMap,
             @NotNull BlockPos controllerPos,
             @NotNull MultiblockControllerBase previewController) {
