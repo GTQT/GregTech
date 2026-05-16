@@ -1,7 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import com.cleanroommc.modularui.api.drawable.IDrawable;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IObjectHolder;
 import gregtech.api.capability.IOpticalComputationHatch;
@@ -17,12 +15,11 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.Recipe;
@@ -50,6 +47,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.utils.serialization.ByteBufAdapters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -106,7 +104,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     }
 
     @Override
-    public ComputationRecipeLogic getRecipeMapWorkable() {
+    public @NotNull ComputationRecipeLogic getRecipeMapWorkable() {
         return (ComputationRecipeLogic) recipeMapWorkable;
     }
 
@@ -141,15 +139,14 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     .aisle(" X ", "XAX", "---", "---", "---", "XAX", " X ")
                     .aisle(" X ", "XAX", "-A-", "-H-", "-A-", "XAX", " X ")
                     .aisle("   ", "XXX", "---", "---", "---", "XXX", "   ")
-                    .where('S', selfPredicate(GTUtility.gregtechId("research_station")))
+                    .where('S', selfPredicateByClass(MetaTileEntityResearchStation.class))
                     .where('X', states(getCasingState()))
                     .where(' ', any())
                     .where('-', air())
                     .where('V', states(getVentState()))
                     .where('A', states(getAdvancedState()))
                     .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
-                    .casing('P', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.research_station"))
+                    .casing('P', CasingDefinition.simple(getCasingState()))
                         .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
                         .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
                         .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 1)

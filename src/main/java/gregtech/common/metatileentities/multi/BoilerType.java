@@ -48,9 +48,6 @@ public enum BoilerType {
             Textures.TUNGSTENSTEEL_FIREBOX_ACTIVE,
             Textures.LARGE_TUNGSTENSTEEL_BOILER);
 
-    // Registration Data
-    private final String name;
-
     // Workable Data
     private final int steamPerTick;
     private final int ticksToBoiling;
@@ -74,7 +71,6 @@ public enum BoilerType {
                ICubeRenderer fireboxIdleRenderer,
                ICubeRenderer fireboxActiveRenderer,
                ICubeRenderer frontOverlay) {
-        this.name = name().toLowerCase();
         this.steamPerTick = steamPerTick;
         this.ticksToBoiling = ticksToBoiling;
 
@@ -86,10 +82,6 @@ public enum BoilerType {
         this.fireboxIdleRenderer = fireboxIdleRenderer;
         this.fireboxActiveRenderer = fireboxActiveRenderer;
         this.frontOverlay = frontOverlay;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public int steamPerTick() {

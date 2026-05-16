@@ -1,24 +1,33 @@
 package gregtech.common.metatileentities.multi.electric;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.*;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IHPCAComponentHatch;
+import gregtech.api.capability.IHPCAComputationProvider;
+import gregtech.api.capability.IHPCACoolantProvider;
+import gregtech.api.capability.IOpticalComputationProvider;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.*;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.unification.material.Materials;
@@ -44,7 +53,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.*;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.Fluid;
@@ -90,12 +99,11 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
                     .aisle("AA", "CC", "CC", "CC", "AA")
                     .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
                     .aisle("SA", "CC", "CC", "CC", "AA")
-                    .where('S', selfPredicate(GTUtility.gregtechId("high_performance_computing_array")))
+                    .where('S', selfPredicateByClass(MetaTileEntityHPCA.class))
                     .where('A', states(getAdvancedState()))
                     .where('V', states(getVentState()))
                     .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
-                    .casing('C', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.computer"))
+                    .casing('C', CasingDefinition.simple(getCasingState()))
                         .withCustomHatches(
                                 abilities(MultiblockAbility.MAINTENANCE_HATCH)
                                         .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)

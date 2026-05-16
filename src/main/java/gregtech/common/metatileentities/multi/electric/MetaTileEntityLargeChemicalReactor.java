@@ -6,17 +6,14 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -50,7 +47,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XCX", "CPC", "XCX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("large_chemical_reactor")))
+                    .where('S', selfPredicateByClass(MetaTileEntityLargeChemicalReactor.class))
                     .where('P', states(getPipeCasingState()))
                     .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
                             .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(0)
@@ -64,8 +61,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                             .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1))
                             .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1))
                             .or(states(getCasingState())))
-                    .casing('X', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.ptfe_inert"))
+                    .casing('X', CasingDefinition.simple(getCasingState()))
                         .applyPreset(HatchPresets.MUFFLER_IO)
                         .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 2)
                     .buildTemplate()

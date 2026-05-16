@@ -9,11 +9,10 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
@@ -28,7 +27,6 @@ import gregtech.api.recipes.machines.RecipeMapFurnace;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
-import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
@@ -37,19 +35,14 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
@@ -60,12 +53,11 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
                     .aisle("XXX", "CCC", "XXX")
                     .aisle("XXX", "C#C", "XMX")
                     .aisle("XSX", "CCC", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("multi_furnace")))
+                    .where('S', selfPredicateByClass(MetaTileEntityMultiSmelter.class))
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF),
-                            "gregtech.machine.casing.invar_heatproof"))
+                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
                         .applyPreset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)

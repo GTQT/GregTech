@@ -1,7 +1,11 @@
 package gregtech.common.metatileentities.multi.electric;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.*;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.capability.IDataAccessHatch;
+import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.impl.EnergyContainerList;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -9,15 +13,13 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -62,19 +64,17 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
                     .aisle("CDD", "SAD", "CDD")
                     .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
                     .aisle("XXX", "XXX", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("data_bank")))
+                    .where('S', selfPredicateByClass(MetaTileEntityDataBank.class))
                     .where('X', states(getOuterState()))
                     .where('A', states(getInnerState()))
-                    .casing('D', CasingDefinition.simple(getInnerState(),
-                            "gregtech.machine.casing.computer"))
+                    .casing('D', CasingDefinition.simple(getInnerState()))
                         .withOptionalHatches(MultiblockAbility.DATA_ACCESS_HATCH, 9)
                         .withCustomHatches(
                                 abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
                                         .setMinGlobalLimited(1, 1), 1)
                         .withCustomHatches(
                                 abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
-                    .casing('C', CasingDefinition.simple(getFrontState(),
-                            "gregtech.machine.casing.high_power"))
+                    .casing('C', CasingDefinition.simple(getFrontState()))
                         .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
                     .buildTemplate()
     );

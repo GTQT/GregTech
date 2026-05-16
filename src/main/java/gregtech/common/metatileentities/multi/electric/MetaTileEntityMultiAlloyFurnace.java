@@ -8,11 +8,10 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
@@ -42,8 +41,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-
 import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
 public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockController {
@@ -53,12 +50,11 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
                     .aisle("XXX", "CCC", "XXX")
                     .aisle("XXX", "C#C", "XMX")
                     .aisle("XSX", "CCC", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("multi_alloy_furnace")))
+                    .where('S', selfPredicateByClass(MetaTileEntityMultiAlloyFurnace.class))
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF),
-                            "gregtech.machine.casing.invar_heatproof"))
+                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
                         .applyPreset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)

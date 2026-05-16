@@ -14,8 +14,8 @@ import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
-import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
@@ -33,9 +33,6 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.MetaBlocks;
-
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -62,6 +59,8 @@ import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.Rotation;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.ApiStatus;
@@ -465,34 +464,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public TraceabilityPredicate selfPredicate() {
         return metaTileEntities(this).setCenter();
-    }
-
-    /**
-     * Static version of {@link #selfPredicate()} for use in static template builders.
-     * Creates a center predicate that matches a controller by its registry ID.
-     *
-     * <p>Usage in static context:
-     * <pre>{@code
-     * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register(
-     *     "gregtech:electric_blast_furnace", () ->
-     *     DeclarativePatternBuilder.start()
-     *         .where('S', selfPredicate(gregtechId("electric_blast_furnace")))
-     *         ...
-     *         .buildTemplate()
-     * );
-     * }</pre>
-     *
-     * @param metaTileEntityId the registry ID of the controller MetaTileEntity
-     * @return a center predicate matching that controller type
-     */
-    @NotNull
-    public static TraceabilityPredicate selfPredicate(@NotNull ResourceLocation metaTileEntityId) {
-        MetaTileEntity mte = GregTechAPI.mteManager.getRegistry(metaTileEntityId.getNamespace())
-                .getObject(metaTileEntityId);
-        if (mte == null) {
-            throw new IllegalArgumentException("No MetaTileEntity registered with id: " + metaTileEntityId);
-        }
-        return metaTileEntities(mte).setCenter();
     }
 
     /**

@@ -9,7 +9,6 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.widget.RecipeProgressWidget;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
@@ -69,12 +68,11 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
                     .aisle("XXX", "XXX", "XXX", "XXX")
                     .aisle("XXX", "X&X", "X#X", "X#X")
                     .aisle("XXX", "XYX", "XXX", "XXX")
-                    .where('Y', selfPredicate(GTUtility.gregtechId("primitive_blast_furnace.bronze")))
+                    .where('Y', selfPredicateByClass(MetaTileEntityPrimitiveBlastFurnace.class))
                     .where('#', air())
                     .where('&', air().or(SNOW_PREDICATE))
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS),
-                            "gregtech.machine.casing.primitive_bricks"))
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS)))
                         .withCustomHatches(
                                 metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
                                         .setMaxGlobalLimited(3), 3)

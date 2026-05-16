@@ -51,6 +51,10 @@ public final class CasingDefinition {
         return new SimpleCasing(state, translationKey);
     }
 
+    public static ICasing simple(@NotNull IBlockState state) {
+        return new SimpleCasing(state, state.getBlock().getTranslationKey());
+    }
+
     /**
      * Create a tiered casing definition.
      *

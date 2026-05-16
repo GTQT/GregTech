@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
@@ -34,7 +33,6 @@ import gregtech.common.metatileentities.electric.MetaTileEntitySingleTurbine;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
-import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntityLargeBoiler;
@@ -45,8 +43,6 @@ import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
-import gregtech.common.metatileentities.multi.electric.FluidDrillType;
-import gregtech.common.metatileentities.multi.electric.LargeMinerType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAssemblyLine;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCleanroom;
@@ -70,7 +66,6 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchSta
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreezer;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityMonitorScreen;
-import gregtech.common.metatileentities.multi.electric.generator.LargeCombustionEngineType;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
 import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
@@ -152,9 +147,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -414,16 +407,11 @@ public class MetaTileEntities {
     public static MetaTileEntityMultiSmelter MULTI_FURNACE;
     public static MetaTileEntityMultiAlloyFurnace MULTI_ALLOY_FURNACE;
     public static MetaTileEntitySawMill SAW_MILL;
-    // Large Combustion Engine EnumMap cache and compatibility fields
-    public static final EnumMap<LargeCombustionEngineType, MetaTileEntityLargeCombustionEngine> LARGE_COMBUSTION_ENGINES = new EnumMap<>(
-            LargeCombustionEngineType.class);
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;
-    // Large Turbine variant cache
-    public static final Map<ResourceLocation, MetaTileEntityLargeTurbine> LARGE_TURBINE_VARIANTS =
-            new LinkedHashMap<>();
-    // Large Boiler EnumMap cache and compatibility fields
-    public static final EnumMap<BoilerType, MetaTileEntityLargeBoiler> LARGE_BOILERS = new EnumMap<>(BoilerType.class);
+    public static MetaTileEntityLargeTurbine LARGE_STEAM_TURBINE;
+    public static MetaTileEntityLargeTurbine LARGE_GAS_TURBINE;
+    public static MetaTileEntityLargeTurbine LARGE_PLASMA_TURBINE;
     public static MetaTileEntityLargeBoiler LARGE_BRONZE_BOILER;
     public static MetaTileEntityLargeBoiler LARGE_STEEL_BOILER;
     public static MetaTileEntityLargeBoiler LARGE_TITANIUM_BOILER;
@@ -432,17 +420,11 @@ public class MetaTileEntities {
     public static MetaTileEntityLargeChemicalReactor LARGE_CHEMICAL_REACTOR;
     public static MetaTileEntitySteamOven STEAM_OVEN;
     public static MetaTileEntitySteamGrinder STEAM_GRINDER;
-    // Large Miner EnumMap cache and compatibility fields
-    public static final EnumMap<LargeMinerType, MetaTileEntityLargeMiner> LARGE_MINERS = new EnumMap<>(
-            LargeMinerType.class);
     public static MetaTileEntityLargeMiner BASIC_LARGE_MINER;
     public static MetaTileEntityLargeMiner LARGE_MINER;
     public static MetaTileEntityLargeMiner ADVANCED_LARGE_MINER;
     public static MetaTileEntityProcessingArray PROCESSING_ARRAY;
     public static MetaTileEntityProcessingArray ADVANCED_PROCESSING_ARRAY;
-    // Fluid Drill EnumMap cache and compatibility fields
-    public static final EnumMap<FluidDrillType, MetaTileEntityFluidDrill> FLUID_DRILLS = new EnumMap<>(
-            FluidDrillType.class);
     public static MetaTileEntityFluidDrill BASIC_FLUID_DRILLING_RIG;
     public static MetaTileEntityFluidDrill FLUID_DRILLING_RIG;
     public static MetaTileEntityFluidDrill ADVANCED_FLUID_DRILLING_RIG;
@@ -473,19 +455,11 @@ public class MetaTileEntities {
     public static MetaTileEntityDisposableBatteryBase NMC_BATTERY;
 
     // STORAGE SECTION
-    // Single-ID multiblock tank and valve (material variants stored in NBT)
-    public static MetaTileEntityMultiblockTank MULTIBLOCK_TANK;
-    public static MetaTileEntityTankValve MULTIBLOCK_TANK_VALVE;
-
-    // Legacy references for backward compatibility
     public static MetaTileEntityTankValve WOODEN_TANK_VALVE;
     public static MetaTileEntityTankValve STEEL_TANK_VALVE;
     public static MetaTileEntityMultiblockTank WOODEN_TANK;
     public static MetaTileEntityMultiblockTank STEEL_TANK;
 
-    // Drum - Single ID with NBT variants
-    public static MetaTileEntityDrum DRUM;
-    // Legacy references for backward compatibility (all point to the same single-ID instance)
     public static MetaTileEntityDrum WOODEN_DRUM;
     public static MetaTileEntityDrum BRONZE_DRUM;
     public static MetaTileEntityDrum ALUMINIUM_DRUM;
@@ -505,9 +479,6 @@ public class MetaTileEntities {
     public static MetaTileEntityDrum DARMSTADTIUM_DRUM;
     public static MetaTileEntityDrum NEUTRONIUM_DRUM;
 
-    // Crate - Single ID with NBT variants
-    public static MetaTileEntityCrate CRATE;
-    // Legacy references for backward compatibility (all point to the same single-ID instance)
     public static MetaTileEntityCrate WOODEN_CRATE;
     public static MetaTileEntityCrate COPPER_CRATE;
     public static MetaTileEntityCrate IRON_CRATE;
@@ -688,31 +659,8 @@ public class MetaTileEntities {
         return mte;
     }
 
-    /**
-     * Registers multiblock controller(s) to JEI. For {@link ParametricMultiblockController}, creates a variant copy for
-     * each registered value so that JEI shows all variants with correct names and structure patterns.
-     */
-    @SuppressWarnings("unchecked")
     private static void registerMultiblockForJei(MultiblockControllerBase controller) {
-        if (controller instanceof ParametricMultiblockController<?> parametric) {
-            registerParametricMultiblockVariantsForJei(parametric);
-        } else {
-            MultiblockInfoCategory.registerMultiblock(controller);
-        }
-    }
-
-    /**
-     * Creates a variant copy of the parametric multiblock for each registered variant and registers each as a separate JEI
-     * recipe entry.
-     */
-    private static <V> void registerParametricMultiblockVariantsForJei(
-            ParametricMultiblockController<V> parametric) {
-        for (V variant : parametric.getVariants()) {
-            ParametricMultiblockController<V> copy =
-                    (ParametricMultiblockController<V>) parametric.createMetaTileEntity(null);
-            copy.setVariant(variant);
-            MultiblockInfoCategory.registerMultiblock(copy);
-        }
+        MultiblockInfoCategory.registerMultiblock(controller);
     }
 
     @SuppressWarnings("unused")
