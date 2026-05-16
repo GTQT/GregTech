@@ -24,6 +24,7 @@ import gregtech.client.renderer.texture.custom.QuantumStorageRenderer;
 import gregtech.client.renderer.texture.custom.SafeRenderer;
 import gregtech.client.texture.IconRegistrar;
 import gregtech.common.blocks.BlockTankCasing;
+import gregtech.common.metatileentities.electric.DisposableBatteryType;
 
 import net.minecraft.client.renderer.chunk.CompiledChunk;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -51,6 +52,7 @@ import zone.rong.loliasm.config.LoliConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static gregtech.api.util.GTUtility.gregtechId;
@@ -148,6 +150,8 @@ public class Textures {
     public static final SimpleSidedCubeRenderer STEAM_BRICKED_CASING_STEEL = new SimpleSidedCubeRenderer(
             "casings/steam/bricked_steel");
     public static final SimpleSidedCubeRenderer[] VOLTAGE_CASINGS = new SimpleSidedCubeRenderer[GTValues.V.length];
+    public static final SimpleSidedCubeRenderer[] DISPOSABLE_BATTERY_CASINGS =
+            new SimpleSidedCubeRenderer[DisposableBatteryType.values().length];
     public static final SimpleSidedCubeRenderer PRIMITIVE_PUMP = new SimpleSidedCubeRenderer("casings/pump_deck");
     public static final SimpleSidedCubeRenderer WOOD_WALL = new SimpleSidedCubeRenderer("casings/wood_wall");
     public static final SimpleSidedCubeRenderer MAGIC_ENERGY_ABSORBER = new SimpleSidedCubeRenderer(
@@ -718,6 +722,11 @@ public class Textures {
         for (int i = 0; i < VOLTAGE_CASINGS.length; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
             VOLTAGE_CASINGS[i] = new SimpleSidedCubeRenderer("casings/voltage/" + voltageName);
+        }
+        for (DisposableBatteryType batteryType : DisposableBatteryType.values()) {
+            String batteryName = batteryType.name().toLowerCase(Locale.ROOT);
+            DISPOSABLE_BATTERY_CASINGS[batteryType.ordinal()] =
+                    new SimpleSidedCubeRenderer("machines/disposable_battery/" + batteryName);
         }
         for (BlockTankCasing.TankCasingType type : BlockTankCasing.TankCasingType.values()) {
             TANK_CASINGS[type.ordinal()] = new SimpleOverlayRenderer("casings/tank/tank_casing_" + type.getName());

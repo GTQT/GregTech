@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.texture.cube.SimpleSidedCubeRenderer;
 import gregtech.client.utils.PipelineUtil;
 
 import net.minecraft.block.Block;
@@ -197,6 +198,12 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
     // -------------------------------------------------------------------------
     // Rendering
     // -------------------------------------------------------------------------
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    protected SimpleSidedCubeRenderer getBaseRenderer() {
+        return Textures.DISPOSABLE_BATTERY_CASINGS[batteryType.ordinal()];
+    }
 
     @Override
     @SideOnly(Side.CLIENT)
