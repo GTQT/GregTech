@@ -144,6 +144,8 @@ gregtech.top.unit.fluid_milibuckets=L
 gregtech.top.unit.fluid_buckets=kL
 gregtech.top.fluid_capacity=Fluid Capacity:
 gregtech.top.fluid_stored=Fluid Stored:
+gregtech.top.fluid_pipe.channels=Channels:
+gregtech.top.fluid_pipe.tank=Tank
 
 gregtech.top.block_drops=Drops
 

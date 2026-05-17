@@ -145,6 +145,8 @@ gregtech.top.unit.fluid_milibuckets=L
 gregtech.top.unit.fluid_buckets=kL
 gregtech.top.fluid_capacity=流体容量：
 gregtech.top.fluid_stored=内含流体：
+gregtech.top.fluid_pipe.channels=并行管道：
+gregtech.top.fluid_pipe.tank=流体槽
 
 gregtech.top.block_drops=掉落
 
