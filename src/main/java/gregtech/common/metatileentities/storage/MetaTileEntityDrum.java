@@ -123,7 +123,7 @@ public class MetaTileEntityDrum extends MetaTileEntity {
         }
 
         super.initializeInventory();
-        this.fluidTank = new DrumFluidHandler(variant.getTankSize()).setFilter(variant.getFluidFilter());
+        this.fluidTank = new DrumFluidHandler(tankSize).setFilter(this.fluidFilter);
         this.fluidInventory = this.fluidTank;
     }
 
@@ -365,27 +365,7 @@ public class MetaTileEntityDrum extends MetaTileEntity {
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return getVariant().isWood() ? SoundType.WOOD : SoundType.METAL;
-    }
-
-    @Override
-    public String getMetaName() {
-        return getVariant().getTranslationKey();
-    }
-
-    @Override
-    public String getMetaName(@NotNull ItemStack stack) {
-        return getVariantFromStack(stack).getTranslationKey();
-    }
-
-    @Deprecated
-    @NotNull
-    public ItemStack getStackForm(@NotNull DrumMaterial material) {
-        return getStackForm(material.getVariant());
-    }
-
-    private IPropertyFluidFilter getFluidFilter(@NotNull ItemStack stack) {
-        return getVariantFromStack(stack).getFluidFilter();
+        return this.isWood ? SoundType.WOOD : SoundType.METAL;
     }
 
     private class DrumFluidHandler extends FilteredFluidHandler {
@@ -397,69 +377,6 @@ public class MetaTileEntityDrum extends MetaTileEntity {
         @Override
         protected void onContentsChanged() {
             onFluidContentsChanged();
-        }
-    }
-
-    /**
-     * @deprecated Built-in drum materials now live in {@link DrumVariants}; use {@link DrumVariant} for new code.
-     */
-    @Deprecated
-    public enum DrumMaterial {
-
-        WOOD(DrumVariants.WOOD),
-        COPPER(DrumVariants.COPPER),
-        LEAD(DrumVariants.LEAD),
-        IRON(DrumVariants.IRON),
-        BRONZE(DrumVariants.BRONZE),
-        GOLD(DrumVariants.GOLD),
-        STEEL(DrumVariants.STEEL),
-        ALUMINIUM(DrumVariants.ALUMINIUM),
-        CHROME(DrumVariants.CHROME),
-        STAINLESS_STEEL(DrumVariants.STAINLESS_STEEL),
-        TITANIUM(DrumVariants.TITANIUM),
-        TUNGSTEN(DrumVariants.TUNGSTEN),
-        TUNGSTENSTEEL(DrumVariants.TUNGSTENSTEEL),
-        IRIDIUM(DrumVariants.IRIDIUM),
-        RHODIUM_PLATED_PALLADIUM(DrumVariants.RHODIUM_PLATED_PALLADIUM),
-        NAQUADAH_ALLOY(DrumVariants.NAQUADAH_ALLOY),
-        DARMSTADTIUM(DrumVariants.DARMSTADTIUM),
-        NEUTRONIUM(DrumVariants.NEUTRONIUM);
-
-        private final DrumVariant variant;
-
-        DrumMaterial(@NotNull DrumVariant variant) {
-            this.variant = variant;
-        }
-
-        @NotNull
-        public DrumVariant getVariant() {
-            return variant;
-        }
-
-        @NotNull
-        public Material getMaterial() {
-            Material material = variant.getMaterial();
-            if (material == null) {
-                throw new IllegalStateException("Drum material " + name() + " is not backed by a Material");
-            }
-            return material;
-        }
-
-        public int getTankSize() {
-            return variant.getTankSize();
-        }
-
-        public int getColor() {
-            return variant.getColor();
-        }
-
-        public boolean isWood() {
-            return variant.isWood();
-        }
-
-        @NotNull
-        public IPropertyFluidFilter getFluidFilter() {
-            return variant.getFluidFilter();
         }
     }
 }
