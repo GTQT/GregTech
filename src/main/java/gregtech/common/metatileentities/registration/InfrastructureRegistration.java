@@ -5,6 +5,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.capability.FeCompat;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.MetaTileEntityClipboard;
@@ -301,47 +302,78 @@ public final class InfrastructureRegistration {
             registerMetaTileEntity(2040 + i, QUANTUM_TANK[i]);
         }
 
-        // Drum - Single ID with NBT variants (ID 2060)
-        DRUM = registerMetaTileEntity(2060, new MetaTileEntityDrum(gregtechId("drum")));
-        // Legacy references for backward compatibility
-        WOODEN_DRUM = DRUM;
-        BRONZE_DRUM = DRUM;
-        GOLD_DRUM = DRUM;
-        COPPER_DRUM = DRUM;
-        IRON_DRUM = DRUM;
-        LEAD_DRUM = DRUM;
-        STEEL_DRUM = DRUM;
-        CHROME_DRUM = DRUM;
-        ALUMINIUM_DRUM = DRUM;
-        STAINLESS_STEEL_DRUM = DRUM;
-        TITANIUM_DRUM = DRUM;
-        TUNGSTEN_DRUM = DRUM;
-        TUNGSTENSTEEL_DRUM = DRUM;
-        IRIDIUM_DRUM = DRUM;
-        RHODIUM_PLATED_PALLADIUM_DRUM = DRUM;
-        NAQUADAH_ALLOY_DRUM = DRUM;
-        DARMSTADTIUM_DRUM = DRUM;
-        NEUTRONIUM_DRUM = DRUM;
 
-        // Crate - Single ID with NBT variants (ID 2080)
-        CRATE = registerMetaTileEntity(2080, new MetaTileEntityCrate(gregtechId("crate")));
-        // Legacy references for backward compatibility
-        WOODEN_CRATE = CRATE;
-        COPPER_CRATE = CRATE;
-        IRON_CRATE = CRATE;
-        BRONZE_CRATE = CRATE;
-        SILVER_CRATE = CRATE;
-        STEEL_CRATE = CRATE;
-        GOLD_CRATE = CRATE;
-        ALUMINIUM_CRATE = CRATE;
-        DIAMOND_CRATE = CRATE;
-        STAINLESS_STEEL_CRATE = CRATE;
-        TITANIUM_CRATE = CRATE;
-        TUNGSTENSTEEL_CRATE = CRATE;
-        RHODIUM_PLATED_PALLADIUM_CRATE = CRATE;
-        NAQUADAH_ALLOY_CRATE = CRATE;
-        DARMSTADTIUM_CRATE = CRATE;
-        NEUTRONIUM_CRATE = CRATE;
+        // Drums, IDs 2060-2077
+        WOODEN_DRUM = registerMetaTileEntity(2060,
+                new MetaTileEntityDrum(gregtechId("drum.wood"), Materials.Wood, 16000));
+        BRONZE_DRUM = registerMetaTileEntity(2061,
+                new MetaTileEntityDrum(gregtechId("drum.bronze"), Materials.Bronze, 24000));
+        GOLD_DRUM = registerMetaTileEntity(2062,
+                new MetaTileEntityDrum(gregtechId("drum.gold"), Materials.Gold, 32000));
+        COPPER_DRUM = registerMetaTileEntity(2063,
+                new MetaTileEntityDrum(gregtechId("drum.copper"), Materials.Copper, 40000));
+        IRON_DRUM = registerMetaTileEntity(2064,
+                new MetaTileEntityDrum(gregtechId("drum.iron"), Materials.Iron, 48000));
+        LEAD_DRUM = registerMetaTileEntity(2065,
+                new MetaTileEntityDrum(gregtechId("drum.lead"), Materials.Lead, 56000));
+        STEEL_DRUM = registerMetaTileEntity(2066,
+                new MetaTileEntityDrum(gregtechId("drum.steel"), Materials.Steel, 64000));
+        CHROME_DRUM = registerMetaTileEntity(2067,
+                new MetaTileEntityDrum(gregtechId("drum.chrome"), Materials.Chrome, 96000));
+        ALUMINIUM_DRUM = registerMetaTileEntity(2068,
+                new MetaTileEntityDrum(gregtechId("drum.aluminium"), Materials.Aluminium, 128000));
+        STAINLESS_STEEL_DRUM = registerMetaTileEntity(2069,
+                new MetaTileEntityDrum(gregtechId("drum.stainless_steel"), Materials.StainlessSteel, 256000));
+        TITANIUM_DRUM = registerMetaTileEntity(2070,
+                new MetaTileEntityDrum(gregtechId("drum.titanium"), Materials.Titanium, 512000));
+        TUNGSTEN_DRUM = registerMetaTileEntity(2071,
+                new MetaTileEntityDrum(gregtechId("drum.tungsten"), Materials.Tungsten, 768000));
+        TUNGSTENSTEEL_DRUM = registerMetaTileEntity(2072,
+                new MetaTileEntityDrum(gregtechId("drum.tungstensteel"), Materials.TungstenSteel, 1024000));
+        IRIDIUM_DRUM = registerMetaTileEntity(2073,
+                new MetaTileEntityDrum(gregtechId("drum.iridium"), Materials.Iridium, 1536000));
+        RHODIUM_PLATED_PALLADIUM_DRUM = registerMetaTileEntity(2074,
+                new MetaTileEntityDrum(gregtechId("drum.rhodium_plated_palladium"), Materials.RhodiumPlatedPalladium, 2048000));
+        NAQUADAH_ALLOY_DRUM = registerMetaTileEntity(2075,
+                new MetaTileEntityDrum(gregtechId("drum.naquadah_alloy"), Materials.NaquadahAlloy, 4096000));
+        DARMSTADTIUM_DRUM = registerMetaTileEntity(2076,
+                new MetaTileEntityDrum(gregtechId("drum.darmstadtium"), Materials.Darmstadtium, 8192000));
+        NEUTRONIUM_DRUM = registerMetaTileEntity(2077,
+                new MetaTileEntityDrum(gregtechId("drum.neutronium"), Materials.Neutronium, 16384000));
+
+        // Crates, IDs 2080-2095
+        WOODEN_CRATE = registerMetaTileEntity(2080,
+                new MetaTileEntityCrate(gregtechId("crate.wood"), Materials.Wood, 27, 9));
+        COPPER_CRATE = registerMetaTileEntity(2081,
+                new MetaTileEntityCrate(gregtechId("crate.copper"), Materials.Copper, 36, 9));
+        IRON_CRATE = registerMetaTileEntity(2082,
+                new MetaTileEntityCrate(gregtechId("crate.iron"), Materials.Iron, 45, 9));
+        BRONZE_CRATE = registerMetaTileEntity(2083,
+                new MetaTileEntityCrate(gregtechId("crate.bronze"), Materials.Bronze, 54, 9));
+        SILVER_CRATE = registerMetaTileEntity(2084,
+                new MetaTileEntityCrate(gregtechId("crate.silver"), Materials.Silver, 63, 9));
+        STEEL_CRATE = registerMetaTileEntity(2085,
+                new MetaTileEntityCrate(gregtechId("crate.steel"), Materials.Steel, 72, 9));
+        GOLD_CRATE = registerMetaTileEntity(2086,
+                new MetaTileEntityCrate(gregtechId("crate.gold"), Materials.Gold, 81, 9));
+        ALUMINIUM_CRATE = registerMetaTileEntity(2087,
+                new MetaTileEntityCrate(gregtechId("crate.aluminium"), Materials.Aluminium, 90, 10));
+        DIAMOND_CRATE = registerMetaTileEntity(2088,
+                new MetaTileEntityCrate(gregtechId("crate.diamond"), Materials.Diamond, 100, 10));
+        STAINLESS_STEEL_CRATE = registerMetaTileEntity(2089,
+                new MetaTileEntityCrate(gregtechId("crate.stainless_steel"), Materials.StainlessSteel, 108, 12));
+        TITANIUM_CRATE = registerMetaTileEntity(2090,
+                new MetaTileEntityCrate(gregtechId("crate.titanium"), Materials.Titanium, 126, 14));
+        TUNGSTENSTEEL_CRATE = registerMetaTileEntity(2091,
+                new MetaTileEntityCrate(gregtechId("crate.tungstensteel"), Materials.TungstenSteel, 144, 16));
+        RHODIUM_PLATED_PALLADIUM_CRATE = registerMetaTileEntity(2092,
+                new MetaTileEntityCrate(gregtechId("crate.rhodium_plated_palladium"), Materials.RhodiumPlatedPalladium, 162, 18));
+        NAQUADAH_ALLOY_CRATE = registerMetaTileEntity(2093,
+                new MetaTileEntityCrate(gregtechId("crate.naquadah_alloy"), Materials.NaquadahAlloy, 180, 20));
+        DARMSTADTIUM_CRATE = registerMetaTileEntity(2094,
+                new MetaTileEntityCrate(gregtechId("crate.darmstadtium"), Materials.Darmstadtium, 198, 22));
+        NEUTRONIUM_CRATE = registerMetaTileEntity(2095,
+                new MetaTileEntityCrate(gregtechId("crate.neutronium"), Materials.Neutronium, 216, 24));
     }
 
     // ---- Creative machines, Workbench, Clipboard, Monitor, LD endpoints, Alarm ----

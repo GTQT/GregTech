@@ -8,14 +8,12 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
@@ -58,15 +56,13 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
                     .aisle("XXX", "CCC", "#C#")
                     .aisle("XXX", "C#C", "#C#")
                     .aisle("XXX", "CSC", "#C#")
-                    .where('S', selfPredicate(GTUtility.gregtechId("steam_oven")))
+                    .where('S', selfPredicateByClass(MetaTileEntitySteamOven.class))
                     .where('#', any())
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX),
-                            "gregtech.machine.casing.bronze_firebox"))
+                            MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX)))
                         .withHatches(MultiblockAbility.STEAM, 1, 3)
                     .casing('C', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS),
-                            "gregtech.machine.casing.bronze_bricks"))
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS)))
                         .withOptionalHatches(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
                         .withOptionalHatches(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
                     .buildTemplate()

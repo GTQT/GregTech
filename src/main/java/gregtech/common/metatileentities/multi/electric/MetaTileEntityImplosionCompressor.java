@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
@@ -12,7 +11,6 @@ import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
@@ -34,11 +32,10 @@ public class MetaTileEntityImplosionCompressor extends RecipeMapMultiblockContro
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("implosion_compressor")))
+                    .where('S', selfPredicateByClass(MetaTileEntityImplosionCompressor.class))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID),
-                            "gregtech.machine.casing.steel_solid"))
+                            MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID)))
                         .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
                     .buildTemplate()
     );

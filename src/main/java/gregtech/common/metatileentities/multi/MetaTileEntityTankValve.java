@@ -31,25 +31,19 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-/**
- * Single tank valve whose base texture is supplied by the attached multiblock tank.
- */
 public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
-                                     implements IMultiblockAbilityPart<IFluidHandler> {
+        implements IMultiblockAbilityPart<IFluidHandler> {
 
-    public MetaTileEntityTankValve(ResourceLocation metaTileEntityId) {
+    private final boolean isMetal;
+
+    public MetaTileEntityTankValve(ResourceLocation metaTileEntityId, boolean isMetal) {
         super(metaTileEntityId, 0);
+        this.isMetal = isMetal;
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityTankValve(metaTileEntityId);
-    }
-
-    @Override
-    @NotNull
-    public String getMetaName() {
-        return "gregtech.machine.tank_valve";
+        return new MetaTileEntityTankValve(metaTileEntityId, isMetal);
     }
 
     @Override
@@ -61,7 +55,9 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @Override
     public ICubeRenderer getBaseTexture() {
         if (getController() == null) {
-            return Textures.SOLID_STEEL_CASING;
+            if (isMetal)
+                return Textures.SOLID_STEEL_CASING;
+            return Textures.WOOD_WALL;
         }
         return super.getBaseTexture();
     }
@@ -91,6 +87,10 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
         initializeDummyInventory();
     }
 
+    /**
+     * When this block is not connected to any multiblock it uses dummy inventory to prevent problems with capability
+     * checks
+     */
     private void initializeDummyInventory() {
         this.fluidInventory = new FluidHandlerProxy(new FluidTankList(false), new FluidTankList(false));
     }
@@ -98,7 +98,8 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @Override
     public void addToMultiBlock(MultiblockControllerBase controllerBase) {
         super.addToMultiBlock(controllerBase);
-        this.fluidInventory = controllerBase.getFluidInventory();
+        this.fluidInventory = controllerBase.getFluidInventory(); // directly use controllers fluid inventory as there
+        // is no reason to proxy it
     }
 
     @Override
@@ -154,6 +155,6 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return SoundType.METAL;
+        return this.isMetal ? SoundType.METAL : SoundType.WOOD;
     }
 }

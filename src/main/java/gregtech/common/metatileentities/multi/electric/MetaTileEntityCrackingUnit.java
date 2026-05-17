@@ -4,14 +4,12 @@ import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
@@ -53,11 +51,10 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
                     .aisle("HCHCH", "HCHCH", "HCHCH")
                     .aisle("HCHCH", "H###H", "HCHCH")
                     .aisle("HCHCH", "HCOCH", "HCHCH")
-                    .where('O', selfPredicate(GTUtility.gregtechId("cracker")))
+                    .where('O', selfPredicateByClass(MetaTileEntityCrackingUnit.class))
                     .where('#', air())
                     .casing('H', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN),
-                            "gregtech.machine.casing.stainless_clean"))
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN)))
                         .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)
@@ -125,7 +122,7 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);
         tooltip.add(I18n.format("gregtech.machine.cracker.tooltip.1"));

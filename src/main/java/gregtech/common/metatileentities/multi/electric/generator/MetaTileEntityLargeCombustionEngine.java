@@ -5,31 +5,34 @@ import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
-import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.ParametricFuelController;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
-import gregtech.api.metatileentity.variant.ParametricVariantRegistries;
-import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
-import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
+import gregtech.client.renderer.texture.Textures;
+import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
+import gregtech.common.blocks.BlockMultiblockCasing.MultiblockCasingType;
+import gregtech.common.blocks.BlockTurbineCasing.TurbineCasingType;
+import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
@@ -45,104 +48,39 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
-import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-public class MetaTileEntityLargeCombustionEngine extends ParametricFuelController<LargeCombustionEngineType>
-        implements ProgressBarMultiblock {
+public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockController implements ProgressBarMultiblock {
 
-    private static final ParametricVariantRegistry<LargeCombustionEngineType> VARIANTS =
-            ParametricVariantRegistries.enumRegistry("gregtech", LargeCombustionEngineType.class,
-                    LargeCombustionEngineType.REGULAR);
-
-    @Override
-    @NotNull
-    protected String getVariantTranslationPrefix() {
-        return "gregtech.machine";
-    }
-
-    @Override
-    @NotNull
-    protected String getVariantName(@NotNull LargeCombustionEngineType variant) {
-        return variant.getName();
-    }
-
-    private static BlockPatternTemplate buildTemplate(LargeCombustionEngineType type) {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XDX", "XXX")
-                .aisle("XCX", "CGC", "XCX")
-                .aisle("XCX", "CGC", "XCX")
-                .aisle("AAA", "AYA", "AAA")
-                .where('X', states(type.getCasingState()))
-                .where('G', states(type.getGearboxState()))
-                .where('D', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
-                        .filter(mte -> {
-                            IEnergyContainer container = mte
-                                    .getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
-                            return container != null &&
-                                    container.getOutputVoltage() * container.getOutputAmperage() >= GTValues.V[type.getTier()];
-                        })
-                        .toArray(MetaTileEntity[]::new))
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[type.getTier()]))
-                .where('A', states(type.getIntakeState()).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
-                .where('Y', selfPredicateByClass(MetaTileEntityLargeCombustionEngine.class))
-                .casing('C', CasingDefinition.simple(type.getCasingState(),
-                        "gregtech.machine.casing." + (type.isExtreme() ? "tungstensteel_robust" : "titanium_stable")))
-                    .applyPreset(HatchPresets.MUFFLER_IO)
-                .buildTemplate();
-    }
-
+    private final boolean isExtreme;
+    @Getter
     private boolean boostAllowed;
 
-    // Primary constructor: single-ID with variant
-    public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, VARIANTS, RecipeMaps.COMBUSTION_GENERATOR_FUELS,
-                LargeCombustionEngineType.REGULAR.getTier());
+    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[2];
+
+    static {
+        TEMPLATES[0] = TemplatePool.getInstance().register("gregtech:large_combustion_engine", () -> buildTemplate(false));
+        TEMPLATES[1] = TemplatePool.getInstance().register("gregtech:extreme_combustion_engine", () -> buildTemplate(true));
     }
 
-    // Variant-specific constructor for direct instantiation
-    public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId,
-                                               LargeCombustionEngineType engineType) {
-        super(metaTileEntityId, VARIANTS, RecipeMaps.COMBUSTION_GENERATOR_FUELS, engineType.getTier());
-        setVariant(engineType);
-    }
-
-    @Override
-    @NotNull
-    protected MultiblockRecipeLogic createWorkable() {
-        return new LargeCombustionEngineWorkableHandler(this, getVariant().isExtreme());
-    }
-
-    @Override
-    @NotNull
-    protected RecipeMap<?> getRecipeMapForVariant(@NotNull LargeCombustionEngineType variant) {
-        return RecipeMaps.COMBUSTION_GENERATOR_FUELS;
-    }
-
-    @Override
-    protected void onVariantChanged() {
-        LargeCombustionEngineType type = getVariant();
-        this.tier = type.getTier();
-        this.recipeMapWorkable = createWorkable();
+    public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, RecipeMaps.COMBUSTION_GENERATOR_FUELS, tier);
+        this.isExtreme = tier > GTValues.EV;
+        this.recipeMapWorkable = new LargeCombustionEngineWorkableHandler(this, isExtreme);
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityLargeCombustionEngine(metaTileEntityId, getVariant());
+        return new MetaTileEntityLargeCombustionEngine(metaTileEntityId, tier);
     }
-
-    private boolean isExtreme() {
-        return getVariant().isExtreme();
-    }
-
-    // region Display
 
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
@@ -150,7 +88,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
         builder.setWorkingStatus(recipeLogic.isWorkingEnabled(), recipeLogic.isActive() && !isDynamoFull());
 
-        if (isExtreme()) {
+        if (isExtreme) {
             builder.addEnergyProductionLine(GTValues.V[tier + 1], recipeLogic.getRecipeEUt());
         } else {
             builder.addEnergyProductionAmpsLine(GTValues.V[tier] * 3, 3);
@@ -159,7 +97,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         builder.addFuelNeededLine(recipeLogic.getRecipeFluidInputInfo(), recipeLogic.getPreviousRecipeDuration())
                 .addCustom((richText, syncer) -> {
                     if (isStructureFormed() && syncer.syncBoolean(recipeLogic.isOxygenBoosted)) {
-                        String key = isExtreme() ?
+                        String key = isExtreme ?
                                 "gregtech.multiblock.large_combustion_engine.liquid_oxygen_boosted" :
                                 "gregtech.multiblock.large_combustion_engine.oxygen_boosted";
                         richText.add(KeyUtil.lang(TextFormatting.AQUA, key));
@@ -191,42 +129,82 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        LargeCombustionEngineType type = getVariantFromStack(stack);
-        int variantTier = type.getTier();
-        tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_eut", GTValues.V[variantTier]));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_eut", GTValues.V[getTier()]));
         tooltip.add(I18n.format("gregtech.universal.tooltip.uses_per_hour_lubricant", 1000));
-        if (type.isExtreme()) {
+        if (isExtreme) {
             tooltip.add(I18n.format("gregtech.machine.large_combustion_engine.tooltip.boost_extreme",
-                    GTValues.V[variantTier] * 4));
+                    GTValues.V[tier] * 4));
         } else {
             tooltip.add(I18n.format("gregtech.machine.large_combustion_engine.tooltip.boost_regular",
-                    GTValues.V[variantTier] * 3));
+                    GTValues.V[tier] * 3));
         }
     }
 
-    // endregion
-
-    // region Structure
-
-    @Override
     @NotNull
-    protected BlockPatternTemplate buildStructureTemplate(@NotNull LargeCombustionEngineType variantValue) {
-        return buildTemplate(variantValue);
+    @Override
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATES[isExtreme?1:0].get();
+    }
+
+
+    private static BlockPatternTemplate buildTemplate(boolean isExtreme) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "XDX", "XXX")
+                .aisle("XCX", "CGC", "XCX")
+                .aisle("XCX", "CGC", "XCX")
+                .aisle("AAA", "AYA", "AAA")
+                .where('X', states(getCasingState(isExtreme)))
+                .where('G', states(getGearboxState(isExtreme)))
+                .where('D', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
+                        .filter(mte -> {
+                            IEnergyContainer container = mte
+                                    .getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                            return container != null &&
+                                    container.getOutputVoltage() * container.getOutputAmperage() >=
+                                            GTValues.V[getTier(isExtreme)];
+                        })
+                        .toArray(MetaTileEntity[]::new))
+                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[getTier(isExtreme)]))
+                .where('A', states(getIntakeState(isExtreme)).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
+                .where('Y', selfPredicateByClass(MetaTileEntityLargeCombustionEngine.class))
+                .casing('C', CasingDefinition.simple(getCasingState(isExtreme)))
+                .applyPreset(HatchPresets.MUFFLER_IO)
+                .buildTemplate();
+    }
+
+    private static int getTier(boolean isExtreme) {
+        return isExtreme ? GTValues.IV : GTValues.EV;
+    }
+
+    public static IBlockState getCasingState(boolean isExtreme) {
+        return isExtreme ? MetaBlocks.METAL_CASING.getState(MetalCasingType.TUNGSTENSTEEL_ROBUST) :
+                MetaBlocks.METAL_CASING.getState(MetalCasingType.TITANIUM_STABLE);
+    }
+
+    public static IBlockState getGearboxState(boolean isExtreme) {
+        return isExtreme ? MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TUNGSTENSTEEL_GEARBOX) :
+                MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TITANIUM_GEARBOX);
+    }
+
+    public static IBlockState getIntakeState(boolean isExtreme) {
+        return isExtreme ? MetaBlocks.MULTIBLOCK_CASING.getState(MultiblockCasingType.EXTREME_ENGINE_INTAKE_CASING) :
+                MetaBlocks.MULTIBLOCK_CASING.getState(MultiblockCasingType.ENGINE_INTAKE_CASING);
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return getVariant().getCasingRenderer();
+        return isExtreme ? Textures.ROBUST_TUNGSTENSTEEL_CASING : Textures.STABLE_TITANIUM_CASING;
     }
 
     @SideOnly(Side.CLIENT)
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return getVariant().getFrontOverlay();
+        return isExtreme ? Textures.EXTREME_COMBUSTION_ENGINE_OVERLAY : Textures.LARGE_COMBUSTION_ENGINE_OVERLAY;
     }
 
     @Override
@@ -250,6 +228,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         for (int left = -1; left <= 1; left++) {
             for (int up = -1; up <= 1; up++) {
                 if (left == 0 && up == 0) {
+                    // Skip the controller block itself
                     continue;
                 }
 
@@ -264,32 +243,10 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         return false;
     }
 
-    // endregion
-
-    // region Config
-
     @Override
     public boolean shouldShowVoidingModeButton() {
         return false;
     }
-
-    public boolean isBoostAllowed() {
-        return boostAllowed;
-    }
-
-    @Override
-    public gasType getGasType() {
-        return gasType.LOW;
-    }
-
-    @Override
-    public double getPollutionAmount() {
-        return isExtreme() ? 0.025 : 0.02;
-    }
-
-    // endregion
-
-    // region Progress Bars
 
     @Override
     public int getProgressBarCount() {
@@ -298,7 +255,6 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
     @Override
     public void registerBars(List<UnaryOperator<TemplateBarBuilder>> bars, PanelSyncManager syncManager) {
-        // Fuel amount sync (int array for tooltip raw values)
         FixedIntArraySyncValue fuelValue = new FixedIntArraySyncValue(this::getFuelAmount);
         syncManager.syncValue("fuel_amount", fuelValue);
         StringSyncValue fuelNameValue = new StringSyncValue(() -> {
@@ -313,8 +269,6 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
             return fluid.getName();
         });
         syncManager.syncValue("fuel_name", fuelNameValue);
-
-        // Lubricant and oxygen amount sync (int array for tooltip raw values)
         FixedIntArraySyncValue lubricantValue = new FixedIntArraySyncValue(this::getLubricantAmount);
         syncManager.syncValue("lubricant_amount", lubricantValue);
         FixedIntArraySyncValue oxygenValue = new FixedIntArraySyncValue(this::getOxygenAmount);
@@ -322,34 +276,15 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         BooleanSyncValue boostValue = new BooleanSyncValue(this::isBoostAllowed);
         syncManager.syncValue("boost_allowed", boostValue);
 
-        // Progress DoubleSyncValues for reliable client rendering
-        DoubleSyncValue fuelProgressValue = new DoubleSyncValue(() -> {
-            int[] fuel = getFuelAmount();
-            return fuel[1] == 0 ? 0 : 1.0 * fuel[0] / fuel[1];
-        });
-        syncManager.syncValue("fuel_progress", fuelProgressValue);
-
-        DoubleSyncValue lubricantProgressValue = new DoubleSyncValue(() -> {
-            int[] lub = getLubricantAmount();
-            return lub[1] == 0 ? 0 : 1.0 * lub[0] / lub[1];
-        });
-        syncManager.syncValue("lubricant_progress", lubricantProgressValue);
-
-        DoubleSyncValue oxygenProgressValue = new DoubleSyncValue(() -> {
-            int[] oxy = getOxygenAmount();
-            return oxy[1] == 0 ? 0 : 1.0 * oxy[0] / oxy[1];
-        });
-        syncManager.syncValue("oxygen_progress", oxygenProgressValue);
-
-        // Fuel bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .value(fuelProgressValue)
+                .progress(() -> fuelValue.getValue(1) == 0 ? 0 :
+                        1.0 * fuelValue.getValue(0) / fuelValue.getValue(1))
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_FUEL)
                 .tooltipBuilder(t -> createFuelTooltip(t, fuelValue, fuelNameValue)));
 
-        // Lubricant bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .value(lubricantProgressValue)
+                .progress(() -> lubricantValue.getValue(1) == 0 ? 0 :
+                        1.0 * lubricantValue.getValue(0) / lubricantValue.getValue(1))
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_LUBRICANT)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {
@@ -364,16 +299,16 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
                     }
                 }));
 
-        // Oxygen bar — uses DoubleSyncValue directly as progress source
         bars.add(barTest -> barTest
-                .value(oxygenProgressValue)
+                .progress(() -> oxygenValue.getValue(1) == 0 ? 0 :
+                        1.0 * oxygenValue.getValue(0) / oxygenValue.getValue(1))
                 .texture(GTGuiTextures.PROGRESS_BAR_LCE_OXYGEN)
                 .tooltipBuilder(t -> {
                     if (isStructureFormed()) {
                         if (boostValue.getBoolValue()) {
                             if (oxygenValue.getValue(0) == 0) {
                                 t.addLine(IKey.lang("gregtech.multiblock.large_combustion_engine.oxygen_none"));
-                            } else if (isExtreme()) {
+                            } else if (isExtreme) {
                                 t.addLine(IKey.lang(
                                         "gregtech.multiblock.large_combustion_engine.liquid_oxygen_amount",
                                         oxygenValue.getValue(0), oxygenValue.getValue(1)));
@@ -381,7 +316,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
                                 t.addLine(IKey.lang("gregtech.multiblock.large_combustion_engine.oxygen_amount",
                                         oxygenValue.getValue(0), oxygenValue.getValue(1)));
                             }
-                        } else if (isExtreme()) {
+                        } else if (isExtreme) {
                             t.addLine(IKey.lang(
                                     "gregtech.multiblock.large_combustion_engine.liquid_oxygen_boost_disallowed"));
                         } else {
@@ -394,6 +329,9 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
                 }));
     }
 
+    /**
+     * @return an array of [fuel stored, fuel capacity]
+     */
     private int[] getFuelAmount() {
         if (getInputFluidInventory() != null) {
             MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
@@ -406,6 +344,9 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         return new int[2];
     }
 
+    /**
+     * @return an array of [lubricant stored, lubricant capacity]
+     */
     private int[] getLubricantAmount() {
         if (getInputFluidInventory() != null) {
             return getTotalFluidAmount(Materials.Lubricant.getFluid(Integer.MAX_VALUE),
@@ -414,10 +355,13 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         return new int[2];
     }
 
+    /**
+     * @return an array of [oxygen stored, oxygen capacity]
+     */
     private int[] getOxygenAmount() {
         if (getInputFluidInventory() != null) {
             if (isBoostAllowed()) {
-                FluidStack oxygenStack = isExtreme() ?
+                FluidStack oxygenStack = isExtreme ?
                         Materials.Oxygen.getFluid(FluidStorageKeys.LIQUID, Integer.MAX_VALUE) :
                         Materials.Oxygen.getFluid(Integer.MAX_VALUE);
                 return getTotalFluidAmount(oxygenStack, getInputFluidInventory());
@@ -426,14 +370,21 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         return new int[2];
     }
 
-    // endregion
+    @Override
+    public gasType getGasType() {
+        return gasType.LOW;
+    }
 
-    // region Inner Workable Handler
+    @Override
+    public double getPollutionAmount() {
+        return isExtreme ? 0.025 : 0.02;
+    }
 
-    static class LargeCombustionEngineWorkableHandler extends MultiblockFuelRecipeLogic {
+    private static class LargeCombustionEngineWorkableHandler extends MultiblockFuelRecipeLogic {
 
-        boolean isOxygenBoosted = false;
+        private boolean isOxygenBoosted = false;
 
+        private final MetaTileEntityLargeCombustionEngine combustionEngine;
         private final boolean isExtreme;
         private final int tier;
 
@@ -441,15 +392,11 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         private static final FluidStack LIQUID_OXYGEN_STACK = Materials.Oxygen.getFluid(FluidStorageKeys.LIQUID, 80);
         private static final FluidStack LUBRICANT_STACK = Materials.Lubricant.getFluid(1);
 
-        public LargeCombustionEngineWorkableHandler(MetaTileEntityLargeCombustionEngine tileEntity,
-                                                    boolean isExtreme) {
-            super(tileEntity, RecipeMaps.COMBUSTION_GENERATOR_FUELS);
+        public LargeCombustionEngineWorkableHandler(FuelMultiblockController tileEntity, boolean isExtreme) {
+            super(tileEntity);
+            this.combustionEngine = (MetaTileEntityLargeCombustionEngine) tileEntity;
             this.isExtreme = isExtreme;
             this.tier = isExtreme ? GTValues.IV : GTValues.EV;
-        }
-
-        private MetaTileEntityLargeCombustionEngine getCombustionEngine() {
-            return (MetaTileEntityLargeCombustionEngine) getMetaTileEntity();
         }
 
         @Override
@@ -459,6 +406,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
                 drainOxygen();
                 drawEnergy(recipeEUt, false);
 
+                // as recipe starts with progress on 1 this has to be > only not => to compensate for it
                 if (++progressTime > maxProgressTime) {
                     completeRecipe();
                 }
@@ -466,9 +414,9 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         }
 
         protected void checkOxygen() {
-            MetaTileEntityLargeCombustionEngine engine = getCombustionEngine();
-            if (engine.isBoostAllowed()) {
-                IMultipleTankHandler inputTank = engine.getInputFluidInventory();
+            // check oxygen if present to boost production, and if the dynamo hatch supports it
+            if (combustionEngine.isBoostAllowed()) {
+                IMultipleTankHandler inputTank = combustionEngine.getInputFluidInventory();
                 FluidStack boosterStack = isExtreme ? LIQUID_OXYGEN_STACK : OXYGEN_STACK;
                 isOxygenBoosted = boosterStack.isFluidStackIdentical(inputTank.drain(boosterStack, false));
             }
@@ -477,12 +425,13 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
         protected void drainOxygen() {
             if (isOxygenBoosted && totalContinuousRunningTime % 20 == 0) {
                 FluidStack boosterStack = isExtreme ? LIQUID_OXYGEN_STACK : OXYGEN_STACK;
-                getCombustionEngine().getInputFluidInventory().drain(boosterStack, true);
+                combustionEngine.getInputFluidInventory().drain(boosterStack, true);
             }
         }
 
-        boolean checkLubricant() {
-            IMultipleTankHandler inputTank = getCombustionEngine().getInputFluidInventory();
+        protected boolean checkLubricant() {
+            // check lubricant and invalidate if it fails
+            IMultipleTankHandler inputTank = combustionEngine.getInputFluidInventory();
             if (LUBRICANT_STACK.isFluidStackIdentical(inputTank.drain(LUBRICANT_STACK, false))) {
                 return true;
             } else {
@@ -493,7 +442,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
         protected void drainLubricant() {
             if (totalContinuousRunningTime == 1 || totalContinuousRunningTime % 72 == 0) {
-                IMultipleTankHandler inputTank = getCombustionEngine().getInputFluidInventory();
+                IMultipleTankHandler inputTank = combustionEngine.getInputFluidInventory();
                 inputTank.drain(LUBRICANT_STACK, true);
             }
         }
@@ -511,6 +460,7 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
         @Override
         public long getMaxVoltage() {
+            // this multiplies consumption through parallel
             if (isOxygenBoosted)
                 return GTValues.V[tier] * 2;
             else
@@ -519,10 +469,13 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
 
         @Override
         protected long boostProduction(long production) {
+            // this multiplies production without increasing consumption
             if (isOxygenBoosted)
                 if (!isExtreme)
+                    // recipe gives 2A EV and we want 3A EV, for 150% efficiency
                     return production * 3 / 2;
                 else
+                    // recipe gives 2A IV and we want 4A IV, for 200% efficiency
                     return production * 2;
             return production;
         }
@@ -533,6 +486,4 @@ public class MetaTileEntityLargeCombustionEngine extends ParametricFuelControlle
             isOxygenBoosted = false;
         }
     }
-
-    // endregion
 }

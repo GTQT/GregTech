@@ -11,23 +11,22 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.metatileentity.variant.ParametricVariantRegistries;
-import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.api.util.tooltips.AbstractTooltipComponent;
@@ -75,38 +74,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<BoilerType>
-        implements ProgressBarMultiblock, IControllable, ISteamMachine {
+public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
+                                                                                    IControllable, ISteamMachine {
 
-    private static final ParametricVariantRegistry<BoilerType> VARIANTS =
-            ParametricVariantRegistries.enumRegistry("gregtech", BoilerType.class, BoilerType.BRONZE);
-
-    @Override
-    @NotNull
-    protected String getVariantTranslationPrefix() {
-        return "gregtech.machine.large_boiler";
-    }
-
-    private static BlockPatternTemplate buildTemplate(BoilerType type) {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "CCC", "CCC", "CCC")
-                .aisle("XXX", "CPC", "CPC", "CCC")
-                .aisle("XXX", "CSC", "CCC", "CCC")
-                .where('S', selfPredicateByClass(MetaTileEntityLargeBoiler.class))
-                .where('P', states(type.pipeState))
-                .casing('X', CasingDefinition.simple(type.fireboxState,
-                        "gregtech.machine.casing.firebox"))
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                .casing('C', CasingDefinition.simple(type.casingState,
-                        "gregtech.machine.casing.boiler"))
-                    .withHatches(MultiblockAbility.EXPORT_FLUIDS, 1, 4)
-                .buildTemplate();
-    }
-
-    public BoilerType boilerType;
+    public final BoilerType boilerType;
     protected BoilerRecipeLogic recipeLogic;
     private FluidTankList fluidImportInventory;
     private ItemHandlerList itemImportInventory;
@@ -114,36 +85,16 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     private int throttlePercentage = 100;
 
-    // Primary constructor: single-ID with variant
-    public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, VARIANTS);
-        this.boilerType = BoilerType.BRONZE;
-        this.recipeLogic = new BoilerRecipeLogic(this);
-        resetTileAbilities();
-    }
-
-    // Variant-specific constructor
     public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId, BoilerType boilerType) {
-        super(metaTileEntityId, VARIANTS);
-        setVariant(boilerType);
+        super(metaTileEntityId);
         this.boilerType = boilerType;
         this.recipeLogic = new BoilerRecipeLogic(this);
         resetTileAbilities();
     }
 
     @Override
-    protected void onVariantChanged() {
-        this.boilerType = getVariant();
-    }
-
-    @NotNull
-    public BoilerType getBoilerType() {
-        return getVariant();
-    }
-
-    @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityLargeBoiler(metaTileEntityId, getVariant());
+        return new MetaTileEntityLargeBoiler(metaTileEntityId, boilerType);
     }
 
     @Override
@@ -199,7 +150,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     @Override
     public double getPollutionAmount() {
-        return switch (getBoilerType()) {
+        return switch (boilerType) {
             case BRONZE -> 0.01;
             case STEEL -> 0.012;
             case TITANIUM -> 0.015;
@@ -229,7 +180,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
 
     @Override
     public GTGuiTheme getUITheme() {
-        return switch (getBoilerType()) {
+        return switch (this.boilerType) {
             case BRONZE -> GTGuiTheme.BRONZE;
             case STEEL -> GTGuiTheme.STEEL;
             default -> super.getUITheme();
@@ -362,11 +313,37 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
         return super.isActive() && recipeLogic.isActive() && recipeLogic.isWorkingEnabled();
     }
 
-    @Override
-    @NotNull
-    protected BlockPatternTemplate buildStructureTemplate(@NotNull BoilerType variantValue) {
-        return buildTemplate(variantValue);
+    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[4];
+
+    static {
+        for(BoilerType type : BoilerType.values()) {
+            TEMPLATES[type.ordinal()] = TemplatePool.getInstance().register("gregtech:large_boiler_" + type.name().toLowerCase(), () -> buildTemplate(type));
+        }
     }
+
+    private static BlockPatternTemplate buildTemplate(BoilerType boilerType) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "CCC", "CCC", "CCC")
+                .aisle("XXX", "CPC", "CPC", "CCC")
+                .aisle("XXX", "CSC", "CCC", "CCC")
+                .where('S', selfPredicateByClass(MetaTileEntityLargeBoiler.class))
+                .where('P', states(boilerType.pipeState))
+                .casing('X', CasingDefinition.simple(boilerType.fireboxState))
+                .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
+                .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
+                .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
+                .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .casing('C', CasingDefinition.simple(boilerType.casingState))
+                .withHatches(MultiblockAbility.EXPORT_FLUIDS, 1, 4)
+                .buildTemplate();
+    }
+
+    @NotNull
+    @Override
+    protected BlockPatternTemplate createStructureTemplate() {
+        return TEMPLATES[boilerType.ordinal()].get();
+    }
+
 
     @Override
     public String[] getDescription() {
@@ -377,25 +354,21 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        TooltipBuilder.create().add(new BoilerInformation(getVariantFromStack(stack))).build(this, tooltip);
+        TooltipBuilder.create().add(new BoilerInformation()).build(this, tooltip);
     }
 
     public class BoilerInformation extends AbstractTooltipComponent {
-
-        private final BoilerType type;
-
-        public BoilerInformation(BoilerType type) {
-            this.type = type;
-        }
 
         @Override
         public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
             tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
                     TextFormattingUtil
-                            .formatNumbers((int) (type.steamPerTick() * 20 * type.runtimeBoost(200) / 20.0))));
+                            .formatNumbers(
+                                    (int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));
             tooltip.add(
-                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip", type.getTicksToBoiling() / 20));
-            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", type.steamPerTick()));
+                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip",
+                            boilerType.getTicksToBoiling() / 20));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", boilerType.steamPerTick()));
             tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.multiblock.large_boiler.explosion_tooltip"));
         }
     }
@@ -411,7 +384,7 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return getBoilerType().frontOverlay;
+        return boilerType.frontOverlay;
     }
 
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
@@ -421,11 +394,10 @@ public class MetaTileEntityLargeBoiler extends ParametricMultiblockController<Bo
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        BoilerType type = getBoilerType();
         if (sourcePart != null && isFireboxPart(sourcePart)) {
-            return isActive() ? type.fireboxActiveRenderer : type.fireboxIdleRenderer;
+            return isActive() ? boilerType.fireboxActiveRenderer : boilerType.fireboxIdleRenderer;
         }
-        return type.casingRenderer;
+        return boilerType.casingRenderer;
     }
 
     @Override

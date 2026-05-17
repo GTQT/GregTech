@@ -9,15 +9,13 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.KeyUtil;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -107,10 +105,9 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XAX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("network_switch")))
+                    .where('S', selfPredicateByClass(MetaTileEntityNetworkSwitch.class))
                     .where('A', states(getAdvancedState()))
-                    .casing('X', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.computer"))
+                    .casing('X', CasingDefinition.simple(getCasingState()))
                         .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
                         .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
                         .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)

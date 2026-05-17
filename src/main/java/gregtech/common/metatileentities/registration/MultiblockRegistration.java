@@ -1,6 +1,11 @@
 package gregtech.common.metatileentities.registration;
 
 import gregtech.api.GTValues;
+import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.unification.material.Materials;
+import gregtech.client.renderer.texture.Textures;
+import gregtech.common.blocks.BlockTurbineCasing;
+import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
@@ -20,13 +25,11 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityDataBank;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityDistillationTower;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityElectricBlastFurnace;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityFluidDrill;
-import gregtech.common.metatileentities.multi.electric.FluidDrillType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityFusionReactor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityHPCA;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityImplosionCompressor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeChemicalReactor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeMiner;
-import gregtech.common.metatileentities.multi.electric.LargeMinerType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyFurnace;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
@@ -35,9 +38,6 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityProcessingA
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPyrolyseOven;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchStation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreezer;
-import gregtech.common.metatileentities.multi.electric.generator.LargeCombustionEngineType;
-import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineVariant;
-import gregtech.common.metatileentities.multi.electric.generator.LargeTurbineVariants;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
 import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
@@ -49,6 +49,7 @@ import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamGrinder;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamOven;
 import gregtech.common.metatileentities.primitive.MetaTileEntityCharcoalPileIgniter;
 
+import static gregtech.api.GTValues.*;
 import static gregtech.api.util.GTUtility.gregtechId;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 
@@ -90,18 +91,17 @@ public final class MultiblockRegistration {
                 new MetaTileEntityPrimitiveWaterPump(gregtechId("primitive_water_pump")));
         PUMP_OUTPUT_HATCH = registerMetaTileEntity(2002, new MetaTileEntityPumpHatch(gregtechId("pump_hatch")));
 
-        // Multiblock Tank - Single ID with NBT variants (IDs 2050-2051)
-        MULTIBLOCK_TANK_VALVE = registerMetaTileEntity(2050,
-                new MetaTileEntityTankValve(gregtechId("multiblock_tank_valve")));
-        MULTIBLOCK_TANK = registerMetaTileEntity(2051,
-                new MetaTileEntityMultiblockTank(gregtechId("multiblock_tank")));
+        // Tanks, IDs 2050-
+        WOODEN_TANK_VALVE = registerMetaTileEntity(2050,
+                new MetaTileEntityTankValve(gregtechId("tank_valve.wood"), false));
+        WOODEN_TANK = registerMetaTileEntity(2051,
+                new MetaTileEntityMultiblockTank(gregtechId("tank.wood"), false, 250 * 1000));
 
-        // Legacy references for backward compatibility
-        WOODEN_TANK_VALVE = MULTIBLOCK_TANK_VALVE;
-        STEEL_TANK_VALVE = MULTIBLOCK_TANK_VALVE;
-        WOODEN_TANK = MULTIBLOCK_TANK;
-        STEEL_TANK = new MetaTileEntityMultiblockTank(gregtechId("multiblock_tank"));
-        STEEL_TANK.setVariant(MetaTileEntityMultiblockTank.TankMaterial.STEEL);
+        STEEL_TANK_VALVE = registerMetaTileEntity(2052,
+                new MetaTileEntityTankValve(gregtechId("tank_valve.steel"), true));
+        STEEL_TANK = registerMetaTileEntity(2053,
+                new MetaTileEntityMultiblockTank(gregtechId("tank.steel"), true, 1000 * 1000));
+
     }
 
     // ---- Electric multiblock controllers ----
@@ -119,41 +119,42 @@ public final class MultiblockRegistration {
         MULTI_FURNACE = registerMetaTileEntity(1006, new MetaTileEntityMultiSmelter(gregtechId("multi_furnace")));
 
         // Large Combustion Engines - Single ID with NBT variants (ID 1007)
-        MetaTileEntityLargeCombustionEngine engine = registerMetaTileEntity(1007,
-                new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine")));
-        // Legacy references for backward compatibility (addons may use these)
-        LARGE_COMBUSTION_ENGINE = engine;
-        EXTREME_COMBUSTION_ENGINE = new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine"),
-                LargeCombustionEngineType.EXTREME);
-        LARGE_COMBUSTION_ENGINES.put(LargeCombustionEngineType.REGULAR, LARGE_COMBUSTION_ENGINE);
-        LARGE_COMBUSTION_ENGINES.put(LargeCombustionEngineType.EXTREME, EXTREME_COMBUSTION_ENGINE);
+        LARGE_COMBUSTION_ENGINE = registerMetaTileEntity(1007,
+                new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine"), EV));
+        EXTREME_COMBUSTION_ENGINE = registerMetaTileEntity(1008,
+                new MetaTileEntityLargeCombustionEngine(gregtechId("extreme_combustion_engine"), IV));
 
         CRACKER = registerMetaTileEntity(1009, new MetaTileEntityCrackingUnit(gregtechId("cracker")));
 
-        // Large Turbines - Single ID with NBT variants (ID 1010)
-        MetaTileEntityLargeTurbine turbine = registerMetaTileEntity(1010,
-                new MetaTileEntityLargeTurbine(gregtechId("large_turbine")));
-        for (LargeTurbineVariant variant : LargeTurbineVariants.registry().getVariants()) {
-            LARGE_TURBINE_VARIANTS.put(variant.getId(),
-                    variant == LargeTurbineVariants.STEAM ? turbine :
-                            new MetaTileEntityLargeTurbine(gregtechId("large_turbine"), variant));
-        }
+        LARGE_STEAM_TURBINE = registerMetaTileEntity(1010,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.steam"), RecipeMaps.STEAM_TURBINE_FUELS, HV,
+                        MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STEEL_TURBINE_CASING),
+                        MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STEEL_GEARBOX),
+                        Textures.TURBINE_STEEL_CASING, false, Textures.LARGE_STEAM_TURBINE_OVERLAY));
 
-        // Large Boilers - Single ID with NBT variants (ID 1013)
-        MetaTileEntityLargeBoiler boiler = registerMetaTileEntity(1013,
-                new MetaTileEntityLargeBoiler(gregtechId("large_boiler")));
-        // Legacy references for backward compatibility (addons may use these)
-        LARGE_BRONZE_BOILER = boiler;
-        LARGE_STEEL_BOILER = new MetaTileEntityLargeBoiler(gregtechId("large_boiler"), BoilerType.STEEL);
-        LARGE_TITANIUM_BOILER = new MetaTileEntityLargeBoiler(gregtechId("large_boiler"), BoilerType.TITANIUM);
-        LARGE_TUNGSTENSTEEL_BOILER = new MetaTileEntityLargeBoiler(gregtechId("large_boiler"),
-                BoilerType.TUNGSTENSTEEL);
-        LARGE_BOILERS.put(BoilerType.BRONZE, LARGE_BRONZE_BOILER);
-        LARGE_BOILERS.put(BoilerType.STEEL, LARGE_STEEL_BOILER);
-        LARGE_BOILERS.put(BoilerType.TITANIUM, LARGE_TITANIUM_BOILER);
-        LARGE_BOILERS.put(BoilerType.TUNGSTENSTEEL, LARGE_TUNGSTENSTEEL_BOILER);
+        LARGE_GAS_TURBINE = registerMetaTileEntity(1011,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.gas"), RecipeMaps.GAS_TURBINE_FUELS, EV,
+                        MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STAINLESS_TURBINE_CASING),
+                        MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STAINLESS_STEEL_GEARBOX),
+                        Textures.TURBINE_STAINLESS_STEEL_CASING, true, Textures.LARGE_GAS_TURBINE_OVERLAY));
+
+        LARGE_PLASMA_TURBINE = registerMetaTileEntity(1012,
+                new MetaTileEntityLargeTurbine(gregtechId("large_turbine.plasma"), RecipeMaps.PLASMA_GENERATOR_FUELS, IV,
+                        MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.TUNGSTENSTEEL_TURBINE_CASING),
+                        MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.TUNGSTENSTEEL_GEARBOX),
+                        Textures.TURBINE_TUNGSTENSTEEL_CASING, false, Textures.LARGE_PLASMA_TURBINE_OVERLAY));
+
+        LARGE_BRONZE_BOILER = registerMetaTileEntity(1013,
+                new MetaTileEntityLargeBoiler(gregtechId("large_boiler.bronze"), BoilerType.BRONZE));
+        LARGE_STEEL_BOILER = registerMetaTileEntity(1014,
+                new MetaTileEntityLargeBoiler(gregtechId("large_boiler.steel"), BoilerType.STEEL));
+        LARGE_TITANIUM_BOILER = registerMetaTileEntity(1015,
+                new MetaTileEntityLargeBoiler(gregtechId("large_boiler.titanium"), BoilerType.TITANIUM));
+        LARGE_TUNGSTENSTEEL_BOILER = registerMetaTileEntity(1016,
+                new MetaTileEntityLargeBoiler(gregtechId("large_boiler.tungstensteel"), BoilerType.TUNGSTENSTEEL));
 
         ASSEMBLY_LINE = registerMetaTileEntity(1019, new MetaTileEntityAssemblyLine(gregtechId("assembly_line")));
+
         FUSION_REACTOR[0] = registerMetaTileEntity(1020,
                 new MetaTileEntityFusionReactor(gregtechId("fusion_reactor.luv"), GTValues.LuV));
         FUSION_REACTOR[1] = registerMetaTileEntity(1021,
@@ -164,32 +165,21 @@ public final class MultiblockRegistration {
         LARGE_CHEMICAL_REACTOR = registerMetaTileEntity(1023,
                 new MetaTileEntityLargeChemicalReactor(gregtechId("large_chemical_reactor")));
 
-        // Large Miners registration via EnumMap
-        int largeMinerStartId = 1026;
-        for (LargeMinerType type : LargeMinerType.values()) {
-            MetaTileEntityLargeMiner miner = registerMetaTileEntity(largeMinerStartId++,
-                    new MetaTileEntityLargeMiner(gregtechId("large_miner." + type.getName()), type));
-            LARGE_MINERS.put(type, miner);
-        }
-        BASIC_LARGE_MINER = LARGE_MINERS.get(LargeMinerType.BASIC);
-        LARGE_MINER = LARGE_MINERS.get(LargeMinerType.NORMAL);
-        ADVANCED_LARGE_MINER = LARGE_MINERS.get(LargeMinerType.ADVANCED);
+        BASIC_LARGE_MINER = registerMetaTileEntity(1026, new MetaTileEntityLargeMiner(gregtechId("large_miner.ev"), EV, 16, 3, 4, Materials.Steel, 8));
+        LARGE_MINER = registerMetaTileEntity(1027, new MetaTileEntityLargeMiner(gregtechId("large_miner.iv"), IV, 4, 5, 5, Materials.Titanium, 16));
+        ADVANCED_LARGE_MINER = registerMetaTileEntity(1028, new MetaTileEntityLargeMiner(gregtechId("large_miner.luv"), GTValues.LuV, 1, 7, 6, Materials.TungstenSteel, 32));
 
         PROCESSING_ARRAY = registerMetaTileEntity(1030,
                 new MetaTileEntityProcessingArray(gregtechId("processing_array"), 0));
         ADVANCED_PROCESSING_ARRAY = registerMetaTileEntity(1031,
                 new MetaTileEntityProcessingArray(gregtechId("advanced_processing_array"), 1));
 
-        // Fluid Drilling Rigs registration via EnumMap
-        int fluidDrillStartId = 1032;
-        for (FluidDrillType type : FluidDrillType.values()) {
-            MetaTileEntityFluidDrill drill = registerMetaTileEntity(fluidDrillStartId++,
-                    new MetaTileEntityFluidDrill(gregtechId("fluid_drilling_rig." + type.getName()), type));
-            FLUID_DRILLS.put(type, drill);
-        }
-        BASIC_FLUID_DRILLING_RIG = FLUID_DRILLS.get(FluidDrillType.BASIC);
-        FLUID_DRILLING_RIG = FLUID_DRILLS.get(FluidDrillType.NORMAL);
-        ADVANCED_FLUID_DRILLING_RIG = FLUID_DRILLS.get(FluidDrillType.ADVANCED);
+        BASIC_FLUID_DRILLING_RIG = registerMetaTileEntity(1032,
+                new MetaTileEntityFluidDrill(gregtechId("fluid_drilling_rig.mv"), 2));
+        FLUID_DRILLING_RIG = registerMetaTileEntity(1033,
+                new MetaTileEntityFluidDrill(gregtechId("fluid_drilling_rig.hv"), 3));
+        ADVANCED_FLUID_DRILLING_RIG = registerMetaTileEntity(1034,
+                new MetaTileEntityFluidDrill(gregtechId("fluid_drilling_rig.ev"), 4));
 
         CLEANROOM = registerMetaTileEntity(1035, new MetaTileEntityCleanroom(gregtechId("cleanroom")));
 

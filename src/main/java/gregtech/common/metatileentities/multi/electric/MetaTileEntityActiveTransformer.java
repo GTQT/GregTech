@@ -11,11 +11,10 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.util.GTUtility;
@@ -57,11 +56,10 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("active_transformer")))
+                    .where('S', selfPredicateByClass(MetaTileEntityActiveTransformer.class))
                     .where('C', states(MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL)))
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING),
-                            "gregtech.machine.casing.high_power"))
+                            MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING)))
                         .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 4)
                         .withOptionalHatches(MultiblockAbility.OUTPUT_ENERGY, 4)
                         .withOptionalHatches(MultiblockAbility.SUBSTATION_INPUT_ENERGY, 4)

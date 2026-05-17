@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.metatileentity.multiblock.ParametricMultiblockController;
 import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -174,11 +173,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 MetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
                 // For parametric controllers, include variant NBT so the correct
                 // variant item is shown in the JEI parts list
-                if (mte instanceof ParametricMultiblockController<?> parametric) {
-                    stack = getParametricStackForm(parametric);
-                } else {
-                    stack = mte.getStackForm();
-                }
+                stack = mte.getStackForm();
             }
             if (stack.isEmpty()) {
                 // first, see what the block has to say for itself before forcing it to use a particular meta value
@@ -321,51 +316,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         ingredients.setOutput(VanillaTypes.ITEM, getControllerStack());
     }
 
-    /**
-     * Returns the correct ItemStack for this controller instance.
-     * For {@link ParametricMultiblockController}, includes variant NBT so JEI can
-     * distinguish between different variant recipes.
-     */
+
     @NotNull
     private ItemStack getControllerStack() {
-        if (controller instanceof ParametricMultiblockController<?> parametric) {
-            return getParametricStackForm(parametric);
-        }
         return controller.getStackForm();
-    }
-
-    /**
-     * Helper method to capture the wildcard type parameter of ParametricMultiblockController,
-     * allowing getStackForm(V) to accept the result of getVariant().
-     */
-    @NotNull
-    private static <V> ItemStack getParametricStackForm(
-            @NotNull ParametricMultiblockController<V> parametric) {
-        return parametric.getStackForm(parametric.getVariant());
-    }
-
-    /**
-     * Replaces the controller MTE in the preview block map with a copy that carries
-     * the correct variant from {@link #controller}. This ensures the JEI 3D preview
-     * renders the variant-specific controller model/texture instead of the default one.
-     */
-    @SuppressWarnings("unchecked")
-    private <V> void replaceControllerVariantInPreview(
-            @NotNull Map<BlockPos, BlockInfo> blockMap,
-            @NotNull BlockPos controllerPos,
-            @NotNull MultiblockControllerBase previewController) {
-        ParametricMultiblockController<V> source = (ParametricMultiblockController<V>) controller;
-        ParametricMultiblockController<V> target = (ParametricMultiblockController<V>) previewController;
-        V desiredVariant = source.getVariant();
-        if (desiredVariant == target.getVariant()) return;
-
-        target.setVariant(desiredVariant);
-        MetaTileEntityHolder holder = new MetaTileEntityHolder();
-        holder.setMetaTileEntity(target);
-        holder.getMetaTileEntity().onPlacement();
-        holder.getMetaTileEntity().setFrontFacing(target.getFrontFacing());
-        blockMap.put(controllerPos, new BlockInfo(
-                target.getBlock().getDefaultState(), holder));
     }
 
     /**
@@ -987,11 +941,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         // first matching candidate in the registry, which may not be the actual controller
         // for this JEI recipe entry. Replace it with the correct controller instance.
         if (controllerBlockPos != null && controllerBase != null) {
-            if (controller instanceof ParametricMultiblockController<?>
-                    && controllerBase instanceof ParametricMultiblockController<?>) {
-                // Parametric controllers: same MTE ID but different variant stored in NBT
-                replaceControllerVariantInPreview(blockMap, controllerBlockPos, controllerBase);
-            } else if (!controller.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
+            if (!controller.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
                 // Non-parametric controllers with selfPredicateByClass: different MTE IDs
                 // sharing the same class (e.g. LargeMiner, LargeBoiler, LargeTurbine)
                 replaceControllerInPreview(blockMap, controllerBlockPos, controllerBase);

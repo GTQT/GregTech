@@ -23,7 +23,6 @@ import java.util.List;
  *
  * <p>This class extracts the ability management pattern from {@link RecipeMapMultiblockController}
  * into a reusable component, enabling composition-based recipe support for classes
- * that cannot inherit from RMMC (e.g., {@link ParametricMultiblockController}).
  *
  * @see RecipeMapMultiblockController
  * @see gregtech.api.capability.IRecipeMapHolder

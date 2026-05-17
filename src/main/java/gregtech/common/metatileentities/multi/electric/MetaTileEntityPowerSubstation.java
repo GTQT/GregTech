@@ -18,18 +18,16 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -89,15 +87,13 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
             DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
                     .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                     .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
-                    .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
-                        .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                    .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG").withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                     .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
-                    .where('S', selfPredicate(GTUtility.gregtechId("power_substation")))
+                    .where('S', selfPredicateByClass(MetaTileEntityPowerSubstation.class))
                     .where('C', states(getCasingState()))
                     .where('G', states(getGlassState()))
                     .where('B', getBatteryPredicate())
-                    .casing('X', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.palladium_substation"))
+                    .casing('X', CasingDefinition.simple(getCasingState()))
                         .withCustomHatches(
                                 abilities(MultiblockAbility.MAINTENANCE_HATCH)
                                         .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)

@@ -5,13 +5,10 @@ import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.GTFluidHandlerItemStack;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.ParametricMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.variant.ParametricVariantRegistries;
-import gregtech.api.metatileentity.variant.ParametricVariantRegistry;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
@@ -56,81 +53,61 @@ import java.util.List;
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_AUTO_OUTPUT;
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_FLUID;
 
-/**
- * Single-ID drum supporting multiple material variants via stable registry ids in NBT.
- */
-public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
+public class MetaTileEntityDrum extends MetaTileEntity {
 
-    private final boolean fixedVariantRegistry;
+    private final IPropertyFluidFilter fluidFilter;
+    private final boolean isWood;
+    private final int color;
+    private final int tankSize;
 
     private FilteredFluidHandler fluidTank;
     private boolean isAutoOutput = false;
 
-    public MetaTileEntityDrum(ResourceLocation metaTileEntityId) {
-        this(metaTileEntityId, DrumVariants.registry(), DrumVariants.WOOD, false);
-    }
-
-    private MetaTileEntityDrum(@NotNull ResourceLocation metaTileEntityId,
-                               @NotNull DrumVariant fixedVariant) {
-        this(metaTileEntityId, ParametricVariantRegistries.single(fixedVariant.getId(), fixedVariant),
-                fixedVariant, true);
-    }
-
-    private MetaTileEntityDrum(@NotNull ResourceLocation metaTileEntityId,
-                               @NotNull ParametricVariantRegistry<DrumVariant> variantRegistry,
-                               @NotNull DrumVariant defaultVariant,
-                               boolean fixedVariantRegistry) {
-        super(metaTileEntityId, variantRegistry, defaultVariant);
-        this.fixedVariantRegistry = fixedVariantRegistry;
+    /**
+     * @param metaTileEntityId the id for the MTE
+     * @param material         the material the drum is made of, must have
+     *                         {@link gregtech.api.unification.material.properties.FluidProperty}.
+     * @param tankSize         the size of the storage tank
+     */
+    public MetaTileEntityDrum(ResourceLocation metaTileEntityId, @NotNull Material material, int tankSize) {
+        super(metaTileEntityId);
+        IPropertyFluidFilter filter = material.getProperty(PropertyKey.FLUID_PIPE);
+        if (filter == null) {
+            throw new IllegalArgumentException("Material " + material + " requires FluidPipeProperty for Drums");
+        }
+        this.fluidFilter = filter;
+        this.isWood = ModHandler.isMaterialWood(material);
+        this.color = material.getMaterialRGB();
+        this.tankSize = tankSize;
         initializeInventory();
     }
 
     /**
-     * @deprecated Drums are now a single parametric MTE using {@link DrumVariant}. Add new drum variants through
-     *             {@link DrumVariants#register(DrumVariant)} instead of registering separate MTEs with this constructor.
+     *
+     * @param metaTileEntityId the id for the MTE
+     * @param fluidFilter      the filter for which fluids can be stored
+     * @param isWood           if the drum is made of wood
+     * @param color            the color of the drum in RGB format
+     * @param tankSize         the size of the storage tank
      */
-    @Deprecated
-    public MetaTileEntityDrum(ResourceLocation metaTileEntityId, @NotNull Material material, int tankSize) {
-        this(metaTileEntityId, DrumVariant.legacy(metaTileEntityId,
-                DrumVariant.getFluidFilterForMaterial(material),
-                ModHandler.isMaterialWood(material), material.getMaterialRGB(), tankSize));
-    }
-
-    /**
-     * @deprecated Drums are now a single parametric MTE using {@link DrumVariant}. This constructor remains for addons
-     *             that still extend/register separate drum-like MTEs.
-     */
-    @Deprecated
     public MetaTileEntityDrum(ResourceLocation metaTileEntityId, @NotNull IPropertyFluidFilter fluidFilter,
                               boolean isWood, int color, int tankSize) {
-        this(metaTileEntityId, DrumVariant.legacy(metaTileEntityId, fluidFilter, isWood, color, tankSize));
+        super(metaTileEntityId);
+        this.fluidFilter = fluidFilter;
+        this.isWood = isWood;
+        this.color = color;
+        this.tankSize = tankSize;
+        initializeInventory();
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        if (fixedVariantRegistry) {
-            return new MetaTileEntityDrum(metaTileEntityId, getVariant());
-        }
-        MetaTileEntityDrum drum = new MetaTileEntityDrum(metaTileEntityId);
-        drum.setVariant(getVariant());
-        drum.initializeInventory();
-        return drum;
-    }
-
-    @Override
-    @NotNull
-    protected String getVariantTranslationPrefix() {
-        return "gregtech.machine.drum";
-    }
-
-    @Override
-    protected void onVariantChanged() {
-        initializeInventory();
+        return new MetaTileEntityDrum(metaTileEntityId, fluidFilter, isWood, color, tankSize);
     }
 
     @Override
     public String getHarvestTool() {
-        return getVariant().isWood() ? ToolClasses.AXE : ToolClasses.WRENCH;
+        return isWood ? ToolClasses.AXE : ToolClasses.WRENCH;
     }
 
     @Override
@@ -140,15 +117,15 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
 
     @Override
     protected void initializeInventory() {
-        DrumVariant variant = getVariant();
-        if (variant == null) return;
+        // call before field initialization, should be called later with fields set
+        if (this.fluidFilter == null) {
+            return;
+        }
 
         super.initializeInventory();
         this.fluidTank = new DrumFluidHandler(variant.getTankSize()).setFilter(variant.getFluidFilter());
         this.fluidInventory = this.fluidTank;
     }
-
-    // region Fluid NBT persistence (stored fluid in ItemStack and TileEntity)
 
     @Override
     public void initFromItemStackData(NBTTagCompound itemStack) {
@@ -173,8 +150,7 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
 
     @Override
     public ICapabilityProvider initItemStackCapabilities(ItemStack itemStack) {
-        DrumVariant variant = getVariantFromStack(itemStack);
-        return new GTFluidHandlerItemStack(itemStack, variant.getTankSize()).setFilter(variant.getFluidFilter());
+        return new GTFluidHandlerItemStack(itemStack, tankSize).setFilter(this.fluidTank.getFilter());
     }
 
     @Override
@@ -294,18 +270,14 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
         }
     }
 
-    // endregion
-
-    // region Rendering
-
     @Override
     @SideOnly(Side.CLIENT)
     public Pair<TextureAtlasSprite, Integer> getParticleTexture() {
-        if (getVariant().isWood()) {
+        if (isWood) {
             return Pair.of(Textures.WOODEN_DRUM.getParticleTexture(), getPaintingColorForRendering());
         } else {
             int color = GTUtility.convertOpaqueRGBA_CLtoRGB(ColourRGBA.multiply(
-                    GTUtility.convertRGBtoOpaqueRGBA_CL(getVariant().getColor()),
+                    GTUtility.convertRGBtoOpaqueRGBA_CL(this.color),
                     GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())));
             return Pair.of(Textures.DRUM.getParticleTexture(), color);
         }
@@ -313,14 +285,14 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        if (getVariant().isWood()) {
+        if (isWood) {
             ColourMultiplier multiplier = new ColourMultiplier(
                     GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering()));
             Textures.WOODEN_DRUM.render(renderState, translation, ArrayUtils.add(pipeline, multiplier),
                     getFrontFacing());
         } else {
             ColourMultiplier multiplier = new ColourMultiplier(
-                    ColourRGBA.multiply(GTUtility.convertRGBtoOpaqueRGBA_CL(getVariant().getColor()),
+                    ColourRGBA.multiply(GTUtility.convertRGBtoOpaqueRGBA_CL(this.color),
                             GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())));
             Textures.DRUM.render(renderState, translation, ArrayUtils.add(pipeline, multiplier), getFrontFacing());
             Textures.DRUM_OVERLAY.render(renderState, translation, pipeline);
@@ -336,15 +308,11 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
         return 0xFFFFFF;
     }
 
-    // endregion
-
-    // region Tooltip
-
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
         tooltip.add(I18n.format("gregtech.machine.quantum_tank.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", getTankSize(stack)));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", tankSize));
 
         NBTTagCompound tagCompound = stack.getTagCompound();
         if (tagCompound != null && tagCompound.hasKey("Fluid", Constants.NBT.TAG_COMPOUND)) {
@@ -354,13 +322,14 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
                     fluidStack.amount));
         }
 
-        getFluidFilter(stack).appendTooltips(tooltip, true, true);
+        this.fluidFilter.appendTooltips(tooltip, true, true);
 
         if (TooltipHelper.isShiftDown()) {
             tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
             tooltip.add(I18n.format("gregtech.tool_action.screwdriver.auto_output_down"));
             tooltip.add(I18n.format("gregtech.tool_action.crowbar"));
         }
+
     }
 
     // Override this so that we can control the "Hold SHIFT" tooltip manually
@@ -368,10 +337,6 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
     public boolean showToolUsages() {
         return false;
     }
-
-    // endregion
-
-    // region NBT persistence
 
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
@@ -393,14 +358,8 @@ public class MetaTileEntityDrum extends ParametricMetaTileEntity<DrumVariant> {
         return false;
     }
 
-    // endregion
-
     public int getTankSize() {
-        return getVariant().getTankSize();
-    }
-
-    public int getTankSize(@NotNull ItemStack stack) {
-        return getVariantFromStack(stack).getTankSize();
+        return tankSize;
     }
 
     @NotNull

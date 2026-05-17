@@ -182,7 +182,7 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
     }
 
     @Override
-    public List<ITextComponent> getDataInfo() {
+    public @NotNull List<ITextComponent> getDataInfo() {
         List<ITextComponent> list = new ArrayList<>();
         if (recipeMapWorkable.getMaxProgress() > 0) {
             list.add(new TextComponentTranslation("behavior.tricorder.workable_progress",

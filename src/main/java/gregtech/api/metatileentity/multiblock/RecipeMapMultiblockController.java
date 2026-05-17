@@ -6,8 +6,8 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
-import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.IRecipeControl;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.IDataInfoProvider;
 import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
@@ -79,6 +79,44 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         resetTileAbilities();
     }
 
+    /**
+     * Appends cross-recipe parallel slot details to the Tricorder data info. Slots with the same recipe name and
+     * duration are merged into a single entry. Shows up to 2 merged entries, with "..." if more exist.
+     */
+    protected static void addCrossRecipeTricorderInfo(@NotNull List<ITextComponent> list,
+                                                      @NotNull CrossRecipeParallelScheduler scheduler) {
+        List<CrossRecipeParallelScheduler.MergedSlotDisplay> mergedSlots = scheduler.getMergedDisplaySlots();
+        if (mergedSlots.isEmpty()) return;
+
+        int displayed = 0;
+        for (CrossRecipeParallelScheduler.MergedSlotDisplay merged : mergedSlots) {
+            if (displayed >= 2) {
+                list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.more")
+                        .setStyle(new Style().setColor(TextFormatting.GRAY)));
+                break;
+            }
+
+            String slotLabel = "#" + (merged.slotIndex + 1);
+            if (!merged.recipeName.isEmpty()) {
+                slotLabel += " " + merged.recipeName;
+                if (merged.totalParallelCount > 1) {
+                    slotLabel += " x" + merged.totalParallelCount;
+                }
+            }
+
+            list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.slot",
+                    new TextComponentTranslation(slotLabel)
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW)),
+                    new TextComponentTranslation(
+                            TextFormattingUtil.formatNumbers(merged.progress / 20))
+                            .setStyle(new Style().setColor(TextFormatting.GREEN)),
+                    new TextComponentTranslation(
+                            TextFormattingUtil.formatNumbers(merged.maxProgress / 20))
+                            .setStyle(new Style().setColor(TextFormatting.YELLOW))));
+            displayed++;
+        }
+    }
+
     @Override
     protected boolean isWorkingForStructureCheck() {
         return recipeMapWorkable != null && recipeMapWorkable.isActive();
@@ -97,27 +135,27 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     @Override
-    public IItemHandlerModifiable getInputInventory() {
+    public @NotNull IItemHandlerModifiable getInputInventory() {
         return inputInventory;
     }
 
     @Override
-    public IItemHandlerModifiable getOutputInventory() {
+    public @NotNull IItemHandlerModifiable getOutputInventory() {
         return outputInventory;
     }
 
     @Override
-    public IMultipleTankHandler getInputFluidInventory() {
+    public @NotNull IMultipleTankHandler getInputFluidInventory() {
         return inputFluidInventory;
     }
 
     @Override
-    public IMultipleTankHandler getOutputFluidInventory() {
+    public @NotNull IMultipleTankHandler getOutputFluidInventory() {
         return outputFluidInventory;
     }
 
     @Override
-    public MultiblockRecipeLogic getRecipeMapWorkable() {
+    public @NotNull MultiblockRecipeLogic getRecipeMapWorkable() {
         return recipeMapWorkable;
     }
 
@@ -165,8 +203,8 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     /**
-     * Synchronizes protected fields from the ability manager.
-     * This ensures backward compatibility with subclasses that read fields directly.
+     * Synchronizes protected fields from the ability manager. This ensures backward compatibility with subclasses that
+     * read fields directly.
      */
     private void syncFromAbilityManager() {
         this.inputInventory = abilityManager.getInputInventory();
@@ -194,9 +232,8 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     /**
-     * @deprecated Use {@link MultiblockUIBuilder#addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead.
-     *             This method does not sync branch conditions via the builder's syncer, causing client/server
-     *             buffer desynchronization.
+     * @deprecated Use {@link MultiblockUIBuilder#addCrossRecipeOrProgressDisplay(MultiblockRecipeLogic)} instead. This
+     * method does not sync branch conditions via the builder's syncer, causing client/server buffer desynchronization.
      */
     @Deprecated
     protected void addCrossRecipeDisplay(MultiblockUIBuilder builder, MultiblockRecipeLogic logic) {
@@ -388,45 +425,6 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         return list;
     }
 
-    /**
-     * Appends cross-recipe parallel slot details to the Tricorder data info.
-     * Slots with the same recipe name and duration are merged into a single entry.
-     * Shows up to 2 merged entries, with "..." if more exist.
-     */
-    protected static void addCrossRecipeTricorderInfo(@NotNull List<ITextComponent> list,
-                                                      @NotNull CrossRecipeParallelScheduler scheduler) {
-        List<CrossRecipeParallelScheduler.MergedSlotDisplay> mergedSlots = scheduler.getMergedDisplaySlots();
-        if (mergedSlots.isEmpty()) return;
-
-        int displayed = 0;
-        for (CrossRecipeParallelScheduler.MergedSlotDisplay merged : mergedSlots) {
-            if (displayed >= 2) {
-                list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.more")
-                        .setStyle(new Style().setColor(TextFormatting.GRAY)));
-                break;
-            }
-
-            String slotLabel = "#" + (merged.slotIndex + 1);
-            if (!merged.recipeName.isEmpty()) {
-                slotLabel += " " + merged.recipeName;
-                if (merged.totalParallelCount > 1) {
-                    slotLabel += " x" + merged.totalParallelCount;
-                }
-            }
-
-            list.add(new TextComponentTranslation("behavior.tricorder.cross_recipe.slot",
-                    new TextComponentTranslation(slotLabel)
-                            .setStyle(new Style().setColor(TextFormatting.YELLOW)),
-                    new TextComponentTranslation(
-                            TextFormattingUtil.formatNumbers(merged.progress / 20))
-                            .setStyle(new Style().setColor(TextFormatting.GREEN)),
-                    new TextComponentTranslation(
-                            TextFormattingUtil.formatNumbers(merged.maxProgress / 20))
-                            .setStyle(new Style().setColor(TextFormatting.YELLOW))));
-            displayed++;
-        }
-    }
-
     @Nullable
     @Override
     public ICleanroomProvider getCleanroom() {
@@ -450,7 +448,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     @Override
     @SideOnly(Side.CLIENT)
     public String recipeMapsToString() {
-        if (recipeMap== null)return "";
+        if (recipeMap == null) return "";
         return recipeMap.getLocalizedName();
     }
 
@@ -493,18 +491,22 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     public boolean isRecipeLocked() {
         return recipeMapWorkable.isRecipeLockEnable();
     }
+
     @Override
     public void setRecipeLocked(boolean enable) {
         recipeMapWorkable.setRecipeLockEnable(enable);
     }
+
     @Override
     public boolean isEnergyLackWarningEnabled() {
         return recipeMapWorkable.isEnergyLackWarningEnable();
     }
+
     @Override
     public void setEnergyLackWarningEnabled(boolean enable) {
         recipeMapWorkable.setEnergyLackWarningEnable(enable);
     }
+
     @Override
     public boolean hasSideUI() {
         return true;

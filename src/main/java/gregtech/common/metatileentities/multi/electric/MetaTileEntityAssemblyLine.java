@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
@@ -71,7 +70,7 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                     .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
                         .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .aisle("FOF", "RTR", "DAG", " Y ")
-                    .where('S', selfPredicate(GTUtility.gregtechId("assembly_line")))
+                    .where('S', selfPredicateByClass(MetaTileEntityAssemblyLine.class))
                     .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
                             .addTooltips("gregtech.multiblock.pattern.location_end"))
                     .where('I', metaTileEntities(MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV]))
@@ -85,12 +84,10 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                                     .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING)))
                     .where('D', dataHatchPredicate())
                     .where(' ', any())
-                    .casing('F', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.solid_steel"))
+                    .casing('F', CasingDefinition.simple(getCasingState()))
                         .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
                         .withCustomHatches(fluidInputPredicate(), 4)
-                    .casing('Y', CasingDefinition.simple(getCasingState(),
-                            "gregtech.machine.casing.solid_steel"))
+                    .casing('Y', CasingDefinition.simple(getCasingState()))
                         .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
                     .buildTemplate()
     );

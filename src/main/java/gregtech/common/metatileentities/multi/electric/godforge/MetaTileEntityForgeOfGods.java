@@ -1,32 +1,30 @@
 package gregtech.common.metatileentities.multi.electric.godforge;
 
-import gregtech.api.util.GTLog;
-import gregtech.api.util.GTUtility;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IGodforgeModule;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWorldData;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
-import gregtech.api.util.RelativeDirection;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
+import gregtech.api.util.GTLog;
+import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.godforge.GodforgeRenderTileEntity;
 import gregtech.client.renderer.texture.Textures;
@@ -74,9 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static gregtech.api.util.RelativeDirection.FRONT;
-import static gregtech.api.util.RelativeDirection.RIGHT;
-import static gregtech.api.util.RelativeDirection.UP;
+import static gregtech.api.util.RelativeDirection.*;
 
 /**
  * Forge of the Gods — the largest multiblock structure in the mod.
@@ -345,7 +341,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private static TraceabilityPredicate godforgeController() {
-        return MultiblockControllerBase.selfPredicate(GTUtility.gregtechId("forge_of_gods"));
+        return selfPredicateByClass(MetaTileEntityForgeOfGods.class);
     }
 
     // ==================== Structure Lifecycle ====================

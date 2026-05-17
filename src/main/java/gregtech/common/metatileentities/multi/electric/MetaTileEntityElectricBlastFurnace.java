@@ -59,12 +59,11 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                     .aisle("XXX", "CCC", "CCC", "XXX")
                     .aisle("XXX", "C#C", "C#C", "XMX")
                     .aisle("XSX", "CCC", "CCC", "XXX")
-                    .where('S', selfPredicate(GTUtility.gregtechId("electric_blast_furnace")))
+                    .where('S',  selfPredicateByClass(MetaTileEntityElectricBlastFurnace.class))
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF),
-                            "gregtech.machine.casing.invar_heatproof"))
+                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
                         .applyPreset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)

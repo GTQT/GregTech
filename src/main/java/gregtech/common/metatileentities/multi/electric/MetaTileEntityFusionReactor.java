@@ -17,13 +17,12 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCParams;
@@ -96,6 +95,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     // Static template cache: one SoftTemplate per tier (LuV=6, ZPM=7, UV=8)
     private static final SoftTemplate[] TEMPLATES = new SoftTemplate[GTValues.UV + 1];
+
     static {
         for (int t = GTValues.LuV; t <= GTValues.UV; t++) {
             final int tier = t;

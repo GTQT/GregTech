@@ -71,7 +71,7 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
     }
 
     @Override
-    public List<ITextComponent> getDataInfo() {
+    public @NotNull List<ITextComponent> getDataInfo() {
         List<ITextComponent> list = new ArrayList<>();
 
         // Cross-recipe parallel: show slot details instead of single progress

@@ -11,8 +11,6 @@ import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.common.pipelike.laser.LaserPipeType;
-import gregtech.common.metatileentities.storage.MetaTileEntityCrate;
-import gregtech.common.metatileentities.storage.DrumVariants;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -36,14 +34,14 @@ public class MetaTileEntityMachineRecipeLoader {
         // Fluid Hatches
         registerHatchBusRecipe(ULV, FLUID_IMPORT_HATCH[ULV], FLUID_EXPORT_HATCH[ULV], new ItemStack(Blocks.GLASS));
         registerHatchBusRecipe(LV, FLUID_IMPORT_HATCH[LV], FLUID_EXPORT_HATCH[LV], new ItemStack(Blocks.GLASS));
-        registerHatchBusRecipe(MV, FLUID_IMPORT_HATCH[MV], FLUID_EXPORT_HATCH[MV], DRUM.getStackForm(DrumVariants.BRONZE));
-        registerHatchBusRecipe(HV, FLUID_IMPORT_HATCH[HV], FLUID_EXPORT_HATCH[HV], DRUM.getStackForm(DrumVariants.STEEL));
-        registerHatchBusRecipe(EV, FLUID_IMPORT_HATCH[EV], FLUID_EXPORT_HATCH[EV], DRUM.getStackForm(DrumVariants.ALUMINIUM));
-        registerHatchBusRecipe(IV, FLUID_IMPORT_HATCH[IV], FLUID_EXPORT_HATCH[IV], DRUM.getStackForm(DrumVariants.STAINLESS_STEEL));
-        registerHatchBusRecipe(LuV, FLUID_IMPORT_HATCH[LuV], FLUID_EXPORT_HATCH[LuV], DRUM.getStackForm(DrumVariants.TITANIUM));
-        registerHatchBusRecipe(ZPM, FLUID_IMPORT_HATCH[ZPM], FLUID_EXPORT_HATCH[ZPM], DRUM.getStackForm(DrumVariants.TUNGSTENSTEEL));
-        registerHatchBusRecipe(UV, FLUID_IMPORT_HATCH[UV], FLUID_EXPORT_HATCH[UV], DRUM.getStackForm(DrumVariants.RHODIUM_PLATED_PALLADIUM));
-        registerHatchBusRecipe(UHV, FLUID_IMPORT_HATCH[UHV], FLUID_EXPORT_HATCH[UHV], DRUM.getStackForm(DrumVariants.NAQUADAH_ALLOY));
+        registerHatchBusRecipe(MV, FLUID_IMPORT_HATCH[MV], FLUID_EXPORT_HATCH[MV], BRONZE_DRUM.getStackForm());
+        registerHatchBusRecipe(HV, FLUID_IMPORT_HATCH[HV], FLUID_EXPORT_HATCH[HV], STEEL_DRUM.getStackForm());
+        registerHatchBusRecipe(EV, FLUID_IMPORT_HATCH[EV], FLUID_EXPORT_HATCH[EV], ALUMINIUM_DRUM.getStackForm());
+        registerHatchBusRecipe(IV, FLUID_IMPORT_HATCH[IV], FLUID_EXPORT_HATCH[IV], STAINLESS_STEEL_DRUM.getStackForm());
+        registerHatchBusRecipe(LuV, FLUID_IMPORT_HATCH[LuV], FLUID_EXPORT_HATCH[LuV], TITANIUM_DRUM.getStackForm());
+        registerHatchBusRecipe(ZPM, FLUID_IMPORT_HATCH[ZPM], FLUID_EXPORT_HATCH[ZPM], TUNGSTENSTEEL_DRUM.getStackForm());
+        registerHatchBusRecipe(UV, FLUID_IMPORT_HATCH[UV], FLUID_EXPORT_HATCH[UV], RHODIUM_PLATED_PALLADIUM_DRUM.getStackForm());
+        registerHatchBusRecipe(UHV, FLUID_IMPORT_HATCH[UHV], FLUID_EXPORT_HATCH[UHV], NAQUADAH_ALLOY_DRUM.getStackForm());
 
         for (int i = 0; i < 9; i++) {
             ASSEMBLER_RECIPES.recipeBuilder()
@@ -103,17 +101,17 @@ public class MetaTileEntityMachineRecipeLoader {
                 .output(RESERVOIR_HATCH)
                 .duration(300).EUt(VA[LuV]).buildAndRegister();
 
-        // Item Hatches
+        // Item Buses
         registerHatchBusRecipe(ULV, ITEM_IMPORT_BUS[ULV], ITEM_EXPORT_BUS[ULV], OreDictNames.chestWood.toString());
         registerHatchBusRecipe(LV, ITEM_IMPORT_BUS[LV], ITEM_EXPORT_BUS[LV], OreDictNames.chestWood.toString());
-        registerHatchBusRecipe(MV, ITEM_IMPORT_BUS[MV], ITEM_EXPORT_BUS[MV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.BRONZE));
-        registerHatchBusRecipe(HV, ITEM_IMPORT_BUS[HV], ITEM_EXPORT_BUS[HV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.STEEL));
-        registerHatchBusRecipe(EV, ITEM_IMPORT_BUS[EV], ITEM_EXPORT_BUS[EV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.ALUMINIUM));
-        registerHatchBusRecipe(IV, ITEM_IMPORT_BUS[IV], ITEM_EXPORT_BUS[IV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.STAINLESS_STEEL));
-        registerHatchBusRecipe(LuV, ITEM_IMPORT_BUS[LuV], ITEM_EXPORT_BUS[LuV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.TITANIUM));
-        registerHatchBusRecipe(ZPM, ITEM_IMPORT_BUS[ZPM], ITEM_EXPORT_BUS[ZPM], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.TUNGSTENSTEEL));
-        registerHatchBusRecipe(UV, ITEM_IMPORT_BUS[UV], ITEM_EXPORT_BUS[UV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.RHODIUM_PLATED_PALLADIUM));
-        registerHatchBusRecipe(UHV, ITEM_IMPORT_BUS[UHV], ITEM_EXPORT_BUS[UHV], CRATE.getStackForm(MetaTileEntityCrate.CrateMaterial.NAQUADAH_ALLOY));
+        registerHatchBusRecipe(MV, ITEM_IMPORT_BUS[MV], ITEM_EXPORT_BUS[MV], BRONZE_CRATE.getStackForm());
+        registerHatchBusRecipe(HV, ITEM_IMPORT_BUS[HV], ITEM_EXPORT_BUS[HV], STEEL_CRATE.getStackForm());
+        registerHatchBusRecipe(EV, ITEM_IMPORT_BUS[EV], ITEM_EXPORT_BUS[EV], ALUMINIUM_CRATE.getStackForm());
+        registerHatchBusRecipe(IV, ITEM_IMPORT_BUS[IV], ITEM_EXPORT_BUS[IV], STAINLESS_STEEL_CRATE.getStackForm());
+        registerHatchBusRecipe(LuV, ITEM_IMPORT_BUS[LuV], ITEM_EXPORT_BUS[LuV], TITANIUM_CRATE.getStackForm());
+        registerHatchBusRecipe(ZPM, ITEM_IMPORT_BUS[ZPM], ITEM_EXPORT_BUS[ZPM], TUNGSTENSTEEL_CRATE.getStackForm());
+        registerHatchBusRecipe(UV, ITEM_IMPORT_BUS[UV], ITEM_EXPORT_BUS[UV], RHODIUM_PLATED_PALLADIUM_CRATE.getStackForm());
+        registerHatchBusRecipe(UHV, ITEM_IMPORT_BUS[UHV], ITEM_EXPORT_BUS[UHV], NAQUADAH_ALLOY_CRATE.getStackForm());
 
         // Laser Hatches
         registerLaserRecipes();

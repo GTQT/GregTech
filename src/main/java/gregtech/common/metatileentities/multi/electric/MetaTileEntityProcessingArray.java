@@ -16,11 +16,10 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -79,8 +78,7 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                 .aisle("XXX", "XSX", "XXX")
                 .where('S', selfPredicateByClass(MetaTileEntityProcessingArray.class))
                 .where('#', air())
-                .casing('X', CasingDefinition.simple(casingState,
-                        "gregtech.machine.casing.processing_array"))
+                .casing('X', CasingDefinition.simple(casingState))
                     .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
                     .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
                     .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
@@ -250,7 +248,7 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.universal.tooltip.parallel", getMachineLimit()));
     }
