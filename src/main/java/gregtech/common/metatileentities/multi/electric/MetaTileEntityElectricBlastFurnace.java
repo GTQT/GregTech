@@ -54,21 +54,22 @@ import java.util.List;
 
 public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockController implements IHeatingCoil {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:electric_blast_furnace", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXX", "CCC", "CCC", "XXX")
-                    .aisle("XXX", "C#C", "C#C", "XMX")
-                    .aisle("XSX", "CCC", "CCC", "XXX")
-                    .where('S',  selfPredicateByClass(MetaTileEntityElectricBlastFurnace.class))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('#', air())
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
-                        .applyPreset(HatchPresets.ELECTRIC_STANDARD)
-                    .tieredCasing('C', GTCasingGroups.heatingCoils())
-                        .withChannel(GTStructureChannels.HEATING_COIL)
-                    .buildTemplate()
-    );
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
+            .register("gregtech:electric_blast_furnace", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXX", "CCC", "CCC", "XXX")
+                            .aisle("XXX", "C#C", "C#C", "XMX")
+                            .aisle("XSX", "CCC", "CCC", "XXX")
+                            .where('S', selfPredicateByClass(MetaTileEntityElectricBlastFurnace.class))
+                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                            .where('#', air())
+                            .casing('X', CasingDefinition.simple(
+                                    MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
+                            .applyPreset(HatchPresets.ELECTRIC_STANDARD)
+                            .tieredCasing('C', GTCasingGroups.heatingCoils())
+                            .withChannel(GTStructureChannels.HEATING_COIL)
+                            .buildTemplate()
+            );
 
     private int blastFurnaceTemperature;
 
@@ -119,14 +120,14 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
         int recipeTemp = recipe.getProperty(TemperatureProperty.getInstance(), 0);
-        if(this.blastFurnaceTemperature >= recipeTemp)
+        if (this.blastFurnaceTemperature >= recipeTemp)
             return true;
-        recipeMapWorkable.setWhyFailed("线圈温度过低，配方需求至少 "+ recipeTemp + " K温度");
+        recipeMapWorkable.setWhyFailed("线圈温度过低，配方需求至少 " + recipeTemp + " K温度");
         return false;
     }
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
         return TEMPLATE.get();
     }
 

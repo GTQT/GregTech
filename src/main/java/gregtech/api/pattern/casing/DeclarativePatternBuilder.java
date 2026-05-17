@@ -384,6 +384,12 @@ public class DeclarativePatternBuilder {
             return this;
         }
 
+        public CasingSlot withHatches(@NotNull MultiblockAbility<?> ability, int currentCount) {
+            if(currentCount == 0)return this;
+            info.hatches.add(new HatchInfo(ability, currentCount, currentCount));
+            return this;
+        }
+
         /**
          * Add optional hatches (min=0).
          */
