@@ -379,6 +379,7 @@ public class DeclarativePatternBuilder {
          * @return this CasingSlot for chaining
          */
         public CasingSlot withHatches(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
+            if(maxCount == 0)return this;
             info.hatches.add(new HatchInfo(ability, minCount, maxCount));
             return this;
         }
