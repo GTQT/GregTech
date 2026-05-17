@@ -12,6 +12,7 @@ import gregtech.integration.theoneprobe.provider.ControllableInfoProvider;
 import gregtech.integration.theoneprobe.provider.ConverterInfoProvider;
 import gregtech.integration.theoneprobe.provider.CoverInfoProvider;
 import gregtech.integration.theoneprobe.provider.DiodeInfoProvider;
+import gregtech.integration.theoneprobe.provider.DrumInfoProvider;
 import gregtech.integration.theoneprobe.provider.ElectricContainerInfoProvider;
 import gregtech.integration.theoneprobe.provider.HeatContainerInfoProvider;
 import gregtech.integration.theoneprobe.provider.HeatPipeInfoProvider;
@@ -74,6 +75,7 @@ public class TheOneProbeModule extends IntegrationSubmodule {
         oneProbe.registerProvider(new LDPipeProvider());
         oneProbe.registerProvider(new LaserContainerInfoProvider());
         oneProbe.registerProvider(new QuantumStorageProvider());
+        oneProbe.registerProvider(new DrumInfoProvider());
         oneProbe.registerProvider(new ActiveTransformerInfoProvider());
         oneProbe.registerProvider(new BatteryBufferInfoProvider());
         oneProbe.registerProvider(new AEMultiblockHatchProvider());

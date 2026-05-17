@@ -25,6 +25,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidStack;
@@ -50,6 +51,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.UPDATE_AUTO_OUTPUT;
+import static gregtech.api.capability.GregtechDataCodes.UPDATE_FLUID;
 
 public class MetaTileEntityDrum extends MetaTileEntity {
 
@@ -121,7 +123,7 @@ public class MetaTileEntityDrum extends MetaTileEntity {
         }
 
         super.initializeInventory();
-        this.fluidTank = new FilteredFluidHandler(tankSize).setFilter(this.fluidFilter);
+        this.fluidTank = new DrumFluidHandler(variant.getTankSize()).setFilter(variant.getFluidFilter());
         this.fluidInventory = this.fluidTank;
     }
 
@@ -152,29 +154,28 @@ public class MetaTileEntityDrum extends MetaTileEntity {
     }
 
     @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY && fluidTank != null) {
+            return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(fluidTank);
+        }
+        return super.getCapability(capability, side);
+    }
+
+    // endregion
+
+    // region Network sync
+
+    @Override
     public void writeInitialSyncData(@NotNull PacketBuffer buf) {
         super.writeInitialSyncData(buf);
-        FluidStack fluidStack = fluidTank.getFluid();
-        buf.writeBoolean(fluidStack != null);
-        if (fluidStack != null) {
-            NBTTagCompound tagCompound = new NBTTagCompound();
-            fluidStack.writeToNBT(tagCompound);
-            buf.writeCompoundTag(tagCompound);
-        }
+        writeFluidTankSync(buf);
         buf.writeBoolean(isAutoOutput);
     }
 
     @Override
     public void receiveInitialSyncData(@NotNull PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
-        FluidStack fluidStack = null;
-        if (buf.readBoolean()) {
-            try {
-                NBTTagCompound tagCompound = buf.readCompoundTag();
-                fluidStack = FluidStack.loadFluidStackFromNBT(tagCompound);
-            } catch (IOException ignored) {}
-        }
-        fluidTank.setFluid(fluidStack);
+        fluidTank.setFluid(readFluidTankSync(buf));
         isAutoOutput = buf.readBoolean();
     }
 
@@ -184,8 +185,46 @@ public class MetaTileEntityDrum extends MetaTileEntity {
         if (dataId == UPDATE_AUTO_OUTPUT) {
             this.isAutoOutput = buf.readBoolean();
             scheduleRenderUpdate();
+        } else if (dataId == UPDATE_FLUID) {
+            fluidTank.setFluid(readFluidTankSync(buf));
+            scheduleRenderUpdate();
         }
     }
+
+    private void writeFluidTankSync(@NotNull PacketBuffer buf) {
+        FluidStack fluidStack = fluidTank == null ? null : fluidTank.getFluid();
+        buf.writeBoolean(fluidStack != null);
+        if (fluidStack != null) {
+            NBTTagCompound tagCompound = new NBTTagCompound();
+            fluidStack.writeToNBT(tagCompound);
+            buf.writeCompoundTag(tagCompound);
+        }
+    }
+
+    @Nullable
+    private FluidStack readFluidTankSync(@NotNull PacketBuffer buf) {
+        if (!buf.readBoolean()) {
+            return null;
+        }
+        try {
+            NBTTagCompound tagCompound = buf.readCompoundTag();
+            return FluidStack.loadFluidStackFromNBT(tagCompound);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private void onFluidContentsChanged() {
+        if (getWorld() == null || getWorld().isRemote) {
+            return;
+        }
+        markDirty();
+        writeCustomData(UPDATE_FLUID, this::writeFluidTankSync);
+    }
+
+    // endregion
+
+    // region Update and interaction
 
     @Override
     public void update() {
@@ -200,9 +239,8 @@ public class MetaTileEntityDrum extends MetaTileEntity {
     @Override
     public boolean onRightClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                 CuboidRayTraceResult hitResult) {
-        if (playerIn.getHeldItem(hand).hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null)) {
-            return getWorld().isRemote ||
-                    (!playerIn.isSneaking() && FluidUtil.interactWithFluidHandler(playerIn, hand, fluidTank));
+        if (!playerIn.isSneaking() && FluidUtil.getFluidHandler(playerIn.getHeldItem(hand)) != null) {
+            return getWorld().isRemote || FluidUtil.interactWithFluidHandler(playerIn, hand, fluidTank);
         }
         return super.onRightClick(playerIn, hand, facing, hitResult);
     }
@@ -327,6 +365,101 @@ public class MetaTileEntityDrum extends MetaTileEntity {
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return this.isWood ? SoundType.WOOD : SoundType.METAL;
+        return getVariant().isWood() ? SoundType.WOOD : SoundType.METAL;
+    }
+
+    @Override
+    public String getMetaName() {
+        return getVariant().getTranslationKey();
+    }
+
+    @Override
+    public String getMetaName(@NotNull ItemStack stack) {
+        return getVariantFromStack(stack).getTranslationKey();
+    }
+
+    @Deprecated
+    @NotNull
+    public ItemStack getStackForm(@NotNull DrumMaterial material) {
+        return getStackForm(material.getVariant());
+    }
+
+    private IPropertyFluidFilter getFluidFilter(@NotNull ItemStack stack) {
+        return getVariantFromStack(stack).getFluidFilter();
+    }
+
+    private class DrumFluidHandler extends FilteredFluidHandler {
+
+        private DrumFluidHandler(int capacity) {
+            super(capacity);
+        }
+
+        @Override
+        protected void onContentsChanged() {
+            onFluidContentsChanged();
+        }
+    }
+
+    /**
+     * @deprecated Built-in drum materials now live in {@link DrumVariants}; use {@link DrumVariant} for new code.
+     */
+    @Deprecated
+    public enum DrumMaterial {
+
+        WOOD(DrumVariants.WOOD),
+        COPPER(DrumVariants.COPPER),
+        LEAD(DrumVariants.LEAD),
+        IRON(DrumVariants.IRON),
+        BRONZE(DrumVariants.BRONZE),
+        GOLD(DrumVariants.GOLD),
+        STEEL(DrumVariants.STEEL),
+        ALUMINIUM(DrumVariants.ALUMINIUM),
+        CHROME(DrumVariants.CHROME),
+        STAINLESS_STEEL(DrumVariants.STAINLESS_STEEL),
+        TITANIUM(DrumVariants.TITANIUM),
+        TUNGSTEN(DrumVariants.TUNGSTEN),
+        TUNGSTENSTEEL(DrumVariants.TUNGSTENSTEEL),
+        IRIDIUM(DrumVariants.IRIDIUM),
+        RHODIUM_PLATED_PALLADIUM(DrumVariants.RHODIUM_PLATED_PALLADIUM),
+        NAQUADAH_ALLOY(DrumVariants.NAQUADAH_ALLOY),
+        DARMSTADTIUM(DrumVariants.DARMSTADTIUM),
+        NEUTRONIUM(DrumVariants.NEUTRONIUM);
+
+        private final DrumVariant variant;
+
+        DrumMaterial(@NotNull DrumVariant variant) {
+            this.variant = variant;
+        }
+
+        @NotNull
+        public DrumVariant getVariant() {
+            return variant;
+        }
+
+        @NotNull
+        public Material getMaterial() {
+            Material material = variant.getMaterial();
+            if (material == null) {
+                throw new IllegalStateException("Drum material " + name() + " is not backed by a Material");
+            }
+            return material;
+        }
+
+        public int getTankSize() {
+            return variant.getTankSize();
+        }
+
+        public int getColor() {
+            return variant.getColor();
+        }
+
+        public boolean isWood() {
+            return variant.isWood();
+        }
+
+        @NotNull
+        public IPropertyFluidFilter getFluidFilter() {
+            return variant.getFluidFilter();
+        }
     }
 }

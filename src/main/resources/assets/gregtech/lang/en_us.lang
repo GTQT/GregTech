@@ -142,6 +142,8 @@ gregtech.top.mode.import=Importing
 gregtech.top.unit.items=Items
 gregtech.top.unit.fluid_milibuckets=L
 gregtech.top.unit.fluid_buckets=kL
+gregtech.top.fluid_capacity=Fluid Capacity:
+gregtech.top.fluid_stored=Fluid Stored:
 
 gregtech.top.block_drops=Drops
 
