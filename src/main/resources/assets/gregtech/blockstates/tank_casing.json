@@ -10,26 +10,6 @@
           "all": "gregtech:blocks/casings/tank/tank_casing_bronze"
         }
       },
-      "gold": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_gold"
-        }
-      },
-      "copper": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_copper"
-        }
-      },
-      "iron": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_iron"
-        }
-      },
-      "lead": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_lead"
-        }
-      },
       "chrome": {
         "textures": {
           "all": "gregtech:blocks/casings/tank/tank_casing_chrome"
@@ -48,41 +28,6 @@
       "titanium": {
         "textures": {
           "all": "gregtech:blocks/casings/tank/tank_casing_titanium"
-        }
-      },
-      "tungsten": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_tungsten"
-        }
-      },
-      "tungstensteel": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_tungstensteel"
-        }
-      },
-      "iridium": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_iridium"
-        }
-      },
-      "rhodium_plated_palladium": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_rhodium_plated_palladium"
-        }
-      },
-      "naquadah_alloy": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_naquadah_alloy"
-        }
-      },
-      "darmstadtium": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_darmstadtium"
-        }
-      },
-      "neutronium": {
-        "textures": {
-          "all": "gregtech:blocks/casings/tank/tank_casing_neutronium"
         }
       }
     }

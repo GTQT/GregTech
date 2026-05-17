@@ -10,6 +10,7 @@ import gregtech.api.recipes.crafting.Component;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.api.unification.material.MarkerMaterials.Tier;
+import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
@@ -904,6 +905,34 @@ public class MetaTileEntityLoader {
                 "hCw", " O ", 'O', new UnificationEntry(OrePrefix.rotor, Materials.Steel), 'R',
                 new UnificationEntry(OrePrefix.ring, Materials.Steel), 'C',
                 MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
+
+        addTankCasingRecipe("bronze", Materials.Bronze, getTankCasingStack("bronze"));
+        addTankCasingRecipe("aluminium", Materials.Aluminium, getTankCasingStack("aluminium"));
+        addTankCasingRecipe("chrome", Materials.Chrome, getTankCasingStack("chrome"));
+        addTankCasingRecipe("stainless_steel", Materials.StainlessSteel, getTankCasingStack("stainless_steel"));
+        addTankCasingRecipe("titanium", Materials.Titanium, getTankCasingStack("titanium"));
+
+        addMultiblockTankRecipe("bronze", MetaTileEntities.BRONZE_TANK, Materials.Bronze,
+                getTankCasingStack("bronze"));
+        addMultiblockTankRecipe("aluminium", MetaTileEntities.ALUMINIUM_TANK, Materials.Aluminium,
+                getTankCasingStack("aluminium"));
+        addMultiblockTankRecipe("chrome", MetaTileEntities.CHROME_TANK, Materials.Chrome,
+                getTankCasingStack("chrome"));
+        addMultiblockTankRecipe("stainless_steel", MetaTileEntities.STAINLESS_STEEL_TANK, Materials.StainlessSteel,
+                getTankCasingStack("stainless_steel"));
+        addMultiblockTankRecipe("titanium", MetaTileEntities.TITANIUM_TANK, Materials.Titanium,
+                getTankCasingStack("titanium"));
+
+        addTankValveRecipe("bronze", MetaTileEntities.BRONZE_TANK_VALVE, Materials.Bronze,
+                getTankCasingStack("bronze"));
+        addTankValveRecipe("aluminium", MetaTileEntities.ALUMINIUM_TANK_VALVE, Materials.Aluminium,
+                getTankCasingStack("aluminium"));
+        addTankValveRecipe("chrome", MetaTileEntities.CHROME_TANK_VALVE, Materials.Chrome,
+                getTankCasingStack("chrome"));
+        addTankValveRecipe("stainless_steel", MetaTileEntities.STAINLESS_STEEL_TANK_VALVE, Materials.StainlessSteel,
+                getTankCasingStack("stainless_steel"));
+        addTankValveRecipe("titanium", MetaTileEntities.TITANIUM_TANK_VALVE, Materials.Titanium,
+                getTankCasingStack("titanium"));
         ModHandler.addShapedRecipe(true, "wood_wall", MetaBlocks.STEAM_CASING.getItemVariant(WOOD_WALL), "W W", "sPh",
                 "W W", 'W', MetaBlocks.PLANKS.getItemVariant(BlockGregPlanks.BlockType.TREATED_PLANK), 'P',
                 new UnificationEntry(OrePrefix.plate, Materials.Lead));
@@ -1453,6 +1482,32 @@ public class MetaTileEntityLoader {
             registerMachineRecipe(MetaTileEntities.ENERGY_CONVERTER[3], " WW", "RMC", " WW", 'C', CIRCUIT, 'M', HULL,
                     'W', CABLE_HEX, 'R', new UnificationEntry(OrePrefix.cableGtHex, Materials.RedAlloy));
         }
+    }
+
+    private static void addTankCasingRecipe(String name, Material material, ItemStack casingStack) {
+        ItemStack casingOutput = casingStack.copy();
+        casingOutput.setCount(4);
+        ModHandler.addShapedRecipe(true, "tank_casing_" + name, casingOutput, "PhP", "PFP", "PwP",
+                'P', new UnificationEntry(OrePrefix.plate, material),
+                'F', new UnificationEntry(OrePrefix.frameGt, material));
+    }
+
+    private static void addMultiblockTankRecipe(String name, MetaTileEntity tank, Material material,
+                                                ItemStack casingStack) {
+        ModHandler.addShapedRecipe(true, name + "_multiblock_tank", tank.getStackForm(), " R ", "hCw", " R ",
+                'R', new UnificationEntry(OrePrefix.ring, material),
+                'C', casingStack);
+    }
+
+    private static ItemStack getTankCasingStack(String name) {
+        return MetaBlocks.TANK_CASING.getItemVariant(name);
+    }
+
+    private static void addTankValveRecipe(String name, MetaTileEntity valve, Material material, ItemStack casingStack) {
+        ModHandler.addShapedRecipe(true, name + "_tank_valve", valve.getStackForm(), " R ", "hCw", " O ",
+                'O', new UnificationEntry(OrePrefix.rotor, material),
+                'R', new UnificationEntry(OrePrefix.ring, material),
+                'C', casingStack);
     }
 
     // Can only accept a subset of "Item" types:

@@ -9,6 +9,7 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLiving.SpawnPlacementType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.IStringSerializable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -28,7 +29,7 @@ public class BlockTankCasing extends VariantBlock<BlockTankCasing.TankCasingType
         setHardness(4.0f);
         setResistance(8.0f);
         setSoundType(SoundType.METAL);
-        setDefaultState(getState(TankCasingType.COPPER));
+        setDefaultState(getState(TankCasingType.BRONZE));
     }
 
     @Override
@@ -37,26 +38,43 @@ public class BlockTankCasing extends VariantBlock<BlockTankCasing.TankCasingType
         return false;
     }
 
+    @NotNull
+    public IBlockState getState(@NotNull String name) {
+        return getState(getType(name));
+    }
+
+    @NotNull
+    public ItemStack getItemVariant(@NotNull String name) {
+        return getItemVariant(getType(name));
+    }
+
+    @NotNull
+    public ItemStack getItemVariant(@NotNull String name, int amount) {
+        return getItemVariant(getType(name), amount);
+    }
+
+    public int getVariantIndex(@NotNull String name) {
+        return VARIANT.getIndexOf(getType(name));
+    }
+
+    @NotNull
+    private TankCasingType getType(@NotNull String name) {
+        for (TankCasingType type : TankCasingType.values()) {
+            if (type.getName().equals(name)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("Unknown tank casing: " + name);
+    }
+
     public enum TankCasingType implements IStringSerializable, IStateHarvestLevel, IStateSoundType {
 
-        // Sorted by tech level (ascending), matching TankMaterial order.
         // Wood and Steel are excluded as they use existing casing blocks.
-        COPPER("copper", 1),
-        LEAD("lead", 1),
-        IRON("iron", 1),
         BRONZE("bronze", 1),
-        GOLD("gold", 1),
         ALUMINIUM("aluminium", 1),
         CHROME("chrome", 2),
         STAINLESS_STEEL("stainless_steel", 2),
-        TITANIUM("titanium", 2),
-        TUNGSTEN("tungsten", 3),
-        TUNGSTENSTEEL("tungstensteel", 3),
-        IRIDIUM("iridium", 3),
-        RHODIUM_PLATED_PALLADIUM("rhodium_plated_palladium", 3),
-        NAQUADAH_ALLOY("naquadah_alloy", 4),
-        DARMSTADTIUM("darmstadtium", 4),
-        NEUTRONIUM("neutronium", 4);
+        TITANIUM("titanium", 2);
 
         private final String name;
         private final int harvestLevel;
