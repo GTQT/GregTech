@@ -48,13 +48,33 @@ import java.util.List;
 
 public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
-    private final boolean isMetal;
+    private final boolean isWood;
     private final int capacity;
+    private final IBlockState casingState;
+    private final MetaTileEntity valve;
+    private final ICubeRenderer baseTexture;
+    private final SoundType soundType;
 
     public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, boolean isMetal, int capacity) {
+        this(metaTileEntityId, !isMetal, capacity,
+                isMetal ?
+                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID) :
+                        MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL),
+                isMetal ? MetaTileEntities.STEEL_TANK_VALVE : MetaTileEntities.WOODEN_TANK_VALVE,
+                isMetal ? Textures.SOLID_STEEL_CASING : Textures.WOOD_WALL,
+                isMetal ? SoundType.METAL : SoundType.WOOD);
+    }
+
+    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, boolean isWood, int capacity,
+                                        IBlockState casingState, MetaTileEntity valve, ICubeRenderer baseTexture,
+                                        SoundType soundType) {
         super(metaTileEntityId);
-        this.isMetal = isMetal;
+        this.isWood = isWood;
         this.capacity = capacity;
+        this.casingState = casingState;
+        this.valve = valve;
+        this.baseTexture = baseTexture;
+        this.soundType = soundType;
         initializeInventory();
     }
 
@@ -63,7 +83,7 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
         super.initializeInventory();
 
         FilteredFluidHandler tank = new FilteredFluidHandler(capacity);
-        if (!isMetal) {
+        if (isWood) {
             tank.setFilter(new PropertyFluidFilter(340, false, false, false, false));
         }
 
@@ -73,7 +93,8 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMultiblockTank(metaTileEntityId, isMetal, capacity);
+        return new MetaTileEntityMultiblockTank(metaTileEntityId, isWood, capacity, casingState, valve, baseTexture,
+                soundType);
     }
 
     @Override
@@ -88,36 +109,22 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
                 .aisle("XXX", "XSX", "XXX")
                 .where('S', selfPredicate())
                 .where(' ', air())
-                .casing('X', CasingDefinition.simple(getCasingState()))
+                .casing('X', CasingDefinition.simple(casingState))
                 .withCustomHatches(
-                        metaTileEntities(getValve()).setMaxGlobalLimited(2), 2)
+                        metaTileEntities(valve).setMaxGlobalLimited(2), 2)
                 .build();
-    }
-
-    private IBlockState getCasingState() {
-        if (isMetal)
-            return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
-        return MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL);
-    }
-
-    private MetaTileEntity getValve() {
-        if (isMetal)
-            return MetaTileEntities.STEEL_TANK_VALVE;
-        return MetaTileEntities.WOODEN_TANK_VALVE;
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     @NotNull
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        if (isMetal)
-            return Textures.SOLID_STEEL_CASING;
-        return Textures.WOOD_WALL;
+        return baseTexture;
     }
 
     @Override
     public GTGuiTheme getUITheme() {
-        if (isMetal) return GTGuiTheme.STEEL;
+        if (!isWood) return GTGuiTheme.STEEL;
         else return GTGuiTheme.PRIMITIVE;
     }
 
@@ -199,6 +206,6 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return this.isMetal ? SoundType.METAL : SoundType.WOOD;
+        return soundType;
     }
 }

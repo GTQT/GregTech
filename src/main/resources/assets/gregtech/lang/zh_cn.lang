@@ -3340,14 +3340,6 @@ gregtech.machine.tank_valve.steel.name=钢制储罐阀门
 gregtech.machine.tank.steel.name=钢制多方块储罐
 gregtech.machine.tank_valve.bronze.name=青铜储罐阀门
 gregtech.machine.tank.bronze.name=青铜多方块储罐
-gregtech.machine.tank_valve.gold.name=金制储罐阀门
-gregtech.machine.tank.gold.name=金制多方块储罐
-gregtech.machine.tank_valve.copper.name=铜制储罐阀门
-gregtech.machine.tank.copper.name=铜制多方块储罐
-gregtech.machine.tank_valve.iron.name=铁制储罐阀门
-gregtech.machine.tank.iron.name=铁制多方块储罐
-gregtech.machine.tank_valve.lead.name=铅制储罐阀门
-gregtech.machine.tank.lead.name=铅制多方块储罐
 gregtech.machine.tank_valve.chrome.name=铬制储罐阀门
 gregtech.machine.tank.chrome.name=铬制多方块储罐
 gregtech.machine.tank_valve.aluminium.name=铝制储罐阀门
@@ -3356,20 +3348,6 @@ gregtech.machine.tank_valve.stainless_steel.name=不锈钢储罐阀门
 gregtech.machine.tank.stainless_steel.name=不锈钢多方块储罐
 gregtech.machine.tank_valve.titanium.name=钛制储罐阀门
 gregtech.machine.tank.titanium.name=钛制多方块储罐
-gregtech.machine.tank_valve.tungsten.name=钨制储罐阀门
-gregtech.machine.tank.tungsten.name=钨制多方块储罐
-gregtech.machine.tank_valve.tungstensteel.name=钨钢储罐阀门
-gregtech.machine.tank.tungstensteel.name=钨钢多方块储罐
-gregtech.machine.tank_valve.iridium.name=铱制储罐阀门
-gregtech.machine.tank.iridium.name=铱制多方块储罐
-gregtech.machine.tank_valve.rhodium_plated_palladium.name=镀铑钯合金储罐阀门
-gregtech.machine.tank.rhodium_plated_palladium.name=镀铑钯合金多方块储罐
-gregtech.machine.tank_valve.naquadah_alloy.name=硅岩合金储罐阀门
-gregtech.machine.tank.naquadah_alloy.name=硅岩合金多方块储罐
-gregtech.machine.tank_valve.darmstadtium.name=鐽制储罐阀门
-gregtech.machine.tank.darmstadtium.name=鐽制多方块储罐
-gregtech.machine.tank_valve.neutronium.name=中子素储罐阀门
-gregtech.machine.tank.neutronium.name=中子素多方块储罐
 
 gregtech.multiblock.tank.tooltip=通过控制器或储罐阀门进行吞吐。
 gregtech.tank_valve.tooltip=用于吞吐多方块储罐中的流体。正面向下时可自动输出。
@@ -5121,21 +5099,10 @@ tile.hermetic_casing.hermetic_casing_uhv.name=密封机械方块 IX
 
 # Tank Casings
 tile.tank_casing.bronze.name=青铜储罐外壳
-tile.tank_casing.gold.name=金制储罐外壳
-tile.tank_casing.copper.name=铜制储罐外壳
-tile.tank_casing.iron.name=铁制储罐外壳
-tile.tank_casing.lead.name=铅制储罐外壳
 tile.tank_casing.chrome.name=铬制储罐外壳
 tile.tank_casing.aluminium.name=铝制储罐外壳
 tile.tank_casing.stainless_steel.name=不锈钢储罐外壳
 tile.tank_casing.titanium.name=钛制储罐外壳
-tile.tank_casing.tungsten.name=钨制储罐外壳
-tile.tank_casing.tungstensteel.name=钨钢储罐外壳
-tile.tank_casing.iridium.name=铱制储罐外壳
-tile.tank_casing.rhodium_plated_palladium.name=镀铑钯合金储罐外壳
-tile.tank_casing.naquadah_alloy.name=硅岩合金储罐外壳
-tile.tank_casing.darmstadtium.name=鐽制储罐外壳
-tile.tank_casing.neutronium.name=中子素储罐外壳
 
 #Gas Collectors
 gregtech.machine.gas_collector.lv.name=基础集气室

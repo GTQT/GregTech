@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.unification.material.Material;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -34,16 +35,22 @@ import java.util.List;
 public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<IFluidHandler> {
 
-    private final boolean isMetal;
+    private final ICubeRenderer baseTexture;
+    private final SoundType soundType;
+    @NotNull
+    private final Material material;
 
-    public MetaTileEntityTankValve(ResourceLocation metaTileEntityId, boolean isMetal) {
+    public MetaTileEntityTankValve(ResourceLocation metaTileEntityId, @NotNull Material material,
+                                   ICubeRenderer baseTexture, SoundType soundType) {
         super(metaTileEntityId, 0);
-        this.isMetal = isMetal;
+        this.material = material;
+        this.baseTexture = baseTexture;
+        this.soundType = soundType;
     }
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityTankValve(metaTileEntityId, isMetal);
+        return new MetaTileEntityTankValve(metaTileEntityId, material, baseTexture, soundType);
     }
 
     @Override
@@ -55,9 +62,7 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @Override
     public ICubeRenderer getBaseTexture() {
         if (getController() == null) {
-            if (isMetal)
-                return Textures.SOLID_STEEL_CASING;
-            return Textures.WOOD_WALL;
+            return baseTexture;
         }
         return super.getBaseTexture();
     }
@@ -155,6 +160,11 @@ public class MetaTileEntityTankValve extends MetaTileEntityMultiblockPart
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return this.isMetal ? SoundType.METAL : SoundType.WOOD;
+        return soundType;
+    }
+
+    @NotNull
+    public Material getMaterial() {
+        return material;
     }
 }

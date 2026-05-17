@@ -456,9 +456,19 @@ public class MetaTileEntities {
 
     // STORAGE SECTION
     public static MetaTileEntityTankValve WOODEN_TANK_VALVE;
+    public static MetaTileEntityTankValve BRONZE_TANK_VALVE;
     public static MetaTileEntityTankValve STEEL_TANK_VALVE;
+    public static MetaTileEntityTankValve ALUMINIUM_TANK_VALVE;
+    public static MetaTileEntityTankValve CHROME_TANK_VALVE;
+    public static MetaTileEntityTankValve STAINLESS_STEEL_TANK_VALVE;
+    public static MetaTileEntityTankValve TITANIUM_TANK_VALVE;
     public static MetaTileEntityMultiblockTank WOODEN_TANK;
+    public static MetaTileEntityMultiblockTank BRONZE_TANK;
     public static MetaTileEntityMultiblockTank STEEL_TANK;
+    public static MetaTileEntityMultiblockTank ALUMINIUM_TANK;
+    public static MetaTileEntityMultiblockTank CHROME_TANK;
+    public static MetaTileEntityMultiblockTank STAINLESS_STEEL_TANK;
+    public static MetaTileEntityMultiblockTank TITANIUM_TANK;
 
     public static MetaTileEntityDrum WOODEN_DRUM;
     public static MetaTileEntityDrum BRONZE_DRUM;
