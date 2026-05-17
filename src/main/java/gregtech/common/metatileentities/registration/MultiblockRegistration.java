@@ -145,7 +145,7 @@ public final class MultiblockRegistration {
 
         CHROME_TANK_VALVE = registerTankValve(2117, "chrome", Materials.Chrome, getTankCasingTexture("chrome"),
                 SoundType.METAL);
-        CHROME_TANK = registerTank(2118, "chrome", false, 10 * 1000 * 1000,
+        CHROME_TANK = registerTank(2118, "chrome", false, 15 * 1000 * 1000,
                 getTankCasingState("chrome"), CHROME_TANK_VALVE, getTankCasingTexture("chrome"), SoundType.METAL);
 
         STAINLESS_STEEL_TANK_VALVE = registerTankValve(2119, "stainless_steel", Materials.StainlessSteel,

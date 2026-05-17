@@ -919,6 +919,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
         MultiblockControllerBase controllerBase = null;
         BlockPos controllerBlockPos = null;
+        MultiblockControllerBase controllerClassFallback = null;
+        BlockPos controllerClassFallbackPos = null;
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         for (int x = 0; x < blocks.length; x++) {
             BlockInfo[][] aisle = blocks[x];
@@ -928,13 +930,27 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     if (column[z].getTileEntity() instanceof IGregTechTileEntity &&
                             ((IGregTechTileEntity) column[z].getTileEntity())
                                     .getMetaTileEntity() instanceof MultiblockControllerBase) {
-                        controllerBase = (MultiblockControllerBase) ((IGregTechTileEntity) column[z].getTileEntity())
-                                .getMetaTileEntity();
-                        controllerBlockPos = new BlockPos(x, y, z);
+                        MultiblockControllerBase previewController =
+                                (MultiblockControllerBase) ((IGregTechTileEntity) column[z].getTileEntity())
+                                        .getMetaTileEntity();
+                        BlockPos pos = new BlockPos(x, y, z);
+                        if (controllerBlockPos == null &&
+                                controller.metaTileEntityId.equals(previewController.metaTileEntityId)) {
+                            controllerBase = previewController;
+                            controllerBlockPos = pos;
+                        } else if (controllerClassFallbackPos == null &&
+                                controller.getClass().isInstance(previewController)) {
+                            controllerClassFallback = previewController;
+                            controllerClassFallbackPos = pos;
+                        }
                     }
                     blockMap.put(new BlockPos(x, y, z), column[z]);
                 }
             }
+        }
+        if (controllerBlockPos == null) {
+            controllerBase = controllerClassFallback;
+            controllerBlockPos = controllerClassFallbackPos;
         }
 
         // When using selfPredicateByClass, the preview's controller block comes from the
