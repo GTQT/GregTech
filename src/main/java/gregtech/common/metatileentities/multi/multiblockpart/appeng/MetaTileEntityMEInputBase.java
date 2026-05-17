@@ -202,7 +202,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
                         .height(18)
                         .top(5)
                         .right(7)
-                        .childIf(!isStocking, getMultiplierWidget(guiData, panelSyncManager))
+                        .childIf(!isStocking, ()->getMultiplierWidget(guiData, panelSyncManager))
                         .child(getSettingWidget(guiData, panelSyncManager)));
     }
 
@@ -229,7 +229,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
     }
 
     protected Widget<?> getSettingWidget(@NotNull PosGuiData guiData, @NotNull PanelSyncManager guiSyncManager) {
-        IPanelHandler settingPopup = guiSyncManager.panel("settings_panel", this::buildSettingsPopup, true);
+        IPanelHandler settingPopup = guiSyncManager.syncedPanel("settings_panel", true, this::buildSettingsPopup);
 
         return new ButtonWidget<>()
                 .onMousePressed(mouse -> {
@@ -294,7 +294,7 @@ public abstract class MetaTileEntityMEInputBase<AEStackType extends IAEStack<AES
     }
 
     protected Widget<?> getMultiplierWidget(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager) {
-        IPanelHandler multiplierPopup = syncManager.panel("multiplier_panel", this::buildMultiplierPopup, true);
+        IPanelHandler multiplierPopup = syncManager.syncedPanel("multiplier_panel", true, this::buildMultiplierPopup);
 
         return new ButtonWidget<>()
                 .onMousePressed(mouse -> {

@@ -634,7 +634,7 @@ public class MultiblockUIFactory {
     protected IWidget createStructureDelayCheckButton(@NotNull ModularPanel mainPanel,
                                                  @NotNull PanelSyncManager panelSyncManager) {
 
-        var throttlePanel = panelSyncManager.panel("structure_button", this::createStructureCheckPanel, true);
+        var throttlePanel = panelSyncManager.syncedPanel("structure_button", true, this::createStructureCheckPanel);
         // 配置按钮 - 打开线程调整UI
         return new ButtonWidget<>()
                 .size(18)

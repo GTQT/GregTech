@@ -19,7 +19,6 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
@@ -43,8 +42,6 @@ import gregtech.client.utils.IBloomEffect;
 import gregtech.client.utils.RenderBufferHelper;
 import gregtech.client.utils.RenderUtil;
 import gregtech.common.ConfigHolder;
-import gregtech.common.blocks.BlockGlassCasing;
-import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.client.renderer.BufferBuilder;
@@ -53,7 +50,6 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -77,7 +73,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +82,6 @@ import java.util.function.UnaryOperator;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.PERFECT_HALF_DURATION_FACTOR;
 import static gregtech.api.recipes.logic.OverclockingLogic.PERFECT_HALF_VOLTAGE_FACTOR;
-import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         implements IFastRenderMetaTileEntity, IBloomEffect, ProgressBarMultiblock, ITieredMetaTileEntity {
@@ -189,52 +183,6 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         return softTemplate.get();
     }
 
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        List<MultiblockShapeInfo> shapeInfos = new ArrayList<>();
-
-        int tier = type.getTier();
-
-        MultiblockShapeInfo.Builder baseBuilder = MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                .aisle("###############", "######WGW######", "###############")
-                .aisle("######DCD######", "####GG###GG####", "######UCU######")
-                .aisle("####CC###CC####", "###w##EGE##s###", "####CC###CC####")
-                .aisle("###C#######C###", "##nKeG###GeKn##", "###C#######C###")
-                .aisle("##C#########C##", "#G#s#######w#G#", "##C#########C##")
-                .aisle("##C#########C##", "#G#G#######G#G#", "##C#########C##")
-                .aisle("#D###########D#", "N#S#########N#S", "#U###########U#")
-                .aisle("#C###########C#", "G#G#########G#G", "#C###########C#")
-                .aisle("#D###########D#", "N#S#########N#S", "#U###########U#")
-                .aisle("##C#########C##", "#G#G#######G#G#", "##C#########C##")
-                .aisle("##C#########C##", "#G#s#######w#G#", "##C#########C##")
-                .aisle("###C#######C###", "##eKnG###GnKe##", "###C#######C###")
-                .aisle("####CC###CC####", "###w##WGW##s###", "####CC###CC####")
-                .aisle("######DCD######", "####GG###GG####", "######UCU######")
-                .aisle("###############", "######EME######", "###############")
-                .where('M', MetaTileEntities.FUSION_REACTOR[tier - GTValues.LuV], EnumFacing.SOUTH)
-                .where('C', type.getCasingState())
-                .where('G', MetaBlocks.TRANSPARENT_CASING.getState(
-                        BlockGlassCasing.CasingType.FUSION_GLASS))
-                .where('K', type.getCoilState())
-                .where('W', MetaTileEntities.FLUID_EXPORT_HATCH[tier], EnumFacing.NORTH)
-                .where('E', MetaTileEntities.FLUID_EXPORT_HATCH[tier], EnumFacing.SOUTH)
-                .where('S', MetaTileEntities.FLUID_EXPORT_HATCH[tier], EnumFacing.EAST)
-                .where('N', MetaTileEntities.FLUID_EXPORT_HATCH[tier], EnumFacing.WEST)
-                .where('w', MetaTileEntities.ENERGY_INPUT_HATCH[tier], EnumFacing.WEST)
-                .where('e', MetaTileEntities.ENERGY_INPUT_HATCH[tier], EnumFacing.SOUTH)
-                .where('s', MetaTileEntities.ENERGY_INPUT_HATCH[tier], EnumFacing.EAST)
-                .where('n', MetaTileEntities.ENERGY_INPUT_HATCH[tier], EnumFacing.NORTH)
-                .where('U', MetaTileEntities.FLUID_IMPORT_HATCH[tier], EnumFacing.UP)
-                .where('D', MetaTileEntities.FLUID_IMPORT_HATCH[tier], EnumFacing.DOWN)
-                .where('#', Blocks.AIR.getDefaultState());
-
-        shapeInfos.add(baseBuilder.shallowCopy()
-                .where('G', type.getCasingState())
-                .build());
-        shapeInfos.add(baseBuilder.build());
-        return shapeInfos;
-    }
-
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
@@ -301,7 +249,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     }
 
     private long calculateEnergyStorageFactor(int energyInputAmount) {
-        return energyInputAmount * (long) Math.pow(2, type.getTier() - 6) * 10000000L;
+        return energyInputAmount * type.getEnergyMultiplier() * 10000000L;
     }
 
     @Override

@@ -71,13 +71,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
                                                                                     IControllable, ISteamMachine {
 
-    public final BoilerType boilerType;
+    public final IBoilerType boilerType;
     protected BoilerRecipeLogic recipeLogic;
     private FluidTankList fluidImportInventory;
     private ItemHandlerList itemImportInventory;
@@ -85,7 +87,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     private int throttlePercentage = 100;
 
-    public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId, BoilerType boilerType) {
+    public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId, IBoilerType boilerType) {
         super(metaTileEntityId);
         this.boilerType = boilerType;
         this.recipeLogic = new BoilerRecipeLogic(this);
@@ -150,12 +152,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     public double getPollutionAmount() {
-        return switch (boilerType) {
-            case BRONZE -> 0.01;
-            case STEEL -> 0.012;
-            case TITANIUM -> 0.015;
-            case TUNGSTENSTEEL -> 0.02;
-        };
+        return boilerType.getPollutionAmount();
     }
 
     @Override
@@ -180,18 +177,14 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     public GTGuiTheme getUITheme() {
-        return switch (this.boilerType) {
-            case BRONZE -> GTGuiTheme.BRONZE;
-            case STEEL -> GTGuiTheme.STEEL;
-            default -> super.getUITheme();
-        };
+        return boilerType.getUITheme();
     }
 
     @Override
     protected MultiblockUIFactory createUIFactory() {
         return super.createUIFactory()
                 .createFlexButton((guiData, syncManager) -> {
-                    var throttle = syncManager.panel("throttle_panel", this::makeThrottlePanel, true);
+                    var throttle = syncManager.syncedPanel("throttle_panel",true, this::makeThrottlePanel);
 
                     return new ButtonWidget<>()
                             .size(18)
@@ -313,12 +306,17 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         return super.isActive() && recipeLogic.isActive() && recipeLogic.isWorkingEnabled();
     }
 
-    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[4];
+    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
 
     static {
-        for(BoilerType type : BoilerType.values()) {
-            TEMPLATES[type.ordinal()] = TemplatePool.getInstance().register("gregtech:large_boiler_" + type.name().toLowerCase(), () -> buildTemplate(type));
-        }
+        TEMPLATES.put("bronze", TemplatePool.getInstance()
+                .register("gregtech:large_boiler.bronze", () -> buildTemplate(BoilerType.BRONZE)));
+        TEMPLATES.put("steel", TemplatePool.getInstance()
+                .register("gregtech:large_boiler.steel", () -> buildTemplate(BoilerType.STEEL)));
+        TEMPLATES.put("titanium", TemplatePool.getInstance()
+                .register("gregtech:large_boiler.titanium", () -> buildTemplate(BoilerType.TITANIUM)));
+        TEMPLATES.put("tungstensteel", TemplatePool.getInstance()
+                .register("gregtech:large_boiler.tungstensteel", () -> buildTemplate(BoilerType.TUNGSTENSTEEL)));
     }
 
     private static BlockPatternTemplate buildTemplate(BoilerType boilerType) {
@@ -341,7 +339,11 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     @NotNull
     @Override
     protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES[boilerType.ordinal()].get();
+        SoftTemplate softTemplate = TEMPLATES.get(boilerType.getName());
+        if (softTemplate == null) {
+            throw new IllegalStateException("Unknown turbine type: " + boilerType.getName());
+        }
+        return softTemplate.get();
     }
 
 
@@ -384,7 +386,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return boilerType.frontOverlay;
+        return boilerType.getFrontOverlay();
     }
 
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
@@ -395,9 +397,9 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         if (sourcePart != null && isFireboxPart(sourcePart)) {
-            return isActive() ? boilerType.fireboxActiveRenderer : boilerType.fireboxIdleRenderer;
+            return isActive() ? boilerType.getFireboxActiveRenderer() : boilerType.getFireboxIdleRenderer();
         }
-        return boilerType.casingRenderer;
+        return boilerType.getCasingRenderer();
     }
 
     @Override

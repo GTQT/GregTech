@@ -122,7 +122,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     protected MultiblockUIFactory createUIFactory() {
         return super.createUIFactory()
                 .createThreadButton((guiData, syncManager) -> {
-                    var throttlePanel = syncManager.panel("thread_panel", this::createThreadThrottlePanel, true);
+                    var throttlePanel = syncManager.syncedPanel("thread_panel", true, this::createThreadThrottlePanel);
                     // 配置按钮 - 打开线程调整UI
                     return new ButtonWidget<>()
                             .size(18)

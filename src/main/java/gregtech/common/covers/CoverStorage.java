@@ -109,8 +109,8 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
     }
 
     public IWidget initUILeisure(GuiData guiData, PanelSyncManager guiSyncManager, int index) {
-        var componentPanel = guiSyncManager.panel("component_panel" + index,
-                (syncManager, syncHandler) -> makeComponentPanel(syncManager, syncHandler, index), true);
+        var componentPanel = guiSyncManager.syncedPanel("component_panel" + index, true,
+                (syncManager, syncHandler) -> makeComponentPanel(syncManager, syncHandler, index));
         // 返回按钮
         return new ButtonWidget<>()
                 .size(18, 18)

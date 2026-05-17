@@ -555,7 +555,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                 .left(7).bottom(18 * 4 + 14);
 
         int s = 1;
-        var throttle = panelSyncManager.panel("mte_setting", this::makeThrottlePanel, true);
+        var throttle = panelSyncManager.syncedPanel("mte_setting", true,this::makeThrottlePanel);
         flowRow.child(new ButtonWidget<>()
                 .size(18)
                 .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))

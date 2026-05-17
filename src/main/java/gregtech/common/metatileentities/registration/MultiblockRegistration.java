@@ -1,14 +1,11 @@
 package gregtech.common.metatileentities.registration;
 
-import gregtech.api.GTValues;
-import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.BlockSteamCasing;
-import gregtech.common.blocks.BlockTurbineCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
@@ -60,7 +57,8 @@ import gregtech.common.metatileentities.primitive.MetaTileEntityCharcoalPileIgni
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 
-import static gregtech.api.GTValues.*;
+import static gregtech.api.GTValues.EV;
+import static gregtech.api.GTValues.IV;
 import static gregtech.api.util.GTUtility.gregtechId;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 
@@ -143,8 +141,7 @@ public final class MultiblockRegistration {
         ALUMINIUM_TANK_VALVE = registerTankValve(2115, "aluminium", Materials.Aluminium,
                 getTankCasingTexture("aluminium"), SoundType.METAL);
         ALUMINIUM_TANK = registerTank(2116, "aluminium", false, 10 * 1000 * 1000,
-                getTankCasingState("aluminium"), ALUMINIUM_TANK_VALVE, getTankCasingTexture("aluminium"),
-                SoundType.METAL);
+                getTankCasingState("aluminium"), ALUMINIUM_TANK_VALVE, getTankCasingTexture("aluminium"), SoundType.METAL);
 
         CHROME_TANK_VALVE = registerTankValve(2117, "chrome", Materials.Chrome, getTankCasingTexture("chrome"),
                 SoundType.METAL);
@@ -154,14 +151,12 @@ public final class MultiblockRegistration {
         STAINLESS_STEEL_TANK_VALVE = registerTankValve(2119, "stainless_steel", Materials.StainlessSteel,
                 getTankCasingTexture("stainless_steel"), SoundType.METAL);
         STAINLESS_STEEL_TANK = registerTank(2120, "stainless_steel", false, 20 * 1000 * 1000,
-                getTankCasingState("stainless_steel"), STAINLESS_STEEL_TANK_VALVE,
-                getTankCasingTexture("stainless_steel"), SoundType.METAL);
+                getTankCasingState("stainless_steel"), STAINLESS_STEEL_TANK_VALVE, getTankCasingTexture("stainless_steel"), SoundType.METAL);
 
         TITANIUM_TANK_VALVE = registerTankValve(2121, "titanium", Materials.Titanium,
                 getTankCasingTexture("titanium"), SoundType.METAL);
         TITANIUM_TANK = registerTank(2122, "titanium", false, 40 * 1000 * 1000,
-                getTankCasingState("titanium"), TITANIUM_TANK_VALVE, getTankCasingTexture("titanium"),
-                SoundType.METAL);
+                getTankCasingState("titanium"), TITANIUM_TANK_VALVE, getTankCasingTexture("titanium"), SoundType.METAL);
 
     }
 

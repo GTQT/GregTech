@@ -413,7 +413,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityAEHostablePart
     }
 
     protected Widget<?> getSettingWidget(@NotNull PosGuiData guiData, @NotNull PanelSyncManager guiSyncManager) {
-        IPanelHandler settingPopup = guiSyncManager.panel("settings_panel", this::buildSettingsPopup, true);
+        IPanelHandler settingPopup = guiSyncManager.syncedPanel("settings_panel", true, this::buildSettingsPopup);
 
         return new ButtonWidget<>()
                 .onMousePressed(mouse -> {
@@ -449,7 +449,7 @@ public class MetaTileEntityMEDualInputHatch extends MetaTileEntityAEHostablePart
     }
 
     protected Widget<?> getMultiplierWidget(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager) {
-        IPanelHandler multiplierPopup = syncManager.panel("multiplier_panel", this::buildMultiplierPopup, true);
+        IPanelHandler multiplierPopup = syncManager.syncedPanel("multiplier_panel", true, this::buildMultiplierPopup);
 
         return new ButtonWidget<>()
                 .onMousePressed(mouse -> {
