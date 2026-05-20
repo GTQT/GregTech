@@ -110,7 +110,7 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
                 .where('S', selfPredicate())
                 .where(' ', air())
                 .casing('X', CasingDefinition.simple(casingState))
-                .withCustomHatches(
+                .custom(
                         metaTileEntities(valve).setMaxGlobalLimited(2), 2)
                 .build();
     }

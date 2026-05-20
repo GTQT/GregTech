@@ -47,19 +47,15 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
                     .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
                         .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                     .aisle("XXX", "XXX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityDistillationTower.class))
+                    .where('S', selfPredicate(MetaTileEntityDistillationTower.class))
                     .where('#', air())
                     .casing('Y', CasingDefinition.simple(getCasingState()))
-                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(1), 1)
+                        .optionalItemOutput(1)
+                        .energyInput(1,3)
+                        .fluidInput(1)
                     .casing('X', CasingDefinition.simple(getCasingState()))
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.MAINTENANCE_HATCH)
-                                        .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)
+                        .custom(abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
+                        .maintenance()
                     .buildTemplate()
     );
 

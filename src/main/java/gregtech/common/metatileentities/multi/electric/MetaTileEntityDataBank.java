@@ -19,7 +19,6 @@ import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
-import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -64,18 +63,18 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
                     .aisle("CDD", "SAD", "CDD")
                     .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
                     .aisle("XXX", "XXX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityDataBank.class))
+                    .where('S', selfPredicate(MetaTileEntityDataBank.class))
                     .where('X', states(getOuterState()))
                     .where('A', states(getInnerState()))
                     .casing('D', CasingDefinition.simple(getInnerState()))
-                        .withOptionalHatches(MultiblockAbility.DATA_ACCESS_HATCH, 9)
-                        .withCustomHatches(
+                        .optionalHatch(MultiblockAbility.DATA_ACCESS_HATCH, 9)
+                        .custom(
                                 abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
                                         .setMinGlobalLimited(1, 1), 1)
-                        .withCustomHatches(
+                        .custom(
                                 abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
                     .casing('C', CasingDefinition.simple(getFrontState()))
-                        .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
+                        .energyInput(1,2)
                     .buildTemplate()
     );
 

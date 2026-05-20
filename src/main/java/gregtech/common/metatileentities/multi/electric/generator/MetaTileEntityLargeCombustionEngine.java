@@ -1,7 +1,6 @@
 package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
-import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
@@ -10,7 +9,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
@@ -158,20 +156,13 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .aisle("AAA", "AYA", "AAA")
                 .where('X', states(getCasingState(isExtreme)))
                 .where('G', states(getGearboxState(isExtreme)))
-                .where('D', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
-                        .filter(mte -> {
-                            IEnergyContainer container = mte
-                                    .getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
-                            return container != null &&
-                                    container.getOutputVoltage() * container.getOutputAmperage() >=
-                                            GTValues.V[getTier(isExtreme)];
-                        })
-                        .toArray(MetaTileEntity[]::new))
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[getTier(isExtreme)]))
+                .where('D', energyOutput(getTier(isExtreme), true)
+                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[getTier(isExtreme)])
+                )
                 .where('A', states(getIntakeState(isExtreme)).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
-                .where('Y', selfPredicateByClass(MetaTileEntityLargeCombustionEngine.class))
+                .where('Y', selfPredicate(MetaTileEntityLargeCombustionEngine.class))
                 .casing('C', CasingDefinition.simple(getCasingState(isExtreme)))
-                .applyPreset(HatchPresets.MUFFLER_IO)
+                .preset(HatchPresets.MUFFLER_IO)
                 .buildTemplate();
     }
 

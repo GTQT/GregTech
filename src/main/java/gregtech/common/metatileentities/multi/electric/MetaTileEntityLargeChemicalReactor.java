@@ -47,23 +47,16 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XCX", "CPC", "XCX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityLargeChemicalReactor.class))
+                    .where('S', selfPredicate(MetaTileEntityLargeChemicalReactor.class))
                     .where('P', states(getPipeCasingState()))
                     .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
-                            .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(0)
-                                    .setMaxGlobalLimited(2).setPreviewCount(1))
-                            .or(abilities(MultiblockAbility.MAINTENANCE_HATCH).setMinGlobalLimited(0)
-                                    .setMaxGlobalLimited(1).setPreviewCount(0))
-                            .or(abilities(MultiblockAbility.MUFFLER_HATCH).setMinGlobalLimited(0)
-                                    .setMaxGlobalLimited(1).setPreviewCount(0))
-                            .or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1))
-                            .or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1))
-                            .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1))
-                            .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1))
+                            .or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(0))
+                            .or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(0))
+                            .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(0))
+                            .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(0))
                             .or(states(getCasingState())))
                     .casing('X', CasingDefinition.simple(getCasingState()))
-                        .applyPreset(HatchPresets.MUFFLER_IO)
-                        .withOptionalHatches(MultiblockAbility.INPUT_ENERGY, 2)
+                        .maintenance().preset(HatchPresets.STANDARD_IO).optionalEnergyInput(2)
                     .buildTemplate()
     );
 
@@ -78,7 +71,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
         return TEMPLATE.get();
     }
 

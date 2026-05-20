@@ -51,11 +51,12 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
                     .aisle("HCHCH", "HCHCH", "HCHCH")
                     .aisle("HCHCH", "H###H", "HCHCH")
                     .aisle("HCHCH", "HCOCH", "HCHCH")
-                    .where('O', selfPredicateByClass(MetaTileEntityCrackingUnit.class))
+                    .where('O', selfPredicate(MetaTileEntityCrackingUnit.class))
                     .where('#', air())
                     .casing('H', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN)))
-                        .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN))
+                    )
+                        .preset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)
                     .buildTemplate()
@@ -74,7 +75,7 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     }
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
+    protected @NotNull BlockPatternTemplate createStructureTemplate() {
         return TEMPLATE.get();
     }
 

@@ -324,15 +324,15 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                 .aisle("XXX", "CCC", "CCC", "CCC")
                 .aisle("XXX", "CPC", "CPC", "CCC")
                 .aisle("XXX", "CSC", "CCC", "CCC")
-                .where('S', selfPredicateByClass(MetaTileEntityLargeBoiler.class))
+                .where('S', selfPredicate(MetaTileEntityLargeBoiler.class))
                 .where('P', states(boilerType.pipeState))
                 .casing('X', CasingDefinition.simple(boilerType.fireboxState))
-                .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
-                .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
-                .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .optionalEnergyInput(2)
+                .optionalItemInput(2)
+                .muffler()
+                .maintenance()
                 .casing('C', CasingDefinition.simple(boilerType.casingState))
-                .withHatches(MultiblockAbility.EXPORT_FLUIDS, 1, 4)
+                .itemOutput(1,4)
                 .buildTemplate();
     }
 

@@ -68,12 +68,12 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
                     .aisle("XXX", "XXX", "XXX", "XXX")
                     .aisle("XXX", "X&X", "X#X", "X#X")
                     .aisle("XXX", "XYX", "XXX", "XXX")
-                    .where('Y', selfPredicateByClass(MetaTileEntityPrimitiveBlastFurnace.class))
+                    .where('Y', selfPredicate(MetaTileEntityPrimitiveBlastFurnace.class))
                     .where('#', air())
                     .where('&', air().or(SNOW_PREDICATE))
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS)))
-                        .withCustomHatches(
+                        .custom(
                                 metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
                                         .setMaxGlobalLimited(3), 3)
                     .buildTemplate()

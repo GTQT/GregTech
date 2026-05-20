@@ -52,11 +52,11 @@ public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
                     .aisle("CCC", "C#C", "CCC")
                     .aisle("CCC", "C#C", "CCC")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityPyrolyseOven.class))
+                    .where('S', selfPredicate(MetaTileEntityPyrolyseOven.class))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.MACHINE_CASING.getState(MachineCasingType.ULV)))
-                        .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
+                        .preset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils())
                         .withChannel(GTStructureChannels.HEATING_COIL)
                     .buildTemplate()

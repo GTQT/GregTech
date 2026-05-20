@@ -118,14 +118,14 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
-                .where('S', selfPredicateByClass(MetaTileEntityLargeMiner.class))
+                .where('S', selfPredicate(MetaTileEntityLargeMiner.class))
                 .where('C', states(type.getCasingState()))
                 .where('F', frames(type.getFrameMaterial()))
                 .where('#', any())
                 .casing('X', CasingDefinition.simple(type.getCasingState()))
-                .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 1)
-                .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
-                .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                .optionalItemOutput(1)
+                .optionalFluidOutput(1)
+                .energyInput(1,3)
                 .buildTemplate();
     }
 

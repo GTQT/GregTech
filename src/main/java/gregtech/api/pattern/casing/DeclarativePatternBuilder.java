@@ -378,24 +378,158 @@ public class DeclarativePatternBuilder {
          * @param maxCount maximum number of this hatch type
          * @return this CasingSlot for chaining
          */
-        public CasingSlot withHatches(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
+        public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
             if(maxCount == 0)return this;
             info.hatches.add(new HatchInfo(ability, minCount, maxCount));
             return this;
         }
 
-        public CasingSlot withHatches(@NotNull MultiblockAbility<?> ability, int currentCount) {
+        public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int currentCount) {
             if(currentCount == 0)return this;
             info.hatches.add(new HatchInfo(ability, currentCount, currentCount));
             return this;
         }
 
-        /**
-         * Add optional hatches (min=0).
-         */
-        public CasingSlot withOptionalHatches(@NotNull MultiblockAbility<?> ability, int maxCount) {
-            return withHatches(ability, 0, maxCount);
+        public CasingSlot optionalHatch(@NotNull MultiblockAbility<?> ability, int maxCount) {
+            return hatch(ability, 0, maxCount);
         }
+
+        public CasingSlot muffler() {
+            return hatch(MultiblockAbility.MUFFLER_HATCH, 1);
+        }
+
+        public CasingSlot maintenance() {
+            return hatch(MultiblockAbility.MAINTENANCE_HATCH, 1);
+        }
+
+        public CasingSlot computerReception() {
+            return hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1);
+        }
+
+        public CasingSlot computerTransmission() {
+            return hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1);
+        }
+
+        public CasingSlot energyInput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.INPUT_ENERGY, minCount, maxCount);
+        }
+
+        public CasingSlot energyInput(int currentCount) {
+            return hatch(MultiblockAbility.INPUT_ENERGY, currentCount);
+        }
+
+        public CasingSlot optionalEnergyInput(int maxCount) {
+            return optionalHatch(MultiblockAbility.INPUT_ENERGY, maxCount);
+        }
+
+        public CasingSlot energyOutput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.OUTPUT_ENERGY, minCount, maxCount);
+        }
+
+        public CasingSlot energyOutput(int currentCount) {
+            return hatch(MultiblockAbility.OUTPUT_ENERGY, currentCount);
+        }
+
+        public CasingSlot optionalEnergyOutput(int maxCount) {
+            return optionalHatch(MultiblockAbility.OUTPUT_ENERGY, maxCount);
+        }
+
+        public CasingSlot substationInput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.SUBSTATION_INPUT_ENERGY, minCount, maxCount);
+        }
+
+        public CasingSlot substationInput(int currentCount) {
+            return hatch(MultiblockAbility.SUBSTATION_INPUT_ENERGY, currentCount);
+        }
+
+        public CasingSlot optionalSubstationInput(int maxCount) {
+            return optionalHatch(MultiblockAbility.SUBSTATION_INPUT_ENERGY, maxCount);
+        }
+
+        public CasingSlot substationOutput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, minCount, maxCount);
+        }
+
+        public CasingSlot substationOutput(int currentCount) {
+            return hatch(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, currentCount);
+        }
+
+        public CasingSlot optionalSubstationOutput(int maxCount) {
+            return optionalHatch(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, maxCount);
+        }
+
+        public CasingSlot laserInput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.INPUT_LASER, minCount, maxCount);
+        }
+
+        public CasingSlot laserInput(int currentCount) {
+            return hatch(MultiblockAbility.INPUT_LASER, currentCount);
+        }
+
+        public CasingSlot optionalLaserInput(int maxCount) {
+            return optionalHatch(MultiblockAbility.INPUT_LASER, maxCount);
+        }
+
+        public CasingSlot laserOutput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.OUTPUT_LASER, minCount, maxCount);
+        }
+
+        public CasingSlot laserOutput(int currentCount) {
+            return hatch(MultiblockAbility.OUTPUT_LASER, currentCount);
+        }
+
+        public CasingSlot optionalLaserOutput(int maxCount) {
+            return optionalHatch(MultiblockAbility.OUTPUT_LASER, maxCount);
+        }
+
+        public CasingSlot fluidInput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.IMPORT_FLUIDS, minCount, maxCount);
+        }
+
+        public CasingSlot fluidInput(int currentCount) {
+            return hatch(MultiblockAbility.IMPORT_FLUIDS, currentCount);
+        }
+
+        public CasingSlot optionalFluidInput(int maxCount) {
+            return optionalHatch(MultiblockAbility.IMPORT_FLUIDS, maxCount);
+        }
+
+        public CasingSlot fluidOutput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.EXPORT_FLUIDS, minCount, maxCount);
+        }
+
+        public CasingSlot fluidOutput(int currentCount) {
+            return hatch(MultiblockAbility.EXPORT_FLUIDS, currentCount);
+        }
+
+        public CasingSlot optionalFluidOutput(int maxCount) {
+            return optionalHatch(MultiblockAbility.EXPORT_FLUIDS, maxCount);
+        }
+
+        public CasingSlot itemInput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.IMPORT_ITEMS, minCount, maxCount);
+        }
+
+        public CasingSlot itemInput(int currentCount) {
+            return hatch(MultiblockAbility.IMPORT_ITEMS, currentCount);
+        }
+
+        public CasingSlot optionalItemInput(int maxCount) {
+            return optionalHatch(MultiblockAbility.IMPORT_ITEMS, maxCount);
+        }
+
+        public CasingSlot itemOutput(int minCount, int maxCount) {
+            return hatch(MultiblockAbility.EXPORT_ITEMS, minCount, maxCount);
+        }
+
+        public CasingSlot itemOutput(int currentCount) {
+            return hatch(MultiblockAbility.EXPORT_ITEMS, currentCount);
+        }
+
+        public CasingSlot optionalItemOutput(int maxCount) {
+            return optionalHatch(MultiblockAbility.EXPORT_ITEMS, maxCount);
+        }
+
 
         /**
          * Add a custom hatch using a raw TraceabilityPredicate.
@@ -409,7 +543,7 @@ public class DeclarativePatternBuilder {
          * @param maxCount  maximum number of positions this predicate can occupy
          * @return this CasingSlot for chaining
          */
-        public CasingSlot withCustomHatches(@NotNull TraceabilityPredicate predicate, int maxCount) {
+        public CasingSlot custom(@NotNull TraceabilityPredicate predicate, int maxCount) {
             info.customHatches.add(new CustomHatchInfo(predicate, maxCount));
             return this;
         }
@@ -422,7 +556,7 @@ public class DeclarativePatternBuilder {
          * @return this CasingSlot for chaining
          * @see HatchPresets for standard presets
          */
-        public CasingSlot applyPreset(@NotNull IHatchPreset preset) {
+        public CasingSlot preset(@NotNull IHatchPreset preset) {
             preset.apply(this);
             return this;
         }

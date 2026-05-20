@@ -100,13 +100,13 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
-                .where('S', selfPredicateByClass(MetaTileEntityFluidDrill.class))
+                .where('S', selfPredicate(MetaTileEntityFluidDrill.class))
                 .where('C', states(type.getCasingState()))
                 .where('F', frames(type.getFrameMaterial()))
                 .where('#', any())
                 .casing('X', CasingDefinition.simple(type.getCasingState()))
-                .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 1)
+                .energyInput(1,3)
+                .fluidOutput(1)
                 .buildTemplate();
     }
 

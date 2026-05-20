@@ -87,7 +87,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
                 .aisle("CCCC", "CSHC", "CCCC")
-                .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
+                .where('S', selfPredicate(MetaTileEntityLargeTurbine.class))
                 .where('G', states(type.getGearboxState()))
                 .where('C', states(type.getCasingState()))
                 .where('R', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.ROTOR_HOLDER).stream()
@@ -99,10 +99,10 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                         .setExactLimit(1)
                         .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
                 .casing('H', CasingDefinition.simple(type.getCasingState()))
-                .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
+                .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
+                .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
+                .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
                 .buildTemplate();
     }
 

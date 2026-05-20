@@ -32,11 +32,11 @@ public class MetaTileEntityVacuumFreezer extends RecipeMapMultiblockController {
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityVacuumFreezer.class))
+                    .where('S', selfPredicate(MetaTileEntityVacuumFreezer.class))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(MetalCasingType.ALUMINIUM_FROSTPROOF)))
-                        .applyPreset(HatchPresets.ELECTRIC_STANDARD)
+                        .preset(HatchPresets.ELECTRIC_STANDARD)
                     .buildTemplate()
     );
 

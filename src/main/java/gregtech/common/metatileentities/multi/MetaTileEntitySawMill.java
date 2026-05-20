@@ -42,15 +42,15 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
                     .aisle("PXXXP", "XX XF", " F  F")
                     .aisle("PXXXP", "XX XF", "FFFFF")
                     .aisle("PSPPP", "    F", "    F")
-                    .where('S', selfPredicateByClass(MetaTileEntitySawMill.class))
+                    .where('S', selfPredicate(MetaTileEntitySawMill.class))
                     .where('F', states(MetaBlocks.FRAMES.get(Materials.TreatedWood).getBlock(Materials.TreatedWood)))
                     .where('X', states(MetaBlocks.PLANKS.getState(BlockGregPlanks.BlockType.TREATED_PLANK)))
                     .where(' ', any())
                     .casing('P', CasingDefinition.simple(
                             MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL)))
-                        .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 2)
-                        .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 2)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 2)
+                        .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 2)
+                        .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 2)
+                        .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 2)
                     .buildTemplate()
     );
 

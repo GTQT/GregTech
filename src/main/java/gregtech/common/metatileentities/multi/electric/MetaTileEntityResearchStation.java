@@ -61,12 +61,50 @@ import static gregtech.api.util.RelativeDirection.*;
 public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         implements IOpticalComputationReceiver {
 
+    @NotNull
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:research_station", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "VVV", "PPP", "PPP", "PPP", "VVV", "XXX")
+                    .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
+                    .aisle("XXX", "VAV", "XAX", "XSX", "XAX", "VAV", "XXX")
+                    .aisle("XXX", "XAX", "---", "---", "---", "XAX", "XXX")
+                    .aisle(" X ", "XAX", "---", "---", "---", "XAX", " X ")
+                    .aisle(" X ", "XAX", "-A-", "-H-", "-A-", "XAX", " X ")
+                    .aisle("   ", "XXX", "---", "---", "---", "XXX", "   ")
+                    .where('S', selfPredicate(MetaTileEntityResearchStation.class))
+                    .where('X', states(getCasingState()))
+                    .where(' ', any())
+                    .where('-', air())
+                    .where('V', states(getVentState()))
+                    .where('A', states(getAdvancedState()))
+                    .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
+                    .casing('P', CasingDefinition.simple(getCasingState()))
+                    .energyInput(1, 4)
+                    .maintenance()
+                    .computerReception()
+                    .buildTemplate()
+    );
     private IOpticalComputationProvider computationProvider;
     private IObjectHolder objectHolder;
 
     public MetaTileEntityResearchStation(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.RESEARCH_STATION_RECIPES);
         this.recipeMapWorkable = new ResearchStationRecipeLogic(this);
+    }
+
+    @NotNull
+    private static IBlockState getVentState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT);
+    }
+
+    @NotNull
+    private static IBlockState getAdvancedState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING);
+    }
+
+    @NotNull
+    private static IBlockState getCasingState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
     }
 
     @Override
@@ -129,30 +167,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         return objectHolder;
     }
 
-    @NotNull
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:research_station", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXX", "VVV", "PPP", "PPP", "PPP", "VVV", "XXX")
-                    .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
-                    .aisle("XXX", "VAV", "XAX", "XSX", "XAX", "VAV", "XXX")
-                    .aisle("XXX", "XAX", "---", "---", "---", "XAX", "XXX")
-                    .aisle(" X ", "XAX", "---", "---", "---", "XAX", " X ")
-                    .aisle(" X ", "XAX", "-A-", "-H-", "-A-", "XAX", " X ")
-                    .aisle("   ", "XXX", "---", "---", "---", "XXX", "   ")
-                    .where('S', selfPredicateByClass(MetaTileEntityResearchStation.class))
-                    .where('X', states(getCasingState()))
-                    .where(' ', any())
-                    .where('-', air())
-                    .where('V', states(getVentState()))
-                    .where('A', states(getAdvancedState()))
-                    .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
-                    .casing('P', CasingDefinition.simple(getCasingState()))
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 1)
-                    .buildTemplate()
-    );
-
     @Override
     protected BlockPatternTemplate createStructureTemplate() {
         return TEMPLATE.get();
@@ -182,21 +196,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                         EnumFacing.NORTH)
                 .where('H', MetaTileEntities.OBJECT_HOLDER, EnumFacing.NORTH)
                 .build());
-    }
-
-    @NotNull
-    private static IBlockState getVentState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT);
-    }
-
-    @NotNull
-    private static IBlockState getAdvancedState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING);
-    }
-
-    @NotNull
-    private static IBlockState getCasingState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
     }
 
     @SideOnly(Side.CLIENT)

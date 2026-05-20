@@ -23,6 +23,7 @@ import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.OCParams;
@@ -70,33 +71,28 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
             TemplatePool.getInstance().register("gregtech:processing_array/advanced", () -> buildTemplate(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
     };
+    private final int tier;
+    private boolean machineChanged;
+    public MetaTileEntityProcessingArray(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, null);
+        this.tier = tier;
+        this.recipeMapWorkable = new ProcessingArrayWorkable(this);
+    }
 
     private static BlockPatternTemplate buildTemplate(IBlockState casingState) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicateByClass(MetaTileEntityProcessingArray.class))
+                .where('S', selfPredicate(MetaTileEntityProcessingArray.class))
                 .where('#', air())
                 .casing('X', CasingDefinition.simple(casingState))
-                    .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
-                    .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.MUFFLER_HATCH, 1)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_ITEMS, 4)
-                    .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 4)
-                    .withOptionalHatches(MultiblockAbility.EXPORT_FLUIDS, 4)
-                    .withHatches(MultiblockAbility.MACHINE_HATCH, 1, 1)
+                .energyInput(1, 4)
+                .maintenance()
+                .muffler()
+                .preset(HatchPresets.STANDARD_IO)
+                .hatch(MultiblockAbility.MACHINE_HATCH, 1, 1)
                 .buildTemplate();
-    }
-
-    private final int tier;
-    private boolean machineChanged;
-
-    public MetaTileEntityProcessingArray(ResourceLocation metaTileEntityId, int tier) {
-        super(metaTileEntityId, null);
-        this.tier = tier;
-        this.recipeMapWorkable = new ProcessingArrayWorkable(this);
     }
 
     @Override
@@ -232,9 +228,12 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                                                boolean checkMuffler) {
         TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
 
-        predicate = predicate.or(checkEnergyIn ? abilities(MultiblockAbility.INPUT_ENERGY).setMaxGlobalLimited(4).setPreviewCount(1) : new TraceabilityPredicate());
+        predicate = predicate.or(
+                checkEnergyIn ? abilities(MultiblockAbility.INPUT_ENERGY).setMaxGlobalLimited(4).setPreviewCount(1) :
+                        new TraceabilityPredicate());
 
-        predicate = predicate.or(checkEnergyIn ? abilities(MultiblockAbility.INPUT_LASER).setMaxGlobalLimited(1) : new TraceabilityPredicate());
+        predicate = predicate.or(checkEnergyIn ? abilities(MultiblockAbility.INPUT_LASER).setMaxGlobalLimited(1) :
+                new TraceabilityPredicate());
 
         predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
 
@@ -248,7 +247,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.universal.tooltip.parallel", getMachineLimit()));
     }
@@ -312,8 +312,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         }
 
         /**
-         * Checks if a provided Recipe Map is valid to be used in the processing array
-         * Will filter out anything in the config blacklist, and also any non-single block machines
+         * Checks if a provided Recipe Map is valid to be used in the processing array Will filter out anything in the
+         * config blacklist, and also any non-single block machines
          *
          * @param recipeMap The recipeMap to check
          * @return {@code true} if the provided recipeMap is valid for use

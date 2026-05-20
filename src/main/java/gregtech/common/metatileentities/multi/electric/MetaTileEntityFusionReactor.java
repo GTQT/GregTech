@@ -142,19 +142,19 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                 .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
                 .aisle("###############", "######OSO######", "###############")
-                .where('S', selfPredicateByClass(MetaTileEntityFusionReactor.class))
+                .where('S', selfPredicate(MetaTileEntityFusionReactor.class))
                 .where('G', states(type.getCasingState(), type.getGlassState()))
                 .where('E',
                         states(type.getCasingState(), type.getGlassState()).or(metaTileEntities(Arrays
                                 .stream(MetaTileEntities.ENERGY_INPUT_HATCH)
-                                .filter(mte -> mte != null && type.getTier() <= mte.getTier() &&
-                                        mte.getTier() <= GTValues.UV)
+                                .filter(mte -> mte != null && type.getTier() <= mte.getTier())
                                 .toArray(MetaTileEntity[]::new))
                                 .setMinGlobalLimited(1).setPreviewCount(16)))
                 .where('C', states(type.getCasingState()))
                 .where('K', states(type.getCoilState()))
-                .where('O', states(type.getCasingState(), type.getGlassState()).or(
-                        abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                .where('O', states(type.getCasingState(), type.getGlassState())
+                        .fluidOutput()
+                )
                 .where('A', air())
                 .where('I',
                         states(type.getCasingState()).or(

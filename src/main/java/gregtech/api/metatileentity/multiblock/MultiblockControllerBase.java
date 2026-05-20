@@ -1,8 +1,10 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.capability.GregtechCapabilities;
+import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -33,6 +35,7 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityLaserHatch;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -87,30 +90,27 @@ import static gregtech.api.capability.GregtechDataCodes.*;
 
 public abstract class MultiblockControllerBase extends MetaTileEntity implements IMultiblockController {
 
+    /** Interval (in ticks) before falling back to a main-thread check when async check has not formed */
+    private static final int ASYNC_FALLBACK_INTERVAL = 100;
     private final Map<MultiblockAbility<Object>, AbilityInstances> multiblockAbilities = new HashMap<>();
     private final List<IMultiblockPart> multiblockParts = new ArrayList<>();
-
     /**
-     * @deprecated Use {@link #patternTemplate} + {@link #multiblockState} for new code.
-     *             Retained for backward compatibility during migration. Will be removed in version 2.10.
+     * @deprecated Use {@link #patternTemplate} + {@link #multiblockState} for new code. Retained for backward
+     * compatibility during migration. Will be removed in version 2.10.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     @Nullable
     public BlockPattern structurePattern;
-
     /** Shared immutable structure template (new architecture) */
     @Nullable
     protected BlockPatternTemplate patternTemplate;
-
     /** Per-instance mutable state for pattern checking (new architecture) */
     @Nullable
     protected MultiblockState multiblockState;
-
     /** Multi-piece pattern for super-large structures (P3, opt-in) */
     @Nullable
     protected MultiPiecePattern multiPiecePattern;
-
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -122,24 +122,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     private boolean structureFormed;
     private int delayStructureCheckStandby = 20;
     private int delayStructureCheckWork = 20;
-
     /** Channel values collected from the formed structure (populated in formStructure) */
     @NotNull
     private StructureChannelValues formedChannelValues = new StructureChannelValues();
-
     /** Tick counter for async check fallback — counts ticks since registering for async check */
     private int asyncCheckFallbackTicks = 0;
 
-    /** Interval (in ticks) before falling back to a main-thread check when async check has not formed */
-    private static final int ASYNC_FALLBACK_INTERVAL = 100;
-
     public MultiblockControllerBase(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
-    }
-
-    @Override
-    public boolean isStructureFormed() {
-        return structureFormed;
     }
 
     public static TraceabilityPredicate tilePredicate(
@@ -208,6 +198,59 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }, getCandidates(allowedStates));
     }
 
+    @NotNull
+    protected static TraceabilityPredicate energyOutput(int tier, boolean isMinTier) {
+        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
+                .filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
+                            null);
+                    return container != null && ( isMinTier ? (container.getOutputVoltage() * container.getOutputAmperage() >=
+                            GTValues.V[tier]) : (container.getOutputVoltage() * container.getOutputAmperage() <=
+                            GTValues.V[tier]));
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
+    @NotNull
+    protected static TraceabilityPredicate energyInput(int tier, boolean isMinTier) {
+        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.INPUT_ENERGY).stream()
+                .filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
+                            null);
+                    return container != null && ( isMinTier ? (container.getInputVoltage() * container.getInputAmperage() >=
+                            GTValues.V[tier]) : (container.getInputVoltage() * container.getInputAmperage() <=
+                            GTValues.V[tier]));
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
+    @NotNull
+    protected static TraceabilityPredicate laserOutput(int tier, boolean isMinTier) {
+        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_LASER).stream()
+                .filter(mte -> {
+                    if (mte instanceof MetaTileEntityLaserHatch laserHatch) {
+                        if(isMinTier) return laserHatch.getTier() >= tier;
+                        return laserHatch.getTier() <= tier;
+                    }
+                    return false;
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
+    @NotNull
+    protected static TraceabilityPredicate laserInput(int tier, boolean isMinTier) {
+        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.INPUT_LASER).stream()
+                .filter(mte -> {
+                    if (mte instanceof MetaTileEntityLaserHatch laserHatch) {
+                        if(isMinTier) return laserHatch.getTier() >= tier;
+                        return laserHatch.getTier() <= tier;
+                    }
+                    return false;
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
+
     /**
      * Use this predicate for Frames in your Multiblock. Allows for Framed Pipes as well as normal Frame blocks.
      */
@@ -239,6 +282,123 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public static TraceabilityPredicate heatingCoils() {
         return TraceabilityPredicate.HEATING_COILS.get();
+    }
+
+    /**
+     * Static version of {@link #selfPredicate()} for multi-variant controllers. Creates a center predicate that matches
+     * any controller instance whose class equals or extends the given class. Suitable for machines that register
+     * multiple IDs with the same class (e.g., LargeTurbine, LargeBoiler, LargeMiner).
+     *
+     * <p>Usage:
+     * <pre>{@code
+     * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register(
+     *     "gregtech:large_turbine/steam", () ->
+     *     DeclarativePatternBuilder.start()
+     *         .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
+     *         ...
+     *         .buildTemplate()
+     * );
+     * }</pre>
+     *
+     * @param controllerClass the exact controller class to match
+     * @return a center predicate matching all instances of that class
+     */
+    @NotNull
+    public static TraceabilityPredicate selfPredicate(
+            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+        return tilePredicate((state, tile) -> controllerClass.isInstance(tile),
+                getCandidatesByClass(controllerClass)).setCenter();
+    }
+
+    /**
+     * Collect all registered MetaTileEntities whose class matches the given controller class and return them as
+     * candidate BlockInfo array.
+     */
+    @NotNull
+    private static Supplier<BlockInfo[]> getCandidatesByClass(
+            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+        return () -> {
+            List<MetaTileEntity> matches = new ArrayList<>();
+            for (var registry : GregTechAPI.mteManager.getRegistries()) {
+                for (MetaTileEntity mte : registry) {
+                    if (controllerClass.isInstance(mte)) {
+                        matches.add(mte);
+                    }
+                }
+            }
+            if (matches.isEmpty()) {
+                return new BlockInfo[] { BlockInfo.EMPTY };
+            }
+            return matches.stream().map(tile -> {
+                MetaTileEntityHolder holder = new MetaTileEntityHolder();
+                holder.setMetaTileEntity(tile);
+                holder.getMetaTileEntity().onPlacement();
+                holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
+                return new BlockInfo(tile.getBlock().getDefaultState(), holder);
+            }).toArray(BlockInfo[]::new);
+        };
+    }
+
+    /**
+     * Collect all unique channels referenced by predicates in the given template.
+     */
+    @NotNull
+    protected static List<StructureChannel> collectChannelsFromTemplate(
+            @NotNull BlockPatternTemplate template) {
+        Set<String> seen = new java.util.LinkedHashSet<>();
+        TraceabilityPredicate[][][] matches = template.getBlockMatches();
+        for (TraceabilityPredicate[][] layer : matches) {
+            for (TraceabilityPredicate[] row : layer) {
+                for (TraceabilityPredicate predicate : row) {
+                    if (predicate == null) continue;
+                    collectChannelNames(predicate.common, seen);
+                    collectChannelNames(predicate.limited, seen);
+                }
+            }
+        }
+        List<StructureChannel> result = new ArrayList<>();
+        String[] aisleChannelNames = template.getAisleChannelNames();
+        if (aisleChannelNames != null) {
+            for (String name : aisleChannelNames) {
+                if (name != null && !name.isEmpty()) {
+                    seen.add(name);
+                }
+            }
+        }
+        for (String name : seen) {
+            StructureChannel channel =
+                    gregtech.api.pattern.casing.StructureChannelRegistry.resolve(name);
+            if (channel != null) {
+                result.add(channel);
+            }
+        }
+        return result;
+    }
+
+    private static void collectChannelNames(
+            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
+            @NotNull Set<String> out) {
+        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
+            if (sp.channelName != null && !sp.channelName.isEmpty()) {
+                out.add(sp.channelName);
+            }
+        }
+    }
+
+    private static int countChannelCandidates(
+            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
+            @NotNull String channelName) {
+        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
+            if (channelName.equals(sp.channelName) && sp.candidates != null) {
+                return sp.candidates.get().length;
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public boolean isStructureFormed() {
+        return structureFormed;
     }
 
     @Override
@@ -341,10 +501,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Creates the structure pattern for this multiblock.
      *
      * @return structure pattern of this multiblock
-     * @deprecated Override {@link #createStructureTemplate()} instead for new code.
-     *             This method is retained for backward compatibility with existing subclasses.
-     *             The default implementation of {@link #createStructureTemplate()} delegates to this method.
-     *             Will be removed in version 2.10.
+     * @deprecated Override {@link #createStructureTemplate()} instead for new code. This method is retained for
+     * backward compatibility with existing subclasses. The default implementation of {@link #createStructureTemplate()}
+     * delegates to this method. Will be removed in version 2.10.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
@@ -355,9 +514,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Override this method to provide a shared immutable structure template.
-     * The template is shared across all instances of the same machine type,
-     * while each instance holds its own mutable {@link MultiblockState}.
+     * Override this method to provide a shared immutable structure template. The template is shared across all
+     * instances of the same machine type, while each instance holds its own mutable {@link MultiblockState}.
      *
      * <p>Default implementation delegates to the deprecated {@link #createStructurePattern()}
      * for backward compatibility.
@@ -375,9 +533,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Override this method to provide a multi-piece pattern for super-large structures.
-     * When this returns non-null, the structure is checked piece-by-piece:
-     * only dirty pieces are re-validated when a block change occurs.
+     * Override this method to provide a multi-piece pattern for super-large structures. When this returns non-null, the
+     * structure is checked piece-by-piece: only dirty pieces are re-validated when a block change occurs.
      *
      * <p>Standard multiblocks should NOT override this method. It is only useful for
      * structures with thousands of blocks that benefit from partial re-checking.
@@ -466,61 +623,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return metaTileEntities(this).setCenter();
     }
 
-    /**
-     * Static version of {@link #selfPredicate()} for multi-variant controllers.
-     * Creates a center predicate that matches any controller instance whose class equals or
-     * extends the given class. Suitable for machines that register multiple IDs with the same class
-     * (e.g., LargeTurbine, LargeBoiler, LargeMiner).
-     *
-     * <p>Usage:
-     * <pre>{@code
-     * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register(
-     *     "gregtech:large_turbine/steam", () ->
-     *     DeclarativePatternBuilder.start()
-     *         .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
-     *         ...
-     *         .buildTemplate()
-     * );
-     * }</pre>
-     *
-     * @param controllerClass the exact controller class to match
-     * @return a center predicate matching all instances of that class
-     */
-    @NotNull
-    public static TraceabilityPredicate selfPredicateByClass(@NotNull Class<? extends MultiblockControllerBase> controllerClass) {
-        return tilePredicate((state, tile) -> controllerClass.isInstance(tile),
-                getCandidatesByClass(controllerClass)).setCenter();
-    }
-
-    /**
-     * Collect all registered MetaTileEntities whose class matches the given controller class
-     * and return them as candidate BlockInfo array.
-     */
-    @NotNull
-    private static Supplier<BlockInfo[]> getCandidatesByClass(
-            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
-        return () -> {
-            List<MetaTileEntity> matches = new ArrayList<>();
-            for (var registry : GregTechAPI.mteManager.getRegistries()) {
-                for (MetaTileEntity mte : registry) {
-                    if (controllerClass.isInstance(mte)) {
-                        matches.add(mte);
-                    }
-                }
-            }
-            if (matches.isEmpty()) {
-                return new BlockInfo[] { BlockInfo.EMPTY };
-            }
-            return matches.stream().map(tile -> {
-                MetaTileEntityHolder holder = new MetaTileEntityHolder();
-                holder.setMetaTileEntity(tile);
-                holder.getMetaTileEntity().onPlacement();
-                holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
-                return new BlockInfo(tile.getBlock().getDefaultState(), holder);
-            }).toArray(BlockInfo[]::new);
-        };
-    }
-
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         ICubeRenderer baseTexture = getBaseTexture(null);
@@ -576,9 +678,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Returns whether this multiblock is currently "working" for structure check interval purposes.
-     * Subclasses override to provide machine-specific working state (e.g., recipe active).
-     * When working, the fallback polling uses {@link #getStructureCheckIntervalWorking()}.
+     * Returns whether this multiblock is currently "working" for structure check interval purposes. Subclasses override
+     * to provide machine-specific working state (e.g., recipe active). When working, the fallback polling uses
+     * {@link #getStructureCheckIntervalWorking()}.
      *
      * @return true if the multiblock is actively working
      */
@@ -594,8 +696,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Returns the structure check polling interval (in ticks) when the multiblock is idle/standby.
-     * Used in fallback polling mode when event-driven or async checking is unavailable.
+     * Returns the structure check polling interval (in ticks) when the multiblock is idle/standby. Used in fallback
+     * polling mode when event-driven or async checking is unavailable.
      *
      * @return polling interval in ticks (minimum 20)
      */
@@ -607,8 +709,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Returns the structure check polling interval (in ticks) when the multiblock is working.
-     * Used in fallback polling mode when event-driven or async checking is unavailable.
+     * Returns the structure check polling interval (in ticks) when the multiblock is working. Used in fallback polling
+     * mode when event-driven or async checking is unavailable.
      *
      * @return polling interval in ticks (minimum 20)
      */
@@ -697,9 +799,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Re-collects structure parts and abilities from a successful pattern match
-     * without invalidating the whole multiblock. This is used by normal cached
-     * checks and by large multi-piece structures when only one piece changed.
+     * Re-collects structure parts and abilities from a successful pattern match without invalidating the whole
+     * multiblock. This is used by normal cached checks and by large multi-piece structures when only one piece
+     * changed.
      *
      * @return true if the part/ability set changed and subclass form logic was re-run
      */
@@ -757,9 +859,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Collects abilities from a sorted list of multiblock parts.
-     * Each part's abilities are checked via {@link #checkAbilityPart} and registered
-     * into the appropriate {@link AbilityInstances}.
+     * Collects abilities from a sorted list of multiblock parts. Each part's abilities are checked via
+     * {@link #checkAbilityPart} and registered into the appropriate {@link AbilityInstances}.
      *
      * @param parts the sorted list of parts to collect abilities from
      * @return a map of ability type to ability instances
@@ -797,9 +898,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void formStructure(PatternMatchContext context) {}
 
     /**
-     * Multi-piece structure check (P3).
-     * Only re-validates dirty pieces instead of the entire pattern.
-     * If any piece becomes invalid, the entire structure is invalidated.
+     * Multi-piece structure check (P3). Only re-validates dirty pieces instead of the entire pattern. If any piece
+     * becomes invalid, the entire structure is invalidated.
      */
     protected void checkMultiPieceStructure() {
         if (multiPiecePattern == null) return;
@@ -814,8 +914,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Register a multi-piece pattern with the event-driven system.
-     * Collects all positions from all active, validated pieces and registers them.
+     * Register a multi-piece pattern with the event-driven system. Collects all positions from all active, validated
+     * pieces and registers them.
      */
     protected void registerMultiPiecePattern() {
         if (multiPiecePattern == null || getWorld() == null || getWorld() instanceof DummyWorld) return;
@@ -843,8 +943,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Get the channel tier values determined when the structure was formed.
-     * Empty if the structure is not currently formed.
+     * Get the channel tier values determined when the structure was formed. Empty if the structure is not currently
+     * formed.
      *
      * @return the formed channel values (never null)
      */
@@ -1023,8 +1123,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Format a raw structure description line for tooltip display.
-     * Lines are stored as "type:param1:param2:..." for server-safe storage.
+     * Format a raw structure description line for tooltip display. Lines are stored as "type:param1:param2:..." for
+     * server-safe storage.
      */
     @SideOnly(Side.CLIENT)
     private String formatStructureDescriptionLine(@NotNull String rawLine) {
@@ -1108,6 +1208,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return false;
     }
 
+    // todo tooltip on multis saying if this is enabled or disabled?
+
     @Override
     public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing wrenchSide,
                                  CuboidRayTraceResult hitResult) {
@@ -1131,8 +1233,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return allowsExtendedFacing() || super.isValidFrontFacing(facing);
     }
 
-    // todo tooltip on multis saying if this is enabled or disabled?
-
     /** Whether this multi can be rotated or face upwards. */
     public boolean allowsExtendedFacing() {
         return true;
@@ -1144,9 +1244,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Returns the list of structure channels supported by this multiblock.
-     * Default implementation auto-collects channels from the pattern template's predicates.
-     * Subclasses can override for custom behavior or to add channels not in the pattern.
+     * Returns the list of structure channels supported by this multiblock. Default implementation auto-collects
+     * channels from the pattern template's predicates. Subclasses can override for custom behavior or to add channels
+     * not in the pattern.
      *
      * @return list of supported StructureChannel instances
      */
@@ -1162,55 +1262,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Collect all unique channels referenced by predicates in the given template.
-     */
-    @NotNull
-    protected static List<StructureChannel> collectChannelsFromTemplate(
-            @NotNull BlockPatternTemplate template) {
-        Set<String> seen = new java.util.LinkedHashSet<>();
-        TraceabilityPredicate[][][] matches = template.getBlockMatches();
-        for (TraceabilityPredicate[][] layer : matches) {
-            for (TraceabilityPredicate[] row : layer) {
-                for (TraceabilityPredicate predicate : row) {
-                    if (predicate == null) continue;
-                    collectChannelNames(predicate.common, seen);
-                    collectChannelNames(predicate.limited, seen);
-                }
-            }
-        }
-        List<StructureChannel> result = new ArrayList<>();
-        String[] aisleChannelNames = template.getAisleChannelNames();
-        if (aisleChannelNames != null) {
-            for (String name : aisleChannelNames) {
-                if (name != null && !name.isEmpty()) {
-                    seen.add(name);
-                }
-            }
-        }
-        for (String name : seen) {
-            StructureChannel channel =
-                    gregtech.api.pattern.casing.StructureChannelRegistry.resolve(name);
-            if (channel != null) {
-                result.add(channel);
-            }
-        }
-        return result;
-    }
-
-    private static void collectChannelNames(
-            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
-            @NotNull Set<String> out) {
-        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
-            if (sp.channelName != null && !sp.channelName.isEmpty()) {
-                out.add(sp.channelName);
-            }
-        }
-    }
-
-    /**
-     * Get the valid value range for a given channel in this multiblock's pattern.
-     * For tiered casing channels, the range is [0, maxCandidateIndex].
-     * For repeatable aisle channels, the range is [aisleMin, aisleMax].
+     * Get the valid value range for a given channel in this multiblock's pattern. For tiered casing channels, the range
+     * is [0, maxCandidateIndex]. For repeatable aisle channels, the range is [aisleMin, aisleMax].
      *
      * @param channel the channel to query
      * @return int[2] with [min, max], or [0, 0] if channel not found in pattern
@@ -1254,17 +1307,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             return new int[] { 0, maxCandidates };
         }
         return new int[] { 0, 0 };
-    }
-
-    private static int countChannelCandidates(
-            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
-            @NotNull String channelName) {
-        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
-            if (channelName.equals(sp.channelName) && sp.candidates != null) {
-                return sp.candidates.get().length;
-            }
-        }
-        return 0;
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes() {
@@ -1332,8 +1374,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Get the preview shape for a specific piece from the MultiPiecePattern.
-     * Used by the structure projector to preview individual pieces (e.g. second_ring, third_ring).
+     * Get the preview shape for a specific piece from the MultiPiecePattern. Used by the structure projector to preview
+     * individual pieces (e.g. second_ring, third_ring).
      *
      * @param pieceIndex    1-based index into the piece list
      * @param channelValues channel values for tier selection (nullable)

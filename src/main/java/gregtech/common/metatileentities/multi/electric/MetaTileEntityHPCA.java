@@ -94,43 +94,49 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:high_performance_computing_array", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("AA", "CC", "CC", "CC", "AA")
-                    .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
-                    .aisle("SA", "CC", "CC", "CC", "AA")
-                    .where('S', selfPredicateByClass(MetaTileEntityHPCA.class))
-                    .where('A', states(getAdvancedState()))
-                    .where('V', states(getVentState()))
-                    .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
-                    .casing('C', CasingDefinition.simple(getCasingState()))
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.MAINTENANCE_HATCH)
-                                        .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
-                        .withOptionalHatches(MultiblockAbility.IMPORT_FLUIDS, 1)
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION).setExactLimit(1), 1)
-                    .buildTemplate()
-    );
-
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
+            .register("gregtech:high_performance_computing_array", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("AA", "CC", "CC", "CC", "AA")
+                            .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
+                            .aisle("SA", "CC", "CC", "CC", "AA")
+                            .where('S', selfPredicate(MetaTileEntityHPCA.class))
+                            .where('A', states(getAdvancedState()))
+                            .where('V', states(getVentState()))
+                            .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
+                            .casing('C', CasingDefinition.simple(getCasingState()))
+                            .maintenance()
+                            .energyInput(1, 3)
+                            .optionalFluidInput(1)
+                            .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1)
+                            .buildTemplate()
+            );
+    private final HPCAGridHandler hpcaHandler;
+    private final TimedProgressSupplier progressSupplier;
     private IEnergyContainer energyContainer;
     private IFluidHandler coolantHandler;
-    private final HPCAGridHandler hpcaHandler;
-
     private boolean isActive;
     private boolean isWorkingEnabled = true;
     private boolean hasNotEnoughEnergy;
-
     private double temperature = IDLE_TEMPERATURE; // start at idle temperature
-
-    private final TimedProgressSupplier progressSupplier;
 
     public MetaTileEntityHPCA(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
         this.energyContainer = new EnergyContainerList(new ArrayList<>());
         this.progressSupplier = new TimedProgressSupplier(200, 47, false);
         this.hpcaHandler = new HPCAGridHandler(this);
+    }
+
+    private static @NotNull IBlockState getCasingState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
+    }
+
+    private static @NotNull IBlockState getAdvancedState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING);
+    }
+
+    private static @NotNull IBlockState getVentState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT);
     }
 
     @Override
@@ -241,18 +247,6 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     @Override
     protected @NotNull BlockPatternTemplate createStructureTemplate() {
         return TEMPLATE.get();
-    }
-
-    private static @NotNull IBlockState getCasingState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
-    }
-
-    private static @NotNull IBlockState getAdvancedState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING);
-    }
-
-    private static @NotNull IBlockState getVentState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT);
     }
 
     @Override
@@ -741,8 +735,8 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
         }
 
         /**
-         * Get the coolant stack for this HPCA. Eventually this could be made more diverse with different
-         * coolants from different Active Cooler components, but currently it is just a fixed Fluid.
+         * Get the coolant stack for this HPCA. Eventually this could be made more diverse with different coolants from
+         * different Active Cooler components, but currently it is just a fixed Fluid.
          */
         public FluidStack getCoolantStack(int amount) {
             return new FluidStack(getCoolant(), amount);
@@ -753,8 +747,8 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
         }
 
         /**
-         * Roll a 1/200 chance to damage a HPCA component marked as damageable. Randomly selects the component.
-         * If called every tick, this succeeds on average once every 10 seconds.
+         * Roll a 1/200 chance to damage a HPCA component marked as damageable. Randomly selects the component. If
+         * called every tick, this succeeds on average once every 10 seconds.
          */
         public void attemptDamageHPCA() {
             // 1% chance each tick to damage a component if running too hot

@@ -53,13 +53,13 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntitySteamGrinder.class))
+                    .where('S', selfPredicate(MetaTileEntitySteamGrinder.class))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS)))
-                        .withHatches(MultiblockAbility.STEAM, 1, 2)
-                        .withOptionalHatches(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
-                        .withOptionalHatches(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
+                        .hatch(MultiblockAbility.STEAM, 1, 2)
+                        .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
+                        .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
                     .buildTemplate()
     );
 

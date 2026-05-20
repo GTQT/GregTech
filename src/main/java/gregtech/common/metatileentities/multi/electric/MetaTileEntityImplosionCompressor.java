@@ -32,11 +32,11 @@ public class MetaTileEntityImplosionCompressor extends RecipeMapMultiblockContro
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityImplosionCompressor.class))
+                    .where('S', selfPredicate(MetaTileEntityImplosionCompressor.class))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID)))
-                        .applyPreset(HatchPresets.ELECTRIC_MUFFLER)
+                        .preset(HatchPresets.ELECTRIC_STANDARD)
                     .buildTemplate()
     );
 

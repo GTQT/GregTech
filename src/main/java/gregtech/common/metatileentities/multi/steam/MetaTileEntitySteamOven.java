@@ -56,15 +56,15 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
                     .aisle("XXX", "CCC", "#C#")
                     .aisle("XXX", "C#C", "#C#")
                     .aisle("XXX", "CSC", "#C#")
-                    .where('S', selfPredicateByClass(MetaTileEntitySteamOven.class))
+                    .where('S', selfPredicate(MetaTileEntitySteamOven.class))
                     .where('#', any())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX)))
-                        .withHatches(MultiblockAbility.STEAM, 1, 3)
+                        .hatch(MultiblockAbility.STEAM, 1, 3)
                     .casing('C', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS)))
-                        .withOptionalHatches(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
-                        .withOptionalHatches(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
+                        .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
+                        .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
                     .buildTemplate()
     );
 

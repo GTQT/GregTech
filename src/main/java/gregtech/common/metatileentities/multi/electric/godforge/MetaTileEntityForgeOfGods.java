@@ -341,7 +341,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private static TraceabilityPredicate godforgeController() {
-        return selfPredicateByClass(MetaTileEntityForgeOfGods.class);
+        return selfPredicate(MetaTileEntityForgeOfGods.class);
     }
 
     // ==================== Structure Lifecycle ====================

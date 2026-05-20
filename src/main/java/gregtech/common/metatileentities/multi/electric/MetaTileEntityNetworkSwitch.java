@@ -105,13 +105,13 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XAX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicateByClass(MetaTileEntityNetworkSwitch.class))
+                    .where('S', selfPredicate(MetaTileEntityNetworkSwitch.class))
                     .where('A', states(getAdvancedState()))
                     .casing('X', CasingDefinition.simple(getCasingState()))
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 4)
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withHatches(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
-                        .withHatches(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
+                        .energyInput(1,4)
+                        .maintenance()
+                        .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
+                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
                     .buildTemplate()
     );
 

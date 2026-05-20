@@ -4,7 +4,7 @@ package gregtech.api.pattern.casing;
  * Functional interface for applying a set of hatch declarations to a {@link DeclarativePatternBuilder.CasingSlot}.
  *
  * <p>Implementations define reusable hatch combinations that can be applied via
- * {@link DeclarativePatternBuilder.CasingSlot#applyPreset(IHatchPreset)}.
+ * {@link DeclarativePatternBuilder.CasingSlot#preset(IHatchPreset)}.
  *
  * <p>Standard presets are available in {@link HatchPresets}. Addons can define their own
  * by implementing this interface:
@@ -15,7 +15,7 @@ package gregtech.api.pattern.casing;
  * }</pre>
  *
  * @see HatchPresets
- * @see DeclarativePatternBuilder.CasingSlot#applyPreset(IHatchPreset)
+ * @see DeclarativePatternBuilder.CasingSlot#preset(IHatchPreset)
  */
 @FunctionalInterface
 public interface IHatchPreset {

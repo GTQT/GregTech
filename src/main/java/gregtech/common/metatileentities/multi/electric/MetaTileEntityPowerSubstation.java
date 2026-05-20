@@ -82,31 +82,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     // Structure Constants
     public static final int MAX_BATTERY_LAYERS = 18;
-
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:power_substation", () ->
-            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                    .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                    .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
-                    .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG").withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                    .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
-                    .where('S', selfPredicateByClass(MetaTileEntityPowerSubstation.class))
-                    .where('C', states(getCasingState()))
-                    .where('G', states(getGlassState()))
-                    .where('B', getBatteryPredicate())
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.MAINTENANCE_HATCH)
-                                        .setMinGlobalLimited(0).setMaxGlobalLimited(1), 1)
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.WIRELESS_CONTROLLER).setMaxGlobalLimited(1), 1)
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY,
-                                        MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
-                        .withCustomHatches(
-                                abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
-                                        MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
-                    .buildTemplate()
-    );
     // Passive Drain Constants
     // 1% capacity per 24 hours
     public static final long PASSIVE_DRAIN_DIVISOR = 20 * 60 * 60 * 24 * 100;
@@ -115,7 +90,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private static final int MIN_CASINGS = 14;
     // NBT Keys
     private static final String NBT_ENERGY_BANK = "EnergyBank";
-
     // Match Context Headers
     private static final String PMC_BATTERY_HEADER = "PSSBattery_";
     protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> {
@@ -146,10 +120,25 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
         return predicate;
     };
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:power_substation", () ->
+            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+                    .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                    .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
+                    .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                    .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
+                    .where('S', selfPredicate(MetaTileEntityPowerSubstation.class))
+                    .where('C', states(getCasingState()))
+                    .where('G', states(getGlassState()))
+                    .where('B', getBatteryPredicate())
+                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .maintenance()
+                    .optionalHatch(MultiblockAbility.WIRELESS_CONTROLLER, 1)
+                    .custom(abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
+                    .custom(abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
+                    .buildTemplate()
+    );
 
-    private static TraceabilityPredicate getBatteryPredicate() {
-        return BATTERY_PREDICATE.get();
-    }
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
     private PowerStationEnergyBank energyBank;
     private EnergyContainerList inputHatches;
@@ -165,6 +154,10 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private long averageOutLastSec;
     public MetaTileEntityPowerSubstation(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    private static TraceabilityPredicate getBatteryPredicate() {
+        return BATTERY_PREDICATE.get();
     }
 
     private static IKey getTimeToFillDrainText(BigInteger timeToFillSeconds) {
@@ -196,6 +189,14 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
 
         return KeyUtil.lang(key, TextFormattingUtil.formatNumbers(fillTime));
+    }
+
+    protected static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PALLADIUM_SUBSTATION);
+    }
+
+    protected static IBlockState getGlassState() {
+        return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS);
     }
 
     @Override
@@ -395,14 +396,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                 .forEach(entry -> shapeInfo.add(builder.where('B', entry.getKey()).build()));
 
         return shapeInfo;
-    }
-
-    protected static IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PALLADIUM_SUBSTATION);
-    }
-
-    protected static IBlockState getGlassState() {
-        return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS);
     }
 
     @SideOnly(Side.CLIENT)
@@ -638,8 +631,8 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     }
 
     /**
-     * Returns battery count per voltage tier for wireless transfer rate calculation.
-     * Key = voltage tier index (e.g., GTValues.UHV = 9), Value = number of battery blocks.
+     * Returns battery count per voltage tier for wireless transfer rate calculation. Key = voltage tier index (e.g.,
+     * GTValues.UHV = 9), Value = number of battery blocks.
      */
     public Map<Integer, Integer> getBatteryTierCounts() {
         return batteryTierCounts;
@@ -714,6 +707,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     /**
      * 检查 PSS 是否允许外部能量交互
+     *
      * @return true 如果结构成形、工作启用且能量库就绪
      */
     public boolean isExternalEnergyAccessAllowed() {

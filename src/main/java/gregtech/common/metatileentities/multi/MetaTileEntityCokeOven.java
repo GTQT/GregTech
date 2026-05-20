@@ -61,10 +61,10 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XYX", "XXX")
-                    .where('Y', selfPredicateByClass(MetaTileEntityCokeOven.class))
+                    .where('Y', selfPredicate(MetaTileEntityCokeOven.class))
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS)))
-                        .withCustomHatches(
+                        .custom(
                                 metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5), 5)
                     .buildTemplate()
     );

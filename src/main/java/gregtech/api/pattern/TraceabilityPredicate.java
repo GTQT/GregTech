@@ -4,6 +4,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.block.IHeatingCoilBlockStats;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
 
@@ -25,6 +26,8 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static gregtech.api.metatileentity.multiblock.MultiblockControllerBase.abilities;
 
 public class TraceabilityPredicate {
 
@@ -257,6 +260,88 @@ public class TraceabilityPredicate {
             return newPredicate;
         }
         return this;
+    }
+
+
+
+    public TraceabilityPredicate maintenance() {
+        return or(abilities(MultiblockAbility.MAINTENANCE_HATCH));
+    }
+
+    public TraceabilityPredicate muffler() {
+        return or(abilities(MultiblockAbility.MUFFLER_HATCH));
+    }
+
+    public TraceabilityPredicate energyInput(){
+        return or(abilities(MultiblockAbility.INPUT_ENERGY));
+    }
+
+    public TraceabilityPredicate energyInput(int min,int max) {
+        return or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(min).setMaxGlobalLimited(max));
+    }
+
+    public TraceabilityPredicate energyInput(int exact){
+        return or(abilities(MultiblockAbility.INPUT_ENERGY).setExactLimit(exact));
+    }
+
+    public TraceabilityPredicate energyOutput(){
+        return or(abilities(MultiblockAbility.OUTPUT_ENERGY));
+    }
+
+    public TraceabilityPredicate energyOutput(int min,int max) {
+        return or(abilities(MultiblockAbility.OUTPUT_ENERGY).setMinGlobalLimited(min).setMaxGlobalLimited(max));
+    }
+
+    public TraceabilityPredicate energyOutput(int exact){
+        return or(abilities(MultiblockAbility.OUTPUT_ENERGY).setExactLimit(exact));
+    }
+
+    public TraceabilityPredicate itemInput(){
+        return or(abilities(MultiblockAbility.IMPORT_ITEMS));
+    }
+
+    public TraceabilityPredicate itemInput(int min,int max){
+        return or(abilities(MultiblockAbility.IMPORT_ITEMS).setMinGlobalLimited(min).setMaxGlobalLimited(max));
+    }
+
+    public TraceabilityPredicate itemInput(int exact){
+        return or(abilities(MultiblockAbility.IMPORT_ITEMS).setExactLimit(exact));
+    }
+
+    public TraceabilityPredicate fluidInput(){
+        return or(abilities(MultiblockAbility.IMPORT_FLUIDS));
+    }
+
+    public TraceabilityPredicate fluidInput(int min,int max){
+        return or(abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(min).setMaxGlobalLimited(max));
+    }
+
+    public TraceabilityPredicate fluidInput(int exact){
+        return or(abilities(MultiblockAbility.IMPORT_FLUIDS).setExactLimit(exact));
+    }
+
+    public TraceabilityPredicate itemOutput(){
+        return or(abilities(MultiblockAbility.EXPORT_ITEMS));
+    }
+
+    public TraceabilityPredicate itemOutput(int min,int max){
+        return or(abilities(MultiblockAbility.EXPORT_ITEMS).setMinGlobalLimited(min).setMaxGlobalLimited(max));
+    }
+
+    public TraceabilityPredicate itemOutput(int exact){
+        return or(abilities(MultiblockAbility.EXPORT_ITEMS).setExactLimit(exact));
+    }
+
+    public TraceabilityPredicate fluidOutput(){
+        return or(abilities(MultiblockAbility.EXPORT_FLUIDS));
+    }
+
+    public TraceabilityPredicate fluidOutput(int min,int max){
+        return or(abilities(MultiblockAbility.EXPORT_FLUIDS).setMinGlobalLimited(min).setMaxGlobalLimited(max));
+    }
+
+    public TraceabilityPredicate fluidOutput(int exact){
+        return or(abilities(MultiblockAbility.EXPORT_FLUIDS).setExactLimit(exact));
     }
 
     public static class SimplePredicate {

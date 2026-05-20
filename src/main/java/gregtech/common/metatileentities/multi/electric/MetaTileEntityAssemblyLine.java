@@ -70,7 +70,7 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                     .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
                         .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .aisle("FOF", "RTR", "DAG", " Y ")
-                    .where('S', selfPredicateByClass(MetaTileEntityAssemblyLine.class))
+                    .where('S', selfPredicate(MetaTileEntityAssemblyLine.class))
                     .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
                             .addTooltips("gregtech.multiblock.pattern.location_end"))
                     .where('I', metaTileEntities(MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV]))
@@ -85,10 +85,10 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                     .where('D', dataHatchPredicate())
                     .where(' ', any())
                     .casing('F', CasingDefinition.simple(getCasingState()))
-                        .withOptionalHatches(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                        .withCustomHatches(fluidInputPredicate(), 4)
+                        .maintenance()
+                        .custom(fluidInputPredicate(), 4)
                     .casing('Y', CasingDefinition.simple(getCasingState()))
-                        .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                        .energyInput(1,3)
                     .buildTemplate()
     );
 

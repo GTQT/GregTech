@@ -49,7 +49,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
                     .aisle("XXXX", "**F*", "**F*")
                     .aisle("XXHX", "F**F", "FFFF")
                     .aisle("SXXX", "**F*", "**F*")
-                    .where('S', selfPredicateByClass(MetaTileEntityPrimitiveWaterPump.class))
+                    .where('S', selfPredicate(MetaTileEntityPrimitiveWaterPump.class))
                     .where('F', frames(Materials.TreatedWood))
                     .where('H',
                             abilities(MultiblockAbility.PUMP_FLUID_HATCH).or(metaTileEntities(
