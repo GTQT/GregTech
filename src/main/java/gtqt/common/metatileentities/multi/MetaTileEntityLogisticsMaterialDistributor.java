@@ -171,11 +171,6 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
         return false;
     }
 
-    @Override
-    public boolean hasMufflerMechanics() {
-        return false;
-    }
-
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
