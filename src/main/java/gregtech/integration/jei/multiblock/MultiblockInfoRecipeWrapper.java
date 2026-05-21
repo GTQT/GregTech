@@ -128,9 +128,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     // Candidate cycling state for 3D in-place rendering
     private int candidateCycleIndex = 0;
     private long lastCandidateCycleTime = 0L;
-    // Channel slider state
-    private int draggingChannelIdx = -1;
-    private int hoveredChannelIdx = -1;
+
 
     @SuppressWarnings("NewExpressionSideOnly")
     public MultiblockInfoRecipeWrapper(@NotNull MultiblockControllerBase controller) {
@@ -767,7 +765,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     float ratio = (float) (mouseX - sliderX) / sliderWidth;
                     int newValue = Math.round(ratio * max);
                     setChannelValue(i, newValue);
-                    draggingChannelIdx = i;
                     return true;
                 }
             }

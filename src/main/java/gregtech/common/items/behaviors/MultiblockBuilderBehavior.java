@@ -83,12 +83,14 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
                             new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
-                    for (List<ItemStack> stack : error.getCandidates())
-                        player.sendMessage(new TextComponentString("问题模块：" + stack.get(0).getDisplayName()));
-                    player.sendMessage(new TextComponentString("问题坐标：" + error.getPosString(error.getPos())));
-                    player.sendMessage(new TextComponentString("————————————————————————————"));
-                    player.sendMessage(new TextComponentString("整改建议："));
-                    player.sendMessage(new TextComponentString(error.getErrorInfo()));
+                    for (List<ItemStack> stack : error.getCandidates()) {
+                        player.sendMessage(new TextComponentString(
+                                TextFormatting.RED + "  " + stack.get(0).getDisplayName()));
+                    }
+                    player.sendMessage(new TextComponentString(
+                            TextFormatting.GRAY + "  @ " + error.getPosString(error.getPos())));
+                    player.sendMessage(new TextComponentString(
+                            TextFormatting.YELLOW + "  " + error.getErrorInfo()));
                     player.sendMessage(new TextComponentString("============================"));
                     return EnumActionResult.SUCCESS;
                 }
