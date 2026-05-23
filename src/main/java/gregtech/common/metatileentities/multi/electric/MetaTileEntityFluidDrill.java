@@ -95,7 +95,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         TEMPLATES.put(key, TemplatePool.getInstance().register(key, templateSupplier));
     }
 
-    public static BlockPatternTemplate buildTemplate(FluidDrillType type) {
+    public static BlockPatternTemplate buildTemplate(IFluidDrillType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")

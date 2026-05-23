@@ -18,49 +18,38 @@ public enum LargeMinerType implements ILargeMinerType {
 
     BASIC("ev", GTValues.EV, 16, 3, 4,
             Materials.Steel,
-            BlockMetalCasing.MetalCasingType.STEEL_SOLID,
+            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID),
             Textures.SOLID_STEEL_CASING,
             Textures.LARGE_MINER_OVERLAY_BASIC,
             8),
 
     NORMAL("iv", GTValues.IV, 4, 5, 5,
             Materials.Titanium,
-            BlockMetalCasing.MetalCasingType.TITANIUM_STABLE,
+            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TITANIUM_STABLE),
             Textures.STABLE_TITANIUM_CASING,
             Textures.LARGE_MINER_OVERLAY_ADVANCED,
             16),
 
     ADVANCED("luv", GTValues.LuV, 1, 7, 6,
             Materials.TungstenSteel,
-            BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST,
+            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST),
             Textures.ROBUST_TUNGSTENSTEEL_CASING,
             Textures.LARGE_MINER_OVERLAY_ADVANCED_2,
             32);
 
-    // Registration Data
     private final String name;
-
-    // Tier Data
     private final int tier;
-
-    // Miner Logic Data
     private final int speed;
     private final int maximumChunkDiameter;
     private final int fortune;
-
-    // Structure Data
     private final Material frameMaterial;
-    private final BlockMetalCasing.MetalCasingType casingType;
-
-    // Rendering Data
+    private final IBlockState casingType;
     private final ICubeRenderer casingRenderer;
     private final ICubeRenderer frontOverlay;
-
-    // Operational Data
     private final int drillingFluidConsumePerTick;
 
     LargeMinerType(String name, int tier, int speed, int maximumChunkDiameter, int fortune,
-                   Material frameMaterial, BlockMetalCasing.MetalCasingType casingType,
+                   Material frameMaterial, IBlockState casingType,
                    ICubeRenderer casingRenderer, ICubeRenderer frontOverlay,
                    int drillingFluidConsumePerTick) {
         this.name = name;
@@ -106,13 +95,8 @@ public enum LargeMinerType implements ILargeMinerType {
     }
 
     @Override
-    public BlockMetalCasing.MetalCasingType getCasingType() {
-        return casingType;
-    }
-
-    @Override
     public IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(casingType);
+        return casingType;
     }
 
     @Override

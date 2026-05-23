@@ -2,7 +2,6 @@ package gregtech.common.metatileentities.multi.electric;
 
 import gregtech.api.unification.material.Material;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.common.blocks.BlockMetalCasing;
 
 import net.minecraft.block.state.IBlockState;
 
@@ -15,8 +14,6 @@ public interface IFluidDrillType {
     String getName();
 
     int getTier();
-
-    BlockMetalCasing.MetalCasingType getCasingType();
 
     IBlockState getCasingState();
 

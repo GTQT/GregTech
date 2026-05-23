@@ -162,6 +162,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .where('A', states(getIntakeState(isExtreme)).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
                 .where('Y', selfPredicate(MetaTileEntityLargeCombustionEngine.class))
                 .casing('C', CasingDefinition.simple(getCasingState(isExtreme)))
+                .preset(HatchPresets.STANDARD_FLUID_IO)
                 .preset(HatchPresets.MUFFLER_IO)
                 .buildTemplate();
     }

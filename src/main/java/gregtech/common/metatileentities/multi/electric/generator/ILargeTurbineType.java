@@ -2,7 +2,6 @@ package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.recipes.RecipeMap;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.common.blocks.BlockTurbineCasing.TurbineCasingType;
 
 import net.minecraft.block.state.IBlockState;
 
@@ -17,12 +16,6 @@ public interface ILargeTurbineType {
     RecipeMap<?> getRecipeMap();
 
     int getTier();
-
-    @NotNull
-    TurbineCasingType getCasingType();
-
-    @NotNull
-    TurbineCasingType getGearboxType();
 
     @NotNull
     IBlockState getCasingState();

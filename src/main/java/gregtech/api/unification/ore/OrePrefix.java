@@ -417,11 +417,11 @@ public class OrePrefix {
         public static final Predicate<Material> hasRotorProperty = mat -> mat.hasProperty(PropertyKey.ROTOR);
     }
 
-    private static void setRadiationDamageFunction(OrePrefix prefix, Function<Double, Double> function) {
+    public static void setRadiationDamageFunction(OrePrefix prefix, Function<Double, Double> function) {
         prefix.radiationDamageFunction = function;
     }
 
-    private void setHeatDamageFunction(OrePrefix prefix, Function<Integer, Float> function) {
+    public void setHeatDamageFunction(OrePrefix prefix, Function<Integer, Float> function) {
         prefix.heatDamageFunction = function;
     }
 
