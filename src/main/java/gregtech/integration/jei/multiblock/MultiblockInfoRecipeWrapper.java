@@ -7,10 +7,13 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
@@ -1046,7 +1049,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
         if (controllerBase != null) {
-            gregtech.api.pattern.MultiblockState state = controllerBase.getMultiblockState();
+            MultiblockState state = controllerBase.getMultiblockState();
             if (state == null) {
                 controllerBase.reinitializeStructurePattern();
                 state = controllerBase.getMultiblockState();
@@ -1054,6 +1057,44 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (state != null) {
                 state.cache.forEach((pos, blockInfo) -> predicateMap
                         .put(BlockPos.fromLong(pos), (TraceabilityPredicate) blockInfo.getInfo()));
+            }
+        }
+
+        // Fallback: build predicateMap directly from the pattern template.
+        // The cache-based approach only works when the multiblock is currently formed in-world.
+        // For JEI preview, the controller is typically NOT formed, so the cache is empty.
+        // This fallback ensures right-click cycling works for all structure positions.
+        if (predicateMap.isEmpty() && controllerBase != null) {
+            MultiblockState state = controllerBase.getMultiblockState();
+            if (state != null) {
+                BlockPatternTemplate tmpl = state.getTemplate();
+                TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
+                RelativeDirection[] sDir = tmpl.getStructureDir();
+                int[] centerOff = tmpl.getCenterOffset();
+
+                // controllerBlockPos is the controller's position in the TrackedDummyWorld
+                // (blockMap coordinates). In getPreview coordinates the controller sits at
+                // (centerOff[0], centerOff[1], centerOff[3]). The difference is the offset
+                // that converts preview-space positions to blockMap-space positions.
+                BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
+                BlockPos offset = cPos.subtract(new BlockPos(centerOff[0], centerOff[1], centerOff[3]));
+
+                for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
+                    for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {
+                        for (int ix = 0; ix < tmpl.getPalmLength(); ix++) {
+                            TraceabilityPredicate pred = blockMatches[iz][iy][ix];
+                            if (pred == null || pred == TraceabilityPredicate.ANY) continue;
+
+                            // Mirror the same coordinate transform used by getPreview()
+                            BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
+                                    ix, iy, iz, EnumFacing.NORTH, EnumFacing.UP, false, sDir);
+                            BlockPos blockMapPos = previewPos.add(offset);
+                            if (blockMap.containsKey(blockMapPos)) {
+                                predicateMap.put(blockMapPos, pred);
+                            }
+                        }
+                    }
+                }
             }
         }
 
