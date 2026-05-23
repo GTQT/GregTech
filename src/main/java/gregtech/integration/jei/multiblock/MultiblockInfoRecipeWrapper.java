@@ -781,9 +781,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (getCurrentRenderer().getLastTraceResult() == null) {
                 if (this.selected != null) {
                     this.selected = null;
-                    for (int i = 0; i < predicates.size(); i++) {
-                        recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
-                    }
+                    // Clear predicates without directly accessing item stacks
+                    // JEI will handle clearing the slots when they are re-initialized
                     predicates.clear();
                     this.father = null;
                     this.candidateCycleIndex = 0;
@@ -794,9 +793,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             }
             BlockPos selected = getCurrentRenderer().getLastTraceResult().getBlockPos();
             if (!Objects.equals(this.selected, selected)) {
-                for (int i = 0; i < predicates.size(); i++) {
-                    recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
-                }
+                // Clear old predicates without accessing item stacks directly
+                // The item stacks will be properly cleared in setItemStackGroup when new slots are initialized
                 predicates.clear();
                 this.father = null;
                 this.selected = selected;
@@ -809,7 +807,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     predicates.addAll(predicate.limited);
                     predicates.removeIf(p -> p.candidates == null);
                     this.father = predicate;
-                    setItemStackGroup();
+                    // Only call setItemStackGroup if we have valid predicates
+                    if (!predicates.isEmpty()) {
+                        setItemStackGroup();
+                    }
                 }
                 // Mark FBO dirty so scene re-renders with candidate block cycling
                 if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
@@ -822,9 +823,21 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void setItemStackGroup() {
+        if (predicates.isEmpty())
+            return;
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         IDrawable border = recipeLayout.getRecipeCategory().getBackground();
         int recipeWidth = border.getWidth();
+        
+        // First, clear all old candidate slots (MAX_PARTS to MAX_PARTS + MAX_CANDIDATES)
+        for (int i = 0; i < MAX_CANDIDATES; i++) {
+            try {
+                itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+            } catch (Exception e) {
+                // Ignore if slot is not initialized yet
+            }
+        }
+        
         // Place candidate slots on the right side (no overlap with left parts panel)
         int count = Math.min(predicates.size(), MAX_CANDIDATES);
         for (int i = 0; i < count; i++) {
@@ -833,12 +846,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
             int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
             itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
-            itemStackGroup.set(i + MAX_PARTS, predicates.get(i).getCandidates());
+            // Safety check: ensure predicate has candidates before setting
+            TraceabilityPredicate.SimplePredicate pred = predicates.get(i);
+            if (pred != null && pred.getCandidates() != null) {
+                itemStackGroup.set(i + MAX_PARTS, pred.getCandidates());
+            } else {
+                itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+            }
         }
 
+        // Add tooltip callback with safety checks
         itemStackGroup.addTooltipCallback((slotIndex, input, itemStack, tooltip) -> {
             if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + predicates.size()) {
-                tooltip.addAll(predicates.get(slotIndex - MAX_PARTS).getToolTips(father));
+                int predIndex = slotIndex - MAX_PARTS;
+                if (predIndex >= 0 && predIndex < predicates.size()) {
+                    TraceabilityPredicate.SimplePredicate pred = predicates.get(predIndex);
+                    if (pred != null && father != null) {
+                        List<String> tips = pred.getToolTips(father);
+                        if (tips != null) {
+                            tooltip.addAll(tips);
+                        }
+                    }
+                }
             }
         });
     }

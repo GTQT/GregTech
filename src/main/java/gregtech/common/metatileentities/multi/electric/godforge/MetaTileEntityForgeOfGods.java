@@ -1060,18 +1060,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         GodforgeMath.determineConversionMilestone(data);
         GodforgeMath.determineCatalystMilestone(data);
         GodforgeMath.determineCompositionMilestone(data);
-        // DEBUG: Log milestone percentages after calculation
-        GTLog.logger.info("[FOG Milestone DEBUG] After calculation - " +
-            "charge={}, invCharge={}, conversion={}, invConversion={}, " +
-            "catalyst={}, invCatalyst={}, composition={}, invComposition={}, " +
-            "levels=[{},{},{},{}]",
-            data.getPowerMilestonePercentage(), data.getInvertedPowerMilestonePercentage(),
-            data.getRecipeMilestonePercentage(), data.getInvertedRecipeMilestonePercentage(),
-            data.getFuelMilestonePercentage(), data.getInvertedFuelMilestonePercentage(),
-            data.getStructureMilestonePercentage(), data.getInvertedStructureMilestonePercentage(),
-            data.getMilestoneProgress(0), data.getMilestoneProgress(1),
-            data.getMilestoneProgress(2), data.getMilestoneProgress(3));
-    }
+   }
 
     private void pushMilestoneProgress() {
         if (syncHypervisor == null) return;
