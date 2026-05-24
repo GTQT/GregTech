@@ -17,7 +17,6 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -333,7 +332,6 @@ public class DeclarativePatternBuilder {
             }
             return true;
         }, () -> casings.stream()
-                .sorted(Comparator.comparingInt(ICasing::getTier))
                 .map(c -> new BlockInfo(c.getBlockState(), null))
                 .toArray(BlockInfo[]::new))
                 .addTooltips("gregtech.multiblock.pattern.error.casing_tier_mismatch");

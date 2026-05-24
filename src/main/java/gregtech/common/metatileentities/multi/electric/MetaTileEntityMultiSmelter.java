@@ -124,10 +124,9 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         ICasing matchedCoil = GTStructureChannels.HEATING_COIL.getMatchedCasing(context);
-        IHeatingCoilBlockStats coilType;
-        if (matchedCoil instanceof GTCasingGroups.HeatingCoilCasing) {
-            coilType = ((GTCasingGroups.HeatingCoilCasing) matchedCoil).getCoilStats();
-        } else {
+        IHeatingCoilBlockStats coilType = matchedCoil != null ?
+                matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
+        if (coilType == null) {
             coilType = CoilType.CUPRONICKEL;
         }
         this.heatingCoilLevel = coilType.getLevel();

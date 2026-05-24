@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
+import gregtech.api.block.IHeatingCoilBlockStats;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -105,8 +106,10 @@ public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         ICasing matchedCoil = GTStructureChannels.HEATING_COIL.getMatchedCasing(context);
-        if (matchedCoil instanceof GTCasingGroups.HeatingCoilCasing) {
-            this.coilTier = ((GTCasingGroups.HeatingCoilCasing) matchedCoil).getCoilStats().getTier();
+        IHeatingCoilBlockStats stats = matchedCoil != null ?
+                matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
+        if (stats != null) {
+            this.coilTier = stats.getTier();
         } else {
             this.coilTier = 0;
         }

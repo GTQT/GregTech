@@ -99,10 +99,9 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
         super.formStructure(context);
         // Retrieve coil stats from the channel's matched ICasing
         ICasing matchedCoil = GTStructureChannels.HEATING_COIL.getMatchedCasing(context);
-        IHeatingCoilBlockStats type;
-        if (matchedCoil instanceof GTCasingGroups.HeatingCoilCasing) {
-            type = ((GTCasingGroups.HeatingCoilCasing) matchedCoil).getCoilStats();
-        } else {
+        IHeatingCoilBlockStats type = matchedCoil != null ?
+                matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
+        if (type == null) {
             type = CoilType.CUPRONICKEL;
         }
         this.blastFurnaceTemperature = type.getCoilTemperature();

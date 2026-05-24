@@ -747,6 +747,7 @@ gregtech.structure_channel.structure_piece=Structure Piece
 # Casing Groups
 gregtech.casing_group.heating_coils=Heating Coils
 gregtech.casing_group.machine_casings=Machine Casings
+gregtech.casing_group.borosilicate_glasses=Borosilicate Glass
 
 item.glass.lens=Glass Lens (White)
 metaitem.glass_lens.orange.name=Glass Lens (Orange)
