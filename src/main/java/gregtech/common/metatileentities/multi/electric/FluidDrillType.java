@@ -17,19 +17,19 @@ import net.minecraft.block.state.IBlockState;
 public enum FluidDrillType implements IFluidDrillType {
 
     BASIC("mv", GTValues.MV,
-            BlockMetalCasing.MetalCasingType.STEEL_SOLID,
+            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID),
             Materials.Steel,
             Textures.SOLID_STEEL_CASING,
             1, 1),
 
     NORMAL("hv", GTValues.HV,
-            BlockMetalCasing.MetalCasingType.TITANIUM_STABLE,
+            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TITANIUM_STABLE),
             Materials.Titanium,
             Textures.STABLE_TITANIUM_CASING,
             16, 2),
 
     ADVANCED("ev", GTValues.EV,
-            BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST,
+            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST),
             Materials.TungstenSteel,
             Textures.ROBUST_TUNGSTENSTEEL_CASING,
             64, 8);
@@ -41,7 +41,7 @@ public enum FluidDrillType implements IFluidDrillType {
     private final int tier;
 
     // Structure Data
-    private final BlockMetalCasing.MetalCasingType casingType;
+    private final IBlockState casingType;
     private final Material frameMaterial;
 
     // Rendering Data
@@ -52,7 +52,7 @@ public enum FluidDrillType implements IFluidDrillType {
     private final int depletionChance;
 
     FluidDrillType(String name, int tier,
-                   BlockMetalCasing.MetalCasingType casingType,
+                   IBlockState casingType,
                    Material frameMaterial,
                    ICubeRenderer casingRenderer,
                    int rigMultiplier, int depletionChance) {
@@ -76,13 +76,8 @@ public enum FluidDrillType implements IFluidDrillType {
     }
 
     @Override
-    public BlockMetalCasing.MetalCasingType getCasingType() {
-        return casingType;
-    }
-
-    @Override
     public IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(casingType);
+        return casingType;
     }
 
     @Override
