@@ -40,8 +40,6 @@ public final class StructureChannelRegistry {
         for (GTStructureChannels channel : GTStructureChannels.values()) {
             register(channel);
         }
-        // Legacy alias: NO_HATCH was previously named "gt_no_hatch"
-        registerAlias("gt_no_hatch", GTStructureChannels.NO_HATCH);
     }
 
     /**

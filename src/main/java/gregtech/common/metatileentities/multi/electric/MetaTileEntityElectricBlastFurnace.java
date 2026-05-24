@@ -18,7 +18,7 @@ import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
-import gregtech.api.pattern.casing.GTStructureChannels;
+
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.recipes.Recipe;
@@ -66,8 +66,8 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                             .casing('X', CasingDefinition.simple(
                                     MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
                             .preset(HatchPresets.ELECTRIC_STANDARD)
-                            .tieredCasing('C', GTCasingGroups.heatingCoils())
-                            .withChannel(GTStructureChannels.HEATING_COIL)
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
                             .buildTemplate()
             );
 
@@ -98,7 +98,7 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         // Retrieve coil stats from the channel's matched ICasing
-        ICasing matchedCoil = GTStructureChannels.HEATING_COIL.getMatchedCasing(context);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
         IHeatingCoilBlockStats type = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (type == null) {

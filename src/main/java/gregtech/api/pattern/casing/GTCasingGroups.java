@@ -7,69 +7,63 @@ import gregtech.api.util.GlassTier;
 
 /**
  * Centralized registration of commonly-used ICasingGroup instances.
- * These groups are lazily initialized from runtime registries (e.g. {@link GregTechAPI#HEATING_COILS}).
+ * Each registration auto-creates a {@link StructureChannel} with the same name as the group.
  *
  * <p>Usage:
  * <pre>{@code
  * DeclarativePatternBuilder.start()
- *     .tieredCasing('C', GTCasingGroups.heatingCoils())
- *         .withChannel(GTStructureChannels.HEATING_COIL)
+ *     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
  *     .build();
- * }</pre>
  *
- * <p>In formStructure, retrieve the matched casing:
- * <pre>{@code
- * ICasing matched = GTStructureChannels.HEATING_COIL.getMatchedCasing(context);
+ * // In formStructure:
+ * ICasing matched = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
  * IHeatingCoilBlockStats stats = matched.getPayloadAs(IHeatingCoilBlockStats.class);
  * }</pre>
  */
 public final class GTCasingGroups {
 
-    private static ICasingGroup heatingCoilGroup;
-    private static ICasingGroup machineCasingGroup;
-    private static ICasingGroup borosilicateGlassGroup;
+    private static CasingRegistration heatingCoils;
+    private static CasingRegistration machineCasings;
+    private static CasingRegistration borosilicateGlasses;
 
     private GTCasingGroups() {}
 
-    public static ICasingGroup heatingCoils() {
-        if (heatingCoilGroup == null) {
-            heatingCoilGroup = CasingDefinition.fromMap("heating_coils", true,
-                    GTStructureChannels.HEATING_COIL,
+    public static CasingRegistration heatingCoils() {
+        if (heatingCoils == null) {
+            heatingCoils = CasingDefinition.fromMap("heating_coils", true,
                     GregTechAPI.HEATING_COILS,
                     IHeatingCoilBlockStats::getTier,
                     IHeatingCoilBlockStats::getName);
         }
-        return heatingCoilGroup;
+        return heatingCoils;
     }
 
-    public static ICasingGroup machineCasings() {
-        if (machineCasingGroup == null) {
-            machineCasingGroup = CasingDefinition.fromIterable("machine_casings", true,
-                    GTStructureChannels.MACHINE_CASING,
+    public static CasingRegistration machineCasings() {
+        if (machineCasings == null) {
+            machineCasings = CasingDefinition.fromIterable("machine_casings", true,
                     CasingTier.getCasingList(),
                     CasingTier.CasingTierEntry::getState,
                     CasingTier.CasingTierEntry::getTier,
                     CasingTier.CasingTierEntry::getTranslationKey,
                     CasingTier.CasingTierEntry::getPayload);
         }
-        return machineCasingGroup;
+        return machineCasings;
     }
 
-    public static ICasingGroup borosilicateGlasses() {
-        if (borosilicateGlassGroup == null) {
-            borosilicateGlassGroup = CasingDefinition.fromIterable("borosilicate_glasses", true,
-                    GTStructureChannels.BOROSILICATE_GLASS,
+    public static CasingRegistration borosilicateGlasses() {
+        if (borosilicateGlasses == null) {
+            borosilicateGlasses = CasingDefinition.fromIterable("borosilicate_glasses", true,
                     GlassTier.getGlassList(),
                     GlassTier.GlassTierEntry::getState,
                     GlassTier.GlassTierEntry::getTier,
                     GlassTier.GlassTierEntry::getTranslationKey);
         }
-        return borosilicateGlassGroup;
+        return borosilicateGlasses;
     }
 
     public static void invalidateCache() {
-        heatingCoilGroup = null;
-        machineCasingGroup = null;
-        borosilicateGlassGroup = null;
+        heatingCoils = null;
+        machineCasings = null;
+        borosilicateGlasses = null;
     }
 }

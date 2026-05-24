@@ -28,7 +28,7 @@ import java.util.function.Function;
  *
  * // Tiered casing group from a registry map
  * ICasingGroup heatingCoils = CasingDefinition.fromMap("heating_coils", true,
- *     GTStructureChannels.HEATING_COIL,
+ *     GTCasingGroups.heatingCoils().channel(),
  *     GregTechAPI.HEATING_COILS,
  *     IHeatingCoilBlockStats::getTier,
  *     IHeatingCoilBlockStats::getName);
@@ -176,9 +176,8 @@ public final class CasingDefinition {
     // --- High-level factory methods ---
 
     /**
-     * Create and register a tiered casing group from a {@link Map} of block states to value objects.
-     * This is the easiest way to create a group from an existing registry like
-     * {@link gregtech.api.GregTechAPI#HEATING_COILS}.
+     * Create and register a tiered casing group from a {@link Map} of block states to value objects,
+     * with an explicit structure channel.
      *
      * <p>The map values are stored as payloads in the resulting {@link ICasing} instances,
      * and can be retrieved via {@link ICasing#getPayload()} or {@link ICasing#getPayloadAs(Class)}.
@@ -192,13 +191,13 @@ public final class CasingDefinition {
      * @param map             map from block state to value object
      * @param tierExtractor   function to extract tier from value
      * @param nameExtractor   function to extract translation key from value
-     * @return the registered casing group
+     * @return the registered casing group and channel
      */
-    public static <V> ICasingGroup fromMap(@NotNull String groupId, boolean requiresUniform,
-                                           @NotNull StructureChannel channel,
-                                           @NotNull Map<IBlockState, V> map,
-                                           @NotNull Function<V, Integer> tierExtractor,
-                                           @NotNull Function<V, String> nameExtractor) {
+    public static <V> CasingRegistration fromMap(@NotNull String groupId, boolean requiresUniform,
+                                                  @NotNull StructureChannel channel,
+                                                  @NotNull Map<IBlockState, V> map,
+                                                  @NotNull Function<V, Integer> tierExtractor,
+                                                  @NotNull Function<V, String> nameExtractor) {
         List<ICasing> casings = new ArrayList<>();
         for (Map.Entry<IBlockState, V> entry : map.entrySet()) {
             V value = entry.getValue();
@@ -210,12 +209,35 @@ public final class CasingDefinition {
         }
         ICasingGroup group = registerGroup(groupId, null, requiresUniform, channel.getName(), casings);
         StructureChannelRegistry.registerIndicatorsFromGroup(group, channel);
-        return group;
+        return new CasingRegistration(group, channel);
+    }
+
+    /**
+     * Create and register a tiered casing group from a {@link Map} of block states to value objects,
+     * auto-creating a {@link SimpleStructureChannel} with the same name as the group.
+     *
+     * <p>This is the simplest way to register a new casing group — no need to create
+     * a {@link StructureChannel} in advance. The channel name will equal the groupId,
+     * and the tooltip key will be auto-derived as {@code "gregtech.structure_channel." + groupId}.
+     *
+     * @param groupId         unique group identifier (also used as channel name)
+     * @param requiresUniform true if all casings must be the same tier
+     * @param map             map from block state to value object
+     * @param tierExtractor   function to extract tier from value
+     * @param nameExtractor   function to extract translation key from value
+     * @return the registration result containing the group and auto-created channel
+     */
+    public static <V> CasingRegistration fromMap(@NotNull String groupId, boolean requiresUniform,
+                                                  @NotNull Map<IBlockState, V> map,
+                                                  @NotNull Function<V, Integer> tierExtractor,
+                                                  @NotNull Function<V, String> nameExtractor) {
+        StructureChannel channel = getOrCreateChannel(groupId);
+        return fromMap(groupId, requiresUniform, channel, map, tierExtractor, nameExtractor);
     }
 
     /**
      * Create and register a tiered casing group from an iterable of items, extracting
-     * block state, tier, name, and optional payload via functions.
+     * block state, tier, name, and optional payload via functions, with an explicit channel.
      *
      * <p>Each item's payload (if provided) is stored in the resulting {@link ICasing}
      * and can be retrieved via {@link ICasing#getPayload()} or {@link ICasing#getPayloadAs(Class)}.
@@ -224,22 +246,22 @@ public final class CasingDefinition {
      * and auto-derives the translation key as {@code "gregtech.casing_group." + groupId}.
      *
      * @param groupId          unique group identifier
-     * @param requiresUniform  true if all casings must be the same tier
-     * @param channel          the structure channel (indicator items are auto-registered)
-     * @param items            the items to create casings from
-     * @param stateExtractor   function to extract block state from an item
-     * @param tierExtractor    function to extract tier from an item
-     * @param nameExtractor    function to extract translation key from an item
-     * @param payloadExtractor function to extract payload from an item (may return null)
-     * @return the registered casing group
+     * @param requiresUniform   true if all casings must be the same tier
+     * @param channel           the structure channel (indicator items are auto-registered)
+     * @param items             the items to create casings from
+     * @param stateExtractor    function to extract block state from an item
+     * @param tierExtractor     function to extract tier from an item
+     * @param nameExtractor     function to extract translation key from an item
+     * @param payloadExtractor  function to extract payload from an item (may return null)
+     * @return the registered casing group and channel
      */
-    public static <V> ICasingGroup fromIterable(@NotNull String groupId, boolean requiresUniform,
-                                                  @NotNull StructureChannel channel,
-                                                  @NotNull Iterable<V> items,
-                                                  @NotNull Function<V, IBlockState> stateExtractor,
-                                                  @NotNull Function<V, Integer> tierExtractor,
-                                                  @NotNull Function<V, String> nameExtractor,
-                                                  @NotNull Function<V, Object> payloadExtractor) {
+    public static <V> CasingRegistration fromIterable(@NotNull String groupId, boolean requiresUniform,
+                                                       @NotNull StructureChannel channel,
+                                                       @NotNull Iterable<V> items,
+                                                       @NotNull Function<V, IBlockState> stateExtractor,
+                                                       @NotNull Function<V, Integer> tierExtractor,
+                                                       @NotNull Function<V, String> nameExtractor,
+                                                       @NotNull Function<V, Object> payloadExtractor) {
         List<ICasing> casings = new ArrayList<>();
         for (V item : items) {
             Object payload = payloadExtractor.apply(item);
@@ -251,36 +273,58 @@ public final class CasingDefinition {
         }
         ICasingGroup group = registerGroup(groupId, null, requiresUniform, channel.getName(), casings);
         StructureChannelRegistry.registerIndicatorsFromGroup(group, channel);
-        return group;
+        return new CasingRegistration(group, channel);
     }
 
     /**
-     * Create and register a tiered casing group from an iterable of items (without payload).
-     * Equivalent to {@link #fromIterable} with a null payload extractor.
+     * Create and register a tiered casing group from an iterable of items with payload,
+     * auto-creating a {@link SimpleStructureChannel}.
      *
      * @see #fromIterable(String, boolean, StructureChannel, Iterable, Function, Function, Function, Function)
      */
-    public static <V> ICasingGroup fromIterable(@NotNull String groupId, boolean requiresUniform,
-                                                  @NotNull StructureChannel channel,
-                                                  @NotNull Iterable<V> items,
-                                                  @NotNull Function<V, IBlockState> stateExtractor,
-                                                  @NotNull Function<V, Integer> tierExtractor,
-                                                  @NotNull Function<V, String> nameExtractor) {
-        List<ICasing> casings = new ArrayList<>();
-        for (V item : items) {
-            casings.add(new TieredCasing(
-                    stateExtractor.apply(item),
-                    nameExtractor.apply(item),
-                    tierExtractor.apply(item),
-                    null));
-        }
-        ICasingGroup group = registerGroup(groupId, null, requiresUniform, channel.getName(), casings);
-        StructureChannelRegistry.registerIndicatorsFromGroup(group, channel);
-        return group;
+    public static <V> CasingRegistration fromIterable(@NotNull String groupId, boolean requiresUniform,
+                                                       @NotNull Iterable<V> items,
+                                                       @NotNull Function<V, IBlockState> stateExtractor,
+                                                       @NotNull Function<V, Integer> tierExtractor,
+@NotNull Function<V, String> nameExtractor,
+                                                        @NotNull Function<V, Object> payloadExtractor) {
+        StructureChannel channel = getOrCreateChannel(groupId);
+        return fromIterable(groupId, requiresUniform, channel, items, stateExtractor, tierExtractor, nameExtractor, payloadExtractor);
     }
 
     /**
-     * Create and register a tiered casing group from an iterable of pre-constructed {@link ICasing} instances.
+     * Create and register a tiered casing group from an iterable of items (without payload),
+     * with an explicit channel.
+     *
+     * @see #fromIterable(String, boolean, StructureChannel, Iterable, Function, Function, Function, Function)
+     */
+    public static <V> CasingRegistration fromIterable(@NotNull String groupId, boolean requiresUniform,
+                                                       @NotNull StructureChannel channel,
+                                                       @NotNull Iterable<V> items,
+                                                       @NotNull Function<V, IBlockState> stateExtractor,
+                                                       @NotNull Function<V, Integer> tierExtractor,
+                                                       @NotNull Function<V, String> nameExtractor) {
+        return fromIterable(groupId, requiresUniform, channel, items, stateExtractor, tierExtractor, nameExtractor, item -> null);
+    }
+
+    /**
+     * Create and register a tiered casing group from an iterable of items (without payload),
+     * auto-creating a {@link SimpleStructureChannel}.
+     *
+     * @see #fromIterable(String, boolean, StructureChannel, Iterable, Function, Function, Function, Function)
+     */
+    public static <V> CasingRegistration fromIterable(@NotNull String groupId, boolean requiresUniform,
+                                                       @NotNull Iterable<V> items,
+                                                       @NotNull Function<V, IBlockState> stateExtractor,
+@NotNull Function<V, Integer> tierExtractor,
+                                                        @NotNull Function<V, String> nameExtractor) {
+        StructureChannel channel = getOrCreateChannel(groupId);
+        return fromIterable(groupId, requiresUniform, channel, items, stateExtractor, tierExtractor, nameExtractor, item -> null);
+    }
+
+    /**
+     * Create and register a tiered casing group from an iterable of pre-constructed {@link ICasing} instances,
+     * with an explicit channel.
      *
      * <p>Automatically sorts casings by tier, registers indicator items for the channel,
      * and auto-derives the translation key as {@code "gregtech.casing_group." + groupId}.
@@ -289,18 +333,30 @@ public final class CasingDefinition {
      * @param requiresUniform true if all casings must be the same tier
      * @param channel         the structure channel (indicator items are auto-registered)
      * @param casings          the casings in this group (will be sorted by tier)
-     * @return the registered casing group
+     * @return the registered casing group and channel
      */
-    public static ICasingGroup fromEntries(@NotNull String groupId, boolean requiresUniform,
-                                            @NotNull StructureChannel channel,
-                                            @NotNull Iterable<? extends ICasing> casings) {
+    public static CasingRegistration fromEntries(@NotNull String groupId, boolean requiresUniform,
+                                                  @NotNull StructureChannel channel,
+                                                  @NotNull Iterable<? extends ICasing> casings) {
         List<ICasing> list = new ArrayList<>();
         for (ICasing casing : casings) {
             list.add(casing);
         }
         ICasingGroup group = registerGroup(groupId, null, requiresUniform, channel.getName(), list);
         StructureChannelRegistry.registerIndicatorsFromGroup(group, channel);
-        return group;
+        return new CasingRegistration(group, channel);
+    }
+
+    /**
+     * Create and register a tiered casing group from an iterable of pre-constructed {@link ICasing} instances,
+     * auto-creating a {@link SimpleStructureChannel}.
+     *
+     * @see #fromEntries(String, boolean, StructureChannel, Iterable)
+     */
+    public static CasingRegistration fromEntries(@NotNull String groupId, boolean requiresUniform,
+                                                  @NotNull Iterable<? extends ICasing> casings) {
+        StructureChannel channel = getOrCreateChannel(groupId);
+        return fromEntries(groupId, requiresUniform, channel, casings);
     }
 
     /**
@@ -309,6 +365,22 @@ public final class CasingDefinition {
      */
     public static ICasingGroup getGroup(String groupId) {
         return GROUPS.get(groupId);
+    }
+
+    /**
+     * Get or create a {@link SimpleStructureChannel} for the given name.
+     * If a channel with this name is already registered, returns it.
+     * Otherwise, creates a new one and registers it.
+     * This prevents duplicate registration errors when casing groups are rebuilt after cache invalidation.
+     */
+    private static StructureChannel getOrCreateChannel(String name) {
+        StructureChannel existing = StructureChannelRegistry.getByName(name);
+        if (existing != null) {
+            return existing;
+        }
+        SimpleStructureChannel channel = new SimpleStructureChannel(name);
+        StructureChannelRegistry.register(channel);
+        return channel;
     }
 
     /**

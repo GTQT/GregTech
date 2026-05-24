@@ -280,9 +280,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return TraceabilityPredicate.ANY;
     }
 
-    /**
-     * @deprecated Use {@code DeclarativePatternBuilder.tieredCasing('C', GTCasingGroups.heatingCoils()).withChannel(GTStructureChannels.HEATING_COIL)} instead.
-     */
     @Deprecated
     public static TraceabilityPredicate heatingCoils() {
         return TraceabilityPredicate.HEATING_COILS.get();
