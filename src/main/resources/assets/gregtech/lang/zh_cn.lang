@@ -743,9 +743,9 @@ gregtech.structure_channel.no_hatch=不放置仓室
 gregtech.structure_channel.structure_piece=结构片段
 
 # Casing Groups
-gregtech.casing_group.heating_coils=加热线圈
-gregtech.casing_group.machine_casings=机器外壳
-gregtech.casing_group.borosilicate_glasses=硼玻璃
+gregtech.casing_group.heating_coil=加热线圈
+gregtech.casing_group.machine_casing=机器外壳
+gregtech.casing_group.borosilicate_glass=硼玻璃
 
 item.glass.lens=玻璃透镜（白色）
 metaitem.glass_lens.orange.name=玻璃透镜（橙色）

@@ -30,7 +30,7 @@ public final class GTCasingGroups {
 
     public static CasingRegistration heatingCoils() {
         if (heatingCoils == null) {
-            heatingCoils = CasingDefinition.fromMap("heating_coils", true,
+            heatingCoils = CasingDefinition.fromMap("heating_coil", true,
                     GregTechAPI.HEATING_COILS,
                     IHeatingCoilBlockStats::getTier,
                     IHeatingCoilBlockStats::getName);
@@ -40,7 +40,7 @@ public final class GTCasingGroups {
 
     public static CasingRegistration machineCasings() {
         if (machineCasings == null) {
-            machineCasings = CasingDefinition.fromIterable("machine_casings", true,
+            machineCasings = CasingDefinition.fromIterable("machine_casing", true,
                     CasingTier.getCasingList(),
                     CasingTier.CasingTierEntry::getState,
                     CasingTier.CasingTierEntry::getTier,
@@ -52,7 +52,7 @@ public final class GTCasingGroups {
 
     public static CasingRegistration borosilicateGlasses() {
         if (borosilicateGlasses == null) {
-            borosilicateGlasses = CasingDefinition.fromIterable("borosilicate_glasses", true,
+            borosilicateGlasses = CasingDefinition.fromIterable("borosilicate_glass", true,
                     GlassTier.getGlassList(),
                     GlassTier.GlassTierEntry::getState,
                     GlassTier.GlassTierEntry::getTier,
