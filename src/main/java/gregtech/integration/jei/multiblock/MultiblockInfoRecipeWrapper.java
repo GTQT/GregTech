@@ -7,10 +7,13 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
@@ -781,9 +784,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (getCurrentRenderer().getLastTraceResult() == null) {
                 if (this.selected != null) {
                     this.selected = null;
-                    for (int i = 0; i < predicates.size(); i++) {
-                        recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
-                    }
+                    // Clear predicates without directly accessing item stacks
+                    // JEI will handle clearing the slots when they are re-initialized
                     predicates.clear();
                     this.father = null;
                     this.candidateCycleIndex = 0;
@@ -794,9 +796,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             }
             BlockPos selected = getCurrentRenderer().getLastTraceResult().getBlockPos();
             if (!Objects.equals(this.selected, selected)) {
-                for (int i = 0; i < predicates.size(); i++) {
-                    recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
-                }
+                // Clear old predicates without accessing item stacks directly
+                // The item stacks will be properly cleared in setItemStackGroup when new slots are initialized
                 predicates.clear();
                 this.father = null;
                 this.selected = selected;
@@ -809,7 +810,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     predicates.addAll(predicate.limited);
                     predicates.removeIf(p -> p.candidates == null);
                     this.father = predicate;
-                    setItemStackGroup();
+                    // Only call setItemStackGroup if we have valid predicates
+                    if (!predicates.isEmpty()) {
+                        setItemStackGroup();
+                    }
                 }
                 // Mark FBO dirty so scene re-renders with candidate block cycling
                 if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
@@ -822,9 +826,21 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void setItemStackGroup() {
+        if (predicates.isEmpty())
+            return;
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         IDrawable border = recipeLayout.getRecipeCategory().getBackground();
         int recipeWidth = border.getWidth();
+        
+        // First, clear all old candidate slots (MAX_PARTS to MAX_PARTS + MAX_CANDIDATES)
+        for (int i = 0; i < MAX_CANDIDATES; i++) {
+            try {
+                itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+            } catch (Exception e) {
+                // Ignore if slot is not initialized yet
+            }
+        }
+        
         // Place candidate slots on the right side (no overlap with left parts panel)
         int count = Math.min(predicates.size(), MAX_CANDIDATES);
         for (int i = 0; i < count; i++) {
@@ -833,12 +849,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
             int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
             itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
-            itemStackGroup.set(i + MAX_PARTS, predicates.get(i).getCandidates());
+            // Safety check: ensure predicate has candidates before setting
+            TraceabilityPredicate.SimplePredicate pred = predicates.get(i);
+            if (pred != null && pred.getCandidates() != null) {
+                itemStackGroup.set(i + MAX_PARTS, pred.getCandidates());
+            } else {
+                itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+            }
         }
 
+        // Add tooltip callback with safety checks
         itemStackGroup.addTooltipCallback((slotIndex, input, itemStack, tooltip) -> {
             if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + predicates.size()) {
-                tooltip.addAll(predicates.get(slotIndex - MAX_PARTS).getToolTips(father));
+                int predIndex = slotIndex - MAX_PARTS;
+                if (predIndex >= 0 && predIndex < predicates.size()) {
+                    TraceabilityPredicate.SimplePredicate pred = predicates.get(predIndex);
+                    if (pred != null && father != null) {
+                        List<String> tips = pred.getToolTips(father);
+                        if (tips != null) {
+                            tooltip.addAll(tips);
+                        }
+                    }
+                }
             }
         });
     }
@@ -1017,7 +1049,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
         if (controllerBase != null) {
-            gregtech.api.pattern.MultiblockState state = controllerBase.getMultiblockState();
+            MultiblockState state = controllerBase.getMultiblockState();
             if (state == null) {
                 controllerBase.reinitializeStructurePattern();
                 state = controllerBase.getMultiblockState();
@@ -1025,6 +1057,44 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (state != null) {
                 state.cache.forEach((pos, blockInfo) -> predicateMap
                         .put(BlockPos.fromLong(pos), (TraceabilityPredicate) blockInfo.getInfo()));
+            }
+        }
+
+        // Fallback: build predicateMap directly from the pattern template.
+        // The cache-based approach only works when the multiblock is currently formed in-world.
+        // For JEI preview, the controller is typically NOT formed, so the cache is empty.
+        // This fallback ensures right-click cycling works for all structure positions.
+        if (predicateMap.isEmpty() && controllerBase != null) {
+            MultiblockState state = controllerBase.getMultiblockState();
+            if (state != null) {
+                BlockPatternTemplate tmpl = state.getTemplate();
+                TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
+                RelativeDirection[] sDir = tmpl.getStructureDir();
+                int[] centerOff = tmpl.getCenterOffset();
+
+                // controllerBlockPos is the controller's position in the TrackedDummyWorld
+                // (blockMap coordinates). In getPreview coordinates the controller sits at
+                // (centerOff[0], centerOff[1], centerOff[3]). The difference is the offset
+                // that converts preview-space positions to blockMap-space positions.
+                BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
+                BlockPos offset = cPos.subtract(new BlockPos(centerOff[0], centerOff[1], centerOff[3]));
+
+                for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
+                    for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {
+                        for (int ix = 0; ix < tmpl.getPalmLength(); ix++) {
+                            TraceabilityPredicate pred = blockMatches[iz][iy][ix];
+                            if (pred == null || pred == TraceabilityPredicate.ANY) continue;
+
+                            // Mirror the same coordinate transform used by getPreview()
+                            BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
+                                    ix, iy, iz, EnumFacing.NORTH, EnumFacing.UP, false, sDir);
+                            BlockPos blockMapPos = previewPos.add(offset);
+                            if (blockMap.containsKey(blockMapPos)) {
+                                predicateMap.put(blockMapPos, pred);
+                            }
+                        }
+                    }
+                }
             }
         }
 

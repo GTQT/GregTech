@@ -124,7 +124,7 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
                 .where('#', any())
                 .casing('X', CasingDefinition.simple(type.getCasingState()))
                 .optionalItemOutput(1)
-                .optionalFluidOutput(1)
+                .optionalFluidInput(1)
                 .energyInput(1,3)
                 .buildTemplate();
     }
@@ -184,13 +184,18 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     @Override
     public boolean drainFluid(boolean simulate) {
+        if (inputFluidInventory.getTanks() == 0) {
+            return false;
+        }
         FluidStack drillingFluid = DrillingFluid
                 .getFluid(this.type.getDrillingFluidConsumePerTick() * this.minerLogic.getOverclockAmount());
-        FluidStack fluidStack = inputFluidInventory.getTankAt(0).getFluid();
-        if (fluidStack != null && fluidStack.isFluidEqual(DrillingFluid.getFluid(1)) &&
-                fluidStack.amount >= drillingFluid.amount) {
-            if (!simulate)
+        // Use the drain method to check if we can get the required fluid
+        // This properly handles creative hatches and multiple tanks
+        FluidStack drained = inputFluidInventory.drain(drillingFluid, false);
+        if (drained != null && drained.amount >= drillingFluid.amount) {
+            if (!simulate) {
                 inputFluidInventory.drain(drillingFluid, true);
+            }
             return true;
         }
         return false;
