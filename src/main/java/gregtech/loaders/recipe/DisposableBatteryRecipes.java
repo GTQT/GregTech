@@ -645,7 +645,7 @@ public class DisposableBatteryRecipes {
 
         // Use the tier voltage as EUt so JEI shows the correct tier
         int tier = getTierForMapping(mapping);
-        int euT = GTValues.V[tier];
+        long euT = GTValues.V[tier];
         int duration = (int) Math.max(1, euCostPerBucket / euT);
 
         BATTERY_ACCUMULATOR_RECIPES.recipeBuilder()
@@ -665,7 +665,7 @@ public class DisposableBatteryRecipes {
         long euOutputPerBucket = (long) (euPerBucket * (1.0 - DISPLAY_LOSS_RATIO));
 
         int tier = getTierForMapping(mapping);
-        int euT = GTValues.V[tier];
+        long euT = GTValues.V[tier];
         int duration = (int) Math.max(1, euOutputPerBucket / euT);
 
         BATTERY_ACCUMULATOR_RECIPES.recipeBuilder()

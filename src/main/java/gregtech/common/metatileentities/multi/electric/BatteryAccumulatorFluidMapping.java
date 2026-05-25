@@ -5,7 +5,7 @@ import gregtech.api.unification.material.Materials;
 
 import net.minecraftforge.fluids.FluidStack;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Registry of all electrolyte fluid pairs supported by the Battery Accumulator multiblock.

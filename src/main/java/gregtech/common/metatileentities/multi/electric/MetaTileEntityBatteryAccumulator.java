@@ -12,6 +12,7 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -61,6 +62,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static gregtech.api.util.RelativeDirection.*;
@@ -177,9 +179,9 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     //
     //   Layer 4 (top / thermal management):
     //     XXXXX      X = lead block
-    //     XEEEEX     E = steel solid casing (heat sink / ventilation)
-    //     XEEEEX
-    //     XEEEEX
+    //     XEEEX     E = steel solid casing (heat sink / ventilation)
+    //     XEEEX
+    //     XEEEX
     //     XXXXX
     //
     // -----------------------------------------------------------------
@@ -194,7 +196,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                             // Battery module layer 2
                             .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
                             // Top layer — thermal management / heat sinks
-                            .aisle("XXXXX", "XEEEEX", "XEEEEX", "XEEEEX", "XXXXX")
+.aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
                             .where('S', selfPredicate(MetaTileEntityBatteryAccumulator.class))
                             .where('G', states(getGlassState()))
                             .where('B', frames(Materials.Lead))
@@ -253,7 +255,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     @Override
     public List<MultiblockShapeInfo> getMatchingShapes() {
-        return List.of(
+        return Collections.singletonList(
                 MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
                         // Base layer
                         .aisle("IXXXX", "XXXXX", "XXXXX", "XXXXX", "OXXXX")
@@ -264,7 +266,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                         // Battery module layer 2
                         .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
                         // Top layer
-                        .aisle("XXXXX", "XEEEEX", "XEEEEX", "XEEEEX", "XXXXX")
+                        .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
                         .where('S', this, EnumFacing.SOUTH)
                         .where('X', getCasingState())
                         .where('G', getGlassState())
