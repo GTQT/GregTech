@@ -23,6 +23,7 @@ import gregtech.common.metatileentities.multi.electric.FusionReactorType;
 import gregtech.common.metatileentities.multi.electric.LargeMinerType;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAssemblyLine;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityBatteryAccumulator;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCleanroom;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityCrackingUnit;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityDataBank;
@@ -241,6 +242,9 @@ public final class MultiblockRegistration {
                 new MetaTileEntityPowerSubstation(gregtechId("power_substation")));
         ACTIVE_TRANSFORMER = registerMetaTileEntity(1042,
                 new MetaTileEntityActiveTransformer(gregtechId("active_transformer")));
+
+        BATTERY_ACCUMULATOR = registerMetaTileEntity(1043,
+                new MetaTileEntityBatteryAccumulator(gregtechId("battery_accumulator")));
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
 

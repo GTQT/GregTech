@@ -1,7 +1,9 @@
 package gregtech.loaders.recipe;
 
+import gregtech.api.GTValues;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.multi.electric.BatteryAccumulatorFluidMapping;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
@@ -11,17 +13,23 @@ import static gregtech.api.unification.ore.OrePrefix.*;
 /**
  * Crafting recipes for all A-series disposable battery blocks.
  *
- * <p>Each battery follows a 4-step pipeline:
+ * <p>Each battery follows a 5-step pipeline:
  * <ol>
  *   <li>Chemistry step 1 — produce active electrode dry blend (Mixer)</li>
- *   <li>Chemistry step 2 — alkaline activation to fluid paste (Chemical Reactor)</li>
+ *   <li>Chemistry step 2 — alkaline activation to uncharged fluid paste (Chemical Reactor)</li>
  *   <li>Hull step — assemble casing with pre-installed terminals (Assembler)</li>
- *   <li>Fill step — fill hull with electrolyte paste and seal (Canner)</li>
+ *   <li>Charge step — charge the uncharged electrolyte in the Battery Accumulator multiblock</li>
+ *   <li>Fill step — fill hull with charged electrolyte and seal (Canner)</li>
  * </ol>
+ *
+ * <p>The charge step requires the Battery Accumulator multiblock, which converts
+ * uncharged electrolyte + EU → charged electrolyte (with 10% loss). Only charged
+ * electrolyte can be used in the Canner to produce a functional battery block.
  */
 public class DisposableBatteryRecipes {
 
     public static void init() {
+        batteryAccumulatorRecipes();
         zincManganeseCellRecipes();
         lithiumManganeseCellRecipes();
         nickelCadmiumCellRecipes();
@@ -74,10 +82,12 @@ public class DisposableBatteryRecipes {
                 .duration(100).EUt(VA[LV])
                 .buildAndRegister();
 
-        // Step 4 — Canner: fill hull with electrode paste and seal
+        // Step 4 — Canner: fill hull with charged electrode paste and seal
+        // The Battery Accumulator charges the uncharged paste into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.ZINC_MANGANESE_CELL_HULL.getStackForm())
-                .fluidInputs(ZincManganesePaste.getFluid(1440))
+                .fluidInputs(ChargedZincManganesePaste.getFluid(10000))
                 .outputs(MetaTileEntities.ZINC_MANGANESE_CELL.getStackForm())
                 .duration(100).EUt(VA[LV])
                 .buildAndRegister();
@@ -124,10 +134,12 @@ public class DisposableBatteryRecipes {
                 .duration(150).EUt(VA[MV])
                 .buildAndRegister();
 
-        // Step 4 — Canner: fill hull with electrode paste and seal
+        // Step 4 — Canner: fill hull with charged electrode paste and seal
+        // The Battery Accumulator charges the uncharged paste into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.LITHIUM_MANGANESE_CELL_HULL.getStackForm())
-                .fluidInputs(LithiumManganesePaste.getFluid(1200))
+                .fluidInputs(ChargedLithiumManganesePaste.getFluid(10000))
                 .outputs(MetaTileEntities.LITHIUM_MANGANESE_CELL.getStackForm())
                 .duration(150).EUt(VA[MV])
                 .buildAndRegister();
@@ -197,11 +209,12 @@ public class DisposableBatteryRecipes {
                 .duration(200).EUt(VA[HV])
                 .buildAndRegister();
 
-        // Step 5 — Canner: inject alkaline electrolyte fluid into electrode-loaded hull and seal
-        // Electrolyte wets the electrode surfaces and fills the void space; final crimp seals the cell
+        // Step 5 — Canner: inject charged alkaline electrolyte fluid into electrode-loaded hull and seal
+        // The Battery Accumulator charges the uncharged electrolyte into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.NICKEL_CADMIUM_CELL_HULL.getStackForm())
-                .fluidInputs(NickelCadmiumElectrolyte.getFluid(2400))
+                .fluidInputs(ChargedNickelCadmiumElectrolyte.getFluid(10000))
                 .outputs(MetaTileEntities.NICKEL_CADMIUM_CELL.getStackForm())
                 .duration(200).EUt(VA[HV])
                 .buildAndRegister();
@@ -274,12 +287,12 @@ public class DisposableBatteryRecipes {
                 .duration(300).EUt(VA[EV])
                 .buildAndRegister();
 
-        // Step 5 — Canner: inject dilute sulfuric acid electrolyte into electrode-loaded hull
-        // Electrolyte fills the void space between electrode plates and glass separators;
-        // final crimping/sealing produces the ready-to-use lead-acid battery block
+        // Step 5 — Canner: inject charged dilute sulfuric acid electrolyte into electrode-loaded hull
+        // The Battery Accumulator charges the uncharged electrolyte into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.LEAD_ACID_BATTERY_HULL.getStackForm())
-                .fluidInputs(LeadAcidElectrolyte.getFluid(3000))
+                .fluidInputs(ChargedLeadAcidElectrolyte.getFluid(10000))
                 .outputs(MetaTileEntities.LEAD_ACID_BATTERY.getStackForm())
                 .duration(300).EUt(VA[EV])
                 .buildAndRegister();
@@ -364,12 +377,12 @@ public class DisposableBatteryRecipes {
                 .duration(400).EUt(VA[IV])
                 .buildAndRegister();
 
-        // Step 6 — Canner: inject vanadium electrolyte into the assembled flow cell hull
-        // Electrolyte fills both half-cell compartments separated by the membrane;
-        // final sealing produces the ready-to-use vanadium flow battery block
+        // Step 6 — Canner: inject charged vanadium electrolyte into the assembled flow cell hull
+        // The Battery Accumulator charges the uncharged electrolyte into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.VANADIUM_FLOW_CELL_HULL.getStackForm())
-                .fluidInputs(VanadiumElectrolyte.getFluid(3000))
+                .fluidInputs(ChargedVanadiumElectrolyte.getFluid(10000))
                 .outputs(MetaTileEntities.VANADIUM_FLOW_CELL.getStackForm())
                 .duration(400).EUt(VA[IV])
                 .buildAndRegister();
@@ -442,14 +455,12 @@ public class DisposableBatteryRecipes {
                 .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
 
-        // Step 5 — Canner: final electrolyte injection and hermetic seal
-        // In real LFP cells the electrolyte is LiPF₆ in organic solvent;
-        // here simplified as additional PBI polymer injection to represent
-        // the electrolyte-soaked separator + final thermal seal:
-        //   Hull + PBI(1152 mB) → LFP Battery Block
+        // Step 5 — Canner: final charged electrolyte injection and hermetic seal
+        // The Battery Accumulator charges the PBI polymer into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.LFP_BATTERY_HULL.getStackForm())
-                .fluidInputs(Polybenzimidazole.getFluid(1152))
+                .fluidInputs(ChargedPolybenzimidazole.getFluid(10000))
                 .outputs(MetaTileEntities.LFP_BATTERY.getStackForm())
                 .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
@@ -510,13 +521,12 @@ public class DisposableBatteryRecipes {
                 .duration(600).EUt(VA[ZPM])
                 .buildAndRegister();
 
-        // Step 4 — Canner: inject remaining PVDF electrolyte binder and hermetically seal
-        // Additional PVDF injection fills the inter-electrode void space and creates
-        // the sealed electrolyte-saturated environment:
-        //   Hull + PVDF(1000 mB) → LCO Battery Block
+        // Step 4 — Canner: inject charged PVDF electrolyte binder and hermetically seal
+        // The Battery Accumulator charges the PVDF binder into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.LCO_BATTERY_HULL.getStackForm())
-                .fluidInputs(PVDF.getFluid(1000))
+                .fluidInputs(ChargedPVDF.getFluid(10000))
                 .outputs(MetaTileEntities.LCO_BATTERY.getStackForm())
                 .duration(600).EUt(VA[ZPM])
                 .buildAndRegister();
@@ -593,14 +603,93 @@ public class DisposableBatteryRecipes {
                 .duration(800).EUt(VA[UV])
                 .buildAndRegister();
 
-        // Step 5 — Canner: inject LiPF₆ electrolyte into the sealed hull
-        // Electrolyte permeates the electrode stack through the separator;
-        // final hermetic sealing produces the ready-to-use NMC battery block
+        // Step 5 — Canner: inject charged LiPF₆ electrolyte into the sealed hull
+        // The Battery Accumulator charges the LiPF₆ electrolyte into an energised form;
+        // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.NMC_BATTERY_HULL.getStackForm())
-                .fluidInputs(LithiumHexafluorophosphate.getFluid(3000))
+                .fluidInputs(ChargedLithiumHexafluorophosphate.getFluid(10000))
                 .outputs(MetaTileEntities.NMC_BATTERY.getStackForm())
                 .duration(800).EUt(VA[UV])
                 .buildAndRegister();
+    }
+
+    // -------------------------------------------------------------------------
+    // Battery Accumulator — JEI display recipes
+    //
+    // These recipes are registered in BATTERY_ACCUMULATOR_RECIPES for JEI display
+    // only. They show the EU per bucket (1000 mB) for each electrolyte type,
+    // in both charge and discharge directions.
+    //
+    // The actual processing logic in MetaTileEntityBatteryAccumulator handles
+    // per-mB conversion with loss ratio; these recipes serve as reference info.
+    // -------------------------------------------------------------------------
+
+    /** Loss ratio used for recipe display (must match the controller default). */
+    private static final double DISPLAY_LOSS_RATIO = 0.10;
+
+    private static void batteryAccumulatorRecipes() {
+        for (BatteryAccumulatorFluidMapping mapping : BatteryAccumulatorFluidMapping.values()) {
+            registerChargeRecipe(mapping);
+            registerDischargeRecipe(mapping);
+        }
+    }
+
+    /**
+     * Registers a charge-mode JEI recipe for the given electrolyte mapping.
+     * Shows: 1000 mB uncharged → 1000 mB charged, with EU cost including loss.
+     */
+    private static void registerChargeRecipe(BatteryAccumulatorFluidMapping mapping) {
+        long euPerBucket = mapping.getEuPerBucket();
+        long euCostPerBucket = (long) (euPerBucket / (1.0 - DISPLAY_LOSS_RATIO));
+
+        // Use the tier voltage as EUt so JEI shows the correct tier
+        int tier = getTierForMapping(mapping);
+        int euT = GTValues.V[tier];
+        int duration = (int) Math.max(1, euCostPerBucket / euT);
+
+        BATTERY_ACCUMULATOR_RECIPES.recipeBuilder()
+                .fluidInputs(mapping.getUnchargedFluidStack(1000))
+                .fluidOutputs(mapping.getChargedFluidStack(1000))
+                .duration(duration)
+                .EUt(euT)
+                .buildAndRegister();
+    }
+
+    /**
+     * Registers a discharge-mode JEI recipe for the given electrolyte mapping.
+     * Shows: 1000 mB charged → 1000 mB uncharged, with EU output after loss.
+     */
+    private static void registerDischargeRecipe(BatteryAccumulatorFluidMapping mapping) {
+        long euPerBucket = mapping.getEuPerBucket();
+        long euOutputPerBucket = (long) (euPerBucket * (1.0 - DISPLAY_LOSS_RATIO));
+
+        int tier = getTierForMapping(mapping);
+        int euT = GTValues.V[tier];
+        int duration = (int) Math.max(1, euOutputPerBucket / euT);
+
+        BATTERY_ACCUMULATOR_RECIPES.recipeBuilder()
+                .fluidInputs(mapping.getChargedFluidStack(1000))
+                .fluidOutputs(mapping.getUnchargedFluidStack(1000))
+                .duration(duration)
+                .EUt(euT)
+                .buildAndRegister();
+    }
+
+    /**
+     * Maps each BatteryAccumulatorFluidMapping to its voltage tier.
+     * This determines the EUt shown in JEI recipes.
+     */
+    private static int getTierForMapping(BatteryAccumulatorFluidMapping mapping) {
+        return switch (mapping) {
+            case ZINC_MANGANESE -> LV;
+            case LITHIUM_MANGANESE -> MV;
+            case NICKEL_CADMIUM -> HV;
+            case LEAD_ACID -> EV;
+            case VANADIUM_FLOW -> IV;
+            case LFP -> LuV;
+            case LCO -> ZPM;
+            case NMC -> UV;
+        };
     }
 }

@@ -2092,6 +2092,15 @@ public final class RecipeMaps {
             .sound(GTSoundEvents.COOLING)
             .build();
 
+    // Battery Accumulator charge/discharge recipes (JEI display only)
+    // Shows EU per bucket for each electrolyte type
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> BATTERY_ACCUMULATOR_RECIPES = new RecipeMapBuilder<>(
+            "battery_accumulator", new SimpleRecipeBuilder())
+            .fluidInputs(1)
+            .fluidOutputs(1)
+            .build();
+
 
     private RecipeMaps() {}
 }

@@ -845,4 +845,14 @@ public class Materials {
     // A7 — NMC (Nickel-Manganese-Cobalt) intermediates
     public static Material NMCCathodePowder;
     public static Material LithiumHexafluorophosphate;
+
+    // Charged electrolyte fluids for Battery Accumulator multiblock
+    public static Material ChargedZincManganesePaste;
+    public static Material ChargedLithiumManganesePaste;
+    public static Material ChargedNickelCadmiumElectrolyte;
+    public static Material ChargedLeadAcidElectrolyte;
+    public static Material ChargedVanadiumElectrolyte;
+    public static Material ChargedPolybenzimidazole;
+    public static Material ChargedPVDF;
+    public static Material ChargedLithiumHexafluorophosphate;
 }

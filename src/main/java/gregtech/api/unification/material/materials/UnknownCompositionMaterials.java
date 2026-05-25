@@ -815,5 +815,71 @@ public class UnknownCompositionMaterials {
                 .fluid()
                 .color(0xC0D0E0)
                 .build();
+
+        // =====================================================================
+        // Charged electrolyte fluids for the Battery Accumulator multiblock
+        //
+        // Each charged variant corresponds to an uncharged electrolyte used in
+        // the disposable battery crafting chain. The accumulator charges
+        // uncharged fluid + EU → charged fluid, and discharges charged fluid
+        // → uncharged fluid + EU. Colours are brighter/more vibrant than their
+        // uncharged counterparts to visually indicate stored energy.
+        // =====================================================================
+
+        // ChargedZincManganesePaste — energised alkaline Zn-Mn electrode paste;
+        // bright amber glow indicating stored electrochemical potential
+        ChargedZincManganesePaste = Material.builder(1720, gregtechId("charged_zinc_manganese_paste"))
+                .fluid()
+                .color(0x8E8E48)
+                .build();
+
+        // ChargedLithiumManganesePaste — energised Li-Mn non-aqueous electrode paste;
+        // bright teal glow indicating stored electrochemical potential
+        ChargedLithiumManganesePaste = Material.builder(1721, gregtechId("charged_lithium_manganese_paste"))
+                .fluid()
+                .color(0x4E6570)
+                .build();
+
+        // ChargedNickelCadmiumElectrolyte — energised KOH alkaline electrolyte;
+        // bright cyan-green glow indicating stored electrochemical potential
+        ChargedNickelCadmiumElectrolyte = Material.builder(1722, gregtechId("charged_nickel_cadmium_electrolyte"))
+                .fluid()
+                .color(0x4A7C6A)
+                .build();
+
+        // ChargedLeadAcidElectrolyte — energised dilute H₂SO₄ electrolyte;
+        // bright golden glow indicating stored electrochemical potential
+        ChargedLeadAcidElectrolyte = Material.builder(1723, gregtechId("charged_lead_acid_electrolyte"))
+                .fluid()
+                .color(0xBBB060)
+                .build();
+
+        // ChargedVanadiumElectrolyte — energised V₂O₅/H₂SO₄ redox electrolyte;
+        // bright violet glow indicating stored electrochemical potential
+        ChargedVanadiumElectrolyte = Material.builder(1724, gregtechId("charged_vanadium_electrolyte"))
+                .fluid()
+                .color(0x7070DD)
+                .build();
+
+        // ChargedPolybenzimidazole — energised PBI polymer electrolyte (LFP);
+        // bright orange glow indicating stored electrochemical potential
+        ChargedPolybenzimidazole = Material.builder(1725, gregtechId("charged_polybenzimidazole"))
+                .fluid()
+                .color(0xDD8830)
+                .build();
+
+        // ChargedPVDF — energised PVDF binder electrolyte (LCO);
+        // bright white-blue glow indicating stored electrochemical potential
+        ChargedPVDF = Material.builder(1726, gregtechId("charged_pvdf"))
+                .fluid()
+                .color(0xA8C8F8)
+                .build();
+
+        // ChargedLithiumHexafluorophosphate — energised LiPF₆ electrolyte (NMC);
+        // bright electric blue glow indicating stored electrochemical potential
+        ChargedLithiumHexafluorophosphate = Material.builder(1727, gregtechId("charged_lithium_hexafluorophosphate"))
+                .fluid()
+                .color(0x80B0F0)
+                .build();
     }
 }

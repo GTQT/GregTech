@@ -2770,6 +2770,7 @@ recipemap.saw_mill.name=Saw Mill
 recipemap.combs_product.name=Honeycomb extraction
 recipemap.attractor.name=Bee Attractor
 recipemap.tree_growth.name=原木拟生场
+recipemap.battery_accumulator.name=Battery Accumulator
 recipemap.godforge_smelting.name=Godforge Smelting
 recipemap.godforge_molten.name=Godforge Melting
 recipemap.godforge_plasma.name=Godforge Plasma
@@ -6007,6 +6008,19 @@ gregtech.machine.active_transformer.routing=Routing.
 gregtech.multiblock.active_transformer.max_in=Max Input: %s
 gregtech.multiblock.active_transformer.max_out=Max Output: %s
 gregtech.multiblock.active_transformer.average_io=Average I/O: %s
+
+# Battery Accumulator
+gregtech.machine.battery_accumulator.name=Battery Accumulator
+gregtech.machine.battery_accumulator.tooltip.1=Charges and discharges electrolyte fluids for disposable batteries
+gregtech.machine.battery_accumulator.tooltip.2=Energy loss rate: %s per direction
+gregtech.machine.battery_accumulator.tooltip.3=Round-trip efficiency: %s
+gregtech.machine.battery_accumulator.mode_charge=§aCharge Mode
+gregtech.machine.battery_accumulator.mode_discharge=§bDischarge Mode
+gregtech.machine.battery_accumulator.mode_switch=Mode: %s
+gregtech.machine.battery_accumulator.loss_rate=Loss Rate: %s
+gregtech.machine.battery_accumulator.charging=Charging electrolyte...
+gregtech.machine.battery_accumulator.discharging=Discharging electrolyte...
+gregtech.multiblock.battery_accumulator.description=The Battery Accumulator is a multiblock that charges and discharges electrolyte fluids used in disposable battery crafting. In Charge Mode, it consumes EU from energy hatches to convert uncharged electrolyte into charged electrolyte. In Discharge Mode, it consumes charged electrolyte to output EU through dynamo hatches. Both modes have a 10%% energy loss per direction.
 
 # Forge of the Gods
 gregtech.machine.forge_of_gods.name=Forge of the Gods
