@@ -24,11 +24,13 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.category.ICategoryOverride;
+import gregtech.api.unification.material.Materials;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.MetaTileEntities;
@@ -147,21 +149,61 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     // -----------------------------------------------------------------
     // Structure template
+    //
+    // Real-world inspired: lead-acid battery energy storage system
+    //
+    // Layout (5×5 cross-section, 4 layers fixed):
+    //
+    //   Layer 1 (base / electrical panel):
+    //     XXXXX      X = lead block (hatches go here)
+    //     XXXXX
+    //     XXXXX
+    //     XXXXX
+    //     XXSXX      S = controller
+    //
+    //   Layer 2 (battery module rack):
+    //     GGGGG      G = laminated glass (fire isolation window)
+    //     GBFFG      B = lead frame (battery rack pillar)
+    //     GBFFG      F = lead frame (battery module shelf)
+    //     GBFFG
+    //     GGGGG
+    //
+    //   Layer 3 (battery module rack):
+    //     GGGGG      Same as layer 2
+    //     GBFFG
+    //     GBFFG
+    //     GBFFG
+    //     GGGGG
+    //
+    //   Layer 4 (top / thermal management):
+    //     XXXXX      X = lead block
+    //     XEEEEX     E = steel solid casing (heat sink / ventilation)
+    //     XEEEEX
+    //     XEEEEX
+    //     XXXXX
+    //
     // -----------------------------------------------------------------
 
     private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
             .register("gregtech:battery_accumulator", () ->
                     DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                            .aisle("XXX", "XXX", "XXX")
-                            .aisle("XXX", "X#X", "XXX")
-                            .aisle("XSX", "XXX", "XXX")
+                            // Base layer — electrical panel and controller
+                            .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXSXX")
+                            // Battery module layer 1
+                            .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
+                            // Battery module layer 2
+                            .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
+                            // Top layer — thermal management / heat sinks
+                            .aisle("XXXXX", "XEEEEX", "XEEEEX", "XEEEEX", "XXXXX")
                             .where('S', selfPredicate(MetaTileEntityBatteryAccumulator.class))
-                            .where('#', air())
-                            .where('X', states(getCasingState()))
+                            .where('G', states(getGlassState()))
+                            .where('B', frames(Materials.Lead))
+                            .where('F', frames(Materials.Lead))
+                            .where('E', states(getHeatSinkState()))
                             .casing('X', CasingDefinition.simple(getCasingState()))
                             .maintenance()
-                            .energyInput(1, 3)
-                            .energyOutput(1, 3)
+                            .energyInput(1, 4)
+                            .energyOutput(1, 4)
                             .fluidInput(1, 4)
                             .fluidOutput(1, 4)
                             .buildTemplate()
@@ -196,21 +238,41 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     }
 
     protected static IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
+        return MetaBlocks.COMPRESSED.get(Materials.Lead).getBlock(Materials.Lead);
+    }
+
+    /** Laminated glass — fire isolation windows between battery modules. */
+    protected static IBlockState getGlassState() {
+        return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS);
+    }
+
+    /** Steel solid casing — heat sink / ventilation blocks on top. */
+    protected static IBlockState getHeatSinkState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
     @Override
     public List<MultiblockShapeInfo> getMatchingShapes() {
         return List.of(
                 MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                        .aisle("IXX", "XXX", "OXX")
-                        .aisle("FXD", "X#X", "XXX")
-                        .aisle("SXX", "MXX", "XXX")
+                        // Base layer
+                        .aisle("IXXXX", "XXXXX", "XXXXX", "XXXXX", "OXXXX")
+                        .aisle("QXXXX", "XXXXX", "XXXXX", "XXXXX", "DXXXX")
+                        .aisle("MXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                        // Battery module layer 1
+                        .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
+                        // Battery module layer 2
+                        .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
+                        // Top layer
+                        .aisle("XXXXX", "XEEEEX", "XEEEEX", "XEEEEX", "XXXXX")
                         .where('S', this, EnumFacing.SOUTH)
                         .where('X', getCasingState())
+                        .where('G', getGlassState())
+                        .where('B', MetaBlocks.FRAMES.get(Materials.Lead).getBlock(Materials.Lead))
+                        .where('E', getHeatSinkState())
                         .where('I', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
                         .where('O', MetaTileEntities.ENERGY_OUTPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                        .where('F', MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.HV], EnumFacing.SOUTH)
+                        .where('Q', MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.HV], EnumFacing.SOUTH)
                         .where('D', MetaTileEntities.FLUID_EXPORT_HATCH[GTValues.HV], EnumFacing.SOUTH)
                         .where('M', MetaTileEntities.MAINTENANCE_HATCH, EnumFacing.SOUTH)
                         .build()
@@ -220,7 +282,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return Textures.CLEAN_STAINLESS_STEEL_CASING;
+        return Textures.SOLID_STEEL_CASING;
     }
 
     @SideOnly(Side.CLIENT)
