@@ -530,6 +530,27 @@ public class DeclarativePatternBuilder {
             return optionalHatch(MultiblockAbility.EXPORT_ITEMS, maxCount);
         }
 
+        public CasingSlot auto(){
+            return muffler()
+                    .maintenance()
+                    .energyInput(1,2)
+                    .itemInput(1,4)
+                    .itemOutput(1,4)
+                    .fluidInput(1,2)
+                    .fluidOutput(1,2);
+        }
+
+        public CasingSlot auto(boolean isMuffler,boolean isMaintenance,boolean isEnergyInput,boolean isItemInput,boolean isItemOutput,boolean isFluidInput,boolean isFluidOutput){
+            CasingSlot slot = this;
+            if(isMuffler) slot = slot.muffler();
+            if(isMaintenance) slot = slot.maintenance();
+            if(isEnergyInput) slot = slot.energyInput(1,2);
+            if(isItemInput) slot = slot.itemInput(1,4);
+            if(isItemOutput) slot = slot.itemOutput(1,4);
+            if(isFluidInput) slot = slot.fluidInput(1,2);
+            if(isFluidOutput) slot = slot.fluidOutput(1,2);
+            return slot;
+        }
 
         /**
          * Add a custom hatch using a raw TraceabilityPredicate.

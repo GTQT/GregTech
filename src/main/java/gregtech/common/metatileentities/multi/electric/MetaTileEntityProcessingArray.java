@@ -71,6 +71,7 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
             TemplatePool.getInstance().register("gregtech:processing_array/advanced", () -> buildTemplate(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
     };
+
     private final int tier;
     private boolean machineChanged;
     public MetaTileEntityProcessingArray(ResourceLocation metaTileEntityId, int tier) {
