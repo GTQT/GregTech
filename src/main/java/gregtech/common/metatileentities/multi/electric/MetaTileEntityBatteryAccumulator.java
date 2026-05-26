@@ -257,16 +257,11 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     public List<MultiblockShapeInfo> getMatchingShapes() {
         return Collections.singletonList(
                 MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                        // Base layer
-                        .aisle("IXXXX", "XXXXX", "XXXXX", "XXXXX", "OXXXX")
-                        .aisle("QXXXX", "XXXXX", "XXXXX", "XXXXX", "DXXXX")
-                        .aisle("MXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                        // Battery module layer 1
-                        .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
-                        // Battery module layer 2
-                        .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
-                        // Top layer
-                        .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
+                        .aisle("XXXXX", "GGGGG", "GGGGG", "XXXXX")
+                        .aisle("XXXXX", "GBBBG", "GBBBG", "XEEEX")
+                        .aisle("XXXXX", "GBBBG", "GBBBG", "XEEEX")
+                        .aisle("XXXXX", "GBBBG", "GBBBG", "XEEEX")
+                        .aisle("QISMO", "GGGGG", "GGGGG", "XXDXX")
                         .where('S', this, EnumFacing.SOUTH)
                         .where('X', getCasingState())
                         .where('G', getGlassState())

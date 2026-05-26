@@ -846,13 +846,17 @@ public class Materials {
     public static Material NMCCathodePowder;
     public static Material LithiumHexafluorophosphate;
 
+    // A5/A6 Electrolyte Fluids
+    public static Material LithiumBisoxalatoborate;
+    public static Material LithiumBistriflimide;
+
     // Charged electrolyte fluids for Battery Accumulator multiblock
     public static Material ChargedZincManganesePaste;
     public static Material ChargedLithiumManganesePaste;
     public static Material ChargedNickelCadmiumElectrolyte;
     public static Material ChargedLeadAcidElectrolyte;
     public static Material ChargedVanadiumElectrolyte;
-    public static Material ChargedPolybenzimidazole;
-    public static Material ChargedPVDF;
+    public static Material ChargedLithiumBisoxalatoborate;
+    public static Material ChargedLithiumBistriflimide;
     public static Material ChargedLithiumHexafluorophosphate;
 }

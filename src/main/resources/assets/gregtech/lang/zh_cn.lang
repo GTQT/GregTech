@@ -2425,6 +2425,16 @@ gregtech.material.lithium_cobalt_oxide=钴酸锂
 gregtech.material.pvdf=聚偏氟乙烯
 gregtech.material.nmc_cathode_powder=三元正极粉
 gregtech.material.lithium_hexafluorophosphate=六氟磷酸锂
+gregtech.material.lithium_bisoxalatoborate=双草酸硼酸锂电解液
+gregtech.material.lithium_bistriflimide=双三氟甲磺酰亚胺锂电解液
+gregtech.material.charged_zinc_manganese_paste=充能锌锰电解质糊
+gregtech.material.charged_lithium_manganese_paste=充能锂锰电极糊
+gregtech.material.charged_nickel_cadmium_electrolyte=充能镍镉电解液
+gregtech.material.charged_lead_acid_electrolyte=充能铅酸电解液
+gregtech.material.charged_vanadium_electrolyte=充能钒电解液
+gregtech.material.charged_lithium_bisoxalatoborate=充能双草酸硼酸锂电解液
+gregtech.material.charged_lithium_bistriflimide=充能双三氟甲磺酰亚胺锂电解液
+gregtech.material.charged_lithium_hexafluorophosphate=充能六氟磷酸锂
 
 # Second Degree Materials
 gregtech.material.glass=玻璃
@@ -7235,6 +7245,7 @@ gregtech.multiblock.pattern.error.limited.3=§c最少：每层%d个§r
 gregtech.multiblock.pattern.error.coils=§c必须使用同种线圈方块§r
 gregtech.multiblock.pattern.error.batteries=§c必须至少有一个不是空电容§r
 gregtech.multiblock.pattern.error.filters=§c必须使用同种过滤器§r
+gregtech.multiblock.pattern.error.casing_tier_mismatch=§c必须使用同等级信道对应方块§r
 gregtech.multiblock.pattern.clear_amount_1=§6前方必须有1x1x1大小的空间§r
 gregtech.multiblock.pattern.clear_amount_3=§6前方必须有3x3x1大小的空间§r
 gregtech.multiblock.pattern.single=§6仅可使用该种方块类型§r

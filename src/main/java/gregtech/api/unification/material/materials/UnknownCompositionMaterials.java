@@ -816,6 +816,22 @@ public class UnknownCompositionMaterials {
                 .color(0xC0D0E0)
                 .build();
 
+        // ---- A5/A6 Electrolyte Fluids (replaces PBI/PVDF polymer placeholder) ----
+
+        // LithiumBisoxalatoborate — LiB(C₂O₄)₂ (LiBOB), lithium-ion electrolyte salt;
+        // white/cream crystalline salt dissolved as organic electrolyte for LFP batteries
+        LithiumBisoxalatoborate = Material.builder(1728, gregtechId("lithium_bisoxalatoborate"))
+                .fluid()
+                .color(0xF0F0E8)
+                .build();
+
+        // LithiumBistriflimide — LiN(SO₂CF₃)₂ (LiTFSI), advanced lithium-ion electrolyte salt;
+        // colourless fluid with high thermal stability for LCO batteries
+        LithiumBistriflimide = Material.builder(1729, gregtechId("lithium_bistriflimide"))
+                .fluid()
+                .color(0xE8F0F8)
+                .build();
+
         // =====================================================================
         // Charged electrolyte fluids for the Battery Accumulator multiblock
         //
@@ -861,18 +877,18 @@ public class UnknownCompositionMaterials {
                 .color(0x7070DD)
                 .build();
 
-        // ChargedPolybenzimidazole — energised PBI polymer electrolyte (LFP);
-        // bright orange glow indicating stored electrochemical potential
-        ChargedPolybenzimidazole = Material.builder(1725, gregtechId("charged_polybenzimidazole"))
+        // ChargedLithiumBisoxalatoborate — energised LiBOB electrolyte (LFP);
+        // bright golden glow indicating stored electrochemical potential
+        ChargedLithiumBisoxalatoborate = Material.builder(1730, gregtechId("charged_lithium_bisoxalatoborate"))
                 .fluid()
-                .color(0xDD8830)
+                .color(0xF8E880)
                 .build();
 
-        // ChargedPVDF — energised PVDF binder electrolyte (LCO);
-        // bright white-blue glow indicating stored electrochemical potential
-        ChargedPVDF = Material.builder(1726, gregtechId("charged_pvdf"))
+        // ChargedLithiumBistriflimide — energised LiTFSI electrolyte (LCO);
+        // bright blue-white glow indicating stored electrochemical potential
+        ChargedLithiumBistriflimide = Material.builder(1731, gregtechId("charged_lithium_bistriflimide"))
                 .fluid()
-                .color(0xA8C8F8)
+                .color(0xB8D8F8)
                 .build();
 
         // ChargedLithiumHexafluorophosphate — energised LiPF₆ electrolyte (NMC);

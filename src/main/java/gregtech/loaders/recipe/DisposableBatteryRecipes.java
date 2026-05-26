@@ -394,15 +394,15 @@ public class DisposableBatteryRecipes {
     // Real chemistry: olivine-structure LiFePO₄ intercalation cathode
     //   Cathode: LiFePO₄ ⇌ FePO₄ + Li⁺ + e⁻
     //   Anode:   graphite intercalation (Li⁺ + e⁻ + C₆ → LiC₆)
-    //   Electrolyte: LiPF₆ in organic solvent (simplified to PBI polymer seal)
+    //   Electrolyte: Lithium Bis(oxalato)borate (LiBOB), organic lithium salt
     //
     // Pipeline (6 steps):
     //   Chem 1 — chemical reactor: iron + phosphoric acid → iron III phosphate
     //   Chem 2 — chemical reactor: lithium + iron III phosphate → LFP cathode powder
     //   Chem 3 — chemical reactor: carbon + iron catalyst → carbon nanotube film
-    //   Chem 4 — mixer: LFP cathode powder + CNT film binder activation
+    //   Chem 4 — chemical reactor: synthesise LiBOB electrolyte salt fluid
     //   Hull   — assembler: build iridium casing with cathode powder + CNT film
-    //   Fill   — canner: seal with polybenzimidazole high-temperature polymer
+    //   Fill   — canner: inject LiBOB electrolyte and seal
     // -------------------------------------------------------------------------
     private static void lfpBatteryRecipes() {
 
@@ -439,28 +439,41 @@ public class DisposableBatteryRecipes {
                 .duration(400).EUt(VA[IV])
                 .buildAndRegister();
 
-        // Step 4 — Assembler: build the iridium casing with cathode and current collectors
+        // Step 4 — Chemical Reactor: synthesise Lithium Bis(oxalato)borate electrolyte fluid
+        // LiBOB is produced by reacting lithium with boron and carbon in an oxygen atmosphere:
+        //   Li(dust, 2) + B(dust, 1) + C(dust, 4) + O₂(4000 mB)
+        //   → LithiumBisoxalatoborate(fluid, 1000 mB)
+        CHEMICAL_RECIPES.recipeBuilder()
+                .input(dust, Lithium, 2)
+                .input(dust, Boron, 1)
+                .input(dust, Carbon, 4)
+                .fluidInputs(Oxygen.getFluid(4000))
+                .fluidOutputs(LithiumBisoxalatoborate.getFluid(1000))
+                .duration(400).EUt(VA[IV])
+                .buildAndRegister();
+
+        // Step 5 — Assembler: build the iridium casing with cathode and current collectors
         // Iridium frame + plates provide LuV-grade structural integrity;
         // tungsten quadruple cables deliver 131 072 EU/t rated output;
         // LFP cathode powder and CNT film are layered inside the cell;
-        // Polybenzimidazole seals the hull at high temperature
+        // LiBOB electrolyte fluid activates the electrode assembly
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(frameGt, Iridium)
                 .input(plate, Iridium, 4)
                 .input(cableGtQuadruple, Tungsten, 4)
                 .input(dust, LFPCathodePowder, 12)
                 .input(dust, CarbonNanotubeFilm, 2)
-                .fluidInputs(Polybenzimidazole.getFluid(576))
+                .fluidInputs(LithiumBisoxalatoborate.getFluid(576))
                 .output(MetaItems.LFP_BATTERY_HULL)
                 .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
 
-        // Step 5 — Canner: final charged electrolyte injection and hermetic seal
-        // The Battery Accumulator charges the PBI polymer into an energised form;
+        // Step 6 — Canner: final charged electrolyte injection and hermetic seal
+        // The Battery Accumulator charges the LiBOB electrolyte into an energised form;
         // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.LFP_BATTERY_HULL.getStackForm())
-                .fluidInputs(ChargedPolybenzimidazole.getFluid(10000))
+                .fluidInputs(ChargedLithiumBisoxalatoborate.getFluid(10000))
                 .outputs(MetaTileEntities.LFP_BATTERY.getStackForm())
                 .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
@@ -472,14 +485,13 @@ public class DisposableBatteryRecipes {
     // Real chemistry: layered LiCoO₂ intercalation cathode
     //   Cathode: LiCoO₂ → Li₁₋ₓCoO₂ + x Li⁺ + x e⁻
     //   Anode:   graphite intercalation (x Li⁺ + x e⁻ + C₆ → LiₓC₆)
-    //   Electrolyte: LiPF₆ in organic solvent; binder: PVDF
+    //   Electrolyte: Lithium Bis(trifluoromethanesulfonyl)imide (LiTFSI)
     //
     // Pipeline (5 steps):
     //   Chem 1 — chemical reactor: lithium + cobalt oxide → lithium cobalt oxide
-    //   Chem 2 — chemical reactor: synthesise PVDF binder fluid
-    //   Chem 3 — chemical reactor: coat LiCoO₂ with PVDF binder → electrode slurry
+    //   Chem 2 — chemical reactor: synthesise LiTFSI electrolyte fluid
     //   Hull   — assembler: build osmium casing with cathode + CNT collectors
-    //   Fill   — canner: inject PVDF-sealed electrolyte and seal
+    //   Fill   — canner: inject charged LiTFSI electrolyte and seal
     // -------------------------------------------------------------------------
     private static void lcoBatteryRecipes() {
 
@@ -493,40 +505,42 @@ public class DisposableBatteryRecipes {
                 .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
 
-        // Step 2 — Chemical Reactor: polymerise VDF monomer into PVDF binder fluid
-        // In reality PVDF is produced by radical polymerisation of CH₂=CF₂;
-        // here simplified as fluorine + polyethylene decomposition route:
-        //   Polyethylene(fluid, 576 mB) + Fluorine(fluid, 2000 mB)
-        //   → PVDF(fluid, 1000 mB)
+        // Step 2 — Chemical Reactor: synthesise Lithium Bistriflimide electrolyte fluid
+        // LiTFSI is produced by reacting lithium with sulfur, carbon, fluorine and nitrogen:
+        //   Li(dust, 2) + S(dust, 2) + C(dust, 2) + F₂(6000 mB) + N₂(1000 mB)
+        //   → LithiumBistriflimide(fluid, 1000 mB)
         CHEMICAL_RECIPES.recipeBuilder()
-                .fluidInputs(Polyethylene.getFluid(576))
-                .fluidInputs(Fluorine.getFluid(2000))
-                .fluidOutputs(PVDF.getFluid(1000))
-                .duration(400).EUt(VA[IV])
+                .input(dust, Lithium, 2)
+                .input(dust, Sulfur, 2)
+                .input(dust, Carbon, 2)
+                .fluidInputs(Fluorine.getFluid(6000))
+                .fluidInputs(Nitrogen.getFluid(1000))
+                .fluidOutputs(LithiumBistriflimide.getFluid(1000))
+                .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
 
         // Step 3 — Assembler: build the osmium casing with cathode, CNT collectors and wiring
         // Osmium frame + plates provide ZPM-grade structural integrity;
         // naquadah quadruple cables deliver the extreme 524 288 EU/t current;
         // LiCoO₂ cathode powder is layered with CNT film current collectors;
-        // PVDF binder fluid bonds the electrode layers inside the hull
+        // LiTFSI electrolyte fluid activates the electrode assembly
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(frameGt, Osmium)
                 .input(plate, Osmium, 4)
                 .input(cableGtQuadruple, Naquadah, 4)
                 .input(dust, LithiumCobaltOxide, 12)
                 .input(dust, CarbonNanotubeFilm, 4)
-                .fluidInputs(PVDF.getFluid(576))
+                .fluidInputs(LithiumBistriflimide.getFluid(576))
                 .output(MetaItems.LCO_BATTERY_HULL)
                 .duration(600).EUt(VA[ZPM])
                 .buildAndRegister();
 
-        // Step 4 — Canner: inject charged PVDF electrolyte binder and hermetically seal
-        // The Battery Accumulator charges the PVDF binder into an energised form;
+        // Step 4 — Canner: inject charged LiTFSI electrolyte and hermetically seal
+        // The Battery Accumulator charges the LiTFSI electrolyte into an energised form;
         // only charged electrolyte can power a disposable battery block
         CANNER_RECIPES.recipeBuilder()
                 .inputs(MetaItems.LCO_BATTERY_HULL.getStackForm())
-                .fluidInputs(ChargedPVDF.getFluid(10000))
+                .fluidInputs(ChargedLithiumBistriflimide.getFluid(10000))
                 .outputs(MetaTileEntities.LCO_BATTERY.getStackForm())
                 .duration(600).EUt(VA[ZPM])
                 .buildAndRegister();

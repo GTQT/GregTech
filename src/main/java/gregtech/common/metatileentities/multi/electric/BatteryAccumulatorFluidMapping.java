@@ -58,15 +58,15 @@ public enum BatteryAccumulatorFluidMapping {
     // A5 — Lithium Iron Phosphate / LFP Battery (LuV)
     // 20B EU / 10000 mB = 2,000,000,000 EU per 1000 mB
     LFP(
-            Materials.Polybenzimidazole,
-            Materials.ChargedPolybenzimidazole,
+            Materials.LithiumBisoxalatoborate,
+            Materials.ChargedLithiumBisoxalatoborate,
             2_000_000_000L),
 
     // A6 — Lithium Cobalt Oxide / LCO Battery (ZPM)
     // 80B EU / 10000 mB = 8,000,000,000 EU per 1000 mB
     LCO(
-            Materials.PVDF,
-            Materials.ChargedPVDF,
+            Materials.LithiumBistriflimide,
+            Materials.ChargedLithiumBistriflimide,
             8_000_000_000L),
 
     // A7 — NMC Ternary Lithium Battery (UV)
