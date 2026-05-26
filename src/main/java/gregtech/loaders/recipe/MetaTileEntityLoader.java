@@ -704,13 +704,13 @@ public class MetaTileEntityLoader {
                 MetaBlocks.METAL_CASING.getItemVariant(PALLADIUM_SUBSTATION));
 
         RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder()
-                .input(OrePrefix.circuit, Tier.EV, 4)
-                .input(MetaItems.POWER_INTEGRATED_CIRCUIT, 2)
-                .input(MetaItems.LAPOTRON_CRYSTAL, 2)
-                .input(MetaTileEntities.HULL[GTValues.EV])
-                .fluidInputs(Materials.SolderingAlloy.getFluid(GTValues.L * 4))
+                .input(frameGt, Steel, 2)
+                .input(OrePrefix.circuit, Tier.LV, 3)
+                .inputs(MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID))
+                .input(cableGtSingle, Tin, 4)
+                .fluidInputs(Materials.SolderingAlloy.getFluid(GTValues.L * 2))
                 .output(MetaTileEntities.BATTERY_ACCUMULATOR)
-                .duration(400).EUt(GTValues.VA[GTValues.EV])
+                .duration(200).EUt(GTValues.VA[GTValues.LV])
                 .buildAndRegister();
 
         ModHandler.addShapedRecipe(true, "steam_oven", MetaTileEntities.STEAM_OVEN.getStackForm(),

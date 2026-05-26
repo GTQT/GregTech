@@ -31,11 +31,11 @@ import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.MetaTileEntities;
 
+import net.minecraft.init.Blocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -112,11 +112,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     private static final String NBT_IS_WORKING_ENABLED = "IsWorkingEnabled";
     private static final String NBT_CHARGE_PROGRESS = "ChargeProgress";
 
-    /** Maximum EU that can be transferred per tick in charge mode. */
-    private static final long MAX_CHARGE_RATE = GTValues.V[GTValues.UV];
-
-    /** Maximum EU that can be output per tick in discharge mode. */
-    private static final long MAX_DISCHARGE_RATE = GTValues.V[GTValues.UV];
+    
 
     // -----------------------------------------------------------------
     // Instance fields
@@ -152,7 +148,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     // -----------------------------------------------------------------
     // Structure template
     //
-    // Real-world inspired: lead-acid battery energy storage system
+    // Real-world inspired: battery energy storage system
     //
     // Layout (5×5 cross-section, 4 layers fixed):
     //
@@ -164,7 +160,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     //     XXSXX      S = controller
     //
     //   Layer 2 (battery module rack):
-    //     GGGGG      G = laminated glass (fire isolation window)
+    //     GGGGG      G = glass (fire isolation window)
     //     GBFFG      B = lead frame (battery rack pillar)
     //     GBFFG      F = lead frame (battery module shelf)
     //     GBFFG
@@ -196,18 +192,18 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                             // Battery module layer 2
                             .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
                             // Top layer — thermal management / heat sinks
-.aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
+                            .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
                             .where('S', selfPredicate(MetaTileEntityBatteryAccumulator.class))
                             .where('G', states(getGlassState()))
                             .where('B', frames(Materials.Lead))
                             .where('F', frames(Materials.Lead))
                             .where('E', states(getHeatSinkState()))
                             .casing('X', CasingDefinition.simple(getCasingState()))
-                            .maintenance()
-                            .energyInput(1, 4)
-                            .energyOutput(1, 4)
-                            .fluidInput(1, 4)
-                            .fluidOutput(1, 4)
+                                    .maintenance()
+                                    .energyInput(1, 4)
+                                    .energyOutput(1, 4)
+                                    .fluidInput(1, 4)
+                                    .fluidOutput(1, 4)
                             .buildTemplate()
             );
 
@@ -243,9 +239,9 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         return MetaBlocks.COMPRESSED.get(Materials.Lead).getBlock(Materials.Lead);
     }
 
-    /** Laminated glass — fire isolation windows between battery modules. */
+    /** Glass — fire isolation windows between battery modules. */
     protected static IBlockState getGlassState() {
-        return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS);
+        return Blocks.GLASS.getDefaultState();
     }
 
     /** Steel solid casing — heat sink / ventilation blocks on top. */
@@ -258,20 +254,16 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         return Collections.singletonList(
                 MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
                         .aisle("XXXXX", "GGGGG", "GGGGG", "XXXXX")
-                        .aisle("XXXXX", "GBBBG", "GBBBG", "XEEEX")
-                        .aisle("XXXXX", "GBBBG", "GBBBG", "XEEEX")
-                        .aisle("XXXXX", "GBBBG", "GBBBG", "XEEEX")
-                        .aisle("QISMO", "GGGGG", "GGGGG", "XXDXX")
-                        .where('S', this, EnumFacing.SOUTH)
+                        .aisle("XEEEX", "GBFFG", "GBFFG", "XXXXX")
+                        .aisle("XEEEX", "GBFFG", "GBFFG", "XXXXX")
+                        .aisle("XEEEX", "GBFFG", "GBFFG", "XXXXX")
+                        .aisle("XXXXX", "GGGGG", "GGGGG", "XXSXX")
+                        .where('S', this, EnumFacing.NORTH)
                         .where('X', getCasingState())
                         .where('G', getGlassState())
                         .where('B', MetaBlocks.FRAMES.get(Materials.Lead).getBlock(Materials.Lead))
+                        .where('F', MetaBlocks.FRAMES.get(Materials.Lead).getBlock(Materials.Lead))
                         .where('E', getHeatSinkState())
-                        .where('I', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                        .where('O', MetaTileEntities.ENERGY_OUTPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                        .where('Q', MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                        .where('D', MetaTileEntities.FLUID_EXPORT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                        .where('M', MetaTileEntities.MAINTENANCE_HATCH, EnumFacing.SOUTH)
                         .build()
         );
     }
@@ -393,7 +385,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
         // Draw energy from input hatches
         long availableEnergy = inputEnergyHatches.getEnergyStored();
-        long energyToDraw = Math.min(availableEnergy, Math.min(totalEuNeeded, MAX_CHARGE_RATE));
+        long energyToDraw = Math.min(availableEnergy, totalEuNeeded);
 
         if (energyToDraw <= 0) return;
 
@@ -444,7 +436,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         if (capacityAvailable <= 0) return;
 
         // Determine how many mB we can process this tick
-        long maxOutputThisTick = Math.min(MAX_DISCHARGE_RATE, capacityAvailable);
+        long maxOutputThisTick = capacityAvailable;
         int mbToProcess = (int) Math.min(Math.max(1, maxOutputThisTick / euReleased), Integer.MAX_VALUE);
 
         // Try to drain that many mB from input
