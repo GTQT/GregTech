@@ -6030,6 +6030,9 @@ gregtech.machine.battery_accumulator.mode_switch=Mode: %s
 gregtech.machine.battery_accumulator.loss_rate=Loss Rate: %s
 gregtech.machine.battery_accumulator.charging=Charging electrolyte...
 gregtech.machine.battery_accumulator.discharging=Discharging electrolyte...
+gregtech.machine.battery_accumulator.charge_progress=Charge Progress: %s / %s EU
+gregtech.machine.battery_accumulator.charge_progress_idle=Idle - no electrolyte to charge
+gregtech.machine.battery_accumulator.charge_progress_discharge=Not applicable in Discharge Mode
 gregtech.multiblock.battery_accumulator.description=The Battery Accumulator is a multiblock that charges and discharges electrolyte fluids used in disposable battery crafting. In Charge Mode, it consumes EU from energy hatches to convert uncharged electrolyte into charged electrolyte. In Discharge Mode, it consumes charged electrolyte to output EU through dynamo hatches. Both modes have a 10%% energy loss per direction.
 
 # Forge of the Gods

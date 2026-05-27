@@ -11,11 +11,12 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
@@ -26,7 +27,7 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.category.ICategoryOverride;
 import gregtech.api.unification.material.Materials;
-import gregtech.api.util.BlockInfo;
+
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -41,7 +42,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.EnumFacing;
+
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -62,8 +63,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import static gregtech.api.util.RelativeDirection.*;
 
@@ -83,7 +84,7 @@ import static gregtech.api.util.RelativeDirection.*;
  * efficiency. The loss rate is configurable.
  */
 public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
-        implements IControllable, ICategoryOverride {
+        implements IControllable, ICategoryOverride, ProgressBarMultiblock {
 
     // -----------------------------------------------------------------
     // Working mode
@@ -129,6 +130,9 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     /** Accumulated EU progress toward converting 1 mB of fluid. */
     private long chargeProgress = 0;
+
+    /** Total EU needed per mB for the current electrolyte (including loss). */
+    private long currentEuNeededPerMb = 0;
 
     /** Energy input hatch list (used in CHARGE mode). */
     private EnergyContainerList inputEnergyHatches;
@@ -249,25 +253,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        return Collections.singletonList(
-                MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                        .aisle("XXXXX", "GGGGG", "GGGGG", "XXXXX")
-                        .aisle("XEEEX", "GBFFG", "GBFFG", "XXXXX")
-                        .aisle("XEEEX", "GBFFG", "GBFFG", "XXXXX")
-                        .aisle("XEEEX", "GBFFG", "GBFFG", "XXXXX")
-                        .aisle("XXXXX", "GGGGG", "GGGGG", "XXSXX")
-                        .where('S', this, EnumFacing.NORTH)
-                        .where('X', getCasingState())
-                        .where('G', getGlassState())
-                        .where('B', MetaBlocks.FRAMES.get(Materials.Lead).getBlock(Materials.Lead))
-                        .where('F', MetaBlocks.FRAMES.get(Materials.Lead).getBlock(Materials.Lead))
-                        .where('E', getHeatSinkState())
-                        .build()
-        );
-    }
-
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
@@ -316,6 +301,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         this.inputFluidTanks = null;
         this.outputFluidTanks = null;
         this.isActive = false;
+        this.currentEuNeededPerMb = 0;
     }
 
     // -----------------------------------------------------------------
@@ -347,9 +333,11 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     private void tickChargeMode() {
         if (inputEnergyHatches == null || inputFluidTanks == null || outputFluidTanks == null) return;
 
+        currentEuNeededPerMb = 0;
+
         // Find a valid uncharged electrolyte in the input tanks
         BatteryAccumulatorFluidMapping mapping = null;
-        FluidStack unchargedStack = null;
+        int availableMb = 0;
         for (IFluidTank tank : inputFluidTanks.getFluidTanks()) {
             FluidStack drainSim = tank.drain(1, false);
             if (drainSim != null && drainSim.amount > 0) {
@@ -358,8 +346,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                     // Verify this is an uncharged fluid (not a charged one)
                     if (drainSim.getFluid() == found.getUnchargedFluid().getFluid()) {
                         mapping = found;
-                        unchargedStack = drainSim;
-                        break;
                     }
                 }
             }
@@ -373,28 +359,34 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
         // Apply loss: need more EU to charge (loss is taken from input)
         long euNeededPerMb = (long) (euPerMb / (1.0 - lossRatio));
-        long totalEuNeeded = euNeededPerMb - chargeProgress;
+        currentEuNeededPerMb = euNeededPerMb;
 
-        if (totalEuNeeded <= 0) {
-            // We have enough progress to convert 1 mB
-            convertChargeFluid(mapping, 1);
-            chargeProgress = 0;
-            this.isActive = true;
-            return;
+        // Count total available uncharged fluid across all input tanks
+        for (IFluidTank tank : inputFluidTanks.getFluidTanks()) {
+            FluidStack fluid = tank.getFluid();
+            if (fluid != null && fluid.getFluid() == mapping.getUnchargedFluid().getFluid()) {
+                availableMb += fluid.amount;
+            }
         }
 
-        // Draw energy from input hatches
+        // Draw energy from input hatches — capped by available fluid to avoid over-drawing
         long availableEnergy = inputEnergyHatches.getEnergyStored();
-        long energyToDraw = Math.min(availableEnergy, totalEuNeeded);
+        if (availableEnergy <= 0 && chargeProgress < euNeededPerMb) return;
 
-        if (energyToDraw <= 0) return;
+        long maxEnergyByAvailableMb = (long) availableMb * euNeededPerMb;
+        long maxEnergyToDraw = Math.min(
+                maxEnergyByAvailableMb - chargeProgress,
+                Long.MAX_VALUE - chargeProgress);
+        long energyToDraw = Math.min(availableEnergy, Math.max(0, maxEnergyToDraw));
 
-        // Actually consume the energy
-        inputEnergyHatches.changeEnergy(-energyToDraw);
-        chargeProgress += energyToDraw;
+        if (energyToDraw > 0) {
+            inputEnergyHatches.changeEnergy(-energyToDraw);
+            chargeProgress += energyToDraw;
+        }
+
         this.isActive = true;
 
-        // Check if we can now convert fluid
+        // Convert as many mB as we have progress for
         while (chargeProgress >= euNeededPerMb) {
             if (!convertChargeFluid(mapping, 1)) break;
             chargeProgress -= euNeededPerMb;
@@ -610,6 +602,59 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         super.renderMetaTileEntity(renderState, translation, pipeline);
         getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(),
                 this.isActive(), this.isWorkingEnabled());
+    }
+
+    // -----------------------------------------------------------------
+    // ProgressBarMultiblock
+    // -----------------------------------------------------------------
+
+    private long getChargeProgress() {
+        return chargeProgress;
+    }
+
+    private long getEuNeededPerMb() {
+        return currentEuNeededPerMb;
+    }
+
+    @Override
+    public int getProgressBarCount() {
+        return 1;
+    }
+
+    @Override
+    public void registerBars(List<UnaryOperator<TemplateBarBuilder>> bars, PanelSyncManager syncManager) {
+        LongSyncValue chargeProgressValue = new LongSyncValue(this::getChargeProgress);
+        LongSyncValue euNeededValue = new LongSyncValue(this::getEuNeededPerMb);
+        syncManager.syncValue("charge_progress", chargeProgressValue);
+        syncManager.syncValue("eu_needed", euNeededValue);
+
+        bars.add(b -> b
+                .progress(() -> {
+                    long needed = euNeededValue.getValue();
+                    if (needed <= 0) return 0;
+                    return Math.min(1.0, (double) chargeProgressValue.getValue() / needed);
+                })
+                .texture(GTGuiTextures.PROGRESS_BAR_FLUID_RIG_DEPLETION)
+                .tooltipBuilder(t -> {
+                    if (isStructureFormed()) {
+                        long progress = chargeProgressValue.getValue();
+                        long needed = euNeededValue.getValue();
+                        if (needed > 0) {
+                            t.addLine(IKey.lang(
+                                    "gregtech.machine.battery_accumulator.charge_progress",
+                                    TextFormattingUtil.formatNumbers(progress),
+                                    TextFormattingUtil.formatNumbers(needed)));
+                        } else if (workingMode == WorkingMode.CHARGE) {
+                            t.addLine(IKey.lang(
+                                    "gregtech.machine.battery_accumulator.charge_progress_idle"));
+                        } else {
+                            t.addLine(IKey.lang(
+                                    "gregtech.machine.battery_accumulator.charge_progress_discharge"));
+                        }
+                    } else {
+                        t.addLine(IKey.lang("gregtech.multiblock.invalid_structure"));
+                    }
+                }));
     }
 
     // -----------------------------------------------------------------
