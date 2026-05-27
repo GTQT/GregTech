@@ -745,8 +745,9 @@ gregtech.structure_channel.no_hatch=No Hatches
 gregtech.structure_channel.structure_piece=Structure Piece
 
 # Casing Groups
-gregtech.casing_group.heating_coils=Heating Coils
-gregtech.casing_group.machine_casings=Machine Casings
+gregtech.casing_group.heating_coil=Heating Coil
+gregtech.casing_group.machine_casing=Machine Casing
+gregtech.casing_group.borosilicate_glass=Borosilicate Glass
 
 item.glass.lens=Glass Lens (White)
 metaitem.glass_lens.orange.name=Glass Lens (Orange)
@@ -2428,6 +2429,16 @@ gregtech.material.lithium_cobalt_oxide=Lithium Cobalt Oxide
 gregtech.material.pvdf=PVDF
 gregtech.material.nmc_cathode_powder=NMC Cathode Powder
 gregtech.material.lithium_hexafluorophosphate=Lithium Hexafluorophosphate
+gregtech.material.lithium_bisoxalatoborate=Lithium Bis(oxalato)borate
+gregtech.material.lithium_bistriflimide=Lithium Bis(trifluoromethanesulfonyl)imide
+gregtech.material.charged_zinc_manganese_paste=Charged Zinc-Manganese Electrolyte Paste
+gregtech.material.charged_lithium_manganese_paste=Charged Lithium-Manganese Electrode Paste
+gregtech.material.charged_nickel_cadmium_electrolyte=Charged Nickel-Cadmium Electrolyte
+gregtech.material.charged_lead_acid_electrolyte=Charged Lead-Acid Electrolyte
+gregtech.material.charged_vanadium_electrolyte=Charged Vanadium Electrolyte
+gregtech.material.charged_lithium_bisoxalatoborate=Charged Lithium Bis(oxalato)borate
+gregtech.material.charged_lithium_bistriflimide=Charged Lithium Bis(trifluoromethanesulfonyl)imide
+gregtech.material.charged_lithium_hexafluorophosphate=Charged Lithium Hexafluorophosphate
 
 # Second Degree Materials
 gregtech.material.glass=Glass
@@ -2769,6 +2780,7 @@ recipemap.saw_mill.name=Saw Mill
 recipemap.combs_product.name=Honeycomb extraction
 recipemap.attractor.name=Bee Attractor
 recipemap.tree_growth.name=原木拟生场
+recipemap.battery_accumulator.name=Battery Accumulator
 recipemap.godforge_smelting.name=Godforge Smelting
 recipemap.godforge_molten.name=Godforge Melting
 recipemap.godforge_plasma.name=Godforge Plasma
@@ -6007,6 +6019,22 @@ gregtech.multiblock.active_transformer.max_in=Max Input: %s
 gregtech.multiblock.active_transformer.max_out=Max Output: %s
 gregtech.multiblock.active_transformer.average_io=Average I/O: %s
 
+# Battery Accumulator
+gregtech.machine.battery_accumulator.name=Battery Accumulator
+gregtech.machine.battery_accumulator.tooltip.1=Charges and discharges electrolyte fluids for disposable batteries
+gregtech.machine.battery_accumulator.tooltip.2=Energy loss rate: %s per direction
+gregtech.machine.battery_accumulator.tooltip.3=Round-trip efficiency: %s
+gregtech.machine.battery_accumulator.mode_charge=§aCharge Mode
+gregtech.machine.battery_accumulator.mode_discharge=§bDischarge Mode
+gregtech.machine.battery_accumulator.mode_switch=Mode: %s
+gregtech.machine.battery_accumulator.loss_rate=Loss Rate: %s
+gregtech.machine.battery_accumulator.charging=Charging electrolyte...
+gregtech.machine.battery_accumulator.discharging=Discharging electrolyte...
+gregtech.machine.battery_accumulator.charge_progress=Charge Progress: %s / %s EU
+gregtech.machine.battery_accumulator.charge_progress_idle=Idle - no electrolyte to charge
+gregtech.machine.battery_accumulator.charge_progress_discharge=Not applicable in Discharge Mode
+gregtech.multiblock.battery_accumulator.description=The Battery Accumulator is a multiblock that charges and discharges electrolyte fluids used in disposable battery crafting. In Charge Mode, it consumes EU from energy hatches to convert uncharged electrolyte into charged electrolyte. In Discharge Mode, it consumes charged electrolyte to output EU through dynamo hatches. Both modes have a 10%% energy loss per direction.
+
 # Forge of the Gods
 gregtech.machine.forge_of_gods.name=Forge of the Gods
 gregtech.machine.forge_of_gods.tooltip1=Harnesses the power of a star
@@ -7227,6 +7255,7 @@ gregtech.multiblock.pattern.error.limited.3=§cMinimum: %d per layer§r
 gregtech.multiblock.pattern.error.coils=§cAll heating coils must be the same§r
 gregtech.multiblock.pattern.error.batteries=§cMust have at least one non-empty Capacitor§r
 gregtech.multiblock.pattern.error.filters=§cAll filters must be the same§r
+gregtech.multiblock.pattern.error.casing_tier_mismatch=§cAll casings must be the same tier§r
 gregtech.multiblock.pattern.clear_amount_1=§6Must have a clear 1x1x1 space in front§r
 gregtech.multiblock.pattern.clear_amount_3=§6Must have a clear 3x3x1 space in front§r
 gregtech.multiblock.pattern.single=§6Only this block type can be used§r

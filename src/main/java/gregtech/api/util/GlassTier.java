@@ -6,6 +6,7 @@ import gregtech.common.blocks.BlockGodforgeGlass;
 import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -69,6 +70,24 @@ public final class GlassTier {
 
         public int getChannelValue() {
             return channelValue;
+        }
+
+        /**
+         * Get the block state for this glass entry.
+         *
+         * @return the block state corresponding to this entry's block and metadata
+         */
+        public IBlockState getState() {
+            return block.getStateFromMeta(meta);
+        }
+
+        /**
+         * Get the translation key for this glass entry.
+         *
+         * @return the translation key (e.g. "tile.blockglass.name.1")
+         */
+        public String getTranslationKey() {
+            return block.getTranslationKey() + "." + meta + ".name";
         }
     }
 

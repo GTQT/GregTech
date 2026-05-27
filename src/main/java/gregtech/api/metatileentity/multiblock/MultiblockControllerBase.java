@@ -280,6 +280,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return TraceabilityPredicate.ANY;
     }
 
+    @Deprecated
     public static TraceabilityPredicate heatingCoils() {
         return TraceabilityPredicate.HEATING_COILS.get();
     }

@@ -38,6 +38,7 @@ public class TraceabilityPredicate {
             blockWorldState -> blockWorldState.getBlockState().getBlock().isAir(blockWorldState.getBlockState(),
                     blockWorldState.getWorld(), blockWorldState.getPos()));
     // Allow all heating coils, and require them to have the same type.
+    @Deprecated
     public static Supplier<TraceabilityPredicate> HEATING_COILS = () -> new TraceabilityPredicate(blockWorldState -> {
         IBlockState blockState = blockWorldState.getBlockState();
         if (GregTechAPI.HEATING_COILS.containsKey(blockState)) {
