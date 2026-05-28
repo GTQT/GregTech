@@ -369,13 +369,14 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
             }
         }
 
-        // Draw energy from input hatches — capped by available fluid to avoid over-drawing
+        // Draw energy from input hatches — limited by voltage × amperage per tick
+        long maxInputPerTick = inputEnergyHatches.getInputVoltage() * inputEnergyHatches.getInputAmperage();
         long availableEnergy = inputEnergyHatches.getEnergyStored();
         if (availableEnergy <= 0 && chargeProgress < euNeededPerMb) return;
 
         long maxEnergyByAvailableMb = (long) availableMb * euNeededPerMb;
         long maxEnergyToDraw = Math.min(
-                maxEnergyByAvailableMb - chargeProgress,
+                Math.min(maxEnergyByAvailableMb - chargeProgress, maxInputPerTick),
                 Long.MAX_VALUE - chargeProgress);
         long energyToDraw = Math.min(availableEnergy, Math.max(0, maxEnergyToDraw));
 
@@ -423,13 +424,15 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         long euReleased = (long) (euPerMb * (1.0 - lossRatio));
         if (euReleased <= 0) return;
 
-        // Check if dynamo hatches can accept energy
+        // Limit output by voltage × amperage per tick and available space
+        long maxOutputPerTick = outputEnergyHatches.getOutputVoltage() * outputEnergyHatches.getOutputAmperage();
         long capacityAvailable = outputEnergyHatches.getEnergyCapacity() - outputEnergyHatches.getEnergyStored();
-        if (capacityAvailable <= 0) return;
+        long maxOutputEnergyThisTick = Math.min(maxOutputPerTick, capacityAvailable);
+        if (maxOutputEnergyThisTick <= 0) return;
 
         // Determine how many mB we can process this tick
-        long maxOutputThisTick = capacityAvailable;
-        int mbToProcess = (int) Math.min(Math.max(1, maxOutputThisTick / euReleased), Integer.MAX_VALUE);
+        int mbToProcess = (int) Math.min((long) Integer.MAX_VALUE, maxOutputEnergyThisTick / euReleased);
+        if (mbToProcess <= 0) return;
 
         // Try to drain that many mB from input
         FluidStack drained = inputFluidTanks.drain(mapping.getChargedFluidStack(mbToProcess), true);
