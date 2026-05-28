@@ -5,6 +5,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a single casing type used in multiblock structures.
@@ -47,5 +48,29 @@ public interface ICasing {
         Block block = state.getBlock();
         int meta = block.getMetaFromState(state);
         return new ItemStack(block, 1, meta);
+    }
+
+    /**
+     * Get the optional payload object carried by this casing.
+     * Used to retrieve additional data (e.g. coil stats, casing type) without downcasting.
+     *
+     * @return the payload object, or null if none
+     */
+    @Nullable
+    default Object getPayload() {
+        return null;
+    }
+
+    /**
+     * Get the payload as a specific type.
+     * Convenience method that combines {@link #getPayload()} with a type check.
+     *
+     * @param type the expected payload type
+     * @return the payload cast to the requested type, or null if absent or wrong type
+     */
+    @Nullable
+    default <T> T getPayloadAs(@NotNull Class<T> type) {
+        Object p = getPayload();
+        return type.isInstance(p) ? type.cast(p) : null;
     }
 }

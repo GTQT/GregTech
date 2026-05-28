@@ -19,13 +19,13 @@ import org.jetbrains.annotations.Nullable;
  * <p>Usage in pattern predicates:
  * <pre>{@code
  * // In DeclarativePatternBuilder:
- * .tieredCasing('C', coilGroup).withChannel(GTStructureChannels.HEATING_COIL)
+ * .tieredCasing('C', coilGroup)
  *
  * // In formStructure():
- * int coilTier = context.getInt(GTStructureChannels.HEATING_COIL.getName());
+ * ICasing matched = channel.getMatchedCasing(context);
  * }</pre>
  *
- * @see GTStructureChannels for pre-defined channels
+ * @see GTCasingGroups for pre-defined casing group registrations (which auto-create channels)
  * @see PatternMatchContext for the storage mechanism
  */
 public interface StructureChannel {

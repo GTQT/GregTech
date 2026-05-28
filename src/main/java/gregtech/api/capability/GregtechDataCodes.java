@@ -157,6 +157,9 @@ public class GregtechDataCodes {
     public static final int OVERFLOW_MODE = assignId();
     public static final int LACK_ENERGY_WARNING = assignId();
 
+    // Battery Accumulator
+    public static final int WORKING_MODE = assignId();
+
     // Creative Energy
     public static final int UPDATE_IO_SPEED = assignId();
 

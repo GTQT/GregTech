@@ -30,14 +30,14 @@ public enum DisposableBatteryType {
 
     // A1 — Lithium-Manganese Button Cell (MV)
     // Byproduct: MnO₂ small dust — cathode residue
-    LITHIUM_MANGANESE(GTValues.MV, 180_000_000L,
+    LITHIUM_MANGANESE(GTValues.MV, 80_000_000L,
             () -> new ItemStack[] {
                     OreDictUnifier.get(OrePrefix.dustSmall, Materials.Pyrolusite, 4)
             }),
 
     // A2 — Nickel-Cadmium Cell (HV)
     // Byproducts: NiO small dust + Cd small dust — electrode degradation residues
-    NICKEL_CADMIUM(GTValues.HV, 180_000_000L,
+    NICKEL_CADMIUM(GTValues.HV, 320_000_000L,
             () -> new ItemStack[] {
                     OreDictUnifier.get(OrePrefix.dustSmall, Materials.NickelOxide, 4),
                     OreDictUnifier.get(OrePrefix.dustSmall, Materials.Cadmium, 4)

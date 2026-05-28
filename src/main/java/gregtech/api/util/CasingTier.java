@@ -5,6 +5,7 @@ import gregtech.common.blocks.BlockMachineCasing;
 import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -45,11 +46,17 @@ public final class CasingTier {
         private final Block block;
         private final int meta;
         private final int tier;
+        @Nullable
+        private final String translationKey;
+        @Nullable
+        private final Object payload;
 
-        CasingTierEntry(Block block, int meta, int tier) {
+        CasingTierEntry(Block block, int meta, int tier, @Nullable String translationKey, @Nullable Object payload) {
             this.block = block;
             this.meta = meta;
             this.tier = tier;
+            this.translationKey = translationKey;
+            this.payload = payload;
         }
 
         public Block getBlock() {
@@ -62,6 +69,35 @@ public final class CasingTier {
 
         public int getTier() {
             return tier;
+        }
+
+        /**
+         * Get the block state for this casing entry.
+         *
+         * @return the block state corresponding to this entry's block and metadata
+         */
+        public IBlockState getState() {
+            return block.getStateFromMeta(meta);
+        }
+
+        /**
+         * Get the translation key for this casing entry, if one was provided at registration.
+         *
+         * @return the translation key, or null if not provided
+         */
+        @Nullable
+        public String getTranslationKey() {
+            return translationKey;
+        }
+
+        /**
+         * Get the payload object for this casing entry, if one was provided at registration.
+         *
+         * @return the payload object, or null if not provided
+         */
+        @Nullable
+        public Object getPayload() {
+            return payload;
         }
     }
 
@@ -92,9 +128,23 @@ public final class CasingTier {
      * @param tier  the voltage tier (1-based, e.g. ULV=1, LV=2, ..., MAX=15)
      */
     public static void addCasing(@NotNull Block block, int meta, int tier) {
+        addCasing(block, meta, tier, null, null);
+    }
+
+    /**
+     * Register a casing block with its voltage tier, translation key, and payload.
+     *
+     * @param block          the casing block
+     * @param meta           the block metadata
+     * @param tier           the voltage tier (1-based, e.g. ULV=1, LV=2, ..., MAX=15)
+     * @param translationKey the translation key for this casing, or null to use block default
+     * @param payload        optional payload object (e.g. casing type enum), or null
+     */
+    public static void addCasing(@NotNull Block block, int meta, int tier,
+                                 @Nullable String translationKey, @Nullable Object payload) {
         Objects.requireNonNull(block, "Casing block cannot be null");
         casingToTier.put(Pair.of(block, meta), tier);
-        casingList.add(new CasingTierEntry(block, meta, tier));
+        casingList.add(new CasingTierEntry(block, meta, tier, translationKey, payload));
     }
 
     /**
@@ -110,7 +160,8 @@ public final class CasingTier {
             for (BlockMachineCasing.MachineCasingType type : BlockMachineCasing.MachineCasingType.values()) {
                 int meta = type.ordinal();
                 int tier = meta + 1;
-                addCasing(machineCasing, meta, tier);
+                addCasing(machineCasing, meta, tier,
+                        "tile.machine_casing." + type.getName() + ".name", type);
             }
         }
     }

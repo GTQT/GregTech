@@ -503,7 +503,7 @@ public class MachineRecipeLoader {
 
         ASSEMBLER_RECIPES.recipeBuilder()
                 .inputs(new ItemStack(Blocks.LEVER))
-                .input(OrePrefix.plate, material)
+                .input(plate, material)
                 .fluidInputs(solder)
                 .outputs(MetaItems.COVER_MACHINE_CONTROLLER.getStackForm(1))
                 .EUt(16).duration(100)

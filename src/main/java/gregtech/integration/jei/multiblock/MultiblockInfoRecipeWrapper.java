@@ -1073,11 +1073,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 int[] centerOff = tmpl.getCenterOffset();
 
                 // controllerBlockPos is the controller's position in the TrackedDummyWorld
-                // (blockMap coordinates). In getPreview coordinates the controller sits at
-                // (centerOff[0], centerOff[1], centerOff[3]). The difference is the offset
-                // that converts preview-space positions to blockMap-space positions.
+                // (blockMap coordinates). Compute the controller's actual preview-space
+                // position using the same direction transform as getPreview(), then derive
+                // the offset that converts preview-space positions to blockMap-space positions.
                 BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
-                BlockPos offset = cPos.subtract(new BlockPos(centerOff[0], centerOff[1], centerOff[3]));
+                BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
+                        centerOff[0], centerOff[1], centerOff[3],
+                        EnumFacing.NORTH, EnumFacing.UP, false, sDir);
+                BlockPos offset = cPos.subtract(controllerPreviewPos);
 
                 for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
                     for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {

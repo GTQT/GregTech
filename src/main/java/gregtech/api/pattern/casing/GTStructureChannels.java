@@ -4,70 +4,71 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Pre-defined structure channels for GregTech multiblocks.
- * Each channel corresponds to a type of tiered component that can vary between
- * different tiers of the same multiblock structure.
  *
- * <p>Channels are used for:
+ * <p>Casing-related channels (heating coils, machine casings, borosilicate glass)
+ * are now auto-created by {@link GTCasingGroups} and registered in
+ * {@link StructureChannelRegistry}. Access them via:
  * <ul>
- *   <li>Tracking detected tier during structure checking (stored in PatternMatchContext)</li>
- *   <li>Selecting which tier to build during auto-building (set via builder GUI)</li>
- *   <li>Displaying tier information in multiblock tooltips</li>
+ *   <li>{@link GTCasingGroups#heatingCoils()} + {@code .channel()}</li>
+ *   <li>{@link GTCasingGroups#machineCasings()} + {@code .channel()}</li>
+ *   <li>{@link GTCasingGroups#borosilicateGlasses()} + {@code .channel()}</li>
  * </ul>
  *
- * <p>To add a new channel for an addon, simply create a new enum or implement
- * {@link StructureChannel} directly.
+ * <p>To add a new channel for an addon, either:
+ * <ul>
+ *   <li>Use {@link CasingDefinition#fromMap} / {@link CasingDefinition#fromIterable} which auto-creates the channel</li>
+ *   <li>Create a {@link SimpleStructureChannel} and register it via {@link StructureChannelRegistry#register}</li>
+ *   <li>Add an enum constant here (for channels without casing groups)</li>
+ * </ul>
  *
  * @see StructureChannel for the interface contract
  * @see DeclarativePatternBuilder for usage in pattern definitions
  */
 public enum GTStructureChannels implements StructureChannel {
 
-    // --- Heating/Processing ---
-    HEATING_COIL("heating_coil", "gregtech.structure_channel.heating_coil"),
-    WIRE_COIL("wire_coil", "gregtech.structure_channel.wire_coil"),
-
-    // --- Glass ---
-    BOROSILICATE_GLASS("borosilicate_glass", "gregtech.structure_channel.borosilicate_glass"),
-
-    // --- Machine Casings ---
-    MACHINE_CASING("machine_casing", "gregtech.structure_channel.machine_casing"),
-    SOLID_CASING("solid_casing", "gregtech.structure_channel.solid_casing"),
-    PIPE_CASING("pipe_casing", "gregtech.structure_channel.pipe_casing"),
-    ITEM_PIPE_CASING("item_pipe_casing", "gregtech.structure_channel.item_pipe_casing"),
+    // --- Wire Coil ---
+    WIRE_COIL("wire_coil"),
 
     // --- Structure Dimensions ---
-    STRUCTURE_HEIGHT("structure_height", "gregtech.structure_channel.structure_height"),
-    STRUCTURE_LENGTH("structure_length", "gregtech.structure_channel.structure_length"),
+    STRUCTURE_HEIGHT("structure_height"),
+    STRUCTURE_LENGTH("structure_length"),
 
     // --- Hatch Tier ---
-    HATCH_TIER("hatch_tier", "gregtech.structure_channel.hatch_tier"),
+    HATCH_TIER("hatch_tier"),
 
     // --- Energy ---
-    ENERGY_CASING("energy_casing", "gregtech.structure_channel.energy_casing"),
+    ENERGY_CASING("energy_casing"),
 
     // --- Solenoid ---
-    SOLENOID("solenoid", "gregtech.structure_channel.solenoid"),
+    SOLENOID("solenoid"),
 
     // --- Battery/Capacitor ---
-    BATTERY("battery", "gregtech.structure_channel.battery"),
+    BATTERY("battery"),
+
+    // --- Solid/Pipe/Item-Pipe Casings ---
+    SOLID_CASING("solid_casing"),
+    PIPE_CASING("pipe_casing"),
+    ITEM_PIPE_CASING("item_pipe_casing"),
 
     // --- Hatch Placement Control ---
-    // When gt_no_hatch=1 in channelValues, autoBuild skips hatch candidates
+    // When no_hatch=1 in channelValues, autoBuild skips hatch candidates
     // and only places casing blocks. When absent or 0, hatches are placed normally.
-    NO_HATCH("gt_no_hatch", "gregtech.structure_channel.no_hatch"),
+    NO_HATCH("no_hatch"),
 
     // --- Multi-Piece Structure Piece Selection ---
     // Controls which piece of a MultiPiecePattern to build.
     // 0 = main pattern only (default), 1+ = piece index (1-based) from MultiPiecePattern.
-    STRUCTURE_PIECE("structure_piece", "gregtech.structure_channel.structure_piece"),
+    STRUCTURE_PIECE("structure_piece"),
     ;
+
+    private static final String TOOLTIP_PREFIX = "gregtech.structure_channel.";
 
     private final String name;
     private final String tooltip;
 
-    GTStructureChannels(@NotNull String name, @NotNull String tooltip) {
+    GTStructureChannels(@NotNull String name) {
         this.name = name;
-        this.tooltip = tooltip;
+        this.tooltip = TOOLTIP_PREFIX + name;
     }
 
     @Override
