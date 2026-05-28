@@ -190,7 +190,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
             .register("gregtech:battery_accumulator", () ->
                     DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
                             // Base layer — electrical panel and controller
-                            .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXSXX")
+                            .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                             // Battery module layer 1
                             .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
                             // Battery module layer 2
