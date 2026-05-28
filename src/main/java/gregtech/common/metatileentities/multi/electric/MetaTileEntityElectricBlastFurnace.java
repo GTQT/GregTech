@@ -54,8 +54,7 @@ import java.util.List;
 
 public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockController implements IHeatingCoil {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
-            .register("gregtech:electric_blast_furnace", () ->
+    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:electric_blast_furnace", () ->
                     DeclarativePatternBuilder.start()
                             .aisle("XXX", "CCC", "CCC", "XXX")
                             .aisle("XXX", "C#C", "C#C", "XMX")
@@ -63,8 +62,7 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                             .where('S', selfPredicate(MetaTileEntityElectricBlastFurnace.class))
                             .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                             .where('#', air())
-                            .casing('X', CasingDefinition.simple(
-                                    MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
+                            .casing('X', CasingDefinition.simple(MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
                             .preset(HatchPresets.ELECTRIC_STANDARD)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())
