@@ -482,6 +482,8 @@ public class Textures {
             "cover/overlay_pump_inverted");
     public static final SimpleOverlayRenderer AIR_VENT_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_air_vent");
+    public static final SimpleOverlayRenderer DRAIN_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_drain");
     public static final SimpleOverlayRenderer BLOWER_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_blower");
     public static final SimpleOverlayRenderer BLOWER_ACTIVE_OVERLAY = new SimpleOverlayRenderer(

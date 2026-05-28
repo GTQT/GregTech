@@ -669,6 +669,13 @@ public class MachineRecipeLoader {
                 'S', new UnificationEntry(stick, Steel),
                 'P', new UnificationEntry(pipeSmallFluid, Bronze));
 
+        // Drain
+        ModHandler.addShapedRecipe(true, "drain", COVER_DRAIN.getStackForm(),
+                "SSS", "BPB", "SSS",
+                'B', new ItemStack(Blocks.IRON_BARS),
+                'P', new UnificationEntry(pipeSmallFluid, Bronze),
+                'S', new UnificationEntry(stick, Iron));
+
         ASSEMBLER_RECIPES.recipeBuilder()
                 .input(plate, EnderPearl, 9)
                 .input(plateDouble, StainlessSteel)

@@ -99,9 +99,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                         .setExactLimit(1)
                         .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
                 .casing('H', CasingDefinition.simple(type.getCasingState()))
-                .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
-                .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
-                .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
+                .maintenance()
+                .fluidInput(1,1)
+                .fluidOutput(1,2)
                 .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
                 .buildTemplate();
     }

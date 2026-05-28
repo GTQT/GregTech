@@ -683,20 +683,28 @@ public class MetaItem1 extends StandardMetaItem {
                 .addComponents(new SmartFilterUIManager(), IFilter.factory(SmartItemFilter::new));
 
         // Functional Covers: ID 295-330
+        COVER_DRAIN = addItem(295, "cover.drain")
+                .addComponents(new TooltipBehavior(lines -> {
+                    lines.add(I18n.format("metaitem.cover.drain.tooltip.1"));
+                    lines.add(I18n.format("metaitem.cover.drain.tooltip.2", 100));
+                }));
+
+        COVER_AIR_VENT = addItem(296, "cover.air_vent")
+                .addComponents(new TooltipBehavior(lines -> {
+                    lines.add(I18n.format("metaitem.cover.air_vent.tooltip.1"));
+                    lines.add(I18n.format("metaitem.cover.air_vent.tooltip.2", 100));
+                }));
+
         COVER_MACHINE_CONTROLLER = addItem(301, "cover.controller");
         COVER_ACTIVITY_DETECTOR = addItem(302, "cover.activity.detector");
         COVER_ACTIVITY_DETECTOR_ADVANCED = addItem(303, "cover.activity.detector_advanced");
         COVER_FLUID_DETECTOR = addItem(304, "cover.fluid.detector");
-
         COVER_ITEM_DETECTOR = addItem(305, "cover.item.detector");
-
         COVER_ENERGY_DETECTOR = addItem(306, "cover.energy.detector");
-
         COVER_SCREEN = addItem(307, "cover.screen");
         COVER_ENDER_ITEM_LINK = addItem(308, "cover.ender_item_link");
         COVER_ENDER_FLUID_LINK = addItem(309, "cover.ender_fluid_link");
         COVER_SHUTTER = addItem(310, "cover.shutter");
-        COVER_AIR_VENT = addItem(311, "cover.air_vent");
         COVER_DIGITAL_INTERFACE = addItem(312, "cover.digital");
         COVER_DIGITAL_INTERFACE_WIRELESS = addItem(313, "cover.digital.wireless");
         COVER_FLUID_VOIDING = addItem(314, "cover.fluid.voiding");

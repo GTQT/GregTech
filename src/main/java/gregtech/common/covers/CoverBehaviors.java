@@ -144,6 +144,8 @@ public final class CoverBehaviors {
         registerBehavior(gregtechId("infinite_water.ev"), MetaItems.COVER_INFINITE_WATER_EV,(def, tile, side) -> new CoverInfiniteWater(def, tile, side, 16000));
 
         registerBehavior(gregtechId("air_vent"), MetaItems.COVER_AIR_VENT, (def, tile, side) -> new CoverAirVent(def, tile, side, 100));
+        registerBehavior(gregtechId("drain"), MetaItems.COVER_DRAIN, (def, tile, side) -> new CoverDrain(def, tile, side, 100));
+
         registerBehavior(gregtechId("ender_fluid_link"), MetaItems.COVER_ENDER_FLUID_LINK, CoverEnderFluidLink::new);
         registerBehavior(gregtechId("ender_item_link"), MetaItems.COVER_ENDER_ITEM_LINK, CoverEnderItemLink::new);
         registerBehavior(gregtechId("cover.digital"), MetaItems.COVER_DIGITAL_INTERFACE, CoverDigitalInterface::new);

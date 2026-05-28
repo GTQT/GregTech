@@ -1117,8 +1117,12 @@ metaitem.cover.ender_fluid_link.tooltip=Transports §fFluids§7 with a §fWirele
 metaitem.cover.ender_item_link.tooltip=Transports §fItems§7 with a §fWireless §dEnder§f Connection§7 as §fCover§7.
 
 metaitem.cover.air_vent.name=Air Vent
-metaitem.cover.air_vent.tooltip.1=When making §f covering plate§7, air is introduced into the pipe or machine §f§7, and the type of air depends on the current §f dimension§7.
+metaitem.cover.air_vent.tooltip.1=§fCollected Air§7 into Machines or Pipes as §fCover§7, the air type dependent with its §fdimension§7.
 metaitem.cover.air_vent.tooltip.2=§bTransfer Rate: §f%,d L/s
+
+metaitem.cover.drain.name=Drain
+metaitem.cover.drain.tooltip.1=§fExtracted Water§7 into Machines or Pipes as §fCover§7, required §fExisted Water§7 at orientated facing.
+metaitem.cover.drain.tooltip.2=§bExtract Rate: §f%,d L/s
 
 metaitem.gelled_toluene.name=Gelled Toluene
 metaitem.gelled_toluene.tooltip=Raw Explosive
