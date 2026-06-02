@@ -117,7 +117,7 @@ public class SecondDegreeMaterials {
         TungstenSteel = Material.builder(2013, gregtechId("tungsten_steel"))
                 .ingot(4).fluid()
                 .color(0x6464A0).iconSet(METALLIC)
-                .flags(EXT2_METAL)
+                .flags(EXT2_METAL,GENERATE_SHEET)
                 .components(Steel, 1, Tungsten, 1)
                 .toolStats(MaterialToolProperty.Builder.of(9.0F, 7.0F, 2048, 4)
                         .enchantability(14).build())

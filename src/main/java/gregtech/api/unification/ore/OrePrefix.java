@@ -301,6 +301,9 @@ public class OrePrefix {
     public static final OrePrefix frameGt = new OrePrefix("frameGt", M * 2, null, null, ENABLE_UNIFICATION,
             material -> material.hasFlag(GENERATE_FRAME));
 
+    public static final OrePrefix sheet = new OrePrefix("sheet", M * 3, null, MaterialIconType.sheet,
+            ENABLE_UNIFICATION, material -> material.hasFlag(GENERATE_SHEET));
+
     public static final OrePrefix pipeTinyFluid = new OrePrefix("pipeTinyFluid", M / 2, null, null, ENABLE_UNIFICATION,
             null);
     public static final OrePrefix pipeSmallFluid = new OrePrefix("pipeSmallFluid", M, null, null, ENABLE_UNIFICATION,

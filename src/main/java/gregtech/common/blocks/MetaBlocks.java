@@ -19,10 +19,10 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.function.TriConsumer;
 import gregtech.client.model.SimpleStateMapper;
 import gregtech.client.model.modelfactories.BakedModelHandler;
-import gregtech.client.renderer.handler.MetaTileEntityRenderer;
-import gregtech.client.renderer.handler.MetaTileEntityTESR;
 import gregtech.client.renderer.godforge.GodforgeRenderTileEntity;
 import gregtech.client.renderer.godforge.GodforgeStarRenderer;
+import gregtech.client.renderer.handler.MetaTileEntityRenderer;
+import gregtech.client.renderer.handler.MetaTileEntityTESR;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
@@ -113,8 +113,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static gregtech.api.unification.material.info.MaterialFlags.FORCE_GENERATE_BLOCK;
-import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_FRAME;
+import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.util.GTUtility.gregtechId;
 
 public class MetaBlocks {
@@ -191,10 +190,12 @@ public class MetaBlocks {
 
     public static final Map<Material, BlockCompressed> COMPRESSED = new Object2ObjectOpenHashMap<>();
     public static final Map<Material, BlockFrame> FRAMES = new Object2ObjectOpenHashMap<>();
+    public static final Map<Material, BlockSheet> SHEETS = new Object2ObjectOpenHashMap<>();
     public static final Map<Material, BlockSurfaceRock> SURFACE_ROCK = new Object2ObjectOpenHashMap<>();
 
     public static final List<BlockCompressed> COMPRESSED_BLOCKS = new ArrayList<>();
     public static final List<BlockFrame> FRAME_BLOCKS = new ArrayList<>();
+    public static final List<BlockSheet> SHEET_BLOCKS = new ArrayList<>();
     public static final List<BlockSurfaceRock> SURFACE_ROCK_BLOCKS = new ArrayList<>();
 
     public static final List<BlockOre> ORES = new ArrayList<>();
@@ -378,6 +379,10 @@ public class MetaBlocks {
                         material.hasFlag(FORCE_GENERATE_BLOCK)) && !OrePrefix.block.isIgnored(material),
                 MetaBlocks::createCompressedBlock);
 
+        createGeneratedBlock(
+                material -> material.hasFlag(GENERATE_SHEET) && !OrePrefix.sheet.isIgnored(material),
+                MetaBlocks::createSheetBlock);
+
         registerTileEntity();
 
         // not sure if that's a good place for that, but i don't want to make a dedicated method for that
@@ -446,6 +451,15 @@ public class MetaBlocks {
             FRAMES.put(m, block);
         }
         FRAME_BLOCKS.add(block);
+    }
+
+    private static void createSheetBlock(String modid, Material[] materials, int index) {
+        BlockSheet block = BlockSheet.create(materials);
+        block.setRegistryName(modid, "meta_block_sheet_" + index);
+        for (Material m : materials) {
+            SHEETS.put(m, block);
+        }
+        SHEET_BLOCKS.add(block);
     }
 
     private static void createSurfaceRockBlock(String modid, Material[] materials, int index) {
@@ -557,6 +571,7 @@ public class MetaBlocks {
 
         for (BlockCompressed block : COMPRESSED_BLOCKS) block.onModelRegister();
         for (BlockFrame block : FRAME_BLOCKS) block.onModelRegister();
+        for (BlockSheet block : SHEET_BLOCKS) block.onModelRegister();
         for (BlockOre block : ORES) block.onModelRegister();
     }
 
@@ -670,6 +685,11 @@ public class MetaBlocks {
             itemColors.registerItemColorHandler((s, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
         }
 
+        for (BlockSheet block : SHEET_BLOCKS) {
+            blockColors.registerBlockColorHandler((s, w, p, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
+            itemColors.registerItemColorHandler((s, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
+        }
+
         for (BlockSurfaceRock block : SURFACE_ROCK_BLOCKS) {
             blockColors.registerBlockColorHandler((s, w, p, i) -> i == 1 ? block.getGtMaterial(s).getMaterialRGB() : -1,
                     block);
@@ -741,6 +761,13 @@ public class MetaBlocks {
             BlockFrame block = entry.getValue();
             ItemStack itemStack = block.getItem(material);
             OreDictUnifier.registerOre(itemStack, OrePrefix.frameGt, material);
+        }
+
+        for (Entry<Material, BlockSheet> entry : SHEETS.entrySet()) {
+            Material material = entry.getKey();
+            BlockSheet block = entry.getValue();
+            ItemStack itemStack = block.getItem(material);
+            OreDictUnifier.registerOre(itemStack, OrePrefix.sheet, material);
         }
 
         for (BlockOre blockOre : ORES) {

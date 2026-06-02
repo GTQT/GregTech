@@ -28,6 +28,7 @@ import gregtech.common.blocks.BlockCompressed;
 import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.BlockLamp;
 import gregtech.common.blocks.BlockOre;
+import gregtech.common.blocks.BlockSheet;
 import gregtech.common.blocks.BlockSurfaceRock;
 import gregtech.common.blocks.LampItemBlock;
 import gregtech.common.blocks.MaterialItemBlock;
@@ -226,6 +227,7 @@ public class CommonProxy {
 
         for (BlockCompressed block : COMPRESSED_BLOCKS) registry.register(block);
         for (BlockFrame block : FRAME_BLOCKS) registry.register(block);
+        for (BlockSheet block : SHEET_BLOCKS) registry.register(block);
         for (BlockSurfaceRock block : SURFACE_ROCK_BLOCKS) registry.register(block);
         for (BlockOre block : ORES) registry.register(block);
     }
@@ -384,6 +386,9 @@ public class CommonProxy {
         }
         for (BlockFrame block : FRAME_BLOCKS) {
             registry.register(createItemBlock(block, b -> new MaterialItemBlock(b, OrePrefix.frameGt)));
+        }
+        for (BlockSheet block : SHEET_BLOCKS) {
+            registry.register(createItemBlock(block, b -> new MaterialItemBlock(b, OrePrefix.sheet)));
         }
         for (BlockOre block : ORES) {
             registry.register(createItemBlock(block, OreItemBlock::new));

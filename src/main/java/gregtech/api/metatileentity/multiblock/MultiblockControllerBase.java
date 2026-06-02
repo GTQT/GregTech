@@ -266,6 +266,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 }));
     }
 
+    public static TraceabilityPredicate sheets(Material... sheetMaterials) {
+        return states(Arrays.stream(sheetMaterials).map(m -> MetaBlocks.SHEETS.get(m).getBlock(m))
+                .toArray(IBlockState[]::new))
+                .or(new TraceabilityPredicate(blockWorldState -> {
+                    TileEntity tileEntity = blockWorldState.getTileEntity();
+                    if (!(tileEntity instanceof IPipeTile<?, ?> pipeTile)) {
+                        return false;
+                    }
+                    return ArrayUtils.contains(sheetMaterials, pipeTile.getFrameMaterial());
+                }));
+    }
+
     public static TraceabilityPredicate blocks(Block... block) {
         return new TraceabilityPredicate(
                 blockWorldState -> ArrayUtils.contains(block, blockWorldState.getBlockState().getBlock()),

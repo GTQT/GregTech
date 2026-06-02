@@ -99,8 +99,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1357))
                 .color(0xFF8000).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_FRAME, GENERATE_SMALL_GEAR,
-                        GENERATE_FOIL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE,GENERATE_SHEET)
                 .components(Tin, 1, Copper, 3)
                 .toolStats(MaterialToolProperty.Builder.of(3.0F, 2.0F, 192, 2)
                         .enchantability(18).build())
@@ -380,8 +379,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(2345))
                 .color(0x1D1D29)
-                .flags(EXT2_METAL, GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FOIL, GENERATE_FINE_WIRE,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL,GENERATE_SHEET)
                 .components(Niobium, 1, Titanium, 1)
                 .fluidPipeProperties(5900, 175, true)
                 .cableProperties(V[LuV], 4, 2)
@@ -596,8 +594,7 @@ public class FirstDegreeMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(2011))
                 .color(0xC8C8DC).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_ROTOR, GENERATE_SMALL_GEAR, GENERATE_FRAME, GENERATE_LONG_ROD,
-                        GENERATE_FOIL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL, GENERATE_SHEET)
                 .components(Iron, 6, Chrome, 1, Manganese, 1, Nickel, 1)
                 .toolStats(MaterialToolProperty.Builder.of(7.0F, 5.0F, 1024, 3)
                         .enchantability(14).build())
@@ -610,9 +607,7 @@ public class FirstDegreeMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(2046))
                 .color(0x808080).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_SMALL_GEAR, GENERATE_SPRING,
-                        GENERATE_SPRING_SMALL, GENERATE_FRAME, DISABLE_DECOMPOSITION, GENERATE_FINE_WIRE, GENERATE_GEAR,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE , DISABLE_DECOMPOSITION ,GENERATE_SHEET)
                 .components(Iron, 1)
                 .toolStats(MaterialToolProperty.Builder.of(5.0F, 3.0F, 512, 3)
                         .enchantability(14).build())

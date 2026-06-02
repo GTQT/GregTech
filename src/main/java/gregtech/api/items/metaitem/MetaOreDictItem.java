@@ -29,7 +29,7 @@ public class MetaOreDictItem extends StandardMetaItem {
     private final Map<Short, OreDictValueItem> ITEMS = new HashMap<>();
     private static final List<MaterialIconType> DISALLOWED_TYPES = ImmutableList.of(
             MaterialIconType.block, MaterialIconType.ore, MaterialIconType.oreSmall,
-            MaterialIconType.frameGt);
+            MaterialIconType.frameGt,MaterialIconType.sheet);
     private static final ModelResourceLocation MISSING_LOCATION = new ModelResourceLocation("builtin/missing",
             "inventory");
 

@@ -1777,6 +1777,7 @@ item.material.oreprefix.toolHeadWrench=%s扳手顶
 item.material.oreprefix.turbineBlade=%s涡轮扇叶
 item.material.oreprefix.block=%s块
 item.material.oreprefix.frameGt=%s框架
+item.material.oreprefix.sheet=%s薄板框架
 item.material.oreprefix.pipeTinyFluid=微型%s流体管道
 item.material.oreprefix.pipeSmallFluid=小型%s流体管道
 item.material.oreprefix.pipeNormalFluid=%s流体管道
