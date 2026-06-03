@@ -55,7 +55,15 @@ public class FactoryBlockPattern {
 
     /**
      * Adds a repeatable aisle to this pattern.
+     *
+     * @deprecated Use {@link gregtech.api.pattern.element.StructureDefinition} builder's
+     *         {@code .repeatableX(...) / .repeatableY(...) / .repeatableZ(...)} (uniform single-axis)
+     *         or {@code .repeatablePiece(...).repeatAxes(...)} (uniform multi-axis) instead.
+     *         This API will be removed in 2.10. New machines must use
+     *         {@code createStructureDefinition()} (see {@code docs/structure-element-system-design-v2.md} §14).
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public FactoryBlockPattern aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
         if (!ArrayUtils.isEmpty(aisle) && !StringUtils.isEmpty(aisle[0])) {
             if (this.depth.isEmpty()) {

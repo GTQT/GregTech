@@ -48,11 +48,12 @@ import java.util.function.Supplier;
  * }
  * }</pre>
  *
- * <p>For core high-frequency machines that should never be evicted, continue using
- * {@link LazyTemplate} directly.
+ * <p>All templates use {@link SoftTemplate} for GC-reclaimable caching with anti-thrashing
+ * protection. For the few core machines that should never be evicted, consider holding a strong
+ * reference to the {@link SoftTemplate} in a static field — it will not be reclaimed while the
+ * static field is alive.
  *
  * @see SoftTemplate for the individual soft-reference holder
- * @see LazyTemplate for permanent (never-evicted) caching
  */
 public final class TemplatePool {
 

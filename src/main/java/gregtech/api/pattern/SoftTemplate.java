@@ -16,7 +16,8 @@ import java.util.function.Supplier;
  * This prevents rapid GC→recreate→GC cycles under memory pressure.
  *
  * <p>Best for environments with hundreds of multiblock types where most are rarely used.
- * For core high-frequency machines, prefer {@link LazyTemplate} which never releases.
+ * For core high-frequency machines, prefer holding a strong static reference to the
+ * {@link SoftTemplate} instance — it will not be reclaimed while the static field is alive.
  *
  * <p>Usage:
  * <pre>{@code
@@ -35,7 +36,6 @@ import java.util.function.Supplier;
  *
  * <p>Thread safety is guaranteed via double-checked locking with volatile fields.
  *
- * @see LazyTemplate for permanent (never-evicted) caching
  * @see TemplatePool for centralized pool management and statistics
  */
 public final class SoftTemplate {

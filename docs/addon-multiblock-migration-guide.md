@@ -17,7 +17,7 @@ deprecated and scheduled for removal in v2.10.
 | Per-instance state | `BlockPattern` fields (`cache`, `formedRepetitionCount`) | `MultiblockState` (one per controller instance) |
 | Builder output | `FactoryBlockPattern.build()` → `BlockPattern` | `FactoryBlockPattern.buildTemplate()` → `BlockPatternTemplate` |
 | Controller override | `createStructurePattern()` → `BlockPattern` | `createStructureTemplate()` → `BlockPatternTemplate` |
-| Template caching | Manual or none | `LazyTemplate`, `SoftTemplate`, `TemplatePool` |
+| Template caching | Manual or none | `SoftTemplate`, `TemplatePool` |
 | High-level builder | N/A | `DeclarativePatternBuilder` (optional, recommended) |
 
 **Key benefit:** Multiple controller instances of the same machine type now share a single
@@ -69,35 +69,20 @@ protected BlockPatternTemplate createStructureTemplate() {
 
 ### Step 2: Add Static Template Caching (Recommended)
 
-Templates are immutable and can be safely shared. Use `LazyTemplate` or `SoftTemplate` to avoid
-recreating the template every time `createStructureTemplate()` is called.
+Templates are immutable and can be safely shared. Use `SoftTemplate` (via `TemplatePool` or
+standalone) to avoid recreating the template every time `createStructureTemplate()` is called.
 
-**Option A: `LazyTemplate` — for core machines (never evicted)**
-```java
-private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
-        FactoryBlockPattern.start()
-                .aisle("XXX", "XSX", "XXX")
-                .aisle("XXX", "X#X", "XXX")
-                .aisle("XXX", "XXX", "XXX")
-                .where('S', selfPredicate())
-                .where('#', air())
-                .where('X', states(getCasingState()).or(autoAbilities()))
-                .buildTemplate()
-);
-
-@Override
-protected BlockPatternTemplate createStructureTemplate() {
-    return TEMPLATE.get();
-}
-```
-
-**Option B: `SoftTemplate` + `TemplatePool` — for many machine types (GC-friendly)**
+**Option A: `SoftTemplate` + `TemplatePool` (recommended)**
 ```java
 private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
         .register("myaddon:my_machine", () ->
                 FactoryBlockPattern.start()
-                        .aisle(...)
-                        .where(...)
+                        .aisle("XXX", "XSX", "XXX")
+                        .aisle("XXX", "X#X", "XXX")
+                        .aisle("XXX", "XXX", "XXX")
+                        .where('S', selfPredicate())
+                        .where('#', air())
+                        .where('X', states(getCasingState()).or(autoAbilities()))
                         .buildTemplate()
         );
 
@@ -111,7 +96,11 @@ protected BlockPatternTemplate createStructureTemplate() {
 strong reference and JVM is under memory pressure. They are transparently re-created on next access.
 Ideal for addons with many machine types where most are rarely placed.
 
-**Option C: Multi-variant machines (e.g. tiered machines)**
+> **Note:** `LazyTemplate` is deprecated. It permanently retains templates in memory and cannot
+> release them. Use `SoftTemplate` instead — for core machines that should never be evicted,
+> simply hold a strong static reference to the `SoftTemplate` instance.
+
+**Option B: Multi-variant machines (e.g. tiered machines)**
 ```java
 // For machines with multiple tiers/variants sharing the same class
 private static final SoftTemplate[] TEMPLATES = new SoftTemplate[3];
@@ -179,22 +168,23 @@ For new multiblocks, consider using `DeclarativePatternBuilder` instead of raw
 
 **Before (FactoryBlockPattern):**
 ```java
-private static final LazyTemplate TEMPLATE = LazyTemplate.of(() ->
-        FactoryBlockPattern.start()
-                .aisle("XXX", "CCC", "CCC", "XXX")
-                .aisle("XXX", "C#C", "C#C", "XMX")
-                .aisle("XSX", "CCC", "CCC", "XXX")
-                .where('S', selfPredicate())
-                .where('#', air())
-                .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                .where('X', states(getCasingState()).setMinGlobalLimited(9)
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1))
-                        .or(abilities(MultiblockAbility.MAINTENANCE_HATCH).setExactLimit(1))
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS).setMaxGlobalLimited(4))
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS).setMaxGlobalLimited(4)))
-                .where('C', heatingCoils())
-                .buildTemplate()
-);
+private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
+        .register("gregtech:my_machine", () ->
+                FactoryBlockPattern.start()
+                        .aisle("XXX", "CCC", "CCC", "XXX")
+                        .aisle("XXX", "C#C", "C#C", "XMX")
+                        .aisle("XSX", "CCC", "CCC", "XXX")
+                        .where('S', selfPredicate())
+                        .where('#', air())
+                        .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                        .where('X', states(getCasingState()).setMinGlobalLimited(9)
+                                .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1))
+                                .or(abilities(MultiblockAbility.MAINTENANCE_HATCH).setExactLimit(1))
+                                .or(abilities(MultiblockAbility.IMPORT_ITEMS).setMaxGlobalLimited(4))
+                                .or(abilities(MultiblockAbility.EXPORT_ITEMS).setMaxGlobalLimited(4)))
+                        .where('C', heatingCoils())
+                        .buildTemplate()
+        );
 ```
 
 **After (DeclarativePatternBuilder):**
@@ -298,8 +288,8 @@ import gregtech.api.pattern.BlockPattern;
 // Add (new)
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockState;
-import gregtech.api.pattern.LazyTemplate;          // or SoftTemplate
-import gregtech.api.pattern.TemplatePool;           // if using SoftTemplate
+import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;  // optional
 import gregtech.api.pattern.casing.CasingDefinition;           // optional
 import gregtech.api.pattern.casing.ICasingGroup;               // optional
@@ -312,7 +302,7 @@ import gregtech.api.pattern.casing.StructureChannel;            // optional
 
 - [ ] Replace `createStructurePattern()` with `createStructureTemplate()`
 - [ ] Change `.build()` to `.buildTemplate()` in pattern builders
-- [ ] Add static template caching (`LazyTemplate` or `SoftTemplate`)
+- [ ] Add static template caching (`SoftTemplate` via `TemplatePool`)
 - [ ] Update `BlockPattern` field accesses to use `patternTemplate` / `multiblockState`
 - [ ] Update `DistillationTowerLogicHandler` calls if applicable
 - [ ] Remove `import gregtech.api.pattern.BlockPattern` when no longer needed

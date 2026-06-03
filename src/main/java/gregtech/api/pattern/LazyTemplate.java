@@ -8,31 +8,11 @@ import java.util.function.Supplier;
  * Thread-safe lazy holder for {@link BlockPatternTemplate} instances.
  * Provides zero-lock-contention caching suitable for static fields in multiblock controllers.
  *
- * <p>Usage:
- * <pre>{@code
- * private static final LazyTemplate BEAM_SHAFT = LazyTemplate.of(() ->
- *     FactoryBlockPattern.start(RIGHT, UP, FRONT)
- *         .aisle(...)
- *         .where(...)
- *         .buildTemplate()
- * );
- *
- * // With explicit centerOffset (for sub-pieces without selfPredicate):
- * private static final LazyTemplate FIRST_RING = LazyTemplate.of(() ->
- *     FactoryBlockPattern.start(RIGHT, UP, FRONT)
- *         .aisle(...)
- *         .where(...)
- *         .buildTemplate(new int[]{63, 14, 0, 0, 0})
- * );
- *
- * // Access:
- * BlockPatternTemplate template = BEAM_SHAFT.get();
- * }</pre>
- *
- * <p>Thread safety is guaranteed by the double-checked locking pattern with volatile.
- * After first initialization, subsequent calls to {@link #get()} are a single volatile read
- * with no synchronization overhead.
+ * @deprecated This class permanently retains templates in memory and cannot release them under
+ * memory pressure. Use {@link SoftTemplate} (optionally via {@link TemplatePool}) instead, which
+ * provides GC-reclaimable caching with anti-thrashing protection.
  */
+@Deprecated
 public final class LazyTemplate {
 
     private final Supplier<BlockPatternTemplate> factory;
@@ -48,7 +28,9 @@ public final class LazyTemplate {
      *
      * @param factory supplier that builds the template (called lazily, at most once)
      * @return a new LazyTemplate instance
+     * @deprecated Use {@link SoftTemplate#of(Supplier)} or {@link TemplatePool#register} instead.
      */
+    @Deprecated
     @NotNull
     public static LazyTemplate of(@NotNull Supplier<BlockPatternTemplate> factory) {
         return new LazyTemplate(factory);
