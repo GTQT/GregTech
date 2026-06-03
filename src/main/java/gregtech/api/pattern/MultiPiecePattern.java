@@ -223,14 +223,19 @@ public class MultiPiecePattern {
      * @return true if the piece was successfully built (index valid and piece exists)
      */
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
-                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches) {
+                                   @Nullable Map<String, Integer> channelValues, boolean skipHatches) {
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
-        BlockPos pieceCenter = piece.getCenterPos(
-                controller.getPos(), controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing());
-
-        piece.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
+        if (piece instanceof RepeatGroupPiece repeatPiece) {
+            repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
+                    controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing(),
+                    controller.isFlipped(), channelValues, skipHatches);
+        } else {
+            BlockPos pieceCenter = piece.getCenterPos(
+                    controller.getPos(), controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing());
+            piece.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
+        }
         return true;
     }
 

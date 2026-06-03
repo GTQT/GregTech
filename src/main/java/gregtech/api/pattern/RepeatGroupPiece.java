@@ -1,10 +1,13 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.RelativeDirection;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
@@ -18,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 
@@ -215,27 +219,27 @@ public class RepeatGroupPiece extends StructurePiece {
      * Uses {@link MultiblockState#checkPatternFastAt} for cache-accelerated checks.
      */
     private boolean tryCheckAllSlicesWorld(@NotNull World world, @NotNull BlockPos origin,
-                                            @NotNull EnumFacing front, @NotNull EnumFacing up,
-                                            boolean flipped, int[] reps) {
+                                             @NotNull EnumFacing front, @NotNull EnumFacing up,
+                                             boolean flipped, int[] reps) {
         int axis = repeatAxes[0];
         int stepSize = stepSizes[0];
         int count = reps[0];
         Vec3i baseOffset = super.getOffset();
+        RelativeDirection[] structDir = innerState.getTemplate().getStructureDir();
 
         LongSet allPositions = new LongOpenHashSet();
         PatternMatchContext aggregated = new PatternMatchContext();
         Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         for (int r = 0; r < count; r++) {
-            int step = stepSize * r;
-            int dx = (axis == 0) ? step : 0;
-            int dy = (axis == 1) ? step : 0;
-            int dz = (axis == 2) ? step : 0;
-
+            int[] local = {0, 0, 0};
+            local[axis] = stepSize * r;
+            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                    local[0], local[1], local[2], front, up, flipped, structDir);
             BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + dx,
-                    baseOffset.getY() + dy,
-                    baseOffset.getZ() + dz);
+                    baseOffset.getX() + worldOffset.getX(),
+                    baseOffset.getY() + worldOffset.getY(),
+                    baseOffset.getZ() + worldOffset.getZ());
 
             PatternMatchContext ctx = innerState.checkPatternFastAt(
                     world, sliceOrigin, front, up, flipped);
@@ -269,9 +273,10 @@ public class RepeatGroupPiece extends StructurePiece {
      * for cache-accelerated checks.
      */
     private boolean tryCheckAllMultiAxisSlicesWorld(@NotNull World world, @NotNull BlockPos origin,
-                                                     @NotNull EnumFacing front, @NotNull EnumFacing up,
-                                                     boolean flipped, int[] reps) {
+                                                      @NotNull EnumFacing front, @NotNull EnumFacing up,
+                                                      boolean flipped, int[] reps) {
         Vec3i baseOffset = super.getOffset();
+        RelativeDirection[] structDir = innerState.getTemplate().getStructureDir();
         LongSet allPositions = new LongOpenHashSet();
         PatternMatchContext aggregated = new PatternMatchContext();
         Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
@@ -280,19 +285,16 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean hasMore = true;
 
         while (hasMore) {
-            int dx = 0, dy = 0, dz = 0;
+            int[] local = {0, 0, 0};
             for (int i = 0; i < repeatAxes.length; i++) {
-                int axis = repeatAxes[i];
-                int step = stepSizes[i] * currentIndices[i];
-                if (axis == 0) dx += step;
-                else if (axis == 1) dy += step;
-                else dz += step;
+                local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
             }
-
+            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                    local[0], local[1], local[2], front, up, flipped, structDir);
             BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + dx,
-                    baseOffset.getY() + dy,
-                    baseOffset.getZ() + dz);
+                    baseOffset.getX() + worldOffset.getX(),
+                    baseOffset.getY() + worldOffset.getY(),
+                    baseOffset.getZ() + worldOffset.getZ());
 
             PatternMatchContext ctx = innerState.checkPatternFastAt(
                     world, sliceOrigin, front, up, flipped);
@@ -396,7 +398,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                      int axisIdx, int[] partialReps,
                                      @NotNull EnumFacing front, @NotNull EnumFacing up,
                                      boolean flipped) {
-        BlockPos pieceOrigin = computePieceOrigin(origin, partialReps);
+        BlockPos pieceOrigin = computePieceOrigin(origin, partialReps, front, up, flipped);
         // Delegate to MultiblockState's 1D slice check
         return innerState.checkAxisLineFastAtSnapshot(
                 snap, pieceOrigin, repeatAxes[axisIdx], front, up, flipped);
@@ -454,9 +456,10 @@ public class RepeatGroupPiece extends StructurePiece {
      * Aggregates "MultiblockParts" from all slices into lastAggregatedContext.
      */
     private boolean tryCheckAllMultiAxisSlices(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
-                                                @NotNull EnumFacing front, @NotNull EnumFacing up,
-                                                boolean flipped, int[] reps) {
+                                                 @NotNull EnumFacing front, @NotNull EnumFacing up,
+                                                 boolean flipped, int[] reps) {
         Vec3i baseOffset = super.getOffset();
+        RelativeDirection[] structDir = innerState.getTemplate().getStructureDir();
         LongSet allPositions = new LongOpenHashSet();
 
         // Aggregate context from all slices
@@ -470,19 +473,16 @@ public class RepeatGroupPiece extends StructurePiece {
 
         while (hasMore) {
             // Compute offset for this combination
-            int dx = 0, dy = 0, dz = 0;
+            int[] local = {0, 0, 0};
             for (int i = 0; i < repeatAxes.length; i++) {
-                int axis = repeatAxes[i];
-                int step = stepSizes[i] * currentIndices[i];
-                if (axis == 0) dx += step;
-                else if (axis == 1) dy += step;
-                else dz += step;
+                local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
             }
-
+            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                    local[0], local[1], local[2], front, up, flipped, structDir);
             BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + dx,
-                    baseOffset.getY() + dy,
-                    baseOffset.getZ() + dz);
+                    baseOffset.getX() + worldOffset.getX(),
+                    baseOffset.getY() + worldOffset.getY(),
+                    baseOffset.getZ() + worldOffset.getZ());
 
             // Check this slice
             PatternMatchContext ctx = innerState.checkPatternFastAtSnapshot(
@@ -531,12 +531,13 @@ public class RepeatGroupPiece extends StructurePiece {
      * Aggregates "MultiblockParts" from all slices into lastAggregatedContext.
      */
     private boolean tryCheckAllSlices(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
-                                      @NotNull EnumFacing front, @NotNull EnumFacing up,
-                                      boolean flipped, int[] reps) {
+                                       @NotNull EnumFacing front, @NotNull EnumFacing up,
+                                       boolean flipped, int[] reps) {
         int axis = repeatAxes[0];
         int stepSize = stepSizes[0];
         int count = reps[0];
         Vec3i baseOffset = super.getOffset();
+        RelativeDirection[] structDir = innerState.getTemplate().getStructureDir();
 
         LongSet allPositions = new LongOpenHashSet();
 
@@ -545,15 +546,14 @@ public class RepeatGroupPiece extends StructurePiece {
         Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         for (int r = 0; r < count; r++) {
-            int step = stepSize * r;
-            int dx = (axis == 0) ? step : 0;
-            int dy = (axis == 1) ? step : 0;
-            int dz = (axis == 2) ? step : 0;
-
+            int[] local = {0, 0, 0};
+            local[axis] = stepSize * r;
+            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                    local[0], local[1], local[2], front, up, flipped, structDir);
             BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + dx,
-                    baseOffset.getY() + dy,
-                    baseOffset.getZ() + dz);
+                    baseOffset.getX() + worldOffset.getX(),
+                    baseOffset.getY() + worldOffset.getY(),
+                    baseOffset.getZ() + worldOffset.getZ());
 
             PatternMatchContext ctx = innerState.checkPatternFastAtSnapshot(
                     snap, sliceOrigin, front, up, flipped);
@@ -602,17 +602,90 @@ public class RepeatGroupPiece extends StructurePiece {
      * Compute the piece origin (center position) for given repeat counts.
      */
     @NotNull
-    private BlockPos computePieceOrigin(@NotNull BlockPos controllerOrigin, int[] reps) {
-        int dx = 0, dy = 0, dz = 0;
+    private BlockPos computePieceOrigin(@NotNull BlockPos controllerOrigin, int[] reps,
+                                         @NotNull EnumFacing front, @NotNull EnumFacing up,
+                                         boolean flipped) {
+        int[] local = {0, 0, 0};
         for (int i = 0; i < repeatAxes.length; i++) {
-            int axis = repeatAxes[i];
-            int step = stepSizes[i] * (reps[i] - 1);
-            if (axis == 0) dx += step;
-            else if (axis == 1) dy += step;
-            else dz += step;
+            local[repeatAxes[i]] += stepSizes[i] * (reps[i] - 1);
         }
+        RelativeDirection[] structDir = innerState.getTemplate().getStructureDir();
+        BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                local[0], local[1], local[2], front, up, flipped, structDir);
         Vec3i offset = super.getOffset();
-        return controllerOrigin.add(offset.getX() + dx, offset.getY() + dy, offset.getZ() + dz);
+        return controllerOrigin.add(
+                offset.getX() + worldOffset.getX(),
+                offset.getY() + worldOffset.getY(),
+                offset.getZ() + worldOffset.getZ());
+    }
+
+    /**
+     * Auto-build all slices of this repeatable piece.
+     * Iterates over all repeat axes and builds each slice individually.
+     */
+    public void autoBuildAtRepeated(@NotNull EntityPlayer player, @NotNull MultiblockControllerBase controller,
+                                    @NotNull BlockPos controllerOrigin, @NotNull EnumFacing front,
+                                    @NotNull EnumFacing up, boolean flipped,
+                                    @Nullable Map<String, Integer> channelValues, boolean skipHatches) {
+        int[] reps = new int[repeatAxes.length];
+        for (int i = 0; i < repeatAxes.length; i++) {
+            reps[i] = repeatRanges[i][0];
+        }
+        if (channelValues != null && repeatChannelNames != null) {
+            for (int i = 0; i < repeatChannelNames.length && i < repeatAxes.length; i++) {
+                String name = repeatChannelNames[i];
+                if (name != null && channelValues.containsKey(name)) {
+                    int val = channelValues.get(name);
+                    reps[i] = Math.max(repeatRanges[i][0], Math.min(repeatRanges[i][1], val));
+                }
+            }
+        }
+
+        RelativeDirection[] structDir = innerState.getTemplate().getStructureDir();
+        Vec3i baseOffset = super.getOffset();
+
+        if (repeatAxes.length == 1) {
+            int axis = repeatAxes[0];
+            int stepSize = stepSizes[0];
+            int count = reps[0];
+            for (int r = 0; r < count; r++) {
+                int[] local = {0, 0, 0};
+                local[axis] = stepSize * r;
+                BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                        local[0], local[1], local[2], front, up, flipped, structDir);
+                BlockPos sliceOrigin = controllerOrigin.add(
+                        baseOffset.getX() + worldOffset.getX(),
+                        baseOffset.getY() + worldOffset.getY(),
+                        baseOffset.getZ() + worldOffset.getZ());
+                innerState.autoBuildAt(player, controller, sliceOrigin, channelValues, skipHatches);
+            }
+        } else {
+            int[] currentIndices = new int[repeatAxes.length];
+            boolean hasMore = true;
+            while (hasMore) {
+                int[] local = {0, 0, 0};
+                for (int i = 0; i < repeatAxes.length; i++) {
+                    local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
+                }
+                BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
+                        local[0], local[1], local[2], front, up, flipped, structDir);
+                BlockPos sliceOrigin = controllerOrigin.add(
+                        baseOffset.getX() + worldOffset.getX(),
+                        baseOffset.getY() + worldOffset.getY(),
+                        baseOffset.getZ() + worldOffset.getZ());
+                innerState.autoBuildAt(player, controller, sliceOrigin, channelValues, skipHatches);
+
+                hasMore = false;
+                for (int i = 0; i < repeatAxes.length; i++) {
+                    currentIndices[i]++;
+                    if (currentIndices[i] < reps[i]) {
+                        hasMore = true;
+                        break;
+                    }
+                    currentIndices[i] = 0;
+                }
+            }
+        }
     }
 
     @Override
@@ -624,6 +697,21 @@ public class RepeatGroupPiece extends StructurePiece {
     @Nullable
     public int[] getLastFormedReps() {
         return lastFormedReps;
+    }
+
+    /**
+     * Get the repeat channel names for this repeatable piece.
+     */
+    @Nullable
+    public String[] getRepeatChannelNames() {
+        return repeatChannelNames;
+    }
+
+    /**
+     * Get the repeat ranges [min, max] for each repeat axis.
+     */
+    public int[][] getRepeatRanges() {
+        return repeatRanges;
     }
 
     /**
