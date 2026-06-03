@@ -153,25 +153,30 @@ public class DeclarativePatternBuilder {
     // --- Aisle methods (delegate to current piece) ---
 
     /**
-     * Define an aisle (a layer of the structure) on the current piece.
+     * Define an aisle for the current piece.
      */
     public DeclarativePatternBuilder aisle(String... aisle) {
-        currentPiece.aisles.add(new AisleDef(aisle, false, 0, 0));
+        currentPiece.aisles.add(new AisleDef(aisle));
         return this;
     }
 
     /**
-     * Define a repeatable aisle on the current piece.
+     * @deprecated Use {@link #repeatablePiece(String, int, int)} for multi-piece mode instead,
+     *             or {@link #aisle(String...)} for fixed aisles.
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public DeclarativePatternBuilder aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
-        currentPiece.aisles.add(new AisleDef(aisle, true, minRepeat, maxRepeat));
+        currentPiece.aisles.add(new AisleDef(aisle));
         return this;
     }
 
     /**
-     * Set a channel name on the last declared repeatable aisle.
-     * The channel value controls the repetition count in previews and autoBuild.
+     * @deprecated Use {@link #repeatablePiece(String, int, int)} with
+     *             {@link PieceBuilder#withAisleChannel(String)} instead.
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public DeclarativePatternBuilder withAisleChannel(@NotNull String channelName) {
         if (!currentPiece.aisles.isEmpty()) {
             AisleDef last = currentPiece.aisles.get(currentPiece.aisles.size() - 1);
@@ -270,9 +275,14 @@ public class DeclarativePatternBuilder {
             if (piece.rawPattern != null) {
                 // Multi-axis repeatable piece: use raw repeatablePiece API
                 registerMultiAxisPiece(builder, piece);
+            } else if (piece.repeatable) {
+                // Factory repeatable piece: convert to multi-axis RepeatGroupPiece
+                // so the entire piece (all aisles) repeats as a block.
+                // pieceFromFactory() would lose repeatability info.
+                convertFactoryToMultiAxisPiece(builder, piece);
             } else {
-                // Factory-based piece (fixed or single-axis repeatable):
-                // pieceFromFactory preserves aisle repetition info in BlockPatternTemplate
+                // Factory-based fixed piece:
+                // pieceFromFactory preserves aisle structure for the template
                 FactoryBlockPattern fb = buildFactoryForPiece(piece);
                 processSlots(fb, piece);
                 builder.pieceFromFactory(piece.name, fb).end();
@@ -363,6 +373,122 @@ public class DeclarativePatternBuilder {
     }
 
     /**
+     * Convert a factory-based repeatable piece to a multi-axis RepeatGroupPiece.
+     * Groups all aisles into a single String[][] pattern so they repeat as a block.
+     */
+    private void convertFactoryToMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
+                                                 @NotNull PieceDef piece) {
+        // Convert all aisles to a String[][] pattern matrix
+        String[][] pattern = new String[piece.aisles.size()][];
+        for (int i = 0; i < piece.aisles.size(); i++) {
+            pattern[i] = piece.aisles.get(i).pattern;
+        }
+
+        StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
+                piece.name, pattern, Vec3i.NULL_VECTOR);
+
+        // Repeat along the aisle direction (axis 2)
+        rpb.repeatAxes(2);
+        rpb.repeatRange(piece.minRepeat, piece.maxRepeat);
+        // Step equals the intrinsic depth so there is no gap/overlap between repeats
+        rpb.stepSizes(piece.aisles.size());
+
+        // Build per-piece character → IStructureElement mappings
+        for (String[] aisle : pattern) {
+            for (String row : aisle) {
+                if (row == null) continue;
+                for (int i = 0; i < row.length(); i++) {
+                    char c = row.charAt(i);
+                    if (!piece.mappedChars.contains(c)) {
+                        piece.mappedChars.add(c);
+                        IStructureElement element = buildPieceElement(c, piece);
+                        if (element != null) {
+                            rpb.where(c, element);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Propagate channel name if all aisles agree on one
+        String channel = null;
+        for (AisleDef ad : piece.aisles) {
+            if (ad.channelName != null) {
+                if (channel == null) {
+                    channel = ad.channelName;
+                } else if (!channel.equals(ad.channelName)) {
+                    channel = null;
+                    break;
+                }
+            }
+        }
+        if (channel != null) {
+            rpb.channelNames(channel);
+        }
+
+        if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
+            rpb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+
+        rpb.end();
+    }
+
+    /**
+     * Resolve a character to an IStructureElement using per-piece casing counts.
+     */
+    private IStructureElement buildPieceElement(char c, @NotNull PieceDef piece) {
+        // Check IStructureElement mappings first
+        IStructureElement element = elementMappings.get(c);
+        if (element != null) return element;
+        // Check raw predicates
+        TraceabilityPredicate pred = rawPredicates.get(c);
+        if (pred != null) return Elements.legacy(pred);
+        // Check casing slots (per-piece count)
+        CasingSlotInfo casingInfo = casingSlots.get(c);
+        if (casingInfo != null) {
+            TraceabilityPredicate casingPred = buildPieceCasingPredicate(casingInfo, piece);
+            if (casingPred != null) return Elements.legacy(casingPred);
+        }
+        // Check tiered slots
+        TieredSlotInfo tieredInfo = tieredSlots.get(c);
+        if (tieredInfo != null) {
+            String channelName = tieredInfo.channel != null
+                    ? tieredInfo.channel.getName() : tieredInfo.group.getTierChannel();
+            TraceabilityPredicate tieredPred = createTieredPredicate(tieredInfo.group, channelName);
+            return Elements.legacy(tieredPred);
+        }
+        return null;
+    }
+
+    /**
+     * Build a per-piece casing predicate (counts only within the given piece).
+     */
+    private TraceabilityPredicate buildPieceCasingPredicate(@NotNull CasingSlotInfo info,
+                                                             @NotNull PieceDef piece) {
+        int totalCount = countCharInPiece(piece, info.symbol);
+        int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
+                + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
+        int minCasings = Math.max(0, totalCount - maxHatches);
+
+        TraceabilityPredicate predicate = createCasingPredicate(info.casing)
+                .setMinGlobalLimited(minCasings);
+
+        for (HatchInfo hatch : info.hatches) {
+            predicate = predicate.or(
+                    MultiblockControllerBase.abilities(hatch.ability)
+                            .setMinGlobalLimited(multiPieceMode ? 0 : hatch.minCount)
+                            .setMaxGlobalLimited(hatch.maxCount)
+                            .setPreviewCount(Math.max(1, hatch.minCount)));
+        }
+
+        for (CustomHatchInfo customHatch : info.customHatches) {
+            predicate = predicate.or(customHatch.predicate);
+        }
+
+        return predicate;
+    }
+
+    /**
      * Build a TraceabilityPredicate for a casing slot (including hatches).
      */
     private TraceabilityPredicate buildCasingPredicate(@NotNull CasingSlotInfo info) {
@@ -398,16 +524,7 @@ public class DeclarativePatternBuilder {
         FactoryBlockPattern fb = FactoryBlockPattern.start(
                 structureDir[0], structureDir[1], structureDir[2]);
         for (AisleDef aisleDef : piece.aisles) {
-            if (aisleDef.repeatable) {
-                // Check if the aisle is repeatable (for backward compat with single-axis repeatable pieces)
-                fb.aisleRepeatable(aisleDef.minRepeat, aisleDef.maxRepeat, aisleDef.pattern);
-                if (aisleDef.channelName != null) {
-                    int[] reps = fb.getLastAisleRepetition();
-                    fb.setRepeatable(reps[0], reps[1], aisleDef.channelName);
-                }
-            } else {
-                fb.aisle(aisleDef.pattern);
-            }
+            fb.aisle(aisleDef.pattern);
         }
         // Apply raw predicates
         for (Map.Entry<Character, TraceabilityPredicate> entry : rawPredicates.entrySet()) {
@@ -589,15 +706,10 @@ public class DeclarativePatternBuilder {
 
     private static class AisleDef {
         final String[] pattern;
-        boolean repeatable;
-        int minRepeat, maxRepeat;
         String channelName;
 
-        AisleDef(String[] pattern, boolean repeatable, int minRepeat, int maxRepeat) {
+        AisleDef(String[] pattern) {
             this.pattern = pattern;
-            this.repeatable = repeatable;
-            this.minRepeat = minRepeat;
-            this.maxRepeat = maxRepeat;
         }
     }
 
@@ -647,9 +759,9 @@ public class DeclarativePatternBuilder {
             this.piece = piece;
         }
 
-        /** Add an aisle to this piece. For repeatable pieces, the aisle inherits repeatability. */
+        /** Add an aisle to this piece. */
         public PieceBuilder aisle(String... aisle) {
-            piece.aisles.add(new AisleDef(aisle, piece.repeatable, piece.minRepeat, piece.maxRepeat));
+            piece.aisles.add(new AisleDef(aisle));
             return this;
         }
 
