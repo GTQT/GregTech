@@ -232,4 +232,36 @@ public class FactoryBlockPattern {
             throw new IllegalStateException("Predicates for character(s) " + COMMA_JOIN.join(list) + " are missing");
         }
     }
+
+    // --- Getter methods for internal state ---
+
+    /** Get the aisle repetition ranges. Each entry is [minRepeat, maxRepeat]. */
+    @NotNull
+    public List<int[]> getAisleRepetitions() {
+        return aisleRepetitions;
+    }
+
+    /** Get the channel names for repeatable aisles. Null for non-channel aisles. */
+    @NotNull
+    public List<String> getAisleChannelNames() {
+        return aisleChannelNames;
+    }
+
+    /** Get the aisle string definitions. Each entry is an array of row strings. */
+    @NotNull
+    public List<String[]> getDepth() {
+        return depth;
+    }
+
+    /** Get the symbol-to-predicate mapping. */
+    @NotNull
+    public Map<Character, TraceabilityPredicate> getSymbolMap() {
+        return symbolMap;
+    }
+
+    /** Get the structure direction triple [charDir, stringDir, aisleDir]. */
+    @NotNull
+    public RelativeDirection[] getStructureDir() {
+        return structureDir;
+    }
 }

@@ -87,6 +87,10 @@ public class TraceabilityPredicate {
         return hasAir;
     }
 
+    public boolean isCenter() {
+        return isCenter;
+    }
+
     public boolean isSingle() {
         return isSingle;
     }

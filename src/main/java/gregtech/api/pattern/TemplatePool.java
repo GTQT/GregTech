@@ -1,5 +1,6 @@
 package gregtech.api.pattern;
 
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
@@ -17,50 +18,29 @@ import java.util.function.Supplier;
  * Global pool of multiblock pattern templates with soft-reference caching.
  * Provides centralized lifecycle management, statistics, and bulk eviction.
  *
- * <p>Each registered template is identified by a unique string key (typically the machine's
- * ResourceLocation string or a composite key for multi-variant machines).
- * When JVM memory pressure is high, unused templates (those not held by any active controller)
- * are eligible for garbage collection. They are transparently re-created on next demand.
+ * <p>Supports two types of pooled references:
+ * <ul>
+ *   <li>{@link SoftTemplate} — for {@link BlockPatternTemplate} instances (legacy)</li>
+ *   <li>{@link SoftReferenceHolder} — for any generic type (e.g. {@link StructureDefinition},
+ *       compiled {@link MultiPiecePattern})</li>
+ * </ul>
  *
- * <p>Usage for single-ID machines:
- * <pre>{@code
- * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
- *     .register("gregtech:electric_blast_furnace", () ->
- *         DeclarativePatternBuilder.start()
- *             .where('S', selfPredicate(new ResourceLocation("gregtech", "electric_blast_furnace")))
- *             .aisle(...)
- *             .buildTemplate()
- *     );
+ * <p>Each registered entry is identified by a unique string key. When JVM memory pressure
+ * is high, unused entries are eligible for garbage collection and transparently re-created
+ * on next demand.
  *
- * @Override
- * protected BlockPatternTemplate createStructureTemplate() {
- *     return TEMPLATE.get();
- * }
- * }</pre>
- *
- * <p>Usage for multi-variant machines:
- * <pre>{@code
- * private static SoftTemplate getTemplate(int tier) {
- *     return TemplatePool.getInstance().register(
- *         "gregtech:large_miner/" + tier,
- *         () -> buildTemplate(tier)
- *     );
- * }
- * }</pre>
- *
- * <p>All templates use {@link SoftTemplate} for GC-reclaimable caching with anti-thrashing
- * protection. For the few core machines that should never be evicted, consider holding a strong
- * reference to the {@link SoftTemplate} in a static field — it will not be reclaimed while the
- * static field is alive.
- *
- * @see SoftTemplate for the individual soft-reference holder
+ * @see SoftTemplate for BlockPatternTemplate-specific soft-reference holder
+ * @see SoftReferenceHolder for generic soft-reference holder
  */
 public final class TemplatePool {
 
     private static final TemplatePool INSTANCE = new TemplatePool();
 
-    /** All registered soft templates, keyed by unique identifier */
+    /** All registered soft templates (BlockPatternTemplate), keyed by unique identifier */
     private final ConcurrentHashMap<String, SoftTemplate> pool = new ConcurrentHashMap<>();
+
+    /** All registered generic soft-reference holders, keyed by unique identifier */
+    private final ConcurrentHashMap<String, SoftReferenceHolder<?>> genericPool = new ConcurrentHashMap<>();
 
     // --- Global statistics ---
 
@@ -78,25 +58,30 @@ public final class TemplatePool {
     }
 
     /**
-     * Called by {@link SoftTemplate} when a template is recreated after GC reclaim.
+     * Called by {@link PooledReference} when a pooled value is recreated after GC reclaim.
      * Tracks global recreation count for monitoring.
      */
-    static void onTemplateRecreated() {
+    public static void onHolderRecreated() {
         INSTANCE.totalRecreations.incrementAndGet();
         if (ConfigHolder.machines.debugStructureCheck) {
-            GTLog.logger.debug("[TemplatePool] A template was recreated after GC reclaim. " +
+            GTLog.logger.debug("[TemplatePool] A pooled reference was recreated after GC reclaim. " +
                     "Total recreations: {}", INSTANCE.totalRecreations.get());
         }
+    }
+
+    /**
+     * Backward-compatible alias for {@link #onHolderRecreated()}.
+     * Called by the old SoftTemplate recreation path.
+     */
+    static void onTemplateRecreated() {
+        onHolderRecreated();
     }
 
     /**
      * Register a template factory under the given key. Idempotent: calling with the same key
      * multiple times returns the existing {@link SoftTemplate} without replacing it.
      *
-     * <p>This is the primary entry point for machine classes to declare their template.
-     *
-     * @param key     unique identifier (e.g. "gregtech:electric_blast_furnace" or
-     *                "gregtech:large_turbine/steam")
+     * @param key     unique identifier
      * @param factory supplier that builds the {@link BlockPatternTemplate}
      * @return the registered (or existing) SoftTemplate for the given key
      */
@@ -109,11 +94,38 @@ public final class TemplatePool {
     }
 
     /**
-     * Get a previously registered template by key and resolve it.
-     * Returns null if the key was never registered.
+     * Register a generic value factory under the given key. Idempotent.
      *
-     * <p>Prefer using the {@link SoftTemplate} reference directly (returned by {@link #register})
-     * instead of repeated key lookups.
+     * @param key     unique identifier
+     * @param factory supplier that builds the value
+     * @param <T>     the value type
+     * @return the registered (or existing) SoftReferenceHolder for the given key
+     */
+    @NotNull
+    @SuppressWarnings("unchecked")
+    public <T> SoftReferenceHolder<T> registerGeneric(@NotNull String key, @NotNull Supplier<T> factory) {
+        SoftReferenceHolder<T> holder = (SoftReferenceHolder<T>) genericPool.computeIfAbsent(key, k -> {
+            totalRegistrations.incrementAndGet();
+            return SoftReferenceHolder.of(factory);
+        });
+        return holder;
+    }
+
+    /**
+     * Convenience method for registering {@link StructureDefinition} instances.
+     *
+     * @param key     unique identifier (e.g. "gregtech:distillation_tower")
+     * @param factory supplier that builds the StructureDefinition
+     * @return the registered (or existing) SoftReferenceHolder for the given key
+     */
+    @NotNull
+    public SoftReferenceHolder<StructureDefinition> registerStructure(
+            @NotNull String key, @NotNull Supplier<StructureDefinition> factory) {
+        return registerGeneric(key, factory);
+    }
+
+    /**
+     * Get a previously registered template by key and resolve it.
      *
      * @param key the registration key
      * @return the resolved template, or null if key not found
@@ -136,35 +148,19 @@ public final class TemplatePool {
     }
 
     /**
-     * Check if a key has been registered.
+     * Check if a key has been registered (in either pool).
      *
      * @param key the key to check
      * @return true if registered
      */
     public boolean isRegistered(@NotNull String key) {
-        return pool.containsKey(key);
+        return pool.containsKey(key) || genericPool.containsKey(key);
     }
 
     /**
      * Build an EnumMap-based template cache for enum-keyed multi-variant machines.
-     * Each enum constant gets its own {@link SoftTemplate} registered in this pool.
      *
-     * <p>This eliminates the common boilerplate pattern:
-     * <pre>{@code
-     * // Before (6 lines of boilerplate per class):
-     * private static final EnumMap<Type, SoftTemplate> TEMPLATES = new EnumMap<>(Type.class);
-     * static {
-     *     for (Type type : Type.values()) {
-     *         TEMPLATES.put(type, TemplatePool.getInstance().register("prefix/" + type.name().toLowerCase(), () -> buildTemplate(type)));
-     *     }
-     * }
-     *
-     * // After (1 line):
-     * private static final Map<Type, SoftTemplate> TEMPLATES = TemplatePool.buildEnumCache(
-     *         "gregtech:large_turbine", Type.class, type -> () -> buildTemplate(type));
-     * }</pre>
-     *
-     * @param poolKeyPrefix the pool key prefix (e.g. "gregtech:large_turbine")
+     * @param poolKeyPrefix the pool key prefix
      * @param enumClass     the variant enum class
      * @param factory       function that creates a template Supplier for each enum constant
      * @param <V>           the enum type
@@ -185,21 +181,19 @@ public final class TemplatePool {
     }
 
     /**
-     * Force eviction of all templates in the pool.
-     * Active controllers still holding strong references will keep their templates alive,
-     * but the pool's soft references will be cleared.
-     *
-     * <p>Useful for dimension unload, world change, or explicit memory cleanup commands.
+     * Force eviction of all entries in both pools.
      */
     public void evictAll() {
         pool.values().forEach(SoftTemplate::invalidate);
+        genericPool.values().forEach(SoftReferenceHolder::invalidate);
         if (ConfigHolder.machines.debugStructureCheck) {
-            GTLog.logger.info("[TemplatePool] evictAll() called. {} templates invalidated.", pool.size());
+            GTLog.logger.info("[TemplatePool] evictAll() called. {} templates + {} generic entries invalidated.",
+                    pool.size(), genericPool.size());
         }
     }
 
     /**
-     * Force eviction of a specific template by key.
+     * Force eviction of a specific entry by key (from either pool).
      *
      * @param key the key to evict
      * @return true if the key existed and was evicted
@@ -210,27 +204,39 @@ public final class TemplatePool {
             st.invalidate();
             return true;
         }
+        SoftReferenceHolder<?> holder = genericPool.get(key);
+        if (holder != null) {
+            holder.invalidate();
+            return true;
+        }
         return false;
     }
 
     /**
      * Get a snapshot of pool statistics for debugging and profiling.
+     * Covers both the BlockPatternTemplate pool and the generic pool.
      *
      * @return current pool stats
      */
     @NotNull
     public PoolStats getStats() {
         int loaded = 0;
-        int total = pool.size();
-        long totalRecreationsPerTemplate = 0;
+        int total = pool.size() + genericPool.size();
+        long perTemplateRecreations = 0;
         for (SoftTemplate st : pool.values()) {
             if (st.isLoaded()) {
                 loaded++;
             }
-            totalRecreationsPerTemplate += st.getRecreationCount();
+            perTemplateRecreations += st.getRecreationCount();
+        }
+        for (SoftReferenceHolder<?> h : genericPool.values()) {
+            if (h.isLoaded()) {
+                loaded++;
+            }
+            perTemplateRecreations += h.getRecreationCount();
         }
         return new PoolStats(total, loaded, totalRegistrations.get(),
-                totalRecreations.get(), totalRecreationsPerTemplate);
+                totalRecreations.get(), perTemplateRecreations);
     }
 
     /**
@@ -258,7 +264,7 @@ public final class TemplatePool {
             return registered;
         }
 
-        /** Number of templates currently loaded in memory (not reclaimed) */
+        /** Number of entries currently loaded in memory (not reclaimed) */
         public int getLoaded() {
             return loaded;
         }
@@ -268,12 +274,12 @@ public final class TemplatePool {
             return totalRegistrations;
         }
 
-        /** Total number of recreations across all templates (global counter) */
+        /** Total number of recreations across all entries (global counter) */
         public int getTotalRecreations() {
             return totalRecreations;
         }
 
-        /** Sum of per-template recreation counts */
+        /** Sum of per-entry recreation counts */
         public long getPerTemplateTotalRecreations() {
             return perTemplateTotalRecreations;
         }

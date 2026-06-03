@@ -1,8 +1,11 @@
 package gregtech.api.pattern;
 
+import gregtech.api.pattern.element.FormedStructureMetadata;
+
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.IBlockAccess;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -24,6 +27,17 @@ import java.util.function.BooleanSupplier;
  */
 public class StructurePiece {
 
+    /**
+     * Functional interface for snapshot-based structure checking.
+     * Bound at compile time by StructureCompiler.
+     */
+    @FunctionalInterface
+    public interface SnapshotChecker {
+        boolean check(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
+                      @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                      @Nullable FormedStructureMetadata prior);
+    }
+
     private final String name;
     private final BlockPatternTemplate template;
     private final Vec3i offset;
@@ -43,6 +57,9 @@ public class StructurePiece {
     private volatile LongSet positions = new LongOpenHashSet();
     private volatile boolean validated = false;
     private volatile boolean dirty = true;
+
+    /** Snapshot checker bound at compile time by StructureCompiler */
+    private SnapshotChecker snapshotChecker = (s, o, f, u, fl, p) -> false;
 
     /**
      * @param name       unique name for this piece (e.g. "core", "ring1")
@@ -229,4 +246,35 @@ public class StructurePiece {
         this.positions = new LongOpenHashSet();
         this.state.clearCache();
     }
+
+    /**
+     * Bind a snapshot checker for async structure checking.
+     * Called by StructureCompiler during compilation.
+     */
+    public void bindSnapshotChecker(@NotNull SnapshotChecker checker) {
+        this.snapshotChecker = checker;
+    }
+
+    /**
+     * Async structure check entry point.
+     * Delegates to the bound snapshot checker.
+     */
+    public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
+                                   @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                                   @Nullable FormedStructureMetadata prior) {
+        return snapshotChecker.check(snap, origin, front, up, flipped, prior);
+    }
+
+    /**
+     * Cache the formed repeat counts for this piece.
+     * Override in RepeatGroupPiece. No-op for flat pieces.
+     */
+    public void cacheFormedReps(int[] reps) { /* no-op for flat pieces */ }
+
+    /**
+     * Get the last formed repeat counts for this piece.
+     * Override in RepeatGroupPiece. Returns null for flat pieces.
+     */
+    @Nullable
+    public int[] getLastFormedReps() { return null; }
 }

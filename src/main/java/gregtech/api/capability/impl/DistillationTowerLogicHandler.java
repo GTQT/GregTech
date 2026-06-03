@@ -84,6 +84,16 @@ public class DistillationTowerLogicHandler {
     }
 
     /**
+     * Called on structure formation to determine the number of layers from
+     * the body piece repeat count (new StructureDefinition system).
+     *
+     * @param bodyRepeatCount the number of times the body piece repeats
+     */
+    public void determineLayerCountFromReps(int bodyRepeatCount) {
+        this.setLayerCount(bodyRepeatCount + 1);
+    }
+
+    /**
      * Called on structure formation to determine the ordered list of fluid handlers in the distillation tower. <br>
      * <br>
      * Needs to be overriden for multiblocks that have different assemblies than the standard distillation tower.

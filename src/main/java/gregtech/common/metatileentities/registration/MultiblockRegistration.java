@@ -36,6 +36,7 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityImplosionCo
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeChemicalReactor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeMiner;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyFurnace;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAxisDemo;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
@@ -247,6 +248,9 @@ public final class MultiblockRegistration {
                 new MetaTileEntityBatteryAccumulator(gregtechId("battery_accumulator")));
 
         MULTI_ALLOY_FURNACE = registerMetaTileEntity(1050, new MetaTileEntityMultiAlloyFurnace(gregtechId("multi_alloy_furnace")));
+
+        // Multi-axis demo: irregular repeatable sub-region (P3 reference template)
+        MULTI_AXIS_DEMO = registerMetaTileEntity(1061, new MetaTileEntityMultiAxisDemo(gregtechId("multi_axis_demo")));
 
         SAW_MILL = registerMetaTileEntity(1060, new MetaTileEntitySawMill(gregtechId("saw_mill")));
     }

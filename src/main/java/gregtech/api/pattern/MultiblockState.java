@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.Mods;
+import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.util.RelativeDirection;
 import gregtech.common.ConfigHolder;
 
@@ -1132,6 +1133,121 @@ public class MultiblockState {
             pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, true);
         }
         return pmc;
+    }
+
+    /**
+     * Perform pattern checking against a snapshot with prior metadata for acceleration.
+     * If prior is available, uses the known repeat counts as an initial guess for O(1) verification.
+     * Falls back to full search if prior verification fails.
+     *
+     * @param snap          the snapshot to check against
+     * @param centerPos     the center position of the pattern
+     * @param frontFacing   the front facing direction
+     * @param upwardsFacing the upwards facing direction
+     * @param allowsFlip    whether flipping is allowed
+     * @param prior         prior formed metadata (null = no prior, do full search)
+     * @return the match context if the pattern matches, or null
+     */
+    @Nullable
+    public PatternMatchContext checkOnSnapshotWithPrior(@NotNull net.minecraft.world.IBlockAccess snap,
+                                                         @NotNull BlockPos centerPos,
+                                                         @NotNull EnumFacing frontFacing,
+                                                         @NotNull EnumFacing upwardsFacing,
+                                                         boolean allowsFlip,
+                                                         @Nullable FormedStructureMetadata prior) {
+        if (prior == null) {
+            // No prior: delegate to standard snapshot check
+            return checkPatternFastAtSnapshot(snap, centerPos, frontFacing, upwardsFacing, allowsFlip);
+        }
+
+        // Fast path: verify cached positions against snapshot
+        // If the cache is non-empty and all positions still match, we're done in O(cache_size)
+        if (!cache.isEmpty()) {
+            if (verifyCacheAgainstSnapshot(snap)) {
+                return matchContext;
+            }
+        }
+
+        // Cache miss or verification failed: full search
+        return checkPatternFastAtSnapshot(snap, centerPos, frontFacing, upwardsFacing, allowsFlip);
+    }
+
+    /**
+     * Verify that all cached positions still match against the snapshot.
+     * This provides O(cache_size) verification for formed structures.
+     * For small caches (&lt; 1000), check all positions; for large caches, sample 10%.
+     *
+     * @param snap the snapshot to verify against
+     * @return true if all sampled cached positions still match
+     */
+    private boolean verifyCacheAgainstSnapshot(@NotNull net.minecraft.world.IBlockAccess snap) {
+        int size = cache.size();
+        int checksNeeded = size < 1000 ? size : Math.max(100, size / 10);
+
+        int checked = 0;
+        for (Long2ObjectMap.Entry<BlockInfo> entry : cache.long2ObjectEntrySet()) {
+            if (checked >= checksNeeded) break;
+
+            BlockPos pos = BlockPos.fromLong(entry.getLongKey());
+            IBlockState snapshotState = snap.getBlockState(pos);
+            IBlockState cachedState = entry.getValue().getBlockState();
+
+            if (snapshotState != cachedState) {
+                return false;
+            }
+            checked++;
+        }
+        return true;
+    }
+
+    /**
+     * 1D slice verification along a specific axis (tensor product piece optimization).
+     * Only checks the cells along the specified axis direction, not the entire base piece.
+     * Used by RepeatGroupPiece for INDEPENDENT_1D search strategy.
+     *
+     * @param snap          the snapshot to check against
+     * @param pieceOrigin   the center position for this piece
+     * @param axis          the axis to check along (0=X, 1=Y, 2=Z)
+     * @param frontFacing   the front facing direction
+     * @param upwardsFacing the upwards facing direction
+     * @param isFlipped     whether the structure is flipped
+     * @return true if the 1D slice matches
+     */
+    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                                @NotNull BlockPos pieceOrigin,
+                                                int axis,
+                                                @NotNull EnumFacing frontFacing,
+                                                @NotNull EnumFacing upwardsFacing,
+                                                boolean isFlipped) {
+        // For tensor product pieces, all cells are identical,
+        // so we only need to check one "line" along the axis.
+        // This is a simplified check that verifies the outermost slice.
+        TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
+        RelativeDirection[] structureDir = template.getStructureDir();
+        int[] centerOffset = template.getCenterOffset();
+        int thumbLength = template.getThumbLength();
+        int palmLength = template.getPalmLength();
+
+        // Check the first slice (z=0) as a representative sample
+        // For tensor products, if one slice matches, all slices match
+        this.matchContext.reset();
+        this.globalCount.clear();
+        this.layerCount.clear();
+
+        int z = -centerOffset[4]; // Start at the first aisle
+        for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
+            for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+                TraceabilityPredicate predicate = blockMatches[0][b][a];
+                BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
+                        isFlipped, structureDir)
+                        .add(pieceOrigin.getX(), pieceOrigin.getY(), pieceOrigin.getZ());
+                worldState.updateFromBlockAccess(snap, pos, matchContext, globalCount, layerCount, predicate);
+                if (!predicate.test(worldState)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

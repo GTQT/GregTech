@@ -1,8 +1,11 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.util.GTLog;
 
 import net.minecraft.util.EnumFacing;
@@ -326,17 +329,46 @@ public class AsyncStructureChecker {
      * Perform pattern matching against a snapshot (runs on async thread).
      * Uses a temporary MultiblockState to avoid data race with the main thread.
      * Only returns whether the pattern matched; the main thread will do a confirmatory check.
+     *
+     * <p>Two check paths:
+     * <ul>
+     *   <li><b>Multi-piece path</b>: when the controller has a {@link MultiPiecePattern}, iterate each
+     *       {@link StructurePiece} and call {@link StructurePiece#checkOnSnapshot} with prior
+     *       {@link FormedStructureMetadata} for O(1) verification of formed structures.</li>
+     *   <li><b>Legacy path</b>: when only a single {@link BlockPatternTemplate} is available, use the
+     *       original temporary-state approach.</li>
+     * </ul>
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
+        // New path: multi-piece pattern with unified piece iteration
+        MultiPiecePattern multiPiece = task.controller.getMultiPiecePattern();
+        if (multiPiece != null) {
+            FormedStructureMetadata prior = task.controller.getFormedMetadata();
+            for (StructurePiece piece : multiPiece.getPieceList()) {
+                if (piece.isConditional() && !piece.isActive()) continue;
+
+                BlockPos pieceOrigin = piece.getCenterPos(
+                        task.centerPos, task.frontFacing, task.upwardsFacing);
+
+                if (!piece.checkOnSnapshot(task.snapshot, pieceOrigin,
+                        task.frontFacing, task.upwardsFacing, task.allowsFlip, prior)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Legacy path: single template with temporary state
         BlockPatternTemplate template = task.controller.getPatternTemplate();
         if (template == null) return false;
 
         // Create a temporary state from the shared template to avoid data race (M1 fix)
         MultiblockState tempState = template.createState();
 
-        // Use the snapshot-based check on the temporary state
-        PatternMatchContext context = tempState.checkPatternFastAtSnapshot(
-                task.snapshot, task.centerPos, task.frontFacing, task.upwardsFacing, task.allowsFlip);
+        // Use prior-aware snapshot check for O(1) verification of formed structures
+        FormedStructureMetadata prior = task.controller.getFormedMetadata();
+        PatternMatchContext context = tempState.checkOnSnapshotWithPrior(
+                task.snapshot, task.centerPos, task.frontFacing, task.upwardsFacing, task.allowsFlip, prior);
 
         return context != null;
     }

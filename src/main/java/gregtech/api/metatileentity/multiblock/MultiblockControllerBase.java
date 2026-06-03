@@ -21,6 +21,9 @@ import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
+import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.pattern.element.StructureCheckState;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
@@ -111,6 +114,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** Multi-piece pattern for super-large structures (P3, opt-in) */
     @Nullable
     protected MultiPiecePattern multiPiecePattern;
+    /** Structure definition from createStructureDefinition() (new system) */
+    @Nullable
+    private StructureDefinition structureDefinition;
+    /** Formed structure metadata: piece repeat counts + channel values (persisted to NBT) */
+    @Nullable
+    private FormedStructureMetadata formedMetadata;
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -410,13 +419,27 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     @SuppressWarnings("deprecation")
     public void reinitializeStructurePattern() {
-        // Template-first approach: create shared template, then per-instance state
-        this.patternTemplate = createStructureTemplate();
-        this.multiblockState = this.patternTemplate.createState();
-        // Maintain backward-compatible structurePattern sharing the same template and state
-        this.structurePattern = new BlockPattern(this.patternTemplate, this.multiblockState);
-        // Initialize multi-piece pattern if the subclass provides one (P3)
-        this.multiPiecePattern = createMultiPiecePattern();
+        this.structureDefinition = createStructureDefinition();
+        if (this.structureDefinition != null) {
+            // New path: compile to MultiPiecePattern
+            this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
+            // Single piece: extract template for backward compatibility
+            if (this.structureDefinition.isSinglePiece()) {
+                this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
+                this.multiblockState = this.patternTemplate.createState();
+            } else {
+                this.patternTemplate = null;
+                this.multiblockState = null;
+            }
+        } else {
+            // Old path: unchanged
+            this.patternTemplate = createStructureTemplate();
+            this.multiblockState = this.patternTemplate.createState();
+            this.multiPiecePattern = createMultiPiecePattern();
+        }
+        this.structurePattern = (this.patternTemplate != null)
+                ? new BlockPattern(this.patternTemplate, this.multiblockState)
+                : null;
     }
 
     @Override
@@ -544,6 +567,23 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @Nullable
     protected MultiPiecePattern createMultiPiecePattern() {
+        return null;
+    }
+
+    /**
+     * Create a StructureDefinition for this multiblock (new system).
+     * Override this to use the new structure element system with multi-axis repeat support.
+     * If this returns non-null, the new compilation path is used;
+     * otherwise, falls back to the old createStructureTemplate() path.
+     *
+     * <p>Must return an idempotent instance — use
+     * {@link StructureDefinition#getOrBuild(String, java.util.function.Function)}
+     * to ensure this.
+     *
+     * @return the structure definition, or null to use the old system
+     */
+    @Nullable
+    protected StructureDefinition createStructureDefinition() {
         return null;
     }
 
@@ -739,6 +779,59 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void checkStructurePattern() {
+        // New system path: use StructureDefinition for checking
+        if (this.structureDefinition != null) {
+            StructureCheckState state = this.structureDefinition.createState();
+            StructureCheckState.Result result = state.check(getWorld(), getPos(),
+                    getFrontFacing().getOpposite(), getUpwardsFacing(), isFlipped(), null);
+            if (result.success) {
+                this.formedMetadata = result.metadata;
+
+                // Collect parts and abilities from the aggregated context
+                PatternMatchContext context = result.context;
+                if (context != null && !structureFormed) {
+                    Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
+                    ArrayList<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
+                    for (IMultiblockPart part : parts) {
+                        if (part.isAttachedToMultiBlock()) {
+                            if (!part.canPartShare()) {
+                                return;
+                            }
+                        }
+                    }
+                    parts.sort(Comparator.comparing(it -> multiblockPartSorter().apply(((MetaTileEntity) it).getPos())));
+                    Map<MultiblockAbility<Object>, AbilityInstances> abilities = collectAbilities(parts);
+                    this.multiblockParts.addAll(parts);
+                    this.multiblockAbilities.putAll(abilities);
+                    parts.forEach(part -> part.addToMultiBlock(this));
+                    this.structureFormed = true;
+                    this.formedChannelValues = StructureChannelValues.fromContext(context);
+                    writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
+                    formStructure(context);
+
+                    // Register with event-driven structure checking system
+                    if (!(getWorld() instanceof DummyWorld)) {
+                        if (multiPiecePattern != null) {
+                            multiPiecePattern.checkAllPieces(getWorld(), getPos(),
+                                    getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip());
+                            registerMultiPiecePattern();
+                        }
+                    }
+                } else if (context != null && structureFormed) {
+                    // Structure still valid, reassemble if parts changed
+                    reassembleStructure(context);
+                } else {
+                    this.structureFormed = true;
+                    formStructure(null);
+                }
+            } else {
+                if (this.structureFormed) {
+                    invalidateStructure();
+                }
+            }
+            return;
+        }
+
         if (multiblockState == null) return;
         PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
                 getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
@@ -954,6 +1047,17 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return formedChannelValues;
     }
 
+    /**
+     * Get the formed structure metadata (piece repeat counts + channel values).
+     * Only available when the structure is formed and using the new system.
+     *
+     * @return the formed metadata, or null if not formed or using old system
+     */
+    @Nullable
+    public FormedStructureMetadata getFormedMetadata() {
+        return formedMetadata;
+    }
+
     public void invalidateStructure() {
         // Unregister from event-driven structure checking system
         if (getWorld() != null && !getWorld().isRemote) {
@@ -970,6 +1074,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.multiblockParts.clear();
         this.structureFormed = false;
         this.formedChannelValues = new StructureChannelValues();
+        this.formedMetadata = null;
         this.asyncCheckFallbackTicks = 0;
         this.setFlipped(false);
         writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(false));
@@ -1007,6 +1112,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         delayCheck = data.getBoolean("delayCheck");
         delayStructureCheckStandby = data.getInteger("delayStructureCheckStandby");
         delayStructureCheckWork = data.getInteger("delayStructureCheckWork");
+        if (data.hasKey("FormedMetadata")) {
+            this.formedMetadata = FormedStructureMetadata.readFromNBT(data.getCompoundTag("FormedMetadata"));
+        }
         this.reinitializeStructurePattern();
     }
 
@@ -1018,6 +1126,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         data.setBoolean("delayCheck", delayCheck);
         data.setInteger("delayStructureCheckStandby", delayStructureCheckStandby);
         data.setInteger("delayStructureCheckWork", delayStructureCheckWork);
+        if (formedMetadata != null) {
+            data.setTag("FormedMetadata", formedMetadata.writeToNBT());
+        }
         return data;
     }
 

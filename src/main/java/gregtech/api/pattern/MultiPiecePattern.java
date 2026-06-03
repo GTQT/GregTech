@@ -50,6 +50,25 @@ public class MultiPiecePattern {
     }
 
     /**
+     * Create a MultiPiecePattern from a list of pre-built pieces.
+     * Used by StructureCompiler to assemble compiled pieces.
+     *
+     * @param pieceList the list of pieces (must not be empty, names must be unique)
+     * @throws IllegalArgumentException if duplicate piece names are found
+     */
+    public MultiPiecePattern(@NotNull List<StructurePiece> pieceList) {
+        Map<String, StructurePiece> map = new LinkedHashMap<>();
+        for (StructurePiece piece : pieceList) {
+            if (map.containsKey(piece.getName())) {
+                throw new IllegalArgumentException("Duplicate piece name: " + piece.getName());
+            }
+            map.put(piece.getName(), piece);
+        }
+        this.pieces = Collections.unmodifiableMap(map);
+        this.pieceList = Collections.unmodifiableList(new ArrayList<>(pieceList));
+    }
+
+    /**
      * @return an unmodifiable map of piece name -> piece
      */
     public Map<String, StructurePiece> getPieces() {
@@ -220,6 +239,21 @@ public class MultiPiecePattern {
      */
     public int getPieceCount() {
         return pieceList.size();
+    }
+
+    /**
+     * Get the primary (first) piece of this pattern.
+     * Useful for single-piece patterns where the first piece is the main structure.
+     *
+     * @return the first piece in the piece list
+     * @throws IllegalStateException if the pattern has no pieces
+     */
+    @NotNull
+    public StructurePiece getPrimaryPiece() {
+        if (pieceList.isEmpty()) {
+            throw new IllegalStateException("MultiPiecePattern has no pieces");
+        }
+        return pieceList.get(0);
     }
 
     /**

@@ -29,11 +29,14 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.Mods;
+import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
@@ -184,12 +187,27 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     @Override
     public void checkStructurePattern() {
         if (!this.isStructureFormed()) {
+            // Evict cached StructureDefinition before reinitializing,
+            // so that dynamic dimensions are recalculated
+            evictStructureDefinitionCache();
             reinitializeStructurePattern();
         }
         super.checkStructurePattern();
         if (isStructureFormed()) {
             if(doors!=null)checkDoors();
         }
+    }
+
+    /**
+     * Evict the cached StructureDefinition for this cleanroom instance,
+     * allowing the next createStructureDefinition() call to rebuild
+     * with updated dimensions.
+     */
+    private void evictStructureDefinitionCache() {
+        String key = "gregtech:cleanroom#" + System.identityHashCode(this);
+        TemplatePool.getInstance().evict("sd-compiled:" + key);
+        TemplatePool.getInstance().evict("sd-aabb:" + key);
+        TemplatePool.getInstance().evict(key);
     }
 
     protected static class DoorCheckingContext {
@@ -429,9 +447,9 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    // Retained on FactoryBlockPattern: structure is dynamically generated from variable dimensions.
-    // The aisle strings are built at runtime based on detected cleanroom boundaries.
-    protected BlockPattern createStructurePattern() {
+    // Migrated to new StructureDefinition system: structure is dynamically generated
+    // from variable dimensions, wrapped via pieceFromFactory for backward compatibility.
+    protected StructureDefinition createStructureDefinition() {
         // return the default structure, even if there is no valid size found
         // this means auto-build will still work, and prevents terminal crashes.
         if (getWorld() != null) updateStructureDimensions();
@@ -449,6 +467,24 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
             rDist = tmp;
         }
 
+        // Use instance-specific key to avoid TemplatePool cache collisions
+        // (each cleanroom instance may have different dimensions)
+        String key = "gregtech:cleanroom#" + System.identityHashCode(this);
+
+        FactoryBlockPattern factory = buildFactoryPattern();
+        return StructureDefinition.getOrBuild(key, k ->
+                StructureDefinition.builder(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
+                        .keyHint(k)
+                        .pieceFromFactory("main", factory)
+                        .build());
+    }
+
+    /**
+     * Build the FactoryBlockPattern from current dimensions.
+     * Extracted from the old createStructurePattern() for reuse.
+     */
+    @NotNull
+    private FactoryBlockPattern buildFactoryPattern() {
         // build each row of the structure
         StringBuilder borderBuilder = new StringBuilder();     // BBBBB
         StringBuilder wallBuilder = new StringBuilder();       // BXXXB
@@ -540,8 +576,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                 .where('K', wallPredicate) // the block beneath the controller must only be a casing for structure
                 // dimension checks
                 .where('F', filterPredicate())
-                .where(' ', innerPredicate())
-                .build();
+                .where(' ', innerPredicate());
     }
     @NotNull
     protected static TraceabilityPredicate improvedDoorPredicate() {
