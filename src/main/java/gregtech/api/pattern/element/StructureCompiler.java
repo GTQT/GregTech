@@ -3,7 +3,6 @@ package gregtech.api.pattern.element;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
-import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.util.RelativeDirection;
 

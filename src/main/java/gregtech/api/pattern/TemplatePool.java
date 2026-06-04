@@ -61,7 +61,7 @@ public final class TemplatePool {
      * Called by {@link PooledReference} when a pooled value is recreated after GC reclaim.
      * Tracks global recreation count for monitoring.
      */
-    public static void onHolderRecreated() {
+    static void onHolderRecreated() {
         INSTANCE.totalRecreations.incrementAndGet();
         if (ConfigHolder.machines.debugStructureCheck) {
             GTLog.logger.debug("[TemplatePool] A pooled reference was recreated after GC reclaim. " +

@@ -51,15 +51,12 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
 
     /** Structure definition registered via TemplatePool for soft-reference caching */
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:distillation_tower", key ->
+            "gregtech:distillation_tower", () ->
                     DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                            .piece("base")
-                                .aisle("YSY", "YYY", "YYY")
-                            .repeatablePiece(PIECE_BODY, 1, 11)
-                                .aisle("XXX", "X#X", "XXX")
+                            .aisle("YSY", "YYY", "YYY")
+                            .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
                                 .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                            .piece("top")
-                                .aisle("XXX", "XXX", "XXX")
+                            .aisle("XXX", "XXX", "XXX")
                             .where('S', selfPredicate(MetaTileEntityDistillationTower.class))
                             .where('#', air())
                             .casing('Y', CasingDefinition.simple(getCasingState()))
@@ -69,7 +66,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
                             .casing('X', CasingDefinition.simple(getCasingState()))
                                 .custom(abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
                                 .maintenance()
-                            .buildStructureDefinition(key)
+                            .buildStructureDefinition("gregtech:distillation_tower")
     );
 
     protected DistillationTowerLogicHandler handler;
@@ -120,10 +117,17 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         super.formStructure(context);
         if (this.handler == null) return;
 
-        FormedStructureMetadata metadata = getFormedMetadata();
-        if (metadata != null) {
-            int bodyReps = metadata.getPieceRepeat(PIECE_BODY, 0);
-            handler.determineLayerCountFromReps(bodyReps);
+        // Determine layer count from the appropriate source
+        if (this.multiblockState != null) {
+            // Single-piece path: use MultiblockState's formedRepetitionCount
+            handler.determineLayerCount(this.multiblockState);
+        } else {
+            // Multi-piece path: use FormedStructureMetadata's piece repeat counts
+            FormedStructureMetadata metadata = getFormedMetadata();
+            if (metadata != null) {
+                int bodyReps = metadata.getPieceRepeat(PIECE_BODY, 0);
+                handler.determineLayerCountFromReps(bodyReps);
+            }
         }
         handler.determineOrderedFluidOutputs();
     }

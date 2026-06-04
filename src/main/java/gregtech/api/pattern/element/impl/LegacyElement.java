@@ -68,7 +68,7 @@ public class LegacyElement implements IStructureElement {
 
     @Override
     public boolean isCenter() {
-        return predicate.isCenter();
+        return predicate.isCenter;
     }
 
     @Override

@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * Top-level structure definition (immutable template).
@@ -31,9 +32,8 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Usage:
  * <pre>{@code
- * StructureDefinition def = StructureDefinition.getOrBuild("gregtech:my_machine", key ->
+ * StructureDefinition def = StructureDefinition.getOrBuild("gregtech:my_machine", () ->
  *     StructureDefinition.builder(RIGHT, UP, BACK)
- *         .keyHint(key)
  *         .piece("base", "XXX", "X#X", "XXX")
  *             .where('X', block(casingState))
  *             .where('#', air())
@@ -121,16 +121,13 @@ public final class StructureDefinition {
     }
 
     /**
-     * Get or build a StructureDefinition via TemplatePool, passing the key to the factory.
-     * The factory receives the key so it can forward it as a keyHint to
-     * {@link DeclarativePatternBuilder#buildStructureDefinition(String)}, avoiding
-     * the need to specify the same string twice.
+     * Get or build a StructureDefinition via TemplatePool.
      * The factory must produce an idempotent instance (same result each call).
      */
     @NotNull
     public static StructureDefinition getOrBuild(@NotNull String key,
-                                                 @NotNull java.util.function.Function<String, StructureDefinition> factory) {
-        return TemplatePool.getInstance().registerStructure(key, () -> factory.apply(key)).get();
+                                                 @NotNull Supplier<StructureDefinition> factory) {
+        return TemplatePool.getInstance().registerStructure(key, factory).get();
     }
 
     private MultiPiecePattern doCompile() {

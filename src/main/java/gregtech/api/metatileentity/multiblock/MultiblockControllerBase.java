@@ -577,7 +577,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * otherwise, falls back to the old createStructureTemplate() path.
      *
      * <p>Must return an idempotent instance — use
-     * {@link StructureDefinition#getOrBuild(String, java.util.function.Function)}
+     * {@link StructureDefinition#getOrBuild(String, java.util.function.Supplier)}
      * to ensure this.
      *
      * @return the structure definition, or null to use the old system

@@ -17,7 +17,7 @@ import java.util.function.Supplier;
  *
  * @param <T> the type of value held by this reference
  */
-public final class PooledReference<T> {
+final class PooledReference<T> {
 
     /** Minimum pin duration: 30 seconds in nanoseconds */
     private static final long MIN_PIN_DURATION_NS = 30_000_000_000L;
@@ -41,7 +41,7 @@ public final class PooledReference<T> {
 
     private final AtomicInteger recreationCount = new AtomicInteger();
 
-    public PooledReference(Supplier<T> factory) {
+    PooledReference(Supplier<T> factory) {
         this.factory = factory;
     }
 
@@ -51,7 +51,7 @@ public final class PooledReference<T> {
      *
      * @return the cached value (never null if factory produces non-null)
      */
-    public T get() {
+    T get() {
         // Fast path: check pin first (strong reference, cheapest check)
         T pinned = pin;
         if (pinned != null) {
@@ -101,7 +101,7 @@ public final class PooledReference<T> {
     /**
      * Force eviction: clear both pin and soft reference.
      */
-    public void invalidate() {
+    void invalidate() {
         pin = null;
         softRef = null;
     }
@@ -109,7 +109,7 @@ public final class PooledReference<T> {
     /**
      * @return true if the value is currently loaded in memory
      */
-    public boolean isLoaded() {
+    boolean isLoaded() {
         if (pin != null) return true;
         SoftReference<T> r = softRef;
         return r != null && r.get() != null;
@@ -118,7 +118,7 @@ public final class PooledReference<T> {
     /**
      * @return the number of times the value was recreated after GC reclaim
      */
-    public int getRecreationCount() {
+    int getRecreationCount() {
         int count = recreationCount.get();
         return count > 0 ? count - 1 : 0;
     }
