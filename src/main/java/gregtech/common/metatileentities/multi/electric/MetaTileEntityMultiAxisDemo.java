@@ -56,7 +56,7 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
     // Structure definition using DeclarativePatternBuilder
     private static final StructureDefinition DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:multi_axis_demo", key ->
+            "gregtech:multi_axis_demo", () ->
             DeclarativePatternBuilder.start(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
                     // Fixed base piece: controller sits on the bottom
                     .piece("base")
@@ -75,7 +75,7 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
                     .where('W', block(getCasingState()))
                     .where('C', block(getCornerState()))
                     .where(' ', air())
-                    .buildStructureDefinition(key)
+                    .buildStructureDefinition()
     );
 
     private EnergyContainerList energyContainer;

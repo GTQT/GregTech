@@ -68,7 +68,11 @@ public class LegacyElement implements IStructureElement {
 
     @Override
     public boolean isCenter() {
-        return predicate.isCenter;
+        // Use the public getter rather than the protected isCenter field directly,
+        // because LegacyElement lives in gregtech.api.pattern.element.impl while
+        // TraceabilityPredicate lives in gregtech.api.pattern — accessing a
+        // protected field across packages is not allowed.
+        return predicate.isCenter();
     }
 
     @Override

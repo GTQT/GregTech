@@ -209,6 +209,54 @@ private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
         );
 ```
 
+### `buildTemplate()` vs `buildStructureDefinition()`
+
+`DeclarativePatternBuilder` exposes two compile methods that return different views of
+the same underlying compiled result:
+
+| Method | Return Type | Use when |
+|--------|-------------|----------|
+| `buildStructureDefinition()` | `StructureDefinition` | Your machine uses named pieces, conditional pieces, or multi-piece composition |
+| `buildTemplate()` | `BlockPatternTemplate` | Your machine uses a single structure piece (the common case) |
+
+Both methods share the same internal compilation path; `buildTemplate()` is a convenience
+view that extracts the primary piece's template from the compiled `StructureDefinition`.
+Multi-piece machines that call `buildTemplate()` will receive an `IllegalStateException`
+— use `buildStructureDefinition()` for those.
+
+```java
+// Single-piece (most machines) — use buildTemplate()
+private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
+        .register("gregtech:my_machine", () ->
+                DeclarativePatternBuilder.start()
+                        .aisle("XXX", "XSX", "XXX")
+                        .where('S', selfPredicate())
+                        .where('X', casing(...))
+                        .buildTemplate()  // returns BlockPatternTemplate
+        );
+
+// Multi-piece (DistillationTower, etc.) — use buildStructureDefinition()
+private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
+        .register("gregtech:distillation_tower", () ->
+                DeclarativePatternBuilder.start()
+                        .aisle("XXX", "XSX", "XXX")
+                        .piece("main", "XXX", "XSX", "XXX")
+                        .repeatablePiece("middle", "XYX", "YYY", "XYX", 1, 11)
+                        .end()
+                        .buildStructureDefinition()  // returns StructureDefinition
+        );
+```
+
+> **Migration note:** Prior to v1.9, `buildTemplate()` internally used the L1
+> `FactoryBlockPattern` path, while `buildStructureDefinition()` used the L2
+> `StructureDefinition` path. As of v1.9, both share the L2 path. The legacy `build()`
+> method (returning `BlockPattern`) has been removed.
+>
+> **Behavior change:** `buildTemplate()` now builds **all** pieces defined on the
+> builder (consistent with `buildStructureDefinition()`), instead of only the most
+> recently added piece. This change is a semantic fix — most callers never noticed the
+> old "currentPiece only" behavior because they added a single piece.
+
 ### Creating Custom Casing Groups (for addons)
 
 ```java

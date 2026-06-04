@@ -1,8 +1,9 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.PieceTemplateCompiler;
+import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.util.RelativeDirection;
 
@@ -258,8 +259,8 @@ public final class StructureCompiler {
      * @return the compiled block pattern template
      */
     @NotNull
-    static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
-                                                     @NotNull RelativeDirection[] structureDir) {
+    public static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
+                                                            @NotNull RelativeDirection[] structureDir) {
         // Handle legacy pieces with pre-built template
         if (piece instanceof StructureDefinition.MutablePiece) {
             StructureDefinition.MutablePiece mp = (StructureDefinition.MutablePiece) piece;
@@ -268,20 +269,22 @@ public final class StructureCompiler {
             }
         }
 
-        FactoryBlockPattern builder = FactoryBlockPattern.start(
+        // Build the piece's template directly via PieceTemplateCompiler,
+        // bypassing the public FactoryBlockPattern facade.
+        PieceTemplateCompiler compiler = new PieceTemplateCompiler(
                 structureDir[0], structureDir[1], structureDir[2]);
 
         String[][] pattern = piece.getPattern();
         Map<Character, IStructureElement> symbolMap = piece.getSymbolMap();
 
-        // Add aisles to the builder
+        // Add aisles to the compiler
         for (String[] aisle : pattern) {
-            builder.aisle(aisle);
+            compiler.aisle(aisle);
         }
 
         // Add symbol mappings
         for (Map.Entry<Character, IStructureElement> entry : symbolMap.entrySet()) {
-            builder.where(entry.getKey(), entry.getValue().toPredicate());
+            compiler.where(entry.getKey(), entry.getValue().toPredicate());
         }
 
         // Determine center offset strategy
@@ -295,14 +298,14 @@ public final class StructureCompiler {
 
         if (hasCenter) {
             // Auto-discover center from isCenter predicate
-            return builder.buildTemplate();
+            return compiler.buildTemplate();
         } else {
             // Use the piece's explicit center offset
             // Convert {x, y, z} to {x, y, z, minZ, maxZ}
             // For a non-repeatable base piece, minZ = maxZ = z
             int[] co = piece.getCenterOffset();
             int[] templateCenterOffset = new int[]{co[0], co[1], co[2], co[2], co[2]};
-            return builder.buildTemplate(templateCenterOffset);
+            return compiler.buildTemplate(templateCenterOffset);
         }
     }
 }

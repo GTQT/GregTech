@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 

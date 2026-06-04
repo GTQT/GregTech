@@ -5,7 +5,6 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.util.RelativeDirection;
 
@@ -28,7 +27,8 @@ import java.util.function.Supplier;
 /**
  * Top-level structure definition (immutable template).
  * Contains a list of piece entries, each with its pattern, offset, and optional repeat configuration.
- * Compiled products are cached via {@link TemplatePool} soft references.
+ * The {@link StructureDefinition} instance itself is cached in {@link TemplatePool} behind a
+ * soft reference, so it can be reclaimed under memory pressure and rebuilt lazily.
  *
  * <p>Usage:
  * <pre>{@code
@@ -48,24 +48,21 @@ public final class StructureDefinition {
     private final RelativeDirection[] structureDir;
     private final List<PieceEntry> pieceEntries;
 
-    // Compiled products: cached via TemplatePool soft references
-    private final SoftReferenceHolder<MultiPiecePattern> compiledPattern;
-    private final SoftReferenceHolder<BlockPos[]> maxRepeatAABB;
+    // Compiled products: computed lazily on first access and cached for the
+    // lifetime of this SD instance. The SD is itself held in TemplatePool
+    // behind a SoftReference, so when the SD is reclaimed by GC the compiled
+    // products are released alongside it — which is the desired semantics,
+    // since they have no value without the SD that produced them. This
+    // removes the need to thread a separate cache keyHint through the API
+    // just to register a redundant TemplatePool entry.
+    private MultiPiecePattern compiledPattern;
+    private BlockPos[] maxRepeatAABB;
     private final boolean singlePiece;
-
-    // Key hint for TemplatePool registration
-    private final String keyHint;
 
     private StructureDefinition(Builder b) {
         this.structureDir = new RelativeDirection[]{b.charDir, b.stringDir, b.aisleDir};
         this.pieceEntries = Collections.unmodifiableList(new ArrayList<>(b.pieceEntries));
         this.singlePiece = pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
-        this.keyHint = b.keyHint != null ? b.keyHint : "sd:" + System.identityHashCode(this);
-
-        this.compiledPattern = TemplatePool.getInstance()
-                .registerGeneric("sd-compiled:" + keyHint, this::doCompile);
-        this.maxRepeatAABB = TemplatePool.getInstance()
-                .registerGeneric("sd-aabb:" + keyHint, this::doComputeAABB);
     }
 
     /**
@@ -86,10 +83,19 @@ public final class StructureDefinition {
         return createState().check(world, controllerPos, front, up, flipped, context).success;
     }
 
-    /** Get the compiled MultiPiecePattern. */
+    /** Get the compiled MultiPiecePattern. Computed lazily and cached. */
     @NotNull
     public MultiPiecePattern getCompiledPattern() {
-        return compiledPattern.get();
+        MultiPiecePattern local = compiledPattern;
+        if (local == null) {
+            // Double-checked init is unnecessary here: even if multiple
+            // threads race and both compute the result, the outcome is
+            // identical and deterministic for a given SD, and one of the
+            // computed values will simply be discarded.
+            local = StructureCompiler.compile(this);
+            compiledPattern = local;
+        }
+        return local;
     }
 
     /**
@@ -98,16 +104,44 @@ public final class StructureDefinition {
     @NotNull
     public BlockPos[] computeWorldAABB(@NotNull BlockPos center, @NotNull EnumFacing front,
                                        @NotNull EnumFacing up, boolean flipped, int margin) {
-        BlockPos[] base = maxRepeatAABB.get();
+        BlockPos[] local = maxRepeatAABB;
+        if (local == null) {
+            local = StructureCompiler.computeMaxAABB(this);
+            maxRepeatAABB = local;
+        }
         return new BlockPos[]{
-                base[0].add(-margin, -margin, -margin),
-                base[1].add(margin, margin, margin)
+                local[0].add(-margin, -margin, -margin),
+                local[1].add(margin, margin, margin)
         };
     }
 
     /** Whether this definition has exactly one non-repeatable piece. */
     public boolean isSinglePiece() {
         return singlePiece;
+    }
+
+    /**
+     * Convenience: get the primary piece's template (the 1-piece view).
+     * Returns {@code null} if this definition is not a single-piece definition.
+     *
+     * <p>This bypasses the {@link MultiPiecePattern} wrapping step and compiles
+     * the single piece's template directly via
+     * {@link StructureCompiler#compilePieceTemplate(IStructurePiece, RelativeDirection[])}.
+     * For 1-piece callers (the common case), this avoids one unnecessary
+     * {@code ArrayList<StructurePiece>}, one {@code StructurePiece}, and one
+     * {@code MultiPiecePattern} allocation per call compared to going through
+     * {@link #getCompiledPattern()}.
+     *
+     * <p>Intended for callers that previously used the legacy
+     * {@code BlockPatternTemplate} output (e.g. {@code DeclarativePatternBuilder.buildTemplate()})
+     * and need a quick path to retrieve the equivalent template for a 1-piece structure.
+     * Multi-piece callers should iterate {@link #getCompiledPattern()} instead.
+     */
+    @Nullable
+    public BlockPatternTemplate getPrimaryTemplate() {
+        if (!singlePiece) return null;
+        return StructureCompiler.compilePieceTemplate(
+                getPieceEntries().get(0).piece, getStructureDir());
     }
 
     @NotNull
@@ -123,19 +157,15 @@ public final class StructureDefinition {
     /**
      * Get or build a StructureDefinition via TemplatePool.
      * The factory must produce an idempotent instance (same result each call).
+     *
+     * @param key     the cache key
+     * @param factory supplier that builds the StructureDefinition
+     * @return the resolved StructureDefinition
      */
     @NotNull
     public static StructureDefinition getOrBuild(@NotNull String key,
                                                  @NotNull Supplier<StructureDefinition> factory) {
         return TemplatePool.getInstance().registerStructure(key, factory).get();
-    }
-
-    private MultiPiecePattern doCompile() {
-        return StructureCompiler.compile(this);
-    }
-
-    private BlockPos[] doComputeAABB() {
-        return StructureCompiler.computeMaxAABB(this);
     }
 
     // --- PieceEntry (private static inner class) ---
@@ -177,20 +207,12 @@ public final class StructureDefinition {
         private final RelativeDirection stringDir;
         private final RelativeDirection aisleDir;
         private final List<PieceEntry> pieceEntries = new ArrayList<>();
-        private String keyHint;
 
         private Builder(RelativeDirection charDir, RelativeDirection stringDir,
                         RelativeDirection aisleDir) {
             this.charDir = charDir;
             this.stringDir = stringDir;
             this.aisleDir = aisleDir;
-        }
-
-        /** Set a key hint for TemplatePool registration (optional). */
-        @NotNull
-        public Builder keyHint(@NotNull String key) {
-            this.keyHint = key;
-            return this;
         }
 
         /** Add a fixed piece with flat string rows. */

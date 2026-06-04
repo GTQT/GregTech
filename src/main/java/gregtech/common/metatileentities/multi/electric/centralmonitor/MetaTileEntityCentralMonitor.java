@@ -16,9 +16,10 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.util.FacingPos;
@@ -436,9 +437,13 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     @Override
-    // Retained on FactoryBlockPattern: uses non-standard directions (UP, BACK, RIGHT)
-    // and dynamically generated aisle strings based on monitor width.
-    protected BlockPattern createStructurePattern() {
+    // Migrated to DeclarativePatternBuilder multi-piece: structure is split into
+    // three named pieces ("top" with the controller, "body" with the monitor
+    // screens, "bottom") so each section can be checked independently by the
+    // sharded checker. Aisle strings are still built dynamically because
+    // `height` is runtime-editable via the GUI, so the StructureDefinition is
+    // re-built on every reinitializeStructurePattern() (no TemplatePool cache).
+    protected StructureDefinition createStructureDefinition() {
         StringBuilder start = new StringBuilder("AS");
         StringBuilder slice = new StringBuilder("BB");
         StringBuilder end = new StringBuilder("AA");
@@ -447,16 +452,19 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
             slice.append('B');
             end.append('A');
         }
-        return FactoryBlockPattern.start(UP, BACK, RIGHT)
-                .aisle(start.toString())
-                .aisle(slice.toString()).setRepeatable(3, MAX_WIDTH)
-                .aisle(end.toString())
-                .where('S', selfPredicate())
-                .where('A', states(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID))
-                        .or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1).setMaxGlobalLimited(3)
-                                .setPreviewCount(1)))
+        return DeclarativePatternBuilder.start(UP, BACK, RIGHT)
+                .piece("top")
+                    .aisle(start.toString())
+                .repeatablePiece("body", 3, MAX_WIDTH)
+                    .aisle(slice.toString())
+                .piece("bottom")
+                    .aisle(end.toString())
+                .where('S', selfPredicate(MetaTileEntityCentralMonitor.class))
                 .where('B', metaTileEntities(MetaTileEntities.MONITOR_SCREEN))
-                .build();
+                .casing('A', CasingDefinition.simple(
+                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID)))
+                    .energyInput(1, 3)
+                .buildStructureDefinition();
     }
 
     @Override

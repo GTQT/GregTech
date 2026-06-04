@@ -59,9 +59,12 @@ public final class TemplatePool {
 
     /**
      * Called by {@link PooledReference} when a pooled value is recreated after GC reclaim.
-     * Tracks global recreation count for monitoring.
+     * Tracks global recreation count for monitoring. Public because {@link PooledReference}
+     * (declared public so {@code SoftTemplate}/{@code SoftReferenceHolder} can hold a
+     * reference to it) lives in the {@code internal} sub-package and needs to invoke this
+     * hook.
      */
-    static void onHolderRecreated() {
+    public static void onHolderRecreated() {
         INSTANCE.totalRecreations.incrementAndGet();
         if (ConfigHolder.machines.debugStructureCheck) {
             GTLog.logger.debug("[TemplatePool] A pooled reference was recreated after GC reclaim. " +
@@ -73,6 +76,7 @@ public final class TemplatePool {
      * Backward-compatible alias for {@link #onHolderRecreated()}.
      * Called by the old SoftTemplate recreation path.
      */
+    @SuppressWarnings("unused") // retained for backward compatibility
     static void onTemplateRecreated() {
         onHolderRecreated();
     }

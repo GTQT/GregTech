@@ -63,24 +63,13 @@ public class DistillationTowerLogicHandler {
      * Needs to be overriden for multiblocks that have different assemblies than the standard distillation tower.
      *
      * @param structurePattern the structure pattern
-     * @deprecated Use {@link #determineLayerCount(gregtech.api.pattern.MultiblockState)} instead.
+     * @deprecated Use {@link #determineLayerCountFromReps(int)} instead.
      *             Will be removed in version 2.10.
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public void determineLayerCount(@NotNull BlockPattern structurePattern) {
         this.setLayerCount(structurePattern.formedRepetitionCount[1] + 1);
-    }
-
-    /**
-     * Called on structure formation to determine the number of layers in the distillation tower. <br>
-     * <br>
-     * Needs to be overriden for multiblocks that have different assemblies than the standard distillation tower.
-     *
-     * @param state the multiblock state containing formed repetition counts
-     */
-    public void determineLayerCount(@NotNull gregtech.api.pattern.MultiblockState state) {
-        this.setLayerCount(state.formedRepetitionCount[1] + 1);
     }
 
     /**

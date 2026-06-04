@@ -8,9 +8,10 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -142,28 +143,34 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     }
 
     @Override
-    // Retained on FactoryBlockPattern: non-standard direction (RIGHT, FRONT, UP),
-    // mixed hatch/casing predicates on multiple chars with frames — low migration value.
-    protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start(RIGHT, FRONT, UP)
-                .aisle("ISI", "OEO")
-                .aisle("XXX", "OEO")
-                .aisle("XXX", "OEO")
-                .aisle("XXX", "OEO")
-                .aisle(" F ", "XEX").setRepeatable(0, 12)
-                .where('S', selfPredicate())
+    // Migrated to DeclarativePatternBuilder multi-piece: structure is split into
+    // two named pieces ("header" with the controller and fixed caps, "body" with
+    // the repeatable frame row) so each section can be checked independently by
+    // the sharded checker. Hatch/casing predicates for 'I'/'O'/'E' are kept as
+    // raw TraceabilityPredicate because each char shares the same casing state
+    // but with different hatch abilities — a pattern the L3 casing API does
+    // not express directly.
+    protected StructureDefinition createStructureDefinition() {
+        return DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+                .piece("header")
+                    .aisle("ISI", "OEO")
+                    .aisle("XXX", "OEO")
+                    .aisle("XXX", "OEO")
+                    .aisle("XXX", "OEO")
+                .repeatablePiece("body", 0, 12)
+                    .aisle(" F ", "XEX")
+                .where('S', selfPredicate(MetaTileEntityLogisticsMaterialDistributor.class))
                 .where('I', states(getCasingState())
                         .or(abilities(MultiblockAbility.IMPORT_ITEMS))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
-                )
+                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS)))
                 .where('O', states(getCasingState())
                         .or(abilities(MultiblockAbility.EXPORT_FLUIDS)))
                 .where('E', states(getCasingState())
                         .or(abilities(MultiblockAbility.EXPORT_ITEMS)))
-                .where('X', states(getCasingState()))
                 .where('F', frames(Materials.StainlessSteel))
                 .where(' ', any())
-                .build();
+                .casing('X', CasingDefinition.simple(getCasingState()))
+                .buildStructureDefinition();
     }
 
     @Override

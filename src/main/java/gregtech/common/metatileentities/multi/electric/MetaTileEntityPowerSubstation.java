@@ -18,15 +18,13 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -120,24 +118,27 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
         return predicate;
     };
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:power_substation", () ->
-            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                    .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                    .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
-                    .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
-                    .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                    .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
+
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:power_substation", () -> DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+                    .piece("top")
+                        .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                        .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
+                    .repeatablePiece("body", 1, MAX_BATTERY_LAYERS)
+                        .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                    .piece("bottom")
+                        .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
                     .where('S', selfPredicate(MetaTileEntityPowerSubstation.class))
                     .where('C', states(getCasingState()))
                     .where('G', states(getGlassState()))
                     .where('B', getBatteryPredicate())
                     .casing('X', CasingDefinition.simple(getCasingState()))
-                    .maintenance()
-                    .optionalHatch(MultiblockAbility.WIRELESS_CONTROLLER, 1)
-                    .custom(abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
-                    .custom(abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
-                    .buildTemplate()
-    );
+                        .maintenance()
+                        .optionalHatch(MultiblockAbility.WIRELESS_CONTROLLER, 1)
+                        .custom(abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
+                        .custom(abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
+                    .buildStructureDefinition());
 
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
     private PowerStationEnergyBank energyBank;
@@ -363,8 +364,14 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    // Migrated to createStructureDefinition(): the structure is split into three
+    // named pieces ("top" with the controller and top cap, "body" with the
+    // repeatable battery row, "bottom" with the bottom cap) so each section can
+    // be checked independently by the sharded checker. The StructureDefinition
+    // is cached via StructureDefinition.getOrBuild() since the structure has
+    // no runtime-editable dimensions.
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

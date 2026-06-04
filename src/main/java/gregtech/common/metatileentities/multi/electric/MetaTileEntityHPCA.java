@@ -23,13 +23,11 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
@@ -94,23 +92,24 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
-            .register("gregtech:high_performance_computing_array", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("AA", "CC", "CC", "CC", "AA")
-                            .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
-                            .aisle("SA", "CC", "CC", "CC", "AA")
-                            .where('S', selfPredicate(MetaTileEntityHPCA.class))
-                            .where('A', states(getAdvancedState()))
-                            .where('V', states(getVentState()))
-                            .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
-                            .casing('C', CasingDefinition.simple(getCasingState()))
-                            .maintenance()
-                            .energyInput(1, 3)
-                            .optionalFluidInput(1)
-                            .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1)
-                            .buildTemplate()
-            );
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:high_performance_computing_array", () -> DeclarativePatternBuilder.start()
+                    .piece("top")
+                        .aisle("AA", "CC", "CC", "CC", "AA")
+                    .repeatablePiece("body", 3, 14)
+                        .aisle("VA", "XV", "XV", "XV", "VA")
+                    .piece("bottom")
+                        .aisle("SA", "CC", "CC", "CC", "AA")
+                    .where('S', selfPredicate(MetaTileEntityHPCA.class))
+                    .where('A', states(getAdvancedState()))
+                    .where('V', states(getVentState()))
+                    .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
+                    .casing('C', CasingDefinition.simple(getCasingState()))
+                        .maintenance()
+                        .energyInput(1, 3)
+                        .optionalFluidInput(1)
+                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1)
+                    .buildStructureDefinition());
     private final HPCAGridHandler hpcaHandler;
     private final TimedProgressSupplier progressSupplier;
     private IEnergyContainer energyContainer;
@@ -245,8 +244,13 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    // Migrated to createStructureDefinition(): structure is split into three
+    // named pieces ("top" cap, "body" with the repeatable component row,
+    // "bottom" cap) so each section can be checked independently by the
+    // sharded checker. Cached via StructureDefinition.getOrBuild() since the
+    // structure has no runtime-editable dimensions.
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

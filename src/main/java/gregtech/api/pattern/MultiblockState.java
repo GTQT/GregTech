@@ -1065,24 +1065,23 @@ public class MultiblockState {
         blocks.forEach((pos, info) -> {
             if (info.getTileEntity() instanceof MetaTileEntityHolder) {
                 MetaTileEntity metaTileEntity = ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity();
-                boolean find = false;
+                // Try to find a boundary direction (no block in that direction).
+                // Boundary directions point outward from the structure, so this is the
+                // preferred front-facing for the previewed controller. If the controller
+                // is fully enclosed (e.g. sits in the middle of a chamber), we keep its
+                // default front-facing: a previous second pass scanned for the first
+                // AIR neighbour and used it as the front-facing, but that direction is
+                // usually *inward* (toward a chamber wall) rather than outward, which
+                // made the projector / JEI preview show the controller facing the
+                // inside of the multiblock. The actual structure check at #checkPatternAt
+                // uses the real controller's front-facing as a hint, but the preview
+                // does not have that information here, so the safe choice is to leave
+                // the default in place.
                 for (EnumFacing enumFacing : BlockPatternTemplate.FACINGS) {
-                    if (metaTileEntity.isValidFrontFacing(enumFacing)) {
-                        if (!blocks.containsKey(pos.offset(enumFacing))) {
-                            metaTileEntity.setFrontFacing(enumFacing);
-                            find = true;
-                            break;
-                        }
-                    }
-                }
-                if (!find) {
-                    for (EnumFacing enumFacing : BlockPatternTemplate.FACINGS) {
-                        BlockInfo blockInfo = blocks.get(pos.offset(enumFacing));
-                        if (blockInfo != null && blockInfo.getBlockState().getBlock() == Blocks.AIR &&
-                                metaTileEntity.isValidFrontFacing(enumFacing)) {
-                            metaTileEntity.setFrontFacing(enumFacing);
-                            break;
-                        }
+                    if (metaTileEntity.isValidFrontFacing(enumFacing) &&
+                            !blocks.containsKey(pos.offset(enumFacing))) {
+                        metaTileEntity.setFrontFacing(enumFacing);
+                        break;
                     }
                 }
             }

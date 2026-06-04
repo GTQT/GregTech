@@ -15,9 +15,18 @@ import java.util.function.Supplier;
  * After (re-)creation, the value is pinned via a strong reference for
  * {@link #MIN_PIN_DURATION_NS} to prevent rapid GC→recreate→GC cycles.
  *
+ * <p>Note: this class is declared public solely so that the public
+ * {@link gregtech.api.pattern.SoftTemplate} and
+ * {@link gregtech.api.pattern.SoftReferenceHolder} types (which live in
+ * {@code gregtech.api.pattern}) can hold a reference to it. The {@code internal}
+ * sub-package is the project's signal that this is an implementation detail
+ * that external code should not depend on directly — prefer the higher-level
+ * {@link gregtech.api.pattern.SoftTemplate} / {@link gregtech.api.pattern.SoftReferenceHolder}
+ * facade classes.
+ *
  * @param <T> the type of value held by this reference
  */
-final class PooledReference<T> {
+public final class PooledReference<T> {
 
     /** Minimum pin duration: 30 seconds in nanoseconds */
     private static final long MIN_PIN_DURATION_NS = 30_000_000_000L;
@@ -41,7 +50,13 @@ final class PooledReference<T> {
 
     private final AtomicInteger recreationCount = new AtomicInteger();
 
-    PooledReference(Supplier<T> factory) {
+    /**
+     * Create a new pooled reference backed by the given factory.
+     * The factory is called once on first {@link #get()} access, and again after
+     * a GC reclaim. Public so {@link gregtech.api.pattern.SoftTemplate} and
+     * {@link gregtech.api.pattern.SoftReferenceHolder} can construct instances.
+     */
+    public PooledReference(Supplier<T> factory) {
         this.factory = factory;
     }
 
@@ -51,7 +66,7 @@ final class PooledReference<T> {
      *
      * @return the cached value (never null if factory produces non-null)
      */
-    T get() {
+    public T get() {
         // Fast path: check pin first (strong reference, cheapest check)
         T pinned = pin;
         if (pinned != null) {
@@ -101,7 +116,7 @@ final class PooledReference<T> {
     /**
      * Force eviction: clear both pin and soft reference.
      */
-    void invalidate() {
+    public void invalidate() {
         pin = null;
         softRef = null;
     }
@@ -109,7 +124,7 @@ final class PooledReference<T> {
     /**
      * @return true if the value is currently loaded in memory
      */
-    boolean isLoaded() {
+    public boolean isLoaded() {
         if (pin != null) return true;
         SoftReference<T> r = softRef;
         return r != null && r.get() != null;
@@ -118,7 +133,7 @@ final class PooledReference<T> {
     /**
      * @return the number of times the value was recreated after GC reclaim
      */
-    int getRecreationCount() {
+    public int getRecreationCount() {
         int count = recreationCount.get();
         return count > 0 ? count - 1 : 0;
     }

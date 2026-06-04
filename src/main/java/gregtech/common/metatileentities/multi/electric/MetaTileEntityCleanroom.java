@@ -468,13 +468,16 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         }
 
         // Use instance-specific key to avoid TemplatePool cache collisions
-        // (each cleanroom instance may have different dimensions)
+        // (each cleanroom instance may have different dimensions).
+        // The SD instance (and its compiled pattern) is held strongly for the
+        // lifetime of this controller, so the key only needs to be unique
+        // across the TemplatePool registry — it doesn't need to propagate
+        // into the SD itself.
         String key = "gregtech:cleanroom#" + System.identityHashCode(this);
 
         FactoryBlockPattern factory = buildFactoryPattern();
-        return StructureDefinition.getOrBuild(key, k ->
+        return StructureDefinition.getOrBuild(key, () ->
                 StructureDefinition.builder(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
-                        .keyHint(k)
                         .pieceFromFactory("main", factory)
                         .build());
     }

@@ -241,7 +241,23 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             if (!multiblock.isStructureFormed()) {
                 MultiblockState state = multiblock.getMultiblockState();
                 if (state != null) {
+                    // Single-piece multiblock: build the main pattern via its MultiblockState.
                     state.autoBuild(player, multiblock, channels, noHatch);
+                } else {
+                    // Multi-piece multiblock (e.g. Distillation Tower): the controller's
+                    // MultiblockState is null because each piece owns its own state.
+                    // Iterate every piece and let the MultiPiecePattern place them at
+                    // their correct world-space offsets. Repeatable pieces (e.g. the
+                    // tower body) read their repeat count from channel values, so the
+                    // STRUCTURE_HEIGHT / STRUCTURE_LENGTH channels on the projector
+                    // still control the final dimensions.
+                    var multiPiece = multiblock.getMultiPiecePattern();
+                    if (multiPiece != null) {
+                        int pieceCount = multiPiece.getPieceCount();
+                        for (int i = 1; i <= pieceCount; i++) {
+                            multiPiece.autoBuildPiece(i, player, multiblock, channels, noHatch);
+                        }
+                    }
                 }
                 return EnumActionResult.SUCCESS;
             }

@@ -8,13 +8,11 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
@@ -64,12 +62,15 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:assembly_line", () ->
-            DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
-                    .aisle("FIF", "RTR", "SAG", " Y ")
-                    .aisleRepeatable(3, 15, "FIF", "RTR", "DAG", " Y ")
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:assembly_line", () -> DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+                    .piece("start")
+                        .aisle("FIF", "RTR", "SAG", " Y ")
+                    .repeatablePiece("body", 3, 15)
+                        .aisle("FIF", "RTR", "DAG", " Y ")
                         .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
-                    .aisle("FOF", "RTR", "DAG", " Y ")
+                    .piece("end")
+                        .aisle("FOF", "RTR", "DAG", " Y ")
                     .where('S', selfPredicate(MetaTileEntityAssemblyLine.class))
                     .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
                             .addTooltips("gregtech.multiblock.pattern.location_end"))
@@ -89,8 +90,7 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                         .custom(fluidInputPredicate(), 4)
                     .casing('Y', CasingDefinition.simple(getCasingState()))
                         .energyInput(1,3)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
     private static final ResourceLocation LASER_LOCATION = GTUtility.gregtechId("textures/fx/laser/laser.png");
     private static final ResourceLocation LASER_HEAD_LOCATION = GTUtility
@@ -112,8 +112,14 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    // Migrated to createStructureDefinition(): structure is split into three
+    // named pieces ("start" with the controller, "body" with the repeatable
+    // slice, "end" with the export bus) so each section can be checked
+    // independently by the sharded checker. Cached via
+    // StructureDefinition.getOrBuild() since the structure has no
+    // runtime-editable dimensions.
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @NotNull
