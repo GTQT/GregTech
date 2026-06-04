@@ -9,7 +9,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
-import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
@@ -1069,42 +1068,38 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         // For JEI preview, the controller is typically NOT formed, so the cache is empty.
         // This fallback ensures right-click cycling works for all structure positions.
         if (predicateMap.isEmpty() && controllerBase != null) {
-            MultiblockState state = controllerBase.getMultiblockState();
+            // Route through StructureDefinition: 1-piece (whether SD-backed or legacy) walks the
+            // single template with cPos-based offset; multi-piece uses the controller's existing
+            // buildMultiPiecePredicateMap helper (its coordinates are in structure-local space,
+            // which is the established behavior for the multi-piece JEI preview).
+            StructureDefinition definition = controllerBase.getStructureDefinition();
+            boolean useSingleTemplatePath = definition == null || definition.isSinglePiece();
+            if (useSingleTemplatePath) {
+                BlockPatternTemplate tmpl = (definition != null)
+                        ? definition.getPrimaryTemplate()
+                        : controllerBase.getMultiblockState().getTemplate();
+                if (tmpl != null) {
+                    RelativeDirection[] sDir = tmpl.getStructureDir();
+                    BlockPatternTemplate.CenterOffset centerOff = tmpl.getCenterOffset();
 
-            if (state != null) {
-                // Single-template (legacy) path
-                BlockPatternTemplate tmpl = state.getTemplate();
-                TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
-                RelativeDirection[] sDir = tmpl.getStructureDir();
-                int[] centerOff = tmpl.getCenterOffset();
+                    BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
+                    BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
+                            centerOff.x(), centerOff.y(), centerOff.minZ(),
+                            EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+                    BlockPos offset = cPos.subtract(controllerPreviewPos);
 
-                BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
-                BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
-                        centerOff[0], centerOff[1], centerOff[3],
-                        EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                BlockPos offset = cPos.subtract(controllerPreviewPos);
-
-                for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
-                    for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {
-                        for (int ix = 0; ix < tmpl.getPalmLength(); ix++) {
-                            TraceabilityPredicate pred = blockMatches[iz][iy][ix];
-                            if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-
-                            BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
-                                    ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                            BlockPos blockMapPos = previewPos.add(offset);
-                            if (blockMap.containsKey(blockMapPos)) {
-                                predicateMap.put(blockMapPos, pred);
-                            }
+                    // forEachPredicate handles null/ANY filtering and the (iz, iy, ix) iteration;
+                    // we only have to apply the per-piece origin offset and the blockMap filter.
+                    tmpl.forEachPredicate(EnumFacing.SOUTH, EnumFacing.UP, false, (localPos, pred) -> {
+                        BlockPos blockMapPos = localPos.add(offset);
+                        if (blockMap.containsKey(blockMapPos)) {
+                            predicateMap.put(blockMapPos, pred);
                         }
-                    }
+                    });
                 }
-            } else {
-                // Multi-piece (StructureDefinition) path
-                MultiPiecePattern mpp = controllerBase.getMultiPiecePattern();
-                if (mpp != null && controllerBlockPos != null) {
-                    predicateMap.putAll(controllerBase.buildMultiPiecePredicateMap());
-                }
+            } else if (controllerBlockPos != null) {
+                // Multi-piece path: existing helper handles the structure-local coordinate system.
+                predicateMap.putAll(controllerBase.buildMultiPiecePredicateMap());
             }
         }
 

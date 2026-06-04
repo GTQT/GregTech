@@ -1,12 +1,14 @@
 package gregtech.api.pattern.element;
 
+import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -14,6 +16,14 @@ import java.util.List;
  * Single-position matching rule for structure elements.
  * Each element defines how a single position in a structure piece is matched,
  * previewed, and auto-built.
+ *
+ * <p>This interface is the single canonical concept for cell-level matching
+ * in the new (StructureDefinition) path. The legacy
+ * {@link gregtech.api.pattern.TraceabilityPredicate} remains a public API
+ * for the old (FactoryBlockPattern) path; the
+ * {@link #applyTo(String, PieceTemplateCompiler)} bridge method encapsulates
+ * the only point of contact between the two systems, so the rest of the
+ * element API does not need to mention TraceabilityPredicate.
  */
 public interface IStructureElement {
 
@@ -84,8 +94,30 @@ public interface IStructureElement {
     default void addTooltip(List<String> tooltip) {}
 
     /**
-     * Convert this element to a TraceabilityPredicate for compatibility
-     * with the existing pattern checking system.
+     * Register this element into a {@link PieceTemplateCompiler} under the
+     * given symbol. This is the single, interface-level bridge to the
+     * legacy {@link gregtech.api.pattern.TraceabilityPredicate}-based compile
+     * path: the new (StructureDefinition) path goes through this method
+     * and never mentions TraceabilityPredicate directly.
+     *
+     * <p>Default implementation converts via {@code toPredicate()}; concrete
+     * implementations may override to provide a more direct build path
+     * (e.g. populating the template's predicate 3D array without going
+     * through the legacy predicate system).
+     *
+     * @param symbol    the single-character symbol this element was bound to
+     * @param compiler  the target template compiler (in build state)
      */
-    TraceabilityPredicate toPredicate();
+    default void applyTo(@NotNull String symbol, @NotNull PieceTemplateCompiler compiler) {
+        compiler.where(symbol, toPredicate());
+    }
+
+    /**
+     * Build the legacy {@link gregtech.api.pattern.TraceabilityPredicate}
+     * for this element. Implementations retain this as an internal helper
+     * used by the default {@link #applyTo} bridge; the new path does not
+     * call it directly.
+     */
+    @NotNull
+    gregtech.api.pattern.TraceabilityPredicate toPredicate();
 }

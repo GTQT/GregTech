@@ -13,6 +13,8 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
+import gregtech.api.pattern.PieceRuntime;
+import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
@@ -407,19 +409,23 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (multiPiecePattern == null) return;
 
         StructurePiece beamShaft = multiPiecePattern.getPiece("beam_shaft");
-        boolean beamShaftDirty = beamShaft != null && beamShaft.isActive() && beamShaft.isDirty();
+        PieceRuntimes runtimes = getPieceRuntimes();
+        PieceRuntime beamShaftRuntime = (beamShaft != null) ? runtimes.get(beamShaft) : null;
+        boolean beamShaftDirty = beamShaftRuntime != null
+                && beamShaft.isActive()
+                && beamShaftRuntime.isDirty();
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
                 getWorld(), getPos(), getFrontFacing().getOpposite(),
-                getUpwardsFacing(), allowsFlip());
+                getUpwardsFacing(), allowsFlip(), runtimes);
 
         if (!allValid && isStructureFormed()) {
             invalidateStructure();
             return;
         }
 
-        if (beamShaftDirty && beamShaft != null && beamShaft.isValidated()) {
-            boolean reassembled = reassembleStructure(beamShaft.getState().getMatchContext());
+        if (beamShaftDirty && beamShaftRuntime != null && beamShaftRuntime.isValidated()) {
+            boolean reassembled = reassembleStructure(beamShaftRuntime.getState().getMatchContext());
             if (reassembled && getWorld() != null && !getWorld().isRemote) {
                 MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
                 registerMultiPiecePattern();

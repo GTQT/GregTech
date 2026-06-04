@@ -8,7 +8,12 @@ import net.minecraft.util.math.Vec3i;
 import java.util.function.Function;
 
 /**
- * Relative direction when facing horizontally
+ * Relative direction when facing horizontally.
+ *
+ * <p>Holds the canonical south/north/west/east/up/down iteration used by the multiblock
+ * structure system. Previously this constant lived on {@code BlockPatternTemplate} as the
+ * {@code FACINGS} static field; it has been hoisted here so that any code (including
+ * {@code BlockPatternTemplate} callers) can reference a single source of truth.
  */
 public enum RelativeDirection {
 
@@ -18,6 +23,15 @@ public enum RelativeDirection {
     RIGHT(EnumFacing::rotateY),
     FRONT(Function.identity()),
     BACK(EnumFacing::getOpposite);
+
+    /**
+     * Canonical iteration order for the six cardinal {@link EnumFacing} values. Use this
+     * instead of inlining a new array at every call site.
+     */
+    public static final EnumFacing[] ALL_FACINGS = {
+            EnumFacing.SOUTH, EnumFacing.NORTH, EnumFacing.WEST, EnumFacing.EAST,
+            EnumFacing.UP, EnumFacing.DOWN
+    };
 
     final Function<EnumFacing, EnumFacing> actualFacing;
 

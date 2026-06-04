@@ -49,7 +49,10 @@ import java.util.stream.Collectors;
 /**
  * Per-instance mutable state for multiblock pattern checking.
  * Each multiblock controller holds its own MultiblockState, while sharing
- * the immutable {@link BlockPatternTemplate} with other controllers of the same type.
+ * the immutable canonical {@link PieceTemplate} IR with other controllers of
+ * the same type. (The legacy {@link BlockPatternTemplate} facade is no longer
+ * present at this layer — it lives only in the compile-result surface of
+ * {@link StructurePiece#getTemplate()} for back-compat.)
  *
  * This class holds:
  * - The block position cache (formed structure positions)
@@ -59,11 +62,16 @@ import java.util.stream.Collectors;
  * - Formed repetition counts
  * - A ReentrantLock for future async checking support (P2)
  *
- * @see BlockPatternTemplate for the shared immutable template
+ * @see PieceTemplate for the canonical IR
  */
 public class MultiblockState {
 
-    private final BlockPatternTemplate template;
+    /**
+     * The canonical piece IR. The legacy
+     * {@link #getTemplate()} accessor returns a {@link BlockPatternTemplate}
+     * facade constructed lazily on first call.
+     */
+    private final PieceTemplate template;
 
     // --- Per-instance mutable state ---
 
@@ -81,17 +89,30 @@ public class MultiblockState {
     /** Lock for thread-safe pattern checking (preparation for P2 async checking) */
     private final ReentrantLock lock = new ReentrantLock();
 
-    public MultiblockState(@NotNull BlockPatternTemplate template) {
+    public MultiblockState(@NotNull PieceTemplate template) {
         this.template = template;
-        this.formedRepetitionCount = new int[template.getAisleRepetitions().length];
+        this.formedRepetitionCount = new int[template.getAisles().length];
     }
 
     /**
-     * @return the immutable template this state is bound to
+     * @return the canonical piece IR this state is bound to
      */
-    public BlockPatternTemplate getTemplate() {
+    @NotNull
+    public PieceTemplate getPieceTemplate() {
         return template;
     }
+
+    /**
+     * @return the legacy facade view of the piece IR. Lazily constructed on
+     *         first call; new code should prefer {@link #getPieceTemplate()}.
+     */
+    @NotNull
+    public BlockPatternTemplate getTemplate() {
+        return templateView != null ? templateView : (templateView = new BlockPatternTemplate(template));
+    }
+
+    @Nullable
+    private BlockPatternTemplate templateView;
 
     /**
      * @return the current pattern error, or null if no error
@@ -238,13 +259,13 @@ public class MultiblockState {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
-        int[] centerOffset = template.getCenterOffset();
-        int fingerLength = template.getFingerLength();
-        int thumbLength = template.getThumbLength();
-        int palmLength = template.getPalmLength();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
 
         boolean findFirstAisle = false;
-        int minZ = -centerOffset[4];
+        int minZ = -centerOffset.maxZ();
 
         this.matchContext.reset();
         this.globalCount.clear();
@@ -256,12 +277,12 @@ public class MultiblockState {
             // Checking repeatable slices
             int validRepetitions = 0;
             loop:
-            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset[3]); r++) {
+            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset.minZ()); r++) {
                 // Checking single slice
                 this.layerCount.clear();
 
-                for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         TraceabilityPredicate predicate = blockMatches[c][b][a];
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
                                 isFlipped, structureDir)
@@ -351,29 +372,26 @@ public class MultiblockState {
      * consistent with the preview path (repetitionDFS generates shapes starting from min).
      */
     private int[] calculateRepetitionsFromChannels(Map<String, Integer> channelValues) {
-        int[][] aisleRepetitions = template.getAisleRepetitions();
-        String[] aisleChannelNames = template.getAisleChannelNames();
-        int[] repetitions = new int[aisleRepetitions.length];
+        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        int[] repetitions = new int[aisles.length];
 
-        for (int i = 0; i < aisleRepetitions.length; i++) {
+        for (int i = 0; i < aisles.length; i++) {
             // Default to min repetition (consistent with preview showing min variant)
-            repetitions[i] = aisleRepetitions[i][0];
+            repetitions[i] = aisles[i].minRepeat();
         }
 
         if (channelValues == null || channelValues.isEmpty()) {
             return repetitions;
         }
 
-        for (int i = 0; i < aisleRepetitions.length; i++) {
+        for (int i = 0; i < aisles.length; i++) {
             // Skip non-repeatable aisles
-            if (aisleRepetitions[i][0] == aisleRepetitions[i][1]) continue;
+            if (aisles[i].minRepeat() == aisles[i].maxRepeat()) continue;
 
-            String channelName = (aisleChannelNames != null && i < aisleChannelNames.length)
-                    ? aisleChannelNames[i] : null;
-
+            String channelName = aisles[i].channelName();
             if (channelName != null && channelValues.containsKey(channelName)) {
                 int value = channelValues.get(channelName);
-                repetitions[i] = Math.min(Math.max(value, aisleRepetitions[i][0]), aisleRepetitions[i][1]);
+                repetitions[i] = Math.min(Math.max(value, aisles[i].minRepeat()), aisles[i].maxRepeat());
             }
         }
 
@@ -398,11 +416,10 @@ public class MultiblockState {
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
         Map<String, Integer> channels = new HashMap<>();
         if (tier > 0) {
-            int[][] aisleReps = template.getAisleRepetitions();
-            String[] channelNames = template.getAisleChannelNames();
-            for (int i = 0; i < aisleReps.length; i++) {
-                if (aisleReps[i][0] == aisleReps[i][1]) continue;
-                String name = (channelNames != null && i < channelNames.length) ? channelNames[i] : null;
+            BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+            for (int i = 0; i < aisles.length; i++) {
+                if (aisles[i].minRepeat() == aisles[i].maxRepeat()) continue;
+                String name = aisles[i].channelName();
                 if (name != null) {
                     channels.put(name, tier);
                 }
@@ -447,14 +464,14 @@ public class MultiblockState {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
-        int[] centerOffset = template.getCenterOffset();
-        int fingerLength = template.getFingerLength();
-        int thumbLength = template.getThumbLength();
-        int palmLength = template.getPalmLength();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
 
         World world = player.world;
         BlockWorldState bws = new BlockWorldState();
-        int minZ = -centerOffset[4];
+        int minZ = -centerOffset.maxZ();
         EnumFacing facing = controllerBase.getFrontFacing().getOpposite();
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
@@ -466,8 +483,8 @@ public class MultiblockState {
         for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
             for (r = 0; r < repetitions[c]; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
-                for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         TraceabilityPredicate predicate = blockMatches[c][b][a];
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, facing,
                                 controllerBase.getUpwardsFacing(),
@@ -746,7 +763,7 @@ public class MultiblockState {
             }
         }
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
-                BlockPatternTemplate.FACINGS);
+                RelativeDirection.ALL_FACINGS);
         blocks.forEach((pos, block) -> {
             if (block instanceof MetaTileEntity) {
                 MetaTileEntity metaTileEntity = (MetaTileEntity) block;
@@ -761,7 +778,7 @@ public class MultiblockState {
                     }
                 }
                 if (!find) {
-                    for (EnumFacing enumFacing : BlockPatternTemplate.FACINGS) {
+                    for (EnumFacing enumFacing : RelativeDirection.ALL_FACINGS) {
                         if (world.isAirBlock(pos.offset(enumFacing)) &&
                                 metaTileEntity.isValidFrontFacing(enumFacing)) {
                             metaTileEntity.setFrontFacing(enumFacing);
@@ -819,7 +836,7 @@ public class MultiblockState {
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
         Map<BlockPos, BlockInfo> blocks = new HashMap<>();
-        int[] centerOffset = template.getCenterOffset();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
 
         if (!cache.isEmpty()) {
             cache.forEach((posLong, blockInfo) -> {
@@ -835,20 +852,20 @@ public class MultiblockState {
             return blocks;
         }
 
-        int fingerLength = template.getFingerLength();
-        int thumbLength = template.getThumbLength();
-        int palmLength = template.getPalmLength();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
         RelativeDirection[] structureDir = template.getStructureDir();
 
-        int minZ = -centerOffset[4];
+        int minZ = -centerOffset.maxZ();
         for (int c = 0, z = minZ, r; c < fingerLength; c++) {
             int repetitions = (formedRepetitionCount != null && c < formedRepetitionCount.length)
                     ? formedRepetitionCount[c]
-                    : template.getAisleRepetitions()[c][0];
+                    : template.getAisles()[c].minRepeat();
 
             for (r = 0; r < repetitions; r++) {
-                for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(
                                         x, y, z, frontFacing, upwardsFacing, isFlipped, structureDir)
                                 .add(centerPos);
@@ -886,9 +903,9 @@ public class MultiblockState {
     public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         RelativeDirection[] structureDir = template.getStructureDir();
-        int fingerLength = template.getFingerLength();
-        int thumbLength = template.getThumbLength();
-        int palmLength = template.getPalmLength();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
 
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
@@ -1077,7 +1094,7 @@ public class MultiblockState {
                 // uses the real controller's front-facing as a hint, but the preview
                 // does not have that information here, so the safe choice is to leave
                 // the default in place.
-                for (EnumFacing enumFacing : BlockPatternTemplate.FACINGS) {
+                for (EnumFacing enumFacing : RelativeDirection.ALL_FACINGS) {
                     if (metaTileEntity.isValidFrontFacing(enumFacing) &&
                             !blocks.containsKey(pos.offset(enumFacing))) {
                         metaTileEntity.setFrontFacing(enumFacing);
@@ -1223,9 +1240,9 @@ public class MultiblockState {
         // This is a simplified check that verifies the outermost slice.
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         RelativeDirection[] structureDir = template.getStructureDir();
-        int[] centerOffset = template.getCenterOffset();
-        int thumbLength = template.getThumbLength();
-        int palmLength = template.getPalmLength();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
 
         // Check the first slice (z=0) as a representative sample
         // For tensor products, if one slice matches, all slices match
@@ -1233,9 +1250,9 @@ public class MultiblockState {
         this.globalCount.clear();
         this.layerCount.clear();
 
-        int z = -centerOffset[4]; // Start at the first aisle
-        for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
-            for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+        int z = -centerOffset.maxZ(); // Start at the first aisle
+        for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+            for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                 TraceabilityPredicate predicate = blockMatches[0][b][a];
                 BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
                         isFlipped, structureDir)
@@ -1259,13 +1276,13 @@ public class MultiblockState {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
-        int[] centerOffset = template.getCenterOffset();
-        int fingerLength = template.getFingerLength();
-        int thumbLength = template.getThumbLength();
-        int palmLength = template.getPalmLength();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
 
         boolean findFirstAisle = false;
-        int minZ = -centerOffset[4];
+        int minZ = -centerOffset.maxZ();
 
         this.matchContext.reset();
         this.globalCount.clear();
@@ -1276,12 +1293,12 @@ public class MultiblockState {
             // Checking repeatable slices
             int validRepetitions = 0;
             loop:
-            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset[3]); r++) {
+            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset.minZ()); r++) {
                 // Checking single slice
                 this.layerCount.clear();
 
-                for (int b = 0, y = -centerOffset[1]; b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset[0]; a < palmLength; a++, x++) {
+                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         TraceabilityPredicate predicate = blockMatches[c][b][a];
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
                                 isFlipped, structureDir)

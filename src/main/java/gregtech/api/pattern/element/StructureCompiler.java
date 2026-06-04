@@ -2,6 +2,7 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
@@ -11,6 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,33 +71,43 @@ public final class StructureCompiler {
             if (p instanceof StructureDefinition.MutablePiece) {
                 StructureDefinition.MutablePiece mp = (StructureDefinition.MutablePiece) p;
                 if (mp.legacyTemplate != null) {
+                    // The snapshot checker receives the per-controller PieceRuntime as its
+                    // last argument; the template is final, so the captured reference to
+                    // `mp.legacyTemplate` is fine across controllers.
                     StructurePiece piece = new StructurePiece(p.getName(), mp.legacyTemplate,
-                            entry.baseOffset, entry.offsetMode, entry.condition);
-                    // Bind snapshot checker for async structure checking
-                    piece.bindSnapshotChecker((snap, origin, front, up, flipped, prior) ->
-                            piece.getState().checkPatternFastAtSnapshot(snap, origin, front, up, flipped) != null);
+                            entry.baseOffset, entry.offsetMode, entry.condition,
+                            (snap, origin, front, up, flipped, prior, runtime) ->
+                                    runtime.getState().checkPatternFastAtSnapshot(
+                                            snap, origin, front, up, flipped) != null);
                     pieces.add(piece);
                     continue;
                 }
             }
 
-            BlockPatternTemplate tpl = compilePieceTemplate(p, def.getStructureDir());
+            PieceTemplate tpl = compilePieceToPieceTemplate(p, def.getStructureDir());
+
+            // StructurePiece.template is typed as BlockPatternTemplate (the legacy facade)
+            // for backward compatibility with the public API. Wrap the canonical
+            // PieceTemplate as a BlockPatternTemplate facade so the existing
+            // StructurePiece constructor signature still accepts it.
+            // PieceTemplate is final and does not extend BlockPatternTemplate, so we
+            // always go through the BlockPatternTemplate(PieceTemplate) constructor.
+            BlockPatternTemplate tplFacade = new BlockPatternTemplate(tpl);
 
             if (!p.isRepeatable()) {
-                // Fixed piece: single StructurePiece
-                StructurePiece piece = new StructurePiece(p.getName(), tpl,
-                        entry.baseOffset, entry.offsetMode, entry.condition);
-                // Bind snapshot checker for async structure checking
-                piece.bindSnapshotChecker((snap, origin, front, up, flipped, prior) ->
-                        piece.getState().checkPatternFastAtSnapshot(snap, origin, front, up, flipped) != null);
+                // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
+                StructurePiece piece = new StructurePiece(p.getName(), tplFacade,
+                        entry.baseOffset, entry.offsetMode, entry.condition,
+                        (snap, origin, front, up, flipped, prior, runtime) ->
+                                runtime.getState().checkPatternFastAtSnapshot(
+                                        snap, origin, front, up, flipped) != null);
                 pieces.add(piece);
             } else {
                 // Repeatable piece: 1 RepeatGroupPiece with auto-selected search strategy
                 boolean tensor = isTensorProduct(p);
                 SearchStrategy strategy = pickStrategy(p, tensor);
-                // TODO: RepeatGroupPiece class to be implemented in next step
                 RepeatGroupPiece group = new RepeatGroupPiece(
-                        p.getName(), tpl, entry.baseOffset, entry.offsetMode, entry.condition,
+                        p.getName(), tplFacade, entry.baseOffset, entry.offsetMode, entry.condition,
                         p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
                         p.getRepeatChannelNames(), p.getCenterOffset(), strategy);
                 pieces.add(group);
@@ -126,11 +138,12 @@ public final class StructureCompiler {
             Vec3i offset = entry.baseOffset;
 
             // Get base piece dimensions from the compiled template
-            BlockPatternTemplate tpl = compilePieceTemplate(p, def.getStructureDir());
-            int finger = tpl.getFingerLength();
-            int thumb = tpl.getThumbLength();
-            int palm = tpl.getPalmLength();
-            int[] center = tpl.getCenterOffset(); // [x, y, z, minZ, maxZ]
+            PieceTemplate tpl = compilePieceToPieceTemplate(p, def.getStructureDir());
+            int finger = tpl.getZLength();
+            int thumb = tpl.getYLength();
+            int palm = tpl.getXLength();
+            // [x, y, z, minZ, maxZ] — shared record with BlockPatternTemplate for back-compat
+            BlockPatternTemplate.CenterOffset center = tpl.getCenterOffset();
 
             // Compute max expanded dimensions for repeatable pieces
             int maxPalm = palm;
@@ -159,14 +172,13 @@ public final class StructureCompiler {
             }
 
             // Compute piece AABB relative to controller (structure-local coords)
-            // center[0]=x, center[1]=y, center[2]=z, center[3]=minZ, center[4]=maxZ
             int ox = offset.getX(), oy = offset.getY(), oz = offset.getZ();
-            int pieceMinX = ox - center[0];
-            int pieceMinY = oy - center[1];
-            int pieceMinZ = oz - center[4]; // backward extent uses maxZ
-            int pieceMaxX = ox + maxPalm - 1 - center[0];
-            int pieceMaxY = oy + maxThumb - 1 - center[1];
-            int pieceMaxZ = oz + maxFinger - 1 - center[3]; // forward extent uses minZ
+            int pieceMinX = ox - center.x();
+            int pieceMinY = oy - center.y();
+            int pieceMinZ = oz - center.maxZ(); // backward extent uses maxZ
+            int pieceMaxX = ox + maxPalm - 1 - center.x();
+            int pieceMaxY = oy + maxThumb - 1 - center.y();
+            int pieceMaxZ = oz + maxFinger - 1 - center.minZ(); // forward extent uses minZ
 
             minX = Math.min(minX, pieceMinX);
             minY = Math.min(minY, pieceMinY);
@@ -248,24 +260,45 @@ public final class StructureCompiler {
     // --- Piece template compilation ---
 
     /**
-     * Compile an IStructurePiece's pattern and symbol map into a BlockPatternTemplate.
+     * Compile an {@link IStructurePiece} into a canonical {@link PieceTemplate}
+     * (the new IR). This is the new-path entry point: the resulting
+     * {@code PieceTemplate} is wrapped directly in a {@link StructurePiece}
+     * without ever constructing a {@link BlockPatternTemplate} facade.
      *
-     * <p>If any element in the symbol map is a center element (isCenter = true),
+     * <p>If any element in the symbol map is a center element ({@code isCenter() == true}),
      * the template will auto-discover the center offset. Otherwise, the piece's
      * explicit center offset is used.
      *
      * @param piece        the structure piece to compile
      * @param structureDir the structure direction triple [charDir, stringDir, aisleDir]
-     * @return the compiled block pattern template
+     * @return the compiled piece IR
      */
     @NotNull
-    public static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
-                                                            @NotNull RelativeDirection[] structureDir) {
+    public static PieceTemplate compilePieceToPieceTemplate(@NotNull IStructurePiece piece,
+                                                             @NotNull RelativeDirection[] structureDir) {
+        return compilePieceToPieceTemplate(piece, structureDir, null);
+    }
+
+    /**
+     * Compile a piece into a {@link PieceTemplate}, optionally attaching an
+     * auto-generated structure description. The description is propagated
+     * through the underlying {@link PieceTemplateCompiler} so the resulting
+     * template is fully immutable (no setter is required).
+     *
+     * @param piece                  the piece to compile
+     * @param structureDir           the 3 relative directions
+     * @param structureDescription   optional description lines; {@code null}/empty means "no description"
+     * @return the compiled piece IR
+     */
+    @NotNull
+    public static PieceTemplate compilePieceToPieceTemplate(@NotNull IStructurePiece piece,
+                                                             @NotNull RelativeDirection[] structureDir,
+                                                             @Nullable List<String> structureDescription) {
         // Handle legacy pieces with pre-built template
         if (piece instanceof StructureDefinition.MutablePiece) {
             StructureDefinition.MutablePiece mp = (StructureDefinition.MutablePiece) piece;
             if (mp.legacyTemplate != null) {
-                return mp.legacyTemplate;
+                return mp.legacyTemplate.getDelegate();
             }
         }
 
@@ -284,7 +317,7 @@ public final class StructureCompiler {
 
         // Add symbol mappings
         for (Map.Entry<Character, IStructureElement> entry : symbolMap.entrySet()) {
-            compiler.where(entry.getKey(), entry.getValue().toPredicate());
+            entry.getValue().applyTo(String.valueOf(entry.getKey()), compiler);
         }
 
         // Determine center offset strategy
@@ -298,14 +331,52 @@ public final class StructureCompiler {
 
         if (hasCenter) {
             // Auto-discover center from isCenter predicate
-            return compiler.buildTemplate();
+            return compiler.buildPieceTemplate();
         } else {
             // Use the piece's explicit center offset
             // Convert {x, y, z} to {x, y, z, minZ, maxZ}
             // For a non-repeatable base piece, minZ = maxZ = z
             int[] co = piece.getCenterOffset();
             int[] templateCenterOffset = new int[]{co[0], co[1], co[2], co[2], co[2]};
-            return compiler.buildTemplate(templateCenterOffset);
+            return compiler.buildPieceTemplate(templateCenterOffset, structureDescription);
         }
+    }
+
+    /**
+     * Legacy compile entry point that returns a {@link BlockPatternTemplate}
+     * facade. New code should call {@link #compilePieceToPieceTemplate}
+     * instead and use the canonical {@link PieceTemplate} directly.
+     *
+     * <p>If any element in the symbol map is a center element (isCenter = true),
+     * the template will auto-discover the center offset. Otherwise, the piece's
+     * explicit center offset is used.
+     *
+     * @param piece        the structure piece to compile
+     * @param structureDir the structure direction triple [charDir, stringDir, aisleDir]
+     * @return the compiled block pattern template (facade over a PieceTemplate)
+     */
+    @NotNull
+    public static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
+                                                            @NotNull RelativeDirection[] structureDir) {
+        return new BlockPatternTemplate(compilePieceToPieceTemplate(piece, structureDir));
+    }
+
+    /**
+     * Compile a piece into a template, optionally attaching an auto-generated structure
+     * description. The description is propagated through the underlying
+     * {@link PieceTemplateCompiler} so the resulting template is fully immutable
+     * (no setter is required).
+     *
+     * @param piece                  the piece to compile
+     * @param structureDir           the 3 relative directions
+     * @param structureDescription   optional description lines; {@code null}/empty means "no description"
+     * @return the compiled template (facade over a PieceTemplate)
+     */
+    @NotNull
+    public static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
+                                                            @NotNull RelativeDirection[] structureDir,
+                                                            @Nullable List<String> structureDescription) {
+        return new BlockPatternTemplate(
+                compilePieceToPieceTemplate(piece, structureDir, structureDescription));
     }
 }

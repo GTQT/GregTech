@@ -4,8 +4,10 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTLog;
 
 import net.minecraft.util.EnumFacing;
@@ -260,9 +262,9 @@ public class AsyncStructureChecker {
     }
 
     /**
-     * Capture a precise snapshot for the controller using the structure template's world-space AABB.
+     * Capture a precise snapshot for the controller using the structure definition's world-space AABB.
      *
-     * <p>Uses {@link BlockPatternTemplate#computeWorldAABB} to determine the exact bounding box
+     * <p>Uses {@link StructureDefinition#computeWorldAABB} to determine the exact bounding box
      * of the structure in world coordinates, avoiding the wasteful symmetric cubic approximation.
      *
      * <p>Returns {@code null} if the computed AABB volume exceeds {@link #MAX_SNAPSHOT_VOLUME},
@@ -271,9 +273,9 @@ public class AsyncStructureChecker {
     @Nullable
     private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
                                                             BlockPos pos) {
-        BlockPatternTemplate template = controller.getPatternTemplate();
-        if (template != null) {
-            BlockPos[] aabb = template.computeWorldAABB(
+        StructureDefinition definition = controller.getStructureDefinition();
+        if (definition != null) {
+            BlockPos[] aabb = definition.computeWorldAABB(
                     pos,
                     controller.getFrontFacing().getOpposite(),
                     controller.getUpwardsFacing(),
@@ -299,6 +301,8 @@ public class AsyncStructureChecker {
 
             return BlockStateSnapshot.captureRegion(world, minCorner, maxCorner);
         }
+        // Legacy path: legacy multiblocks (those that override createStructureTemplate instead of
+        // createStructureDefinition) have no SD; fall back to a symmetric cubic snapshot.
         return BlockStateSnapshot.capture(world, pos, FALLBACK_SNAPSHOT_RADIUS);
     }
 
@@ -332,18 +336,27 @@ public class AsyncStructureChecker {
      *
      * <p>Two check paths:
      * <ul>
-     *   <li><b>Multi-piece path</b>: when the controller has a {@link MultiPiecePattern}, iterate each
-     *       {@link StructurePiece} and call {@link StructurePiece#checkOnSnapshot} with prior
-     *       {@link FormedStructureMetadata} for O(1) verification of formed structures.</li>
-     *   <li><b>Legacy path</b>: when only a single {@link BlockPatternTemplate} is available, use the
+     *   <li><b>StructureDefinition path</b> (preferred): when the controller exposes a
+     *       {@link StructureDefinition}, iterate each piece in its compiled
+     *       {@link MultiPiecePattern} and call {@link StructurePiece#checkOnSnapshot} with
+     *       prior {@link FormedStructureMetadata} for O(1) verification of formed structures.
+     *       This handles both single-piece and multi-piece definitions uniformly.</li>
+     *   <li><b>Legacy path</b>: when only a single {@link BlockPatternTemplate} is available
+     *       (legacy multiblocks that still override {@code createStructureTemplate}), use the
      *       original temporary-state approach.</li>
      * </ul>
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
-        // New path: multi-piece pattern with unified piece iteration
-        MultiPiecePattern multiPiece = task.controller.getMultiPiecePattern();
-        if (multiPiece != null) {
+        // Preferred path: route everything through StructureDefinition
+        StructureDefinition definition = task.controller.getStructureDefinition();
+        if (definition != null) {
+            MultiPiecePattern multiPiece = definition.getCompiledPattern();
             FormedStructureMetadata prior = task.controller.getFormedMetadata();
+            // Allocate a transient per-check PieceRuntimes to avoid data races with
+            // the main thread (which holds the controller's owned PieceRuntimes and
+            // may be mutating it concurrently). The async thread only ever reads
+            // its own runtimes; the main thread reads its own.
+            PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
             for (StructurePiece piece : multiPiece.getPieceList()) {
                 if (piece.isConditional() && !piece.isActive()) continue;
 
@@ -351,7 +364,8 @@ public class AsyncStructureChecker {
                         task.centerPos, task.frontFacing, task.upwardsFacing);
 
                 if (!piece.checkOnSnapshot(task.snapshot, pieceOrigin,
-                        task.frontFacing, task.upwardsFacing, task.allowsFlip, prior)) {
+                        task.frontFacing, task.upwardsFacing, task.allowsFlip, prior,
+                        asyncRuntimes.get(piece))) {
                     return false;
                 }
             }

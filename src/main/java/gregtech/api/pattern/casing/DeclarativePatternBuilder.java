@@ -240,7 +240,10 @@ public class DeclarativePatternBuilder {
      * named pieces, conditional pieces, or multi-piece composition.
      */
     public BlockPatternTemplate buildTemplate() {
-        BlockPatternTemplate template = buildStructureDefinition().getPrimaryTemplate();
+        // Compute description lines first so we can pass them into the template constructor
+        // (the template is immutable and no longer has a description setter).
+        List<String> description = computeStructureDescription();
+        BlockPatternTemplate template = buildStructureDefinition().getPrimaryTemplate(description);
         if (template == null) {
             // Multi-piece definitions cannot be represented as a single BlockPatternTemplate.
             // Use buildStructureDefinition() to access the full multi-piece structure.
@@ -248,7 +251,6 @@ public class DeclarativePatternBuilder {
                     "buildTemplate() requires a single-piece structure; "
                             + "use buildStructureDefinition() for multi-piece structures");
         }
-        attachStructureDescription(template);
         return template;
     }
 
@@ -535,7 +537,15 @@ public class DeclarativePatternBuilder {
 
     // --- Structure description ---
 
-    private void attachStructureDescription(@NotNull BlockPatternTemplate template) {
+    /**
+     * Build the auto-generated structure description lines for this pattern. Pure function
+     * of the current builder state; returns an empty list if there are no entries to describe.
+     *
+     * <p>The returned list is the canonical list passed to the template constructor.
+     * Callers must not mutate it.
+     */
+    @NotNull
+    private List<String> computeStructureDescription() {
         List<String> lines = new ArrayList<>();
 
         for (CasingSlotInfo info : casingSlots.values()) {
@@ -559,9 +569,7 @@ public class DeclarativePatternBuilder {
             }
         }
 
-        if (!lines.isEmpty()) {
-            template.setStructureDescription(lines);
-        }
+        return lines;
     }
 
     // --- Internal helpers ---

@@ -23,10 +23,20 @@ import java.util.function.BooleanSupplier;
 /**
  * A composite multi-piece pattern for super-large multiblock structures.
  * Instead of a single monolithic pattern, the structure is divided into named pieces,
- * each with its own template, offset, and independent dirty/validated state.
+ * each with its own template and offset. The pattern itself is pure shared data;
+ * per-controller state lives in {@link PieceRuntimes}.
  *
  * <p>When a block changes, only the piece(s) containing that position are marked dirty
- * and re-validated, rather than re-checking the entire structure.
+ * and re-validated, rather than re-checking the entire structure. The dirty/validated
+ * flags and the formed-position set live on the per-controller {@link PieceRuntime}
+ * (indexed by piece identity), so the compiled pattern itself is stateless and
+ * safe to share across controllers of the same multiblock type.
+ *
+ * <p>Most check / auto-build / reset entry points take a {@link PieceRuntimes}
+ * parameter to resolve the per-controller state for each piece. Callers that
+ * don't have a runtime in hand (e.g. read-only queries) can pass a transient
+ * "scratch" runtime built from a temporary piece list, but the normal
+ * controller-owned runtime is the source of truth.
  *
  * <p>Usage example:
  * <pre>{@code
@@ -35,9 +45,13 @@ import java.util.function.BooleanSupplier;
  *     .piece("ring1", ring1Template, new Vec3i(0, 0, -59))
  *     .conditionalPiece("ring2", ring2Template, new Vec3i(0, 0, -67), () -> isUpgradeActive())
  *     .build();
+ *
+ * PieceRuntimes runtimes = new PieceRuntimes(pattern);
+ * pattern.checkDirtyPieces(world, controllerPos, front, up, flipped, runtimes);
  * }</pre>
  *
  * @see StructurePiece for individual piece definition
+ * @see PieceRuntimes for the per-controller state holder
  */
 public class MultiPiecePattern {
 
@@ -94,13 +108,18 @@ public class MultiPiecePattern {
     /**
      * Get the combined set of all block positions across all active, validated pieces.
      *
+     * @param runtimes per-controller state for each piece; positions are read from
+     *                 the per-piece {@link PieceRuntime#getPositions()}
      * @return a new LongSet containing all positions
      */
-    public LongSet getAllPositions() {
+    public LongSet getAllPositions(@NotNull PieceRuntimes runtimes) {
         LongSet all = new LongOpenHashSet();
         for (StructurePiece piece : pieceList) {
-            if (piece.isActive() && piece.isValidated()) {
-                all.addAll(piece.getPositions());
+            if (!piece.isActive()) continue;
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime == null) continue;
+            if (runtime.isValidated()) {
+                all.addAll(runtime.getPositions());
             }
         }
         return all;
@@ -109,11 +128,14 @@ public class MultiPiecePattern {
     /**
      * Check if any piece is dirty and needs re-validation.
      *
+     * @param runtimes per-controller state for each piece
      * @return true if at least one active piece is dirty
      */
-    public boolean hasDirtyPieces() {
+    public boolean hasDirtyPieces(@NotNull PieceRuntimes runtimes) {
         for (StructurePiece piece : pieceList) {
-            if (piece.isActive() && piece.isDirty()) {
+            if (!piece.isActive()) continue;
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime != null && runtime.isDirty()) {
                 return true;
             }
         }
@@ -123,12 +145,16 @@ public class MultiPiecePattern {
     /**
      * Get the list of dirty pieces that need re-checking.
      *
+     * @param runtimes per-controller state for each piece
      * @return list of dirty, active pieces
      */
-    public List<StructurePiece> getDirtyPieces() {
+    @NotNull
+    public List<StructurePiece> getDirtyPieces(@NotNull PieceRuntimes runtimes) {
         List<StructurePiece> dirty = new ArrayList<>();
         for (StructurePiece piece : pieceList) {
-            if (piece.isActive() && piece.isDirty()) {
+            if (!piece.isActive()) continue;
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime != null && runtime.isDirty()) {
                 dirty.add(piece);
             }
         }
@@ -145,30 +171,35 @@ public class MultiPiecePattern {
      * @param frontFacing    the controller's front facing (opposite of the facing used for pattern)
      * @param upwardsFacing  the upwards facing
      * @param allowsFlip     whether flipping is allowed
+     * @param runtimes       per-controller state for each piece
      * @return true if all active pieces are valid
      */
     public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                     EnumFacing upwardsFacing, boolean allowsFlip) {
+                                     EnumFacing upwardsFacing, boolean allowsFlip,
+                                     @NotNull PieceRuntimes runtimes) {
         for (StructurePiece piece : pieceList) {
             if (!piece.isActive()) continue;
 
-            if (piece.isDirty()) {
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime == null) continue;
+
+            if (runtime.isDirty()) {
                 BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing);
-                PatternMatchContext result = piece.getState().checkPatternFastAt(
+                PatternMatchContext result = runtime.getState().checkPatternFastAt(
                         world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
 
                 if (result != null) {
-                    piece.setValidated(true);
+                    runtime.setValidated(true);
                     // Atomically swap the piece's position set from the state cache
-                    LongSet newPositions = new LongOpenHashSet(piece.getState().cache.keySet());
-                    piece.swapPositions(newPositions);
+                    LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
+                    runtime.swapPositions(newPositions);
                 } else {
-                    piece.setValidated(false);
+                    runtime.setValidated(false);
                 }
-                piece.clearDirty();
+                runtime.clearDirty();
             }
 
-            if (!piece.isValidated()) {
+            if (!runtime.isValidated()) {
                 return false;
             }
         }
@@ -183,28 +214,36 @@ public class MultiPiecePattern {
      * @param frontFacing    the controller's front facing
      * @param upwardsFacing  the upwards facing
      * @param allowsFlip     whether flipping is allowed
+     * @param runtimes       per-controller state for each piece
      * @return true if all active pieces are valid
      */
     public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                   EnumFacing upwardsFacing, boolean allowsFlip) {
+                                   EnumFacing upwardsFacing, boolean allowsFlip,
+                                   @NotNull PieceRuntimes runtimes) {
         for (StructurePiece piece : pieceList) {
-            piece.markDirty();
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime != null) {
+                runtime.markDirty();
+            }
         }
-        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, allowsFlip);
+        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, allowsFlip, runtimes);
     }
 
     /**
      * Mark a specific piece as dirty by position.
      * Called when a block change is detected within the piece's cached positions.
      *
-     * @param posLong the changed block position as a long
+     * @param posLong  the changed block position as a long
+     * @param runtimes per-controller state for each piece
      * @return true if a piece was found and marked dirty
      */
-    public boolean markDirtyByPosition(long posLong) {
+    public boolean markDirtyByPosition(long posLong, @NotNull PieceRuntimes runtimes) {
         boolean found = false;
         for (StructurePiece piece : pieceList) {
-            if (piece.isActive() && piece.isValidated() && piece.getPositions().contains(posLong)) {
-                piece.markDirty();
+            if (!piece.isActive()) continue;
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime != null && runtime.isValidated() && runtime.getPositions().contains(posLong)) {
+                runtime.markDirty();
                 found = true;
             }
         }
@@ -213,28 +252,35 @@ public class MultiPiecePattern {
 
     /**
      * Auto-build a specific piece by its 1-based index.
-     * Computes the piece's center position from the controller and delegates to the piece's state.
+     * Computes the piece's center position from the controller and delegates to the
+     * piece's runtime state. For {@link RepeatGroupPiece}, the per-piece runtime
+     * is forwarded to its multi-axis auto-build path.
      *
      * @param pieceIndex     1-based index into the piece list
      * @param player         the player performing the build
      * @param controller     the multiblock controller
      * @param channelValues  channel values for tier selection
      * @param skipHatches    if true, skip hatch placement
+     * @param runtimes       per-controller state for each piece
      * @return true if the piece was successfully built (index valid and piece exists)
      */
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
-                                   @Nullable Map<String, Integer> channelValues, boolean skipHatches) {
+                                   @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                   @NotNull PieceRuntimes runtimes) {
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
+        PieceRuntime runtime = runtimes.get(piece);
+        if (runtime == null) return false;
+
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
                     controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing(),
-                    controller.isFlipped(), channelValues, skipHatches);
+                    controller.isFlipped(), channelValues, skipHatches, runtime);
         } else {
             BlockPos pieceCenter = piece.getCenterPos(
                     controller.getPos(), controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing());
-            piece.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
+            runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
         }
         return true;
     }
@@ -262,12 +308,11 @@ public class MultiPiecePattern {
     }
 
     /**
-     * Reset all pieces (on structure invalidation).
+     * Reset every piece's runtime state via the per-controller {@link PieceRuntimes}.
+     * The pattern itself is unaffected — it carries no per-instance state to reset.
      */
-    public void resetAll() {
-        for (StructurePiece piece : pieceList) {
-            piece.reset();
-        }
+    public void resetAll(@NotNull PieceRuntimes runtimes) {
+        runtimes.reset();
     }
 
     /**

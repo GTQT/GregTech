@@ -1,11 +1,8 @@
 package gregtech.api.pattern.element;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,7 +17,6 @@ import java.util.Map;
  * <p>Key contents:
  * <ul>
  *   <li>{@code pieceRepeats} — piece name → actual repeat counts along each repeat axis</li>
- *   <li>{@code pieceChannelNames} — piece name → channel names for each repeat axis</li>
  *   <li>{@code channelValues} — channel name → actual tier/value</li>
  * </ul>
  */
@@ -29,18 +25,12 @@ public final class FormedStructureMetadata {
     /** piece name → actual repeat counts along each repeat axis (empty array = fixed piece) */
     private final Map<String, int[]> pieceRepeats;
 
-    /** piece name → channel names for each repeat axis (nullable entries) */
-    private final Map<String, String[]> pieceChannelNames;
-
     /** channel name → actual tier/value */
     private final Map<String, Integer> channelValues;
 
     public FormedStructureMetadata(@NotNull Map<String, int[]> pieceRepeats,
-                                   @Nullable Map<String, String[]> pieceChannelNames,
                                    @NotNull Map<String, Integer> channelValues) {
         this.pieceRepeats = Collections.unmodifiableMap(new HashMap<>(pieceRepeats));
-        this.pieceChannelNames = pieceChannelNames == null
-                ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(pieceChannelNames));
         this.channelValues = Collections.unmodifiableMap(new HashMap<>(channelValues));
     }
 
@@ -70,17 +60,6 @@ public final class FormedStructureMetadata {
     }
 
     /**
-     * Get the channel names for a specific piece's repeat axes.
-     *
-     * @param pieceName the piece name
-     * @return the channel names array, or null if not found
-     */
-    @Nullable
-    public String[] getPieceChannelNames(@NotNull String pieceName) {
-        return pieceChannelNames.get(pieceName);
-    }
-
-    /**
      * Get the channel value (tier) for a specific channel.
      *
      * @param channelName the channel name
@@ -101,10 +80,7 @@ public final class FormedStructureMetadata {
     // --- NBT serialization ---
 
     private static final String KEY_PIECE_REPEATS = "PieceRepeats";
-    private static final String KEY_PIECE_CHANNELS = "PieceChannels";
     private static final String KEY_CHANNEL_VALUES = "ChannelValues";
-    private static final String KEY_NAME = "Name";
-    private static final String KEY_DATA = "Data";
 
     /**
      * Serialize this metadata to NBT.
@@ -119,17 +95,6 @@ public final class FormedStructureMetadata {
             repeatsTag.setIntArray(entry.getKey(), entry.getValue());
         }
         tag.setTag(KEY_PIECE_REPEATS, repeatsTag);
-
-        // Piece channel names
-        NBTTagCompound channelsTag = new NBTTagCompound();
-        for (Map.Entry<String, String[]> entry : pieceChannelNames.entrySet()) {
-            NBTTagList list = new NBTTagList();
-            for (String name : entry.getValue()) {
-                list.appendTag(new NBTTagString(name != null ? name : ""));
-            }
-            channelsTag.setTag(entry.getKey(), list);
-        }
-        tag.setTag(KEY_PIECE_CHANNELS, channelsTag);
 
         // Channel values
         NBTTagCompound valuesTag = new NBTTagCompound();
@@ -153,19 +118,6 @@ public final class FormedStructureMetadata {
             repeats.put(key, repeatsTag.getIntArray(key));
         }
 
-        // Piece channel names
-        Map<String, String[]> channels = new HashMap<>();
-        NBTTagCompound channelsTag = tag.getCompoundTag(KEY_PIECE_CHANNELS);
-        for (String key : channelsTag.getKeySet()) {
-            NBTTagList list = channelsTag.getTagList(key, 8); // 8 = STRING
-            String[] names = new String[list.tagCount()];
-            for (int i = 0; i < list.tagCount(); i++) {
-                String s = list.getStringTagAt(i);
-                names[i] = s.isEmpty() ? null : s;
-            }
-            channels.put(key, names);
-        }
-
         // Channel values
         Map<String, Integer> values = new HashMap<>();
         NBTTagCompound valuesTag = tag.getCompoundTag(KEY_CHANNEL_VALUES);
@@ -173,7 +125,7 @@ public final class FormedStructureMetadata {
             values.put(key, valuesTag.getInteger(key));
         }
 
-        return new FormedStructureMetadata(repeats, channels, values);
+        return new FormedStructureMetadata(repeats, values);
     }
 
     /**
@@ -187,6 +139,6 @@ public final class FormedStructureMetadata {
     public static FormedStructureMetadata fromCheckResult(
             @NotNull Map<String, int[]> pieceRepeats,
             @NotNull Map<String, Integer> channelValues) {
-        return new FormedStructureMetadata(pieceRepeats, null, channelValues);
+        return new FormedStructureMetadata(pieceRepeats, channelValues);
     }
 }

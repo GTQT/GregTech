@@ -233,7 +233,8 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 // Build a specific piece from the MultiPiecePattern
                 var multiPiece = multiblock.getMultiPiecePattern();
                 if (multiPiece != null) {
-                    multiPiece.autoBuildPiece(pieceIndex, player, multiblock, channels, noHatch);
+                    multiPiece.autoBuildPiece(pieceIndex, player, multiblock, channels, noHatch,
+                            multiblock.getPieceRuntimes());
                 }
                 return EnumActionResult.SUCCESS;
             }
@@ -255,7 +256,8 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     if (multiPiece != null) {
                         int pieceCount = multiPiece.getPieceCount();
                         for (int i = 1; i <= pieceCount; i++) {
-                            multiPiece.autoBuildPiece(i, player, multiblock, channels, noHatch);
+                            multiPiece.autoBuildPiece(i, player, multiblock, channels, noHatch,
+                                    multiblock.getPieceRuntimes());
                         }
                     }
                 }

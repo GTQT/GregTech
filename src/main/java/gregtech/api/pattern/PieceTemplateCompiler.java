@@ -6,6 +6,7 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -220,12 +221,32 @@ public final class PieceTemplateCompiler {
      * Build the immutable template. If any aisle contains a character that has
      * not been mapped via {@link #where(char, TraceabilityPredicate)}, this
      * throws {@link IllegalStateException} listing the missing characters.
+     *
+     * <p>This overload returns a {@link BlockPatternTemplate} facade for
+     * backward compatibility. The new compile path should prefer
+     * {@link #buildPieceTemplate()} which returns the canonical
+     * {@link PieceTemplate} directly without the facade wrapping.
      */
     @NotNull
     public BlockPatternTemplate buildTemplate() {
         return new BlockPatternTemplate(makePredicateArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
-                aisleChannelNames.toArray(new String[aisleChannelNames.size()]));
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
+                null, null);
+    }
+
+    /**
+     * Build the canonical {@link PieceTemplate} directly, without going through
+     * the {@link BlockPatternTemplate} facade. Use this from the new
+     * (StructureDefinition) compile path: the resulting {@code PieceTemplate}
+     * can be wrapped directly in a {@link StructurePiece}.
+     */
+    @NotNull
+    public PieceTemplate buildPieceTemplate() {
+        return new PieceTemplate(makePredicateArray(), structureDir,
+                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
+                null, null);
     }
 
     /**
@@ -241,7 +262,60 @@ public final class PieceTemplateCompiler {
         return new BlockPatternTemplate(makePredicateArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
-                centerOffset);
+                centerOffset, null);
+    }
+
+    /**
+     * Build the canonical {@link PieceTemplate} directly with an externally-specified
+     * center offset. New code should prefer this over {@link #buildTemplate(int[])}
+     * to skip the {@link BlockPatternTemplate} facade.
+     *
+     * @param centerOffset the center offset [x, y, z, minZ, maxZ]
+     * @return the canonical piece IR
+     */
+    @NotNull
+    public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset) {
+        return new PieceTemplate(makePredicateArray(), structureDir,
+                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
+                centerOffset, null);
+    }
+
+    /**
+     * Build the immutable template with an externally-specified center offset and an
+     * auto-generated structure description. Used by {@code DeclarativePatternBuilder} to
+     * produce templates that carry the description in their constructor (no setter).
+     *
+     * @param centerOffset      the center offset [x, y, z, minZ, maxZ]
+     * @param structureDescription  auto-generated description lines; may be {@code null} or empty
+     * @return the immutable template
+     */
+    @NotNull
+    public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset,
+                                              @Nullable List<String> structureDescription) {
+        return new BlockPatternTemplate(makePredicateArray(), structureDir,
+                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
+                centerOffset,
+                (structureDescription == null || structureDescription.isEmpty())
+                        ? null : structureDescription);
+    }
+
+    /**
+     * Build the canonical {@link PieceTemplate} directly with an externally-specified
+     * center offset and an auto-generated structure description. New code should
+     * prefer this over {@link #buildTemplate(int[], List)} to skip the
+     * {@link BlockPatternTemplate} facade.
+     */
+    @NotNull
+    public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset,
+                                            @Nullable List<String> structureDescription) {
+        return new PieceTemplate(makePredicateArray(), structureDir,
+                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
+                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
+                centerOffset,
+                (structureDescription == null || structureDescription.isEmpty())
+                        ? null : structureDescription);
     }
 
     /**

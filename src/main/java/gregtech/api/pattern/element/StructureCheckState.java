@@ -3,6 +3,8 @@ package gregtech.api.pattern.element;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 
@@ -112,6 +114,12 @@ public final class StructureCheckState {
                         @Nullable PatternMatchContext context) {
         MultiPiecePattern pattern = definition.getCompiledPattern();
 
+        // Per-check transient runtimes: StructureCheckState.check is called from the
+        // main thread (e.g. JEI preview render, structure shape computation) and
+        // must not mutate the controller's owned PieceRuntimes, which may be
+        // concurrently read by the async structure checker.
+        PieceRuntimes transientRuntimes = new PieceRuntimes(pattern);
+
         // Collect piece repeat counts and channel values
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, Integer> channelValues = new HashMap<>();
@@ -123,25 +131,29 @@ public final class StructureCheckState {
         for (StructurePiece piece : pattern.getPieceList()) {
             if (piece.isConditional() && !piece.isActive()) continue;
 
+            // Per-piece runtime for this check. Always non-null since we just built
+            // the runtimes from the same pattern above.
+            PieceRuntime runtime = transientRuntimes.get(piece);
+
             if (piece instanceof RepeatGroupPiece repeatPiece) {
                 // Repeatable piece: use synchronous World-based check
                 // (uses checkPatternFastAt for cache-accelerated checks)
                 boolean ok = repeatPiece.checkSync(
-                        world, controllerPos, front, up, flipped, null);
+                        world, controllerPos, front, up, flipped, null, runtime);
                 if (!ok) {
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
                     return Result.failure(controllerPos, lastErrorMessage);
                 }
 
-                // Extract repeat counts from the piece's last formed reps
-                int[] formedReps = repeatPiece.getLastFormedReps();
+                // Extract repeat counts from the runtime's cached reps
+                int[] formedReps = runtime.getLastFormedReps();
                 if (formedReps != null && formedReps.length > 0) {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
                 }
 
-                // Merge aggregated context from repeatable piece
-                PatternMatchContext repeatContext = repeatPiece.getLastAggregatedContext();
+                // Merge aggregated context from the runtime
+                PatternMatchContext repeatContext = runtime.getLastAggregatedContext();
                 if (repeatContext != null) {
                     Set<IMultiblockPart> repeatParts = repeatContext.getOrCreate("MultiblockParts", HashSet::new);
                     allParts.addAll(repeatParts);
@@ -150,7 +162,7 @@ public final class StructureCheckState {
             } else {
                 // Fixed piece: standard single-template check
                 BlockPos centerPos = piece.getCenterPos(controllerPos, front, up);
-                PatternMatchContext pieceContext = piece.getState()
+                PatternMatchContext pieceContext = runtime.getState()
                         .checkPatternFastAt(world, centerPos, front, up, flipped);
 
                 if (pieceContext == null) {
@@ -159,8 +171,8 @@ public final class StructureCheckState {
                     return Result.failure(centerPos, lastErrorMessage);
                 }
 
-                // Extract repeat counts from the piece state
-                int[] formedReps = piece.getState().formedRepetitionCount;
+                // Extract repeat counts from the piece's MultiblockState
+                int[] formedReps = runtime.getState().formedRepetitionCount;
                 if (formedReps != null && formedReps.length > 0) {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
                 }

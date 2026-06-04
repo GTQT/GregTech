@@ -278,6 +278,12 @@ public final class Elements {
 
 ### 3.6 `FormedStructureMetadata`（成型状态持久化）
 
+> **v2.2 修订（从 3 map 折叠为 2 map）**：原设计 3 个 map（`pieceRepeats` /
+> `pieceChannelNames` / `channelValues`），其中 `pieceChannelNames` 在
+> `StructureCheckState.check()` 中**永远传入 null**，全代码库无
+> `getPieceChannelNames` 的调用方。属于"设计时预留但实际不需要"的死代码，
+> 删除后剩下的两个 map 真正承载成型态持久化。
+
 ```java
 package gregtech.api.pattern.element;
 
@@ -286,18 +292,12 @@ public final class FormedStructureMetadata {
     /** piece 名 → 该 piece 沿各 repeat 轴的实际 repeat 数（空 = 固定 piece） */
     private final Map<String, int[]> pieceRepeats;
 
-    /** piece 名 → 该 piece 沿各 repeat 轴的通道名（可空） */
-    private final Map<String, String[]> pieceChannelNames;
-
     /** 通道名 → 实际生效的 tier 值 */
     private final Map<String, Integer> channelValues;
 
     public FormedStructureMetadata(Map<String, int[]> pieceRepeats,
-                                   Map<String, String[]> pieceChannelNames,
                                    Map<String, Integer> channelValues) {
         this.pieceRepeats = Map.copyOf(pieceRepeats);
-        this.pieceChannelNames = pieceChannelNames == null
-                ? Map.of() : Map.copyOf(pieceChannelNames);
         this.channelValues = Map.copyOf(channelValues);
     }
 
@@ -311,10 +311,6 @@ public final class FormedStructureMetadata {
         return pieceRepeats.getOrDefault(pieceName, new int[0]);
     }
 
-    @Nullable public String[] getPieceChannelNames(String pieceName) {
-        return pieceChannelNames.get(pieceName);
-    }
-
     public int getChannelValue(String channelName) {
         return channelValues.getOrDefault(channelName, 0);
     }
@@ -323,14 +319,18 @@ public final class FormedStructureMetadata {
         return Collections.unmodifiableMap(channelValues);
     }
 
-    /** NBT 序列化 */
+    /** NBT 序列化：仅两个 section — "PieceRepeats" + "ChannelValues" */
     public NBTTagCompound writeToNBT() { ... }
     public static FormedStructureMetadata readFromNBT(NBTTagCompound tag) { ... }
 
-    /** 从 check 结果构造 */
-    public static FormedStructureMetadata fromCheckResult(StructureDefinition def,
-                                                          Map<String, int[]> pieceRepeats,
-                                                          Map<String, Integer> channelValues) { ... }
+    /**
+     * 从 check 结果构造。
+     * @param pieceRepeats   piece 名 → 实际 repeat 数
+     * @param channelValues  通道名 → 实际 tier 值
+     */
+    public static FormedStructureMetadata fromCheckResult(
+            Map<String, int[]> pieceRepeats,
+            Map<String, Integer> channelValues) { ... }
 }
 ```
 
@@ -1342,12 +1342,31 @@ private boolean performAsyncCheck(SnapshotTask task) {
 
 ## 9. 控制器集成（约 30~50 行 diff）
 
+> **v2.2 修订（新增 `PieceTemplate` IR 层）**：编译路径
+> `StructureDefinition → MultiPiecePattern` 现在引入规范 IR
+> `PieceTemplate`。`BlockPatternTemplate` 仍保留为**back-compat 薄 facade**
+> —— 所有 accessors 委托给 `PieceTemplate`，仅供 `MultiblockControllerBase`
+> 等老代码 `getTemplate()` 回退使用。`MultiblockState` **直接持有**
+> `PieceTemplate`（v2.2 之前的版本持有 `BlockPatternTemplate` facade），
+> `getTemplate()` 返回 lazy facade。
+>
+> 核心不变量：
+> - 新路径：**piece → StructureCompiler.compilePieceToPieceTemplate → PieceTemplate → StructurePiece**
+> - 老路径：**FactoryBlockPattern.buildTemplate → BlockPatternTemplate (facade 包装 PieceTemplate) → StructurePiece (legacy 构造重载自动 unwrap)**
+> - 两条路径**共享** `PieceTemplate` 作为底层 IR，无重复数据结构
+
 ### 9.1 字段
 
 ```java
 // MultiblockControllerBase 新增：
 @Nullable private StructureDefinition structureDefinition;       // 来自 createStructureDefinition()
 @Nullable private FormedStructureMetadata formedMetadata;       // 成型时各 piece repeat 数 + 通道值
+
+// 现有字段（含义已扩展）：
+// patternTemplate 现在类型仍为 BlockPatternTemplate，但实际承载的是 PieceTemplate facade
+// multiblockState.template 内部字段已改为 PieceTemplate（v2.2 之前是 BlockPatternTemplate）
+//   - 外部访问通过 multiblockState.getTemplate() 仍拿 BlockPatternTemplate facade
+//   - 新代码应优先用 multiblockState.getPieceTemplate()
 ```
 
 ### 9.2 `reinitializeStructurePattern()`
@@ -1359,6 +1378,8 @@ public void reinitializeStructurePattern() {
         // 新路径：编译成 MultiPiecePattern
         this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
         // 单 piece 情况：从 multiPiecePattern 取主 piece 的 template（兼容 getPatternTemplate()）
+        //   - getTemplate() 返回 BlockPatternTemplate facade
+        //   - 底层 IR 是 StructurePiece.getPieceTemplate() 返回的 PieceTemplate
         if (this.structureDefinition.isSinglePiece()) {
             this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
             this.multiblockState = this.patternTemplate.createState();

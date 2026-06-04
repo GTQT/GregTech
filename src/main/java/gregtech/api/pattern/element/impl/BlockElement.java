@@ -1,5 +1,6 @@
 package gregtech.api.pattern.element.impl;
 
+import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
@@ -10,17 +11,25 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
 /**
  * Element that matches one or more specific block states.
+ *
+ * <p>Depth-optimized: the {@link TraceabilityPredicate} is built once in
+ * the constructor and cached. {@link #applyTo} bypasses {@link #toPredicate}
+ * to skip the per-call method-indirection cost.
  */
 public class BlockElement implements IStructureElement {
 
     private final IBlockState[] states;
+    private final TraceabilityPredicate cachedPredicate;
 
     public BlockElement(IBlockState... states) {
         this.states = states;
+        this.cachedPredicate = buildPredicate();
     }
 
     @Override
@@ -59,11 +68,22 @@ public class BlockElement implements IStructureElement {
     }
 
     @Override
+    public void applyTo(@NotNull String symbol, @NotNull PieceTemplateCompiler compiler) {
+        // Depth-optimized: register the cached predicate directly, skipping
+        // the default-method indirection through toPredicate().
+        compiler.where(symbol, cachedPredicate);
+    }
+
+    @Override
     public TraceabilityPredicate toPredicate() {
+        return cachedPredicate;
+    }
+
+    private TraceabilityPredicate buildPredicate() {
         if (states.length == 1) {
             return new TraceabilityPredicate(
                     bws -> bws.getBlockState() == states[0],
-                    () -> getCandidates());
+                    this::getCandidates);
         }
         return new TraceabilityPredicate(
                 bws -> {
@@ -73,6 +93,6 @@ public class BlockElement implements IStructureElement {
                     }
                     return false;
                 },
-                () -> getCandidates());
+                this::getCandidates);
     }
 }

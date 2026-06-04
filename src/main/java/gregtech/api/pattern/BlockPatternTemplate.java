@@ -2,266 +2,224 @@ package gregtech.api.pattern;
 
 import gregtech.api.util.RelativeDirection;
 
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
- * Immutable structural template for multiblock patterns.
- * Contains all static/shared data that does not change between instances of the same machine type.
- * Multiple machines of the same type share a single template, significantly reducing memory usage.
+ * Backward-compatibility facade over {@link PieceTemplate}.
  *
+ * <p>The new structure compile path
+ * {@link gregtech.api.pattern.element.IStructurePiece} → {@link StructurePiece}
+ * holds a {@link PieceTemplate} directly. This class is retained so that the
+ * public APIs ({@link FactoryBlockPattern#buildTemplate()},
+ * {@link gregtech.api.metatileentity.multiblock.MultiblockControllerBase#createStructureTemplate()},
+ * and the {@link #getTemplate()} accessor) continue to work for the
+ * ~100 legacy multiblocks and any external addons.
+ *
+ * <p>Conceptually, this class is no longer the canonical IR — it is a thin
+ * view. New code should use {@link PieceTemplate} (or the {@link StructurePiece}
+ * methods) directly.
+ *
+ * @see PieceTemplate for the canonical IR
  * @see MultiblockState for per-instance mutable state
- * @see FactoryBlockPattern for the builder that creates templates
+ * @see FactoryBlockPattern for the legacy builder
  */
 public class BlockPatternTemplate {
 
-    static final EnumFacing[] FACINGS = { EnumFacing.SOUTH, EnumFacing.NORTH, EnumFacing.WEST, EnumFacing.EAST,
-            EnumFacing.UP, EnumFacing.DOWN };
+    /**
+     * Aisle definition record. Lives here for backward compatibility with
+     * external callers that import {@code BlockPatternTemplate.AisleDef}.
+     * The canonical record is the same one used by {@link PieceTemplate}.
+     *
+     * @param minRepeat    minimum number of repetitions for this aisle
+     * @param maxRepeat    maximum number of repetitions for this aisle
+     * @param channelName  optional channel name; {@code null} means the aisle is not channel-controlled
+     */
+    @Desugar
+    public record AisleDef(int minRepeat, int maxRepeat, @Nullable String channelName) {
 
-    private final TraceabilityPredicate[][][] blockMatches; // [z][y][x]
-    private final int[][] aisleRepetitions;
-    private final String[] aisleChannelNames; // channel name per aisle (null = no channel)
-    private final RelativeDirection[] structureDir;
-    private final int fingerLength; // z size
-    private final int thumbLength; // y size
-    private final int palmLength; // x size
-    // x, y, z, minZ, maxZ
-    private final int[] centerOffset;
+        /**
+         * @return a copy of the legacy {@code [minRepeat, maxRepeat]} pair for callers
+         *         that still need the int[] shape (e.g. RepetitionDFS / preview builders).
+         */
+        public int[] toRangeArray() {
+            return new int[] { minRepeat, maxRepeat };
+        }
+    }
 
-    // Auto-generated structure description lines (from DeclarativePatternBuilder)
-    @Nullable
-    private List<String> structureDescription;
+    /**
+     * Center offset for a template. Lives here for backward compatibility with
+     * external callers that import {@code BlockPatternTemplate.CenterOffset}.
+     * The canonical record is the same one used by {@link PieceTemplate}.
+     *
+     * @param x    controller x offset within the pattern
+     * @param y    controller y offset within the pattern
+     * @param z    controller z offset within the pattern
+     * @param minZ cumulative min aisle count before the center aisle
+     * @param maxZ cumulative max aisle count before the center aisle
+     */
+    @Desugar
+    public record CenterOffset(int x, int y, int z, int minZ, int maxZ) {
+
+        // Empty records occasionally confuse older javac + Jabel combinations
+        // that walk the body looking for the @Desugar anchor. The no-op getter
+        // below makes the body non-empty and avoids the "Must be annotated with
+        // @Desugar" error reported against this record when it sits below
+        // another @Desugar-annotated record in the same file.
+        @SuppressWarnings("unused")
+        public boolean isSynthetic() {
+            return true;
+        }
+    }
+
+    private final PieceTemplate delegate;
 
     public BlockPatternTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
                                 @NotNull RelativeDirection[] structureDir,
                                 @NotNull int[][] aisleRepetitions) {
-        this(predicatesIn, structureDir, aisleRepetitions, new String[aisleRepetitions.length]);
+        this(new PieceTemplate(predicatesIn, structureDir, aisleRepetitions));
     }
 
     public BlockPatternTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
                                 @NotNull RelativeDirection[] structureDir,
                                 @NotNull int[][] aisleRepetitions,
-                                @NotNull String[] aisleChannelNames) {
-        this(predicatesIn, structureDir, aisleRepetitions, aisleChannelNames, null);
+                                @Nullable String[] aisleChannelNames) {
+        this(new PieceTemplate(predicatesIn, structureDir, aisleRepetitions, aisleChannelNames));
     }
 
     /**
-     * Full constructor with optional external center offset.
+     * Full constructor with optional external center offset and structure description.
      *
-     * @param predicatesIn     the 3D predicate array [z][y][x]
-     * @param structureDir     the 3 relative directions
-     * @param aisleRepetitions the repetition ranges per aisle
-     * @param aisleChannelNames channel names per aisle (nullable entries)
-     * @param externalCenterOffset optional externally-specified center offset [x,y,z,minZ,maxZ];
-     *                             if null, auto-discovers from isCenter predicate
+     * @param predicatesIn          the 3D predicate array [z][y][x]
+     * @param structureDir          the 3 relative directions
+     * @param aisleRepetitions      the repetition ranges per aisle
+     * @param aisleChannelNames     channel names per aisle (nullable entries)
+     * @param externalCenterOffset  optional externally-specified center offset;
+     *                              if {@code null}, auto-discovers from the {@code isCenter} predicate
+     * @param structureDescription  optional auto-generated description lines for tooltip display;
+     *                              if {@code null}, defaults to an empty list
      */
     public BlockPatternTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
                                 @NotNull RelativeDirection[] structureDir,
                                 @NotNull int[][] aisleRepetitions,
-                                @NotNull String[] aisleChannelNames,
-                                @Nullable int[] externalCenterOffset) {
-        this.blockMatches = predicatesIn;
-        this.fingerLength = predicatesIn.length;
-        this.structureDir = structureDir;
-        this.aisleRepetitions = aisleRepetitions;
-        this.aisleChannelNames = aisleChannelNames;
-
-        if (this.fingerLength > 0) {
-            this.thumbLength = predicatesIn[0].length;
-            if (this.thumbLength > 0) {
-                this.palmLength = predicatesIn[0][0].length;
-            } else {
-                this.palmLength = 0;
-            }
-        } else {
-            this.thumbLength = 0;
-            this.palmLength = 0;
-        }
-
-        this.centerOffset = externalCenterOffset != null ? externalCenterOffset : initializeCenterOffsets();
+                                @Nullable String[] aisleChannelNames,
+                                @Nullable int[] externalCenterOffset,
+                                @Nullable List<String> structureDescription) {
+        this(new PieceTemplate(predicatesIn, structureDir, aisleRepetitions,
+                aisleChannelNames, externalCenterOffset, structureDescription));
     }
 
-    private int[] initializeCenterOffsets() {
-        for (int x = 0; x < this.palmLength; x++) {
-            for (int y = 0; y < this.thumbLength; y++) {
-                for (int z = 0, minZ = 0, maxZ = 0; z <
-                        this.fingerLength; minZ += aisleRepetitions[z][0], maxZ += aisleRepetitions[z][1], z++) {
-                    TraceabilityPredicate predicate = this.blockMatches[z][y][x];
-                    if (predicate.isCenter) {
-                        return new int[] { x, y, z, minZ, maxZ };
-                    }
-                }
-            }
-        }
-        throw new IllegalArgumentException("Didn't find center predicate");
+    /**
+     * Wrap an existing {@link PieceTemplate} as a {@code BlockPatternTemplate}.
+     * Used by the new compile path to hand a legacy facade to consumers that
+     * have not yet migrated to {@link PieceTemplate}.
+     */
+    public BlockPatternTemplate(@NotNull PieceTemplate delegate) {
+        this.delegate = delegate;
+    }
+
+    /**
+     * @return the underlying {@link PieceTemplate} that this facade delegates to.
+     *         New code should use this directly; the facade methods are kept
+     *         only for backward compatibility.
+     */
+    @NotNull
+    public PieceTemplate getDelegate() {
+        return delegate;
     }
 
     /**
      * Create a new mutable state instance for this template.
      * Each multiblock controller instance should hold its own state.
      *
-     * @return a new MultiblockState bound to this template
+     * <p>The {@link MultiblockState} now holds the canonical {@link PieceTemplate}
+     * directly; this method unwraps the facade so the state no longer carries
+     * a redundant {@code BlockPatternTemplate} wrapper.
+     *
+     * @return a new MultiblockState bound to the underlying PieceTemplate
      */
     public MultiblockState createState() {
-        return new MultiblockState(this);
+        return new MultiblockState(delegate);
     }
 
-    // --- Accessors for template data (package-private for MultiblockState / BlockPattern access) ---
+    // --- Accessors — all delegate to the underlying PieceTemplate ---
 
     public TraceabilityPredicate[][][] getBlockMatches() {
-        return blockMatches;
+        return delegate.getBlockMatches();
     }
 
+    @NotNull
+    public AisleDef[] getAisles() {
+        return delegate.getAisles();
+    }
+
+    @NotNull
     public int[][] getAisleRepetitions() {
-        return aisleRepetitions;
+        return delegate.getAisleRepetitions();
     }
 
-    /**
-     * Get the channel name associated with each aisle index.
-     * Null entries mean the aisle has no associated channel (repetition is not channel-controlled).
-     *
-     * @return array of channel names (parallel to aisleRepetitions)
-     */
+    @NotNull
     public String[] getAisleChannelNames() {
-        return aisleChannelNames;
+        return delegate.getAisleChannelNames();
     }
 
     public RelativeDirection[] getStructureDir() {
-        return structureDir;
+        return delegate.getStructureDir();
     }
 
-    public int getFingerLength() {
-        return fingerLength;
+    public int getXLength() {
+        return delegate.getXLength();
     }
 
-    public int getThumbLength() {
-        return thumbLength;
+    public int getYLength() {
+        return delegate.getYLength();
     }
 
-    public int getPalmLength() {
-        return palmLength;
+    public int getZLength() {
+        return delegate.getZLength();
     }
 
-    public int[] getCenterOffset() {
-        return centerOffset;
-    }
-
-    public int getStructureXSize() {
-        return palmLength;
-    }
-
-    public int getStructureYSize() {
-        return thumbLength;
-    }
-
-    public int getStructureZSize() {
-        return fingerLength;
+    public CenterOffset getCenterOffset() {
+        return delegate.getCenterOffset();
     }
 
     /**
      * Compute the maximum expanded finger length, accounting for repeatable aisles.
      * This is the sum of all max repetition counts across all aisles,
      * representing the worst-case structure length along the finger axis.
-     *
-     * @return the maximum possible finger length when all aisles are at max repetitions
      */
     public int getMaxExpandedFingerLength() {
-        int total = 0;
-        for (int[] rep : aisleRepetitions) {
-            total += rep[1];
-        }
-        return total;
+        return delegate.getMaxExpandedFingerLength();
+    }
+
+    /**
+     * Walk every non-null, non-{@link TraceabilityPredicate#ANY} cell of this template and
+     * invoke {@code consumer} with the pattern-local world position (as if the controller
+     * were at the origin) and the predicate occupying that cell.
+     */
+    public void forEachPredicate(@NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
+        delegate.forEachPredicate(front, up, flipped, consumer);
     }
 
     /**
      * Compute the precise world-space AABB for this structure template given the controller state.
-     *
-     * <p>Instead of a symmetric cubic bounding box, this transforms the 8 corner points of the
-     * pattern's local bounding box through the same coordinate mapping used by
-     * {@link RelativeDirection#setActualRelativeOffset} and returns the resulting world min/max.
-     * This is accurate regardless of controller facing or upwardsFacing.
-     *
-     * <p>The returned array is {@code [minX, minY, minZ, maxX, maxY, maxZ]} relative to
-     * {@code centerPos}.
-     *
-     * @param centerPos      the controller's world position
-     * @param frontFacing    the "into structure" direction (controller.getFrontFacing().getOpposite())
-     * @param upwardsFacing  the controller's upward facing
-     * @param isFlipped      whether the structure is flipped
-     * @param margin         extra blocks to add on all sides as safety margin
-     * @return a pair of BlockPos: [min corner, max corner] in world coordinates
      */
     @NotNull
     public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos, @NotNull EnumFacing frontFacing,
                                        @NotNull EnumFacing upwardsFacing, boolean isFlipped, int margin) {
-        int maxFingerLen = getMaxExpandedFingerLength();
-
-        // Pattern-local range for each axis:
-        //   x (palm):   [-centerOffset[0] .. palmLength - 1 - centerOffset[0]]
-        //   y (thumb):  [-centerOffset[1] .. thumbLength - 1 - centerOffset[1]]
-        //   z (finger): Uses centerOffset[3] (minZ) and centerOffset[4] (maxZ) which track
-        //               the cumulative min/max aisle counts *before* the center aisle.
-        //               For the worst-case AABB we maximize both negative and positive extent:
-        //               - Negative direction: max distance before center = centerOffset[4] (maxZ)
-        //               - Positive direction: max distance after center = maxFingerLen - 1 - centerOffset[3] (minZ)
-        int xMin = -centerOffset[0];
-        int xMax = palmLength - 1 - centerOffset[0];
-        int yMin = -centerOffset[1];
-        int yMax = thumbLength - 1 - centerOffset[1];
-        int zMin = -centerOffset[4];
-        int zMax = maxFingerLen - 1 - centerOffset[3];
-
-        // Transform all 8 corners of the local AABB into world offsets
-        int worldMinX = Integer.MAX_VALUE, worldMinY = Integer.MAX_VALUE, worldMinZ = Integer.MAX_VALUE;
-        int worldMaxX = Integer.MIN_VALUE, worldMaxY = Integer.MIN_VALUE, worldMaxZ = Integer.MIN_VALUE;
-
-        for (int xi = 0; xi < 2; xi++) {
-            int lx = (xi == 0) ? xMin : xMax;
-            for (int yi = 0; yi < 2; yi++) {
-                int ly = (yi == 0) ? yMin : yMax;
-                for (int zi = 0; zi < 2; zi++) {
-                    int lz = (zi == 0) ? zMin : zMax;
-                    BlockPos offset = RelativeDirection.setActualRelativeOffset(
-                            lx, ly, lz, frontFacing, upwardsFacing, isFlipped, structureDir);
-                    worldMinX = Math.min(worldMinX, offset.getX());
-                    worldMinY = Math.min(worldMinY, offset.getY());
-                    worldMinZ = Math.min(worldMinZ, offset.getZ());
-                    worldMaxX = Math.max(worldMaxX, offset.getX());
-                    worldMaxY = Math.max(worldMaxY, offset.getY());
-                    worldMaxZ = Math.max(worldMaxZ, offset.getZ());
-                }
-            }
-        }
-
-        BlockPos min = centerPos.add(worldMinX - margin, worldMinY - margin, worldMinZ - margin);
-        BlockPos max = centerPos.add(worldMaxX + margin, worldMaxY + margin, worldMaxZ + margin);
-        return new BlockPos[] { min, max };
+        return delegate.computeWorldAABB(centerPos, frontFacing, upwardsFacing, isFlipped, margin);
     }
 
-    /**
-     * Get auto-generated structure description lines for tooltip display.
-     * Only available if the template was built via {@link gregtech.api.pattern.casing.DeclarativePatternBuilder}.
-     *
-     * @return unmodifiable list of tooltip lines, or empty list if not available
-     */
     @NotNull
     public List<String> getStructureDescription() {
-        return structureDescription != null ? structureDescription : Collections.emptyList();
-    }
-
-    /**
-     * Set the structure description lines. Called by DeclarativePatternBuilder during build.
-     * Should only be called once during template construction.
-     *
-     * @param description the description lines
-     */
-    public void setStructureDescription(@NotNull List<String> description) {
-        this.structureDescription = Collections.unmodifiableList(description);
+        return delegate.getStructureDescription();
     }
 }

@@ -5,6 +5,9 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureSizeDescriptor;
+import gregtech.api.pattern.StructureSizeDescriptor.PieceSize;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.util.RelativeDirection;
 
@@ -57,6 +60,7 @@ public final class StructureDefinition {
     // just to register a redundant TemplatePool entry.
     private MultiPiecePattern compiledPattern;
     private BlockPos[] maxRepeatAABB;
+    private StructureSizeDescriptor sizeDescriptor;
     private final boolean singlePiece;
 
     private StructureDefinition(Builder b) {
@@ -139,9 +143,23 @@ public final class StructureDefinition {
      */
     @Nullable
     public BlockPatternTemplate getPrimaryTemplate() {
+        return getPrimaryTemplate(null);
+    }
+
+    /**
+     * Get the primary (single-piece) compiled template, optionally with an auto-generated
+     * structure description. Returns {@code null} for multi-piece definitions; multi-piece
+     * callers should iterate {@link #getCompiledPattern()} instead.
+     *
+     * @param structureDescription  optional description lines to embed in the template;
+     *                               {@code null} or empty means "no description"
+     * @return the compiled template, or {@code null} for multi-piece structures
+     */
+    @Nullable
+    public BlockPatternTemplate getPrimaryTemplate(@Nullable List<String> structureDescription) {
         if (!singlePiece) return null;
         return StructureCompiler.compilePieceTemplate(
-                getPieceEntries().get(0).piece, getStructureDir());
+                getPieceEntries().get(0).piece, getStructureDir(), structureDescription);
     }
 
     @NotNull
@@ -152,6 +170,41 @@ public final class StructureDefinition {
     @NotNull
     public RelativeDirection[] getStructureDir() {
         return structureDir;
+    }
+
+    /**
+     * Get a {@link StructureSizeDescriptor} describing the pattern-local footprint of
+     * this definition. For a single-piece definition the descriptor contains exactly
+     * one entry and (typically) min == max on every axis. For a multi-piece definition
+     * the descriptor sums per-piece extents so the result reflects the overall world
+     * footprint of the structure.
+     *
+     * <p>Computation is lazy and cached for the lifetime of this {@code StructureDefinition},
+     * which is itself held in {@link TemplatePool} behind a soft reference.
+     */
+    @NotNull
+    public StructureSizeDescriptor getStructureSizeDescriptor() {
+        StructureSizeDescriptor local = sizeDescriptor;
+        if (local == null) {
+            // Trigger compilation first so getCompiledPattern() is non-null
+            MultiPiecePattern mpp = getCompiledPattern();
+            List<PieceSize> sizes = new ArrayList<>(mpp.getPieceList().size());
+            for (StructurePiece piece : mpp.getPieceList()) {
+                BlockPatternTemplate tpl = piece.getTemplate();
+                int palm = tpl.getXLength();
+                int thumb = tpl.getYLength();
+                int fingerMin = 0;
+                int fingerMax = 0;
+                for (BlockPatternTemplate.AisleDef aisle : tpl.getAisles()) {
+                    fingerMin += aisle.minRepeat();
+                    fingerMax += aisle.maxRepeat();
+                }
+                sizes.add(new PieceSize(piece.getName(), palm, thumb, fingerMin, fingerMax));
+            }
+            local = StructureSizeDescriptor.of(sizes);
+            sizeDescriptor = local;
+        }
+        return local;
     }
 
     /**

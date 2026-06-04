@@ -2,6 +2,7 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructurePiece;
@@ -350,8 +351,8 @@ public class MultiblockPreviewRenderer {
         // Use the piece's own template for coordinate transformation
         gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
-        int[] centerOffset = pieceTemplate.getCenterOffset();
-        BlockPos pieceCenterInLocal = new BlockPos(centerOffset[0], centerOffset[1], centerOffset[3]);
+        BlockPatternTemplate.CenterOffset centerOffset = pieceTemplate.getCenterOffset();
+        BlockPos pieceCenterInLocal = new BlockPos(centerOffset.x(), centerOffset.y(), centerOffset.minZ());
 
         FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(world);
         PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(world);

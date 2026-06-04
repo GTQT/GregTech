@@ -142,15 +142,15 @@ public class BlockPattern {
     }
 
     public int getStructureXSize() {
-        return template.getStructureXSize();
+        return template.getXLength();
     }
 
     public int getStructureYSize() {
-        return template.getStructureYSize();
+        return template.getYLength();
     }
 
     public int getStructureZSize() {
-        return template.getStructureZSize();
+        return template.getZLength();
     }
 
     public PatternError getError() {

@@ -17,6 +17,7 @@ import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -116,6 +117,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** Multi-piece pattern for super-large structures (P3, opt-in) */
     @Nullable
     protected MultiPiecePattern multiPiecePattern;
+    /**
+     * Per-controller state for the multi-piece pattern.
+     * Built in {@link #reinitializeStructurePattern()} and rebuilt whenever the
+     * pattern itself is rebuilt. Null if the controller has no multi-piece pattern.
+     *
+     * <p>This is the canonical place for per-instance state (the {@link MultiblockState}
+     * per piece, plus dirty/validated flags, formed-position set, and the
+     * repeatable-piece search cache). The {@link MultiPiecePattern} itself is
+     * stateless and safe to share across controllers of the same multiblock type.
+     */
+    @Nullable
+    protected PieceRuntimes pieceRuntimes;
     /** Structure definition from createStructureDefinition() (new system) */
     @Nullable
     private StructureDefinition structureDefinition;
@@ -384,12 +397,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
         }
         List<StructureChannel> result = new ArrayList<>();
-        String[] aisleChannelNames = template.getAisleChannelNames();
-        if (aisleChannelNames != null) {
-            for (String name : aisleChannelNames) {
-                if (name != null && !name.isEmpty()) {
-                    seen.add(name);
-                }
+        for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+            String name = aisle.channelName();
+            if (name != null && !name.isEmpty()) {
+                seen.add(name);
             }
         }
         for (String name : seen) {
@@ -454,6 +465,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.multiblockState = this.patternTemplate.createState();
             this.multiPiecePattern = createMultiPiecePattern();
         }
+        // Per-controller state for the multi-piece pattern. Built every time the
+        // pattern is rebuilt (including first construction). Null when the
+        // controller has no multi-piece pattern (legacy single-piece path).
+        this.pieceRuntimes = (this.multiPiecePattern != null)
+                ? new PieceRuntimes(this.multiPiecePattern)
+                : null;
         this.structurePattern = (this.patternTemplate != null)
                 ? new BlockPattern(this.patternTemplate, this.multiblockState)
                 : null;
@@ -606,10 +623,31 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * @return the multi-piece pattern if this controller uses one, or null
+     * @deprecated Prefer {@link #getStructureDefinition()} and its compiled
+     *             {@link gregtech.api.pattern.MultiPiecePattern} via
+     *             {@link StructureDefinition#getCompiledPattern()}. This accessor is
+     *             retained for runtime structure checking internals and external mods.
      */
     @Nullable
+    @Deprecated
     public MultiPiecePattern getMultiPiecePattern() {
         return multiPiecePattern;
+    }
+
+    /**
+     * Get the per-controller state for the multi-piece pattern.
+     * Each controller of a given multiblock type has its own independent
+     * {@link PieceRuntimes} so that per-instance state (the
+     * {@link MultiblockState} per piece, dirty/validated flags, etc.) is not
+     * shared between independent controllers. See {@link PieceRuntime} for
+     * the underlying per-piece state holder.
+     *
+     * @return the controller's per-piece state, or null if this controller
+     *         has no multi-piece pattern (legacy single-piece path)
+     */
+    @Nullable
+    public PieceRuntimes getPieceRuntimes() {
+        return pieceRuntimes;
     }
 
     public EnumFacing getUpwardsFacing() {
@@ -830,7 +868,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     if (!(getWorld() instanceof DummyWorld)) {
                         if (multiPiecePattern != null) {
                             multiPiecePattern.checkAllPieces(getWorld(), getPos(),
-                                    getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip());
+                                    getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
+                                    pieceRuntimes);
                             registerMultiPiecePattern();
                         }
                     }
@@ -882,7 +921,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 if (multiPiecePattern != null) {
                     // Multi-piece mode: do a full check of all pieces after initial form
                     multiPiecePattern.checkAllPieces(getWorld(), getPos(),
-                            getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip());
+                            getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
+                            pieceRuntimes);
                     registerMultiPiecePattern();
                 } else if (multiblockState != null && !multiblockState.cache.isEmpty()) {
                     LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
@@ -1017,7 +1057,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
                 getWorld(), getPos(), getFrontFacing().getOpposite(),
-                getUpwardsFacing(), allowsFlip());
+                getUpwardsFacing(), allowsFlip(), pieceRuntimes);
 
         if (!allValid && structureFormed) {
             invalidateStructure();
@@ -1031,7 +1071,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void registerMultiPiecePattern() {
         if (multiPiecePattern == null || getWorld() == null || getWorld() instanceof DummyWorld) return;
 
-        LongSet allPositions = multiPiecePattern.getAllPositions();
+        LongSet allPositions = multiPiecePattern.getAllPositions(pieceRuntimes);
         if (!allPositions.isEmpty()) {
             MultiblockWorldData.get(getWorld()).registerMultiblock(this, allPositions, multiPiecePattern);
         }
@@ -1039,8 +1079,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * @return the immutable pattern template, or null if not initialized
+     * @deprecated Prefer {@link #getStructureDefinition()} and (for 1-piece views)
+     *             {@link StructureDefinition#getPrimaryTemplate()}. This accessor only
+     *             returns a non-null value when the definition is a single piece;
+     *             multi-piece structures must use {@link #getStructureDefinition()}.
      */
     @Nullable
+    @Deprecated
     public BlockPatternTemplate getPatternTemplate() {
         return patternTemplate;
     }
@@ -1065,8 +1110,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * @return the per-instance mutable state, or null if not initialized
+     * @deprecated Prefer {@link #getStructureDefinition()}. Runtime structure checking
+     *             should use the SD's compiled products; this accessor is retained for
+     *             internal main-thread state and a small number of legacy call sites.
      */
     @Nullable
+    @Deprecated
     public MultiblockState getMultiblockState() {
         return multiblockState;
     }
@@ -1109,7 +1158,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
         // Reset multi-piece pattern state if present (P3)
         if (multiPiecePattern != null) {
-            multiPiecePattern.resetAll();
+            multiPiecePattern.resetAll(pieceRuntimes);
         }
 
         this.multiblockParts.forEach(part -> part.removeFromMultiBlock(this));
@@ -1439,12 +1488,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
             // Also check the piece template's aisle channels
             BlockPatternTemplate template = piece.getTemplate();
-            String[] aisleChannelNames = template.getAisleChannelNames();
-            if (aisleChannelNames != null) {
-                for (String name : aisleChannelNames) {
-                    if (name != null && seenNames.add(name)) {
-                        channels.add(new SimpleStructureChannel(name));
-                    }
+            for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+                String name = aisle.channelName();
+                if (name != null && seenNames.add(name)) {
+                    channels.add(new SimpleStructureChannel(name));
                 }
             }
         }
@@ -1469,13 +1516,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         String channelName = channel.getName();
 
         // Check repeatable aisle channels first
-        String[] aisleChannelNames = patternTemplate.getAisleChannelNames();
-        int[][] aisleRepetitions = patternTemplate.getAisleRepetitions();
-        if (aisleChannelNames != null) {
-            for (int i = 0; i < aisleChannelNames.length; i++) {
-                if (channelName.equals(aisleChannelNames[i])) {
-                    return new int[] { aisleRepetitions[i][0], aisleRepetitions[i][1] };
-                }
+        BlockPatternTemplate.AisleDef[] aisles = patternTemplate.getAisles();
+        for (BlockPatternTemplate.AisleDef aisle : aisles) {
+            if (channelName.equals(aisle.channelName())) {
+                return new int[] { aisle.minRepeat(), aisle.maxRepeat() };
             }
         }
 
@@ -1527,13 +1571,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
             // Also check the piece template's aisle channels
             BlockPatternTemplate template = piece.getTemplate();
-            String[] aisleChannelNames = template.getAisleChannelNames();
-            int[][] aisleRepetitions = template.getAisleRepetitions();
-            if (aisleChannelNames != null) {
-                for (int i = 0; i < aisleChannelNames.length; i++) {
-                    if (channelName.equals(aisleChannelNames[i])) {
-                        return new int[] { aisleRepetitions[i][0], aisleRepetitions[i][1] };
-                    }
+            for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+                if (channelName.equals(aisle.channelName())) {
+                    return new int[] { aisle.minRepeat(), aisle.maxRepeat() };
                 }
             }
         }
@@ -1608,10 +1648,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 }
             }
 
-            BlockInfo[][][] piecePreview = piece.getState().getPreview(repetition, channelValues);
+            BlockInfo[][][] piecePreview = pieceRuntimes.get(piece).getState()
+                    .getPreview(repetition, channelValues);
             if (piecePreview == null || piecePreview.length == 0) continue;
 
-            int fingerLen = pieceTemplate.getFingerLength();
+            int fingerLen = pieceTemplate.getZLength();
 
             // The preview array is [worldX][worldY][worldZ]
             // worldY corresponds to the repeat/aisle index (x parameter in setActualRelativeOffset)
@@ -1699,16 +1740,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     pieceRepeats = ranges[0][0];
                 }
             }
-            int fingerLen = tmpl.getFingerLength();
+            int fingerLen = tmpl.getZLength();
             int aisleDepth = pieceRepeats * fingerLen;
             RelativeDirection[] sDir = tmpl.getStructureDir();
 
             pieceInfos.add(new PieceInfo(tmpl, sDir, cumulativeY, pieceRepeats));
 
             // Compute raw merged bounds for this piece
-            for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
-                for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {
-                    for                     (int ix = 0; ix < tmpl.getPalmLength(); ix++) {
+            for (int iz = 0; iz < tmpl.getZLength(); iz++) {
+                for (int iy = 0; iy < tmpl.getYLength(); iy++) {
+                    for                     (int ix = 0; ix < tmpl.getXLength(); ix++) {
                         BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
                                 ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
                         int wx = previewPos.getX();
@@ -1729,9 +1770,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         // Second pass: fill predicate map with normalized positions
         for (PieceInfo info : pieceInfos) {
             TraceabilityPredicate[][][] blockMatches = info.template.getBlockMatches();
-            for (int iz = 0; iz < info.template.getFingerLength(); iz++) {
-                for (int iy = 0; iy < info.template.getThumbLength(); iy++) {
-                    for (int ix = 0; ix < info.template.getPalmLength(); ix++) {
+            for (int iz = 0; iz < info.template.getZLength(); iz++) {
+                for (int iy = 0; iy < info.template.getYLength(); iy++) {
+                    for (int ix = 0; ix < info.template.getXLength(); ix++) {
                         TraceabilityPredicate pred = blockMatches[iz][iy][ix];
                         if (pred == null || pred == TraceabilityPredicate.ANY) continue;
                         BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
@@ -1792,9 +1833,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             pages.add(new MultiblockShapeInfo(preview));
         } else {
             int aisleIdx = repetitionStack.size();
-            String[] channelNames = this.patternTemplate.getAisleChannelNames();
-            String channelName = (channelNames != null && aisleIdx < channelNames.length)
-                    ? channelNames[aisleIdx] : null;
+            String channelName = null;
+            BlockPatternTemplate.AisleDef[] aisles = this.patternTemplate.getAisles();
+            if (aisleIdx < aisles.length) {
+                channelName = aisles[aisleIdx].channelName();
+            }
 
             // If this aisle is controlled by a channel and a value is provided, use it directly
             if (channelName != null && channelValues != null && channelValues.containsKey(channelName)) {
@@ -1839,7 +1882,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         for (int i = 0; i < aisleRepetitions.length; i++) {
             repetition[i] = aisleRepetitions[i][0];
         }
-        BlockInfo[][][] preview = piece.getState().getPreview(repetition, channelValues);
+        BlockInfo[][][] preview = pieceRuntimes.get(piece).getState()
+                .getPreview(repetition, channelValues);
         return new MultiblockShapeInfo(preview);
     }
 
