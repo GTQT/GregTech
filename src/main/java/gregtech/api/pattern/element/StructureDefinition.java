@@ -116,7 +116,7 @@ public final class StructureDefinition {
     }
 
     @NotNull
-    RelativeDirection[] getStructureDir() {
+    public RelativeDirection[] getStructureDir() {
         return structureDir;
     }
 

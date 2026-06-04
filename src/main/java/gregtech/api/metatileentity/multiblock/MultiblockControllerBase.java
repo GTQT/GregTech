@@ -17,8 +17,10 @@ import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.SimpleStructureChannel;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.pattern.element.FormedStructureMetadata;
@@ -179,6 +181,23 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }).toArray(BlockInfo[]::new);
     }
 
+    private static Supplier<BlockInfo[]> getCandidates(MultiblockAbility<?>... allowedAbilities) {
+        return () -> Arrays.stream(allowedAbilities)
+                .filter(Objects::nonNull)
+                .map(MultiblockAbility.REGISTRY::get)
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .filter(Objects::nonNull)
+                .map(tile -> {
+                    // TODO
+                    MetaTileEntityHolder holder = new MetaTileEntityHolder();
+                    holder.setMetaTileEntity(tile);
+                    holder.getMetaTileEntity().onPlacement();
+                    holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
+                    return new BlockInfo(tile.getBlock().getDefaultState(), holder);
+                }).toArray(BlockInfo[]::new);
+    }
+
     private static Supplier<BlockInfo[]> getCandidates(IBlockState... allowedStates) {
         return () -> Arrays.stream(allowedStates).map(state -> new BlockInfo(state, null)).toArray(BlockInfo[]::new);
     }
@@ -192,9 +211,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 }
             }
             return false;
-        }, getCandidates(Arrays.stream(allowedAbilities)
-                .flatMap(ability -> MultiblockAbility.REGISTRY.get(ability).stream())
-                .toArray(MetaTileEntity[]::new)));
+        }, getCandidates(allowedAbilities));
     }
 
     public static TraceabilityPredicate states(IBlockState... allowedStates) {
@@ -1029,11 +1046,37 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
+     * Get the structure directions for preview coordinate transforms.
+     * Falls back to the structure definition's directions if the pattern template is null.
+     */
+    @NotNull
+    public RelativeDirection[] getStructureDirForPreview() {
+        if (patternTemplate != null) {
+            return patternTemplate.getStructureDir();
+        }
+        if (structureDefinition != null) {
+            return structureDefinition.getStructureDir();
+        }
+        // Default fallback: RIGHT, UP, FRONT
+        return new RelativeDirection[]{
+                RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.FRONT
+        };
+    }
+
+    /**
      * @return the per-instance mutable state, or null if not initialized
      */
     @Nullable
     public MultiblockState getMultiblockState() {
         return multiblockState;
+    }
+
+    /**
+     * Get the structure definition, may be null for legacy multiblocks.
+     */
+    @Nullable
+    public StructureDefinition getStructureDefinition() {
+        return structureDefinition;
     }
 
     /**
@@ -1367,10 +1410,45 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (patternTemplate == null) {
             reinitializeStructurePattern();
             if (patternTemplate == null) {
-                return Collections.emptyList();
+                return collectChannelsFromMultiPiece();
             }
         }
         return collectChannelsFromTemplate(patternTemplate);
+    }
+
+    /**
+     * Collect channels from the multi-piece structure definition.
+     * Iterates over all pieces and aggregates their channel names.
+     */
+    @NotNull
+    private List<StructureChannel> collectChannelsFromMultiPiece() {
+        if (multiPiecePattern == null) return Collections.emptyList();
+        List<StructureChannel> channels = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
+        for (StructurePiece piece : multiPiecePattern.getPieceList()) {
+            // Check RepeatGroupPiece for repeat channel names
+            if (piece instanceof RepeatGroupPiece) {
+                String[] channelNames = ((RepeatGroupPiece) piece).getRepeatChannelNames();
+                if (channelNames != null) {
+                    for (String name : channelNames) {
+                        if (name != null && seenNames.add(name)) {
+                            channels.add(new SimpleStructureChannel(name));
+                        }
+                    }
+                }
+            }
+            // Also check the piece template's aisle channels
+            BlockPatternTemplate template = piece.getTemplate();
+            String[] aisleChannelNames = template.getAisleChannelNames();
+            if (aisleChannelNames != null) {
+                for (String name : aisleChannelNames) {
+                    if (name != null && seenNames.add(name)) {
+                        channels.add(new SimpleStructureChannel(name));
+                    }
+                }
+            }
+        }
+        return channels;
     }
 
     /**
@@ -1384,7 +1462,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public int[] getChannelRange(@NotNull StructureChannel channel) {
         if (patternTemplate == null) {
             reinitializeStructurePattern();
-            if (patternTemplate == null) return new int[] { 0, 0 };
+            if (patternTemplate == null) {
+                return getChannelRangeFromMultiPiece(channel);
+            }
         }
         String channelName = channel.getName();
 
@@ -1421,11 +1501,50 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return new int[] { 0, 0 };
     }
 
+    /**
+     * Get channel range from multi-piece structure definition.
+     * Searches all pieces for the given channel name.
+     */
+    @NotNull
+    private int[] getChannelRangeFromMultiPiece(@NotNull StructureChannel channel) {
+        if (multiPiecePattern == null || structureDefinition == null) {
+            return new int[] { 0, 0 };
+        }
+        String channelName = channel.getName();
+
+        // Check each piece for aisle channel ranges
+        for (StructurePiece piece : multiPiecePattern.getPieceList()) {
+            if (piece instanceof RepeatGroupPiece) {
+                String[] channelNames = ((RepeatGroupPiece) piece).getRepeatChannelNames();
+                int[][] ranges = ((RepeatGroupPiece) piece).getRepeatRanges();
+                if (channelNames != null && ranges != null) {
+                    for (int i = 0; i < channelNames.length; i++) {
+                        if (channelName.equals(channelNames[i])) {
+                            return new int[] { ranges[i][0], ranges[i][1] };
+                        }
+                    }
+                }
+            }
+            // Also check the piece template's aisle channels
+            BlockPatternTemplate template = piece.getTemplate();
+            String[] aisleChannelNames = template.getAisleChannelNames();
+            int[][] aisleRepetitions = template.getAisleRepetitions();
+            if (aisleChannelNames != null) {
+                for (int i = 0; i < aisleChannelNames.length; i++) {
+                    if (channelName.equals(aisleChannelNames[i])) {
+                        return new int[] { aisleRepetitions[i][0], aisleRepetitions[i][1] };
+                    }
+                }
+            }
+        }
+        return new int[] { 0, 0 };
+    }
+
     public List<MultiblockShapeInfo> getMatchingShapes() {
         if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
             if (this.patternTemplate == null) {
-                return Collections.emptyList();
+                return buildMultiPieceShapes(null);
             }
         }
         int[][] aisleRepetitions = this.patternTemplate.getAisleRepetitions();
@@ -1439,11 +1558,224 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
             if (this.patternTemplate == null) {
-                return Collections.emptyList();
+                return buildMultiPieceShapes(channelValues);
             }
         }
         int[][] aisleRepetitions = this.patternTemplate.getAisleRepetitions();
         return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues);
+    }
+
+    /**
+     * Build preview shapes for multi-piece structures (StructureDefinition with multiple pieces).
+     * Merges all pieces' previews into a single combined shape by offsetting each piece
+     * along the aisle direction (the repeat axis for repeatable pieces).
+     *
+     * <p>The preview array from getPreview() is indexed as [worldX][worldY][worldZ].
+     * For structure dir [RIGHT, FRONT, UP] with NORTH-facing:
+     * worldX = char index, worldY = repeat/aisle index, worldZ = -row index.
+     * So merging along the aisle direction offsets worldY (the second array dimension).
+     */
+    private List<MultiblockShapeInfo> buildMultiPieceShapes(@Nullable Map<String, Integer> channelValues) {
+        if (multiPiecePattern == null || structureDefinition == null) {
+            return Collections.emptyList();
+        }
+        List<StructurePiece> pieces = multiPiecePattern.getPieceList();
+        if (pieces.isEmpty()) return Collections.emptyList();
+
+        int cumulativeAisleOffset = 0;
+        Map<Integer, Map<Integer, Map<Integer, BlockInfo>>> blockMap = new HashMap<>();
+        int minPx = Integer.MAX_VALUE, maxPx = Integer.MIN_VALUE;
+        int minPy = Integer.MAX_VALUE, maxPy = Integer.MIN_VALUE;
+        int minPz = Integer.MAX_VALUE, maxPz = Integer.MIN_VALUE;
+
+        for (StructurePiece piece : pieces) {
+            BlockPatternTemplate pieceTemplate = piece.getTemplate();
+            int[][] aisleRepetitions = pieceTemplate.getAisleRepetitions();
+            int[] repetition = new int[aisleRepetitions.length];
+            for (int j = 0; j < aisleRepetitions.length; j++) {
+                repetition[j] = aisleRepetitions[j][0];
+            }
+
+            // For RepeatGroupPiece, use the repeat count from ranges
+            int pieceRepeats = 1;
+            if (piece instanceof RepeatGroupPiece) {
+                int[][] ranges = ((RepeatGroupPiece) piece).getRepeatRanges();
+                if (ranges != null && ranges.length > 0) {
+                    pieceRepeats = channelValues != null
+                            ? getChannelValueOrDefault(channelValues, (RepeatGroupPiece) piece, ranges[0][0])
+                            : ranges[0][0];
+                    repetition[0] = pieceRepeats;
+                }
+            }
+
+            BlockInfo[][][] piecePreview = piece.getState().getPreview(repetition, channelValues);
+            if (piecePreview == null || piecePreview.length == 0) continue;
+
+            int fingerLen = pieceTemplate.getFingerLength();
+
+            // The preview array is [worldX][worldY][worldZ]
+            // worldY corresponds to the repeat/aisle index (x parameter in setActualRelativeOffset)
+            // Offset worldY by cumulativeAisleOffset to stack pieces along the aisle direction
+            for (int ix = 0; ix < piecePreview.length; ix++) {
+                for (int iy = 0; iy < piecePreview[ix].length; iy++) {
+                    for (int iz = 0; iz < piecePreview[ix][iy].length; iz++) {
+                        BlockInfo info = piecePreview[ix][iy][iz];
+                        if (info == null || info.getBlockState() == null) continue;
+                        int wx = ix;
+                        int wy = iy + cumulativeAisleOffset;
+                        int wz = iz;
+                        blockMap.computeIfAbsent(wx, k -> new HashMap<>())
+                                .computeIfAbsent(wy, k -> new HashMap<>())
+                                .put(wz, info);
+                        minPx = Math.min(minPx, wx);
+                        maxPx = Math.max(maxPx, wx);
+                        minPy = Math.min(minPy, wy);
+                        maxPy = Math.max(maxPy, wy);
+                        minPz = Math.min(minPz, wz);
+                        maxPz = Math.max(maxPz, wz);
+                    }
+                }
+            }
+
+            int pieceAisleDepth = pieceRepeats * fingerLen;
+            cumulativeAisleOffset += pieceAisleDepth;
+        }
+
+        if (blockMap.isEmpty()) return Collections.emptyList();
+
+        int sizeX = (maxPx == Integer.MIN_VALUE) ? 1 : maxPx - minPx + 1;
+        int sizeY = (maxPy == Integer.MIN_VALUE) ? 1 : maxPy - minPy + 1;
+        int sizeZ = (maxPz == Integer.MIN_VALUE) ? 1 : maxPz - minPz + 1;
+
+        BlockInfo[][][] result = new BlockInfo[sizeX][sizeY][sizeZ];
+        for (int ix = 0; ix < sizeX; ix++) {
+            for (int iy = 0; iy < sizeY; iy++) {
+                for (int iz = 0; iz < sizeZ; iz++) {
+                    result[ix][iy][iz] = BlockInfo.EMPTY;
+                }
+            }
+        }
+        for (Map.Entry<Integer, Map<Integer, Map<Integer, BlockInfo>>> ex : blockMap.entrySet()) {
+            int rx = ex.getKey() - minPx;
+            for (Map.Entry<Integer, Map<Integer, BlockInfo>> ey : ex.getValue().entrySet()) {
+                int ry = ey.getKey() - minPy;
+                for (Map.Entry<Integer, BlockInfo> ez : ey.getValue().entrySet()) {
+                    int rz = ez.getKey() - minPz;
+                    if (rx >= 0 && rx < sizeX && ry >= 0 && ry < sizeY && rz >= 0 && rz < sizeZ) {
+                        result[rx][ry][rz] = ez.getValue();
+                    }
+                }
+            }
+        }
+
+        return Collections.singletonList(new MultiblockShapeInfo(result));
+    }
+
+    /**
+     * Build a predicate map for multi-piece structures.
+     * Maps block positions (in the merged preview array's 0-based coordinate system)
+     * to their TraceabilityPredicate for right-click block cycling in JEI.
+     */
+    @NotNull
+    public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
+        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
+        if (multiPiecePattern == null) return predicateMap;
+        List<StructurePiece> pieces = multiPiecePattern.getPieceList();
+        if (pieces.isEmpty()) return predicateMap;
+
+        // Compute global bounds and cumulative offsets
+        int cumulativeY = 0;
+        List<PieceInfo> pieceInfos = new ArrayList<>();
+        int globalMinX = Integer.MAX_VALUE, globalMinY = Integer.MAX_VALUE, globalMinZ = Integer.MAX_VALUE;
+        int globalMaxX = Integer.MIN_VALUE, globalMaxY = Integer.MIN_VALUE, globalMaxZ = Integer.MIN_VALUE;
+
+        for (StructurePiece piece : pieces) {
+            BlockPatternTemplate tmpl = piece.getTemplate();
+            int[][] reps = tmpl.getAisleRepetitions();
+            int pieceRepeats = 1;
+            if (piece instanceof RepeatGroupPiece rp) {
+                int[][] ranges = rp.getRepeatRanges();
+                if (ranges != null && ranges.length > 0) {
+                    pieceRepeats = ranges[0][0];
+                }
+            }
+            int fingerLen = tmpl.getFingerLength();
+            int aisleDepth = pieceRepeats * fingerLen;
+            RelativeDirection[] sDir = tmpl.getStructureDir();
+
+            pieceInfos.add(new PieceInfo(tmpl, sDir, cumulativeY, pieceRepeats));
+
+            // Compute raw merged bounds for this piece
+            for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
+                for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {
+                    for                     (int ix = 0; ix < tmpl.getPalmLength(); ix++) {
+                        BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
+                                ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+                        int wx = previewPos.getX();
+                        int wy = previewPos.getY() + cumulativeY;
+                        int wz = previewPos.getZ();
+                        globalMinX = Math.min(globalMinX, wx);
+                        globalMinY = Math.min(globalMinY, wy);
+                        globalMinZ = Math.min(globalMinZ, wz);
+                        globalMaxX = Math.max(globalMaxX, wx);
+                        globalMaxY = Math.max(globalMaxY, wy);
+                        globalMaxZ = Math.max(globalMaxZ, wz);
+                    }
+                }
+            }
+            cumulativeY += aisleDepth;
+        }
+
+        // Second pass: fill predicate map with normalized positions
+        for (PieceInfo info : pieceInfos) {
+            TraceabilityPredicate[][][] blockMatches = info.template.getBlockMatches();
+            for (int iz = 0; iz < info.template.getFingerLength(); iz++) {
+                for (int iy = 0; iy < info.template.getThumbLength(); iy++) {
+                    for (int ix = 0; ix < info.template.getPalmLength(); ix++) {
+                        TraceabilityPredicate pred = blockMatches[iz][iy][ix];
+                        if (pred == null || pred == TraceabilityPredicate.ANY) continue;
+                        BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
+                                ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, info.structureDir);
+                        BlockPos blockMapPos = new BlockPos(
+                                previewPos.getX() - globalMinX,
+                                previewPos.getY() + info.cumulativeY - globalMinY,
+                                previewPos.getZ() - globalMinZ);
+                        predicateMap.put(blockMapPos, pred);
+                    }
+                }
+            }
+        }
+
+        return predicateMap;
+    }
+
+    // Helper record for multi-piece predicate map building
+    private static final class PieceInfo {
+        final BlockPatternTemplate template;
+        final RelativeDirection[] structureDir;
+        final int cumulativeY;
+        final int pieceRepeats;
+
+        PieceInfo(BlockPatternTemplate template, RelativeDirection[] structureDir,
+                  int cumulativeY, int pieceRepeats) {
+            this.template = template;
+            this.structureDir = structureDir;
+            this.cumulativeY = cumulativeY;
+            this.pieceRepeats = pieceRepeats;
+        }
+    }
+
+    /**
+     * Get the channel value for a repeatable piece, falling back to the default if not set.
+     */
+    private static int getChannelValueOrDefault(@NotNull Map<String, Integer> channelValues,
+                                                 @NotNull RepeatGroupPiece piece, int defaultValue) {
+        String[] names = piece.getRepeatChannelNames();
+        if (names != null && names.length > 0 && names[0] != null) {
+            Integer val = channelValues.get(names[0]);
+            if (val != null && val > 0) return val;
+        }
+        return defaultValue;
     }
 
     private List<MultiblockShapeInfo> repetitionDFS(List<MultiblockShapeInfo> pages, int[][] aisleRepetitions,

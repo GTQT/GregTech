@@ -281,11 +281,7 @@ public class DeclarativePatternBuilder {
                 // pieceFromFactory() would lose repeatability info.
                 convertFactoryToMultiAxisPiece(builder, piece);
             } else {
-                // Factory-based fixed piece:
-                // pieceFromFactory preserves aisle structure for the template
-                FactoryBlockPattern fb = buildFactoryForPiece(piece);
-                processSlots(fb, piece);
-                builder.pieceFromFactory(piece.name, fb).end();
+                registerFactoryPiece(builder, piece);
             }
         }
 
@@ -431,6 +427,43 @@ public class DeclarativePatternBuilder {
         }
 
         rpb.end();
+    }
+
+    /**
+     * Register a factory-style fixed piece without pre-building a legacy template.
+     * This lets StructureCompiler use explicit center offsets for pieces without
+     * a controller predicate.
+     */
+    private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
+                                      @NotNull PieceDef piece) {
+        String[][] pattern = new String[piece.aisles.size()][];
+        for (int i = 0; i < piece.aisles.size(); i++) {
+            pattern[i] = piece.aisles.get(i).pattern;
+        }
+
+        StructureDefinition.PieceBuilder pb = builder.piece(piece.name, pattern, Vec3i.NULL_VECTOR);
+
+        for (String[] aisle : pattern) {
+            for (String row : aisle) {
+                if (row == null) continue;
+                for (int i = 0; i < row.length(); i++) {
+                    char c = row.charAt(i);
+                    if (!piece.mappedChars.contains(c)) {
+                        piece.mappedChars.add(c);
+                        IStructureElement element = buildPieceElement(c, piece);
+                        if (element != null) {
+                            pb.where(c, element);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
+            pb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+
+        pb.end();
     }
 
     /**

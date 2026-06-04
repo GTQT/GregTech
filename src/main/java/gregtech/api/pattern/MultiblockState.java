@@ -1036,7 +1036,7 @@ public class MultiblockState {
                         }
                         int candidateIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
                         BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[candidateIdx];
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(z, y, x, EnumFacing.NORTH,
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(z, y, x, EnumFacing.SOUTH,
                                 EnumFacing.UP, false, structureDir);
                         if (info.getTileEntity() instanceof MetaTileEntityHolder) {
                             MetaTileEntityHolder holder = new MetaTileEntityHolder();

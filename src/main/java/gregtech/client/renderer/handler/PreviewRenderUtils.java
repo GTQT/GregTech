@@ -59,15 +59,11 @@ public final class PreviewRenderUtils {
      * Used for main pattern preview where the controller defines the coordinate mapping.
      */
     public static BlockPos transformPreviewOffset(MultiblockControllerBase controller, BlockPos previewOffset) {
-        BlockPatternTemplate template = controller.getPatternTemplate();
-        if (template == null) {
-            return previewOffset;
-        }
+        RelativeDirection[] structureDir = controller.getStructureDirForPreview();
 
-        RelativeDirection[] structureDir = template.getStructureDir();
         int[] localOffset = new int[3];
         for (int i = 0; i < structureDir.length; i++) {
-            localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.NORTH));
+            localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.SOUTH));
         }
 
         return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
@@ -83,7 +79,7 @@ public final class PreviewRenderUtils {
                                                 boolean isFlipped) {
         int[] localOffset = new int[3];
         for (int i = 0; i < structureDir.length; i++) {
-            localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.NORTH));
+            localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.SOUTH));
         }
         return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
                 frontFacing, upwardsFacing, isFlipped, structureDir);

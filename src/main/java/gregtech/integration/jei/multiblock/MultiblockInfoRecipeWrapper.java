@@ -9,10 +9,14 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.RepeatGroupPiece;
+import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
@@ -1060,26 +1064,24 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             }
         }
 
-        // Fallback: build predicateMap directly from the pattern template.
+        // Fallback: build predicateMap directly from the pattern template(s).
         // The cache-based approach only works when the multiblock is currently formed in-world.
         // For JEI preview, the controller is typically NOT formed, so the cache is empty.
         // This fallback ensures right-click cycling works for all structure positions.
         if (predicateMap.isEmpty() && controllerBase != null) {
             MultiblockState state = controllerBase.getMultiblockState();
+
             if (state != null) {
+                // Single-template (legacy) path
                 BlockPatternTemplate tmpl = state.getTemplate();
                 TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
                 RelativeDirection[] sDir = tmpl.getStructureDir();
                 int[] centerOff = tmpl.getCenterOffset();
 
-                // controllerBlockPos is the controller's position in the TrackedDummyWorld
-                // (blockMap coordinates). Compute the controller's actual preview-space
-                // position using the same direction transform as getPreview(), then derive
-                // the offset that converts preview-space positions to blockMap-space positions.
                 BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
                 BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
                         centerOff[0], centerOff[1], centerOff[3],
-                        EnumFacing.NORTH, EnumFacing.UP, false, sDir);
+                        EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
                 BlockPos offset = cPos.subtract(controllerPreviewPos);
 
                 for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
@@ -1088,15 +1090,20 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                             TraceabilityPredicate pred = blockMatches[iz][iy][ix];
                             if (pred == null || pred == TraceabilityPredicate.ANY) continue;
 
-                            // Mirror the same coordinate transform used by getPreview()
                             BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
-                                    ix, iy, iz, EnumFacing.NORTH, EnumFacing.UP, false, sDir);
+                                    ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
                             BlockPos blockMapPos = previewPos.add(offset);
                             if (blockMap.containsKey(blockMapPos)) {
                                 predicateMap.put(blockMapPos, pred);
                             }
                         }
                     }
+                }
+            } else {
+                // Multi-piece (StructureDefinition) path
+                MultiPiecePattern mpp = controllerBase.getMultiPiecePattern();
+                if (mpp != null && controllerBlockPos != null) {
+                    predicateMap.putAll(controllerBase.buildMultiPiecePredicateMap());
                 }
             }
         }
