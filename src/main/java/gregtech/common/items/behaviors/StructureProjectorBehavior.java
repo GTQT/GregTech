@@ -250,8 +250,8 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     // Iterate every piece and let the MultiPiecePattern place them at
                     // their correct world-space offsets. Repeatable pieces (e.g. the
                     // tower body) read their repeat count from channel values, so the
-                    // STRUCTURE_HEIGHT / STRUCTURE_LENGTH channels on the projector
-                    // still control the final dimensions.
+                    // STRUCTURE_WIDTH / STRUCTURE_HEIGHT / STRUCTURE_LENGTH channels
+                    // on the projector still control the final dimensions.
                     var multiPiece = multiblock.getMultiPiecePattern();
                     if (multiPiece != null) {
                         int pieceCount = multiPiece.getPieceCount();
@@ -366,7 +366,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         Map<String, int[]> channelRanges = readChannelRanges(stack);
         List<ChannelEntry> entries = buildChannelEntries(channelValues, channelRanges);
 
-        var panel = GTGuis.createPanel(stack, 176, 220);
+        var panel = GTGuis.createPanel(stack, 176, 240);
 
         // --- Compare mode sync ---
         BooleanSyncValue compareModeValue = new BooleanSyncValue(
@@ -386,11 +386,22 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 });
         guiSyncManager.syncValue("no_hatch", noHatchValue);
 
-        // --- Structure height/length sync ---
+        // --- Structure width/height/length sync ---
+        int[] widthRange = channelRanges.getOrDefault(
+                GTStructureChannels.STRUCTURE_WIDTH.getName(), new int[] { 0, 100 });
         int[] heightRange = channelRanges.getOrDefault(
                 GTStructureChannels.STRUCTURE_HEIGHT.getName(), new int[] { 0, 100 });
         int[] lengthRange = channelRanges.getOrDefault(
                 GTStructureChannels.STRUCTURE_LENGTH.getName(), new int[] { 0, 100 });
+
+        IntSyncValue widthValue = new IntSyncValue(
+                () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_WIDTH.getName(), 0),
+                v -> {
+                    if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_WIDTH.getName());
+                    else channelValues.put(GTStructureChannels.STRUCTURE_WIDTH.getName(), v);
+                    writeChannelValues(stack, channelValues);
+                });
+        guiSyncManager.syncValue("structure_width", widthValue);
 
         IntSyncValue heightValue = new IntSyncValue(
                 () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_HEIGHT.getName(), 0),
@@ -453,11 +464,11 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 })
                 .scrollDirection(new VerticalScrollData())
                 .size(162, listHeight)
-                .pos(7, 85);
+                .pos(7, 105);
 
         // --- Clear button: properly resets all sync values ---
         var clearButton = new ButtonWidget<>()
-                .pos(7, 195)
+                .pos(7, 215)
                 .width(60).height(16)
                 .overlay(IKey.lang("gregtech.tool.projector.clear"))
                 .onMousePressed(m -> {
@@ -466,6 +477,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     entries.clear();
                     writeChannelValues(stack, channelValues);
                     // Reset sync values so GUI and server reflect the cleared state
+                    widthValue.setValue(0, true, true);
                     heightValue.setValue(0, true, true);
                     lengthValue.setValue(0, true, true);
                     for (int i = 0; i < MAX_CHANNEL_ROWS; i++) {
@@ -501,9 +513,17 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                         .setNumbers(heightRange[0], heightRange[1])
                         .value(heightValue)
                         .background(GTGuiTextures.DISPLAY))
-                .child(IKey.lang("gregtech.tool.projector.structure_length").asWidget().pos(7, 62))
+                .child(IKey.lang("gregtech.tool.projector.structure_width").asWidget().pos(7, 62))
                 .child(new TextFieldWidget()
                         .pos(80, 62)
+                        .width(40).height(12)
+                        .setTextColor(Color.WHITE.darker(1))
+                        .setNumbers(widthRange[0], widthRange[1])
+                        .value(widthValue)
+                        .background(GTGuiTextures.DISPLAY))
+                .child(IKey.lang("gregtech.tool.projector.structure_length").asWidget().pos(7, 82))
+                .child(new TextFieldWidget()
+                        .pos(80, 82)
                         .width(40).height(12)
                         .setTextColor(Color.WHITE.darker(1))
                         .setNumbers(lengthRange[0], lengthRange[1])
@@ -527,6 +547,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         if (channelValues.isEmpty() && !channelRanges.isEmpty()) {
             for (Map.Entry<String, int[]> rangeEntry : channelRanges.entrySet()) {
                 String name = rangeEntry.getKey();
+                if (name.equals(GTStructureChannels.STRUCTURE_WIDTH.getName())) continue;
                 if (name.equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
                 if (name.equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
                 entries.add(new ChannelEntry(name, 0));
@@ -536,6 +557,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
         // Build entries from existing channel values
         for (Map.Entry<String, Integer> e : channelValues.entrySet()) {
+            if (e.getKey().equals(GTStructureChannels.STRUCTURE_WIDTH.getName())) continue;
             if (e.getKey().equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
             if (e.getKey().equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
             entries.add(new ChannelEntry(e.getKey(), e.getValue()));

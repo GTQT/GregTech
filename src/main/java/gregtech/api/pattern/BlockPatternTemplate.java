@@ -139,10 +139,6 @@ public class BlockPatternTemplate {
      * Create a new mutable state instance for this template.
      * Each multiblock controller instance should hold its own state.
      *
-     * <p>The {@link MultiblockState} now holds the canonical {@link PieceTemplate}
-     * directly; this method unwraps the facade so the state no longer carries
-     * a redundant {@code BlockPatternTemplate} wrapper.
-     *
      * @return a new MultiblockState bound to the underlying PieceTemplate
      */
     public MultiblockState createState() {

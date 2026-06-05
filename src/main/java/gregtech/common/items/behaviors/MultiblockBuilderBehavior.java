@@ -107,6 +107,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
      */
     private static Map<String, Integer> tierToChannelValues(int tier) {
         Map<String, Integer> channels = new HashMap<>();
+        channels.put(GTStructureChannels.STRUCTURE_WIDTH.getName(), tier);
         channels.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), tier);
         channels.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), tier);
         return channels;

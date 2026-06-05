@@ -9,6 +9,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
@@ -70,6 +71,9 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
                             .repeatAxes(0, 1)     // X and Y axes
                             .repeatRange(2, 5, 2, 7) // X: 2~5, Y: 2~7
                             .stepSizes(1, 1)       // step 1 for both axes
+                            .channelNames(
+                                    GTStructureChannels.STRUCTURE_WIDTH.getName(),
+                                    GTStructureChannels.STRUCTURE_HEIGHT.getName())
                             .centerOffset(1, 0, 0)
                     .where('S', self(MetaTileEntityMultiAxisDemo.class))
                     .where('W', block(getCasingState()))

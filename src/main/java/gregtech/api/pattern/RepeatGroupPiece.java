@@ -5,8 +5,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.RelativeDirection;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -285,26 +283,27 @@ public class RepeatGroupPiece extends StructurePiece {
         int axis = repeatAxes[0];
         int stepSize = stepSizes[0];
         int count = reps[0];
-        Vec3i baseOffset = super.getOffset();
         MultiblockState state = runtime.getState();
-        RelativeDirection[] structDir = state.getTemplate().getStructureDir();
+        // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
+        // center; the cell loop's template-local slice step (set in `local` below) is the
+        // only thing added to each cell — baseOffset is absorbed by pieceCenter.
+        BlockPos pieceCenter = getCenterPos(origin, front, up);
 
         LongSet allPositions = new LongOpenHashSet();
         PatternMatchContext aggregated = new PatternMatchContext();
         Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         for (int r = 0; r < count; r++) {
+            // Fold the per-slice step into the cell loop as a template-local offset, so
+            // setActualRelativeOffset runs exactly once per cell. The cached positions
+            // stored by checkPatternAt are already in the controller's frame, so no
+            // additional shift is needed when copying them into allPositions.
             int[] local = {0, 0, 0};
             local[axis] = stepSize * r;
-            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                    local[0], local[1], local[2], front, up, flipped, structDir);
-            BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + worldOffset.getX(),
-                    baseOffset.getY() + worldOffset.getY(),
-                    baseOffset.getZ() + worldOffset.getZ());
 
             PatternMatchContext ctx = state.checkPatternFastAt(
-                    world, sliceOrigin, front, up, flipped);
+                    world, pieceCenter, front, up, flipped, true,
+                    local[0], local[1], local[2]);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
@@ -315,10 +314,8 @@ public class RepeatGroupPiece extends StructurePiece {
 
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
-                BlockPos shift = sliceOrigin.subtract(origin);
                 for (long posLong : innerCache.keySet()) {
-                    BlockPos pos = BlockPos.fromLong(posLong).add(shift);
-                    allPositions.add(pos.toLong());
+                    allPositions.add(posLong);
                 }
             }
         }
@@ -346,9 +343,11 @@ public class RepeatGroupPiece extends StructurePiece {
             return true;
         }
 
-        Vec3i baseOffset = super.getOffset();
         MultiblockState state = runtime.getState();
-        RelativeDirection[] structDir = state.getTemplate().getStructureDir();
+        // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
+        // center; the cell loop's template-local slice step (set in `local` below) is the
+        // only thing added to each cell — baseOffset is absorbed by pieceCenter.
+        BlockPos pieceCenter = getCenterPos(origin, front, up);
         LongSet allPositions = new LongOpenHashSet();
         PatternMatchContext aggregated = new PatternMatchContext();
         Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
@@ -357,19 +356,19 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean hasMore = true;
 
         while (hasMore) {
+            // Fold the per-slice step (cartesian product over all repeat axes) into the
+            // cell loop as a template-local offset, so setActualRelativeOffset runs exactly
+            // once per cell. The cached positions stored by checkPatternAt are already in
+            // the controller's frame, so no additional shift is needed when copying them
+            // into allPositions.
             int[] local = {0, 0, 0};
             for (int i = 0; i < repeatAxes.length; i++) {
                 local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
             }
-            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                    local[0], local[1], local[2], front, up, flipped, structDir);
-            BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + worldOffset.getX(),
-                    baseOffset.getY() + worldOffset.getY(),
-                    baseOffset.getZ() + worldOffset.getZ());
 
             PatternMatchContext ctx = state.checkPatternFastAt(
-                    world, sliceOrigin, front, up, flipped);
+                    world, pieceCenter, front, up, flipped, true,
+                    local[0], local[1], local[2]);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
@@ -380,10 +379,8 @@ public class RepeatGroupPiece extends StructurePiece {
 
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
-                BlockPos shift = sliceOrigin.subtract(origin);
                 for (long posLong : innerCache.keySet()) {
-                    BlockPos pos = BlockPos.fromLong(posLong).add(shift);
-                    allPositions.add(pos.toLong());
+                    allPositions.add(posLong);
                 }
             }
 
@@ -474,10 +471,18 @@ public class RepeatGroupPiece extends StructurePiece {
                                      @NotNull EnumFacing front, @NotNull EnumFacing up,
                                      boolean flipped,
                                      @NotNull PieceRuntime runtime) {
-        BlockPos pieceOrigin = computePieceOrigin(origin, partialReps, front, up, flipped, runtime);
-        // Delegate to MultiblockState's 1D slice check
+        // Use the world-space piece center (OffsetMode applied) and fold the per-slice
+        // step (cartesian over partialReps, with slice 0 at offset 0) into the cell loop
+        // as a template-local offset. setActualRelativeOffset therefore runs exactly once
+        // per cell.
+        BlockPos pieceCenter = getCenterPos(origin, front, up);
+        int[] local = {0, 0, 0};
+        for (int i = 0; i < repeatAxes.length; i++) {
+            local[repeatAxes[i]] += stepSizes[i] * (partialReps[i] - 1);
+        }
         return runtime.getState().checkAxisLineFastAtSnapshot(
-                snap, pieceOrigin, repeatAxes[axisIdx], front, up, flipped);
+                snap, pieceCenter, repeatAxes[axisIdx], front, up, flipped,
+                local[0], local[1], local[2]);
     }
 
     /**
@@ -545,9 +550,11 @@ public class RepeatGroupPiece extends StructurePiece {
             return true;
         }
 
-        Vec3i baseOffset = super.getOffset();
         MultiblockState state = runtime.getState();
-        RelativeDirection[] structDir = state.getTemplate().getStructureDir();
+        // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
+        // center; the cell loop's template-local slice step (set in `local` below) is the
+        // only thing added to each cell — baseOffset is absorbed by pieceCenter.
+        BlockPos pieceCenter = getCenterPos(origin, front, up);
         LongSet allPositions = new LongOpenHashSet();
 
         // Aggregate context from all slices
@@ -560,21 +567,20 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean hasMore = true;
 
         while (hasMore) {
-            // Compute offset for this combination
+            // Fold the per-slice step (cartesian product over all repeat axes) into the
+            // cell loop as a template-local offset, so setActualRelativeOffset runs exactly
+            // once per cell. The cached positions stored by checkPatternAtSnapshot are
+            // already in the controller's frame, so no additional shift is needed when
+            // copying them into allPositions.
             int[] local = {0, 0, 0};
             for (int i = 0; i < repeatAxes.length; i++) {
                 local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
             }
-            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                    local[0], local[1], local[2], front, up, flipped, structDir);
-            BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + worldOffset.getX(),
-                    baseOffset.getY() + worldOffset.getY(),
-                    baseOffset.getZ() + worldOffset.getZ());
 
             // Check this slice
             PatternMatchContext ctx = state.checkPatternFastAtSnapshot(
-                    snap, sliceOrigin, front, up, flipped);
+                    snap, pieceCenter, front, up, flipped,
+                    local[0], local[1], local[2]);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
@@ -587,10 +593,8 @@ public class RepeatGroupPiece extends StructurePiece {
             // Collect positions from this slice
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
-                BlockPos shift = sliceOrigin.subtract(origin);
                 for (long posLong : innerCache.keySet()) {
-                    BlockPos pos = BlockPos.fromLong(posLong).add(shift);
-                    allPositions.add(pos.toLong());
+                    allPositions.add(posLong);
                 }
             }
 
@@ -633,9 +637,11 @@ public class RepeatGroupPiece extends StructurePiece {
         int axis = repeatAxes[0];
         int stepSize = stepSizes[0];
         int count = reps[0];
-        Vec3i baseOffset = super.getOffset();
         MultiblockState state = runtime.getState();
-        RelativeDirection[] structDir = state.getTemplate().getStructureDir();
+        // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
+        // center; the cell loop's template-local slice step (set in `local` below) is the
+        // only thing added to each cell — baseOffset is absorbed by pieceCenter.
+        BlockPos pieceCenter = getCenterPos(origin, front, up);
 
         LongSet allPositions = new LongOpenHashSet();
 
@@ -644,17 +650,16 @@ public class RepeatGroupPiece extends StructurePiece {
         Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         for (int r = 0; r < count; r++) {
+            // Fold the per-slice step into the cell loop as a template-local offset, so
+            // setActualRelativeOffset runs exactly once per cell. The cached positions
+            // stored by checkPatternAtSnapshot are already in the controller's frame, so
+            // no additional shift is needed when copying them into allPositions.
             int[] local = {0, 0, 0};
             local[axis] = stepSize * r;
-            BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                    local[0], local[1], local[2], front, up, flipped, structDir);
-            BlockPos sliceOrigin = origin.add(
-                    baseOffset.getX() + worldOffset.getX(),
-                    baseOffset.getY() + worldOffset.getY(),
-                    baseOffset.getZ() + worldOffset.getZ());
 
             PatternMatchContext ctx = state.checkPatternFastAtSnapshot(
-                    snap, sliceOrigin, front, up, flipped);
+                    snap, pieceCenter, front, up, flipped,
+                    local[0], local[1], local[2]);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
@@ -667,10 +672,8 @@ public class RepeatGroupPiece extends StructurePiece {
             // Collect positions from this slice
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
-                BlockPos shift = sliceOrigin.subtract(origin);
                 for (long posLong : innerCache.keySet()) {
-                    BlockPos pos = BlockPos.fromLong(posLong).add(shift);
-                    allPositions.add(pos.toLong());
+                    allPositions.add(posLong);
                 }
             }
         }
@@ -698,30 +701,15 @@ public class RepeatGroupPiece extends StructurePiece {
     }
 
     /**
-     * Compute the piece origin (center position) for given repeat counts.
-     */
-    @NotNull
-    private BlockPos computePieceOrigin(@NotNull BlockPos controllerOrigin, int[] reps,
-                                         @NotNull EnumFacing front, @NotNull EnumFacing up,
-                                         boolean flipped,
-                                         @NotNull PieceRuntime runtime) {
-        int[] local = {0, 0, 0};
-        for (int i = 0; i < repeatAxes.length; i++) {
-            local[repeatAxes[i]] += stepSizes[i] * (reps[i] - 1);
-        }
-        RelativeDirection[] structDir = runtime.getState().getTemplate().getStructureDir();
-        BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                local[0], local[1], local[2], front, up, flipped, structDir);
-        Vec3i offset = super.getOffset();
-        return controllerOrigin.add(
-                offset.getX() + worldOffset.getX(),
-                offset.getY() + worldOffset.getY(),
-                offset.getZ() + worldOffset.getZ());
-    }
-
-    /**
      * Auto-build all slices of this repeatable piece.
      * Iterates over all repeat axes and builds each slice individually.
+     * <p>
+     * Each slice is placed by folding the per-slice step (and the piece's base offset)
+     * into the cell loop as a template-local offset passed to
+     * {@link MultiblockState#autoBuildAt(EntityPlayer, MultiblockControllerBase, BlockPos,
+     * int, int, int, Map, boolean)}. {@code setActualRelativeOffset} therefore runs
+     * exactly once per cell, so every slice keeps the same orientation — only the
+     * per-cell world position shifts along the repeat axis / axes.
      */
     public void autoBuildAtRepeated(@NotNull EntityPlayer player, @NotNull MultiblockControllerBase controller,
                                     @NotNull BlockPos controllerOrigin, @NotNull EnumFacing front,
@@ -743,8 +731,10 @@ public class RepeatGroupPiece extends StructurePiece {
         }
 
         MultiblockState state = runtime.getState();
-        RelativeDirection[] structDir = state.getTemplate().getStructureDir();
-        Vec3i baseOffset = super.getOffset();
+        // Use the world-space piece center (OffsetMode applied) and fold only the per-slice
+        // step into the cell loop as a template-local offset. setActualRelativeOffset
+        // therefore runs exactly once per cell.
+        BlockPos pieceCenter = getCenterPos(controllerOrigin, front, up);
 
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];
@@ -753,13 +743,9 @@ public class RepeatGroupPiece extends StructurePiece {
             for (int r = 0; r < count; r++) {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
-                BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                        local[0], local[1], local[2], front, up, flipped, structDir);
-                BlockPos sliceOrigin = controllerOrigin.add(
-                        baseOffset.getX() + worldOffset.getX(),
-                        baseOffset.getY() + worldOffset.getY(),
-                        baseOffset.getZ() + worldOffset.getZ());
-                state.autoBuildAt(player, controller, sliceOrigin, channelValues, skipHatches);
+                state.autoBuildAt(player, controller, pieceCenter,
+                        local[0], local[1], local[2],
+                        channelValues, skipHatches);
             }
         } else {
             int[] currentIndices = new int[repeatAxes.length];
@@ -769,13 +755,9 @@ public class RepeatGroupPiece extends StructurePiece {
                 for (int i = 0; i < repeatAxes.length; i++) {
                     local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
                 }
-                BlockPos worldOffset = RelativeDirection.setActualRelativeOffset(
-                        local[0], local[1], local[2], front, up, flipped, structDir);
-                BlockPos sliceOrigin = controllerOrigin.add(
-                        baseOffset.getX() + worldOffset.getX(),
-                        baseOffset.getY() + worldOffset.getY(),
-                        baseOffset.getZ() + worldOffset.getZ());
-                state.autoBuildAt(player, controller, sliceOrigin, channelValues, skipHatches);
+                state.autoBuildAt(player, controller, pieceCenter,
+                        local[0], local[1], local[2],
+                        channelValues, skipHatches);
 
                 hasMore = false;
                 for (int i = 0; i < repeatAxes.length; i++) {

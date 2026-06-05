@@ -1716,6 +1716,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Build a predicate map for multi-piece structures.
      * Maps block positions (in the merged preview array's 0-based coordinate system)
      * to their TraceabilityPredicate for right-click block cycling in JEI.
+     *
+     * <p>Iteration matches {@link MultiblockState#getPreview(int[], Map)} so that
+     * every block rendered in the JEI preview (including all repeated slices of a
+     * {@link RepeatGroupPiece}) gets a corresponding predicate entry. The previous
+     * implementation only walked the base template, leaving repeated slices with
+     * no predicate, which made right-click cycling silent for those positions.
      */
     @NotNull
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
@@ -1730,59 +1736,84 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         int globalMinX = Integer.MAX_VALUE, globalMinY = Integer.MAX_VALUE, globalMinZ = Integer.MAX_VALUE;
         int globalMaxX = Integer.MIN_VALUE, globalMaxY = Integer.MIN_VALUE, globalMaxZ = Integer.MIN_VALUE;
 
+        // First pass: collect per-piece repetition info and compute global bounds
+        // using the same (l, r, y, z) iteration as MultiblockState#getPreview.
         for (StructurePiece piece : pieces) {
             BlockPatternTemplate tmpl = piece.getTemplate();
-            int[][] reps = tmpl.getAisleRepetitions();
+            int[][] aisleReps = tmpl.getAisleRepetitions();
+            int[] repetition = new int[aisleReps.length];
+            for (int j = 0; j < aisleReps.length; j++) {
+                repetition[j] = aisleReps[j][0];
+            }
             int pieceRepeats = 1;
             if (piece instanceof RepeatGroupPiece rp) {
                 int[][] ranges = rp.getRepeatRanges();
                 if (ranges != null && ranges.length > 0) {
                     pieceRepeats = ranges[0][0];
+                    repetition[0] = pieceRepeats;
                 }
             }
             int fingerLen = tmpl.getZLength();
             int aisleDepth = pieceRepeats * fingerLen;
             RelativeDirection[] sDir = tmpl.getStructureDir();
+            int yLen = tmpl.getYLength();
+            int xLen = tmpl.getXLength();
 
-            pieceInfos.add(new PieceInfo(tmpl, sDir, cumulativeY, pieceRepeats));
+            pieceInfos.add(new PieceInfo(tmpl, sDir, cumulativeY, pieceRepeats, repetition));
 
-            // Compute raw merged bounds for this piece
-            for (int iz = 0; iz < tmpl.getZLength(); iz++) {
-                for (int iy = 0; iy < tmpl.getYLength(); iy++) {
-                    for                     (int ix = 0; ix < tmpl.getXLength(); ix++) {
-                        BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
-                                ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                        int wx = previewPos.getX();
-                        int wy = previewPos.getY() + cumulativeY;
-                        int wz = previewPos.getZ();
-                        globalMinX = Math.min(globalMinX, wx);
-                        globalMinY = Math.min(globalMinY, wy);
-                        globalMinZ = Math.min(globalMinZ, wz);
-                        globalMaxX = Math.max(globalMaxX, wx);
-                        globalMaxY = Math.max(globalMaxY, wy);
-                        globalMaxZ = Math.max(globalMaxZ, wz);
+            // Walk the (l, r, y, z) cell space exactly as getPreview does, so the bounds
+            // we derive here match the merged preview blockMap populated by buildMultiPieceShapes.
+            for (int l = 0, x = 0; l < fingerLen; l++) {
+                for (int r = 0; r < repetition[l]; r++) {
+                    for (int y = 0; y < yLen; y++) {
+                        for (int z = 0; z < xLen; z++) {
+                            BlockPos pos = RelativeDirection.setActualRelativeOffset(
+                                    z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+                            int wx = pos.getX();
+                            int wy = pos.getY() + cumulativeY;
+                            int wz = pos.getZ();
+                            globalMinX = Math.min(globalMinX, wx);
+                            globalMinY = Math.min(globalMinY, wy);
+                            globalMinZ = Math.min(globalMinZ, wz);
+                            globalMaxX = Math.max(globalMaxX, wx);
+                            globalMaxY = Math.max(globalMaxY, wy);
+                            globalMaxZ = Math.max(globalMaxZ, wz);
+                        }
                     }
+                    x++;
                 }
             }
             cumulativeY += aisleDepth;
         }
 
-        // Second pass: fill predicate map with normalized positions
+        // Second pass: fill predicate map with normalized positions.
+        // We reuse the same (l, r, y, z) iteration as getPreview so that predicates are
+        // registered at every world position that the JEI preview actually renders,
+        // including repeated slices whose predicates were previously dropped.
         for (PieceInfo info : pieceInfos) {
+            int fingerLen = info.template.getZLength();
+            int yLen = info.template.getYLength();
+            int xLen = info.template.getXLength();
             TraceabilityPredicate[][][] blockMatches = info.template.getBlockMatches();
-            for (int iz = 0; iz < info.template.getZLength(); iz++) {
-                for (int iy = 0; iy < info.template.getYLength(); iy++) {
-                    for (int ix = 0; ix < info.template.getXLength(); ix++) {
-                        TraceabilityPredicate pred = blockMatches[iz][iy][ix];
-                        if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-                        BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
-                                ix, iy, iz, EnumFacing.SOUTH, EnumFacing.UP, false, info.structureDir);
-                        BlockPos blockMapPos = new BlockPos(
-                                previewPos.getX() - globalMinX,
-                                previewPos.getY() + info.cumulativeY - globalMinY,
-                                previewPos.getZ() - globalMinZ);
-                        predicateMap.put(blockMapPos, pred);
+            RelativeDirection[] sDir = info.structureDir;
+            int[] repetition = info.repetition;
+
+            for (int l = 0, x = 0; l < fingerLen; l++) {
+                for (int r = 0; r < repetition[l]; r++) {
+                    for (int y = 0; y < yLen; y++) {
+                        for (int z = 0; z < xLen; z++) {
+                            TraceabilityPredicate pred = blockMatches[l][y][z];
+                            if (pred == null || pred == TraceabilityPredicate.ANY) continue;
+                            BlockPos localPos = RelativeDirection.setActualRelativeOffset(
+                                    z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+                            BlockPos blockMapPos = new BlockPos(
+                                    localPos.getX() - globalMinX,
+                                    localPos.getY() + info.cumulativeY - globalMinY,
+                                    localPos.getZ() - globalMinZ);
+                            predicateMap.put(blockMapPos, pred);
+                        }
                     }
+                    x++;
                 }
             }
         }
@@ -1796,13 +1827,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         final RelativeDirection[] structureDir;
         final int cumulativeY;
         final int pieceRepeats;
+        // Per-aisle repetition counts (length == template.getZLength()).
+        // For RepeatGroupPiece repetition[0] is the piece's repeat count and the rest
+        // are aisleRepetitions[j][0], matching the array passed to MultiblockState#getPreview.
+        final int[] repetition;
 
         PieceInfo(BlockPatternTemplate template, RelativeDirection[] structureDir,
-                  int cumulativeY, int pieceRepeats) {
+                  int cumulativeY, int pieceRepeats, int[] repetition) {
             this.template = template;
             this.structureDir = structureDir;
             this.cumulativeY = cumulativeY;
             this.pieceRepeats = pieceRepeats;
+            this.repetition = repetition;
         }
     }
 

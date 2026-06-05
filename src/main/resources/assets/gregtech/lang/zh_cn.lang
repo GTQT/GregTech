@@ -723,6 +723,7 @@ gregtech.tool.projector.compare_tooltip=切换对比模式（高亮缺失/错误
 gregtech.tool.projector.no_hatch_tooltip=切换禁止放置舱室模式（自动建造时不放置任何舱室）
 gregtech.tool.projector.clear=清空信道
 gregtech.tool.projector.structure_height=高度
+gregtech.tool.projector.structure_width=宽度
 gregtech.tool.projector.structure_length=长度
 
 # Structure Channels
@@ -735,6 +736,7 @@ gregtech.structure_channel.pipe_casing=管道外壳等级
 gregtech.structure_channel.item_pipe_casing=物品管道外壳等级
 gregtech.structure_channel.structure_height=结构高度
 gregtech.structure_channel.structure_length=结构长度
+gregtech.structure_channel.structure_width=结构宽度
 gregtech.structure_channel.hatch_tier=仓室等级
 gregtech.structure_channel.energy_casing=能源外壳等级
 gregtech.structure_channel.solenoid=螺线管等级

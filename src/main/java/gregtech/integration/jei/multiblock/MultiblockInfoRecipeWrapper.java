@@ -1088,17 +1088,39 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                             EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
                     BlockPos offset = cPos.subtract(controllerPreviewPos);
 
-                    // forEachPredicate handles null/ANY filtering and the (iz, iy, ix) iteration;
-                    // we only have to apply the per-piece origin offset and the blockMap filter.
-                    tmpl.forEachPredicate(EnumFacing.SOUTH, EnumFacing.UP, false, (localPos, pred) -> {
-                        BlockPos blockMapPos = localPos.add(offset);
-                        if (blockMap.containsKey(blockMapPos)) {
-                            predicateMap.put(blockMapPos, pred);
+                    // Walk the (l, r, y, z) cell space the same way MultiblockState#getPreview
+                    // does so that predicates are registered for every repeated aisle as well.
+                    // The previous forEachPredicate-only path dropped predicates for all but
+                    // the first slice, which broke right-click cycling for hatches in those
+                    // repeated slices of single-template (legacy aisleRepeatable) structures.
+                    int[][] aisleReps = tmpl.getAisleRepetitions();
+                    int fingerLen = tmpl.getZLength();
+                    int yLen = tmpl.getYLength();
+                    int xLen = tmpl.getXLength();
+                    TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
+                    for (int l = 0, x = 0; l < fingerLen; l++) {
+                        int aisleRepeat = aisleReps[l][0];
+                        for (int r = 0; r < aisleRepeat; r++) {
+                            for (int y = 0; y < yLen; y++) {
+                                for (int z = 0; z < xLen; z++) {
+                                    TraceabilityPredicate pred = blockMatches[l][y][z];
+                                    if (pred == null || pred == TraceabilityPredicate.ANY) continue;
+                                    BlockPos localPos = RelativeDirection.setActualRelativeOffset(
+                                            z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+                                    BlockPos blockMapPos = localPos.add(offset);
+                                    if (blockMap.containsKey(blockMapPos)) {
+                                        predicateMap.put(blockMapPos, pred);
+                                    }
+                                }
+                            }
+                            x++;
                         }
-                    });
+                    }
                 }
             } else if (controllerBlockPos != null) {
-                // Multi-piece path: existing helper handles the structure-local coordinate system.
+                // Multi-piece path: helper handles the structure-local coordinate system
+                // and now expands repeated slices so right-click cycling works on every block
+                // of a RepeatGroupPiece, not just the first slice.
                 predicateMap.putAll(controllerBase.buildMultiPiecePredicateMap());
             }
         }

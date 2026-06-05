@@ -31,9 +31,8 @@ import java.util.Arrays;
  * <h2>Thread safety</h2>
  * {@code positions} is updated via reference swap (volatile) so the event thread
  * can read a stable snapshot while the main thread builds a successor set. The
- * repeat-cache fields ({@code lastSuccessRepsA} / {@code lastSuccessPositionsA} /
- * {@code lastSuccessRepsB} / {@code lastSuccessPositionsB}) are only touched on
- * the main thread.
+ * repeat-cache fields ({@code lastSuccessReps} / {@code lastSuccessPositions})
+ * are only touched on the main thread.
  */
 public final class PieceRuntime {
 
@@ -63,35 +62,15 @@ public final class PieceRuntime {
     private PatternMatchContext lastAggregatedContext;
 
     /**
-     * Double-buffered cache of the two most recent successful (reps, position set)
-     * pairs. The {@code active} slot is the one whose set is currently published
-     * into the volatile {@link #positions} field; the {@code inactive} slot keeps
-     * the previous pair alive so an A->B->A flip-flop can hit the cache on the
-     * second A without rebuilding the cartesian-product set.
-     *
-     * <p>Readers check both slots; the writer always targets the inactive slot
-     * and then flips the active flag, so the active slot's previous contents are
-     * preserved as the new inactive slot.
+     * Cached position set from the last successful check, keyed by the
+     * reps that produced it. Enables O(1) position reuse in the steady state
+     * (multiblock already formed, same repeat counts across ticks).
      */
     @Nullable
-    private int[] lastSuccessRepsA;
+    private int[] lastSuccessReps;
 
     @Nullable
-    private LongSet lastSuccessPositionsA;
-
-    @Nullable
-    private int[] lastSuccessRepsB;
-
-    @Nullable
-    private LongSet lastSuccessPositionsB;
-
-    /**
-     * Which slot is currently the writer's target. The writer always publishes
-     * to the slot that is NOT active, then flips this flag. {@code true} => A
-     * is active (next publish goes to B); {@code false} => B is active.
-     * Readers ignore this flag and check both slots.
-     */
-    private boolean activeIsA = true;
+    private LongSet lastSuccessPositions;
 
     public PieceRuntime(@NotNull StructurePiece piece) {
         this.piece = piece;
@@ -166,48 +145,30 @@ public final class PieceRuntime {
     }
 
     /**
-     * Try to reuse a cached position set from the last two successful checks.
-     * Returns the cached set if {@code reps} exactly matches either slot's
-     * reps key; otherwise returns null and the caller must build a new set
+     * Try to reuse the cached position set from the last successful check.
+     * Returns the cached set if {@code reps} exactly matches the reps that
+     * produced it; otherwise returns null and the caller must build a new set
      * via {@link #publishPositionSet}.
-     *
-     * <p>The double-buffered slots ensure an A->B->A flip-flop hits the cache
-     * on the second A: the first A writes to slot A, the B writes to slot B
-     * (preserving slot A), and the second A reads back from slot A.
      */
     @Nullable
     public LongSet tryReusePositionSet(@NotNull int[] reps) {
-        int[] a = lastSuccessRepsA;
-        int[] b = lastSuccessRepsB;
-        if (a != null && a.length == reps.length && Arrays.equals(a, reps)) {
-            return lastSuccessPositionsA;
-        }
-        if (b != null && b.length == reps.length && Arrays.equals(b, reps)) {
-            return lastSuccessPositionsB;
+        if (lastSuccessReps != null
+                && lastSuccessReps.length == reps.length
+                && Arrays.equals(lastSuccessReps, reps)) {
+            return lastSuccessPositions;
         }
         return null;
     }
 
     /**
      * Publish a freshly built position set as the new last-success snapshot.
-     * Writes to the inactive slot (so the previously-active slot's pair is
-     * preserved as the new inactive entry), then flips the active flag and
-     * atomically publishes the set into the volatile {@link #positions} field
-     * for readers.
+     * Caches the set keyed by {@code reps} for reuse on subsequent checks
+     * with the same rep configuration, then atomically swaps it into the
+     * volatile {@code positions} field.
      */
     public void publishPositionSet(@NotNull LongSet set, @NotNull int[] reps) {
-        int[] cloned = reps.clone();
-        if (activeIsA) {
-            // A is currently active; write to B and promote B to active.
-            this.lastSuccessRepsB = cloned;
-            this.lastSuccessPositionsB = set;
-            this.activeIsA = false;
-        } else {
-            // B is currently active; write to A and promote A to active.
-            this.lastSuccessRepsA = cloned;
-            this.lastSuccessPositionsA = set;
-            this.activeIsA = true;
-        }
+        this.lastSuccessPositions = set;
+        this.lastSuccessReps = reps.clone();
         this.positions = set;
     }
 
@@ -220,11 +181,8 @@ public final class PieceRuntime {
         this.positions = new LongOpenHashSet();
         this.state.clearCache();
         this.lastAggregatedContext = null;
-        this.lastSuccessRepsA = null;
-        this.lastSuccessPositionsA = null;
-        this.lastSuccessRepsB = null;
-        this.lastSuccessPositionsB = null;
-        this.activeIsA = true;
+        this.lastSuccessReps = null;
+        this.lastSuccessPositions = null;
         this.lastFormedReps = null;
     }
 }

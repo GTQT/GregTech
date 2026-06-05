@@ -83,6 +83,16 @@ public class MultiblockState {
     /** Cache of formed structure block positions -> block info */
     public final Long2ObjectMap<BlockInfo> cache = new Long2ObjectOpenHashMap<>();
 
+    /**
+     * Cell offsets that were used to populate {@link #cache}. The cache fast-path only
+     * applies when the new call's offsets match these — otherwise the cache was built
+     * for a different slice and the fast-path is skipped so a full re-check runs.
+     */
+    private int cachedXOffset = 0;
+    private int cachedYOffset = 0;
+    private int cachedZOffset = 0;
+    private boolean cacheOffsetsRecorded = false;
+
     /** The repetitions per aisle along the axis of repetition (filled after successful pattern check) */
     public int[] formedRepetitionCount;
 
@@ -149,6 +159,7 @@ public class MultiblockState {
      */
     public void clearCache() {
         cache.clear();
+        cacheOffsetsRecorded = false;
     }
 
     /**
@@ -165,7 +176,7 @@ public class MultiblockState {
      */
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip) {
-        return checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, true);
+        return checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, true, 0, 0, 0);
     }
 
     /**
@@ -176,7 +187,41 @@ public class MultiblockState {
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip,
                                                   boolean doRandomCheck) {
-        if (!cache.isEmpty()) {
+        return checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, doRandomCheck,
+                0, 0, 0);
+    }
+
+    /**
+     * Fast pattern check using cache, then full check if needed, with an additional
+     * template-local cell offset folded into the per-cell transformation.
+     * <p>
+     * Mirrors the contract of
+     * {@link #autoBuildAt(EntityPlayer, MultiblockControllerBase, BlockPos, int, int, int, Map, boolean)}:
+     * the offsets are added to every cell's (x, y, z) before
+     * {@link RelativeDirection#setActualRelativeOffset} runs, so the transformation happens
+     * exactly once per cell. The cache fast-path is unaffected by the offsets because it
+     * verifies world state at already-transformed positions and only runs when the previous
+     * successful check used the same offsets (i.e. the cache is always invalidated by
+     * {@code checkPatternAt} on miss).
+     *
+     * @param doRandomCheck if true and cache is large (>512), use random sampling instead of full scan
+     * @param xOffset       template-local x offset added to every cell before transformation
+     * @param yOffset       template-local y offset added to every cell before transformation
+     * @param zOffset       template-local z offset added to every cell before transformation
+     */
+    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
+                                                  EnumFacing upwardsFacing, boolean allowsFlip,
+                                                  boolean doRandomCheck,
+                                                  int xOffset, int yOffset, int zOffset) {
+        // Cache fast-path is only valid when the offsets used to build the cache match
+        // the current call's offsets. A non-empty cache with mismatched offsets belongs
+        // to a different slice and must not be trusted — fall through to a full re-check.
+        boolean cacheValid = cache.isEmpty() == false
+                && cacheOffsetsRecorded
+                && xOffset == cachedXOffset
+                && yOffset == cachedYOffset
+                && zOffset == cachedZOffset;
+        if (cacheValid) {
             if (!doRandomCheck || cache.size() < 512) {
                 // Small cache: full check
                 boolean pass = true;
@@ -243,19 +288,22 @@ public class MultiblockState {
             }
         }
 
-        PatternMatchContext pmc = checkPatternAt(world, centerPos, frontFacing, upwardsFacing, false);
+        PatternMatchContext pmc = checkPatternAt(world, centerPos, frontFacing, upwardsFacing, false,
+                xOffset, yOffset, zOffset);
         if (allowsFlip) {
             if (pmc != null) {
                 return pmc;
             }
-            pmc = checkPatternAt(world, centerPos, frontFacing, upwardsFacing, true);
+            pmc = checkPatternAt(world, centerPos, frontFacing, upwardsFacing, true,
+                    xOffset, yOffset, zOffset);
         }
         if (pmc == null) clearCache();
         return pmc;
     }
 
     private PatternMatchContext checkPatternAt(World world, BlockPos centerPos, EnumFacing frontFacing,
-                                               EnumFacing upwardsFacing, boolean isFlipped) {
+                                               EnumFacing upwardsFacing, boolean isFlipped,
+                                               int xOffset, int yOffset, int zOffset) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
@@ -271,6 +319,10 @@ public class MultiblockState {
         this.globalCount.clear();
         this.layerCount.clear();
         cache.clear();
+        this.cachedXOffset = xOffset;
+        this.cachedYOffset = yOffset;
+        this.cachedZOffset = zOffset;
+        this.cacheOffsetsRecorded = true;
 
         // Checking aisles
         for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
@@ -357,8 +409,9 @@ public class MultiblockState {
 
     /**
      * Calculate repetitions per aisle from channel values.
-     * {@code STRUCTURE_HEIGHT} controls the first repeatable aisle,
-     * {@code STRUCTURE_LENGTH} controls the second (if exists).
+     * Channel names assigned via {@code aisleChannelNames} are matched to specific aisles
+     * (e.g. {@code STRUCTURE_WIDTH}, {@code STRUCTURE_HEIGHT}, {@code STRUCTURE_LENGTH}
+     * each control their corresponding repeatable axis/aisle, in declaration order).
      * Value semantics: 0 = max, 1 = min, 2+ = specific (clamped to [min, max]).
      * If a channel is not set, defaults to max repetition for that aisle.
      *
@@ -433,8 +486,10 @@ public class MultiblockState {
      *
      * <p>Channel values control two aspects:
      * <ul>
-     *   <li><b>Structure dimensions</b>: {@code STRUCTURE_HEIGHT} and {@code STRUCTURE_LENGTH}
-     *       control aisle repetition counts (0 = max, 1 = min, 2+ = specific).</li>
+     *   <li><b>Structure dimensions</b>: {@code STRUCTURE_WIDTH}, {@code STRUCTURE_HEIGHT}
+     *       and {@code STRUCTURE_LENGTH} (or any channel names bound via
+     *       {@code aisleChannelNames}) control aisle repetition counts
+     *       (0 = max, 1 = min, 2+ = specific).</li>
      *   <li><b>Casing tier selection</b>: other channels (e.g. {@code HEATING_COIL})
      *       control which tier of tiered casing is preferred during construction.</li>
      * </ul>
@@ -461,6 +516,37 @@ public class MultiblockState {
      */
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
                             BlockPos centerPos, Map<String, Integer> channelValues, boolean skipHatches) {
+        // Delegate to the offset-aware overload with zero cell offsets. Callers that need to
+        // fold a piece-level offset (e.g. RepeatGroupPiece) into the cell loop use the
+        // (xOffset, yOffset, zOffset) overload directly so the structureDir rotation is
+        // applied exactly once per cell.
+        autoBuildAt(player, controllerBase, centerPos, 0, 0, 0, channelValues, skipHatches);
+    }
+
+    /**
+     * Auto-build the structure in the world at a specified center position, with an
+     * additional template-local cell offset folded into the per-cell transformation.
+     * <p>
+     * The offsets are in template-local coordinates and are added to every cell's (x, y, z)
+     * before {@link RelativeDirection#setActualRelativeOffset} runs. The combined vector is
+     * transformed exactly once, so the orientation of every placed cell is determined solely
+     * by the controller's facing / upward-facing / flipped state and the template's
+     * {@code structureDir}. Slice-level callers (e.g. {@code RepeatGroupPiece}) use this to
+     * place all slices of a repeatable piece in the same orientation — only the per-cell
+     * world position shifts.
+     *
+     * @param player         the player performing the build
+     * @param controllerBase the multiblock controller (used for facing/flip info)
+     * @param centerPos      the center position for this build (typically the controller pos)
+     * @param xOffset        template-local x offset added to every cell before transformation
+     * @param yOffset        template-local y offset added to every cell before transformation
+     * @param zOffset        template-local z offset added to every cell before transformation
+     * @param channelValues  map of channel name -> desired value (null = max size, no tier preference)
+     * @param skipHatches    if true, skip all hatch placement and only place casing blocks
+     */
+    public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
+                            BlockPos centerPos, int xOffset, int yOffset, int zOffset,
+                            Map<String, Integer> channelValues, boolean skipHatches) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
@@ -486,7 +572,8 @@ public class MultiblockState {
                 for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
                     for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         TraceabilityPredicate predicate = blockMatches[c][b][a];
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, facing,
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
+                                z + zOffset, facing,
                                 controllerBase.getUpwardsFacing(),
                                 controllerBase.isFlipped(), structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
@@ -1140,13 +1227,27 @@ public class MultiblockState {
     public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
                                                           BlockPos centerPos, EnumFacing frontFacing,
                                                           EnumFacing upwardsFacing, boolean allowsFlip) {
+        return checkPatternFastAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, allowsFlip,
+                0, 0, 0);
+    }
+
+    /**
+     * Snapshot variant of {@link #checkPatternFastAt(World, BlockPos, EnumFacing, EnumFacing,
+     * boolean, boolean, int, int, int)}. See that method for the cell-offset contract.
+     */
+    public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                                          BlockPos centerPos, EnumFacing frontFacing,
+                                                          EnumFacing upwardsFacing, boolean allowsFlip,
+                                                          int xOffset, int yOffset, int zOffset) {
         // For snapshot checks, we skip the cache fast-path and do a full pattern check
-        PatternMatchContext pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, false);
+        PatternMatchContext pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing,
+                false, xOffset, yOffset, zOffset);
         if (allowsFlip) {
             if (pmc != null) {
                 return pmc;
             }
-            pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, true);
+            pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing,
+                    true, xOffset, yOffset, zOffset);
         }
         return pmc;
     }
@@ -1235,6 +1336,29 @@ public class MultiblockState {
                                                 @NotNull EnumFacing frontFacing,
                                                 @NotNull EnumFacing upwardsFacing,
                                                 boolean isFlipped) {
+        return checkAxisLineFastAtSnapshot(snap, pieceOrigin, axis, frontFacing, upwardsFacing, isFlipped,
+                0, 0, 0);
+    }
+
+    /**
+     * 1D slice verification along a specific axis (tensor product piece optimization),
+     * with an additional template-local cell offset folded into the per-cell transformation.
+     * <p>
+     * Mirrors the contract of
+     * {@link #checkPatternFastAt(World, BlockPos, EnumFacing, EnumFacing, boolean, boolean,
+     * int, int, int)}: the offsets are added to every cell's (x, y, z) before
+     * {@link RelativeDirection#setActualRelativeOffset} runs, so the transformation happens
+     * exactly once per cell. The {@code pieceOrigin} here is the world-space center of the
+     * piece (typically {@link StructurePiece#getCenterPos}), and the offsets encode the
+     * template-local slice step the caller wants to verify.
+     */
+    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                                @NotNull BlockPos pieceOrigin,
+                                                int axis,
+                                                @NotNull EnumFacing frontFacing,
+                                                @NotNull EnumFacing upwardsFacing,
+                                                boolean isFlipped,
+                                                int xOffset, int yOffset, int zOffset) {
         // For tensor product pieces, all cells are identical,
         // so we only need to check one "line" along the axis.
         // This is a simplified check that verifies the outermost slice.
@@ -1254,7 +1378,8 @@ public class MultiblockState {
         for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
             for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                 TraceabilityPredicate predicate = blockMatches[0][b][a];
-                BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
+                BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
+                        z + zOffset, frontFacing, upwardsFacing,
                         isFlipped, structureDir)
                         .add(pieceOrigin.getX(), pieceOrigin.getY(), pieceOrigin.getZ());
                 worldState.updateFromBlockAccess(snap, pos, matchContext, globalCount, layerCount, predicate);
@@ -1273,6 +1398,19 @@ public class MultiblockState {
     private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
                                                        BlockPos centerPos, EnumFacing frontFacing,
                                                        EnumFacing upwardsFacing, boolean isFlipped) {
+        return checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped, 0, 0, 0);
+    }
+
+    /**
+     * Snapshot variant of {@link #checkPatternAt} that accepts template-local cell offsets.
+     * The offsets are added to every cell's (x, y, z) before
+     * {@link RelativeDirection#setActualRelativeOffset} runs, so the transformation happens
+     * exactly once per cell.
+     */
+    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                                       BlockPos centerPos, EnumFacing frontFacing,
+                                                       EnumFacing upwardsFacing, boolean isFlipped,
+                                                       int xOffset, int yOffset, int zOffset) {
         TraceabilityPredicate[][][] blockMatches = template.getBlockMatches();
         int[][] aisleRepetitions = template.getAisleRepetitions();
         RelativeDirection[] structureDir = template.getStructureDir();
@@ -1300,7 +1438,8 @@ public class MultiblockState {
                 for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
                     for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         TraceabilityPredicate predicate = blockMatches[c][b][a];
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
+                                z + zOffset, frontFacing, upwardsFacing,
                                 isFlipped, structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
 
