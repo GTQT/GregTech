@@ -275,11 +275,11 @@ public class MultiPiecePattern {
 
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
-                    controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing(),
+                    controller.getFrontFacingForStructure(), controller.getUpwardsFacing(),
                     controller.isFlipped(), channelValues, skipHatches, runtime);
         } else {
             BlockPos pieceCenter = piece.getCenterPos(
-                    controller.getPos(), controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing());
+                    controller.getPos(), controller.getFrontFacingForStructure(), controller.getUpwardsFacing());
             runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
         }
         return true;

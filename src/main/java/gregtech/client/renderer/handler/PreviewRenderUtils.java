@@ -58,13 +58,12 @@ public final class PreviewRenderUtils {
      * Transform a local preview offset into world-space offset using the controller's pattern template.
      * Used for main pattern preview where the controller defines the coordinate mapping.
      *
-     * <p>For {@link RelativeDirection#BACK} structures the {@code frontFacing} passed to
-     * {@link RelativeDirection#setActualRelativeOffset} is the controller's actual
-     * {@code getFrontFacing()} rather than its opposite, so the projected structure is
-     * placed behind the controller (the natural visual orientation). For other structure
-     * directions (e.g. {@link RelativeDirection#FRONT}) the opposite is used to stay
-     * consistent with the actual structure check in
-     * {@link gregtech.api.pattern.MultiblockState#checkPatternFastAt}.</p>
+     * <p>Uses {@link MultiblockControllerBase#getFrontFacingForStructure()} so the projected
+     * structure is placed behind the controller for both
+     * {@link RelativeDirection#FRONT} and {@link RelativeDirection#BACK} templates,
+     * matching the build/check direction used by
+     * {@link MultiblockState#checkPatternAt} and
+     * {@link gregtech.api.pattern.MultiblockState#autoBuildAt}.</p>
      */
     public static BlockPos transformPreviewOffset(MultiblockControllerBase controller, BlockPos previewOffset) {
         RelativeDirection[] structureDir = controller.getStructureDirForPreview();
@@ -74,12 +73,7 @@ public final class PreviewRenderUtils {
             localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.SOUTH));
         }
 
-        // BACK structures: use the controller's actual front facing so the preview shows
-        // the structure behind the controller instead of in front. For all other
-        // structure directions, fall back to getOpposite() to match checkPatternAt.
-        EnumFacing facing = structureDir[2] == RelativeDirection.BACK
-                ? controller.getFrontFacing()
-                : controller.getFrontFacing().getOpposite();
+        EnumFacing facing = controller.getFrontFacingForStructure();
         return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
                 facing, controller.getUpwardsFacing(),
                 controller.isFlipped(), structureDir);
@@ -88,12 +82,10 @@ public final class PreviewRenderUtils {
     /**
      * Transform a local preview offset for a piece into world-space offset using the piece's structure directions.
      *
-     * <p>Mirrors the BACK / non-BACK facing selection in
-     * {@link #transformPreviewOffset(MultiblockControllerBase, BlockPos)}: the caller
-     * passes {@code controller.getFrontFacing().getOpposite()} to match
-     * {@code checkPatternAt}. For {@link RelativeDirection#BACK} structures we undo
-     * that inversion so the piece preview sits behind the controller, matching the
-     * controller preview. For other structure directions, the input is used as-is.</p>
+     * <p>Caller is expected to pass the value of
+     * {@link MultiblockControllerBase#getFrontFacingForStructure()} for {@code frontFacing},
+     * keeping the piece preview consistent with the controller preview and the build/check
+     * direction.</p>
      */
     public static BlockPos transformPieceOffset(BlockPos previewOffset, RelativeDirection[] structureDir,
                                                 EnumFacing frontFacing, EnumFacing upwardsFacing,
@@ -102,14 +94,8 @@ public final class PreviewRenderUtils {
         for (int i = 0; i < structureDir.length; i++) {
             localOffset[i] = getAxisComponent(previewOffset, structureDir[i].getActualFacing(EnumFacing.SOUTH));
         }
-        // Callers pass controller.getFrontFacing().getOpposite() to align with
-        // checkPatternAt; for BACK structures, invert once more so the piece preview
-        // is consistent with the controller preview (structure behind the controller).
-        EnumFacing effectiveFacing = structureDir[2] == RelativeDirection.BACK
-                ? frontFacing.getOpposite()
-                : frontFacing;
         return RelativeDirection.setActualRelativeOffset(localOffset[0], localOffset[1], localOffset[2],
-                effectiveFacing, upwardsFacing, isFlipped, structureDir);
+                frontFacing, upwardsFacing, isFlipped, structureDir);
     }
 
     /**

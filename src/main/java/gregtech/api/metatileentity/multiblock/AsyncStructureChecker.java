@@ -202,7 +202,7 @@ public class AsyncStructureChecker {
                     controller,
                     snapshot,
                     pos.toImmutable(),
-                    controller.getFrontFacing().getOpposite(),
+                    controller.getFrontFacing(),
                     controller.getUpwardsFacing(),
                     controller.allowsFlip()
             );
@@ -277,7 +277,7 @@ public class AsyncStructureChecker {
         if (definition != null) {
             BlockPos[] aabb = definition.computeWorldAABB(
                     pos,
-                    controller.getFrontFacing().getOpposite(),
+                    controller.getFrontFacingForStructure(),
                     controller.getUpwardsFacing(),
                     controller.isFlipped(),
                     SNAPSHOT_MARGIN);

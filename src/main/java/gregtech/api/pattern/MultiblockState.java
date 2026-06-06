@@ -558,7 +558,11 @@ public class MultiblockState {
         World world = player.world;
         BlockWorldState bws = new BlockWorldState();
         int minZ = -centerOffset.maxZ();
-        EnumFacing facing = controllerBase.getFrontFacing().getOpposite();
+        // Convention: pass the controller's getFrontFacingForStructure() as the "frontFacing"
+        // argument to setActualRelativeOffset. With this convention, both FRONT-direction and
+        // BACK-direction templates place aisle 0 *behind* the controller. See
+        // MultiblockControllerBase#getFrontFacingForStructure for the full rationale.
+        EnumFacing facing = controllerBase.getFrontFacingForStructure();
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, Object> blocks = new HashMap<>();
@@ -566,7 +570,7 @@ public class MultiblockState {
 
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
-        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
+        for (int c = 0, z = minZ, r; c < fingerLength; c++) {
             for (r = 0; r < repetitions[c]; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
                 for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {

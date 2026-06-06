@@ -254,7 +254,7 @@ public class AdvancedMonitorPluginBehavior extends ProxyHolderPluginBehavior {
                             gregtech.api.pattern.MultiblockState state = entity.getMultiblockState();
                             if (state != null) {
                                 PatternMatchContext result = state.checkPatternFastAt(
-                                        entity.getWorld(), entity.getPos(), entity.getFrontFacing().getOpposite(),
+                                        entity.getWorld(), entity.getPos(), entity.getFrontFacingForStructure(),
                                         entity.getUpwardsFacing(), entity.allowsFlip());
                                 if (result != null) {
                                     validPos = state.cache.keySet().stream().map(BlockPos::fromLong)

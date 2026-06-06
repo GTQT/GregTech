@@ -838,7 +838,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (this.structureDefinition != null) {
             StructureCheckState state = this.structureDefinition.createState();
             StructureCheckState.Result result = state.check(getWorld(), getPos(),
-                    getFrontFacing().getOpposite(), getUpwardsFacing(), isFlipped(), null);
+                    getFrontFacingForStructure(), getUpwardsFacing(), isFlipped(), null);
             if (result.success) {
                 this.formedMetadata = result.metadata;
 
@@ -868,7 +868,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     if (!(getWorld() instanceof DummyWorld)) {
                         if (multiPiecePattern != null) {
                             multiPiecePattern.checkAllPieces(getWorld(), getPos(),
-                                    getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
+                                    getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
                                     pieceRuntimes);
                             registerMultiPiecePattern();
                         }
@@ -890,7 +890,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
         if (multiblockState == null) return;
         PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
-                getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
+                getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
                 isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
         if (context != null && !structureFormed) {
             Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
@@ -921,7 +921,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 if (multiPiecePattern != null) {
                     // Multi-piece mode: do a full check of all pieces after initial form
                     multiPiecePattern.checkAllPieces(getWorld(), getPos(),
-                            getFrontFacing().getOpposite(), getUpwardsFacing(), allowsFlip(),
+                            getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
                             pieceRuntimes);
                     registerMultiPiecePattern();
                 } else if (multiblockState != null && !multiblockState.cache.isEmpty()) {
@@ -1056,7 +1056,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (multiPiecePattern == null) return;
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
-                getWorld(), getPos(), getFrontFacing().getOpposite(),
+                getWorld(), getPos(), getFrontFacingForStructure(),
                 getUpwardsFacing(), allowsFlip(), pieceRuntimes);
 
         if (!allValid && structureFormed) {
@@ -1106,6 +1106,30 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return new RelativeDirection[]{
                 RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.FRONT
         };
+    }
+
+    /**
+     * Compute the {@code frontFacing} argument to pass into
+     * {@link gregtech.api.util.RelativeDirection#setActualRelativeOffset} so that the
+     * template's first aisle (aisle 0) ends up <em>behind</em> the controller.
+     *
+     * <p>The structure's Z axis is the controller's actual front for a
+     * {@link RelativeDirection#FRONT} template, and the opposite for a
+     * {@link RelativeDirection#BACK} template. To place the structure behind the
+     * controller in both cases, callers should pass the value returned here rather
+     * than {@code getFrontFacing()} or {@code getFrontFacing().getOpposite()}
+     * directly.</p>
+     *
+     * <p>Replaces the old "into-structure" convention where the parameter was
+     * unconditionally {@code getFrontFacing().getOpposite()}. With the old
+     * convention, FRONT templates placed aisle 0 in front of the controller
+     * (where the player stands) instead of behind it.</p>
+     */
+    public EnumFacing getFrontFacingForStructure() {
+        RelativeDirection[] structureDir = getStructureDirForPreview();
+        return structureDir[2] == RelativeDirection.BACK
+                ? getFrontFacing().getOpposite()
+                : getFrontFacing();
     }
 
     /**
@@ -1958,7 +1982,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
         // Get all block positions in the structure
         Map<BlockPos, BlockInfo> blocks = state.getAllStructureBlocks(
-                world, getPos(), getFrontFacing().getOpposite(), getUpwardsFacing(), isFlipped());
+                world, getPos(), getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
 
         ArrayList<ItemStack> drops = new ArrayList<>();
 

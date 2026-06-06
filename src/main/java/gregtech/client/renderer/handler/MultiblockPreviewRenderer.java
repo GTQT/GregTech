@@ -325,7 +325,7 @@ public class MultiblockPreviewRenderer {
         // Compute the piece's center position in world space
         BlockPos pieceCenterPos = piece.getCenterPos(
                 controller.getPos(),
-                controller.getFrontFacing().getOpposite(),
+                controller.getFrontFacingForStructure(),
                 controller.getUpwardsFacing());
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -377,7 +377,7 @@ public class MultiblockPreviewRenderer {
                         // Compute world-space position for this block
                         BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
                                 pos.subtract(pieceCenterInLocal), structureDir,
-                                controller.getFrontFacing().getOpposite(),
+                                controller.getFrontFacingForStructure(),
                                 controller.getUpwardsFacing(),
                                 controller.isFlipped());
                         BlockPos worldPos = pieceCenterPos.add(tPos);
