@@ -100,12 +100,28 @@ gregtech.top.working_disabled=Working Disabled
 gregtech.top.energy_consumption=Using
 gregtech.top.energy_production=Producing
 gregtech.top.energy_required=Requires
+gregtech.top.parallel=Parallel
+gregtech.top.tread=Tread
+gregtech.top.batch=Batch Enabled
 
-gregtech.top.batch_enable=Batch Mode:On
-gregtech.top.batch_disable=Batch Mode:Off
+gregtech.top.batch_enable=Batch Mode On
+gregtech.top.batch_disable=Batch Mode Off
 
-gregtech.top.lock_enable=Lock Mode:On
-gregtech.top.lock_disable=Lock Mode:Off
+gregtech.top.lock_enable=Lock Mode On
+gregtech.top.lock_disable=Lock Mode Off
+
+gregtech.top.pollution=Pollution：
+gregtech.top.face=Face：
+gregtech.top.v=Voltage：
+gregtech.top.i=Amperage：
+gregtech.top.fusion_reactor.heat=Fusion Reactor Heat：
+gregtech.top.cleanroom=Cleanroom：
+gregtech.top.autoOutputItem=Auto-Output Items：
+gregtech.top.autoOutputFluid=Auto-Output Fluids：
+gregtech.top.outputs=Outputs：
+gregtech.top.pss.details=PSS Details：
+gregtech.top.averageInLastSec=Avg Input：
+gregtech.top.averageOutLastSec=Avg Output：
 
 gregtech.top.transform_up=Step Up
 gregtech.top.transform_down=Step Down
@@ -130,9 +146,6 @@ gregtech.top.maintenance.soft_mallet=Something is stuck
 gregtech.top.maintenance.hard_hammer=Plating is dented
 gregtech.top.maintenance.wire_cutter=Wires burned out
 gregtech.top.maintenance.crowbar=That doesn't belong there
-
-gregtech.top.tread=线程：
-gregtech.top.parallel=并行：
 
 gregtech.top.primitive_pump_production=Production:
 

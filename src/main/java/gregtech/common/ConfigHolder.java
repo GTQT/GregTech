@@ -680,6 +680,27 @@ public class ConfigHolder {
                     "Default: true" })
             public boolean enableToolbeltHotbarDisplay = true;
         }
+
+        @Config.Comment("Config options for The One Probe integration")
+        @Config.Name("TOP Config")
+        public TOPConfig topConfig = new TOPConfig();
+
+        public static class TOPConfig {
+            @Config.Comment({"How many items and fluids can be shown at once before it starts hiding names.", "Default: 4", "Range: 1 ~ 40"})
+            @Config.RangeInt(min = 1, max = 40)
+            @Config.Name("物品流体详细显示限制")
+            public int itemFluidDetailLimit = 4;
+
+            @Config.Comment({"How many items and fluids are shown in seperate rows (when ItemFluidDetailLimit is exceeded)", "Default: 12", "Range: 1 ~ 40"})
+            @Config.RangeInt(min = 1, max = 40)
+            @Config.Name("每行最大显示数量")
+            public int maxEntriesToShowInRow = 12;
+
+            @Config.Comment({"How far items and fluids are seperated when shown in rows.", "Default: 2", "Range: 0 ~ 10"})
+            @Config.RangeInt(min = 0, max = 10)
+            @Config.Name("行间距")
+            public int rowDistanceSeperation = 2;
+        }
     }
 
     public static class FusionBloom {

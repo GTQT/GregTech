@@ -101,12 +101,27 @@ gregtech.top.working_disabled=工作已暂停
 gregtech.top.energy_consumption=耗能
 gregtech.top.energy_production=产能
 gregtech.top.energy_required=需要
+gregtech.top.parallel=并行
+gregtech.top.tread=线程
 
-gregtech.top.batch_enable=批处理模式：§a已启用§r
-gregtech.top.batch_disable=批处理模式：§c已禁用§r
+gregtech.top.batch_enable=批处理模式 §a已启用§r
+gregtech.top.batch_disable=批处理模式 §c已禁用§r
 
-gregtech.top.lock_enable=锁定模式：§a已启用§r
-gregtech.top.lock_disable=锁定模式：§c已禁用§r
+gregtech.top.lock_enable=锁定模式 §a已启用§r
+gregtech.top.lock_disable=锁定模式 §c已禁用§r
+
+gregtech.top.pollution=污染：
+gregtech.top.face=面向：
+gregtech.top.v=电压：
+gregtech.top.i=电流：
+gregtech.top.fusion_reactor.heat=聚变反应堆热量：
+gregtech.top.cleanroom=洁净度：
+gregtech.top.autoOutputItem=自动输出物品：
+gregtech.top.autoOutputFluid=自动输出流体：
+gregtech.top.outputs=输出：
+gregtech.top.pss.details=PSS 详情：
+gregtech.top.averageInLastSec=平均输入：
+gregtech.top.averageOutLastSec=平均输出：
 
 gregtech.top.transform_up=升压
 gregtech.top.transform_down=降压
@@ -131,9 +146,6 @@ gregtech.top.maintenance.soft_mallet=有什么东西卡住了（软锤）
 gregtech.top.maintenance.hard_hammer=外壳有些凹痕（锻造锤）
 gregtech.top.maintenance.wire_cutter=有几根线烧焦了（剪线钳）
 gregtech.top.maintenance.crowbar=这东西不属于这儿（撬棍）
-
-gregtech.top.tread=线程：
-gregtech.top.parallel=并行：
 
 gregtech.top.primitive_pump_production=产出：
 
