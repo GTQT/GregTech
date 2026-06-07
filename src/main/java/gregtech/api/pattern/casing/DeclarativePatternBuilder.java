@@ -20,6 +20,7 @@ import net.minecraft.util.math.Vec3i;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,7 +42,7 @@ import java.util.function.Function;
  *
  * <p>Usage example (multi-piece):
  * <pre>{@code
- * DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+ * DeclarativePatternBuilder.start(RIGHT, BACK, UP)
  *     .piece("base")
  *         .aisle("YSY", "YYY", "YYY")
  *     .repeatablePiece("body", 1, 11)
@@ -83,11 +84,11 @@ public class DeclarativePatternBuilder {
     }
 
     /**
-     * Start building a declarative pattern with default directions (RIGHT, UP, FRONT).
+     * Start building a declarative pattern with default directions (RIGHT, UP, BACK).
      */
     public static DeclarativePatternBuilder start() {
         return new DeclarativePatternBuilder(new RelativeDirection[]{
-                RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.FRONT});
+                RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK});
     }
 
     /**
@@ -263,21 +264,91 @@ public class DeclarativePatternBuilder {
         StructureDefinition.Builder builder = StructureDefinition.builder(
                 structureDir[0], structureDir[1], structureDir[2]);
 
+        // A repeatable body piece must be placed at the end of all previous fixed
+        // pieces along the aisle direction; otherwise its first slice overlaps
+        // with the previous piece. Track the cumulative aisle count of fixed
+        // pieces seen so far, and convert it into a (right, up, back) base offset.
+        int cumulativeAisles = 0;
+        Vec3i aisleUnit = aisleUnitVec(structureDir[2]);
+
+        // Remember the most recently registered repeatable body so that any
+        // fixed piece declared immediately after it can be auto-anchored to it
+        // (i.e. placed at bodyBaseOffset + bodyCount * bodyStep). This handles
+        // the common "bottom + body + top" layout: only "top" needs the anchor,
+        // and only the first piece after a body inherits the anchor — a second
+        // body declared later will overwrite this and start a new anchor.
+        String lastBodyName = null;
+        int[] lastBodyStep = null;
+        // We also track the body's static baseOffset so the following piece
+        // can start from there. Without this, the formula
+        //   topOffset = staticBaseOffset + bodyCount * bodyStep
+        // misses the body's own offset and lands one slice inside the body
+        // (off-by-one in the body step direction).
+        Vec3i lastBodyBaseOffset = null;
+
         for (PieceDef piece : pieces) {
             if (piece.rawPattern != null) {
-                // Multi-axis repeatable piece: use raw repeatablePiece API
+                // Multi-axis repeatable piece: use raw repeatablePiece API.
+                // raw-pattern bodies are not auto-anchored — callers that need
+                // a "top after raw body" can call .positionedAfterRepeatable()
+                // explicitly on the following piece.
                 registerMultiAxisPiece(builder, piece);
             } else if (piece.repeatable) {
                 // Factory repeatable piece: convert to multi-axis RepeatGroupPiece
                 // so the entire piece (all aisles) repeats as a block.
                 // pieceFromFactory() would lose repeatability info.
-                convertFactoryToMultiAxisPiece(builder, piece);
+                Vec3i baseOffset = new Vec3i(
+                        aisleUnit.getX() * cumulativeAisles,
+                        aisleUnit.getY() * cumulativeAisles,
+                        aisleUnit.getZ() * cumulativeAisles);
+                convertFactoryToMultiAxisPiece(builder, piece, baseOffset);
+
+                // Record this body as the current anchor for the next piece.
+                // bodyStep is the per-repeat (right, up, back) step — i.e. the
+                // body's intrinsic depth in the aisle direction projected into
+                // the offset coordinate system. For the common single-aisle
+                // body (e.g. the distillation tower's "XXX, X#X, XXX"), this
+                // is aisleUnit * 1.
+                int bodyDepth = piece.aisles.size();
+                lastBodyName = piece.name;
+                lastBodyStep = new int[]{
+                        aisleUnit.getX() * bodyDepth,
+                        aisleUnit.getY() * bodyDepth,
+                        aisleUnit.getZ() * bodyDepth
+                };
+                lastBodyBaseOffset = baseOffset;
             } else {
-                registerFactoryPiece(builder, piece);
+                // Fixed piece: register as a normal piece. If a body was just
+                // declared, also pass its name, step, and base offset so the
+                // piece becomes a DynamicOffsetPiece placed at
+                //   bodyBaseOffset + bodyCount * bodyStep.
+                registerFactoryPiece(builder, piece, lastBodyName, lastBodyStep, lastBodyBaseOffset);
+                cumulativeAisles += piece.aisles.size();
+                // Once a fixed piece is anchored to a body, the anchor chain
+                // ends. A subsequent body will start a new chain.
+                lastBodyName = null;
+                lastBodyStep = null;
+                lastBodyBaseOffset = null;
             }
         }
 
         return builder.build();
+    }
+
+    /**
+     * Convert a structure aisle direction into a unit vector in the (right, up, back)
+     * coordinate system used by {@link OffsetMode#RELATIVE} for piece base offsets.
+     * Positive values move in the matching (right, up, back) direction.
+     */
+    private static Vec3i aisleUnitVec(RelativeDirection dir) {
+        return switch (dir) {
+            case UP -> new Vec3i(0, 1, 0);
+            case DOWN -> new Vec3i(0, -1, 0);
+            case RIGHT -> new Vec3i(1, 0, 0);
+            case LEFT -> new Vec3i(-1, 0, 0);
+            case BACK -> new Vec3i(0, 0, 1);
+            case FRONT -> new Vec3i(0, 0, -1);
+        };
     }
 
     /**
@@ -392,14 +463,21 @@ public class DeclarativePatternBuilder {
     /**
      * Convert a factory-based repeatable piece to a multi-axis RepeatGroupPiece.
      * Groups all aisles into a single String[][] pattern so they repeat as a block.
+     *
+     * @param baseOffset Offset from the controller to the piece's center, in
+     *                   (right, up, back) world coordinates. The caller must compute
+     *                   this based on the cumulative aisle count of any fixed pieces
+     *                   declared before this repeatable body; otherwise the first
+     *                   slice of the body overlaps the previous piece.
      */
     private void convertFactoryToMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
-                                                 @NotNull PieceDef piece) {
+                                                 @NotNull PieceDef piece,
+                                                 @NotNull Vec3i baseOffset) {
         // Convert all aisles to a String[][] pattern matrix
         String[][] pattern = flattenAisles(piece.aisles);
 
         StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
-                piece.name, pattern, Vec3i.NULL_VECTOR);
+                piece.name, pattern, baseOffset);
 
         // Repeat along the aisle direction (axis 2)
         rpb.repeatAxes(2);
@@ -440,14 +518,43 @@ public class DeclarativePatternBuilder {
      */
     private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
                                       @NotNull PieceDef piece) {
+        registerFactoryPiece(builder, piece, null, null, null);
+    }
+
+    /**
+     * Register a fixed piece, optionally anchoring it to a previously declared
+     * repeatable body piece. When {@code anchorPieceName} is non-null, the
+     * resulting piece is compiled into a {@code DynamicOffsetPiece} whose
+     * center position is computed at check time as
+     * {@code anchorBaseOffset + anchorCount * anchorStep}. When the anchor
+     * parameters are null, the piece is registered as a regular fixed piece
+     * (delegates to the no-anchor overload).
+     *
+     * <p>{@code anchorBaseOffset} seeds the piece's static baseOffset with the
+     * body's own offset, so the dynamic formula naturally lands one slice
+     * <i>after</i> the body's last slice (rather than one slice inside it).
+     */
+    private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
+                                      @NotNull PieceDef piece,
+                                      @Nullable String anchorPieceName,
+                                      @Nullable int[] anchorStep,
+                                      @Nullable Vec3i anchorBaseOffset) {
         String[][] pattern = flattenAisles(piece.aisles);
 
-        StructureDefinition.PieceBuilder pb = builder.piece(piece.name, pattern, Vec3i.NULL_VECTOR);
+        // Seed the piece's baseOffset with the anchor's baseOffset so the
+        // dynamic formula resolves to the correct position relative to the
+        // body. Falls back to NULL_VECTOR when no anchor is present.
+        Vec3i baseOffset = anchorBaseOffset != null ? anchorBaseOffset : Vec3i.NULL_VECTOR;
+        StructureDefinition.PieceBuilder pb = builder.piece(piece.name, pattern, baseOffset);
 
         addCharMappings(pattern, piece, c -> buildPieceElement(c, piece), pb::where);
 
         if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
             pb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+
+        if (anchorPieceName != null && anchorStep != null) {
+            pb.positionedAfterRepeatable(anchorPieceName, anchorStep);
         }
 
         pb.end();

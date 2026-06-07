@@ -1635,7 +1635,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * along the aisle direction (the repeat axis for repeatable pieces).
      *
      * <p>The preview array from getPreview() is indexed as [worldX][worldY][worldZ].
-     * For structure dir [RIGHT, FRONT, UP] with NORTH-facing:
+     * For structure dir [RIGHT, BACK, UP] with NORTH-facing:
      * worldX = char index, worldY = repeat/aisle index, worldZ = -row index.
      * So merging along the aisle direction offsets worldY (the second array dimension).
      */

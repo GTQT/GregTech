@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.DynamicOffsetPiece;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.PieceTemplateCompiler;
@@ -94,7 +95,16 @@ public final class StructureCompiler {
             // always go through the BlockPatternTemplate(PieceTemplate) constructor.
             BlockPatternTemplate tplFacade = new BlockPatternTemplate(tpl);
 
-            if (!p.isRepeatable()) {
+            if (entry.anchorPieceName != null) {
+                // Dynamic-anchor piece: position is computed at check time from the
+                // runtime repeat count of the named anchor piece. Used to place a
+                // fixed piece that follows a repeatable body whose extent is only
+                // known at runtime (e.g. a "top" piece after a "body" piece).
+                DynamicOffsetPiece piece = new DynamicOffsetPiece(
+                        p.getName(), tplFacade, entry.baseOffset, entry.offsetMode,
+                        entry.condition, entry.anchorPieceName, entry.anchorStep);
+                pieces.add(piece);
+            } else if (!p.isRepeatable()) {
                 // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
                 StructurePiece piece = new StructurePiece(p.getName(), tplFacade,
                         entry.baseOffset, entry.offsetMode, entry.condition,

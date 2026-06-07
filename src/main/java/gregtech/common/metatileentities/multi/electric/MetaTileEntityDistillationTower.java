@@ -52,13 +52,13 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     /** Structure definition registered via TemplatePool for soft-reference caching */
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:distillation_tower", () ->
-                    DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                            .piece("top")
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            .piece("bottom")
                                 .aisle("YSY", "YYY", "YYY")
                             .repeatablePiece(PIECE_BODY, 1, 11)
                                 .aisle("XXX", "X#X", "XXX")
                                 .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                            .piece("bottom")
+                            .piece("top")
                                 .aisle("XXX", "XXX", "XXX")
                             .where('S', selfPredicate(MetaTileEntityDistillationTower.class))
                             .where('#', air())

@@ -269,6 +269,34 @@ public class StructurePiece {
     }
 
     /**
+     * Compute the actual center position, with access to the prior pieces' runtime
+     * metadata. This overload supports pieces whose offset depends on the runtime
+     * repeat count of an earlier piece (e.g. the "top" piece that follows a
+     * repeatable "body" piece in the middle of a structure).
+     *
+     * <p>Default implementation falls back to the static
+     * {@link #getCenterPos(BlockPos, EnumFacing, EnumFacing)}. Subclasses such as
+     * {@link DynamicOffsetPiece} override this to compute a dynamic position
+     * based on the prior metadata.
+     *
+     * @param controllerPos the controller's block position
+     * @param frontFacing   the controller's front facing
+     * @param upFacing      the controller's upward facing
+     * @param prior         the formed-structure metadata accumulated from previously
+     *                      checked pieces; may be {@code null} when no pieces have
+     *                      been checked yet (e.g. the first piece, or a single-piece
+     *                      structure)
+     * @return the center position for this piece's pattern check
+     */
+    @NotNull
+    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
+                                 @NotNull EnumFacing frontFacing,
+                                 @NotNull EnumFacing upFacing,
+                                 @Nullable FormedStructureMetadata prior) {
+        return getCenterPos(controllerPos, frontFacing, upFacing);
+    }
+
+    /**
      * Async structure check entry point.
      * Delegates to the snapshot checker bound at construction time, passing in
      * the per-controller {@link PieceRuntime}.

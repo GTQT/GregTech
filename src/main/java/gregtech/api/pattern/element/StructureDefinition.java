@@ -228,13 +228,34 @@ public final class StructureDefinition {
         final Vec3i baseOffset;
         final OffsetMode offsetMode;
         @Nullable final BooleanSupplier condition;
+        /**
+         * If non-null, this piece's center position is computed dynamically based
+         * on the runtime repeat count of the named anchor piece. Used to place
+         * pieces that follow a repeatable body (e.g. the "top" piece after a
+         * middle "body" piece) without overlapping the body.
+         */
+        @Nullable final String anchorPieceName;
+        /**
+         * Per-repeat step in (right, up, back) world coordinates to add on top of
+         * the anchor piece's actual repeat count. Computed at compile time from
+         * the structure's aisle direction and the anchor's step size.
+         */
+        final int[] anchorStep;
 
         PieceEntry(@NotNull IStructurePiece piece, @NotNull Vec3i baseOffset,
                    @NotNull OffsetMode offsetMode, @Nullable BooleanSupplier condition) {
+            this(piece, baseOffset, offsetMode, condition, null, new int[]{0, 0, 0});
+        }
+
+        PieceEntry(@NotNull IStructurePiece piece, @NotNull Vec3i baseOffset,
+                   @NotNull OffsetMode offsetMode, @Nullable BooleanSupplier condition,
+                   @Nullable String anchorPieceName, @NotNull int[] anchorStep) {
             this.piece = piece;
             this.baseOffset = baseOffset;
             this.offsetMode = offsetMode;
             this.condition = condition;
+            this.anchorPieceName = anchorPieceName;
+            this.anchorStep = anchorStep;
         }
     }
 
@@ -380,7 +401,7 @@ public final class StructureDefinition {
 
         void addPiece(@NotNull MutablePiece mp) {
             pieceEntries.add(new PieceEntry(mp.toIStructurePiece(), mp.baseOffset,
-                    mp.offsetMode, mp.condition));
+                    mp.offsetMode, mp.condition, mp.anchorPieceName, mp.anchorStep));
         }
 
         @NotNull
@@ -419,6 +440,29 @@ public final class StructureDefinition {
         @NotNull
         public PieceBuilder centerOffset(int x, int y, int z) {
             piece.centerOffset = new int[]{x, y, z};
+            return this;
+        }
+
+        /**
+         * Mark this piece as being positioned after a repeatable anchor piece.
+         * At check time, the piece's effective {@code baseOffset} is computed as
+         * {@code staticBaseOffset + anchorCount * anchorStep}, where
+         * {@code anchorCount} is the runtime repeat count of the named anchor
+         * piece and {@code anchorStep} is the per-repeat step in
+         * (right, up, back) coordinates.
+         *
+         * <p>This is the mechanism for placing a fixed "top" piece after a
+         * repeatable "body" piece in the middle of a structure, when the body's
+         * extent is unknown at compile time.
+         *
+         * @param anchorName the name of the repeatable piece to follow
+         * @param anchorStep per-repeat step in (right, up, back) world coords
+         */
+        @NotNull
+        public PieceBuilder positionedAfterRepeatable(@NotNull String anchorName,
+                                                     @NotNull int[] anchorStep) {
+            piece.anchorPieceName = anchorName;
+            piece.anchorStep = anchorStep.clone();
             return this;
         }
 
@@ -544,6 +588,10 @@ public final class StructureDefinition {
 
         // For pieceFromFactory: stores the pre-built template
         @Nullable BlockPatternTemplate legacyTemplate;
+
+        // Dynamic-anchor fields: see PieceEntry.anchorPieceName for semantics.
+        @Nullable String anchorPieceName;
+        int[] anchorStep = new int[]{0, 0, 0};
 
         MutablePiece(String name, @Nullable String[][] pattern, Vec3i baseOffset,
                      OffsetMode offsetMode, @Nullable BooleanSupplier condition,

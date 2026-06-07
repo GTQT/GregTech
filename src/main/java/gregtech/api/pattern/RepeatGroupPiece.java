@@ -735,6 +735,16 @@ public class RepeatGroupPiece extends StructurePiece {
         // step into the cell loop as a template-local offset. setActualRelativeOffset
         // therefore runs exactly once per cell.
         BlockPos pieceCenter = getCenterPos(controllerOrigin, front, up);
+        System.out.println("[Body build] name=" + getName() + " reps=" + java.util.Arrays.toString(reps) +
+                " axis=" + repeatAxes[0] + " step=" + stepSizes[0] + " pieceCenter=" + pieceCenter +
+                " controllerOrigin=" + controllerOrigin + " front=" + front + " up=" + up);
+
+        // Cache the actual repeat counts on the runtime so subsequent pieces
+        // (notably DynamicOffsetPieces anchored to this one) can read them via
+        // FormedStructureMetadata. Without this, the auto-build path cannot
+        // resolve the anchor's repeat count and the following piece falls
+        // back to its static baseOffset.
+        runtime.cacheFormedReps(reps);
 
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];
@@ -743,6 +753,7 @@ public class RepeatGroupPiece extends StructurePiece {
             for (int r = 0; r < count; r++) {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
+                System.out.println("[Body build]   slice r=" + r + " local=" + java.util.Arrays.toString(local));
                 state.autoBuildAt(player, controller, pieceCenter,
                         local[0], local[1], local[2],
                         channelValues, skipHatches);

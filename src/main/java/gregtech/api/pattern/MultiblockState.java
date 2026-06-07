@@ -570,7 +570,7 @@ public class MultiblockState {
 
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
-        for (int c = 0, z = minZ, r; c < fingerLength; c++) {
+        for (int c = 0, z = minZ, r; c < fingerLength; c++, z++) {
             for (r = 0; r < repetitions[c]; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
                 for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
@@ -850,7 +850,6 @@ public class MultiblockState {
                         }
                     }
                 }
-                z++;
             }
         }
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
