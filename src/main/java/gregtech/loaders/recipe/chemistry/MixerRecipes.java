@@ -11,7 +11,7 @@ import static gregtech.api.recipes.RecipeMaps.CHEMICAL_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.MIXER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 
 public class MixerRecipes {
 
@@ -39,7 +39,7 @@ public class MixerRecipes {
                 .fluidInputs(Water.getFluid(1000))
                 .fluidOutputs(SaltWater.getFluid(1000))
                 .duration(40).EUt(VA[ULV]).buildAndRegister();
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             MIXER_RECIPES.recipeBuilder()
                     .fluidInputs(BioDiesel.getFluid(1000))
                     .fluidInputs(Tetranitromethane.getFluid(40))
@@ -64,7 +64,7 @@ public class MixerRecipes {
                 .fluidOutputs(RocketFuel.getFluid(6000))
                 .duration(60).EUt(16).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             MIXER_RECIPES.recipeBuilder()
                     .fluidInputs(LightFuel.getFluid(5000))
                     .fluidInputs(HeavyFuel.getFluid(1000))

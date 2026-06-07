@@ -55,7 +55,7 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.api.util.Mods.Names.GT_STEAM;
 import static gregtech.common.blocks.BlockMetalCasing.MetalCasingType.BRONZE_BRICKS;
 import static gregtech.common.blocks.MetaBlocks.METAL_CASING;
@@ -105,7 +105,7 @@ public class MachineRecipeLoader {
     public static void init() {
         ChemistryRecipes.init();
         FuelRecipes.registerFuels();
-        if (!Loader.isModLoaded(GTQT_CORE))
+        if (!Loader.isModLoaded(GTQT_TEST))
             AssemblyLineLoader.init();
         FusionLoader.init();
         UURecipes.init();
@@ -375,7 +375,7 @@ public class MachineRecipeLoader {
                 .fluidOutputs(Materials.IndiumConcentrate.getFluid(1000))
                 .duration(60).EUt(150).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             RecipeMaps.MIXER_RECIPES.recipeBuilder()
                     .input(dust, Coal)
                     .fluidInputs(Concrete.getFluid(L))
@@ -738,7 +738,7 @@ public class MachineRecipeLoader {
                 .duration(100)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[LV])
                     .input(OrePrefix.wireGtDouble, Materials.Cupronickel, 8)
                     .input(OrePrefix.foil, Materials.Bronze, 8).fluidInputs(Materials.TinAlloy.getFluid(GTValues.L))
@@ -830,7 +830,7 @@ public class MachineRecipeLoader {
                 .outputs(MetaBlocks.METAL_CASING.getItemVariant(MetalCasingType.PTFE_INERT_CASING)).duration(50)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[LuV])
                     .input(OrePrefix.wireGtDouble, Materials.IndiumTinBariumTitaniumCuprate, 32)
                     .input(OrePrefix.foil, Materials.NiobiumTitanium, 32)

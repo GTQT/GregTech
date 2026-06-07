@@ -17,7 +17,7 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.api.util.Mods.Names.GT_STEAM;
 import static gregtech.common.items.MetaItems.*;
 
@@ -39,7 +39,7 @@ public class CircuitRecipes {
                 .blastFurnaceTemp(1511)
                 .duration(1200).EUt(VA[MV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             // Boules
             BLAST_RECIPES.recipeBuilder()
                     .input(dust, Silicon, 32)
@@ -95,7 +95,7 @@ public class CircuitRecipes {
                 .cleanroom(CleanroomType.CLEANROOM)
                 .duration(1600).EUt(VA[EV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             CUTTER_RECIPES.recipeBuilder()
                     .input(NEUTRONIUM_BOULE)
                     .output(NEUTRONIUM_WAFER, 64)
@@ -796,7 +796,7 @@ public class CircuitRecipes {
                 .output(BASIC_CIRCUIT_BOARD)
                 .duration(200).EUt(VA[ULV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             // Phenolic Board
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(dust, Wood)
@@ -826,7 +826,7 @@ public class CircuitRecipes {
                 .output(GOOD_CIRCUIT_BOARD)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             // Plastic Board
             CHEMICAL_RECIPES.recipeBuilder().duration(500).EUt(10)
                     .input(plate, Polyethylene)
@@ -872,7 +872,7 @@ public class CircuitRecipes {
                 .output(PLASTIC_CIRCUIT_BOARD)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             // Epoxy Board
             CHEMICAL_RECIPES.recipeBuilder().duration(600).EUt(VA[LV])
                     .input(plate, Epoxy)
@@ -917,7 +917,7 @@ public class CircuitRecipes {
                 .output(wireFine, BorosilicateGlass, 8)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             CHEMICAL_RECIPES.recipeBuilder().duration(500).EUt(10)
                     .input(plate, ReinforcedEpoxyResin)
                     .input(foil, AnnealedCopper, 8)
@@ -943,7 +943,7 @@ public class CircuitRecipes {
                 .cleanroom(CleanroomType.CLEANROOM)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             // Multi-Layer Fiber Reinforced Epoxy Board
             CHEMICAL_RECIPES.recipeBuilder().duration(500).EUt(VA[HV])
                     .input(FIBER_BOARD, 2)
@@ -984,7 +984,7 @@ public class CircuitRecipes {
                 .output(PETRI_DISH, 2)
                 .buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             CIRCUIT_ASSEMBLER_RECIPES.recipeBuilder().duration(1200).EUt(VA[LuV])
                     .input(MULTILAYER_FIBER_BOARD, 16)
                     .input(PETRI_DISH)

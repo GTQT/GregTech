@@ -22,7 +22,7 @@ import static gregtech.api.recipes.RecipeMaps.ASSEMBLY_LINE_RECIPES;
 import static gregtech.api.unification.material.MarkerMaterials.Tier;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.blocks.MetaBlocks.*;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
@@ -229,7 +229,7 @@ public class MetaTileEntityMachineRecipeLoader {
                         .EUt(VA[ZPM]))
                 .duration(800).EUt(VA[UV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             ASSEMBLY_LINE_RECIPES.recipeBuilder()
                     .input(HULL[UHV])
                     .input(spring, Europium, 4)
@@ -359,7 +359,7 @@ public class MetaTileEntityMachineRecipeLoader {
                         .EUt(VA[ZPM]))
                 .duration(800).EUt(VA[UV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             ASSEMBLY_LINE_RECIPES.recipeBuilder()
                     .input(HULL[UHV])
                     .input(cableGtSingle, Europium, 4)

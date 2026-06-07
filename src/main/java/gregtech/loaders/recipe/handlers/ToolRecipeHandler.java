@@ -39,7 +39,7 @@ import static gregtech.api.recipes.RecipeMaps.LATHE_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.material.properties.PropertyKey.GEM;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class ToolRecipeHandler {
@@ -515,7 +515,7 @@ public class ToolRecipeHandler {
     public static void registerCustomToolRecipes() {
         registerFlintToolRecipes();
         registerMortarRecipes();
-        if(!isModLoaded(GTQT_CORE))registerSoftToolRecipes();
+        if(!isModLoaded(GTQT_TEST))registerSoftToolRecipes();
         registerElectricRecipes();
     }
 

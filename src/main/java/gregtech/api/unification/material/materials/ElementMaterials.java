@@ -352,9 +352,8 @@ public class ElementMaterials {
         Gold = Material.builder(41, gregtechId("gold"))
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1337))
-
                 .color(0xFFE650).iconSet(SHINY)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES)
+                .flags(EXT2_METAL, MORTAR_GRINDABLE, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES, GENERATE_CURVED_PLATE)
                 .element(Elements.Au)
                 .cableProperties(V[HV], 3, 2)
                 .fluidPipeProperties(1671, 25, true, true, false, false)

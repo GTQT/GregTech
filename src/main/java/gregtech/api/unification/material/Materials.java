@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static gregtech.api.unification.material.info.MaterialFlags.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 /**
@@ -100,7 +100,7 @@ public class Materials {
         };
 
         // Register soft tools
-        if(!isModLoaded(GTQT_CORE))SoftToolAddition.register();
+        if(!isModLoaded(GTQT_TEST))SoftToolAddition.register();
 
         OrePrefix.init();
     }
