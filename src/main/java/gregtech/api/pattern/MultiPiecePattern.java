@@ -196,17 +196,31 @@ public class MultiPiecePattern {
                     new HashMap<>(priorRepeats), Collections.emptyMap());
 
             if (runtime.isDirty()) {
-                BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing, prior);
-                PatternMatchContext result = runtime.getState().checkPatternFastAt(
-                        world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
-
-                if (result != null) {
-                    runtime.setValidated(true);
-                    // Atomically swap the piece's position set from the state cache
-                    LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
-                    runtime.swapPositions(newPositions);
+                if (piece instanceof RepeatGroupPiece repeatPiece) {
+                    // RepeatGroupPiece requires specialised multi-slice checking;
+                    // using checkPatternFastAt would only verify the base slice (r=0)
+                    // and miss all repeated slices, leading to incorrect validation
+                    // and an incomplete position set.
+                    boolean ok = repeatPiece.checkSync(world, controllerPos, frontFacing,
+                            upwardsFacing, allowsFlip, prior, runtime);
+                    if (ok) {
+                        runtime.setValidated(true);
+                    } else {
+                        runtime.setValidated(false);
+                    }
                 } else {
-                    runtime.setValidated(false);
+                    BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing, prior);
+                    PatternMatchContext result = runtime.getState().checkPatternFastAt(
+                            world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
+
+                    if (result != null) {
+                        runtime.setValidated(true);
+                        // Atomically swap the piece's position set from the state cache
+                        LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
+                        runtime.swapPositions(newPositions);
+                    } else {
+                        runtime.setValidated(false);
+                    }
                 }
                 runtime.clearDirty();
             }
@@ -323,9 +337,6 @@ public class MultiPiecePattern {
             BlockPos pieceCenter = piece.getCenterPos(
                     controller.getPos(), controller.getFrontFacingForStructure(),
                     controller.getUpwardsFacing(), prior);
-            System.out.println("[Build] piece=" + piece.getName() + " index=" + pieceIndex
-                    + " pieceCenter=" + pieceCenter
-                    + " priorNull=" + (prior == null));
             runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
         }
         return true;

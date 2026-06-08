@@ -65,6 +65,14 @@ public final class StructureCompiler {
     @NotNull
     public static MultiPiecePattern compile(@NotNull StructureDefinition def) {
         List<StructurePiece> pieces = new ArrayList<>();
+
+        // Track the centerOffset from the first piece that has an isCenter element.
+        // Subsequent pieces without isCenter and with default centerOffset {0,0,0}
+        // will inherit this reference centerOffset so that their template is aligned
+        // with the first piece (e.g. a "body" piece aligns with the "bottom" piece
+        // that contains the controller 'S' predicate).
+        int[] referenceCenterOffset = null;
+
         for (StructureDefinition.PieceEntry entry : def.getPieceEntries()) {
             IStructurePiece p = entry.piece;
 
@@ -81,11 +89,32 @@ public final class StructureCompiler {
                                     runtime.getState().checkPatternFastAtSnapshot(
                                             snap, origin, front, up, flipped) != null);
                     pieces.add(piece);
+                    // Record centerOffset from legacy templates that have isCenter
+                    if (referenceCenterOffset == null) {
+                        BlockPatternTemplate.CenterOffset co = mp.legacyTemplate.getCenterOffset();
+                        referenceCenterOffset = new int[]{co.x(), co.y(), co.z()};
+                    }
                     continue;
                 }
             }
 
-            PieceTemplate tpl = compilePieceToPieceTemplate(p, def.getStructureDir());
+            // Check whether this piece has an isCenter element
+            boolean hasCenter = false;
+            for (IStructureElement elem : p.getSymbolMap().values()) {
+                if (elem.isCenter()) {
+                    hasCenter = true;
+                    break;
+                }
+            }
+
+            PieceTemplate tpl = compilePieceToPieceTemplate(p, def.getStructureDir(),
+                    null, hasCenter ? null : referenceCenterOffset);
+
+            // Update reference centerOffset from the first piece that has isCenter
+            if (hasCenter && referenceCenterOffset == null) {
+                BlockPatternTemplate.CenterOffset co = tpl.getCenterOffset();
+                referenceCenterOffset = new int[]{co.x(), co.y(), co.z()};
+            }
 
             // StructurePiece.template is typed as BlockPatternTemplate (the legacy facade)
             // for backward compatibility with the public API. Wrap the canonical
@@ -94,6 +123,13 @@ public final class StructureCompiler {
             // PieceTemplate is final and does not extend BlockPatternTemplate, so we
             // always go through the BlockPatternTemplate(PieceTemplate) constructor.
             BlockPatternTemplate tplFacade = new BlockPatternTemplate(tpl);
+
+            // Resolve the effective centerOffset for RepeatGroupPiece constructor
+            int[] pieceCenterOffset = p.getCenterOffset();
+            if (!hasCenter && referenceCenterOffset != null
+                    && pieceCenterOffset[0] == 0 && pieceCenterOffset[1] == 0 && pieceCenterOffset[2] == 0) {
+                pieceCenterOffset = referenceCenterOffset;
+            }
 
             if (entry.anchorPieceName != null) {
                 // Dynamic-anchor piece: position is computed at check time from the
@@ -119,7 +155,7 @@ public final class StructureCompiler {
                 RepeatGroupPiece group = new RepeatGroupPiece(
                         p.getName(), tplFacade, entry.baseOffset, entry.offsetMode, entry.condition,
                         p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
-                        p.getRepeatChannelNames(), p.getCenterOffset(), strategy);
+                        p.getRepeatChannelNames(), pieceCenterOffset, strategy);
                 pieces.add(group);
             }
         }
@@ -304,6 +340,32 @@ public final class StructureCompiler {
     public static PieceTemplate compilePieceToPieceTemplate(@NotNull IStructurePiece piece,
                                                              @NotNull RelativeDirection[] structureDir,
                                                              @Nullable List<String> structureDescription) {
+        return compilePieceToPieceTemplate(piece, structureDir, structureDescription, null);
+    }
+
+    /**
+     * Compile a piece into a {@link PieceTemplate} with an optional reference
+     * center offset for alignment with a preceding isCenter piece.
+     *
+     * <p>When the piece has no isCenter element and its own centerOffset is the
+     * default {@code {0,0,0}}, the {@code referenceCenterOffset} (typically from
+     * the first piece that contains the controller 'S' predicate) is used instead.
+     * This ensures that all pieces in a multi-piece structure share the same
+     * center alignment, preventing cross-piece misalignment in auto-build and
+     * structure checking.
+     *
+     * @param piece                    the piece to compile
+     * @param structureDir             the 3 relative directions
+     * @param structureDescription     optional description lines; {@code null}/empty means "no description"
+     * @param referenceCenterOffset    center offset inherited from the first isCenter piece,
+     *                                 or {@code null} to use the piece's own centerOffset
+     * @return the compiled piece IR
+     */
+    @NotNull
+    public static PieceTemplate compilePieceToPieceTemplate(@NotNull IStructurePiece piece,
+                                                             @NotNull RelativeDirection[] structureDir,
+                                                             @Nullable List<String> structureDescription,
+                                                             @Nullable int[] referenceCenterOffset) {
         // Handle legacy pieces with pre-built template
         if (piece instanceof StructureDefinition.MutablePiece) {
             StructureDefinition.MutablePiece mp = (StructureDefinition.MutablePiece) piece;
@@ -343,10 +405,17 @@ public final class StructureCompiler {
             // Auto-discover center from isCenter predicate
             return compiler.buildPieceTemplate();
         } else {
-            // Use the piece's explicit center offset
+            // Use the piece's explicit center offset, falling back to the
+            // reference centerOffset when the piece's own offset is the
+            // default {0,0,0} and a reference is available. This ensures
+            // alignment with the first (isCenter) piece in the structure.
+            int[] co = piece.getCenterOffset();
+            if (referenceCenterOffset != null
+                    && co[0] == 0 && co[1] == 0 && co[2] == 0) {
+                co = referenceCenterOffset;
+            }
             // Convert {x, y, z} to {x, y, z, minZ, maxZ}
             // For a non-repeatable base piece, minZ = maxZ = z
-            int[] co = piece.getCenterOffset();
             int[] templateCenterOffset = new int[]{co[0], co[1], co[2], co[2], co[2]};
             return compiler.buildPieceTemplate(templateCenterOffset, structureDescription);
         }
