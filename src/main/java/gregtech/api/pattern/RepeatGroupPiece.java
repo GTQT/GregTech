@@ -3,8 +3,8 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
-import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTLog;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -736,6 +736,12 @@ public class RepeatGroupPiece extends StructurePiece {
         // therefore runs exactly once per cell.
         BlockPos pieceCenter = getCenterPos(controllerOrigin, front, up);
 
+        GTLog.logger.warn("[GT_DEBUG] autoBuildAtRepeated: piece=\"{}\", axis={}, stepSize={}, count={}, pieceCenter={}, front={}, up={}, flipped={}, structDir=[{}, {}, {}]",
+                getName(), repeatAxes[0], stepSizes[0], reps[0], pieceCenter, front, up, flipped,
+                state.getPieceTemplate().getStructureDir()[0],
+                state.getPieceTemplate().getStructureDir()[1],
+                state.getPieceTemplate().getStructureDir()[2]);
+
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];
             int stepSize = stepSizes[0];
@@ -743,6 +749,8 @@ public class RepeatGroupPiece extends StructurePiece {
             for (int r = 0; r < count; r++) {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
+                GTLog.logger.warn("[GT_DEBUG]   slice r={}: local=({},{},{}) -> zOffset={}, calling autoBuildAt(center={}, xOff={}, yOff={}, zOff={})",
+                        r, local[0], local[1], local[2], local[2], pieceCenter, local[0], local[1], local[2]);
                 state.autoBuildAt(player, controller, pieceCenter,
                         local[0], local[1], local[2],
                         channelValues, skipHatches);
