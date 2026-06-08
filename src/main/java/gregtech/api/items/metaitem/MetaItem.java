@@ -244,6 +244,12 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         else return super.getRarity(stack);
     }
 
+    public int getTier(ItemStack stack) {
+        T metaValueItem = getItem(stack);
+        if (metaValueItem != null) return metaValueItem.getTier();
+        else return 1;
+    }
+
     protected abstract T constructMetaValueItem(short metaValue, String unlocalizedName);
 
     public final T addItem(int metaValue, String unlocalizedName) {
@@ -797,6 +803,7 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         private IItemModelDispatcher itemModelDispatcher;
         private IMouseEventHandler mouseEventHandler;
         private EnumRarity rarity;
+        private int tier = 0;
 
         private int burnValue = 0;
         private int maxStackSize = 64;
@@ -889,6 +896,11 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
 
         public MetaValueItem setRarity(EnumRarity rarity) {
             this.rarity = rarity;
+            return this;
+        }
+
+        public MetaValueItem setTier(int tier) {
+            this.tier = tier;
             return this;
         }
 
@@ -1031,6 +1043,10 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
 
         public EnumRarity getRarity() {
             return rarity;
+        }
+
+        public int getTier() {
+            return tier;
         }
 
         public ItemStack getStackForm(int amount) {

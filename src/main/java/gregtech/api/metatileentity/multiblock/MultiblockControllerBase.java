@@ -1147,7 +1147,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         switch (parts[0]) {
             case "casing": {
                 // "casing:<translationKey>:<minCount>:<maxCount>"
-                String name = I18n.format(parts[1]);
+                String name = I18n.format(parts[1]+".name");
                 int min = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
                 int max = parts.length > 3 ? Integer.parseInt(parts[3]) : min;
                 if (min == max) {

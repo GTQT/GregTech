@@ -247,7 +247,7 @@ public class DeclarativePatternBuilder {
             int minCasings = Math.max(0, totalCount - maxHatches);
 
             // Format: "casing:<translationKey>:<minCount>:<maxCount>"
-            lines.add("casing:" + info.casing.getTranslationKey() + ":" + minCasings + ":" + totalCount);
+            lines.add("casing:" + info.casing.getItemStack().getTranslationKey() + ":" + minCasings + ":" + totalCount);
 
             // Add hatch lines: "hatch:<abilityName>:<minCount>:<maxCount>"
             for (HatchInfo hatch : info.hatches) {
