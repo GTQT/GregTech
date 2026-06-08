@@ -3,8 +3,8 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
-import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTLog;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -735,16 +735,12 @@ public class RepeatGroupPiece extends StructurePiece {
         // step into the cell loop as a template-local offset. setActualRelativeOffset
         // therefore runs exactly once per cell.
         BlockPos pieceCenter = getCenterPos(controllerOrigin, front, up);
-        System.out.println("[Body build] name=" + getName() + " reps=" + java.util.Arrays.toString(reps) +
-                " axis=" + repeatAxes[0] + " step=" + stepSizes[0] + " pieceCenter=" + pieceCenter +
-                " controllerOrigin=" + controllerOrigin + " front=" + front + " up=" + up);
 
-        // Cache the actual repeat counts on the runtime so subsequent pieces
-        // (notably DynamicOffsetPieces anchored to this one) can read them via
-        // FormedStructureMetadata. Without this, the auto-build path cannot
-        // resolve the anchor's repeat count and the following piece falls
-        // back to its static baseOffset.
-        runtime.cacheFormedReps(reps);
+        GTLog.logger.warn("[GT_DEBUG] autoBuildAtRepeated: piece=\"{}\", axis={}, stepSize={}, count={}, pieceCenter={}, front={}, up={}, flipped={}, structDir=[{}, {}, {}]",
+                getName(), repeatAxes[0], stepSizes[0], reps[0], pieceCenter, front, up, flipped,
+                state.getPieceTemplate().getStructureDir()[0],
+                state.getPieceTemplate().getStructureDir()[1],
+                state.getPieceTemplate().getStructureDir()[2]);
 
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];
@@ -753,7 +749,8 @@ public class RepeatGroupPiece extends StructurePiece {
             for (int r = 0; r < count; r++) {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
-                System.out.println("[Body build]   slice r=" + r + " local=" + java.util.Arrays.toString(local));
+                GTLog.logger.warn("[GT_DEBUG]   slice r={}: local=({},{},{}) -> zOffset={}, calling autoBuildAt(center={}, xOff={}, yOff={}, zOff={})",
+                        r, local[0], local[1], local[2], local[2], pieceCenter, local[0], local[1], local[2]);
                 state.autoBuildAt(player, controller, pieceCenter,
                         local[0], local[1], local[2],
                         channelValues, skipHatches);

@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.Mods;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.util.RelativeDirection;
@@ -558,11 +559,7 @@ public class MultiblockState {
         World world = player.world;
         BlockWorldState bws = new BlockWorldState();
         int minZ = -centerOffset.maxZ();
-        // Convention: pass the controller's getFrontFacingForStructure() as the "frontFacing"
-        // argument to setActualRelativeOffset. With this convention, both FRONT-direction and
-        // BACK-direction templates place aisle 0 *behind* the controller. See
-        // MultiblockControllerBase#getFrontFacingForStructure for the full rationale.
-        EnumFacing facing = controllerBase.getFrontFacingForStructure();
+        EnumFacing facing = controllerBase.getFrontFacing().getOpposite();
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, Object> blocks = new HashMap<>();
@@ -570,7 +567,13 @@ public class MultiblockState {
 
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
-        for (int c = 0, z = minZ, r; c < fingerLength; c++, z++) {
+        GTLog.logger.warn("[GT_DEBUG] autoBuildAt entry: centerPos={}, xOff={}, yOff={}, zOff={}, facing={}, up={}, flipped={}, structDir=[{}, {}, {}], centerOffset=({},{},{},{},{})",
+                centerPos, xOffset, yOffset, zOffset, facing, controllerBase.getUpwardsFacing(),
+                controllerBase.isFlipped(), structureDir[0], structureDir[1], structureDir[2],
+                centerOffset.x(), centerOffset.y(), centerOffset.z(), centerOffset.minZ(), centerOffset.maxZ());
+
+        boolean firstCell = true;
+        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
             for (r = 0; r < repetitions[c]; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
                 for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
@@ -581,6 +584,11 @@ public class MultiblockState {
                                 controllerBase.getUpwardsFacing(),
                                 controllerBase.isFlipped(), structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+                        if (firstCell) {
+                            GTLog.logger.warn("[GT_DEBUG]   firstCell: template(a={},b={},c={}) -> local(x={},y={},z={}) + offset({},{},{}) -> worldPos={}",
+                                    a, b, c, x, y, z, xOffset, yOffset, zOffset, pos);
+                            firstCell = false;
+                        }
                         bws.update(world, pos, matchContext, globalCount, layerCount, predicate);
                         if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
                             blocks.put(pos, world.getBlockState(pos));
@@ -850,6 +858,7 @@ public class MultiblockState {
                         }
                     }
                 }
+                z++;
             }
         }
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
