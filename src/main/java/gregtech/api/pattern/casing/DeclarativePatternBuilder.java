@@ -264,75 +264,98 @@ public class DeclarativePatternBuilder {
         StructureDefinition.Builder builder = StructureDefinition.builder(
                 structureDir[0], structureDir[1], structureDir[2]);
 
-        // A repeatable body piece must be placed at the end of all previous fixed
-        // pieces along the aisle direction; otherwise its first slice overlaps
-        // with the previous piece. Track the cumulative aisle count of fixed
-        // pieces seen so far, and convert it into a (right, up, back) base offset.
-        int cumulativeAisles = 0;
-        Vec3i aisleUnit = aisleUnitVec(structureDir[2]);
-
-        // Remember the most recently registered repeatable body so that any
-        // fixed piece declared immediately after it can be auto-anchored to it
-        // (i.e. placed at bodyBaseOffset + bodyCount * bodyStep). This handles
-        // the common "bottom + body + top" layout: only "top" needs the anchor,
-        // and only the first piece after a body inherits the anchor — a second
-        // body declared later will overwrite this and start a new anchor.
-        String lastBodyName = null;
-        int[] lastBodyStep = null;
-        // We also track the body's static baseOffset so the following piece
-        // can start from there. Without this, the formula
-        //   topOffset = staticBaseOffset + bodyCount * bodyStep
-        // misses the body's own offset and lands one slice inside the body
-        // (off-by-one in the body step direction).
-        Vec3i lastBodyBaseOffset = null;
-
+        List<PieceDef> activePieces = new ArrayList<>();
         for (PieceDef piece : pieces) {
-            if (piece.rawPattern != null) {
-                // Multi-axis repeatable piece: use raw repeatablePiece API.
-                // raw-pattern bodies are not auto-anchored — callers that need
-                // a "top after raw body" can call .positionedAfterRepeatable()
-                // explicitly on the following piece.
-                registerMultiAxisPiece(builder, piece);
-            } else if (piece.repeatable) {
-                // Factory repeatable piece: convert to multi-axis RepeatGroupPiece
-                // so the entire piece (all aisles) repeats as a block.
-                // pieceFromFactory() would lose repeatability info.
-                Vec3i baseOffset = new Vec3i(
-                        aisleUnit.getX() * cumulativeAisles,
-                        aisleUnit.getY() * cumulativeAisles,
-                        aisleUnit.getZ() * cumulativeAisles);
-                convertFactoryToMultiAxisPiece(builder, piece, baseOffset);
+            if (piece.rawPattern != null || !piece.aisles.isEmpty()) {
+                activePieces.add(piece);
+            }
+        }
+        if (activePieces.isEmpty()) {
+            throw new IllegalStateException("Structure must contain at least one non-empty piece");
+        }
 
-                // Record this body as the current anchor for the next piece.
-                // bodyStep is the per-repeat (right, up, back) step — i.e. the
-                // body's intrinsic depth in the aisle direction projected into
-                // the offset coordinate system. For the common single-aisle
-                // body (e.g. the distillation tower's "XXX, X#X, XXX"), this
-                // is aisleUnit * 1.
-                int bodyDepth = piece.aisles.size();
-                lastBodyName = piece.name;
-                lastBodyStep = new int[]{
-                        aisleUnit.getX() * bodyDepth,
-                        aisleUnit.getY() * bodyDepth,
-                        aisleUnit.getZ() * bodyDepth
-                };
-                lastBodyBaseOffset = baseOffset;
-            } else {
-                // Fixed piece: register as a normal piece. If a body was just
-                // declared, also pass its name, step, and base offset so the
-                // piece becomes a DynamicOffsetPiece placed at
-                //   bodyBaseOffset + bodyCount * bodyStep.
-                registerFactoryPiece(builder, piece, lastBodyName, lastBodyStep, lastBodyBaseOffset);
-                cumulativeAisles += piece.aisles.size();
-                // Once a fixed piece is anchored to a body, the anchor chain
-                // ends. A subsequent body will start a new chain.
-                lastBodyName = null;
-                lastBodyStep = null;
-                lastBodyBaseOffset = null;
+        int centerIndex = findCenterPieceIndex(activePieces);
+        PieceDef centerPiece = activePieces.get(centerIndex);
+        registerSequencedPiece(builder, centerPiece, null, null, 1);
+
+        String anchorName = centerPiece.name;
+        int[] anchorStep = pieceTraversalStep(centerPiece, 1);
+        for (int i = centerIndex + 1; i < activePieces.size(); i++) {
+            PieceDef piece = activePieces.get(i);
+            registerSequencedPiece(builder, piece, anchorName, anchorStep, 1);
+            if (piece.rawPattern == null) {
+                anchorName = piece.name;
+                anchorStep = pieceTraversalStep(piece, 1);
             }
         }
 
+        anchorName = centerPiece.name;
+        anchorStep = pieceTraversalStep(centerPiece, -1);
+        for (int i = centerIndex - 1; i >= 0; i--) {
+            PieceDef piece = activePieces.get(i);
+            registerSequencedPiece(builder, piece, anchorName, anchorStep, -1);
+            if (piece.rawPattern == null) {
+                anchorName = piece.name;
+                anchorStep = pieceTraversalStep(piece, -1);
+            }
+        }
+
+        if (multiPieceMode) {
+            for (CasingSlotInfo slot : casingSlots.values()) {
+                for (HatchInfo hatch : slot.hatches) {
+                    builder.globalAbilityLimit(hatch.ability, hatch.minCount, hatch.maxCount);
+                }
+            }
+        }
         return builder.build();
+    }
+
+    private int findCenterPieceIndex(@NotNull List<PieceDef> activePieces) {
+        for (int i = 0; i < activePieces.size(); i++) {
+            PieceDef piece = activePieces.get(i);
+            String[][] pattern = piece.rawPattern != null
+                    ? piece.rawPattern
+                    : flattenAisles(piece.aisles);
+            for (String[] aisle : pattern) {
+                for (String row : aisle) {
+                    for (int c = 0; c < row.length(); c++) {
+                        IStructureElement element = resolveCharacterMap(row.charAt(c));
+                        if (element != null && element.isCenter()) {
+                            return i;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    private void registerSequencedPiece(@NotNull StructureDefinition.Builder builder,
+                                        @NotNull PieceDef piece,
+                                        @Nullable String anchorName,
+                                        @Nullable int[] anchorStep,
+        int repeatDirection) {
+        if (piece.rawPattern != null) {
+            // Raw multi-axis pieces already carry an explicit controller-relative
+            // offset. Treating them as members of the linear aisle chain would
+            // apply both that offset and an implicit predecessor offset.
+            registerMultiAxisPiece(builder, piece, null, null);
+        } else if (piece.repeatable) {
+            convertFactoryToMultiAxisPiece(
+                    builder, piece, Vec3i.NULL_VECTOR, anchorName, anchorStep, repeatDirection);
+        } else {
+            registerFactoryPiece(builder, piece, anchorName, anchorStep, Vec3i.NULL_VECTOR);
+        }
+    }
+
+    private int[] pieceTraversalStep(@NotNull PieceDef piece, int direction) {
+        int depth = piece.rawPattern != null ? piece.rawPattern.length : piece.aisles.size();
+        Vec3i unit = aisleUnitVec(structureDir[2]);
+        return new int[]{
+                unit.getX() * depth * direction,
+                unit.getY() * depth * direction,
+                unit.getZ() * depth * direction
+        };
     }
 
     /**
@@ -401,7 +424,9 @@ public class DeclarativePatternBuilder {
      * to IStructureElement via {@link Elements#legacy(TraceabilityPredicate)}.
      */
     private void registerMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
-                                         @NotNull PieceDef piece) {
+                                         @NotNull PieceDef piece,
+                                         @Nullable String anchorName,
+                                         @Nullable int[] anchorStep) {
         StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
                 piece.name, piece.rawPattern, piece.offset);
 
@@ -428,6 +453,9 @@ public class DeclarativePatternBuilder {
         }
         if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
             rpb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+        if (anchorName != null && anchorStep != null) {
+            rpb.positionedAfter(anchorName, anchorStep);
         }
         rpb.end();
     }
@@ -472,7 +500,10 @@ public class DeclarativePatternBuilder {
      */
     private void convertFactoryToMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
                                                  @NotNull PieceDef piece,
-                                                 @NotNull Vec3i baseOffset) {
+                                                 @NotNull Vec3i baseOffset,
+                                                 @Nullable String anchorName,
+                                                 @Nullable int[] anchorStep,
+                                                 int repeatDirection) {
         // Convert all aisles to a String[][] pattern matrix
         String[][] pattern = flattenAisles(piece.aisles);
 
@@ -483,7 +514,7 @@ public class DeclarativePatternBuilder {
         rpb.repeatAxes(2);
         rpb.repeatRange(piece.minRepeat, piece.maxRepeat);
         // Step equals the intrinsic depth so there is no gap/overlap between repeats
-        rpb.stepSizes(piece.aisles.size());
+        rpb.stepSizes(piece.aisles.size() * repeatDirection);
 
         // Build per-piece character → IStructureElement mappings
         addCharMappings(pattern, piece, c -> buildPieceElement(c, piece), rpb::where);
@@ -506,6 +537,9 @@ public class DeclarativePatternBuilder {
 
         if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
             rpb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+        if (anchorName != null && anchorStep != null) {
+            rpb.positionedAfter(anchorName, anchorStep);
         }
 
         rpb.end();

@@ -2,6 +2,7 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.DynamicOffsetPiece;
+import gregtech.api.pattern.DynamicRepeatGroupPiece;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.PieceTemplateCompiler;
@@ -73,6 +74,26 @@ public final class StructureCompiler {
         // that contains the controller 'S' predicate).
         int[] referenceCenterOffset = null;
 
+        // Resolve the controller center before compiling any piece. Declarative
+        // layouts may place the controller in a later named piece.
+        for (StructureDefinition.PieceEntry entry : def.getPieceEntries()) {
+            IStructurePiece candidate = entry.piece;
+            boolean hasCenter = false;
+            for (IStructureElement element : candidate.getSymbolMap().values()) {
+                if (element.isCenter()) {
+                    hasCenter = true;
+                    break;
+                }
+            }
+            if (hasCenter) {
+                PieceTemplate centerTemplate = compilePieceToPieceTemplate(
+                        candidate, def.getStructureDir(), null, null);
+                BlockPatternTemplate.CenterOffset center = centerTemplate.getCenterOffset();
+                referenceCenterOffset = new int[]{center.x(), center.y(), center.z()};
+                break;
+            }
+        }
+
         for (StructureDefinition.PieceEntry entry : def.getPieceEntries()) {
             IStructurePiece p = entry.piece;
 
@@ -84,10 +105,10 @@ public final class StructureCompiler {
                     // last argument; the template is final, so the captured reference to
                     // `mp.legacyTemplate` is fine across controllers.
                     StructurePiece piece = new StructurePiece(p.getName(), mp.legacyTemplate,
-                            entry.baseOffset, entry.offsetMode, entry.condition,
-                            (snap, origin, front, up, flipped, prior, runtime) ->
-                                    runtime.getState().checkPatternFastAtSnapshot(
-                                            snap, origin, front, up, flipped) != null);
+                             entry.baseOffset, entry.offsetMode, entry.condition,
+                             (snap, origin, front, up, flipped, prior, runtime) ->
+                                     runtime.getState().checkPatternAtSnapshotExact(
+                                             snap, origin, front, up, flipped, 0, 0, 0) != null);
                     pieces.add(piece);
                     // Record centerOffset from legacy templates that have isCenter
                     if (referenceCenterOffset == null) {
@@ -131,7 +152,24 @@ public final class StructureCompiler {
                 pieceCenterOffset = referenceCenterOffset;
             }
 
-            if (entry.anchorPieceName != null) {
+            if (p.isRepeatable()) {
+                boolean tensor = isTensorProduct(p);
+                SearchStrategy strategy = pickStrategy(p, tensor);
+                RepeatGroupPiece group;
+                if (entry.anchorPieceName != null) {
+                    group = new DynamicRepeatGroupPiece(
+                            p.getName(), tpl, entry.baseOffset, entry.offsetMode, entry.condition,
+                            p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
+                            p.getRepeatChannelNames(), pieceCenterOffset, strategy,
+                            entry.anchorPieceName, entry.anchorStep);
+                } else {
+                    group = new RepeatGroupPiece(
+                            p.getName(), tpl, entry.baseOffset, entry.offsetMode, entry.condition,
+                            p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
+                            p.getRepeatChannelNames(), pieceCenterOffset, strategy);
+                }
+                pieces.add(group);
+            } else if (entry.anchorPieceName != null) {
                 // Dynamic-anchor piece: position is computed at check time from the
                 // runtime repeat count of the named anchor piece. Used to place a
                 // fixed piece that follows a repeatable body whose extent is only
@@ -140,23 +178,14 @@ public final class StructureCompiler {
                         p.getName(), tplFacade, entry.baseOffset, entry.offsetMode,
                         entry.condition, entry.anchorPieceName, entry.anchorStep);
                 pieces.add(piece);
-            } else if (!p.isRepeatable()) {
+            } else {
                 // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
                 StructurePiece piece = new StructurePiece(p.getName(), tplFacade,
-                        entry.baseOffset, entry.offsetMode, entry.condition,
-                        (snap, origin, front, up, flipped, prior, runtime) ->
-                                runtime.getState().checkPatternFastAtSnapshot(
-                                        snap, origin, front, up, flipped) != null);
+                         entry.baseOffset, entry.offsetMode, entry.condition,
+                         (snap, origin, front, up, flipped, prior, runtime) ->
+                                 runtime.getState().checkPatternAtSnapshotExact(
+                                         snap, origin, front, up, flipped, 0, 0, 0) != null);
                 pieces.add(piece);
-            } else {
-                // Repeatable piece: 1 RepeatGroupPiece with auto-selected search strategy
-                boolean tensor = isTensorProduct(p);
-                SearchStrategy strategy = pickStrategy(p, tensor);
-                RepeatGroupPiece group = new RepeatGroupPiece(
-                        p.getName(), tplFacade, entry.baseOffset, entry.offsetMode, entry.condition,
-                        p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
-                        p.getRepeatChannelNames(), pieceCenterOffset, strategy);
-                pieces.add(group);
             }
         }
         return new MultiPiecePattern(pieces);

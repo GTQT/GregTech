@@ -408,6 +408,33 @@ public class MultiblockState {
     }
 
     /**
+     * Check exactly one orientation. This does not try the opposite flip state.
+     */
+    @Nullable
+    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                                   @NotNull EnumFacing frontFacing,
+                                                   @NotNull EnumFacing upwardsFacing,
+                                                   boolean isFlipped) {
+        return checkPatternAtExact(world, centerPos, frontFacing, upwardsFacing, isFlipped, 0, 0, 0);
+    }
+
+    /**
+     * Exact-orientation check with a template-local offset applied to every cell.
+     */
+    @Nullable
+    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                                   @NotNull EnumFacing frontFacing,
+                                                   @NotNull EnumFacing upwardsFacing,
+                                                   boolean isFlipped,
+                                                   int xOffset, int yOffset, int zOffset) {
+        PatternMatchContext result = checkPatternAt(
+                world, centerPos, frontFacing, upwardsFacing, isFlipped,
+                xOffset, yOffset, zOffset);
+        if (result == null) clearCache();
+        return result;
+    }
+
+    /**
      * Calculate repetitions per aisle from channel values.
      * Channel names assigned via {@code aisleChannelNames} are matched to specific aisles
      * (e.g. {@code STRUCTURE_WIDTH}, {@code STRUCTURE_HEIGHT}, {@code STRUCTURE_LENGTH}
@@ -421,16 +448,14 @@ public class MultiblockState {
     /**
      * Calculate aisle repetitions from channel values.
      * Uses aisleChannelNames to match channel names to specific aisles (consistent with repetitionDFS).
-     * Aisles without an assigned channel name or without a matching value in channelValues default to min repetition,
-     * consistent with the preview path (repetitionDFS generates shapes starting from min).
+     * Aisles without an assigned channel value default to max repetition.
      */
     private int[] calculateRepetitionsFromChannels(Map<String, Integer> channelValues) {
         BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
         int[] repetitions = new int[aisles.length];
 
         for (int i = 0; i < aisles.length; i++) {
-            // Default to min repetition (consistent with preview showing min variant)
-            repetitions[i] = aisles[i].minRepeat();
+            repetitions[i] = aisles[i].maxRepeat();
         }
 
         if (channelValues == null || channelValues.isEmpty()) {
@@ -444,11 +469,18 @@ public class MultiblockState {
             String channelName = aisles[i].channelName();
             if (channelName != null && channelValues.containsKey(channelName)) {
                 int value = channelValues.get(channelName);
-                repetitions[i] = Math.min(Math.max(value, aisles[i].minRepeat()), aisles[i].maxRepeat());
+                repetitions[i] = resolveRepetitionValue(
+                        value, aisles[i].minRepeat(), aisles[i].maxRepeat());
             }
         }
 
         return repetitions;
+    }
+
+    public static int resolveRepetitionValue(int value, int min, int max) {
+        if (value <= 0) return max;
+        if (value == 1) return min;
+        return Math.max(min, Math.min(max, value));
     }
 
     /**
@@ -558,7 +590,7 @@ public class MultiblockState {
         World world = player.world;
         BlockWorldState bws = new BlockWorldState();
         int minZ = -centerOffset.maxZ();
-        EnumFacing facing = controllerBase.getFrontFacing().getOpposite();
+        EnumFacing facing = controllerBase.getFrontFacingForStructure();
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, Object> blocks = new HashMap<>();
@@ -1498,6 +1530,22 @@ public class MultiblockState {
         worldState.setError(null);
         matchContext.setNeededFlip(isFlipped);
         return matchContext;
+    }
+
+    /**
+     * Snapshot check for exactly one orientation.
+     */
+    @Nullable
+    public PatternMatchContext checkPatternAtSnapshotExact(
+            @NotNull net.minecraft.world.IBlockAccess blockAccess,
+            @NotNull BlockPos centerPos,
+            @NotNull EnumFacing frontFacing,
+            @NotNull EnumFacing upwardsFacing,
+            boolean isFlipped,
+            int xOffset, int yOffset, int zOffset) {
+        return checkPatternAtSnapshot(
+                blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped,
+                xOffset, yOffset, zOffset);
     }
 }
 

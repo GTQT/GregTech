@@ -1,12 +1,16 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.util.GTLog;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -15,6 +19,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -67,33 +72,38 @@ public final class StructureCheckState {
         @Nullable
         public final String errorMessage;
 
+        public final boolean flipped;
+
         private Result(boolean success, @Nullable FormedStructureMetadata metadata,
                        @Nullable PatternMatchContext context,
-                       @Nullable BlockPos errorPos, @Nullable String errorMessage) {
+                       @Nullable BlockPos errorPos, @Nullable String errorMessage,
+                       boolean flipped) {
             this.success = success;
             this.metadata = metadata;
             this.context = context;
             this.errorPos = errorPos;
             this.errorMessage = errorMessage;
+            this.flipped = flipped;
         }
 
         /** Create a success result with formed metadata and aggregated context */
         @NotNull
         public static Result success(@NotNull FormedStructureMetadata metadata,
-                                     @NotNull PatternMatchContext context) {
-            return new Result(true, metadata, context, null, null);
+                                     @NotNull PatternMatchContext context,
+                                     boolean flipped) {
+            return new Result(true, metadata, context, null, null, flipped);
         }
 
         /** Create a failure result with error info */
         @NotNull
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg) {
-            return new Result(false, null, null, pos, msg);
+            return new Result(false, null, null, pos, msg, false);
         }
 
         /** Create a failure result without specific position */
         @NotNull
         public static Result failure(@NotNull String msg) {
-            return new Result(false, null, null, null, msg);
+            return new Result(false, null, null, null, msg, false);
         }
     }
 
@@ -110,8 +120,19 @@ public final class StructureCheckState {
      */
     @NotNull
     public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
-                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
                         @Nullable PatternMatchContext context) {
+        Result result = checkOrientation(world, controllerPos, front, up, false, context);
+        if (!result.success && allowsFlip) {
+            return checkOrientation(world, controllerPos, front, up, true, context);
+        }
+        return result;
+    }
+
+    @NotNull
+    private Result checkOrientation(@NotNull World world, @NotNull BlockPos controllerPos,
+                                    @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                                    @Nullable PatternMatchContext context) {
         MultiPiecePattern pattern = definition.getCompiledPattern();
 
         // Per-check transient runtimes: StructureCheckState.check is called from the
@@ -123,6 +144,7 @@ public final class StructureCheckState {
         // Collect piece repeat counts and channel values
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, Integer> channelValues = new HashMap<>();
+        Map<String, BlockPos> pieceCenters = new HashMap<>();
 
         // Aggregated context from all pieces
         PatternMatchContext aggregated = new PatternMatchContext();
@@ -141,7 +163,15 @@ public final class StructureCheckState {
             // is rebuilt every iteration because FormedStructureMetadata is
             // immutable.
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
-                    new HashMap<>(pieceRepeats), new HashMap<>(channelValues));
+                    new HashMap<>(pieceRepeats), new HashMap<>(channelValues),
+                    new HashMap<>(pieceCenters));
+            BlockPos centerPos = piece.getCenterPos(
+                    controllerPos, front, up, flipped, prior);
+            if (ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug(
+                        "[StructureDefinition] checking piece={} center={} front={} up={} flipped={}",
+                        piece.getName(), centerPos, front, up, flipped);
+            }
 
             if (piece instanceof RepeatGroupPiece repeatPiece) {
                 // Repeatable piece: use synchronous World-based check
@@ -171,9 +201,8 @@ public final class StructureCheckState {
                 // Fixed piece: standard single-template check
                 // Use the 4-arg getCenterPos so dynamic-anchor pieces can compute
                 // their position from the prior pieces' repeat counts.
-                BlockPos centerPos = piece.getCenterPos(controllerPos, front, up, prior);
                 PatternMatchContext pieceContext = runtime.getState()
-                        .checkPatternFastAt(world, centerPos, front, up, flipped);
+                        .checkPatternAtExact(world, centerPos, front, up, flipped);
 
                 if (pieceContext == null) {
                     lastErrorPos = centerPos;
@@ -194,11 +223,34 @@ public final class StructureCheckState {
                 // Extract channel values from the match context
                 extractChannelValues(pieceContext, channelValues);
             }
+            pieceCenters.put(piece.getName(), centerPos);
+            if (ConfigHolder.machines.debugStructureCheck) {
+                int[] formedReps = pieceRepeats.get(piece.getName());
+                GTLog.logger.debug("[StructureDefinition] matched piece={} center={} repetitions={}",
+                        piece.getName(), centerPos,
+                        formedReps == null ? "[]" : Arrays.toString(formedReps));
+            }
+        }
+
+        for (Map.Entry<MultiblockAbility<?>, StructureDefinition.AbilityLimit> entry :
+                definition.getAbilityLimits().entrySet()) {
+            int count = 0;
+            for (IMultiblockPart part : allParts) {
+                if (part instanceof IMultiblockAbilityPart<?> abilityPart
+                        && abilityPart.getAbilities().contains(entry.getKey())) {
+                    count++;
+                }
+            }
+            StructureDefinition.AbilityLimit limit = entry.getValue();
+            if (count < limit.min || (limit.max >= 0 && count > limit.max)) {
+                return Result.failure("Ability '" + entry.getKey() + "' count " + count
+                        + " is outside [" + limit.min + ", " + limit.max + "]");
+            }
         }
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
-                pieceRepeats, channelValues);
-        return Result.success(metadata, aggregated);
+                pieceRepeats, channelValues, pieceCenters);
+        return Result.success(metadata, aggregated, flipped);
     }
 
     /**

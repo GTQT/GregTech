@@ -83,7 +83,7 @@ public final class ElementUtility {
         return new WrapperElement(e, null, null, channelName);
     }
 
-    /** Create a chain of elements (all must match) */
+    /** Create a chain of alternative elements (any may match) */
     public static IStructureElement ofChain(IStructureElement... elements) {
         return new ChainElement(elements);
     }

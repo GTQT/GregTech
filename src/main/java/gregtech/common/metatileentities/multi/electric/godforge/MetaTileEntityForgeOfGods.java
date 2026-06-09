@@ -417,7 +417,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
                 getWorld(), getPos(), getFrontFacingForStructure(),
-                getUpwardsFacing(), allowsFlip(), runtimes);
+                getUpwardsFacing(), isFlipped(), runtimes);
 
         if (!allValid && isStructureFormed()) {
             invalidateStructure();
@@ -444,7 +444,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private boolean isRingTemplateFormed(SoftTemplate template, Vec3i pieceOffset) {
         BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                 new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                getFrontFacingForStructure(), getUpwardsFacing());
+                getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
         return template.get()
                 .createState()
                 .checkPatternFastAt(getWorld(), pieceOrigin, getFrontFacingForStructure(),
@@ -1451,7 +1451,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
         BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                 new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                getFrontFacingForStructure(), getUpwardsFacing());
+                getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
         int changed = 0;
 
         for (int z = 0; z < shape.length; z++) {
@@ -1510,7 +1510,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 int[] centerOffset = getRingCenter(ringIndex);
                 BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                         new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                        getFrontFacingForStructure(), getUpwardsFacing());
+                        getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
 
                 while (z < shape.length && processedBlocks < blockBudget) {
                     String[] layer = shape[z];

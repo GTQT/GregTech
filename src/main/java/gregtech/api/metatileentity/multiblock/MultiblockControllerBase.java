@@ -14,6 +14,7 @@ import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
@@ -838,8 +839,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (this.structureDefinition != null) {
             StructureCheckState state = this.structureDefinition.createState();
             StructureCheckState.Result result = state.check(getWorld(), getPos(),
-                    getFrontFacingForStructure(), getUpwardsFacing(), isFlipped(), null);
+                    getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(), null);
             if (result.success) {
+                setFlipped(result.flipped);
                 this.formedMetadata = result.metadata;
 
                 // Collect parts and abilities from the aggregated context
@@ -868,7 +870,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     if (!(getWorld() instanceof DummyWorld)) {
                         if (multiPiecePattern != null) {
                             multiPiecePattern.checkAllPieces(getWorld(), getPos(),
-                                    getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
+                                    getFrontFacingForStructure(), getUpwardsFacing(), isFlipped(),
                                     pieceRuntimes);
                             registerMultiPiecePattern();
                         }
@@ -921,7 +923,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 if (multiPiecePattern != null) {
                     // Multi-piece mode: do a full check of all pieces after initial form
                     multiPiecePattern.checkAllPieces(getWorld(), getPos(),
-                            getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
+                            getFrontFacingForStructure(), getUpwardsFacing(), isFlipped(),
                             pieceRuntimes);
                     registerMultiPiecePattern();
                 } else if (multiblockState != null && !multiblockState.cache.isEmpty()) {
@@ -1057,7 +1059,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
                 getWorld(), getPos(), getFrontFacingForStructure(),
-                getUpwardsFacing(), allowsFlip(), pieceRuntimes);
+                getUpwardsFacing(), isFlipped(), pieceRuntimes);
 
         if (!allValid && structureFormed) {
             invalidateStructure();
@@ -1643,97 +1645,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (multiPiecePattern == null || structureDefinition == null) {
             return Collections.emptyList();
         }
-        List<StructurePiece> pieces = multiPiecePattern.getPieceList();
-        if (pieces.isEmpty()) return Collections.emptyList();
-
-        int cumulativeAisleOffset = 0;
-        Map<Integer, Map<Integer, Map<Integer, BlockInfo>>> blockMap = new HashMap<>();
-        int minPx = Integer.MAX_VALUE, maxPx = Integer.MIN_VALUE;
-        int minPy = Integer.MAX_VALUE, maxPy = Integer.MIN_VALUE;
-        int minPz = Integer.MAX_VALUE, maxPz = Integer.MIN_VALUE;
-
-        for (StructurePiece piece : pieces) {
-            BlockPatternTemplate pieceTemplate = piece.getTemplate();
-            int[][] aisleRepetitions = pieceTemplate.getAisleRepetitions();
-            int[] repetition = new int[aisleRepetitions.length];
-            for (int j = 0; j < aisleRepetitions.length; j++) {
-                repetition[j] = aisleRepetitions[j][0];
-            }
-
-            // For RepeatGroupPiece, use the repeat count from ranges
-            int pieceRepeats = 1;
-            if (piece instanceof RepeatGroupPiece) {
-                int[][] ranges = ((RepeatGroupPiece) piece).getRepeatRanges();
-                if (ranges != null && ranges.length > 0) {
-                    pieceRepeats = channelValues != null
-                            ? getChannelValueOrDefault(channelValues, (RepeatGroupPiece) piece, ranges[0][0])
-                            : ranges[0][0];
-                    repetition[0] = pieceRepeats;
-                }
-            }
-
-            BlockInfo[][][] piecePreview = pieceRuntimes.get(piece).getState()
-                    .getPreview(repetition, channelValues);
-            if (piecePreview == null || piecePreview.length == 0) continue;
-
-            int fingerLen = pieceTemplate.getZLength();
-
-            // The preview array is [worldX][worldY][worldZ]
-            // worldY corresponds to the repeat/aisle index (x parameter in setActualRelativeOffset)
-            // Offset worldY by cumulativeAisleOffset to stack pieces along the aisle direction
-            for (int ix = 0; ix < piecePreview.length; ix++) {
-                for (int iy = 0; iy < piecePreview[ix].length; iy++) {
-                    for (int iz = 0; iz < piecePreview[ix][iy].length; iz++) {
-                        BlockInfo info = piecePreview[ix][iy][iz];
-                        if (info == null || info.getBlockState() == null) continue;
-                        int wx = ix;
-                        int wy = iy + cumulativeAisleOffset;
-                        int wz = iz;
-                        blockMap.computeIfAbsent(wx, k -> new HashMap<>())
-                                .computeIfAbsent(wy, k -> new HashMap<>())
-                                .put(wz, info);
-                        minPx = Math.min(minPx, wx);
-                        maxPx = Math.max(maxPx, wx);
-                        minPy = Math.min(minPy, wy);
-                        maxPy = Math.max(maxPy, wy);
-                        minPz = Math.min(minPz, wz);
-                        maxPz = Math.max(maxPz, wz);
-                    }
-                }
-            }
-
-            int pieceAisleDepth = pieceRepeats * fingerLen;
-            cumulativeAisleOffset += pieceAisleDepth;
-        }
-
-        if (blockMap.isEmpty()) return Collections.emptyList();
-
-        int sizeX = (maxPx == Integer.MIN_VALUE) ? 1 : maxPx - minPx + 1;
-        int sizeY = (maxPy == Integer.MIN_VALUE) ? 1 : maxPy - minPy + 1;
-        int sizeZ = (maxPz == Integer.MIN_VALUE) ? 1 : maxPz - minPz + 1;
-
-        BlockInfo[][][] result = new BlockInfo[sizeX][sizeY][sizeZ];
-        for (int ix = 0; ix < sizeX; ix++) {
-            for (int iy = 0; iy < sizeY; iy++) {
-                for (int iz = 0; iz < sizeZ; iz++) {
-                    result[ix][iy][iz] = BlockInfo.EMPTY;
-                }
-            }
-        }
-        for (Map.Entry<Integer, Map<Integer, Map<Integer, BlockInfo>>> ex : blockMap.entrySet()) {
-            int rx = ex.getKey() - minPx;
-            for (Map.Entry<Integer, Map<Integer, BlockInfo>> ey : ex.getValue().entrySet()) {
-                int ry = ey.getKey() - minPy;
-                for (Map.Entry<Integer, BlockInfo> ez : ey.getValue().entrySet()) {
-                    int rz = ez.getKey() - minPz;
-                    if (rx >= 0 && rx < sizeX && ry >= 0 && ry < sizeY && rz >= 0 && rz < sizeZ) {
-                        result[rx][ry][rz] = ez.getValue();
-                    }
-                }
-            }
-        }
-
-        return Collections.singletonList(new MultiblockShapeInfo(result));
+        MultiPiecePreviewAssembler.Result preview = MultiPiecePreviewAssembler.assemble(
+                multiPiecePattern, pieceRuntimes, channelValues);
+        return Collections.singletonList(preview.getShape());
     }
 
     /**
@@ -1749,134 +1663,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
-        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
-        if (multiPiecePattern == null) return predicateMap;
-        List<StructurePiece> pieces = multiPiecePattern.getPieceList();
-        if (pieces.isEmpty()) return predicateMap;
-
-        // Compute global bounds and cumulative offsets
-        int cumulativeY = 0;
-        List<PieceInfo> pieceInfos = new ArrayList<>();
-        int globalMinX = Integer.MAX_VALUE, globalMinY = Integer.MAX_VALUE, globalMinZ = Integer.MAX_VALUE;
-        int globalMaxX = Integer.MIN_VALUE, globalMaxY = Integer.MIN_VALUE, globalMaxZ = Integer.MIN_VALUE;
-
-        // First pass: collect per-piece repetition info and compute global bounds
-        // using the same (l, r, y, z) iteration as MultiblockState#getPreview.
-        for (StructurePiece piece : pieces) {
-            BlockPatternTemplate tmpl = piece.getTemplate();
-            int[][] aisleReps = tmpl.getAisleRepetitions();
-            int[] repetition = new int[aisleReps.length];
-            for (int j = 0; j < aisleReps.length; j++) {
-                repetition[j] = aisleReps[j][0];
-            }
-            int pieceRepeats = 1;
-            if (piece instanceof RepeatGroupPiece rp) {
-                int[][] ranges = rp.getRepeatRanges();
-                if (ranges != null && ranges.length > 0) {
-                    pieceRepeats = ranges[0][0];
-                    repetition[0] = pieceRepeats;
-                }
-            }
-            int fingerLen = tmpl.getZLength();
-            int aisleDepth = pieceRepeats * fingerLen;
-            RelativeDirection[] sDir = tmpl.getStructureDir();
-            int yLen = tmpl.getYLength();
-            int xLen = tmpl.getXLength();
-
-            pieceInfos.add(new PieceInfo(tmpl, sDir, cumulativeY, pieceRepeats, repetition));
-
-            // Walk the (l, r, y, z) cell space exactly as getPreview does, so the bounds
-            // we derive here match the merged preview blockMap populated by buildMultiPieceShapes.
-            for (int l = 0, x = 0; l < fingerLen; l++) {
-                for (int r = 0; r < repetition[l]; r++) {
-                    for (int y = 0; y < yLen; y++) {
-                        for (int z = 0; z < xLen; z++) {
-                            BlockPos pos = RelativeDirection.setActualRelativeOffset(
-                                    z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                            int wx = pos.getX();
-                            int wy = pos.getY() + cumulativeY;
-                            int wz = pos.getZ();
-                            globalMinX = Math.min(globalMinX, wx);
-                            globalMinY = Math.min(globalMinY, wy);
-                            globalMinZ = Math.min(globalMinZ, wz);
-                            globalMaxX = Math.max(globalMaxX, wx);
-                            globalMaxY = Math.max(globalMaxY, wy);
-                            globalMaxZ = Math.max(globalMaxZ, wz);
-                        }
-                    }
-                    x++;
-                }
-            }
-            cumulativeY += aisleDepth;
-        }
-
-        // Second pass: fill predicate map with normalized positions.
-        // We reuse the same (l, r, y, z) iteration as getPreview so that predicates are
-        // registered at every world position that the JEI preview actually renders,
-        // including repeated slices whose predicates were previously dropped.
-        for (PieceInfo info : pieceInfos) {
-            int fingerLen = info.template.getZLength();
-            int yLen = info.template.getYLength();
-            int xLen = info.template.getXLength();
-            TraceabilityPredicate[][][] blockMatches = info.template.getBlockMatches();
-            RelativeDirection[] sDir = info.structureDir;
-            int[] repetition = info.repetition;
-
-            for (int l = 0, x = 0; l < fingerLen; l++) {
-                for (int r = 0; r < repetition[l]; r++) {
-                    for (int y = 0; y < yLen; y++) {
-                        for (int z = 0; z < xLen; z++) {
-                            TraceabilityPredicate pred = blockMatches[l][y][z];
-                            if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-                            BlockPos localPos = RelativeDirection.setActualRelativeOffset(
-                                    z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                            BlockPos blockMapPos = new BlockPos(
-                                    localPos.getX() - globalMinX,
-                                    localPos.getY() + info.cumulativeY - globalMinY,
-                                    localPos.getZ() - globalMinZ);
-                            predicateMap.put(blockMapPos, pred);
-                        }
-                    }
-                    x++;
-                }
-            }
-        }
-
-        return predicateMap;
-    }
-
-    // Helper record for multi-piece predicate map building
-    private static final class PieceInfo {
-        final BlockPatternTemplate template;
-        final RelativeDirection[] structureDir;
-        final int cumulativeY;
-        final int pieceRepeats;
-        // Per-aisle repetition counts (length == template.getZLength()).
-        // For RepeatGroupPiece repetition[0] is the piece's repeat count and the rest
-        // are aisleRepetitions[j][0], matching the array passed to MultiblockState#getPreview.
-        final int[] repetition;
-
-        PieceInfo(BlockPatternTemplate template, RelativeDirection[] structureDir,
-                  int cumulativeY, int pieceRepeats, int[] repetition) {
-            this.template = template;
-            this.structureDir = structureDir;
-            this.cumulativeY = cumulativeY;
-            this.pieceRepeats = pieceRepeats;
-            this.repetition = repetition;
-        }
-    }
-
-    /**
-     * Get the channel value for a repeatable piece, falling back to the default if not set.
-     */
-    private static int getChannelValueOrDefault(@NotNull Map<String, Integer> channelValues,
-                                                 @NotNull RepeatGroupPiece piece, int defaultValue) {
-        String[] names = piece.getRepeatChannelNames();
-        if (names != null && names.length > 0 && names[0] != null) {
-            Integer val = channelValues.get(names[0]);
-            if (val != null && val > 0) return val;
-        }
-        return defaultValue;
+        if (multiPiecePattern == null) return new HashMap<>();
+        return new HashMap<>(MultiPiecePreviewAssembler.assemble(
+                multiPiecePattern, pieceRuntimes, null).getPredicates());
     }
 
     private List<MultiblockShapeInfo> repetitionDFS(List<MultiblockShapeInfo> pages, int[][] aisleRepetitions,
@@ -1930,21 +1719,22 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @Nullable
     public MultiblockShapeInfo getMatchingShapeForPiece(int pieceIndex,
-                                                        @Nullable Map<String, Integer> channelValues) {
-        if (multiPiecePattern == null) return null;
-        List<StructurePiece> pieces = multiPiecePattern.getPieceList();
-        if (pieceIndex < 1 || pieceIndex > pieces.size()) return null;
+                                                         @Nullable Map<String, Integer> channelValues) {
+        MultiPiecePreviewAssembler.PieceResult preview =
+                getMatchingPreviewPiece(pieceIndex, channelValues);
+        return preview == null ? null : preview.getShape();
+    }
 
-        StructurePiece piece = pieces.get(pieceIndex - 1);
-        BlockPatternTemplate pieceTemplate = piece.getTemplate();
-        int[][] aisleRepetitions = pieceTemplate.getAisleRepetitions();
-        int[] repetition = new int[aisleRepetitions.length];
-        for (int i = 0; i < aisleRepetitions.length; i++) {
-            repetition[i] = aisleRepetitions[i][0];
+    @Nullable
+    public MultiPiecePreviewAssembler.PieceResult getMatchingPreviewPiece(
+            int pieceIndex, @Nullable Map<String, Integer> channelValues) {
+        if (multiPiecePattern == null
+                || pieceIndex < 1
+                || pieceIndex > multiPiecePattern.getPieceList().size()) {
+            return null;
         }
-        BlockInfo[][][] preview = pieceRuntimes.get(piece).getState()
-                .getPreview(repetition, channelValues);
-        return new MultiblockShapeInfo(preview);
+        return MultiPiecePreviewAssembler.assemble(
+                multiPiecePattern, pieceRuntimes, channelValues).getPiece(pieceIndex);
     }
 
     @SideOnly(Side.CLIENT)

@@ -5,10 +5,13 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.PieceTemplate;
+import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureSizeDescriptor;
 import gregtech.api.pattern.StructureSizeDescriptor.PieceSize;
 import gregtech.api.pattern.TemplatePool;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.util.RelativeDirection;
 
 import net.minecraft.util.EnumFacing;
@@ -22,8 +25,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -50,6 +55,7 @@ public final class StructureDefinition {
 
     private final RelativeDirection[] structureDir;
     private final List<PieceEntry> pieceEntries;
+    private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits;
 
     // Compiled products: computed lazily on first access and cached for the
     // lifetime of this SD instance. The SD is itself held in TemplatePool
@@ -59,13 +65,13 @@ public final class StructureDefinition {
     // removes the need to thread a separate cache keyHint through the API
     // just to register a redundant TemplatePool entry.
     private MultiPiecePattern compiledPattern;
-    private BlockPos[] maxRepeatAABB;
     private StructureSizeDescriptor sizeDescriptor;
     private final boolean singlePiece;
 
     private StructureDefinition(Builder b) {
         this.structureDir = new RelativeDirection[]{b.charDir, b.stringDir, b.aisleDir};
         this.pieceEntries = Collections.unmodifiableList(new ArrayList<>(b.pieceEntries));
+        this.abilityLimits = Collections.unmodifiableMap(new HashMap<>(b.abilityLimits));
         this.singlePiece = pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
     }
 
@@ -82,9 +88,9 @@ public final class StructureDefinition {
      * Convenience: synchronous check.
      */
     public boolean check(@NotNull World world, @NotNull BlockPos controllerPos,
-                         @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                         @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
                          @Nullable PatternMatchContext context) {
-        return createState().check(world, controllerPos, front, up, flipped, context).success;
+        return createState().check(world, controllerPos, front, up, allowsFlip, context).success;
     }
 
     /** Get the compiled MultiPiecePattern. Computed lazily and cached. */
@@ -108,14 +114,72 @@ public final class StructureDefinition {
     @NotNull
     public BlockPos[] computeWorldAABB(@NotNull BlockPos center, @NotNull EnumFacing front,
                                        @NotNull EnumFacing up, boolean flipped, int margin) {
-        BlockPos[] local = maxRepeatAABB;
-        if (local == null) {
-            local = StructureCompiler.computeMaxAABB(this);
-            maxRepeatAABB = local;
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        Map<String, int[]> maxRepeats = new HashMap<>();
+        Map<String, BlockPos> pieceCenters = new HashMap<>();
+
+        for (StructurePiece piece : getCompiledPattern().getPieceList()) {
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(maxRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
+            BlockPos pieceCenter = piece.getCenterPos(center, front, up, flipped, prior);
+            PieceTemplate template = piece.getPieceTemplate();
+
+            if (piece instanceof RepeatGroupPiece repeatPiece) {
+                int[] axes = repeatPiece.getRepeatAxes();
+                int[][] ranges = repeatPiece.getRepeatRanges();
+                int[] steps = repeatPiece.getStepSizes();
+                int cornerCount = 1 << axes.length;
+                for (int mask = 0; mask < cornerCount; mask++) {
+                    int[] local = {0, 0, 0};
+                    for (int i = 0; i < axes.length; i++) {
+                        int repeatIndex = ((mask & (1 << i)) == 0) ? 0 : ranges[i][1] - 1;
+                        local[axes[i]] += steps[i] * repeatIndex;
+                    }
+                    BlockPos shift = RelativeDirection.setActualRelativeOffset(
+                            local[0], local[1], local[2],
+                            front, up, flipped, template.getStructureDir());
+                    BlockPos[] pieceAabb = template.computeWorldAABB(
+                            pieceCenter.add(shift), front, up, flipped, 0);
+                    minX = Math.min(minX, pieceAabb[0].getX());
+                    minY = Math.min(minY, pieceAabb[0].getY());
+                    minZ = Math.min(minZ, pieceAabb[0].getZ());
+                    maxX = Math.max(maxX, pieceAabb[1].getX());
+                    maxY = Math.max(maxY, pieceAabb[1].getY());
+                    maxZ = Math.max(maxZ, pieceAabb[1].getZ());
+                }
+
+                int[] repeats = new int[ranges.length];
+                for (int i = 0; i < ranges.length; i++) {
+                    repeats[i] = ranges[i][1];
+                }
+                maxRepeats.put(piece.getName(), repeats);
+            } else {
+                BlockPos[] pieceAabb = template.computeWorldAABB(
+                        pieceCenter, front, up, flipped, 0);
+                minX = Math.min(minX, pieceAabb[0].getX());
+                minY = Math.min(minY, pieceAabb[0].getY());
+                minZ = Math.min(minZ, pieceAabb[0].getZ());
+                maxX = Math.max(maxX, pieceAabb[1].getX());
+                maxY = Math.max(maxY, pieceAabb[1].getY());
+                maxZ = Math.max(maxZ, pieceAabb[1].getZ());
+            }
+            pieceCenters.put(piece.getName(), pieceCenter);
+        }
+
+        if (minX == Integer.MAX_VALUE) {
+            return new BlockPos[]{
+                    center.add(-margin, -margin, -margin),
+                    center.add(margin, margin, margin)
+            };
         }
         return new BlockPos[]{
-                local[0].add(-margin, -margin, -margin),
-                local[1].add(margin, margin, margin)
+                new BlockPos(minX - margin, minY - margin, minZ - margin),
+                new BlockPos(maxX + margin, maxY + margin, maxZ + margin)
         };
     }
 
@@ -165,6 +229,11 @@ public final class StructureDefinition {
     @NotNull
     List<PieceEntry> getPieceEntries() {
         return pieceEntries;
+    }
+
+    @NotNull
+    Map<MultiblockAbility<?>, AbilityLimit> getAbilityLimits() {
+        return abilityLimits;
     }
 
     @NotNull
@@ -281,6 +350,7 @@ public final class StructureDefinition {
         private final RelativeDirection stringDir;
         private final RelativeDirection aisleDir;
         private final List<PieceEntry> pieceEntries = new ArrayList<>();
+        private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits = new HashMap<>();
 
         private Builder(RelativeDirection charDir, RelativeDirection stringDir,
                         RelativeDirection aisleDir) {
@@ -405,8 +475,62 @@ public final class StructureDefinition {
         }
 
         @NotNull
+        public Builder globalAbilityLimit(@NotNull MultiblockAbility<?> ability, int min, int max) {
+            if (min < 0 || (max >= 0 && max < min)) {
+                throw new IllegalArgumentException("Invalid ability range [" + min + ", " + max + "]");
+            }
+            abilityLimits.merge(ability, new AbilityLimit(min, max),
+                    (left, right) -> new AbilityLimit(
+                            left.min + right.min,
+                            left.max < 0 || right.max < 0 ? -1 : left.max + right.max));
+            return this;
+        }
+
+        @NotNull
         public StructureDefinition build() {
+            validate();
             return new StructureDefinition(this);
+        }
+
+        private void validate() {
+            if (pieceEntries.isEmpty()) {
+                throw new IllegalStateException("StructureDefinition must contain at least one piece");
+            }
+
+            Set<String> seenNames = new HashSet<>();
+            for (PieceEntry entry : pieceEntries) {
+                IStructurePiece piece = entry.piece;
+                String name = piece.getName();
+                if (name.isEmpty() || seenNames.contains(name)) {
+                    throw new IllegalStateException("Piece names must be non-empty and unique: '" + name + "'");
+                }
+                if (entry.anchorPieceName != null && !seenNames.contains(entry.anchorPieceName)) {
+                    throw new IllegalStateException("Piece '" + name + "' references unresolved anchor '"
+                            + entry.anchorPieceName + "'");
+                }
+                seenNames.add(name);
+
+                int[] axes = piece.getRepeatAxes();
+                int[][] ranges = piece.getRepeatRanges();
+                int[] steps = piece.getStepSizes();
+                if (axes.length != ranges.length || axes.length != steps.length) {
+                    throw new IllegalStateException("Piece '" + name
+                            + "' repeat axes, ranges and steps must have equal lengths");
+                }
+                Set<Integer> seenAxes = new HashSet<>();
+                for (int i = 0; i < axes.length; i++) {
+                    if (axes[i] < 0 || axes[i] > 2 || !seenAxes.add(axes[i])) {
+                        throw new IllegalStateException("Piece '" + name + "' has invalid repeat axis " + axes[i]);
+                    }
+                    if (ranges[i] == null || ranges[i].length != 2
+                            || ranges[i][0] < 0 || ranges[i][1] < ranges[i][0]) {
+                        throw new IllegalStateException("Piece '" + name + "' has invalid repeat range at index " + i);
+                    }
+                    if (steps[i] == 0 && ranges[i][1] > 1) {
+                        throw new IllegalStateException("Piece '" + name + "' repeats with a zero step at index " + i);
+                    }
+                }
+            }
         }
     }
 
@@ -556,6 +680,20 @@ public final class StructureDefinition {
             return this;
         }
 
+        /**
+         * Position this repeatable piece relative to a previously resolved piece.
+         */
+        @NotNull
+        public RepeatablePieceBuilder positionedAfter(@NotNull String anchorName,
+                                                      @NotNull int[] anchorStep) {
+            if (anchorStep.length != 3) {
+                throw new IllegalArgumentException("anchorStep must contain right, up and back components");
+            }
+            piece.anchorPieceName = anchorName;
+            piece.anchorStep = anchorStep.clone();
+            return this;
+        }
+
         /** Finish this piece and return to the parent builder. */
         @NotNull
         public Builder end() {
@@ -567,6 +705,17 @@ public final class StructureDefinition {
         @NotNull
         public StructureDefinition build() {
             return end().build();
+        }
+    }
+
+    static final class AbilityLimit {
+
+        final int min;
+        final int max;
+
+        AbilityLimit(int min, int max) {
+            this.min = min;
+            this.max = max;
         }
     }
 

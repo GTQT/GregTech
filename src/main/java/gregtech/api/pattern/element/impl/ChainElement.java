@@ -14,24 +14,27 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Element that chains multiple elements together (all must match).
+ * Element that chains multiple alternative elements together (any may match).
  */
 public class ChainElement implements IStructureElement {
 
     private final IStructureElement[] elements;
 
     public ChainElement(IStructureElement... elements) {
+        if (elements.length == 0) {
+            throw new IllegalArgumentException("ChainElement requires at least one element");
+        }
         this.elements = elements;
     }
 
     @Override
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
         for (IStructureElement e : elements) {
-            if (!e.check(world, pos, context)) {
-                return false;
+            if (e.check(world, pos, context)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     @Override

@@ -177,7 +177,7 @@ public class MultiPiecePattern {
      * @return true if all active pieces are valid
      */
     public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                     EnumFacing upwardsFacing, boolean allowsFlip,
+                                     EnumFacing upwardsFacing, boolean flipped,
                                      @NotNull PieceRuntimes runtimes) {
         // Accumulates per-piece repeat counts as we sweep through the piece list,
         // so a DynamicOffsetPiece can read the runtime repeat count of its
@@ -185,6 +185,7 @@ public class MultiPiecePattern {
         // equivalent of the prior metadata built up in
         // gregtech.api.pattern.element.StructureCheckState.check.
         Map<String, int[]> priorRepeats = new HashMap<>();
+        Map<String, BlockPos> priorCenters = new HashMap<>();
 
         for (StructurePiece piece : pieceList) {
             if (!piece.isActive()) continue;
@@ -193,7 +194,9 @@ public class MultiPiecePattern {
             if (runtime == null) continue;
 
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
-                    new HashMap<>(priorRepeats), Collections.emptyMap());
+                    new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
+            BlockPos pieceCenter = piece.getCenterPos(
+                    controllerPos, frontFacing, upwardsFacing, flipped, prior);
 
             if (runtime.isDirty()) {
                 if (piece instanceof RepeatGroupPiece repeatPiece) {
@@ -202,16 +205,15 @@ public class MultiPiecePattern {
                     // and miss all repeated slices, leading to incorrect validation
                     // and an incomplete position set.
                     boolean ok = repeatPiece.checkSync(world, controllerPos, frontFacing,
-                            upwardsFacing, allowsFlip, prior, runtime);
+                            upwardsFacing, flipped, prior, runtime);
                     if (ok) {
                         runtime.setValidated(true);
                     } else {
                         runtime.setValidated(false);
                     }
                 } else {
-                    BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing, prior);
-                    PatternMatchContext result = runtime.getState().checkPatternFastAt(
-                            world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
+                    PatternMatchContext result = runtime.getState().checkPatternAtExact(
+                            world, pieceCenter, frontFacing, upwardsFacing, flipped);
 
                     if (result != null) {
                         runtime.setValidated(true);
@@ -242,6 +244,7 @@ public class MultiPiecePattern {
                     priorRepeats.put(piece.getName(), reps.clone());
                 }
             }
+            priorCenters.put(piece.getName(), pieceCenter);
         }
         return true;
     }
@@ -258,7 +261,7 @@ public class MultiPiecePattern {
      * @return true if all active pieces are valid
      */
     public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                   EnumFacing upwardsFacing, boolean allowsFlip,
+                                   EnumFacing upwardsFacing, boolean flipped,
                                    @NotNull PieceRuntimes runtimes) {
         for (StructurePiece piece : pieceList) {
             PieceRuntime runtime = runtimes.get(piece);
@@ -266,7 +269,7 @@ public class MultiPiecePattern {
                 runtime.markDirty();
             }
         }
-        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, allowsFlip, runtimes);
+        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, flipped, runtimes);
     }
 
     /**
@@ -325,18 +328,18 @@ public class MultiPiecePattern {
         // the auto-build path is per-piece, so we rebuild it on demand from
         // whatever the previous pieces' runtimes have cached via
         // PieceRuntime.getLastFormedReps().
-        FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes);
+        FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller);
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
                     controller.getFrontFacingForStructure(), controller.getUpwardsFacing(),
-                    controller.isFlipped(), channelValues, skipHatches, runtime);
+                    controller.isFlipped(), prior, channelValues, skipHatches, runtime);
         } else {
             // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
             // prior metadata and can compute its dynamic position. Non-anchor
             // pieces ignore the prior and behave identically to the 3-arg form.
             BlockPos pieceCenter = piece.getCenterPos(
                     controller.getPos(), controller.getFrontFacingForStructure(),
-                    controller.getUpwardsFacing(), prior);
+                    controller.getUpwardsFacing(), controller.isFlipped(), prior);
             runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
         }
         return true;
@@ -354,18 +357,27 @@ public class MultiPiecePattern {
      * {@link #checkDirtyPieces(World, BlockPos, EnumFacing, EnumFacing, boolean, PieceRuntimes)}.
      */
     @NotNull
-    private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes) {
+    private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes,
+                                                       @NotNull MultiblockControllerBase controller) {
         Map<String, int[]> priorRepeats = new HashMap<>();
+        Map<String, BlockPos> priorCenters = new HashMap<>();
         for (int i = 0; i < upToIndex - 1; i++) {
             StructurePiece p = pieceList.get(i);
             PieceRuntime r = runtimes.get(p);
             if (r == null) continue;
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
+            BlockPos center = p.getCenterPos(
+                    controller.getPos(), controller.getFrontFacingForStructure(),
+                    controller.getUpwardsFacing(), controller.isFlipped(), prior);
+            priorCenters.put(p.getName(), center);
             int[] reps = r.getLastFormedReps();
             if (reps != null && reps.length > 0) {
                 priorRepeats.put(p.getName(), reps.clone());
             }
         }
-        return FormedStructureMetadata.fromCheckResult(priorRepeats, Collections.emptyMap());
+        return FormedStructureMetadata.fromCheckResult(
+                priorRepeats, Collections.emptyMap(), priorCenters);
     }
 
     /**

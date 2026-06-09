@@ -4,6 +4,7 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.element.FormedStructureMetadata;
@@ -18,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -202,7 +204,7 @@ public class AsyncStructureChecker {
                     controller,
                     snapshot,
                     pos.toImmutable(),
-                    controller.getFrontFacing(),
+                    controller.getFrontFacingForStructure(),
                     controller.getUpwardsFacing(),
                     controller.allowsFlip()
             );
@@ -279,8 +281,17 @@ public class AsyncStructureChecker {
                     pos,
                     controller.getFrontFacingForStructure(),
                     controller.getUpwardsFacing(),
-                    controller.isFlipped(),
+                    false,
                     SNAPSHOT_MARGIN);
+            if (controller.allowsFlip()) {
+                BlockPos[] flippedAabb = definition.computeWorldAABB(
+                        pos,
+                        controller.getFrontFacingForStructure(),
+                        controller.getUpwardsFacing(),
+                        true,
+                        SNAPSHOT_MARGIN);
+                aabb = unionAABB(aabb, flippedAabb);
+            }
             BlockPos minCorner = aabb[0];
             BlockPos maxCorner = aabb[1];
 
@@ -350,26 +361,8 @@ public class AsyncStructureChecker {
         // Preferred path: route everything through StructureDefinition
         StructureDefinition definition = task.controller.getStructureDefinition();
         if (definition != null) {
-            MultiPiecePattern multiPiece = definition.getCompiledPattern();
-            FormedStructureMetadata prior = task.controller.getFormedMetadata();
-            // Allocate a transient per-check PieceRuntimes to avoid data races with
-            // the main thread (which holds the controller's owned PieceRuntimes and
-            // may be mutating it concurrently). The async thread only ever reads
-            // its own runtimes; the main thread reads its own.
-            PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
-            for (StructurePiece piece : multiPiece.getPieceList()) {
-                if (piece.isConditional() && !piece.isActive()) continue;
-
-                BlockPos pieceOrigin = piece.getCenterPos(
-                        task.centerPos, task.frontFacing, task.upwardsFacing);
-
-                if (!piece.checkOnSnapshot(task.snapshot, pieceOrigin,
-                        task.frontFacing, task.upwardsFacing, task.allowsFlip, prior,
-                        asyncRuntimes.get(piece))) {
-                    return false;
-                }
-            }
-            return true;
+            return performDefinitionCheck(task, definition, false)
+                    || task.allowsFlip && performDefinitionCheck(task, definition, true);
         }
 
         // Legacy path: single template with temporary state
@@ -385,6 +378,58 @@ public class AsyncStructureChecker {
                 task.snapshot, task.centerPos, task.frontFacing, task.upwardsFacing, task.allowsFlip, prior);
 
         return context != null;
+    }
+
+    private boolean performDefinitionCheck(@NotNull SnapshotTask task,
+                                           @NotNull StructureDefinition definition,
+                                           boolean flipped) {
+        MultiPiecePattern multiPiece = definition.getCompiledPattern();
+        PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
+        Map<String, int[]> pieceRepeats = new HashMap<>();
+        Map<String, BlockPos> pieceCenters = new HashMap<>();
+
+        for (StructurePiece piece : multiPiece.getPieceList()) {
+            if (piece.isConditional() && !piece.isActive()) continue;
+
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(pieceRepeats), new HashMap<>(), new HashMap<>(pieceCenters));
+            PieceRuntime runtime = asyncRuntimes.get(piece);
+            BlockPos checkOrigin;
+            if (piece instanceof gregtech.api.pattern.RepeatGroupPiece) {
+                checkOrigin = task.centerPos;
+            } else {
+                checkOrigin = piece.getCenterPos(
+                        task.centerPos, task.frontFacing, task.upwardsFacing, flipped, prior);
+            }
+
+            if (!piece.checkOnSnapshot(task.snapshot, checkOrigin,
+                    task.frontFacing, task.upwardsFacing, flipped, prior, runtime)) {
+                return false;
+            }
+
+            int[] reps = piece instanceof gregtech.api.pattern.RepeatGroupPiece
+                    ? runtime.getLastFormedReps()
+                    : runtime.getState().formedRepetitionCount;
+            if (reps != null && reps.length > 0) {
+                pieceRepeats.put(piece.getName(), reps.clone());
+            }
+            pieceCenters.put(piece.getName(), piece.getCenterPos(
+                    task.centerPos, task.frontFacing, task.upwardsFacing, flipped, prior));
+        }
+        return true;
+    }
+
+    private static BlockPos[] unionAABB(@NotNull BlockPos[] first, @NotNull BlockPos[] second) {
+        return new BlockPos[] {
+                new BlockPos(
+                        Math.min(first[0].getX(), second[0].getX()),
+                        Math.min(first[0].getY(), second[0].getY()),
+                        Math.min(first[0].getZ(), second[0].getZ())),
+                new BlockPos(
+                        Math.max(first[1].getX(), second[1].getX()),
+                        Math.max(first[1].getY(), second[1].getY()),
+                        Math.max(first[1].getZ(), second[1].getZ()))
+        };
     }
 
     /**

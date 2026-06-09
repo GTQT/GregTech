@@ -4,6 +4,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -312,8 +313,10 @@ public class MultiblockPreviewRenderer {
      * Build VBO for a specific piece from the MultiPiecePattern at its world-space offset position.
      */
     private static void buildPieceVBO(MultiblockControllerBase controller, int pieceIndex) {
-        MultiblockShapeInfo shapeInfo = controller.getMatchingShapeForPiece(pieceIndex, channelValues);
-        if (shapeInfo == null) return;
+        MultiPiecePreviewAssembler.PieceResult piecePreview =
+                controller.getMatchingPreviewPiece(pieceIndex, channelValues);
+        if (piecePreview == null) return;
+        MultiblockShapeInfo shapeInfo = piecePreview.getShape();
 
         MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
         if (multiPiece == null) return;
@@ -323,10 +326,14 @@ public class MultiblockPreviewRenderer {
         StructurePiece piece = pieces.get(pieceIndex - 1);
 
         // Compute the piece's center position in world space
-        BlockPos pieceCenterPos = piece.getCenterPos(
+        BlockPos pieceCenterPos = MultiPiecePreviewAssembler.resolveWorldPieceCenter(
+                multiPiece,
+                pieceIndex,
+                piecePreview.getPrior(),
                 controller.getPos(),
                 controller.getFrontFacingForStructure(),
-                controller.getUpwardsFacing());
+                controller.getUpwardsFacing(),
+                controller.isFlipped());
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
@@ -351,8 +358,7 @@ public class MultiblockPreviewRenderer {
         // Use the piece's own template for coordinate transformation
         gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
-        BlockPatternTemplate.CenterOffset centerOffset = pieceTemplate.getCenterOffset();
-        BlockPos pieceCenterInLocal = new BlockPos(centerOffset.x(), centerOffset.y(), centerOffset.minZ());
+        BlockPos pieceCenterInLocal = piecePreview.getCenter();
 
         FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(world);
         PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(world);

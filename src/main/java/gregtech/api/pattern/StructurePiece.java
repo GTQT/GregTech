@@ -241,31 +241,16 @@ public class StructurePiece {
     }
 
     /**
-     * Compute the actual center position for this piece given the controller position.
-     * Uses the legacy absolute offset (no rotation). Prefer the overload with facings.
-     *
-     * @param controllerPos the controller's block position
-     * @return the center position for this piece's pattern check
-     */
-    public BlockPos getCenterPos(BlockPos controllerPos) {
-        return controllerPos.add(offset);
-    }
-
-    /**
-     * Compute the actual center position for this piece given the controller position and facings.
-     * Applies the piece's {@link OffsetMode} to correctly rotate the offset.
-     *
-     * @param controllerPos the controller's block position
-     * @param frontFacing   the controller's front facing
-     * @param upFacing      the controller's upward facing
-     * @return the center position for this piece's pattern check
+     * Compute the piece center with the same complete orientation used for
+     * transforming pattern cells.
      */
     @NotNull
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull EnumFacing frontFacing,
-                                 @NotNull EnumFacing upFacing) {
+                                 @NotNull EnumFacing upFacing,
+                                 boolean flipped) {
         int[] off = { offset.getX(), offset.getY(), offset.getZ() };
-        return offsetMode.apply(controllerPos, off, frontFacing, upFacing);
+        return offsetMode.apply(controllerPos, off, frontFacing, upFacing, flipped);
     }
 
     /**
@@ -274,8 +259,7 @@ public class StructurePiece {
      * repeat count of an earlier piece (e.g. the "top" piece that follows a
      * repeatable "body" piece in the middle of a structure).
      *
-     * <p>Default implementation falls back to the static
-     * {@link #getCenterPos(BlockPos, EnumFacing, EnumFacing)}. Subclasses such as
+     * <p>Default implementation falls back to the static center calculation. Subclasses such as
      * {@link DynamicOffsetPiece} override this to compute a dynamic position
      * based on the prior metadata.
      *
@@ -292,8 +276,9 @@ public class StructurePiece {
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull EnumFacing frontFacing,
                                  @NotNull EnumFacing upFacing,
+                                 boolean flipped,
                                  @Nullable FormedStructureMetadata prior) {
-        return getCenterPos(controllerPos, frontFacing, upFacing);
+        return getCenterPos(controllerPos, frontFacing, upFacing, flipped);
     }
 
     /**

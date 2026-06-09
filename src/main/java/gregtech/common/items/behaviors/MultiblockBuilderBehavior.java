@@ -70,11 +70,6 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         if (player.isSneaking()) {
             if (!multiblock.isStructureFormed()) {
                 Map<String, Integer> channelValues = tierToChannelValues(tier);
-                StructureDefinition def = multiblock.getStructureDefinition();
-                System.out.println("[Builder] tier=" + tier + " channels=" + channelValues
-                        + " structureDef=" + (def == null ? "null" : "present")
-                        + " pieceCount=" + (def == null ? 0
-                                : def.getCompiledPattern().getPieceList().size()));
                 // Multi-piece structures (new StructureDefinition system) need
                 // per-piece auto-build so dynamic offsets can resolve their
                 // anchor's repeat count. The legacy single-piece autoBuild
