@@ -120,7 +120,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     };
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:power_substation", () -> DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+            "gregtech:power_substation", () -> DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                     .piece("top")
                         .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                         .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")

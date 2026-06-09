@@ -325,7 +325,7 @@ public class MultiblockPreviewRenderer {
         // Compute the piece's center position in world space
         BlockPos pieceCenterPos = piece.getCenterPos(
                 controller.getPos(),
-                controller.getFrontFacing().getOpposite(),
+                controller.getFrontFacingForStructure(),
                 controller.getUpwardsFacing());
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -377,7 +377,7 @@ public class MultiblockPreviewRenderer {
                         // Compute world-space position for this block
                         BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
                                 pos.subtract(pieceCenterInLocal), structureDir,
-                                controller.getFrontFacing().getOpposite(),
+                                controller.getFrontFacingForStructure(),
                                 controller.getUpwardsFacing(),
                                 controller.isFlipped());
                         BlockPos worldPos = pieceCenterPos.add(tPos);
@@ -414,6 +414,15 @@ public class MultiblockPreviewRenderer {
 
     /**
      * Build VBO for the main controller pattern preview at a specific target position.
+     * <p>
+     * The merged preview array produced by
+     * {@link MultiblockControllerBase#buildMultiPieceShapes} is laid out in world
+     * coordinates: each piece's local y (string index) is offset by the cumulative
+     * aisle depth of all preceding pieces, so the merged y already encodes the
+     * world-space vertical position of every block. The blockMap / dummy world use
+     * these merged world coordinates so neighbor lookups and block-state lookups
+     * remain correct, and {@link PreviewRenderUtils#transformPreviewOffset} reads
+     * the merged y directly when producing the world-space offset.
      */
     private static void buildControllerVBO(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                            int layer, BlockPos targetPos) {
@@ -459,7 +468,10 @@ public class MultiblockPreviewRenderer {
                         if (state.getBlock() == Blocks.AIR) continue;
                         if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
 
-                        // Compute world-space position for this block
+                        // Compute world-space position for this block. The merged
+                        // array's y already includes the piece's vertical offset
+                        // from the controller, so transformPreviewOffset can read
+                        // it directly as the world y component.
                         BlockPos tPos = PreviewRenderUtils.transformPreviewOffset(
                                 controllerBase, pos.subtract(controllerPos));
                         BlockPos worldPos = targetPos.add(tPos);

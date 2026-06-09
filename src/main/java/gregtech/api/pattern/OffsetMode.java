@@ -43,16 +43,19 @@ public enum OffsetMode {
      *   <li>offset[2] = back (positive = behind the controller / deeper into the structure)</li>
      * </ul>
      *
-     * <p>Note: The {@code frontFacing} parameter follows GregTech CEu convention and is
-     * {@code controller.getFrontFacing().getOpposite()} — i.e., the "into structure" direction.
+     * <p>Note: The {@code frontFacing} parameter follows the post-refactor convention and is
+     * {@link gregtech.api.metatileentity.multiblock.MultiblockControllerBase#getFrontFacingForStructure()}
+     * — i.e., the controller's actual front for FRONT templates and the opposite for BACK
+     * templates. The "back" direction (offset[2]) is always opposite to this value, which
+     * represents the direction the structure extends away from the controller.</p>
      */
     RELATIVE {
         @Override
         public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
                               @NotNull EnumFacing frontFacing, @NotNull EnumFacing upFacing) {
-            // frontFacing = into-structure direction (controller.getFrontFacing().getOpposite())
-            // back = same as frontFacing (deeper into structure)
-            EnumFacing back = frontFacing;
+            // frontFacing = controller.getFrontFacingForStructure()
+            // back = opposite, i.e., into the structure (always "behind" the controller)
+            EnumFacing back = frontFacing.getOpposite();
             // Right = looking from front face into structure, right side.
             // Vertical facings cannot use rotateYCCW(), so derive the axis from the structure up vector.
             EnumFacing right = deriveRight(frontFacing, upFacing);
@@ -70,16 +73,17 @@ public enum OffsetMode {
      * Vertical (Y) component of the offset is kept absolute.
      * Useful for large structures where pieces are at fixed heights but rotate horizontally.
      *
-     * <p>Note: The {@code frontFacing} parameter follows GregTech CEu convention and is
-     * {@code controller.getFrontFacing().getOpposite()} — i.e., the "into structure" direction.
+     * <p>Note: The {@code frontFacing} parameter follows the post-refactor convention and is
+     * {@link gregtech.api.metatileentity.multiblock.MultiblockControllerBase#getFrontFacingForStructure()}.
+     * </p>
      */
     HORIZONTAL_RELATIVE {
         @Override
         public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
                               @NotNull EnumFacing frontFacing, @NotNull EnumFacing upFacing) {
             // Only apply horizontal rotation for X/Z, keep Y absolute
-            // frontFacing = into-structure direction
-            EnumFacing back = frontFacing;
+            // frontFacing = controller.getFrontFacingForStructure()
+            EnumFacing back = frontFacing.getOpposite();
             EnumFacing right = deriveRight(frontFacing, upFacing);
 
             int dx = right.getXOffset() * offset[0] + back.getXOffset() * offset[2];
@@ -95,7 +99,8 @@ public enum OffsetMode {
      *
      * @param controllerPos the controller's position
      * @param offset        the raw offset [3 ints]
-     * @param frontFacing   the "into structure" direction (controller.getFrontFacing().getOpposite())
+     * @param frontFacing   {@link gregtech.api.metatileentity.multiblock.MultiblockControllerBase#getFrontFacingForStructure()}
+     *                      (the controller's actual front for FRONT templates, opposite for BACK templates)
      * @param upFacing      the controller's upward facing
      * @return the computed world position for the piece center
      */

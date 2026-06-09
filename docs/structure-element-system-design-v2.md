@@ -1488,7 +1488,7 @@ public class MetaTileEntityDistillationTower extends MultiblockControllerBase {
 public class MetaTileEntityDistillationTower extends MultiblockControllerBase {
     private static final StructureDefinition DEFINITION = StructureDefinition.getOrBuild(
         "gregtech:distillation_tower", () ->
-        StructureDefinition.builder(RIGHT, FRONT, UP)
+        StructureDefinition.builder(RIGHT, BACK, UP)
             .piece("top", "YSY", "YYY", "YYY")
                 .where('S', self(MetaTileEntityDistillationTower.class))
                 .where('Y', block(casingState))
@@ -1618,7 +1618,7 @@ public class MetaTileEntityDistillationTower extends MultiblockControllerBase {
 
     private static final StructureDefinition DEFINITION = StructureDefinition.getOrBuild(
         "gregtech:distillation_tower", () ->
-        StructureDefinition.builder(RIGHT, FRONT, UP)
+        StructureDefinition.builder(RIGHT, BACK, UP)
             .piece("top", "YSY", "YYY", "YYY")
                 .where('S', self(MetaTileEntityDistillationTower.class))
                 .where('Y', block(casingState))
@@ -1682,7 +1682,7 @@ public class MetaTileEntityAssemblyLine extends MultiblockControllerBase {
 
     private static final StructureDefinition DEFINITION = StructureDefinition.getOrBuild(
         "gregtech:assembly_line", () ->
-        StructureDefinition.builder(FRONT, UP, RIGHT)
+        StructureDefinition.builder(RIGHT, UP, BACK)
             .pieceFromFactory("head", FactoryBlockPattern.start()
                 .aisle("FIF", "RTR", "SAG", " Y ")
                 .where('S', self(MetaTileEntityAssemblyLine.class))

@@ -55,7 +55,7 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     private static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:data_bank", () -> DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+            "gregtech:data_bank", () -> DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                     .piece("top")
                         .aisle("XXX", "XXX", "XXX")
                     .repeatablePiece("body1", 1, 3)

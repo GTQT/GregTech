@@ -188,7 +188,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
             .register("gregtech:battery_accumulator", () ->
-                    DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                             // Base layer — electrical panel and controller
                             .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                             // Battery module layer 1

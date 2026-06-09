@@ -8,9 +8,11 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTUtility;
 
 import net.minecraft.client.resources.I18n;
@@ -68,6 +70,21 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         if (player.isSneaking()) {
             if (!multiblock.isStructureFormed()) {
                 Map<String, Integer> channelValues = tierToChannelValues(tier);
+                StructureDefinition def = multiblock.getStructureDefinition();
+                System.out.println("[Builder] tier=" + tier + " channels=" + channelValues
+                        + " structureDef=" + (def == null ? "null" : "present")
+                        + " pieceCount=" + (def == null ? 0
+                                : def.getCompiledPattern().getPieceList().size()));
+                // Multi-piece structures (new StructureDefinition system) need
+                // per-piece auto-build so dynamic offsets can resolve their
+                // anchor's repeat count. The legacy single-piece autoBuild
+                // path only places blocks at the controller's position, so
+                // pieces like "top" anchored to a repeatable "body" would be
+                // placed at the wrong Y (typically at the static baseOffset
+                // or the controller's position).
+                if (autoBuildAllPieces(multiblock, player, channelValues)) {
+                    return EnumActionResult.SUCCESS;
+                }
                 MultiblockState state = multiblock.getMultiblockState();
                 if (state != null) {
                     state.autoBuild(player, multiblock, channelValues, false);
@@ -99,6 +116,38 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
                     .setStyle(new Style().setColor(TextFormatting.GREEN)));
             return EnumActionResult.SUCCESS;
         }
+    }
+
+    /**
+     * Attempt to auto-build all pieces of a multi-piece multiblock structure
+     * via the new {@link gregtech.api.pattern.element.StructureDefinition}
+     * pipeline. Returns true if the controller's structure definition is a
+     * multi-piece pattern and a build was attempted (regardless of whether
+     * every piece could be placed — some may fail if the player is missing
+     * required materials). Returns false for single-piece structures (legacy
+     * {@link BlockPattern} path) so the caller can fall back to
+     * {@link MultiblockState#autoBuild}.
+     *
+     * <p>The per-piece build is required for structures that mix fixed
+     * pieces (e.g. a "top" cap) with repeatable pieces (e.g. a "body"
+     * whose extent is determined by the user-selected tier / channel
+     * value). The single-piece legacy path doesn't know about dynamic
+     * offsets and would place the "top" at the static baseOffset, which
+     * is typically the controller's position.
+     */
+    private boolean autoBuildAllPieces(@NotNull MultiblockControllerBase multiblock,
+                                       @NotNull EntityPlayer player,
+                                       @NotNull Map<String, Integer> channelValues) {
+        StructureDefinition definition = multiblock.getStructureDefinition();
+        if (definition == null) return false;
+        MultiPiecePattern multiPiece = definition.getCompiledPattern();
+        int pieceCount = multiPiece.getPieceList().size();
+        if (pieceCount == 0) return false;
+        for (int i = 1; i <= pieceCount; i++) {
+            multiPiece.autoBuildPiece(i, player, multiblock, channelValues, false,
+                    multiblock.getPieceRuntimes());
+        }
+        return true;
     }
 
     /**

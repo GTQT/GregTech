@@ -266,7 +266,9 @@ public class GhostBlockRenderer {
         controllerPos = PreviewRenderUtils.findControllerInPreview(blocks, controller);
         surfaceBlocks = PreviewRenderUtils.computeSurfaceBlocks(blockMap);
 
-        // Compute world-space positions for all blocks (near-zero cost)
+        // Compute world-space positions for all blocks (near-zero cost).
+        // The merged array's y already includes the cumulative aisle offset
+        // between pieces, so transformPreviewOffset can read it directly.
         ghostBlocks.clear();
         BlockPos worldControllerPos = controller.getPos();
         for (BlockPos localPos : blockMap.keySet()) {

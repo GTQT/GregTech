@@ -3,6 +3,7 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
@@ -734,6 +735,12 @@ public class RepeatGroupPiece extends StructurePiece {
         // step into the cell loop as a template-local offset. setActualRelativeOffset
         // therefore runs exactly once per cell.
         BlockPos pieceCenter = getCenterPos(controllerOrigin, front, up);
+        // Cache the actual repeat counts on the runtime so subsequent pieces
+        // (notably DynamicOffsetPieces anchored to this one) can read them via
+        // FormedStructureMetadata. Without this, the auto-build path cannot
+        // resolve the anchor's repeat count and the following piece falls
+        // back to its static baseOffset.
+        runtime.cacheFormedReps(reps);
 
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];

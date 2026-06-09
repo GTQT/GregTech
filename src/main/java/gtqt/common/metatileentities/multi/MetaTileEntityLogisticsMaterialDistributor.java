@@ -151,7 +151,7 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     // but with different hatch abilities — a pattern the L3 casing API does
     // not express directly.
     protected StructureDefinition createStructureDefinition() {
-        return DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+        return DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                 .piece("header")
                     .aisle("ISI", "OEO")
                     .aisle("XXX", "OEO")

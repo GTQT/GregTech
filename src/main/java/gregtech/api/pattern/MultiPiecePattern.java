@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.element.FormedStructureMetadata;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
@@ -15,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,30 +179,68 @@ public class MultiPiecePattern {
     public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
                                      EnumFacing upwardsFacing, boolean allowsFlip,
                                      @NotNull PieceRuntimes runtimes) {
+        // Accumulates per-piece repeat counts as we sweep through the piece list,
+        // so a DynamicOffsetPiece can read the runtime repeat count of its
+        // anchor when computing its center position. This is the dirty-check
+        // equivalent of the prior metadata built up in
+        // gregtech.api.pattern.element.StructureCheckState.check.
+        Map<String, int[]> priorRepeats = new HashMap<>();
+
         for (StructurePiece piece : pieceList) {
             if (!piece.isActive()) continue;
 
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime == null) continue;
 
-            if (runtime.isDirty()) {
-                BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing);
-                PatternMatchContext result = runtime.getState().checkPatternFastAt(
-                        world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(priorRepeats), Collections.emptyMap());
 
-                if (result != null) {
-                    runtime.setValidated(true);
-                    // Atomically swap the piece's position set from the state cache
-                    LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
-                    runtime.swapPositions(newPositions);
+            if (runtime.isDirty()) {
+                if (piece instanceof RepeatGroupPiece repeatPiece) {
+                    // RepeatGroupPiece requires specialised multi-slice checking;
+                    // using checkPatternFastAt would only verify the base slice (r=0)
+                    // and miss all repeated slices, leading to incorrect validation
+                    // and an incomplete position set.
+                    boolean ok = repeatPiece.checkSync(world, controllerPos, frontFacing,
+                            upwardsFacing, allowsFlip, prior, runtime);
+                    if (ok) {
+                        runtime.setValidated(true);
+                    } else {
+                        runtime.setValidated(false);
+                    }
                 } else {
-                    runtime.setValidated(false);
+                    BlockPos pieceCenter = piece.getCenterPos(controllerPos, frontFacing, upwardsFacing, prior);
+                    PatternMatchContext result = runtime.getState().checkPatternFastAt(
+                            world, pieceCenter, frontFacing, upwardsFacing, allowsFlip);
+
+                    if (result != null) {
+                        runtime.setValidated(true);
+                        // Atomically swap the piece's position set from the state cache
+                        LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
+                        runtime.swapPositions(newPositions);
+                    } else {
+                        runtime.setValidated(false);
+                    }
                 }
                 runtime.clearDirty();
             }
 
             if (!runtime.isValidated()) {
                 return false;
+            }
+
+            // Add this piece's repeat counts to the prior metadata so subsequent
+            // pieces (which may be DynamicOffsetPieces) can read them.
+            if (piece instanceof RepeatGroupPiece) {
+                int[] reps = runtime.getLastFormedReps();
+                if (reps != null && reps.length > 0) {
+                    priorRepeats.put(piece.getName(), reps.clone());
+                }
+            } else {
+                int[] reps = runtime.getState().formedRepetitionCount;
+                if (reps != null && reps.length > 0) {
+                    priorRepeats.put(piece.getName(), reps.clone());
+                }
             }
         }
         return true;
@@ -256,6 +296,13 @@ public class MultiPiecePattern {
      * piece's runtime state. For {@link RepeatGroupPiece}, the per-piece runtime
      * is forwarded to its multi-axis auto-build path.
      *
+     * <p>For pieces anchored to a repeatable body (i.e. {@link DynamicOffsetPiece}),
+     * the anchor's repeat count is read from the per-piece runtime's
+     * {@link PieceRuntime#getLastFormedReps()} so the dynamic offset can resolve
+     * to the correct world position. The body must be built (i.e. its runtime
+     * cached the repeat counts) before the anchored piece's auto-build is
+     * invoked, otherwise the piece will fall back to its static baseOffset.
+     *
      * @param pieceIndex     1-based index into the piece list
      * @param player         the player performing the build
      * @param controller     the multiblock controller
@@ -273,16 +320,52 @@ public class MultiPiecePattern {
         PieceRuntime runtime = runtimes.get(piece);
         if (runtime == null) return false;
 
+        // Build prior metadata from preceding pieces' runtime state. The
+        // check path accumulates this incrementally as each piece is checked;
+        // the auto-build path is per-piece, so we rebuild it on demand from
+        // whatever the previous pieces' runtimes have cached via
+        // PieceRuntime.getLastFormedReps().
+        FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes);
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
-                    controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing(),
+                    controller.getFrontFacingForStructure(), controller.getUpwardsFacing(),
                     controller.isFlipped(), channelValues, skipHatches, runtime);
         } else {
+            // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
+            // prior metadata and can compute its dynamic position. Non-anchor
+            // pieces ignore the prior and behave identically to the 3-arg form.
             BlockPos pieceCenter = piece.getCenterPos(
-                    controller.getPos(), controller.getFrontFacing().getOpposite(), controller.getUpwardsFacing());
+                    controller.getPos(), controller.getFrontFacingForStructure(),
+                    controller.getUpwardsFacing(), prior);
             runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
         }
         return true;
+    }
+
+    /**
+     * Build a {@link FormedStructureMetadata} snapshot from the per-piece runtimes
+     * of all pieces preceding {@code upToIndex} (1-based, exclusive). Repeat
+     * counts are read from each runtime's {@code lastFormedReps} field, which is
+     * populated by the check path ({@code checkDirtyPieces}) and by
+     * {@code RepeatGroupPiece.autoBuildAtRepeated}.
+     *
+     * <p>This is the auto-build equivalent of the incremental
+     * {@code priorRepeats} accumulation done in
+     * {@link #checkDirtyPieces(World, BlockPos, EnumFacing, EnumFacing, boolean, PieceRuntimes)}.
+     */
+    @NotNull
+    private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes) {
+        Map<String, int[]> priorRepeats = new HashMap<>();
+        for (int i = 0; i < upToIndex - 1; i++) {
+            StructurePiece p = pieceList.get(i);
+            PieceRuntime r = runtimes.get(p);
+            if (r == null) continue;
+            int[] reps = r.getLastFormedReps();
+            if (reps != null && reps.length > 0) {
+                priorRepeats.put(p.getName(), reps.clone());
+            }
+        }
+        return FormedStructureMetadata.fromCheckResult(priorRepeats, Collections.emptyMap());
     }
 
     /**

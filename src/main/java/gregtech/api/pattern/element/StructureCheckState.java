@@ -135,11 +135,19 @@ public final class StructureCheckState {
             // the runtimes from the same pattern above.
             PieceRuntime runtime = transientRuntimes.get(piece);
 
+            // Build a FormedStructureMetadata snapshot of all previously-checked
+            // pieces, so a DynamicOffsetPiece can read the repeat count of its
+            // anchor at the time this piece's center position is computed. This
+            // is rebuilt every iteration because FormedStructureMetadata is
+            // immutable.
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(pieceRepeats), new HashMap<>(channelValues));
+
             if (piece instanceof RepeatGroupPiece repeatPiece) {
                 // Repeatable piece: use synchronous World-based check
                 // (uses checkPatternFastAt for cache-accelerated checks)
                 boolean ok = repeatPiece.checkSync(
-                        world, controllerPos, front, up, flipped, null, runtime);
+                        world, controllerPos, front, up, flipped, prior, runtime);
                 if (!ok) {
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
@@ -161,7 +169,9 @@ public final class StructureCheckState {
                 }
             } else {
                 // Fixed piece: standard single-template check
-                BlockPos centerPos = piece.getCenterPos(controllerPos, front, up);
+                // Use the 4-arg getCenterPos so dynamic-anchor pieces can compute
+                // their position from the prior pieces' repeat counts.
+                BlockPos centerPos = piece.getCenterPos(controllerPos, front, up, prior);
                 PatternMatchContext pieceContext = runtime.getState()
                         .checkPatternFastAt(world, centerPos, front, up, flipped);
 

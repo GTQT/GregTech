@@ -416,7 +416,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 && beamShaftRuntime.isDirty();
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
-                getWorld(), getPos(), getFrontFacing().getOpposite(),
+                getWorld(), getPos(), getFrontFacingForStructure(),
                 getUpwardsFacing(), allowsFlip(), runtimes);
 
         if (!allValid && isStructureFormed()) {
@@ -437,17 +437,17 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (getWorld() == null || getPos() == null) return false;
         return BEAM_SHAFT_TEMPLATE.get()
                 .createState()
-                .checkPatternFastAt(getWorld(), getPos(), getFrontFacing().getOpposite(),
+                .checkPatternFastAt(getWorld(), getPos(), getFrontFacingForStructure(),
                         getUpwardsFacing(), allowsFlip(), false) != null;
     }
 
     private boolean isRingTemplateFormed(SoftTemplate template, Vec3i pieceOffset) {
         BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                 new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                getFrontFacing().getOpposite(), getUpwardsFacing());
+                getFrontFacingForStructure(), getUpwardsFacing());
         return template.get()
                 .createState()
-                .checkPatternFastAt(getWorld(), pieceOrigin, getFrontFacing().getOpposite(),
+                .checkPatternFastAt(getWorld(), pieceOrigin, getFrontFacingForStructure(),
                         getUpwardsFacing(), allowsFlip(), false) != null;
     }
 
@@ -1451,7 +1451,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
         BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                 new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                getFrontFacing().getOpposite(), getUpwardsFacing());
+                getFrontFacingForStructure(), getUpwardsFacing());
         int changed = 0;
 
         for (int z = 0; z < shape.length; z++) {
@@ -1467,7 +1467,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                             x - centerOffset[0],
                             y - centerOffset[1],
                             z - centerOffset[2],
-                            getFrontFacing().getOpposite(),
+                            getFrontFacingForStructure(),
                             getUpwardsFacing(),
                             isFlipped(),
                             GODFORGE_STRUCTURE_DIRECTIONS);
@@ -1510,7 +1510,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 int[] centerOffset = getRingCenter(ringIndex);
                 BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                         new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                        getFrontFacing().getOpposite(), getUpwardsFacing());
+                        getFrontFacingForStructure(), getUpwardsFacing());
 
                 while (z < shape.length && processedBlocks < blockBudget) {
                     String[] layer = shape[z];
@@ -1527,7 +1527,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                                     currentX - centerOffset[0],
                                     y - centerOffset[1],
                                     z - centerOffset[2],
-                                    getFrontFacing().getOpposite(),
+                                    getFrontFacingForStructure(),
                                     getUpwardsFacing(),
                                     isFlipped(),
                                     GODFORGE_STRUCTURE_DIRECTIONS);
