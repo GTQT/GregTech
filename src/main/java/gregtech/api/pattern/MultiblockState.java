@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.GTLog;
 import gregtech.api.util.Mods;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.util.RelativeDirection;
@@ -567,12 +566,6 @@ public class MultiblockState {
 
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
-        GTLog.logger.warn("[GT_DEBUG] autoBuildAt entry: centerPos={}, xOff={}, yOff={}, zOff={}, facing={}, up={}, flipped={}, structDir=[{}, {}, {}], centerOffset=({},{},{},{},{})",
-                centerPos, xOffset, yOffset, zOffset, facing, controllerBase.getUpwardsFacing(),
-                controllerBase.isFlipped(), structureDir[0], structureDir[1], structureDir[2],
-                centerOffset.x(), centerOffset.y(), centerOffset.z(), centerOffset.minZ(), centerOffset.maxZ());
-
-        boolean firstCell = true;
         for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
             for (r = 0; r < repetitions[c]; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
@@ -584,11 +577,6 @@ public class MultiblockState {
                                 controllerBase.getUpwardsFacing(),
                                 controllerBase.isFlipped(), structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
-                        if (firstCell) {
-                            GTLog.logger.warn("[GT_DEBUG]   firstCell: template(a={},b={},c={}) -> local(x={},y={},z={}) + offset({},{},{}) -> worldPos={}",
-                                    a, b, c, x, y, z, xOffset, yOffset, zOffset, pos);
-                            firstCell = false;
-                        }
                         bws.update(world, pos, matchContext, globalCount, layerCount, predicate);
                         if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
                             blocks.put(pos, world.getBlockState(pos));
@@ -865,6 +853,9 @@ public class MultiblockState {
                 RelativeDirection.ALL_FACINGS);
         blocks.forEach((pos, block) -> {
             if (block instanceof MetaTileEntity) {
+                // Do not reassign the controller's front facing — it was set by the
+                // player and must remain stable across multi-slice auto-build calls.
+                if (block == controllerBase) return;
                 MetaTileEntity metaTileEntity = (MetaTileEntity) block;
                 boolean find = false;
                 for (EnumFacing enumFacing : facings) {
