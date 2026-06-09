@@ -159,8 +159,9 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
                 if (inventory.getStackInSlot(slot).isEmpty())
                     return false;
             }
+            return true;
         }
-        return true;
+        else return false;
     }
 
     @Override

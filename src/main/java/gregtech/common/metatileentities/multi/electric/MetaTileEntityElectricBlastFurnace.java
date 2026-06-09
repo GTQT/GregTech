@@ -64,6 +64,7 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                             .where('#', air())
                             .casing('X', CasingDefinition.simple(MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
                             .preset(HatchPresets.STANDARD_IO)
+                            .maintenance()
                             .energyInput(1,2)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())

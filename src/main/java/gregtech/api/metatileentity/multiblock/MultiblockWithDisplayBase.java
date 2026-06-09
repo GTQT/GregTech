@@ -281,7 +281,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     public boolean isMufflerFaceFree() {
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).isEmpty())
             return false;
 
         return isStructureFormed() && hasMufflerMechanics() &&
@@ -289,7 +289,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     public boolean isMufflerEmpty() {
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).isEmpty())
             return false;
 
         return isStructureFormed() && hasMufflerMechanics() &&
