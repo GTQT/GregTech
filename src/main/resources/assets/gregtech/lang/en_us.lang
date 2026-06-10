@@ -8143,5 +8143,7 @@ gt.blockmachines.multimachine.FOG.rendering=Rendering Wizard
 gt.blockmachines.multimachine.FOG.bucket=BucketBrigade
 gt.blockmachines.multimachine.FOG.playtesting=Playtesting
 gt.blockmachines.multimachine.FOG.misi=Misi
+gregtech.multiblock.missing_ability_header=Missing required structure hatches:
+gregtech.multiblock.missing_ability=  %1$dx %2$s
 gt.blockmachines.multimachine.FOG.thanks=A huge thank you to these incredible people for helping to make this a reality! -Cloud
 gt.blockmachines.multimachine.FOG.clickstat=Click to view value breakdown

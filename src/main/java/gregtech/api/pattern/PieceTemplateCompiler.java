@@ -1,6 +1,8 @@
 package gregtech.api.pattern;
 
 import gregtech.api.util.RelativeDirection;
+import gregtech.api.pattern.element.CompiledStructureElement;
+import gregtech.api.pattern.element.IStructureElement;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
@@ -56,6 +58,7 @@ public final class PieceTemplateCompiler {
     private final List<int[]> aisleRepetitions = new ArrayList<>();
     private final List<String> aisleChannelNames = new ArrayList<>();
     private final Map<Character, TraceabilityPredicate> symbolMap = new HashMap<>();
+    private final Map<Character, CompiledStructureElement<?>> elementMap = new HashMap<>();
     private int aisleHeight;
     private int rowWidth;
 
@@ -91,6 +94,7 @@ public final class PieceTemplateCompiler {
         }
         if (flags != 0x7) throw new IllegalArgumentException("Must have 3 different axes!");
         this.symbolMap.put(' ', TraceabilityPredicate.ANY);
+        this.elementMap.put(' ', CompiledStructureElement.legacy(TraceabilityPredicate.ANY));
     }
 
     /**
@@ -141,6 +145,7 @@ public final class PieceTemplateCompiler {
                     for (char c0 : s.toCharArray()) {
                         if (!this.symbolMap.containsKey(c0)) {
                             this.symbolMap.put(c0, null);
+                            this.elementMap.put(c0, null);
                         }
                     }
                 }
@@ -197,8 +202,32 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplateCompiler where(char symbol, @NotNull TraceabilityPredicate blockMatcher) {
-        this.symbolMap.put(symbol, new TraceabilityPredicate(blockMatcher).sort());
+        TraceabilityPredicate predicate = new TraceabilityPredicate(blockMatcher).sort();
+        this.symbolMap.put(symbol, predicate);
+        this.elementMap.put(symbol, CompiledStructureElement.legacy(predicate));
         return this;
+    }
+
+    /**
+     * Map a symbol to the canonical element contract. The element is compiled
+     * once and its predicate view is retained only for legacy algorithms.
+     */
+    @NotNull
+    public PieceTemplateCompiler whereElement(char symbol, @NotNull IStructureElement<?> element) {
+        CompiledStructureElement<?> compiled = element.compile();
+        this.elementMap.put(symbol, compiled);
+        this.symbolMap.put(symbol, compiled.toPredicate());
+        return this;
+    }
+
+    @NotNull
+    public PieceTemplateCompiler whereElement(@NotNull String symbol,
+                                              @NotNull IStructureElement<?> element) {
+        if (symbol.length() == 1) {
+            return whereElement(symbol.charAt(0), element);
+        }
+        throw new IllegalArgumentException(
+                String.format("Symbol \"%s\" is invalid! It must be exactly one character!", symbol));
     }
 
     /**
@@ -229,10 +258,7 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public BlockPatternTemplate buildTemplate() {
-        return new BlockPatternTemplate(makePredicateArray(), structureDir,
-                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
-                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
-                null, null);
+        return new BlockPatternTemplate(buildPieceTemplate());
     }
 
     /**
@@ -243,7 +269,7 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplate buildPieceTemplate() {
-        return new PieceTemplate(makePredicateArray(), structureDir,
+        return new PieceTemplate(makePredicateArray(), makeElementArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
                 null, null);
@@ -259,10 +285,7 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset) {
-        return new BlockPatternTemplate(makePredicateArray(), structureDir,
-                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
-                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
-                centerOffset, null);
+        return new BlockPatternTemplate(buildPieceTemplate(centerOffset));
     }
 
     /**
@@ -275,7 +298,7 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset) {
-        return new PieceTemplate(makePredicateArray(), structureDir,
+        return new PieceTemplate(makePredicateArray(), makeElementArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
                 centerOffset, null);
@@ -293,12 +316,7 @@ public final class PieceTemplateCompiler {
     @NotNull
     public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset,
                                               @Nullable List<String> structureDescription) {
-        return new BlockPatternTemplate(makePredicateArray(), structureDir,
-                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
-                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
-                centerOffset,
-                (structureDescription == null || structureDescription.isEmpty())
-                        ? null : structureDescription);
+        return new BlockPatternTemplate(buildPieceTemplate(centerOffset, structureDescription));
     }
 
     /**
@@ -310,7 +328,7 @@ public final class PieceTemplateCompiler {
     @NotNull
     public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset,
                                             @Nullable List<String> structureDescription) {
-        return new PieceTemplate(makePredicateArray(), structureDir,
+        return new PieceTemplate(makePredicateArray(), makeElementArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
                 centerOffset,
@@ -337,6 +355,22 @@ public final class PieceTemplateCompiler {
         }
 
         return predicate;
+    }
+
+    @NotNull
+    public IStructureElement<?>[][][] makeElementArray() {
+        this.checkMissingPredicates();
+        IStructureElement<?>[][][] elements = (IStructureElement<?>[][][]) Array
+                .newInstance(IStructureElement.class, this.depth.size(), this.aisleHeight, this.rowWidth);
+
+        for (int i = 0; i < this.depth.size(); ++i) {
+            for (int j = 0; j < this.aisleHeight; ++j) {
+                for (int k = 0; k < this.rowWidth; ++k) {
+                    elements[i][j][k] = this.elementMap.get(this.depth.get(i)[j].charAt(k));
+                }
+            }
+        }
+        return elements;
     }
 
     /**

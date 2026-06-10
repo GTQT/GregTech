@@ -17,7 +17,7 @@ import java.util.function.Supplier;
  * Element that matches tiered blocks with a channel name for tier selection.
  * Used for blocks like heating coils where the tier determines the block variant.
  */
-public class TieredElement implements IStructureElement {
+public class TieredElement implements IStructureElement<Object> {
 
     private final Supplier<BlockInfo[]> candidates;
     private final String channelName;

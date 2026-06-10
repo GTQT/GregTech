@@ -2,6 +2,7 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -25,7 +26,15 @@ import java.util.List;
  * the only point of contact between the two systems, so the rest of the
  * element API does not need to mention TraceabilityPredicate.
  */
-public interface IStructureElement {
+public interface IStructureElement<T> {
+
+    /**
+     * Canonical runtime match entry. Compiled templates call this method for
+     * both live-world and snapshot checks.
+     */
+    default boolean check(@NotNull StructureEvaluationContext<T> context) {
+        return context.testElementPredicate();
+    }
 
     /**
      * Check if the block at the given position matches this element.
@@ -45,6 +54,13 @@ public interface IStructureElement {
     BlockInfo[] getCandidates();
 
     /**
+     * Canonical candidate entry for preview and both build modes.
+     */
+    default BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<T> context) {
+        return getCandidates();
+    }
+
+    /**
      * Place a block at the given position for auto-build.
      *
      * @param world       the world
@@ -58,12 +74,44 @@ public interface IStructureElement {
                        EntityPlayer player, boolean skipHatches);
 
     /**
+     * Canonical placement entry. The operation in the evaluation context
+     * distinguishes creative and survival construction.
+     */
+    default boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
+                               @NotNull EntityPlayer player, boolean skipHatches) {
+        World world = context.getWorld();
+        if (world == null) {
+            throw new IllegalStateException("Cannot place a structure element against a snapshot");
+        }
+        return placeBlock(world, context.getPos(), context.getLegacyContext(), player, skipHatches);
+    }
+
+    /**
      * Spawn a structure hint at the given position.
      *
      * @param world the world
      * @param pos   the block position
      */
     void spawnHint(World world, BlockPos pos);
+
+    /**
+     * Canonical hint entry.
+     */
+    default void spawnHint(@NotNull StructureEvaluationContext<T> context) {
+        World world = context.getWorld();
+        if (world == null) {
+            throw new IllegalStateException("Cannot spawn a structure hint against a snapshot");
+        }
+        spawnHint(world, context.getPos());
+    }
+
+    /**
+     * Compile this declaration to the immutable element executed by templates.
+     */
+    @NotNull
+    default CompiledStructureElement<T> compile() {
+        return CompiledStructureElement.compile(this);
+    }
 
     /** Minimum global count for this element (0 = no minimum). */
     default int getMinGlobalCount() {
@@ -109,7 +157,7 @@ public interface IStructureElement {
      * @param compiler  the target template compiler (in build state)
      */
     default void applyTo(@NotNull String symbol, @NotNull PieceTemplateCompiler compiler) {
-        compiler.where(symbol, toPredicate());
+        compiler.whereElement(symbol, this);
     }
 
     /**

@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * Element that matches hatch positions for multiblock abilities.
  */
-public class HatchElement implements IStructureElement {
+public class HatchElement implements IStructureElement<Object> {
 
     private final MultiblockAbility<?> ability;
     private final int minCount;

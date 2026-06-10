@@ -17,7 +17,7 @@ import java.util.List;
  * Element that wraps an existing TraceabilityPredicate for backward compatibility.
  * Used by pieceFromFactory() to convert old-style predicates to the new element system.
  */
-public class LegacyElement implements IStructureElement {
+public class LegacyElement implements IStructureElement<Object> {
 
     private final TraceabilityPredicate predicate;
 

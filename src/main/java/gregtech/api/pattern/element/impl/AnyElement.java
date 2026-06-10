@@ -1,6 +1,5 @@
 package gregtech.api.pattern.element.impl;
 
-import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
@@ -10,18 +9,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
-
 /**
  * Element that matches any block (wildcard).
- *
- * <p>Depth-optimized: the cached predicate field is the
- * {@link TraceabilityPredicate#ANY} singleton, and {@link #applyTo}
- * bypasses {@link #toPredicate} to skip the per-call method-indirection.
  */
-public class AnyElement implements IStructureElement {
+public class AnyElement implements IStructureElement<Object> {
 
     public static final AnyElement INSTANCE = new AnyElement();
 
@@ -48,12 +39,6 @@ public class AnyElement implements IStructureElement {
     @Override
     public void spawnHint(World world, BlockPos pos) {
         // No hint for wildcard
-    }
-
-    @Override
-    public void applyTo(@NotNull String symbol, @NotNull PieceTemplateCompiler compiler) {
-        // Depth-optimized: register the cached predicate (singleton) directly.
-        compiler.where(symbol, cachedPredicate);
     }
 
     @Override

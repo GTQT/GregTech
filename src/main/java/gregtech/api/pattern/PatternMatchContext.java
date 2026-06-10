@@ -2,7 +2,12 @@ package gregtech.api.pattern;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -72,5 +77,80 @@ public class PatternMatchContext {
 
     public void setNeededFlip(boolean neededFlip) {
         this.neededFlip = neededFlip;
+    }
+
+    /**
+     * Create an isolated copy suitable for speculative structure matching.
+     * Common mutable container values are copied so a failed branch cannot
+     * mutate the parent context through a shared collection.
+     */
+    @NotNull
+    public PatternMatchContext copy() {
+        PatternMatchContext copy = new PatternMatchContext();
+        copy.replaceWith(this);
+        return copy;
+    }
+
+    /**
+     * Replace this context with an isolated copy of another context.
+     */
+    public void replaceWith(@NotNull PatternMatchContext other) {
+        this.data.clear();
+        for (Map.Entry<String, Object> entry : other.data.entrySet()) {
+            this.data.put(entry.getKey(), copyValue(entry.getValue()));
+        }
+        this.neededFlip = other.neededFlip;
+    }
+
+    private static Object copyValue(Object value) {
+        if (value == null) return null;
+        if (value instanceof Map<?, ?> map) {
+            Map<Object, Object> copy = newContainer(value.getClass(), new HashMap<>());
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                copy.put(copyValue(entry.getKey()), copyValue(entry.getValue()));
+            }
+            return copy;
+        }
+        if (value instanceof Set<?> set) {
+            Set<Object> copy = newContainer(value.getClass(), new HashSet<>());
+            for (Object element : set) {
+                copy.add(copyValue(element));
+            }
+            return copy;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> copy = newContainer(value.getClass(), new ArrayList<>(list.size()));
+            for (Object element : list) {
+                copy.add(copyValue(element));
+            }
+            return copy;
+        }
+        if (value instanceof Collection<?> collection) {
+            Collection<Object> copy = newContainer(
+                    value.getClass(), new ArrayList<>(collection.size()));
+            for (Object element : collection) {
+                copy.add(copyValue(element));
+            }
+            return copy;
+        }
+        Class<?> valueClass = value.getClass();
+        if (valueClass.isArray()) {
+            int length = Array.getLength(value);
+            Object copy = Array.newInstance(valueClass.getComponentType(), length);
+            for (int i = 0; i < length; i++) {
+                Array.set(copy, i, copyValue(Array.get(value, i)));
+            }
+            return copy;
+        }
+        return value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T newContainer(Class<?> containerClass, T fallback) {
+        try {
+            return (T) containerClass.getConstructor().newInstance();
+        } catch (ReflectiveOperationException | SecurityException ignored) {
+            return fallback;
+        }
     }
 }

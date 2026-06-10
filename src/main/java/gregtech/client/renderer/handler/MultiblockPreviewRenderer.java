@@ -333,7 +333,8 @@ public class MultiblockPreviewRenderer {
                 controller.getPos(),
                 controller.getFrontFacingForStructure(),
                 controller.getUpwardsFacing(),
-                controller.isFlipped());
+                controller.isFlipped(),
+                controller);
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();

@@ -38,6 +38,9 @@ import net.minecraft.util.SoundCategory;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
@@ -55,6 +58,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static gregtech.api.capability.GregtechDataCodes.IS_WORKING;
 import static gregtech.api.capability.GregtechDataCodes.STORE_TAPED;
@@ -720,6 +724,24 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      */
     protected void addDisplayText(List<ITextComponent> textList) {
         MultiblockDisplayText.builder(textList, isStructureFormed());
+        addMissingStructureAbilityText(textList);
+    }
+
+    private void addMissingStructureAbilityText(List<ITextComponent> textList) {
+        Map<String, Integer> missingAbilities = getMissingStructureAbilities();
+        if (isStructureFormed() || missingAbilities.isEmpty()) return;
+
+        textList.add(new TextComponentTranslation(
+                "gregtech.multiblock.missing_ability_header")
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
+        for (Map.Entry<String, Integer> entry : missingAbilities.entrySet()) {
+            textList.add(new TextComponentTranslation(
+                    "gregtech.multiblock.missing_ability",
+                    entry.getValue(),
+                    new TextComponentTranslation(
+                            "gregtech.multiblock.ability." + entry.getKey()))
+                                    .setStyle(new Style().setColor(TextFormatting.RED)));
+        }
     }
 
     /**

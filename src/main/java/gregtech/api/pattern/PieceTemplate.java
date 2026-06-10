@@ -1,6 +1,8 @@
 package gregtech.api.pattern;
 
 import gregtech.api.util.RelativeDirection;
+import gregtech.api.pattern.element.CompiledStructureElement;
+import gregtech.api.pattern.element.IStructureElement;
 
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -33,6 +35,7 @@ import java.util.function.BiConsumer;
 public final class PieceTemplate {
 
     private final TraceabilityPredicate[][][] blockMatches; // [z][y][x]
+    private final IStructureElement<?>[][][] elements; // [z][y][x]
     private final BlockPatternTemplate.AisleDef[] aisles;
     private final RelativeDirection[] structureDir;
     private final int xLength; // x size (char axis)
@@ -47,14 +50,16 @@ public final class PieceTemplate {
     public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
                          @NotNull RelativeDirection[] structureDir,
                          @NotNull int[][] aisleRepetitions) {
-        this(predicatesIn, structureDir, aisleRepetitions, null, null, null);
+        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir,
+                aisleRepetitions, null, null, null);
     }
 
     public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
                          @NotNull RelativeDirection[] structureDir,
                          @NotNull int[][] aisleRepetitions,
                          @Nullable String[] aisleChannelNames) {
-        this(predicatesIn, structureDir, aisleRepetitions, aisleChannelNames, null, null);
+        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir,
+                aisleRepetitions, aisleChannelNames, null, null);
     }
 
     /**
@@ -75,7 +80,19 @@ public final class PieceTemplate {
                          @Nullable String[] aisleChannelNames,
                          @Nullable int[] externalCenterOffset,
                          @Nullable List<String> structureDescription) {
+        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir, aisleRepetitions,
+                aisleChannelNames, externalCenterOffset, structureDescription);
+    }
+
+    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
+                         @NotNull IStructureElement<?>[][][] elements,
+                         @NotNull RelativeDirection[] structureDir,
+                         @NotNull int[][] aisleRepetitions,
+                         @Nullable String[] aisleChannelNames,
+                         @Nullable int[] externalCenterOffset,
+                         @Nullable List<String> structureDescription) {
         this.blockMatches = predicatesIn;
+        this.elements = elements;
         this.zLength = predicatesIn.length;
         this.structureDir = structureDir;
         this.aisles = buildAisles(aisleRepetitions, aisleChannelNames);
@@ -137,6 +154,27 @@ public final class PieceTemplate {
 
     public TraceabilityPredicate[][][] getBlockMatches() {
         return blockMatches;
+    }
+
+    @NotNull
+    public IStructureElement<?>[][][] getElements() {
+        return elements;
+    }
+
+    @NotNull
+    private static IStructureElement<?>[][][] compileLegacyElements(
+            @NotNull TraceabilityPredicate[][][] predicates) {
+        IStructureElement<?>[][][] result = new IStructureElement<?>[predicates.length][][];
+        for (int z = 0; z < predicates.length; z++) {
+            result[z] = new IStructureElement<?>[predicates[z].length][];
+            for (int y = 0; y < predicates[z].length; y++) {
+                result[z][y] = new IStructureElement<?>[predicates[z][y].length];
+                for (int x = 0; x < predicates[z][y].length; x++) {
+                    result[z][y][x] = CompiledStructureElement.legacy(predicates[z][y][x]);
+                }
+            }
+        }
+        return result;
     }
 
     @NotNull

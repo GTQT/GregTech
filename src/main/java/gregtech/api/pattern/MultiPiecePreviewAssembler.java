@@ -1,9 +1,11 @@
 package gregtech.api.pattern;
 
 import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 
+import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
@@ -35,20 +37,30 @@ public final class MultiPiecePreviewAssembler {
     public static Result assemble(@NotNull MultiPiecePattern pattern,
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable Map<String, Integer> channelValues) {
+        return assemble(pattern, runtimes, channelValues, null);
+    }
+
+    @NotNull
+    public static Result assemble(@NotNull MultiPiecePattern pattern,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable Map<String, Integer> channelValues,
+                                  @Nullable MultiblockControllerBase controller) {
         Map<BlockPos, BlockInfo> allBlocks = new HashMap<>();
         Map<BlockPos, TraceabilityPredicate> allPredicates = new HashMap<>();
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
         List<PieceResult> pieceResults = new ArrayList<>();
+        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
 
         for (StructurePiece piece : pattern.getPieceList()) {
-            if (!piece.isActive()) {
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(pieceRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(controller, null, BlockPos.ORIGIN, prior, null);
+            if (!piece.isActive(activation)) {
                 pieceResults.add(PieceResult.empty());
                 continue;
             }
-
-            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
-                    new HashMap<>(pieceRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
             BlockPos pieceCenter = piece.getCenterPos(
                     BlockPos.ORIGIN, CANONICAL_FRONT, CANONICAL_UPWARDS, false, prior);
             PieceTemplate template = piece.getPieceTemplate();
@@ -81,10 +93,18 @@ public final class MultiPiecePreviewAssembler {
                                     x + rawBounds.minX,
                                     y + rawBounds.minY,
                                     z + rawBounds.minZ);
-                            BlockPos relative = raw.subtract(rawCenter).add(canonicalShift);
+                            BlockPos baseRelative = raw.subtract(rawCenter);
+                            TraceabilityPredicate predicate = basePredicates.get(baseRelative);
+                            BlockInfo selected = info;
+                            if (!abilityTracker.canPlace(selected)) {
+                                selected = findFallback(predicate, abilityTracker);
+                            }
+                            abilityTracker.record(selected);
+
+                            BlockPos relative = baseRelative.add(canonicalShift);
                             BlockPos global = pieceCenter.add(relative);
-                            pieceBlocks.put(relative, info);
-                            allBlocks.put(global, info);
+                            pieceBlocks.put(relative, selected);
+                            allBlocks.put(global, selected);
                         }
                     }
                 }
@@ -138,15 +158,32 @@ public final class MultiPiecePreviewAssembler {
             @NotNull EnumFacing front,
             @NotNull EnumFacing upwards,
             boolean flipped) {
+        return resolveWorldPieceCenter(pattern, oneBasedIndex, previewPrior, controllerPos,
+                front, upwards, flipped, null);
+    }
+
+    @NotNull
+    public static BlockPos resolveWorldPieceCenter(
+            @NotNull MultiPiecePattern pattern,
+            int oneBasedIndex,
+            @NotNull FormedStructureMetadata previewPrior,
+            @NotNull BlockPos controllerPos,
+            @NotNull EnumFacing front,
+            @NotNull EnumFacing upwards,
+            boolean flipped,
+            @Nullable MultiblockControllerBase controller) {
         Map<String, int[]> repeats = new HashMap<>();
         Map<String, BlockPos> centers = new HashMap<>();
         List<StructurePiece> pieces = pattern.getPieceList();
         for (int i = 0; i < oneBasedIndex; i++) {
             StructurePiece piece = pieces.get(i);
-            if (!piece.isActive()) continue;
 
             FormedStructureMetadata actualPrior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(repeats), Collections.emptyMap(), new HashMap<>(centers));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(controller, controller == null ? null : controller.getWorld(),
+                            controllerPos, actualPrior, null);
+            if (!piece.isActive(activation)) continue;
             BlockPos center = piece.getCenterPos(
                     controllerPos, front, upwards, flipped, actualPrior);
             if (i == oneBasedIndex - 1) {
@@ -282,6 +319,43 @@ public final class MultiPiecePreviewAssembler {
                 indices[i] = 0;
             }
         }
+    }
+
+    @NotNull
+    private static BlockInfo findFallback(@Nullable TraceabilityPredicate predicate,
+                                          @NotNull AbilityPlacementTracker abilityTracker) {
+        if (predicate == null) return BlockInfo.EMPTY;
+
+        BlockInfo allowedHatch = null;
+        for (TraceabilityPredicate.SimplePredicate simple : predicate.limited) {
+            BlockInfo fallback = findFallback(simple, abilityTracker);
+            if (fallback == null) continue;
+            if (fallback.getTileEntity() == null) return fallback;
+            if (allowedHatch == null) allowedHatch = fallback;
+        }
+        for (TraceabilityPredicate.SimplePredicate simple : predicate.common) {
+            BlockInfo fallback = findFallback(simple, abilityTracker);
+            if (fallback == null) continue;
+            if (fallback.getTileEntity() == null) return fallback;
+            if (allowedHatch == null) allowedHatch = fallback;
+        }
+        return allowedHatch == null ? BlockInfo.EMPTY : allowedHatch;
+    }
+
+    @Nullable
+    private static BlockInfo findFallback(@NotNull TraceabilityPredicate.SimplePredicate predicate,
+                                          @NotNull AbilityPlacementTracker abilityTracker) {
+        if (predicate.candidates == null) return null;
+        BlockInfo[] candidates = predicate.candidates.get();
+        if (candidates == null) return null;
+        for (BlockInfo candidate : candidates) {
+            if (candidate != null
+                    && candidate.getBlockState().getBlock() != Blocks.AIR
+                    && abilityTracker.canPlace(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static NormalizedShape normalize(@NotNull Map<BlockPos, BlockInfo> blocks) {

@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * Element that chains multiple alternative elements together (any may match).
  */
-public class ChainElement implements IStructureElement {
+public class ChainElement implements IStructureElement<Object> {
 
     private final IStructureElement[] elements;
 

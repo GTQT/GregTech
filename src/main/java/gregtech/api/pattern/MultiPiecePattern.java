@@ -1,5 +1,6 @@
 package gregtech.api.pattern;
 
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 
@@ -59,10 +60,12 @@ public class MultiPiecePattern {
 
     private final Map<String, StructurePiece> pieces;
     private final List<StructurePiece> pieceList;
+    private final Map<MultiblockAbility<?>, int[]> abilityLimits;
 
     private MultiPiecePattern(Map<String, StructurePiece> pieces) {
         this.pieces = Collections.unmodifiableMap(pieces);
         this.pieceList = Collections.unmodifiableList(new ArrayList<>(pieces.values()));
+        this.abilityLimits = Collections.emptyMap();
     }
 
     /**
@@ -73,6 +76,11 @@ public class MultiPiecePattern {
      * @throws IllegalArgumentException if duplicate piece names are found
      */
     public MultiPiecePattern(@NotNull List<StructurePiece> pieceList) {
+        this(pieceList, Collections.emptyMap());
+    }
+
+    public MultiPiecePattern(@NotNull List<StructurePiece> pieceList,
+                             @NotNull Map<MultiblockAbility<?>, int[]> abilityLimits) {
         Map<String, StructurePiece> map = new LinkedHashMap<>();
         for (StructurePiece piece : pieceList) {
             if (map.containsKey(piece.getName())) {
@@ -82,6 +90,26 @@ public class MultiPiecePattern {
         }
         this.pieces = Collections.unmodifiableMap(map);
         this.pieceList = Collections.unmodifiableList(new ArrayList<>(pieceList));
+        Map<MultiblockAbility<?>, int[]> copiedLimits = new HashMap<>();
+        for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {
+            copiedLimits.put(entry.getKey(), entry.getValue().clone());
+        }
+        this.abilityLimits = Collections.unmodifiableMap(copiedLimits);
+    }
+
+    @NotNull
+    public AbilityPlacementTracker createAbilityPlacementTracker() {
+        return new AbilityPlacementTracker(abilityLimits);
+    }
+
+    @NotNull
+    public StructureMatchSession createMatchSession() {
+        return new StructureMatchSession(abilityLimits, null);
+    }
+
+    @NotNull
+    public StructureMatchSession createMatchSession(@Nullable PatternMatchContext initialContext) {
+        return new StructureMatchSession(abilityLimits, initialContext);
     }
 
     /**
@@ -115,9 +143,16 @@ public class MultiPiecePattern {
      * @return a new LongSet containing all positions
      */
     public LongSet getAllPositions(@NotNull PieceRuntimes runtimes) {
+        return getAllPositions(runtimes, null);
+    }
+
+    public LongSet getAllPositions(@NotNull PieceRuntimes runtimes,
+                                   @Nullable MultiblockControllerBase controller) {
         LongSet all = new LongOpenHashSet();
+        StructureActivationContext<MultiblockControllerBase> activation = activationContext(
+                controller, null, null);
         for (StructurePiece piece : pieceList) {
-            if (!piece.isActive()) continue;
+            if (!piece.isActive(activation)) continue;
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime == null) continue;
             if (runtime.isValidated()) {
@@ -134,8 +169,15 @@ public class MultiPiecePattern {
      * @return true if at least one active piece is dirty
      */
     public boolean hasDirtyPieces(@NotNull PieceRuntimes runtimes) {
+        return hasDirtyPieces(runtimes, null);
+    }
+
+    public boolean hasDirtyPieces(@NotNull PieceRuntimes runtimes,
+                                  @Nullable MultiblockControllerBase controller) {
+        StructureActivationContext<MultiblockControllerBase> activation = activationContext(
+                controller, null, null);
         for (StructurePiece piece : pieceList) {
-            if (!piece.isActive()) continue;
+            if (!piece.isActive(activation)) continue;
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime != null && runtime.isDirty()) {
                 return true;
@@ -152,9 +194,17 @@ public class MultiPiecePattern {
      */
     @NotNull
     public List<StructurePiece> getDirtyPieces(@NotNull PieceRuntimes runtimes) {
+        return getDirtyPieces(runtimes, null);
+    }
+
+    @NotNull
+    public List<StructurePiece> getDirtyPieces(@NotNull PieceRuntimes runtimes,
+                                               @Nullable MultiblockControllerBase controller) {
         List<StructurePiece> dirty = new ArrayList<>();
+        StructureActivationContext<MultiblockControllerBase> activation = activationContext(
+                controller, null, null);
         for (StructurePiece piece : pieceList) {
-            if (!piece.isActive()) continue;
+            if (!piece.isActive(activation)) continue;
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime != null && runtime.isDirty()) {
                 dirty.add(piece);
@@ -164,9 +214,11 @@ public class MultiPiecePattern {
     }
 
     /**
-     * Check all dirty pieces against the world.
-     * Only re-validates pieces that are marked dirty.
-     * Returns true if ALL active pieces are validated after checking.
+     * Re-check the active piece graph after a dirty event.
+     *
+     * <p>A complete sweep is required because structure-wide predicate counts,
+     * shared context values, and dynamic offsets cannot be reconstructed safely
+     * from only the dirty piece's previous result.
      *
      * @param world          the world to check against
      * @param controllerPos  the controller's position
@@ -179,53 +231,51 @@ public class MultiPiecePattern {
     public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
                                      EnumFacing upwardsFacing, boolean flipped,
                                      @NotNull PieceRuntimes runtimes) {
-        // Accumulates per-piece repeat counts as we sweep through the piece list,
-        // so a DynamicOffsetPiece can read the runtime repeat count of its
-        // anchor when computing its center position. This is the dirty-check
-        // equivalent of the prior metadata built up in
-        // gregtech.api.pattern.element.StructureCheckState.check.
+        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, flipped,
+                runtimes, null);
+    }
+
+    public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
+                                    EnumFacing upwardsFacing, boolean flipped,
+                                    @NotNull PieceRuntimes runtimes,
+                                    @Nullable MultiblockControllerBase controller) {
+        StructureMatchSession session = createMatchSession();
+        session.setControllerContext(controller);
         Map<String, int[]> priorRepeats = new HashMap<>();
         Map<String, BlockPos> priorCenters = new HashMap<>();
 
         for (StructurePiece piece : pieceList) {
-            if (!piece.isActive()) continue;
-
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime == null) continue;
 
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(controller, world, controllerPos, prior, session);
+            if (!piece.isActive(activation)) continue;
             BlockPos pieceCenter = piece.getCenterPos(
                     controllerPos, frontFacing, upwardsFacing, flipped, prior);
 
-            if (runtime.isDirty()) {
-                if (piece instanceof RepeatGroupPiece repeatPiece) {
-                    // RepeatGroupPiece requires specialised multi-slice checking;
-                    // using checkPatternFastAt would only verify the base slice (r=0)
-                    // and miss all repeated slices, leading to incorrect validation
-                    // and an incomplete position set.
-                    boolean ok = repeatPiece.checkSync(world, controllerPos, frontFacing,
-                            upwardsFacing, flipped, prior, runtime);
-                    if (ok) {
-                        runtime.setValidated(true);
-                    } else {
-                        runtime.setValidated(false);
-                    }
-                } else {
-                    PatternMatchContext result = runtime.getState().checkPatternAtExact(
-                            world, pieceCenter, frontFacing, upwardsFacing, flipped);
+            if (piece instanceof RepeatGroupPiece repeatPiece) {
+                boolean ok = repeatPiece.checkSync(world, controllerPos, frontFacing,
+                        upwardsFacing, flipped, prior, runtime, session);
+                runtime.setValidated(ok);
+            } else {
+                StructureMatchSession pieceSession = session.fork();
+                PatternMatchContext result = runtime.getState().checkPatternAtExact(
+                        world, pieceCenter, frontFacing, upwardsFacing, flipped,
+                        0, 0, 0, pieceSession);
 
-                    if (result != null) {
-                        runtime.setValidated(true);
-                        // Atomically swap the piece's position set from the state cache
-                        LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
-                        runtime.swapPositions(newPositions);
-                    } else {
-                        runtime.setValidated(false);
-                    }
+                if (result != null) {
+                    pieceSession.commit();
+                    runtime.setValidated(true);
+                    LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
+                    runtime.swapPositions(newPositions);
+                } else {
+                    runtime.setValidated(false);
                 }
-                runtime.clearDirty();
             }
+            runtime.clearDirty();
 
             if (!runtime.isValidated()) {
                 return false;
@@ -246,7 +296,7 @@ public class MultiPiecePattern {
             }
             priorCenters.put(piece.getName(), pieceCenter);
         }
-        return true;
+        return session.validate(true).success;
     }
 
     /**
@@ -263,13 +313,22 @@ public class MultiPiecePattern {
     public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
                                    EnumFacing upwardsFacing, boolean flipped,
                                    @NotNull PieceRuntimes runtimes) {
+        return checkAllPieces(world, controllerPos, frontFacing, upwardsFacing, flipped,
+                runtimes, null);
+    }
+
+    public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
+                                  EnumFacing upwardsFacing, boolean flipped,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable MultiblockControllerBase controller) {
         for (StructurePiece piece : pieceList) {
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime != null) {
                 runtime.markDirty();
             }
         }
-        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, flipped, runtimes);
+        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, flipped,
+                runtimes, controller);
     }
 
     /**
@@ -281,9 +340,16 @@ public class MultiPiecePattern {
      * @return true if a piece was found and marked dirty
      */
     public boolean markDirtyByPosition(long posLong, @NotNull PieceRuntimes runtimes) {
+        return markDirtyByPosition(posLong, runtimes, null);
+    }
+
+    public boolean markDirtyByPosition(long posLong, @NotNull PieceRuntimes runtimes,
+                                       @Nullable MultiblockControllerBase controller) {
         boolean found = false;
+        StructureActivationContext<MultiblockControllerBase> activation = activationContext(
+                controller, null, null);
         for (StructurePiece piece : pieceList) {
-            if (!piece.isActive()) continue;
+            if (!piece.isActive(activation)) continue;
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime != null && runtime.isValidated() && runtime.getPositions().contains(posLong)) {
                 runtime.markDirty();
@@ -291,6 +357,19 @@ public class MultiPiecePattern {
             }
         }
         return found;
+    }
+
+    @NotNull
+    private static StructureActivationContext<MultiblockControllerBase> activationContext(
+            @Nullable MultiblockControllerBase controller,
+            @Nullable FormedStructureMetadata prior,
+            @Nullable StructureMatchSession session) {
+        return new StructureActivationContext<>(
+                controller,
+                controller == null ? null : controller.getWorld(),
+                controller == null ? null : controller.getPos(),
+                prior,
+                session);
     }
 
     /**
@@ -317,6 +396,14 @@ public class MultiPiecePattern {
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
                                    @Nullable Map<String, Integer> channelValues, boolean skipHatches,
                                    @NotNull PieceRuntimes runtimes) {
+        return autoBuildPiece(pieceIndex, player, controller, channelValues, skipHatches,
+                runtimes, createAbilityPlacementTracker());
+    }
+
+    public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
+                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @NotNull AbilityPlacementTracker abilityTracker) {
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
@@ -329,10 +416,13 @@ public class MultiPiecePattern {
         // whatever the previous pieces' runtimes have cached via
         // PieceRuntime.getLastFormedReps().
         FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller);
+        if (!piece.isActive(activationContext(controller, prior, null))) {
+            return false;
+        }
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
                     controller.getFrontFacingForStructure(), controller.getUpwardsFacing(),
-                    controller.isFlipped(), prior, channelValues, skipHatches, runtime);
+                    controller.isFlipped(), prior, channelValues, skipHatches, runtime, abilityTracker);
         } else {
             // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
             // prior metadata and can compute its dynamic position. Non-anchor
@@ -340,7 +430,8 @@ public class MultiPiecePattern {
             BlockPos pieceCenter = piece.getCenterPos(
                     controller.getPos(), controller.getFrontFacingForStructure(),
                     controller.getUpwardsFacing(), controller.isFlipped(), prior);
-            runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues, skipHatches);
+            runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues,
+                    skipHatches, abilityTracker);
         }
         return true;
     }
@@ -482,6 +573,18 @@ public class MultiPiecePattern {
         public Builder conditionalPiece(@NotNull String name, @NotNull BlockPatternTemplate template,
                                         @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
                                         @NotNull BooleanSupplier condition) {
+            if (pieces.containsKey(name)) {
+                throw new IllegalArgumentException("Duplicate piece name: " + name);
+            }
+            pieces.put(name, new StructurePiece(name, template, offset, offsetMode, condition));
+            return this;
+        }
+
+        @NotNull
+        public <T extends MultiblockControllerBase> Builder conditionalPieceContextual(
+                @NotNull String name, @NotNull BlockPatternTemplate template,
+                @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
+                @NotNull StructureCondition<T> condition) {
             if (pieces.containsKey(name)) {
                 throw new IllegalArgumentException("Duplicate piece name: " + name);
             }

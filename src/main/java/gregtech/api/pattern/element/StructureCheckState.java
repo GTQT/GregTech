@@ -1,13 +1,14 @@
 package gregtech.api.pattern.element;
 
-import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.RepeatGroupPiece;
+import gregtech.api.pattern.StructureMatchSession;
+import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
@@ -20,10 +21,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Per-check mutable state for structure checking.
@@ -72,17 +73,22 @@ public final class StructureCheckState {
         @Nullable
         public final String errorMessage;
 
+        @NotNull
+        public final Map<MultiblockAbility<?>, Integer> missingAbilities;
+
         public final boolean flipped;
 
         private Result(boolean success, @Nullable FormedStructureMetadata metadata,
                        @Nullable PatternMatchContext context,
                        @Nullable BlockPos errorPos, @Nullable String errorMessage,
+                       @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
                        boolean flipped) {
             this.success = success;
             this.metadata = metadata;
             this.context = context;
             this.errorPos = errorPos;
             this.errorMessage = errorMessage;
+            this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
             this.flipped = flipped;
         }
 
@@ -91,19 +97,25 @@ public final class StructureCheckState {
         public static Result success(@NotNull FormedStructureMetadata metadata,
                                      @NotNull PatternMatchContext context,
                                      boolean flipped) {
-            return new Result(true, metadata, context, null, null, flipped);
+            return new Result(true, metadata, context, null, null, Collections.emptyMap(), flipped);
         }
 
         /** Create a failure result with error info */
         @NotNull
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg) {
-            return new Result(false, null, null, pos, msg, false);
+            return new Result(false, null, null, pos, msg, Collections.emptyMap(), false);
         }
 
         /** Create a failure result without specific position */
         @NotNull
         public static Result failure(@NotNull String msg) {
-            return new Result(false, null, null, null, msg, false);
+            return new Result(false, null, null, null, msg, Collections.emptyMap(), false);
+        }
+
+        @NotNull
+        public static Result missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+            return new Result(false, null, null, null, "Missing required multiblock abilities",
+                    missingAbilities, false);
         }
     }
 
@@ -122,9 +134,22 @@ public final class StructureCheckState {
     public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
                         @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
                         @Nullable PatternMatchContext context) {
-        Result result = checkOrientation(world, controllerPos, front, up, false, context);
+        return check(world, controllerPos, front, up, allowsFlip, context, null);
+    }
+
+    @NotNull
+    public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
+                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
+                        @Nullable PatternMatchContext context,
+                        @Nullable MultiblockControllerBase controller) {
+        Result result = checkOrientation(world, controllerPos, front, up, false, context, controller);
         if (!result.success && allowsFlip) {
-            return checkOrientation(world, controllerPos, front, up, true, context);
+            Result flippedResult = checkOrientation(world, controllerPos, front, up, true, context, controller);
+            if (!flippedResult.success && flippedResult.missingAbilities.isEmpty()
+                    && !result.missingAbilities.isEmpty()) {
+                return result;
+            }
+            return flippedResult;
         }
         return result;
     }
@@ -132,7 +157,8 @@ public final class StructureCheckState {
     @NotNull
     private Result checkOrientation(@NotNull World world, @NotNull BlockPos controllerPos,
                                     @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
-                                    @Nullable PatternMatchContext context) {
+                                    @Nullable PatternMatchContext context,
+                                    @Nullable MultiblockControllerBase controller) {
         MultiPiecePattern pattern = definition.getCompiledPattern();
 
         // Per-check transient runtimes: StructureCheckState.check is called from the
@@ -140,19 +166,15 @@ public final class StructureCheckState {
         // must not mutate the controller's owned PieceRuntimes, which may be
         // concurrently read by the async structure checker.
         PieceRuntimes transientRuntimes = new PieceRuntimes(pattern);
+        StructureMatchSession session = pattern.createMatchSession(context);
+        session.setControllerContext(controller);
 
         // Collect piece repeat counts and channel values
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, Integer> channelValues = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
 
-        // Aggregated context from all pieces
-        PatternMatchContext aggregated = new PatternMatchContext();
-        Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
-
         for (StructurePiece piece : pattern.getPieceList()) {
-            if (piece.isConditional() && !piece.isActive()) continue;
-
             // Per-piece runtime for this check. Always non-null since we just built
             // the runtimes from the same pattern above.
             PieceRuntime runtime = transientRuntimes.get(piece);
@@ -165,6 +187,9 @@ public final class StructureCheckState {
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(pieceRepeats), new HashMap<>(channelValues),
                     new HashMap<>(pieceCenters));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(controller, world, controllerPos, prior, session);
+            if (!piece.isActive(activation)) continue;
             BlockPos centerPos = piece.getCenterPos(
                     controllerPos, front, up, flipped, prior);
             if (ConfigHolder.machines.debugStructureCheck) {
@@ -177,7 +202,7 @@ public final class StructureCheckState {
                 // Repeatable piece: use synchronous World-based check
                 // (uses checkPatternFastAt for cache-accelerated checks)
                 boolean ok = repeatPiece.checkSync(
-                        world, controllerPos, front, up, flipped, prior, runtime);
+                        world, controllerPos, front, up, flipped, prior, runtime, session);
                 if (!ok) {
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
@@ -190,25 +215,21 @@ public final class StructureCheckState {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
                 }
 
-                // Merge aggregated context from the runtime
-                PatternMatchContext repeatContext = runtime.getLastAggregatedContext();
-                if (repeatContext != null) {
-                    Set<IMultiblockPart> repeatParts = repeatContext.getOrCreate("MultiblockParts", HashSet::new);
-                    allParts.addAll(repeatParts);
-                    extractChannelValues(repeatContext, channelValues);
-                }
+                extractChannelValues(session.getContext(), channelValues);
             } else {
                 // Fixed piece: standard single-template check
                 // Use the 4-arg getCenterPos so dynamic-anchor pieces can compute
                 // their position from the prior pieces' repeat counts.
-                PatternMatchContext pieceContext = runtime.getState()
-                        .checkPatternAtExact(world, centerPos, front, up, flipped);
+                StructureMatchSession pieceSession = session.fork();
+                PatternMatchContext pieceContext = runtime.getState().checkPatternAtExact(
+                        world, centerPos, front, up, flipped, 0, 0, 0, pieceSession);
 
                 if (pieceContext == null) {
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
                     return Result.failure(centerPos, lastErrorMessage);
                 }
+                pieceSession.commit();
 
                 // Extract repeat counts from the piece's MultiblockState
                 int[] formedReps = runtime.getState().formedRepetitionCount;
@@ -216,12 +237,8 @@ public final class StructureCheckState {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
                 }
 
-                // Merge MultiblockParts from this piece into the aggregated context
-                Set<IMultiblockPart> pieceParts = pieceContext.getOrCreate("MultiblockParts", HashSet::new);
-                allParts.addAll(pieceParts);
-
                 // Extract channel values from the match context
-                extractChannelValues(pieceContext, channelValues);
+                extractChannelValues(session.getContext(), channelValues);
             }
             pieceCenters.put(piece.getName(), centerPos);
             if (ConfigHolder.machines.debugStructureCheck) {
@@ -232,25 +249,19 @@ public final class StructureCheckState {
             }
         }
 
-        for (Map.Entry<MultiblockAbility<?>, StructureDefinition.AbilityLimit> entry :
-                definition.getAbilityLimits().entrySet()) {
-            int count = 0;
-            for (IMultiblockPart part : allParts) {
-                if (part instanceof IMultiblockAbilityPart<?> abilityPart
-                        && abilityPart.getAbilities().contains(entry.getKey())) {
-                    count++;
-                }
+        StructureMatchSession.Validation validation = session.validate(true);
+        if (!validation.success) {
+            if (!validation.missingAbilities.isEmpty()) {
+                return Result.missingAbilities(validation.missingAbilities);
             }
-            StructureDefinition.AbilityLimit limit = entry.getValue();
-            if (count < limit.min || (limit.max >= 0 && count > limit.max)) {
-                return Result.failure("Ability '" + entry.getKey() + "' count " + count
-                        + " is outside [" + limit.min + ", " + limit.max + "]");
-            }
+            return Result.failure(validation.errorMessage == null
+                    ? "Structure-wide validation failed"
+                    : validation.errorMessage);
         }
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 pieceRepeats, channelValues, pieceCenters);
-        return Result.success(metadata, aggregated, flipped);
+        return Result.success(metadata, session.getContext(), flipped);
     }
 
     /**

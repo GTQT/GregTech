@@ -158,7 +158,7 @@ public class MultiblockWorldData {
                 if (piecePattern != null) {
                     // Piece-level dirty marking: only mark the specific piece(s) containing this position
                     // The per-controller PieceRuntimes carries the per-piece position sets and dirty flags
-                    piecePattern.markDirtyByPosition(posLong, controller.getPieceRuntimes());
+                    piecePattern.markDirtyByPosition(posLong, controller.getPieceRuntimes(), controller);
                 }
                 // Record the tick of this change; doStructureCheck() will debounce using this value
                 lastChangedTick.put(controller, gameTick);

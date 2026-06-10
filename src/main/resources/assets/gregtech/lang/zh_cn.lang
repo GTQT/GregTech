@@ -8128,5 +8128,7 @@ gt.blockmachines.multimachine.FOG.rendering=渲染
 gt.blockmachines.multimachine.FOG.bucket=BucketBrigade
 gt.blockmachines.multimachine.FOG.playtesting=游戏测试
 gt.blockmachines.multimachine.FOG.misi=Misi
+gregtech.multiblock.missing_ability_header=缺少结构成型所需舱室：
+gregtech.multiblock.missing_ability=  %1$d× %2$s
 gt.blockmachines.multimachine.FOG.thanks=非常感谢这些了不起的人帮助将这一切变为现实！-Cloud
 gt.blockmachines.multimachine.FOG.clickstat=点击查看数值分解

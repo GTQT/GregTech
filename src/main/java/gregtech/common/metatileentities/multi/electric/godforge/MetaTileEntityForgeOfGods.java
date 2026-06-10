@@ -19,6 +19,7 @@ import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -202,12 +203,20 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
                 .piece("first_ring", getRingTemplate(1, FIRST_RING_TEMPLATE, FIRST_RING_AIR_TEMPLATE),
                         FIRST_RING_OFFSET, OffsetMode.RELATIVE)
-                .conditionalPiece("second_ring", getRingTemplate(2, SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
+                .conditionalPieceContextual("second_ring",
+                        getRingTemplate(2, SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
                         SECOND_RING_OFFSET,
-                        OffsetMode.RELATIVE, () -> data.getRingAmount() >= 2)
-                .conditionalPiece("third_ring", getRingTemplate(3, THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
+                        OffsetMode.RELATIVE,
+                        (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
+                                context.getController() != null
+                                && context.getController().data.getRingAmount() >= 2)
+                .conditionalPieceContextual("third_ring",
+                        getRingTemplate(3, THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
                         THIRD_RING_OFFSET,
-                        OffsetMode.RELATIVE, () -> data.getRingAmount() >= 3)
+                        OffsetMode.RELATIVE,
+                        (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
+                                context.getController() != null
+                                && context.getController().data.getRingAmount() >= 3)
                 .build();
     }
 
@@ -417,7 +426,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
                 getWorld(), getPos(), getFrontFacingForStructure(),
-                getUpwardsFacing(), isFlipped(), runtimes);
+                getUpwardsFacing(), isFlipped(), runtimes, this);
 
         if (!allValid && isStructureFormed()) {
             invalidateStructure();

@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
+import gregtech.api.pattern.AbilityPlacementTracker;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
@@ -138,9 +139,10 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
         MultiPiecePattern multiPiece = definition.getCompiledPattern();
         int pieceCount = multiPiece.getPieceList().size();
         if (pieceCount == 0) return false;
+        AbilityPlacementTracker abilityTracker = multiPiece.createAbilityPlacementTracker();
         for (int i = 1; i <= pieceCount; i++) {
             multiPiece.autoBuildPiece(i, player, multiblock, channelValues, false,
-                    multiblock.getPieceRuntimes());
+                    multiblock.getPieceRuntimes(), abilityTracker);
         }
         return true;
     }

@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  * Wrapper element that adds lazy initialization, callback, and channel behaviors
  * to an underlying element.
  */
-public class WrapperElement implements IStructureElement {
+public class WrapperElement implements IStructureElement<Object> {
 
     private final IStructureElement delegate;
     @Nullable
@@ -160,6 +160,7 @@ public class WrapperElement implements IStructureElement {
         wrapped.minLayerCount = sp.minLayerCount;
         wrapped.maxLayerCount = sp.maxLayerCount;
         wrapped.previewCount = sp.previewCount;
+        wrapped.ability = sp.ability;
         return wrapped;
     }
 }

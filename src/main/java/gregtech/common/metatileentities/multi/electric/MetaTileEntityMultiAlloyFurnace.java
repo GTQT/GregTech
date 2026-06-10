@@ -55,7 +55,7 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
                     .where('#', air())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
-                        .preset(HatchPresets.ELECTRIC_STANDARD)
+                        .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                         .withChannel(GTCasingGroups.heatingCoils().channel())
                     .buildTemplate()

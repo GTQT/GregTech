@@ -227,6 +227,34 @@ public class TraceabilityPredicate {
         return this;
     }
 
+    /**
+     * Marks this predicate as matching a specific multiblock ability so failed
+     * minimum-count checks can report the missing hatch to the controller UI.
+     */
+    public TraceabilityPredicate setAbility(MultiblockAbility<?> ability) {
+        common.forEach(predicate -> predicate.ability = ability);
+        limited.forEach(predicate -> predicate.ability = ability);
+        return this;
+    }
+
+    /**
+     * Returns the ability when this cell exclusively accepts one hatch ability.
+     */
+    public MultiblockAbility<?> getSingleAbility() {
+        MultiblockAbility<?> result = null;
+        for (SimplePredicate predicate : common) {
+            if (predicate.ability == null) return null;
+            if (result != null && result != predicate.ability) return null;
+            result = predicate.ability;
+        }
+        for (SimplePredicate predicate : limited) {
+            if (predicate.ability == null) return null;
+            if (result != null && result != predicate.ability) return null;
+            result = predicate.ability;
+        }
+        return result;
+    }
+
     public boolean test(BlockWorldState blockWorldState) {
         for (SimplePredicate predicate : limited) {
             boolean needGlobal = predicate.minGlobalCount > 0 &&
@@ -366,6 +394,7 @@ public class TraceabilityPredicate {
         public int previewCount = -1;
 
         public String channelName = null;
+        public MultiblockAbility<?> ability = null;
 
         public SimplePredicate(Predicate<BlockWorldState> predicate, Supplier<BlockInfo[]> candidates) {
             this.predicate = predicate;

@@ -89,6 +89,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -136,6 +137,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** Formed structure metadata: piece repeat counts + channel values (persisted to NBT) */
     @Nullable
     private FormedStructureMetadata formedMetadata;
+    @NotNull
+    private Map<String, Integer> missingStructureAbilities = Collections.emptyMap();
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -217,7 +220,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public static TraceabilityPredicate abilities(MultiblockAbility<?>... allowedAbilities) {
-        return tilePredicate((state, tile) -> {
+        TraceabilityPredicate predicate = tilePredicate((state, tile) -> {
             if (tile instanceof IMultiblockAbilityPart<?> abilityPart) {
                 for (var ability : abilityPart.getAbilities()) {
                     if (ArrayUtils.contains(allowedAbilities, ability))
@@ -226,6 +229,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             }
             return false;
         }, getCandidates(allowedAbilities));
+        if (allowedAbilities.length == 1) {
+            predicate.setAbility(allowedAbilities[0]);
+        }
+        return predicate;
     }
 
     public static TraceabilityPredicate states(IBlockState... allowedStates) {
@@ -839,8 +846,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (this.structureDefinition != null) {
             StructureCheckState state = this.structureDefinition.createState();
             StructureCheckState.Result result = state.check(getWorld(), getPos(),
-                    getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(), null);
+                    getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(), null, this);
             if (result.success) {
+                updateMissingStructureAbilities(Collections.emptyMap());
                 setFlipped(result.flipped);
                 this.formedMetadata = result.metadata;
 
@@ -871,7 +879,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                         if (multiPiecePattern != null) {
                             multiPiecePattern.checkAllPieces(getWorld(), getPos(),
                                     getFrontFacingForStructure(), getUpwardsFacing(), isFlipped(),
-                                    pieceRuntimes);
+                                    pieceRuntimes, this);
                             registerMultiPiecePattern();
                         }
                     }
@@ -883,6 +891,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     formStructure(null);
                 }
             } else {
+                updateMissingStructureAbilities(result.missingAbilities);
                 if (this.structureFormed) {
                     invalidateStructure();
                 }
@@ -894,6 +903,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
                 getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
                 isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
+        updateMissingStructureAbilities(context == null
+                ? multiblockState.getMissingAbilities()
+                : Collections.emptyMap());
         if (context != null && !structureFormed) {
             Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
             ArrayList<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
@@ -924,7 +936,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     // Multi-piece mode: do a full check of all pieces after initial form
                     multiPiecePattern.checkAllPieces(getWorld(), getPos(),
                             getFrontFacingForStructure(), getUpwardsFacing(), isFlipped(),
-                            pieceRuntimes);
+                            pieceRuntimes, this);
                     registerMultiPiecePattern();
                 } else if (multiblockState != null && !multiblockState.cache.isEmpty()) {
                     LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
@@ -1057,12 +1069,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void checkMultiPieceStructure() {
         if (multiPiecePattern == null) return;
 
-        boolean allValid = multiPiecePattern.checkDirtyPieces(
-                getWorld(), getPos(), getFrontFacingForStructure(),
-                getUpwardsFacing(), isFlipped(), pieceRuntimes);
-
-        if (!allValid && structureFormed) {
-            invalidateStructure();
+        checkStructurePattern();
+        if (structureFormed && !(getWorld() instanceof DummyWorld)) {
+            multiPiecePattern.checkAllPieces(
+                    getWorld(), getPos(), getFrontFacingForStructure(),
+                    getUpwardsFacing(), isFlipped(), pieceRuntimes, this);
+            MultiblockWorldData worldData = MultiblockWorldData.get(getWorld());
+            worldData.unregisterMultiblock(this);
+            registerMultiPiecePattern();
         }
     }
 
@@ -1073,7 +1087,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void registerMultiPiecePattern() {
         if (multiPiecePattern == null || getWorld() == null || getWorld() instanceof DummyWorld) return;
 
-        LongSet allPositions = multiPiecePattern.getAllPositions(pieceRuntimes);
+        LongSet allPositions = multiPiecePattern.getAllPositions(pieceRuntimes, this);
         if (!allPositions.isEmpty()) {
             MultiblockWorldData.get(getWorld()).registerMultiblock(this, allPositions, multiPiecePattern);
         }
@@ -1152,6 +1166,27 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @Nullable
     public StructureDefinition getStructureDefinition() {
         return structureDefinition;
+    }
+
+    @NotNull
+    public Map<String, Integer> getMissingStructureAbilities() {
+        return missingStructureAbilities;
+    }
+
+    private void updateMissingStructureAbilities(
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (missingAbilities.isEmpty()) {
+            this.missingStructureAbilities = Collections.emptyMap();
+            return;
+        }
+
+        Map<String, Integer> sorted = new TreeMap<>();
+        for (Map.Entry<MultiblockAbility<?>, Integer> entry : missingAbilities.entrySet()) {
+            if (entry.getValue() > 0) {
+                sorted.put(entry.getKey().toString(), entry.getValue());
+            }
+        }
+        this.missingStructureAbilities = Collections.unmodifiableMap(sorted);
     }
 
     /**
@@ -1646,7 +1681,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             return Collections.emptyList();
         }
         MultiPiecePreviewAssembler.Result preview = MultiPiecePreviewAssembler.assemble(
-                multiPiecePattern, pieceRuntimes, channelValues);
+                multiPiecePattern, pieceRuntimes, channelValues, this);
         return Collections.singletonList(preview.getShape());
     }
 
@@ -1665,7 +1700,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
         if (multiPiecePattern == null) return new HashMap<>();
         return new HashMap<>(MultiPiecePreviewAssembler.assemble(
-                multiPiecePattern, pieceRuntimes, null).getPredicates());
+                multiPiecePattern, pieceRuntimes, null, this).getPredicates());
     }
 
     private List<MultiblockShapeInfo> repetitionDFS(List<MultiblockShapeInfo> pages, int[][] aisleRepetitions,
@@ -1734,7 +1769,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             return null;
         }
         return MultiPiecePreviewAssembler.assemble(
-                multiPiecePattern, pieceRuntimes, channelValues).getPiece(pieceIndex);
+                multiPiecePattern, pieceRuntimes, channelValues, this).getPiece(pieceIndex);
     }
 
     @SideOnly(Side.CLIENT)

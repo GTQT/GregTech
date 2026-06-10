@@ -8,10 +8,12 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureCondition;
 import gregtech.api.pattern.StructureSizeDescriptor;
 import gregtech.api.pattern.StructureSizeDescriptor.PieceSize;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.RelativeDirection;
 
 import net.minecraft.util.EnumFacing;
@@ -464,6 +466,15 @@ public final class StructureDefinition {
         public PieceBuilder conditionalPiece(@NotNull String name, @NotNull String[][] pattern,
                                              @NotNull Vec3i offset,
                                              @NotNull BooleanSupplier condition) {
+            MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
+                    condition, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
+            return new PieceBuilder(this, mp);
+        }
+
+        @NotNull
+        public <T extends MultiblockControllerBase> PieceBuilder conditionalPieceContextual(
+                @NotNull String name, @NotNull String[][] pattern,
+                @NotNull Vec3i offset, @NotNull StructureCondition<T> condition) {
             MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
                     condition, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
             return new PieceBuilder(this, mp);

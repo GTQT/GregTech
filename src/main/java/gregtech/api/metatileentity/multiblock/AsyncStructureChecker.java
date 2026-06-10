@@ -6,6 +6,8 @@ import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructureMatchSession;
+import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -385,14 +387,17 @@ public class AsyncStructureChecker {
                                            boolean flipped) {
         MultiPiecePattern multiPiece = definition.getCompiledPattern();
         PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
+        StructureMatchSession session = multiPiece.createMatchSession();
+        session.setControllerContext(task.controller);
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
 
         for (StructurePiece piece : multiPiece.getPieceList()) {
-            if (piece.isConditional() && !piece.isActive()) continue;
-
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(pieceRepeats), new HashMap<>(), new HashMap<>(pieceCenters));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(task.controller, null, task.centerPos, prior, session);
+            if (!piece.isActive(activation)) continue;
             PieceRuntime runtime = asyncRuntimes.get(piece);
             BlockPos checkOrigin;
             if (piece instanceof gregtech.api.pattern.RepeatGroupPiece) {
@@ -402,10 +407,12 @@ public class AsyncStructureChecker {
                         task.centerPos, task.frontFacing, task.upwardsFacing, flipped, prior);
             }
 
+            StructureMatchSession pieceSession = session.fork();
             if (!piece.checkOnSnapshot(task.snapshot, checkOrigin,
-                    task.frontFacing, task.upwardsFacing, flipped, prior, runtime)) {
+                    task.frontFacing, task.upwardsFacing, flipped, prior, runtime, pieceSession)) {
                 return false;
             }
+            pieceSession.commit();
 
             int[] reps = piece instanceof gregtech.api.pattern.RepeatGroupPiece
                     ? runtime.getLastFormedReps()
@@ -416,7 +423,7 @@ public class AsyncStructureChecker {
             pieceCenters.put(piece.getName(), piece.getCenterPos(
                     task.centerPos, task.frontFacing, task.upwardsFacing, flipped, prior));
         }
-        return true;
+        return session.validate(false).success;
     }
 
     private static BlockPos[] unionAABB(@NotNull BlockPos[] first, @NotNull BlockPos[] second) {

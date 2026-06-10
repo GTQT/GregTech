@@ -1,5 +1,6 @@
 package gregtech.api.pattern.element;
 
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.DynamicOffsetPiece;
 import gregtech.api.pattern.DynamicRepeatGroupPiece;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -106,9 +108,9 @@ public final class StructureCompiler {
                     // `mp.legacyTemplate` is fine across controllers.
                     StructurePiece piece = new StructurePiece(p.getName(), mp.legacyTemplate,
                              entry.baseOffset, entry.offsetMode, entry.condition,
-                             (snap, origin, front, up, flipped, prior, runtime) ->
+                             (snap, origin, front, up, flipped, prior, runtime, session) ->
                                      runtime.getState().checkPatternAtSnapshotExact(
-                                             snap, origin, front, up, flipped, 0, 0, 0) != null);
+                                             snap, origin, front, up, flipped, 0, 0, 0, session) != null);
                     pieces.add(piece);
                     // Record centerOffset from legacy templates that have isCenter
                     if (referenceCenterOffset == null) {
@@ -182,13 +184,18 @@ public final class StructureCompiler {
                 // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
                 StructurePiece piece = new StructurePiece(p.getName(), tplFacade,
                          entry.baseOffset, entry.offsetMode, entry.condition,
-                         (snap, origin, front, up, flipped, prior, runtime) ->
+                         (snap, origin, front, up, flipped, prior, runtime, session) ->
                                  runtime.getState().checkPatternAtSnapshotExact(
-                                         snap, origin, front, up, flipped, 0, 0, 0) != null);
+                                         snap, origin, front, up, flipped, 0, 0, 0, session) != null);
                 pieces.add(piece);
             }
         }
-        return new MultiPiecePattern(pieces);
+        Map<MultiblockAbility<?>, int[]> abilityLimits = new HashMap<>();
+        for (Map.Entry<MultiblockAbility<?>, StructureDefinition.AbilityLimit> entry :
+                def.getAbilityLimits().entrySet()) {
+            abilityLimits.put(entry.getKey(), new int[]{entry.getValue().min, entry.getValue().max});
+        }
+        return new MultiPiecePattern(pieces, abilityLimits);
     }
 
     // --- AABB computation ---
@@ -300,14 +307,16 @@ public final class StructureCompiler {
             if (foundMarker) break;
         }
 
-        if (!foundMarker) return true;
+        if (!foundMarker) return false;
 
-        // Check if all non-space cells use the same marker
+        // Every cell must use the same marker. Ignoring spaces here would classify
+        // hollow or sparse patterns as tensor products and make axis probes sample
+        // a shape that is not actually uniform.
         for (String[] aisle : pattern) {
             for (String row : aisle) {
                 for (int i = 0; i < row.length(); i++) {
                     char c = row.charAt(i);
-                    if (c != ' ' && c != marker) return false;
+                    if (c != marker) return false;
                 }
             }
         }
@@ -418,7 +427,7 @@ public final class StructureCompiler {
 
         // Add symbol mappings
         for (Map.Entry<Character, IStructureElement> entry : symbolMap.entrySet()) {
-            entry.getValue().applyTo(String.valueOf(entry.getKey()), compiler);
+            compiler.whereElement(entry.getKey(), entry.getValue());
         }
 
         // Determine center offset strategy

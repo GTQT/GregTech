@@ -1,6 +1,5 @@
 package gregtech.api.pattern;
 
-import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCompiler;
@@ -18,9 +17,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -112,7 +109,8 @@ public class RepeatGroupPiece extends StructurePiece {
                                                    @NotNull EnumFacing up,
                                                    boolean flipped,
                                                    @Nullable FormedStructureMetadata prior,
-                                                   @NotNull PieceRuntime runtime) {
+                                                   @NotNull PieceRuntime runtime,
+                                                   @NotNull StructureMatchSession session) {
         // The runtime knows its piece by identity via PieceRuntimes.get(piece),
         // but the SnapshotChecker is bound to the piece (not the runtime), so we
         // route the call back to the piece via its instance method.
@@ -121,7 +119,8 @@ public class RepeatGroupPiece extends StructurePiece {
         // closure is only installed on RepeatGroupPiece instances.
         StructurePiece piece = runtime.getPiece();
         if (piece instanceof RepeatGroupPiece repeatGroupPiece) {
-            return repeatGroupPiece.checkOnSnapshotImpl(snap, origin, front, up, flipped, prior, runtime);
+            return repeatGroupPiece.checkOnSnapshotImpl(
+                    snap, origin, front, up, flipped, prior, runtime, session);
         }
         return false;
     }
@@ -134,13 +133,15 @@ public class RepeatGroupPiece extends StructurePiece {
                                         @NotNull EnumFacing front, @NotNull EnumFacing up,
                                          boolean flipped,
                                          @Nullable FormedStructureMetadata prior,
-                                         @NotNull PieceRuntime runtime) {
+                                         @NotNull PieceRuntime runtime,
+                                         @NotNull StructureMatchSession session) {
         int[] priorReps = (prior != null) ? prior.getPieceRepeats(getName()) : null;
         BlockPos pieceCenter = getCenterPos(origin, front, up, flipped, prior);
 
         // Formed state: O(1) verification with prior
         if (priorReps != null && priorReps.length == repeatAxes.length) {
-            if (tryCheckAtRepeats(snap, pieceCenter, front, up, flipped, priorReps, runtime)) {
+            if (tryCheckAtRepeats(
+                    snap, pieceCenter, front, up, flipped, priorReps, runtime, session)) {
                 runtime.cacheFormedReps(priorReps);
                 return true;
             }
@@ -151,14 +152,15 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean ok;
         switch (strategy) {
             case SLIDING_1D:
-                ok = searchSliding1D(snap, pieceCenter, front, up, flipped, runtime);
+                ok = searchSliding1D(snap, pieceCenter, front, up, flipped, runtime, session);
                 break;
             case INDEPENDENT_1D:
-                ok = searchIndependent1D(snap, pieceCenter, front, up, flipped, runtime);
+                ok = searchIndependent1D(snap, pieceCenter, front, up, flipped, runtime, session);
                 break;
             case NESTED_BACKTRACKING:
             default:
-                ok = backtrackAxes(0, new int[repeatAxes.length], snap, pieceCenter, front, up, flipped, runtime);
+                ok = backtrackAxes(0, new int[repeatAxes.length],
+                        snap, pieceCenter, front, up, flipped, runtime, session);
                 break;
         }
         return ok;
@@ -175,14 +177,26 @@ public class RepeatGroupPiece extends StructurePiece {
     public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
                              @NotNull EnumFacing front, @NotNull EnumFacing up,
                              boolean flipped,
-                              @Nullable FormedStructureMetadata prior,
-                              @NotNull PieceRuntime runtime) {
+                             @Nullable FormedStructureMetadata prior,
+                             @NotNull PieceRuntime runtime) {
+        StructureMatchSession session = new StructureMatchSession();
+        return checkSync(world, origin, front, up, flipped, prior, runtime, session)
+                && session.validate(false).success;
+    }
+
+    public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
+                             @NotNull EnumFacing front, @NotNull EnumFacing up,
+                             boolean flipped,
+                             @Nullable FormedStructureMetadata prior,
+                             @NotNull PieceRuntime runtime,
+                             @NotNull StructureMatchSession session) {
         int[] priorReps = (prior != null) ? prior.getPieceRepeats(getName()) : null;
         BlockPos pieceCenter = getCenterPos(origin, front, up, flipped, prior);
 
         // Formed state: O(1) verification with prior
         if (priorReps != null && priorReps.length == repeatAxes.length) {
-            if (tryCheckAtRepeatsWorld(world, pieceCenter, front, up, flipped, priorReps, runtime)) {
+            if (tryCheckAtRepeatsWorld(
+                    world, pieceCenter, front, up, flipped, priorReps, runtime, session)) {
                 runtime.cacheFormedReps(priorReps);
                 return true;
             }
@@ -192,16 +206,17 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean ok;
         switch (strategy) {
             case SLIDING_1D:
-                ok = searchSliding1DWorld(world, pieceCenter, front, up, flipped, runtime);
+                ok = searchSliding1DWorld(world, pieceCenter, front, up, flipped, runtime, session);
                 break;
             case INDEPENDENT_1D:
                 // INDEPENDENT_1D still uses snapshot path for axis line checks
                 // (tensor product optimization doesn't benefit from World-level access)
-                ok = searchIndependent1D(world, pieceCenter, front, up, flipped, runtime);
+                ok = searchIndependent1D(world, pieceCenter, front, up, flipped, runtime, session);
                 break;
             case NESTED_BACKTRACKING:
             default:
-                ok = backtrackAxesWorld(0, new int[repeatAxes.length], world, pieceCenter, front, up, flipped, runtime);
+                ok = backtrackAxesWorld(0, new int[repeatAxes.length],
+                        world, pieceCenter, front, up, flipped, runtime, session);
                 break;
         }
         return ok;
@@ -215,11 +230,13 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean searchSliding1DWorld(@NotNull World world, @NotNull BlockPos origin,
                                           @NotNull EnumFacing front, @NotNull EnumFacing up,
                                           boolean flipped,
-                                          @NotNull PieceRuntime runtime) {
+                                          @NotNull PieceRuntime runtime,
+                                          @NotNull StructureMatchSession session) {
         int min = repeatRanges[0][0], max = repeatRanges[0][1];
         for (int r = max; r >= min; r--) {
             int[] reps = new int[]{r};
-            if (tryCheckAtRepeatsWorld(world, origin, front, up, flipped, reps, runtime)) {
+            if (tryCheckAtRepeatsWorld(
+                    world, origin, front, up, flipped, reps, runtime, session)) {
                 runtime.cacheFormedReps(reps);
                 return true;
             }
@@ -234,9 +251,11 @@ public class RepeatGroupPiece extends StructurePiece {
                                         @NotNull World world, @NotNull BlockPos origin,
                                         @NotNull EnumFacing front, @NotNull EnumFacing up,
                                         boolean flipped,
-                                        @NotNull PieceRuntime runtime) {
+                                        @NotNull PieceRuntime runtime,
+                                        @NotNull StructureMatchSession session) {
         if (axisIdx == repeatAxes.length) {
-            if (tryCheckAtRepeatsWorld(world, origin, front, up, flipped, currentReps, runtime)) {
+            if (tryCheckAtRepeatsWorld(
+                    world, origin, front, up, flipped, currentReps, runtime, session)) {
                 runtime.cacheFormedReps(currentReps);
                 return true;
             }
@@ -245,7 +264,8 @@ public class RepeatGroupPiece extends StructurePiece {
         int min = repeatRanges[axisIdx][0], max = repeatRanges[axisIdx][1];
         for (int r = max; r >= min; r--) {
             currentReps[axisIdx] = r;
-            if (backtrackAxesWorld(axisIdx + 1, currentReps, world, origin, front, up, flipped, runtime)) {
+            if (backtrackAxesWorld(axisIdx + 1, currentReps,
+                    world, origin, front, up, flipped, runtime, session)) {
                 return true;
             }
         }
@@ -259,11 +279,18 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean tryCheckAtRepeatsWorld(@NotNull World world, @NotNull BlockPos origin,
                                             @NotNull EnumFacing front, @NotNull EnumFacing up,
                                             boolean flipped, int[] reps,
-                                            @NotNull PieceRuntime runtime) {
-        if (repeatAxes.length == 1) {
-            return tryCheckAllSlicesWorld(world, origin, front, up, flipped, reps, runtime);
+                                            @NotNull PieceRuntime runtime,
+                                            @NotNull StructureMatchSession session) {
+        StructureMatchSession candidate = session.fork();
+        boolean matched = repeatAxes.length == 1
+                ? tryCheckAllSlicesWorld(
+                        world, origin, front, up, flipped, reps, runtime, candidate)
+                : tryCheckAllMultiAxisSlicesWorld(
+                        world, origin, front, up, flipped, reps, runtime, candidate);
+        if (matched) {
+            candidate.commit();
         }
-        return tryCheckAllMultiAxisSlicesWorld(world, origin, front, up, flipped, reps, runtime);
+        return matched;
     }
 
     /**
@@ -273,7 +300,8 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean tryCheckAllSlicesWorld(@NotNull World world, @NotNull BlockPos origin,
                                              @NotNull EnumFacing front, @NotNull EnumFacing up,
                                              boolean flipped, int[] reps,
-                                             @NotNull PieceRuntime runtime) {
+                                             @NotNull PieceRuntime runtime,
+                                             @NotNull StructureMatchSession session) {
         int axis = repeatAxes[0];
         int stepSize = stepSizes[0];
         int count = reps[0];
@@ -284,8 +312,6 @@ public class RepeatGroupPiece extends StructurePiece {
         BlockPos pieceCenter = origin;
 
         LongSet allPositions = new LongOpenHashSet();
-        PatternMatchContext aggregated = new PatternMatchContext();
-        Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         for (int r = 0; r < count; r++) {
             // Fold the per-slice step into the cell loop as a template-local offset, so
@@ -297,14 +323,11 @@ public class RepeatGroupPiece extends StructurePiece {
 
             PatternMatchContext ctx = state.checkPatternAtExact(
                     world, pieceCenter, front, up, flipped,
-                    local[0], local[1], local[2]);
+                    local[0], local[1], local[2], session);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
             }
-
-            Set<IMultiblockPart> sliceParts = ctx.getOrCreate("MultiblockParts", HashSet::new);
-            allParts.addAll(sliceParts);
 
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
@@ -314,7 +337,7 @@ public class RepeatGroupPiece extends StructurePiece {
             }
         }
 
-        runtime.setLastAggregatedContext(aggregated);
+        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
@@ -327,15 +350,14 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean tryCheckAllMultiAxisSlicesWorld(@NotNull World world, @NotNull BlockPos origin,
                                                       @NotNull EnumFacing front, @NotNull EnumFacing up,
                                                       boolean flipped, int[] reps,
-                                                      @NotNull PieceRuntime runtime) {
+                                                      @NotNull PieceRuntime runtime,
+                                                      @NotNull StructureMatchSession session) {
         MultiblockState state = runtime.getState();
         // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
         // center; the cell loop's template-local slice step (set in `local` below) is the
         // only thing added to each cell — baseOffset is absorbed by pieceCenter.
         BlockPos pieceCenter = origin;
         LongSet allPositions = new LongOpenHashSet();
-        PatternMatchContext aggregated = new PatternMatchContext();
-        Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         int[] currentIndices = new int[repeatAxes.length];
         boolean hasMore = true;
@@ -353,14 +375,11 @@ public class RepeatGroupPiece extends StructurePiece {
 
             PatternMatchContext ctx = state.checkPatternAtExact(
                     world, pieceCenter, front, up, flipped,
-                    local[0], local[1], local[2]);
+                    local[0], local[1], local[2], session);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
             }
-
-            Set<IMultiblockPart> sliceParts = ctx.getOrCreate("MultiblockParts", HashSet::new);
-            allParts.addAll(sliceParts);
 
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
@@ -381,7 +400,7 @@ public class RepeatGroupPiece extends StructurePiece {
             }
         }
 
-        runtime.setLastAggregatedContext(aggregated);
+        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
@@ -393,13 +412,15 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean searchSliding1D(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                     @NotNull EnumFacing front, @NotNull EnumFacing up,
                                     boolean flipped,
-                                    @NotNull PieceRuntime runtime) {
+                                    @NotNull PieceRuntime runtime,
+                                    @NotNull StructureMatchSession session) {
         int min = repeatRanges[0][0], max = repeatRanges[0][1];
         int[] reps = new int[]{min};
         // Greedy: try max first
         for (int r = max; r >= min; r--) {
             reps[0] = r;
-            if (tryCheckAtRepeats(snap, origin, front, up, flipped, reps, runtime)) {
+            if (tryCheckAtRepeats(
+                    snap, origin, front, up, flipped, reps, runtime, session)) {
                 runtime.cacheFormedReps(reps);
                 return true;
             }
@@ -414,18 +435,23 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean searchIndependent1D(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                         @NotNull EnumFacing front, @NotNull EnumFacing up,
                                         boolean flipped,
-                                        @NotNull PieceRuntime runtime) {
+                                        @NotNull PieceRuntime runtime,
+                                        @NotNull StructureMatchSession session) {
         int[] reps = new int[repeatAxes.length];
+        for (int i = 0; i < repeatAxes.length; i++) {
+            reps[i] = repeatRanges[i][0];
+        }
         for (int i = 0; i < repeatAxes.length; i++) {
             reps[i] = searchAxisGreedy(snap, origin, i, reps, front, up, flipped, runtime);
             if (reps[i] < 0) return false; // Any axis failure = whole piece failure
         }
         // Final joint verification (safety net for axis boundary mismatches)
-        if (tryCheckAtRepeats(snap, origin, front, up, flipped, reps, runtime)) {
+        if (tryCheckAtRepeats(snap, origin, front, up, flipped, reps, runtime, session)) {
             runtime.cacheFormedReps(reps);
             return true;
         }
-        return false;
+        return backtrackAxes(0, new int[repeatAxes.length],
+                snap, origin, front, up, flipped, runtime, session);
     }
 
     /**
@@ -462,9 +488,7 @@ public class RepeatGroupPiece extends StructurePiece {
         // per cell.
         BlockPos pieceCenter = origin;
         int[] local = {0, 0, 0};
-        for (int i = 0; i < repeatAxes.length; i++) {
-            local[repeatAxes[i]] += stepSizes[i] * (partialReps[i] - 1);
-        }
+        local[repeatAxes[axisIdx]] = stepSizes[axisIdx] * (partialReps[axisIdx] - 1);
         return runtime.getState().checkAxisLineFastAtSnapshot(
                 snap, pieceCenter, repeatAxes[axisIdx], front, up, flipped,
                 local[0], local[1], local[2]);
@@ -479,9 +503,11 @@ public class RepeatGroupPiece extends StructurePiece {
                                   @NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                   @NotNull EnumFacing front, @NotNull EnumFacing up,
                                   boolean flipped,
-                                  @NotNull PieceRuntime runtime) {
+                                  @NotNull PieceRuntime runtime,
+                                  @NotNull StructureMatchSession session) {
         if (axisIdx == repeatAxes.length) {
-            if (tryCheckAtRepeats(snap, origin, front, up, flipped, currentReps, runtime)) {
+            if (tryCheckAtRepeats(
+                    snap, origin, front, up, flipped, currentReps, runtime, session)) {
                 runtime.cacheFormedReps(currentReps);
                 return true;
             }
@@ -491,7 +517,8 @@ public class RepeatGroupPiece extends StructurePiece {
         // Greedy: try max first (players most likely build the largest structure)
         for (int r = max; r >= min; r--) {
             currentReps[axisIdx] = r;
-            if (backtrackAxes(axisIdx + 1, currentReps, snap, origin, front, up, flipped, runtime)) {
+            if (backtrackAxes(axisIdx + 1, currentReps,
+                    snap, origin, front, up, flipped, runtime, session)) {
                 return true;
             }
         }
@@ -507,14 +534,17 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean tryCheckAtRepeats(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                       @NotNull EnumFacing front, @NotNull EnumFacing up,
                                       boolean flipped, int[] reps,
-                                      @NotNull PieceRuntime runtime) {
-        if (repeatAxes.length == 1) {
-            // Single-axis: check each slice along the repeat axis
-            return tryCheckAllSlices(snap, origin, front, up, flipped, reps, runtime);
+                                      @NotNull PieceRuntime runtime,
+                                      @NotNull StructureMatchSession session) {
+        StructureMatchSession candidate = session.fork();
+        boolean matched = repeatAxes.length == 1
+                ? tryCheckAllSlices(snap, origin, front, up, flipped, reps, runtime, candidate)
+                : tryCheckAllMultiAxisSlices(
+                        snap, origin, front, up, flipped, reps, runtime, candidate);
+        if (matched) {
+            candidate.commit();
         }
-
-        // Multi-axis: check all slice positions across all repeat axes
-        return tryCheckAllMultiAxisSlices(snap, origin, front, up, flipped, reps, runtime);
+        return matched;
     }
 
     /**
@@ -526,17 +556,14 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean tryCheckAllMultiAxisSlices(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                                  @NotNull EnumFacing front, @NotNull EnumFacing up,
                                                  boolean flipped, int[] reps,
-                                                 @NotNull PieceRuntime runtime) {
+                                                 @NotNull PieceRuntime runtime,
+                                                 @NotNull StructureMatchSession session) {
         MultiblockState state = runtime.getState();
         // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
         // center; the cell loop's template-local slice step (set in `local` below) is the
         // only thing added to each cell — baseOffset is absorbed by pieceCenter.
         BlockPos pieceCenter = origin;
         LongSet allPositions = new LongOpenHashSet();
-
-        // Aggregate context from all slices
-        PatternMatchContext aggregated = new PatternMatchContext();
-        Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
 
         // Enumerate all combinations of repeat counts (cartesian product)
         // Each axis i ranges from 0 to reps[i]-1
@@ -557,16 +584,13 @@ public class RepeatGroupPiece extends StructurePiece {
             // Check this slice
             PatternMatchContext ctx = state.checkPatternAtSnapshotExact(
                     snap, pieceCenter, front, up, flipped,
-                    local[0], local[1], local[2]);
+                    local[0], local[1], local[2], session);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
             }
 
             // Merge MultiblockParts from this slice
-            Set<IMultiblockPart> sliceParts = ctx.getOrCreate("MultiblockParts", HashSet::new);
-            allParts.addAll(sliceParts);
-
             // Collect positions from this slice
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
@@ -588,7 +612,7 @@ public class RepeatGroupPiece extends StructurePiece {
             }
         }
 
-        runtime.setLastAggregatedContext(aggregated);
+        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
@@ -602,7 +626,8 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean tryCheckAllSlices(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                        @NotNull EnumFacing front, @NotNull EnumFacing up,
                                        boolean flipped, int[] reps,
-                                       @NotNull PieceRuntime runtime) {
+                                       @NotNull PieceRuntime runtime,
+                                       @NotNull StructureMatchSession session) {
         int axis = repeatAxes[0];
         int stepSize = stepSizes[0];
         int count = reps[0];
@@ -614,10 +639,6 @@ public class RepeatGroupPiece extends StructurePiece {
 
         LongSet allPositions = new LongOpenHashSet();
 
-        // Aggregate context from all slices
-        PatternMatchContext aggregated = new PatternMatchContext();
-        Set<IMultiblockPart> allParts = aggregated.getOrCreate("MultiblockParts", HashSet::new);
-
         for (int r = 0; r < count; r++) {
             // Fold the per-slice step into the cell loop as a template-local offset, so
             // setActualRelativeOffset runs exactly once per cell. The cached positions
@@ -628,16 +649,13 @@ public class RepeatGroupPiece extends StructurePiece {
 
             PatternMatchContext ctx = state.checkPatternAtSnapshotExact(
                     snap, pieceCenter, front, up, flipped,
-                    local[0], local[1], local[2]);
+                    local[0], local[1], local[2], session);
             if (ctx == null) {
                 runtime.setLastAggregatedContext(null);
                 return false;
             }
 
             // Merge MultiblockParts from this slice into the aggregated context
-            Set<IMultiblockPart> sliceParts = ctx.getOrCreate("MultiblockParts", HashSet::new);
-            allParts.addAll(sliceParts);
-
             // Collect positions from this slice
             Long2ObjectMap<BlockInfo> innerCache = state.cache;
             if (!innerCache.isEmpty()) {
@@ -647,7 +665,7 @@ public class RepeatGroupPiece extends StructurePiece {
             }
         }
 
-        runtime.setLastAggregatedContext(aggregated);
+        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
@@ -685,7 +703,8 @@ public class RepeatGroupPiece extends StructurePiece {
                                     @NotNull EnumFacing up, boolean flipped,
                                     @Nullable FormedStructureMetadata prior,
                                     @Nullable Map<String, Integer> channelValues, boolean skipHatches,
-                                    @NotNull PieceRuntime runtime) {
+                                    @NotNull PieceRuntime runtime,
+                                    @NotNull AbilityPlacementTracker abilityTracker) {
         int[] reps = new int[repeatAxes.length];
         for (int i = 0; i < repeatAxes.length; i++) {
             reps[i] = repeatRanges[i][1];
@@ -722,7 +741,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 local[axis] = stepSize * r;
                 state.autoBuildAt(player, controller, pieceCenter,
                         local[0], local[1], local[2],
-                        channelValues, skipHatches);
+                        channelValues, skipHatches, abilityTracker);
             }
         } else {
             int[] currentIndices = new int[repeatAxes.length];
@@ -734,7 +753,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 }
                 state.autoBuildAt(player, controller, pieceCenter,
                         local[0], local[1], local[2],
-                        channelValues, skipHatches);
+                        channelValues, skipHatches, abilityTracker);
 
                 hasMore = false;
                 for (int i = 0; i < repeatAxes.length; i++) {

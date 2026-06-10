@@ -56,7 +56,8 @@ public class StructurePiece {
         boolean check(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                       @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
                       @Nullable FormedStructureMetadata prior,
-                      @NotNull PieceRuntime runtime);
+                      @NotNull PieceRuntime runtime,
+                      @NotNull StructureMatchSession session);
     }
 
     private final String name;
@@ -182,7 +183,7 @@ public class StructurePiece {
     }
 
     private static SnapshotChecker noopSnapshotChecker() {
-        return (s, o, f, u, fl, p, r) -> false;
+        return (s, o, f, u, fl, p, r, session) -> false;
     }
 
     /**
@@ -241,6 +242,19 @@ public class StructurePiece {
     }
 
     /**
+     * Evaluate this piece with an explicit controller/session context.
+     */
+    @SuppressWarnings("unchecked")
+    public boolean isActive(@NotNull StructureActivationContext<?> context) {
+        if (condition == null) return true;
+        if (condition instanceof StructureCondition) {
+            return ((StructureCondition<Object>) condition)
+                    .test((StructureActivationContext<Object>) context);
+        }
+        return condition.getAsBoolean();
+    }
+
+    /**
      * Compute the piece center with the same complete orientation used for
      * transforming pattern cells.
      */
@@ -292,6 +306,16 @@ public class StructurePiece {
                                    @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
                                    @Nullable FormedStructureMetadata prior,
                                    @NotNull PieceRuntime runtime) {
-        return snapshotChecker.check(snap, origin, front, up, flipped, prior, runtime);
+        StructureMatchSession session = new StructureMatchSession();
+        return checkOnSnapshot(snap, origin, front, up, flipped, prior, runtime, session)
+                && session.validate(false).success;
+    }
+
+    public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
+                                   @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                                   @Nullable FormedStructureMetadata prior,
+                                   @NotNull PieceRuntime runtime,
+                                   @NotNull StructureMatchSession session) {
+        return snapshotChecker.check(snap, origin, front, up, flipped, prior, runtime, session);
     }
 }

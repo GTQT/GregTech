@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
@@ -148,6 +149,26 @@ public class MultiblockUIBuilder {
                     "gregtech.multiblock.invalid_structure"));
             addKey(KeyUtil.lang(TextFormatting.GRAY,
                     "gregtech.multiblock.invalid_structure.tooltip"));
+        }
+        return this;
+    }
+
+    public MultiblockUIBuilder addMissingStructureAbilities(Map<String, Integer> missingAbilities) {
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(missingAbilities.entrySet());
+        int size = getSyncer().syncInt(entries.size());
+        if (size <= 0) return this;
+
+        addKey(KeyUtil.lang(TextFormatting.RED,
+                "gregtech.multiblock.missing_ability_header"));
+        for (int i = 0; i < size; i++) {
+            String abilityName = getSyncer().syncString(
+                    i < entries.size() ? entries.get(i).getKey() : "");
+            int count = getSyncer().syncInt(
+                    i < entries.size() ? entries.get(i).getValue() : 0);
+            addKey(KeyUtil.lang(TextFormatting.RED,
+                    "gregtech.multiblock.missing_ability",
+                    count,
+                    IKey.lang("gregtech.multiblock.ability." + abilityName)));
         }
         return this;
     }
