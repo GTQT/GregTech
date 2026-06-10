@@ -5367,32 +5367,36 @@ gregtech.machine.loom.opv.name=Legendary Loom
 gregtech.machine.loom.opv.tooltip=Nano-Weaver
 
 # Roaster
+gregtech.machine.steam_roaster_bronze.name=§8Steam§f Roaster
+gregtech.machine.steam_roaster_bronze.tooltip=Not for baking bread
+gregtech.machine.steam_roaster_steel.name=§8High-Pressure Steam§f Roaster
+gregtech.machine.steam_roaster_steel.tooltip=Mineral processing from scratch
 gregtech.machine.roaster.lv.name=Basic Roaster
-gregtech.machine.roaster.lv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.lv.tooltip=Tailings re-refining
 gregtech.machine.roaster.mv.name=Advanced Roaster
-gregtech.machine.roaster.mv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.mv.tooltip=Tailings re-refining
 gregtech.machine.roaster.hv.name=Advanced Roaster II
-gregtech.machine.roaster.hv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.hv.tooltip=Tailings re-refining
 gregtech.machine.roaster.ev.name=Advanced Roaster III
-gregtech.machine.roaster.ev.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.ev.tooltip=Tailings re-refining
 gregtech.machine.roaster.iv.name=Elite Roaster
-gregtech.machine.roaster.iv.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.iv.tooltip=Essence extractor
 gregtech.machine.roaster.luv.name=Elite Roaster II
-gregtech.machine.roaster.luv.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.luv.tooltip=Essence extractor
 gregtech.machine.roaster.zpm.name=Elite Roaster III
-gregtech.machine.roaster.zpm.tooltip=Catalyst Activator
+gregtech.machine.roaster.zpm.tooltip=Essence extractor
 gregtech.machine.roaster.uv.name=Ultimate Roaster
-gregtech.machine.roaster.uv.tooltip=Catalyst Activator
+gregtech.machine.roaster.uv.tooltip=Essence extractor
 gregtech.machine.roaster.uhv.name=Epic Roaster
-gregtech.machine.roaster.uhv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uhv.tooltip=Ore dissociator
 gregtech.machine.roaster.uev.name=Epic Roaster II
-gregtech.machine.roaster.uev.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uev.tooltip=Ore dissociator
 gregtech.machine.roaster.uiv.name=Epic Roaster III
-gregtech.machine.roaster.uiv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uiv.tooltip=Ore dissociator
 gregtech.machine.roaster.uxv.name=Epic Roaster IV
-gregtech.machine.roaster.uxv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uxv.tooltip=Ore dissociator
 gregtech.machine.roaster.opv.name=Legendary Roaster
-gregtech.machine.roaster.opv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.opv.tooltip=Ore dissociator
 
 # Chemical Dehydrator
 gregtech.machine.chemical_dehydrator.lv.name=Basic Chemical Dehydrator
@@ -5481,7 +5485,6 @@ gregtech.machine.recycler.opv.tooltip=Molecular Decomposition Device
 # Vulcanizing Press
 gregtech.machine.steam_vulcanizing_press_bronze.name=蒸汽硫化机
 gregtech.machine.steam_vulcanizing_press_steel.name=高压蒸汽硫化机
-
 gregtech.machine.vulcanizing_press.lv.name=Basic Vulcanizing Press
 gregtech.machine.vulcanizing_press.lv.tooltip=Rubber Manufacturer
 gregtech.machine.vulcanizing_press.mv.name=Advanced Vulcanizing Press

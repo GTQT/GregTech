@@ -569,6 +569,20 @@ public class MetaTileEntityLoader {
                 'S', new UnificationEntry(springSmall, WroughtIron),
                 'X', new UnificationEntry(gearSmall, Steel));
 
+        // Steam Roaster
+        ModHandler.addShapedRecipe(true, "roaster.bronze", MetaTileEntities.STEAM_ROASTER_BRONZE.getStackForm(),
+                "PRP", "PQP", "PHP",
+                'H', MetaBlocks.STEAM_CASING.getItemVariant(BlockSteamCasing.SteamCasingType.BRONZE_BRICKS_HULL),
+                'P', new UnificationEntry(pipeSmallFluid, Bronze),
+                'Q', new UnificationEntry(plate, Bronze),
+                'R', new UnificationEntry(rotor, Bronze));
+
+        ModHandler.addShapedRecipe(true, "roaster.steel", MetaTileEntities.STEAM_ROASTER_STEEL.getStackForm(),
+                "AAA", "QHQ", "PPP",
+                'H', MetaTileEntities.STEAM_ROASTER_BRONZE.getStackForm(),
+                'P', new UnificationEntry(pipeSmallFluid, TinAlloy),
+                'Q', new UnificationEntry(plate, Steel),
+                'A', new UnificationEntry(plate, WroughtIron));
 
         ModHandler.addShapedRecipe(true, "steam_miner", MetaTileEntities.STEAM_MINER.getStackForm(), "DSD", "SMS",
                 "GSG", 'M', MetaBlocks.STEAM_CASING.getItemVariant(BRONZE_HULL), 'S',

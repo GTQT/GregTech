@@ -1,12 +1,10 @@
 package gregtech.common.metatileentities.registration;
 
 import gregtech.api.GTValues;
-import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.electric.MetaTileEntityGasCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityMiner;
 import gregtech.common.metatileentities.electric.MetaTileEntityRockBreaker;
@@ -20,13 +18,14 @@ import gregtech.common.metatileentities.steam.SteamFurnace;
 import gregtech.common.metatileentities.steam.SteamHammer;
 import gregtech.common.metatileentities.steam.SteamMacerator;
 import gregtech.common.metatileentities.steam.SteamMiner;
+import gregtech.common.metatileentities.steam.SteamRoaster;
 import gregtech.common.metatileentities.steam.SteamRockBreaker;
 import gregtech.common.metatileentities.steam.SteamVulcanizingPress;
 import gregtech.common.metatileentities.steam.boiler.SteamCoalBoiler;
 import gregtech.common.metatileentities.steam.boiler.SteamLavaBoiler;
 import gregtech.common.metatileentities.steam.boiler.SteamSolarBoiler;
 
-import static gregtech.api.GTValues.*;
+import static gregtech.api.GTValues.EV;
 import static gregtech.api.util.GTUtility.gregtechId;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 
@@ -101,6 +100,11 @@ public final class MachineRegistration {
                 new SteamVulcanizingPress(gregtechId("steam_vulcanizing_press_bronze"), false));
         STEAM_VULCANIZING_PRESS_STEEL = registerMetaTileEntity(22,
                 new SteamVulcanizingPress(gregtechId("steam_vulcanizing_press_steel"), true));
+
+        STEAM_ROASTER_BRONZE = registerMetaTileEntity(23,
+                new SteamRoaster(gregtechId("steam_roaster_bronze"), false));
+        STEAM_ROASTER_STEEL = registerMetaTileEntity(24,
+                new SteamRoaster(gregtechId("steam_roaster_steel"), true));
 
         STEAM_MINER = registerMetaTileEntity(40, new SteamMiner(gregtechId("steam_miner"), 320, 4, 0));
     }
