@@ -2829,6 +2829,7 @@ tile.gt.reinforced_stone.name=防爆石
 tile.rubber_log.name=橡胶木
 tile.rubber_leaves.name=橡胶树叶
 tile.rubber_sapling.name=橡胶树苗
+tile.tree_tap.name=木龙头
 
 tile.planks.rubber.name=橡胶木板
 tile.planks.treated.name=防腐木板

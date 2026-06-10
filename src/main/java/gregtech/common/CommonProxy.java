@@ -202,6 +202,7 @@ public class CommonProxy {
         registry.register(ASPHALT);
         for (StoneVariantBlock block : STONE_BLOCKS.values()) registry.register(block);
         registry.register(RUBBER_LOG);
+        registry.register(TREE_TAP);
         registry.register(RUBBER_LEAVES);
         registry.register(RUBBER_SAPLING);
         registry.register(PLANKS);

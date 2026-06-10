@@ -23,6 +23,7 @@ import gregtech.client.renderer.godforge.GodforgeRenderTileEntity;
 import gregtech.client.renderer.godforge.GodforgeStarRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityTESR;
+import gregtech.client.renderer.handler.TileEntityTreeTapRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
@@ -42,7 +43,9 @@ import gregtech.common.blocks.wood.BlockRubberDoor;
 import gregtech.common.blocks.wood.BlockRubberLeaves;
 import gregtech.common.blocks.wood.BlockRubberLog;
 import gregtech.common.blocks.wood.BlockRubberSapling;
+import gregtech.common.blocks.wood.BlockTreeTap;
 import gregtech.common.blocks.wood.BlockWoodenDoor;
+import gregtech.common.blocks.wood.TileEntityTreeTap;
 import gregtech.common.items.MetaItems;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.Insulation;
@@ -168,6 +171,7 @@ public class MetaBlocks {
     public static BlockRubberLog RUBBER_LOG;
     public static BlockRubberLeaves RUBBER_LEAVES;
     public static BlockRubberSapling RUBBER_SAPLING;
+    public static BlockTreeTap TREE_TAP;
     public static BlockGregPlanks PLANKS;
     public static BlockGregWoodSlab WOOD_SLAB;
     public static BlockGregWoodSlab DOUBLE_WOOD_SLAB;
@@ -325,6 +329,8 @@ public class MetaBlocks {
 
         RUBBER_LOG = new BlockRubberLog();
         RUBBER_LOG.setRegistryName("rubber_log");
+        TREE_TAP = new BlockTreeTap();
+        TREE_TAP.setRegistryName("tree_tap");
         RUBBER_LEAVES = new BlockRubberLeaves();
         RUBBER_LEAVES.setRegistryName("rubber_leaves");
         RUBBER_SAPLING = new BlockRubberSapling();
@@ -484,6 +490,7 @@ public class MetaBlocks {
         GameRegistry.registerTileEntity(TileEntityFluidPipeTickable.class, gregtechId("fluid_pipe_active"));
         GameRegistry.registerTileEntity(TileEntityItemPipeTickable.class, gregtechId("item_pipe_active"));
         GameRegistry.registerTileEntity(GodforgeRenderTileEntity.class, gregtechId("godforge_render"));
+        GameRegistry.registerTileEntity(TileEntityTreeTap.class, gregtechId("tree_tap"));
     }
 
     @SideOnly(Side.CLIENT)
@@ -526,6 +533,7 @@ public class MetaBlocks {
         registerItemModel(RUBBER_LOG);
         registerItemModel(RUBBER_LEAVES);
         registerItemModel(RUBBER_SAPLING);
+        registerItemModel(TREE_TAP);
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(RUBBER_SAPLING), 0,
                 new ModelResourceLocation(Objects.requireNonNull(RUBBER_SAPLING.getRegistryName()), "inventory"));
         registerItemModel(PLANKS);
@@ -659,6 +667,7 @@ public class MetaBlocks {
 
         ClientRegistry.bindTileEntitySpecialRenderer(MetaTileEntityHolder.class, new MetaTileEntityTESR());
         ClientRegistry.bindTileEntitySpecialRenderer(GodforgeRenderTileEntity.class, new GodforgeStarRenderer());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTreeTap.class, new TileEntityTreeTapRenderer());
     }
 
     @SideOnly(Side.CLIENT)

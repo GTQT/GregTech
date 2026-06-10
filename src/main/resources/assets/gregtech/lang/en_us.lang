@@ -2834,6 +2834,7 @@ tile.gt.reinforced_stone.name=Reinforced Stone
 tile.rubber_log.name=Rubber Wood
 tile.rubber_leaves.name=Rubber Tree Leaves
 tile.rubber_sapling.name=Rubber Tree Sapling
+tile.tree_tap.name=Tree Tap
 
 tile.planks.rubber.name=Rubber Wood Planks
 tile.planks.treated.name=Treated Wood Planks
