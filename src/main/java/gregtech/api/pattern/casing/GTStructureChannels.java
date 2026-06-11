@@ -33,6 +33,7 @@ public enum GTStructureChannels implements StructureChannel {
     STRUCTURE_WIDTH("structure_width"),
     STRUCTURE_HEIGHT("structure_height"),
     STRUCTURE_LENGTH("structure_length"),
+    STRUCTURE_TIER("structure_tier"),
 
     // --- Hatch Tier ---
     HATCH_TIER("hatch_tier"),

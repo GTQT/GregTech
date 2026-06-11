@@ -248,6 +248,9 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             }
 
             if (!multiblock.isStructureFormed()) {
+                if (multiblock.autoBuildStructure(player, channels, noHatch)) {
+                    return EnumActionResult.SUCCESS;
+                }
                 MultiblockState state = multiblock.getMultiblockState();
                 var runtime = multiblock.getStructureRuntime();
                 if (state != null && runtime != null) {

@@ -26,7 +26,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.TemplatePool;
@@ -44,7 +43,6 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockCleanroomCasing;
 import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnace;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
@@ -946,42 +944,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         if (ConfigHolder.machines.enableCleanroom) {
             super.getSubItems(creativeTab, subItems);
         }
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        ArrayList<MultiblockShapeInfo> shapeInfo = new ArrayList<>();
-        MultiblockShapeInfo.Builder builder = MultiblockShapeInfo.builder()
-                .aisle("XXXXX", "XIHLX", "XXDXX", "XXXXX", "XXXXX")
-                .aisle("XXXXX", "X   X", "G   G", "X   X", "XFFFX")
-                .aisle("XXXXX", "X   X", "G   G", "X   X", "XFSFX")
-                .aisle("XXXXX", "X   X", "G   G", "X   X", "XFFFX")
-                .aisle("XMXEX", "XXOXX", "XXRXX", "XXXXX", "XXXXX")
-                .where('X', MetaBlocks.CLEANROOM_CASING.getState(BlockCleanroomCasing.CasingType.PLASCRETE))
-                .where('G', MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.CLEANROOM_GLASS))
-                .where('S', MetaTileEntities.CLEANROOM, EnumFacing.SOUTH)
-                .where(' ', Blocks.AIR.getDefaultState())
-                .where('E', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LV], EnumFacing.SOUTH)
-                .where('I', MetaTileEntities.PASSTHROUGH_HATCH_ITEM, EnumFacing.NORTH)
-                .where('L', MetaTileEntities.PASSTHROUGH_HATCH_FLUID, EnumFacing.NORTH)
-                .where('H', MetaTileEntities.HULL[GTValues.HV], EnumFacing.NORTH)
-                .where('D', MetaTileEntities.DIODES[GTValues.HV], EnumFacing.NORTH)
-                .where('M',
-                        () -> ConfigHolder.machines.enableMaintenance ? MetaTileEntities.MAINTENANCE_HATCH :
-                                MetaBlocks.CLEANROOM_CASING.getState(BlockCleanroomCasing.CasingType.PLASCRETE),
-                        EnumFacing.SOUTH)
-                .where('O',
-                        Blocks.IRON_DOOR.getDefaultState().withProperty(BlockDoor.FACING, EnumFacing.NORTH)
-                                .withProperty(BlockDoor.HALF, BlockDoor.EnumDoorHalf.LOWER))
-                .where('R', Blocks.IRON_DOOR.getDefaultState().withProperty(BlockDoor.FACING, EnumFacing.NORTH)
-                        .withProperty(BlockDoor.HALF, BlockDoor.EnumDoorHalf.UPPER));
-
-        GregTechAPI.CLEANROOM_FILTERS.entrySet().stream()
-                .filter(entry -> entry.getValue().getCleanroomType() != null)
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .forEach(entry -> shapeInfo.add(builder.where('F', entry.getKey()).build()));
-
-        return shapeInfo;
     }
 
     @Override

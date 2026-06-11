@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.GTValues;
 import gregtech.api.capability.IObjectHolder;
 import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalComputationProvider;
@@ -16,7 +15,6 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.StructureEvaluationContext;
@@ -34,7 +32,6 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockComputerCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.behaviors.DataItemBehavior;
@@ -42,7 +39,6 @@ import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.init.Blocks;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -63,8 +59,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         implements IOpticalComputationReceiver {
@@ -271,32 +265,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     @Override
     protected StructureDefinition createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        return Collections.singletonList(MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                .aisle("XXX", "VVV", "POP", "PEP", "PMP", "VVV", "XXX")
-                .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
-                .aisle("XXX", "VAV", "XAX", "XSX", "XAX", "VAV", "XXX")
-                .aisle("XXX", "XAX", "---", "---", "---", "XAX", "XXX")
-                .aisle("-X-", "XAX", "---", "---", "---", "XAX", "-X-")
-                .aisle("-X-", "XAX", "-A-", "-H-", "-A-", "XAX", "-X-")
-                .aisle("---", "XXX", "---", "---", "---", "XXX", "---")
-                .where('S', MetaTileEntities.RESEARCH_STATION, EnumFacing.SOUTH)
-                .where('X', getCasingState())
-                .where('-', Blocks.AIR.getDefaultState())
-                .where('V', getVentState())
-                .where('A', getAdvancedState())
-                .where('P', getCasingState())
-                .where('O', MetaTileEntities.COMPUTATION_HATCH_RECEIVER[GTValues.LuV], EnumFacing.NORTH)
-                .where('E', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV], EnumFacing.NORTH)
-                .where('M',
-                        () -> ConfigHolder.machines.enableMaintenance ? MetaTileEntities.MAINTENANCE_HATCH :
-                                getCasingState(),
-                        EnumFacing.NORTH)
-                .where('H', MetaTileEntities.OBJECT_HOLDER, EnumFacing.NORTH)
-                .build());
     }
 
     @SideOnly(Side.CLIENT)

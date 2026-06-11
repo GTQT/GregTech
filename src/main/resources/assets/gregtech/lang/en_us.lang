@@ -739,6 +739,7 @@ gregtech.structure_channel.item_pipe_casing=Item Pipe Casing Tier
 gregtech.structure_channel.structure_height=Structure Height
 gregtech.structure_channel.structure_length=Structure Length
 gregtech.structure_channel.structure_width=Structure Width
+gregtech.structure_channel.structure_tier=Structural dimension specifications
 gregtech.structure_channel.hatch_tier=Hatch Tier
 gregtech.structure_channel.energy_casing=Energy Casing Tier
 gregtech.structure_channel.solenoid=Solenoid Tier

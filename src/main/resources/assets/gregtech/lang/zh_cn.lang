@@ -737,6 +737,7 @@ gregtech.structure_channel.item_pipe_casing=物品管道外壳等级
 gregtech.structure_channel.structure_height=结构高度
 gregtech.structure_channel.structure_length=结构长度
 gregtech.structure_channel.structure_width=结构宽度
+gregtech.structure_channel.structure_tier=结构尺寸档位
 gregtech.structure_channel.hatch_tier=仓室等级
 gregtech.structure_channel.energy_casing=能源外壳等级
 gregtech.structure_channel.solenoid=螺线管等级

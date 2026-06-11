@@ -12,16 +12,19 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.*;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.util.BlockInfo;
 import gregtech.api.util.Mods;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.behaviors.LighterBehaviour;
-import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemFireball;
@@ -47,7 +50,6 @@ import codechicken.lib.vec.Matrix4;
 import crafttweaker.annotations.ZenRegister;
 import crafttweaker.api.block.IBlock;
 import crafttweaker.api.minecraft.CraftTweakerMC;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,7 +58,9 @@ import stanhebben.zenscript.annotations.ZenMethod;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @ZenClass("mods.gregtech.machines.CharcoalPileIgniter")
@@ -65,6 +69,13 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
 
     private static final int MIN_RADIUS = 1;
     private static final int MIN_DEPTH = 2;
+    private static final int MAX_REPEAT = 4;
+    private static final int MIN_LOG_WIDTH = 1;
+    private static final int MAX_LOG_WIDTH = 9;
+    private static final int MIN_LOG_HEIGHT = 1;
+    private static final int MAX_LOG_HEIGHT = 4;
+    private static final int MIN_LOG_LENGTH = 1;
+    private static final int MAX_LOG_LENGTH = 9;
 
     private static final Set<Block> WALL_BLOCKS = new ObjectOpenHashSet<>();
 
@@ -140,6 +151,13 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
             rDist = tmp;
         }
 
+        return buildStructurePattern(lDist, rDist, hDist, 0, MAX_REPEAT, 0, MAX_REPEAT);
+    }
+
+    @NotNull
+    private BlockPattern buildStructurePattern(int leftDistance, int rightDistance, int heightDistance,
+                                               int backRepeatMin, int backRepeatMax,
+                                               int frontRepeatMin, int frontRepeatMax) {
         StringBuilder wallBuilder = new StringBuilder();       // " XXX "
         StringBuilder floorBuilder = new StringBuilder();      // " BBB "
         StringBuilder cornerBuilder = new StringBuilder();     // " "
@@ -152,7 +170,7 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         ctrlBuilder.append(" ");
         woodBuilder.append("X");
 
-        for (int i = 0; i < lDist; i++) {
+        for (int i = 0; i < leftDistance; i++) {
             cornerBuilder.append(" ");
             if (i > 0) {
                 wallBuilder.append("X");
@@ -170,9 +188,9 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         woodBuilder.append("C");
 
         // everything to the right of the controller
-        for (int i = 0; i < rDist; i++) {
+        for (int i = 0; i < rightDistance; i++) {
             cornerBuilder.append(" ");
-            if (i < rDist - 1) {
+            if (i < rightDistance - 1) {
                 wallBuilder.append("X");
                 floorBuilder.append("B");
                 ctrlBuilder.append("X");
@@ -185,12 +203,12 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         ctrlBuilder.append(" ");
         woodBuilder.append("X");
 
-        String[] wall = new String[hDist + 1]; // " ", " XXX ", " "
+        String[] wall = new String[heightDistance + 1]; // " ", " XXX ", " "
         Arrays.fill(wall, wallBuilder.toString());
         wall[0] = cornerBuilder.toString();
         wall[wall.length - 1] = cornerBuilder.toString();
 
-        String[] slice = new String[hDist + 1]; // " BBB ", "XCCCX", " XXX "
+        String[] slice = new String[heightDistance + 1]; // " BBB ", "XCCCX", " XXX "
         Arrays.fill(slice, woodBuilder.toString());
         slice[0] = floorBuilder.toString();
 
@@ -207,9 +225,9 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
 
         return FactoryBlockPattern.start()
                 .aisle(wall)
-                .aisle(slice).setRepeatable(0, 4)
+                .aisle(slice).setRepeatable(backRepeatMin, backRepeatMax)
                 .aisle(center)
-                .aisle(slice).setRepeatable(0, 4)
+                .aisle(slice).setRepeatable(frontRepeatMin, frontRepeatMax)
                 .aisle(wall)
                 .where('S', selfPredicate())
                 .where('B', blocks(Blocks.BRICK_BLOCK))
@@ -217,6 +235,92 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
                 .where('C', logPredicate())
                 .where(' ', any())
                 .build();
+    }
+
+    @NotNull
+    private BlockPattern buildStructurePatternForLogSize(int width, int height, int length) {
+        int leftLogs = (width - 1) / 2;
+        int rightLogs = width - 1 - leftLogs;
+        int backRepeats = (length - 1) / 2;
+        int frontRepeats = length - 1 - backRepeats;
+
+        return buildStructurePattern(leftLogs + 1, rightLogs + 1, height + 1,
+                backRepeats, backRepeats, frontRepeats, frontRepeats);
+    }
+
+    @NotNull
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Arrays.asList(
+                GTStructureChannels.STRUCTURE_WIDTH,
+                GTStructureChannels.STRUCTURE_HEIGHT,
+                GTStructureChannels.STRUCTURE_LENGTH);
+    }
+
+    @NotNull
+    @Override
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        String channelName = channel.getName();
+        if (GTStructureChannels.STRUCTURE_WIDTH.getName().equals(channelName)) {
+            return new int[] { 0, MAX_LOG_WIDTH };
+        }
+        if (GTStructureChannels.STRUCTURE_HEIGHT.getName().equals(channelName)) {
+            return new int[] { 0, MAX_LOG_HEIGHT };
+        }
+        if (GTStructureChannels.STRUCTURE_LENGTH.getName().equals(channelName)) {
+            return new int[] { 0, MAX_LOG_LENGTH };
+        }
+        return super.getChannelRange(channel);
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes() {
+        return getMatchingShapes(Collections.emptyMap());
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
+        BlockPattern pattern = buildStructurePatternForChannelValues(channelValues);
+        return Collections.singletonList(new MultiblockShapeInfo(
+                pattern.getPreview(getFixedRepetitions(pattern), Collections.emptyMap())));
+    }
+
+    @Override
+    public boolean autoBuildStructure(@NotNull EntityPlayer player,
+                                      @Nullable Map<String, Integer> channelValues,
+                                      boolean skipHatches) {
+        buildStructurePatternForChannelValues(channelValues)
+                .autoBuild(player, this, Collections.emptyMap(), skipHatches);
+        return true;
+    }
+
+    @NotNull
+    private BlockPattern buildStructurePatternForChannelValues(@Nullable Map<String, Integer> channelValues) {
+        int width = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_WIDTH.getName(),
+                MIN_LOG_WIDTH, MAX_LOG_WIDTH);
+        int height = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_HEIGHT.getName(),
+                MIN_LOG_HEIGHT, MAX_LOG_HEIGHT);
+        int length = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_LENGTH.getName(),
+                MIN_LOG_LENGTH, MAX_LOG_LENGTH);
+        return buildStructurePatternForLogSize(width, height, length);
+    }
+
+    private static int resolveChannelSize(@Nullable Map<String, Integer> channelValues,
+                                          @NotNull String channelName,
+                                          int min, int max) {
+        if (channelValues == null) return max;
+        Integer value = channelValues.get(channelName);
+        return value == null ? max : MultiblockState.resolveRepetitionValue(value, min, max);
+    }
+
+    @NotNull
+    private static int[] getFixedRepetitions(@NotNull BlockPattern pattern) {
+        int[][] ranges = pattern.getAisleRepetitions();
+        int[] repetitions = new int[ranges.length];
+        for (int i = 0; i < ranges.length; i++) {
+            repetitions[i] = ranges[i][0];
+        }
+        return repetitions;
     }
 
     @NotNull
@@ -229,7 +333,7 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
                 return true;
             }
             return false;
-        });
+        }, () -> new BlockInfo[] { new BlockInfo(Blocks.LOG.getDefaultState()) });
     }
 
     private boolean updateStructureDimensions() {
@@ -354,26 +458,6 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         } else {
             tooltip.add(I18n.format("gregtech.tooltip.hold_ctrl"));
         }
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        List<MultiblockShapeInfo> shapeInfos = new ObjectArrayList<>();
-        for (Block block : WALL_BLOCKS) {
-            shapeInfos.add(MultiblockShapeInfo.builder()
-                    .aisle("     ", " XXX ", " XXX ", " XXX ", "     ")
-                    .aisle(" BBB ", "XCCCX", "XCCCX", "XCCCX", " DDD ")
-                    .aisle(" BBB ", "XCCCX", "XCCCX", "XCCCX", " DSD ")
-                    .aisle(" BBB ", "XCCCX", "XCCCX", "XCCCX", " DDD ")
-                    .aisle("     ", " XXX ", " XXX ", " XXX ", "     ")
-                    .where('S', MetaTileEntities.CHARCOAL_PILE_IGNITER, EnumFacing.NORTH)
-                    .where('B', Blocks.BRICK_BLOCK.getDefaultState())
-                    .where('X', block.getDefaultState())
-                    .where('D', block.getDefaultState())
-                    .where('C', Blocks.LOG.getDefaultState())
-                    .build());
-        }
-        return shapeInfos;
     }
 
     @Override
