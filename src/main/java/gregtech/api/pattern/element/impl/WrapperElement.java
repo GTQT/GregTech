@@ -198,6 +198,11 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
+    public void collectRequirements(@NotNull StructureEvaluationContext<Object> context) {
+        getDelegate().collectRequirements(context);
+    }
+
+    @Override
     public boolean usesLegacyPredicateRuntime() {
         return false;
     }

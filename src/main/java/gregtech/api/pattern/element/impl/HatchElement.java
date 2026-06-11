@@ -3,9 +3,12 @@ package gregtech.api.pattern.element.impl;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -39,17 +42,28 @@ public class HatchElement implements IStructureElement<Object> {
     @Override
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
         TileEntity te = world.getTileEntity(pos);
-        if (te instanceof IGregTechTileEntity) {
-            MetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-            if (mte instanceof IMultiblockAbilityPart) {
-                for (MultiblockAbility<?> a : ((IMultiblockAbilityPart<?>) mte).getAbilities()) {
-                    if (a == ability) {
-                        return true;
-                    }
-                }
-            }
+        MetaTileEntity mte = getMetaTileEntity(te);
+        IMultiblockAbilityPart<?> abilityPart = asAbilityPart(mte);
+        if (hasAbility(abilityPart)) {
+            return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        MetaTileEntity mte = getMetaTileEntity(context.getTileEntity());
+        IMultiblockAbilityPart<?> abilityPart = asAbilityPart(mte);
+        if (!hasAbility(abilityPart)) {
+            return false;
+        }
+
+        StructureMatchCollector collector = context.getCollector();
+        boolean recorded = collector.recordAbility(this, (IMultiblockPart) abilityPart);
+        if (!recorded) {
+            context.setError(new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 0));
+        }
+        return recorded;
     }
 
     @Override
@@ -79,8 +93,11 @@ public class HatchElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean usesLegacyPredicateRuntime() {
-        return true;
+    public void collectRequirements(StructureEvaluationContext<Object> context) {
+        context.getCollector().declareAbility(
+                this, ability, minCount, maxCount,
+                () -> new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 1),
+                () -> new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 0));
     }
 
     @Override
@@ -93,5 +110,47 @@ public class HatchElement implements IStructureElement<Object> {
             pred = pred.setMaxGlobalLimited(maxCount);
         }
         return pred;
+    }
+
+    private static MetaTileEntity getMetaTileEntity(TileEntity tileEntity) {
+        if (tileEntity instanceof IGregTechTileEntity) {
+            return ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+        }
+        return null;
+    }
+
+    private static IMultiblockAbilityPart<?> asAbilityPart(MetaTileEntity metaTileEntity) {
+        return metaTileEntity instanceof IMultiblockAbilityPart<?>
+                ? (IMultiblockAbilityPart<?>) metaTileEntity
+                : null;
+    }
+
+    private boolean hasAbility(IMultiblockAbilityPart<?> abilityPart) {
+        if (abilityPart == null) {
+            return false;
+        }
+        for (MultiblockAbility<?> a : abilityPart.getAbilities()) {
+            if (a == ability) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private TraceabilityPredicate.SimplePredicate limitPredicate() {
+        TraceabilityPredicate predicate = toPredicate();
+        if (!predicate.limited.isEmpty()) {
+            return predicate.limited.get(0);
+        }
+        if (!predicate.common.isEmpty()) {
+            return predicate.common.get(0);
+        }
+        TraceabilityPredicate.SimplePredicate fallback =
+                new TraceabilityPredicate.SimplePredicate(state -> false, this::getCandidates);
+        fallback.minGlobalCount = minCount;
+        fallback.maxGlobalCount = maxCount;
+        fallback.previewCount = Math.max(1, minCount);
+        fallback.ability = ability;
+        return fallback;
     }
 }

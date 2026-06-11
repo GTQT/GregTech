@@ -181,6 +181,11 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     }
 
     @Override
+    public void collectRequirements(@NotNull StructureEvaluationContext<T> context) {
+        source.collectRequirements(context);
+    }
+
+    @Override
     public CompiledStructureElement<T> compile() {
         return this;
     }

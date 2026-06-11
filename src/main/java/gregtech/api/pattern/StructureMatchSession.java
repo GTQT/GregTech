@@ -152,6 +152,18 @@ public final class StructureMatchSession {
             }
         }
 
+        StructureMatchCollector.Validation collectorValidation = new StructureMatchCollector(context).validate();
+        if (!collectorValidation.success) {
+            if (!collectorValidation.missingAbilities.isEmpty()) {
+                collectorValidation.missingAbilities.forEach(
+                        (ability, deficit) -> missingAbilities.merge(ability, deficit, Integer::sum));
+            } else {
+                return Validation.failure(collectorValidation.errorMessage == null
+                        ? "A structure element requirement failed"
+                        : collectorValidation.errorMessage);
+            }
+        }
+
         if (includeAbilityLimits) {
             Set<IMultiblockPart> parts = context.getOrDefault("MultiblockParts", Collections.emptySet());
             for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {

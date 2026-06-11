@@ -71,6 +71,15 @@ public class PatternMatchContext {
         return data.entrySet();
     }
 
+    @NotNull
+    public Checkpoint checkpoint() {
+        return new Checkpoint(copy());
+    }
+
+    public void restore(@NotNull Checkpoint checkpoint) {
+        replaceWith(checkpoint.context);
+    }
+
     public boolean neededFlip() {
         return neededFlip;
     }
@@ -151,6 +160,15 @@ public class PatternMatchContext {
             return (T) containerClass.getConstructor().newInstance();
         } catch (ReflectiveOperationException | SecurityException ignored) {
             return fallback;
+        }
+    }
+
+    public static final class Checkpoint {
+
+        private final PatternMatchContext context;
+
+        private Checkpoint(@NotNull PatternMatchContext context) {
+            this.context = context;
         }
     }
 }

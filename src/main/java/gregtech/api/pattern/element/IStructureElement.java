@@ -250,6 +250,12 @@ public interface IStructureElement<T> {
     }
 
     /**
+     * Register deferred requirements for this element before the current cell is
+     * matched. Runtime side effects still belong in {@link #check(StructureEvaluationContext)}.
+     */
+    default void collectRequirements(@NotNull StructureEvaluationContext<T> context) {}
+
+    /**
      * Compile this declaration to the immutable element executed by templates.
      */
     @NotNull
@@ -357,6 +363,11 @@ public interface IStructureElement<T> {
             @Override
             public List<String> getDescription(@Nullable T context) {
                 return IStructureElement.this.getDescription(context);
+            }
+
+            @Override
+            public void collectRequirements(@NotNull StructureEvaluationContext<T> context) {
+                IStructureElement.this.collectRequirements(context);
             }
 
             @Override

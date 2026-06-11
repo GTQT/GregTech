@@ -38,9 +38,11 @@ public class ChainElement implements IStructureElement<Object> {
     @Override
     public boolean check(@NotNull StructureEvaluationContext<Object> context) {
         for (IStructureElement e : elements) {
+            PatternMatchContext.Checkpoint checkpoint = context.getLegacyContext().checkpoint();
             if (e.check(context)) {
                 return true;
             }
+            context.getLegacyContext().restore(checkpoint);
         }
         return false;
     }
@@ -186,6 +188,13 @@ public class ChainElement implements IStructureElement<Object> {
             }
         }
         return descriptions.isEmpty() ? null : new ArrayList<>(descriptions);
+    }
+
+    @Override
+    public void collectRequirements(@NotNull StructureEvaluationContext<Object> context) {
+        for (IStructureElement e : elements) {
+            e.collectRequirements(context);
+        }
     }
 
     @Nullable

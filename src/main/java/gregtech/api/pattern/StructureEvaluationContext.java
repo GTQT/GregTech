@@ -62,6 +62,11 @@ public final class StructureEvaluationContext<T> {
     }
 
     @NotNull
+    public StructureMatchCollector getCollector() {
+        return new StructureMatchCollector(getLegacyContext());
+    }
+
+    @NotNull
     public Operation getOperation() {
         return operation;
     }
@@ -93,6 +98,10 @@ public final class StructureEvaluationContext<T> {
     @Nullable
     public TileEntity getTileEntity() {
         return requireWorldState().getTileEntity();
+    }
+
+    public void setError(@Nullable PatternError error) {
+        requireWorldState().setError(error);
     }
 
     /**

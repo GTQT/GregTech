@@ -459,7 +459,9 @@ public class MultiblockState {
                                  @NotNull StructureEvaluationContext.Operation operation) {
         Object controller = session == null ? null : session.getControllerContext();
         evaluationContext.update(controller, session, worldState, operation);
-        return ((IStructureElement<Object>) element).check(evaluationContext);
+        IStructureElement<Object> typedElement = (IStructureElement<Object>) element;
+        typedElement.collectRequirements(evaluationContext);
+        return typedElement.check(evaluationContext);
     }
 
     private boolean hasFixedAisleLayout() {
@@ -487,15 +489,36 @@ public class MultiblockState {
             }
         }
 
+        StructureMatchCollector.Validation collectorValidation = new StructureMatchCollector(matchContext).validate();
+        if (!collectorValidation.missingAbilities.isEmpty()) {
+            collectorValidation.missingAbilities.forEach(
+                    (ability, deficit) -> abilities.merge(ability, deficit, Integer::sum));
+        }
+
         if (firstMissing == null) {
-            missingAbilities = Collections.emptyMap();
-            return false;
+            return failForMissingCollectorRequirements(collectorValidation);
         }
 
         missingAbilities = abilities.isEmpty()
                 ? Collections.emptyMap()
                 : Collections.unmodifiableMap(abilities);
         worldState.setError(new TraceabilityPredicate.SinglePredicateError(firstMissing, 1));
+        return true;
+    }
+
+    private boolean failForMissingCollectorRequirements(
+            @NotNull StructureMatchCollector.Validation validation) {
+        if (validation.success) {
+            missingAbilities = Collections.emptyMap();
+            return false;
+        }
+
+        missingAbilities = validation.missingAbilities.isEmpty()
+                ? Collections.emptyMap()
+                : validation.missingAbilities;
+        worldState.setError(validation.error == null
+                ? new PatternStringError("gregtech.multiblock.pattern.error.requirements")
+                : validation.error);
         return true;
     }
 
