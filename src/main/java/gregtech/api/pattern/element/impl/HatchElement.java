@@ -79,6 +79,11 @@ public class HatchElement implements IStructureElement<Object> {
     }
 
     @Override
+    public boolean usesLegacyPredicateRuntime() {
+        return true;
+    }
+
+    @Override
     public TraceabilityPredicate toPredicate() {
         TraceabilityPredicate pred = MultiblockControllerBase.abilities(ability);
         if (minCount > 0) {

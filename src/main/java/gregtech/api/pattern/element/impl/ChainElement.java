@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
@@ -32,6 +33,16 @@ public class ChainElement implements IStructureElement<Object> {
             throw new IllegalArgumentException("ChainElement requires at least one element");
         }
         this.elements = elements;
+    }
+
+    @Override
+    public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+        for (IStructureElement e : elements) {
+            if (e.check(context)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -177,11 +188,19 @@ public class ChainElement implements IStructureElement<Object> {
         return descriptions.isEmpty() ? null : new ArrayList<>(descriptions);
     }
 
+    @Nullable
     @Override
     public TraceabilityPredicate toPredicate() {
         TraceabilityPredicate result = elements[0].toPredicate();
+        if (result == null) {
+            return null;
+        }
         for (int i = 1; i < elements.length; i++) {
-            result = result.or(elements[i].toPredicate());
+            TraceabilityPredicate predicate = elements[i].toPredicate();
+            if (predicate == null) {
+                return null;
+            }
+            result = result.or(predicate);
         }
         return result;
     }

@@ -25,12 +25,12 @@ import java.util.List;
 public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     private final IStructureElement<T> source;
-    private final TraceabilityPredicate predicate;
+    private final TraceabilityPredicate predicateView;
 
     private CompiledStructureElement(@NotNull IStructureElement<T> source,
-                                     @NotNull TraceabilityPredicate predicate) {
+                                     @NotNull TraceabilityPredicate predicateView) {
         this.source = source;
-        this.predicate = predicate;
+        this.predicateView = predicateView;
     }
 
     @NotNull
@@ -38,18 +38,28 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         if (source instanceof CompiledStructureElement) {
             return (CompiledStructureElement<T>) source;
         }
-        return new CompiledStructureElement<>(source,
-                new TraceabilityPredicate(source.toPredicate()).sort());
+        if (source.usesLegacyPredicateRuntime()) {
+            TraceabilityPredicate predicate = source.toPredicate();
+            if (predicate == null) {
+                throw new IllegalStateException(
+                        source.getClass().getName() + " requested legacy predicate runtime without a predicate");
+            }
+            return (CompiledStructureElement<T>) legacy(predicate);
+        }
+        return new CompiledStructureElement<>(source, createPredicateView(source));
     }
 
     @NotNull
     public static CompiledStructureElement<Object> legacy(@NotNull TraceabilityPredicate predicate) {
-        return compile(new gregtech.api.pattern.element.impl.LegacyElement(predicate));
+        TraceabilityPredicate sorted = new TraceabilityPredicate(predicate).sort();
+        return new CompiledStructureElement<>(
+                new gregtech.api.pattern.element.impl.LegacyElement(sorted),
+                sorted);
     }
 
     @Override
     public boolean check(@NotNull StructureEvaluationContext<T> context) {
-        return source.check(context.bindElementPredicate(predicate));
+        return source.check(context);
     }
 
     @Override
@@ -156,7 +166,7 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Override
     public boolean isCenter() {
-        return predicate.isCenter();
+        return source.isCenter() || predicateView.isCenter();
     }
 
     @Override
@@ -177,6 +187,18 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Override
     public TraceabilityPredicate toPredicate() {
-        return predicate;
+        return predicateView;
+    }
+
+    @NotNull
+    private static TraceabilityPredicate createPredicateView(@NotNull IStructureElement<?> source) {
+        TraceabilityPredicate predicate = source.toPredicate();
+        TraceabilityPredicate result = predicate == null
+                ? new TraceabilityPredicate(state -> true, source::getCandidates)
+                : new TraceabilityPredicate(predicate);
+        if (source.isCenter()) {
+            result.setCenter();
+        }
+        return result.sort();
     }
 }

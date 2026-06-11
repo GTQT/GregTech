@@ -4,6 +4,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -24,6 +25,16 @@ public class SelfElement implements IStructureElement<Object> {
     public SelfElement(Class<? extends MultiblockControllerBase> controllerClass) {
         this.controllerClass = controllerClass;
         this.cachedPredicate = MultiblockControllerBase.selfPredicate(controllerClass);
+    }
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        TileEntity te = context.getTileEntity();
+        if (te instanceof IGregTechTileEntity) {
+            MetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
+            return controllerClass.isInstance(mte);
+        }
+        return false;
     }
 
     @Override

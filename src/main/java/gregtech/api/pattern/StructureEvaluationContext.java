@@ -32,8 +32,6 @@ public final class StructureEvaluationContext<T> {
     private StructureMatchSession session;
     @Nullable
     private BlockWorldState worldState;
-    @Nullable
-    private TraceabilityPredicate elementPredicate;
     private Operation operation = Operation.MATCH_WORLD;
 
     @NotNull
@@ -44,19 +42,7 @@ public final class StructureEvaluationContext<T> {
         this.controller = controller;
         this.session = session;
         this.worldState = worldState;
-        this.elementPredicate = null;
         this.operation = operation;
-        return this;
-    }
-
-    /**
-     * Bind the immutable predicate view of the element currently being
-     * executed. Called by the compiled element wrapper.
-     */
-    @NotNull
-    public StructureEvaluationContext<T> bindElementPredicate(
-            @NotNull TraceabilityPredicate elementPredicate) {
-        this.elementPredicate = elementPredicate;
         return this;
     }
 
@@ -114,16 +100,6 @@ public final class StructureEvaluationContext<T> {
      */
     public boolean test(@NotNull TraceabilityPredicate predicate) {
         return predicate.test(requireWorldState());
-    }
-
-    /**
-     * Execute the predicate compiled for the current element.
-     */
-    public boolean testElementPredicate() {
-        if (elementPredicate == null) {
-            throw new IllegalStateException("No compiled structure element is bound");
-        }
-        return test(elementPredicate);
     }
 
     @NotNull

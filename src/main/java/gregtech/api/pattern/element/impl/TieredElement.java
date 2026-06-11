@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -25,6 +26,18 @@ public class TieredElement implements IStructureElement<Object> {
     public TieredElement(Supplier<BlockInfo[]> candidates, String channelName) {
         this.candidates = candidates;
         this.channelName = channelName;
+    }
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        IBlockState worldState = context.getBlockState();
+        BlockInfo[] cand = candidates.get();
+        for (BlockInfo info : cand) {
+            if (info.getBlockState() == worldState) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

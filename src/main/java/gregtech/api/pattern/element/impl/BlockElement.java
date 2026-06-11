@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -21,6 +22,17 @@ public class BlockElement implements IStructureElement<Object> {
     public BlockElement(IBlockState... states) {
         this.states = states;
         this.cachedPredicate = buildPredicate();
+    }
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        IBlockState worldState = context.getBlockState();
+        for (IBlockState state : states) {
+            if (worldState == state) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

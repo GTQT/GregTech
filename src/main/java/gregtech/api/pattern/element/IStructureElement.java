@@ -3,6 +3,7 @@ package gregtech.api.pattern.element;
 import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.Block;
@@ -32,10 +33,8 @@ import java.util.function.Predicate;
  * <p>This interface is the single canonical concept for cell-level matching
  * in the new (StructureDefinition) path. The legacy
  * {@link gregtech.api.pattern.TraceabilityPredicate} remains a public API
- * for the old (FactoryBlockPattern) path; the
- * {@link #applyTo(String, PieceTemplateCompiler)} bridge method encapsulates
- * the only point of contact between the two systems, so the rest of the
- * element API does not need to mention TraceabilityPredicate.
+ * for the old (FactoryBlockPattern) path and as an optional compatibility
+ * view for old tooling.
  */
 public interface IStructureElement<T> {
 
@@ -44,7 +43,12 @@ public interface IStructureElement<T> {
      * both live-world and snapshot checks.
      */
     default boolean check(@NotNull StructureEvaluationContext<T> context) {
-        return context.testElementPredicate();
+        World world = context.getWorld();
+        if (world == null) {
+            throw new IllegalStateException(
+                    "Snapshot structure checks require a context-aware structure element");
+        }
+        return check(world, context.getPos(), context.getLegacyContext());
     }
 
     /**
@@ -250,6 +254,14 @@ public interface IStructureElement<T> {
      */
     @NotNull
     default CompiledStructureElement<T> compile() {
+        if (usesLegacyPredicateRuntime()) {
+            TraceabilityPredicate predicate = toPredicate();
+            if (predicate == null) {
+                throw new IllegalStateException(
+                        getClass().getName() + " requested legacy predicate runtime without a predicate");
+            }
+            return (CompiledStructureElement<T>) CompiledStructureElement.legacy(predicate);
+        }
         return CompiledStructureElement.compile(this);
     }
 
@@ -283,15 +295,7 @@ public interface IStructureElement<T> {
 
     /**
      * Register this element into a {@link PieceTemplateCompiler} under the
-     * given symbol. This is the single, interface-level bridge to the
-     * legacy {@link gregtech.api.pattern.TraceabilityPredicate}-based compile
-     * path: the new (StructureDefinition) path goes through this method
-     * and never mentions TraceabilityPredicate directly.
-     *
-     * <p>Default implementation converts via {@code toPredicate()}; concrete
-     * implementations may override to provide a more direct build path
-     * (e.g. populating the template's predicate 3D array without going
-     * through the legacy predicate system).
+     * given symbol.
      *
      * @param symbol    the single-character symbol this element was bound to
      * @param compiler  the target template compiler (in build state)
@@ -301,13 +305,25 @@ public interface IStructureElement<T> {
     }
 
     /**
-     * Build the legacy {@link gregtech.api.pattern.TraceabilityPredicate}
-     * for this element. Implementations retain this as an internal helper
-     * used by the default {@link #applyTo} bridge; the new path does not
-     * call it directly.
+     * Whether this element still needs to execute through a
+     * {@link gregtech.api.pattern.element.impl.LegacyElement}. New elements
+     * should leave this false and implement {@link #check(StructureEvaluationContext)}
+     * directly. This hook exists only for migration cases whose matching still
+     * depends on legacy predicate side effects.
      */
-    @NotNull
-    gregtech.api.pattern.TraceabilityPredicate toPredicate();
+    default boolean usesLegacyPredicateRuntime() {
+        return false;
+    }
+
+    /**
+     * Optional legacy predicate view for old callers and preview/diagnostic
+     * surfaces. It is not required for new elements and is not used by the
+     * element runtime unless {@link #usesLegacyPredicateRuntime()} opts in.
+     */
+    @Nullable
+    default TraceabilityPredicate toPredicate() {
+        return null;
+    }
 
     default IStructureElementNoPlacement<T> noPlacement() {
         return new IStructureElementNoPlacement<T>() {
@@ -344,7 +360,13 @@ public interface IStructureElement<T> {
             }
 
             @Override
-            public gregtech.api.pattern.TraceabilityPredicate toPredicate() {
+            public boolean usesLegacyPredicateRuntime() {
+                return IStructureElement.this.usesLegacyPredicateRuntime();
+            }
+
+            @Nullable
+            @Override
+            public TraceabilityPredicate toPredicate() {
                 return IStructureElement.this.toPredicate();
             }
         };

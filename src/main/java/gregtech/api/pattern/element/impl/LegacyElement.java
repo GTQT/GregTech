@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -23,6 +24,11 @@ public class LegacyElement implements IStructureElement<Object> {
 
     public LegacyElement(TraceabilityPredicate predicate) {
         this.predicate = predicate;
+    }
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        return context.test(predicate);
     }
 
     @Override
@@ -73,6 +79,11 @@ public class LegacyElement implements IStructureElement<Object> {
         // TraceabilityPredicate lives in gregtech.api.pattern — accessing a
         // protected field across packages is not allowed.
         return predicate.isCenter();
+    }
+
+    @Override
+    public boolean usesLegacyPredicateRuntime() {
+        return true;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -20,6 +21,12 @@ public class AirElement implements IStructureElement<Object> {
     private final TraceabilityPredicate cachedPredicate = TraceabilityPredicate.AIR;
 
     private AirElement() {}
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        return context.getBlockState().getBlock().isAir(context.getBlockState(),
+                context.getBlockAccess(), context.getPos());
+    }
 
     @Override
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {

@@ -198,9 +198,19 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
+    public boolean usesLegacyPredicateRuntime() {
+        return false;
+    }
+
+    @Nullable
+    @Override
     public TraceabilityPredicate toPredicate() {
         // Defensive copy to avoid mutating the original predicate
-        TraceabilityPredicate pred = new TraceabilityPredicate(getDelegate().toPredicate());
+        TraceabilityPredicate delegatePredicate = getDelegate().toPredicate();
+        if (delegatePredicate == null) {
+            return null;
+        }
+        TraceabilityPredicate pred = new TraceabilityPredicate(delegatePredicate);
 
         if (callback != null) {
             // Wrap each SimplePredicate with the callback invocation

@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
@@ -19,6 +20,11 @@ public class AnyElement implements IStructureElement<Object> {
     private final TraceabilityPredicate cachedPredicate = TraceabilityPredicate.ANY;
 
     private AnyElement() {}
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        return true;
+    }
 
     @Override
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
