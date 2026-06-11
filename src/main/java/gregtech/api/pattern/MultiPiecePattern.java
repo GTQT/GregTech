@@ -113,6 +113,18 @@ public class MultiPiecePattern {
     }
 
     /**
+     * @return a defensive copy of the global ability limits for legacy adapters.
+     */
+    @NotNull
+    public Map<MultiblockAbility<?>, int[]> getAbilityLimits() {
+        Map<MultiblockAbility<?>, int[]> copy = new HashMap<>();
+        for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {
+            copy.put(entry.getKey(), entry.getValue().clone());
+        }
+        return Collections.unmodifiableMap(copy);
+    }
+
+    /**
      * @return an unmodifiable map of piece name -> piece
      */
     public Map<String, StructurePiece> getPieces() {

@@ -41,7 +41,7 @@ import java.util.Map;
  */
 public final class StructureCheckState {
 
-    private final StructureDefinition definition;
+    private final StructureDefinition<?> definition;
 
     @Nullable
     private BlockPos lastErrorPos;
@@ -49,7 +49,7 @@ public final class StructureCheckState {
     @Nullable
     private String lastErrorMessage;
 
-    StructureCheckState(@NotNull StructureDefinition definition) {
+    StructureCheckState(@NotNull StructureDefinition<?> definition) {
         this.definition = definition;
     }
 

@@ -1,5 +1,6 @@
 package gregtech.api.pattern;
 
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
@@ -123,8 +124,8 @@ public final class TemplatePool {
      * @return the registered (or existing) SoftReferenceHolder for the given key
      */
     @NotNull
-    public SoftReferenceHolder<StructureDefinition> registerStructure(
-            @NotNull String key, @NotNull Supplier<StructureDefinition> factory) {
+    public <T extends MultiblockControllerBase> SoftReferenceHolder<StructureDefinition<T>> registerStructure(
+            @NotNull String key, @NotNull Supplier<StructureDefinition<T>> factory) {
         return registerGeneric(key, factory);
     }
 

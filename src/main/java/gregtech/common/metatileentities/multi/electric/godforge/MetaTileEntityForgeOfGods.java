@@ -199,6 +199,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Nullable
     @Override
     protected MultiPiecePattern createMultiPiecePattern() {
+        patternBuiltForRenderActive = data.isRenderActive();
+        patternBuiltForClearedRingAmount = data.getClearedRingAmount();
         return MultiPiecePattern.builder()
                 .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
                 .piece("first_ring", getRingTemplate(1, FIRST_RING_TEMPLATE, FIRST_RING_AIR_TEMPLATE),

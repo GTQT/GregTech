@@ -1,9 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
-import gregtech.api.pattern.MultiblockState;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructureMatchSession;
@@ -84,9 +81,6 @@ public class AsyncStructureChecker {
 
     /** Maximum snapshots prepared per tick to avoid lag spikes */
     private static final int MAX_SNAPSHOTS_PER_TICK = 4;
-
-    /** Fallback snapshot radius when template size cannot be determined */
-    private static final int FALLBACK_SNAPSHOT_RADIUS = 32;
 
     /** Extra margin added to structure AABB for snapshot capture */
     private static final int SNAPSHOT_MARGIN = 2;
@@ -277,46 +271,41 @@ public class AsyncStructureChecker {
     @Nullable
     private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
                                                             BlockPos pos) {
-        StructureDefinition definition = controller.getStructureDefinition();
-        if (definition != null) {
-            BlockPos[] aabb = definition.computeWorldAABB(
+        StructureDefinition<?> definition = controller.getStructureDefinition();
+        BlockPos[] aabb = definition.computeWorldAABB(
+                pos,
+                controller.getFrontFacingForStructure(),
+                controller.getUpwardsFacing(),
+                false,
+                SNAPSHOT_MARGIN);
+        if (controller.allowsFlip()) {
+            BlockPos[] flippedAabb = definition.computeWorldAABB(
                     pos,
                     controller.getFrontFacingForStructure(),
                     controller.getUpwardsFacing(),
-                    false,
+                    true,
                     SNAPSHOT_MARGIN);
-            if (controller.allowsFlip()) {
-                BlockPos[] flippedAabb = definition.computeWorldAABB(
-                        pos,
-                        controller.getFrontFacingForStructure(),
-                        controller.getUpwardsFacing(),
-                        true,
-                        SNAPSHOT_MARGIN);
-                aabb = unionAABB(aabb, flippedAabb);
-            }
-            BlockPos minCorner = aabb[0];
-            BlockPos maxCorner = aabb[1];
-
-            // Guard against absurdly large AABBs (e.g. bad template data or very large repeatable aisles)
-            long dx = (long) maxCorner.getX() - minCorner.getX() + 1;
-            long dy = (long) maxCorner.getY() - minCorner.getY() + 1;
-            long dz = (long) maxCorner.getZ() - minCorner.getZ() + 1;
-            long volume = dx * dy * dz;
-
-            if (volume > MAX_SNAPSHOT_VOLUME) {
-                if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
-                    GTLog.logger.debug(
-                            "[AsyncStructureCheck] Snapshot AABB too large ({} blocks) for {}, routing to main-thread fallback",
-                            volume, controller.getMetaName());
-                }
-                return null;
-            }
-
-            return BlockStateSnapshot.captureRegion(world, minCorner, maxCorner);
+            aabb = unionAABB(aabb, flippedAabb);
         }
-        // Legacy path: legacy multiblocks (those that override createStructureTemplate instead of
-        // createStructureDefinition) have no SD; fall back to a symmetric cubic snapshot.
-        return BlockStateSnapshot.capture(world, pos, FALLBACK_SNAPSHOT_RADIUS);
+        BlockPos minCorner = aabb[0];
+        BlockPos maxCorner = aabb[1];
+
+        // Guard against absurdly large AABBs (e.g. bad template data or very large repeatable aisles)
+        long dx = (long) maxCorner.getX() - minCorner.getX() + 1;
+        long dy = (long) maxCorner.getY() - minCorner.getY() + 1;
+        long dz = (long) maxCorner.getZ() - minCorner.getZ() + 1;
+        long volume = dx * dy * dz;
+
+        if (volume > MAX_SNAPSHOT_VOLUME) {
+            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug(
+                        "[AsyncStructureCheck] Snapshot AABB too large ({} blocks) for {}, routing to main-thread fallback",
+                        volume, controller.getMetaName());
+            }
+            return null;
+        }
+
+        return BlockStateSnapshot.captureRegion(world, minCorner, maxCorner);
     }
 
     /**
@@ -344,46 +333,20 @@ public class AsyncStructureChecker {
 
     /**
      * Perform pattern matching against a snapshot (runs on async thread).
-     * Uses a temporary MultiblockState to avoid data race with the main thread.
+     * Uses a temporary {@link PieceRuntimes} to avoid data race with the main thread.
      * Only returns whether the pattern matched; the main thread will do a confirmatory check.
      *
-     * <p>Two check paths:
-     * <ul>
-     *   <li><b>StructureDefinition path</b> (preferred): when the controller exposes a
-     *       {@link StructureDefinition}, iterate each piece in its compiled
-     *       {@link MultiPiecePattern} and call {@link StructurePiece#checkOnSnapshot} with
-     *       prior {@link FormedStructureMetadata} for O(1) verification of formed structures.
-     *       This handles both single-piece and multi-piece definitions uniformly.</li>
-     *   <li><b>Legacy path</b>: when only a single {@link BlockPatternTemplate} is available
-     *       (legacy multiblocks that still override {@code createStructureTemplate}), use the
-     *       original temporary-state approach.</li>
-     * </ul>
+     * <p>All controllers expose a {@link StructureDefinition}; legacy templates
+     * are adapted before this checker sees them.
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
-        // Preferred path: route everything through StructureDefinition
-        StructureDefinition definition = task.controller.getStructureDefinition();
-        if (definition != null) {
-            return performDefinitionCheck(task, definition, false)
-                    || task.allowsFlip && performDefinitionCheck(task, definition, true);
-        }
-
-        // Legacy path: single template with temporary state
-        BlockPatternTemplate template = task.controller.getPatternTemplate();
-        if (template == null) return false;
-
-        // Create a temporary state from the shared template to avoid data race (M1 fix)
-        MultiblockState tempState = template.createState();
-
-        // Use prior-aware snapshot check for O(1) verification of formed structures
-        FormedStructureMetadata prior = task.controller.getFormedMetadata();
-        PatternMatchContext context = tempState.checkOnSnapshotWithPrior(
-                task.snapshot, task.centerPos, task.frontFacing, task.upwardsFacing, task.allowsFlip, prior);
-
-        return context != null;
+        StructureDefinition<?> definition = task.controller.getStructureDefinition();
+        return performDefinitionCheck(task, definition, false)
+                || task.allowsFlip && performDefinitionCheck(task, definition, true);
     }
 
     private boolean performDefinitionCheck(@NotNull SnapshotTask task,
-                                           @NotNull StructureDefinition definition,
+                                           @NotNull StructureDefinition<?> definition,
                                            boolean flipped) {
         MultiPiecePattern multiPiece = definition.getCompiledPattern();
         PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);

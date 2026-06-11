@@ -66,7 +66,7 @@ public final class StructureCompiler {
      * @return the compiled multi-piece pattern
      */
     @NotNull
-    public static MultiPiecePattern compile(@NotNull StructureDefinition def) {
+    public static MultiPiecePattern compile(@NotNull StructureDefinition<?> def) {
         List<StructurePiece> pieces = new ArrayList<>();
 
         // Track the centerOffset from the first piece that has an isCenter element.
@@ -211,7 +211,7 @@ public final class StructureCompiler {
      * @return array of two BlockPos: [min, max]
      */
     @NotNull
-    public static BlockPos[] computeMaxAABB(@NotNull StructureDefinition def) {
+    public static BlockPos[] computeMaxAABB(@NotNull StructureDefinition<?> def) {
         int minX = 0, minY = 0, minZ = 0;
         int maxX = 0, maxY = 0, maxZ = 0;
 

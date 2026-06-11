@@ -133,9 +133,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @Nullable
     protected PieceRuntimes pieceRuntimes;
-    /** Structure definition from createStructureDefinition() (new system) */
+    /** Canonical structure definition. Legacy hooks are adapted into this model. */
     @Nullable
-    private StructureDefinition structureDefinition;
+    private StructureDefinition<?> structureDefinition;
     /** Formed structure metadata: piece repeat counts + channel values (persisted to NBT) */
     @Nullable
     private FormedStructureMetadata formedMetadata;
@@ -460,36 +460,45 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     @SuppressWarnings("deprecation")
     public void reinitializeStructurePattern() {
-        this.structureDefinition = createStructureDefinition();
-        if (this.structureDefinition != null) {
-            // New path: compile to MultiPiecePattern
-            this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
-            // Single piece: extract template for backward compatibility
-            if (this.structureDefinition.isSinglePiece()) {
-                this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
-                this.multiblockState = this.patternTemplate.createState();
-            } else {
-                this.patternTemplate = null;
-                this.multiblockState = null;
-            }
-        } else {
-            // Old path: unchanged
-            this.patternTemplate = createStructureTemplate();
+        this.structureDefinition = resolveStructureDefinition();
+        this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
+        if (this.structureDefinition.isSinglePiece()) {
+            this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
             this.multiblockState = this.patternTemplate.createState();
-            this.multiPiecePattern = createMultiPiecePattern();
+        } else {
+            this.patternTemplate = null;
+            this.multiblockState = null;
         }
         // Per-controller state for the multi-piece pattern. Built every time the
-        // pattern is rebuilt (including first construction). Null when the
-        // controller has no multi-piece pattern (legacy single-piece path).
-        this.pieceRuntimes = (this.multiPiecePattern != null)
-                ? new PieceRuntimes(this.multiPiecePattern)
-                : null;
+        // pattern is rebuilt (including first construction).
+        this.pieceRuntimes = new PieceRuntimes(this.multiPiecePattern);
         this.structureRuntime = new StructureRuntime(this.structureDefinition, this.patternTemplate,
                 this.multiblockState, this.multiPiecePattern, this.pieceRuntimes);
         this.structurePattern = (this.patternTemplate != null)
                 ? new BlockPattern(this.patternTemplate, this.multiblockState)
                 : null;
         StructureTrace.debug(this, "runtime-reinitialized", this.structureRuntime.describeShape());
+    }
+
+    @NotNull
+    @SuppressWarnings("deprecation")
+    private StructureDefinition<?> resolveStructureDefinition() {
+        StructureDefinition<?> definition = createStructureDefinition();
+        if (definition != null) {
+            return definition;
+        }
+
+        MultiPiecePattern legacyMultiPiece = createMultiPiecePattern();
+        if (legacyMultiPiece != null) {
+            RelativeDirection[] dirs = legacyMultiPiece.getPrimaryPiece().getTemplate().getStructureDir();
+            StructureTrace.debug(this, "legacy-adapter",
+                    "source=createMultiPiecePattern, pieces=" + legacyMultiPiece.getPieceList().size());
+            return StructureDefinition.fromMultiPiecePattern(dirs, legacyMultiPiece);
+        }
+
+        BlockPatternTemplate legacyTemplate = createStructureTemplate();
+        StructureTrace.debug(this, "legacy-adapter", "source=createStructureTemplate, pieces=1");
+        return StructureDefinition.fromTemplate(legacyTemplate);
     }
 
     @Override
@@ -621,19 +630,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Create a StructureDefinition for this multiblock (new system).
-     * Override this to use the new structure element system with multi-axis repeat support.
-     * If this returns non-null, the new compilation path is used;
-     * otherwise, falls back to the old createStructureTemplate() path.
+     * Create a StructureDefinition for this multiblock.
+     * Override this for new structures; legacy {@link #createStructureTemplate()}
+     * and {@link #createMultiPiecePattern()} implementations are adapted into a
+     * definition by {@link #resolveStructureDefinition()}.
      *
      * <p>Must return an idempotent instance — use
      * {@link StructureDefinition#getOrBuild(String, java.util.function.Supplier)}
      * to ensure this.
      *
-     * @return the structure definition, or null to use the old system
+     * @return the structure definition, or null to use legacy adapters
      */
     @Nullable
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return null;
     }
 
@@ -1208,10 +1217,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Get the structure definition, may be null for legacy multiblocks.
+     * Get the canonical structure definition. Legacy templates are adapted into
+     * this model during {@link #reinitializeStructurePattern()}.
      */
-    @Nullable
-    public StructureDefinition getStructureDefinition() {
+    @NotNull
+    public StructureDefinition<?> getStructureDefinition() {
+        if (structureDefinition == null) {
+            reinitializeStructurePattern();
+        }
         return structureDefinition;
     }
 

@@ -53,7 +53,7 @@ import java.util.function.Supplier;
  *         .build());
  * }</pre>
  */
-public final class StructureDefinition {
+public final class StructureDefinition<T extends MultiblockControllerBase> {
 
     private final RelativeDirection[] structureDir;
     private final List<PieceEntry> pieceEntries;
@@ -70,11 +70,17 @@ public final class StructureDefinition {
     private StructureSizeDescriptor sizeDescriptor;
     private final boolean singlePiece;
 
-    private StructureDefinition(Builder b) {
+    private StructureDefinition(Builder<T> b) {
         this.structureDir = new RelativeDirection[]{b.charDir, b.stringDir, b.aisleDir};
         this.pieceEntries = Collections.unmodifiableList(new ArrayList<>(b.pieceEntries));
         this.abilityLimits = Collections.unmodifiableMap(new HashMap<>(b.abilityLimits));
-        this.singlePiece = pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
+        this.compiledPattern = b.compiledPattern;
+        if (b.compiledPattern != null) {
+            this.singlePiece = b.compiledPattern.getPieceCount() == 1
+                    && !(b.compiledPattern.getPrimaryPiece() instanceof RepeatGroupPiece);
+        } else {
+            this.singlePiece = pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
+        }
     }
 
     /**
@@ -287,9 +293,70 @@ public final class StructureDefinition {
      * @return the resolved StructureDefinition
      */
     @NotNull
-    public static StructureDefinition getOrBuild(@NotNull String key,
-                                                 @NotNull Supplier<StructureDefinition> factory) {
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> getOrBuild(
+            @NotNull String key,
+            @NotNull Supplier<StructureDefinition<T>> factory) {
         return TemplatePool.getInstance().registerStructure(key, factory).get();
+    }
+
+    /**
+     * Adapt a legacy single-template structure into the canonical definition model.
+     */
+    @NotNull
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromTemplate(
+            @NotNull BlockPatternTemplate template) {
+        return fromTemplate("main", template);
+    }
+
+    /**
+     * Adapt a legacy single-template structure into the canonical definition model.
+     */
+    @NotNull
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromTemplate(
+            @NotNull String pieceName,
+            @NotNull BlockPatternTemplate template) {
+        RelativeDirection[] dirs = template.getStructureDir();
+        return StructureDefinition.<T>builder(dirs[0], dirs[1], dirs[2])
+                .pieceFromTemplate(pieceName, template)
+                .build();
+    }
+
+    /**
+     * Adapt a legacy multi-piece pattern into the canonical definition model.
+     *
+     * <p>The supplied pattern is kept as the compiled product so legacy subclasses
+     * and contextual conditions keep their exact runtime behavior.
+     */
+    @NotNull
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromMultiPiecePattern(
+            @NotNull MultiPiecePattern pattern) {
+        RelativeDirection[] dirs = pattern.getPrimaryPiece().getTemplate().getStructureDir();
+        return fromMultiPiecePattern(dirs, pattern);
+    }
+
+    /**
+     * Adapt a legacy multi-piece pattern into the canonical definition model with
+     * an explicit direction triple.
+     */
+    @NotNull
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromMultiPiecePattern(
+            @NotNull RelativeDirection[] structureDir,
+            @NotNull MultiPiecePattern pattern) {
+        if (structureDir.length != 3) {
+            throw new IllegalArgumentException("structureDir must contain exactly 3 directions");
+        }
+        Builder<T> builder = StructureDefinition.<T>builder(
+                structureDir[0], structureDir[1], structureDir[2]);
+        for (StructurePiece piece : pattern.getPieceList()) {
+            builder.pieceFromTemplate(piece.getName(), piece.getTemplate(),
+                    piece.getOffset(), piece.getOffsetMode(), piece.getCondition()).end();
+        }
+        for (Map.Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
+            int[] range = entry.getValue();
+            builder.globalAbilityLimit(entry.getKey(), range[0], range[1]);
+        }
+        builder.compiledPattern = pattern;
+        return builder.build();
     }
 
     // --- PieceEntry (private static inner class) ---
@@ -340,19 +407,22 @@ public final class StructureDefinition {
      * @param aisleDir  direction for aisles (typically BACK)
      */
     @NotNull
-    public static Builder builder(@NotNull RelativeDirection charDir,
-                                  @NotNull RelativeDirection stringDir,
-                                  @NotNull RelativeDirection aisleDir) {
-        return new Builder(charDir, stringDir, aisleDir);
+    public static <T extends MultiblockControllerBase> Builder<T> builder(
+            @NotNull RelativeDirection charDir,
+            @NotNull RelativeDirection stringDir,
+            @NotNull RelativeDirection aisleDir) {
+        return new Builder<>(charDir, stringDir, aisleDir);
     }
 
     /** Builder for constructing a StructureDefinition. */
-    public static final class Builder {
+    public static final class Builder<T extends MultiblockControllerBase> {
         private final RelativeDirection charDir;
         private final RelativeDirection stringDir;
         private final RelativeDirection aisleDir;
         private final List<PieceEntry> pieceEntries = new ArrayList<>();
         private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits = new HashMap<>();
+        @Nullable
+        private MultiPiecePattern compiledPattern;
 
         private Builder(RelativeDirection charDir, RelativeDirection stringDir,
                         RelativeDirection aisleDir) {
@@ -363,14 +433,14 @@ public final class StructureDefinition {
 
         /** Add a fixed piece with flat string rows. */
         @NotNull
-        public PieceBuilder piece(@NotNull String name, @NotNull String... flatRows) {
+        public PieceBuilder<T> piece(@NotNull String name, @NotNull String... flatRows) {
             return piece(name, Vec3i.NULL_VECTOR, flatRows);
         }
 
         /** Add a fixed piece with explicit offset and flat string rows. */
         @NotNull
-        public PieceBuilder piece(@NotNull String name, @NotNull Vec3i offset,
-                                  @NotNull String... flatRows) {
+        public PieceBuilder<T> piece(@NotNull String name, @NotNull Vec3i offset,
+                                     @NotNull String... flatRows) {
             String[][] pattern = new String[1][flatRows.length];
             for (int i = 0; i < flatRows.length; i++) {
                 pattern[0][i] = flatRows[i];
@@ -380,40 +450,59 @@ public final class StructureDefinition {
 
         /** Add a fixed piece with full pattern and offset. */
         @NotNull
-        public PieceBuilder piece(@NotNull String name, @NotNull String[][] pattern,
-                                  @NotNull Vec3i offset) {
+        public PieceBuilder<T> piece(@NotNull String name, @NotNull String[][] pattern,
+                                     @NotNull Vec3i offset) {
             MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
                     null, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
-            return new PieceBuilder(this, mp);
+            return new PieceBuilder<>(this, mp);
         }
 
         /** Add a piece from an existing FactoryBlockPattern (backward compatibility). */
         @NotNull
-        public PieceBuilder pieceFromFactory(@NotNull String name,
-                                             @NotNull FactoryBlockPattern factory) {
-            BlockPatternTemplate template = factory.buildTemplate();
+        public PieceBuilder<T> pieceFromFactory(@NotNull String name,
+                                                @NotNull FactoryBlockPattern factory) {
+            return pieceFromTemplate(name, factory.buildTemplate());
+        }
+
+        /** Add a piece from an existing BlockPatternTemplate (legacy adapter). */
+        @NotNull
+        public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
+                                                 @NotNull BlockPatternTemplate template) {
+            return pieceFromTemplate(name, template, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        }
+
+        /** Add a piece from an existing BlockPatternTemplate with explicit placement. */
+        @NotNull
+        public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
+                                                 @NotNull BlockPatternTemplate template,
+                                                 @NotNull Vec3i offset,
+                                                 @NotNull OffsetMode offsetMode,
+                                                 @Nullable BooleanSupplier condition) {
             MutablePiece mp = new MutablePiece(name, null, Vec3i.NULL_VECTOR,
                     OffsetMode.RELATIVE, null, new int[0], new int[0][0], new int[0], null,
                     new int[]{0, 0, 0});
+            mp.baseOffset = offset;
+            mp.offsetMode = offsetMode;
+            mp.condition = condition;
             mp.legacyTemplate = template;
-            return new PieceBuilder(this, mp);
+            return new PieceBuilder<>(this, mp);
         }
 
         /** Add a repeatable piece with full pattern and offset. */
         @NotNull
-        public RepeatablePieceBuilder repeatablePiece(@NotNull String name,
-                                                      @NotNull String[][] pattern,
-                                                      @NotNull Vec3i offset) {
+        public RepeatablePieceBuilder<T> repeatablePiece(@NotNull String name,
+                                                         @NotNull String[][] pattern,
+                                                         @NotNull Vec3i offset) {
             MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
                     null, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
-            return new RepeatablePieceBuilder(this, mp);
+            return new RepeatablePieceBuilder<>(this, mp);
         }
 
         /** Add a repeatable piece with flat string rows and explicit offset. */
         @NotNull
-        public RepeatablePieceBuilder repeatablePiece(@NotNull String name,
-                                                      @NotNull Vec3i offset,
-                                                      @NotNull String... flatRows) {
+        public RepeatablePieceBuilder<T> repeatablePiece(@NotNull String name,
+                                                         @NotNull Vec3i offset,
+                                                         @NotNull String... flatRows) {
             String[][] pattern = new String[1][flatRows.length];
             for (int i = 0; i < flatRows.length; i++) {
                 pattern[0][i] = flatRows[i];
@@ -423,32 +512,32 @@ public final class StructureDefinition {
 
         /** Add a repeatable piece along X axis. */
         @NotNull
-        public RepeatablePieceBuilder repeatableX(@NotNull String name, int min, int max,
-                                                  @Nullable String channel,
-                                                  @NotNull String... flatRows) {
+        public RepeatablePieceBuilder<T> repeatableX(@NotNull String name, int min, int max,
+                                                     @Nullable String channel,
+                                                     @NotNull String... flatRows) {
             return repeatableAxis(name, 0, min, max, channel, flatRows);
         }
 
         /** Add a repeatable piece along Y axis. */
         @NotNull
-        public RepeatablePieceBuilder repeatableY(@NotNull String name, int min, int max,
-                                                  @Nullable String channel,
-                                                  @NotNull String... flatRows) {
+        public RepeatablePieceBuilder<T> repeatableY(@NotNull String name, int min, int max,
+                                                     @Nullable String channel,
+                                                     @NotNull String... flatRows) {
             return repeatableAxis(name, 1, min, max, channel, flatRows);
         }
 
         /** Add a repeatable piece along Z axis. */
         @NotNull
-        public RepeatablePieceBuilder repeatableZ(@NotNull String name, int min, int max,
-                                                  @Nullable String channel,
-                                                  @NotNull String... flatRows) {
+        public RepeatablePieceBuilder<T> repeatableZ(@NotNull String name, int min, int max,
+                                                     @Nullable String channel,
+                                                     @NotNull String... flatRows) {
             return repeatableAxis(name, 2, min, max, channel, flatRows);
         }
 
-        private RepeatablePieceBuilder repeatableAxis(@NotNull String name, int axis,
-                                                      int min, int max,
-                                                      @Nullable String channel,
-                                                      @NotNull String... flatRows) {
+        private RepeatablePieceBuilder<T> repeatableAxis(@NotNull String name, int axis,
+                                                         int min, int max,
+                                                         @Nullable String channel,
+                                                         @NotNull String... flatRows) {
             String[][] pattern = new String[1][flatRows.length];
             for (int i = 0; i < flatRows.length; i++) {
                 pattern[0][i] = flatRows[i];
@@ -458,26 +547,26 @@ public final class StructureDefinition {
                     new int[]{axis}, new int[][]{{min, max}}, new int[]{1},
                     channel != null ? new String[]{channel} : null,
                     new int[]{0, 0, 0});
-            return new RepeatablePieceBuilder(this, mp);
+            return new RepeatablePieceBuilder<>(this, mp);
         }
 
         /** Add a conditional piece. */
         @NotNull
-        public PieceBuilder conditionalPiece(@NotNull String name, @NotNull String[][] pattern,
-                                             @NotNull Vec3i offset,
-                                             @NotNull BooleanSupplier condition) {
+        public PieceBuilder<T> conditionalPiece(@NotNull String name, @NotNull String[][] pattern,
+                                                @NotNull Vec3i offset,
+                                                @NotNull BooleanSupplier condition) {
             MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
                     condition, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
-            return new PieceBuilder(this, mp);
+            return new PieceBuilder<>(this, mp);
         }
 
         @NotNull
-        public <T extends MultiblockControllerBase> PieceBuilder conditionalPieceContextual(
+        public PieceBuilder<T> conditionalPieceContextual(
                 @NotNull String name, @NotNull String[][] pattern,
                 @NotNull Vec3i offset, @NotNull StructureCondition<T> condition) {
             MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
                     condition, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
-            return new PieceBuilder(this, mp);
+            return new PieceBuilder<>(this, mp);
         }
 
         void addPiece(@NotNull MutablePiece mp) {
@@ -486,7 +575,7 @@ public final class StructureDefinition {
         }
 
         @NotNull
-        public Builder globalAbilityLimit(@NotNull MultiblockAbility<?> ability, int min, int max) {
+        public Builder<T> globalAbilityLimit(@NotNull MultiblockAbility<?> ability, int min, int max) {
             if (min < 0 || (max >= 0 && max < min)) {
                 throw new IllegalArgumentException("Invalid ability range [" + min + ", " + max + "]");
             }
@@ -498,9 +587,9 @@ public final class StructureDefinition {
         }
 
         @NotNull
-        public StructureDefinition build() {
+        public StructureDefinition<T> build() {
             validate();
-            return new StructureDefinition(this);
+            return new StructureDefinition<>(this);
         }
 
         private void validate() {
@@ -548,32 +637,32 @@ public final class StructureDefinition {
     // --- PieceBuilder (for fixed pieces) ---
 
     /** Fluent builder for fixed (non-repeatable) structure pieces. */
-    public static final class PieceBuilder {
-        private final Builder parent;
+    public static final class PieceBuilder<T extends MultiblockControllerBase> {
+        private final Builder<T> parent;
         private final MutablePiece piece;
 
-        PieceBuilder(@NotNull Builder parent, @NotNull MutablePiece piece) {
+        PieceBuilder(@NotNull Builder<T> parent, @NotNull MutablePiece piece) {
             this.parent = parent;
             this.piece = piece;
         }
 
         /** Define a symbol mapping. */
         @NotNull
-        public PieceBuilder where(char symbol, @NotNull IStructureElement element) {
+        public PieceBuilder<T> where(char symbol, @NotNull IStructureElement element) {
             piece.symbolMap.put(symbol, element);
             return this;
         }
 
         /** Set the offset mode. */
         @NotNull
-        public PieceBuilder offsetMode(@NotNull OffsetMode mode) {
+        public PieceBuilder<T> offsetMode(@NotNull OffsetMode mode) {
             piece.offsetMode = mode;
             return this;
         }
 
         /** Set the center offset. */
         @NotNull
-        public PieceBuilder centerOffset(int x, int y, int z) {
+        public PieceBuilder<T> centerOffset(int x, int y, int z) {
             piece.centerOffset = new int[]{x, y, z};
             return this;
         }
@@ -594,8 +683,8 @@ public final class StructureDefinition {
          * @param anchorStep per-repeat step in (right, up, back) world coords
          */
         @NotNull
-        public PieceBuilder positionedAfterRepeatable(@NotNull String anchorName,
-                                                     @NotNull int[] anchorStep) {
+        public PieceBuilder<T> positionedAfterRepeatable(@NotNull String anchorName,
+                                                         @NotNull int[] anchorStep) {
             piece.anchorPieceName = anchorName;
             piece.anchorStep = anchorStep.clone();
             return this;
@@ -603,14 +692,14 @@ public final class StructureDefinition {
 
         /** Finish this piece and return to the parent builder. */
         @NotNull
-        public Builder end() {
+        public Builder<T> end() {
             parent.addPiece(piece);
             return parent;
         }
 
         /** Alias for end() - allows chaining directly in builder() call. */
         @NotNull
-        public StructureDefinition build() {
+        public StructureDefinition<T> build() {
             return end().build();
         }
     }
@@ -618,25 +707,25 @@ public final class StructureDefinition {
     // --- RepeatablePieceBuilder ---
 
     /** Fluent builder for repeatable structure pieces. */
-    public static final class RepeatablePieceBuilder {
-        private final Builder parent;
+    public static final class RepeatablePieceBuilder<T extends MultiblockControllerBase> {
+        private final Builder<T> parent;
         private final MutablePiece piece;
 
-        RepeatablePieceBuilder(@NotNull Builder parent, @NotNull MutablePiece piece) {
+        RepeatablePieceBuilder(@NotNull Builder<T> parent, @NotNull MutablePiece piece) {
             this.parent = parent;
             this.piece = piece;
         }
 
         /** Define a symbol mapping. */
         @NotNull
-        public RepeatablePieceBuilder where(char symbol, @NotNull IStructureElement element) {
+        public RepeatablePieceBuilder<T> where(char symbol, @NotNull IStructureElement element) {
             piece.symbolMap.put(symbol, element);
             return this;
         }
 
         /** Set the repeat axes (0=X, 1=Y, 2=Z). */
         @NotNull
-        public RepeatablePieceBuilder repeatAxes(int... axes) {
+        public RepeatablePieceBuilder<T> repeatAxes(int... axes) {
             piece.repeatAxes = axes;
             // Initialize parallel arrays if not already set
             if (piece.repeatRanges.length != axes.length) {
@@ -653,7 +742,7 @@ public final class StructureDefinition {
 
         /** Set the repeat ranges (flat: min0, max0, min1, max1, ...). */
         @NotNull
-        public RepeatablePieceBuilder repeatRange(int... flatRanges) {
+        public RepeatablePieceBuilder<T> repeatRange(int... flatRanges) {
             int count = flatRanges.length / 2;
             piece.repeatRanges = new int[count][2];
             for (int i = 0; i < count; i++) {
@@ -665,28 +754,28 @@ public final class StructureDefinition {
 
         /** Set the step sizes for each repeat axis. */
         @NotNull
-        public RepeatablePieceBuilder stepSizes(int... steps) {
+        public RepeatablePieceBuilder<T> stepSizes(int... steps) {
             piece.stepSizes = steps;
             return this;
         }
 
         /** Set the channel names for each repeat axis. */
         @NotNull
-        public RepeatablePieceBuilder channelNames(@NotNull String... names) {
+        public RepeatablePieceBuilder<T> channelNames(@NotNull String... names) {
             piece.repeatChannelNames = names;
             return this;
         }
 
         /** Set the offset mode. */
         @NotNull
-        public RepeatablePieceBuilder offsetMode(@NotNull OffsetMode mode) {
+        public RepeatablePieceBuilder<T> offsetMode(@NotNull OffsetMode mode) {
             piece.offsetMode = mode;
             return this;
         }
 
         /** Set the center offset. */
         @NotNull
-        public RepeatablePieceBuilder centerOffset(int x, int y, int z) {
+        public RepeatablePieceBuilder<T> centerOffset(int x, int y, int z) {
             piece.centerOffset = new int[]{x, y, z};
             return this;
         }
@@ -695,8 +784,8 @@ public final class StructureDefinition {
          * Position this repeatable piece relative to a previously resolved piece.
          */
         @NotNull
-        public RepeatablePieceBuilder positionedAfter(@NotNull String anchorName,
-                                                      @NotNull int[] anchorStep) {
+        public RepeatablePieceBuilder<T> positionedAfter(@NotNull String anchorName,
+                                                         @NotNull int[] anchorStep) {
             if (anchorStep.length != 3) {
                 throw new IllegalArgumentException("anchorStep must contain right, up and back components");
             }
@@ -707,14 +796,14 @@ public final class StructureDefinition {
 
         /** Finish this piece and return to the parent builder. */
         @NotNull
-        public Builder end() {
+        public Builder<T> end() {
             parent.addPiece(piece);
             return parent;
         }
 
         /** Alias for end(). */
         @NotNull
-        public StructureDefinition build() {
+        public StructureDefinition<T> build() {
             return end().build();
         }
     }
@@ -736,7 +825,7 @@ public final class StructureDefinition {
     static final class MutablePiece implements IStructurePiece {
         final String name;
         @Nullable String[][] pattern;
-        final Vec3i baseOffset;
+        Vec3i baseOffset;
         OffsetMode offsetMode;
         @Nullable BooleanSupplier condition;
         final Map<Character, IStructureElement> symbolMap = new HashMap<>();

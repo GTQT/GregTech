@@ -15,10 +15,7 @@ public class StructureComponent extends AbstractTooltipComponent {
     @Override
     public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
         if (metaTileEntity instanceof MultiblockControllerBase mte) {
-            // Single source of truth: StructureDefinition. Works for both 1-piece and multi-piece
-            // multiblocks. Legacy multiblocks without an SD simply get no size tooltip.
-            StructureDefinition definition = mte.getStructureDefinition();
-            if (definition == null) return;
+            StructureDefinition<?> definition = mte.getStructureDefinition();
             StructureSizeDescriptor size = definition.getStructureSizeDescriptor();
             tooltip.add(I18n.format("gregtech.multiblock.structure_size.tooltip",
                     size.getFormattedPalm(),

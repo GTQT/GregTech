@@ -235,6 +235,14 @@ public class StructurePiece {
     }
 
     /**
+     * @return the optional activation condition for legacy adapters.
+     */
+    @Nullable
+    public BooleanSupplier getCondition() {
+        return condition;
+    }
+
+    /**
      * @return true if this piece should be active (condition is null or returns true)
      */
     public boolean isActive() {

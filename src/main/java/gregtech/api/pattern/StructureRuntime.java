@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public final class StructureRuntime {
 
     @Nullable
-    private final StructureDefinition definition;
+    private final StructureDefinition<?> definition;
     @Nullable
     private final BlockPatternTemplate template;
     @Nullable
@@ -35,7 +35,7 @@ public final class StructureRuntime {
     @Nullable
     private StructureTrace.Failure lastFailure;
 
-    public StructureRuntime(@Nullable StructureDefinition definition,
+    public StructureRuntime(@Nullable StructureDefinition<?> definition,
                             @Nullable BlockPatternTemplate template,
                             @Nullable MultiblockState state,
                             @Nullable MultiPiecePattern multiPiecePattern,
@@ -48,7 +48,7 @@ public final class StructureRuntime {
     }
 
     @Nullable
-    public StructureDefinition getDefinition() {
+    public StructureDefinition<?> getDefinition() {
         return definition;
     }
 

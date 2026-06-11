@@ -1072,12 +1072,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             // single template with cPos-based offset; multi-piece uses the controller's existing
             // buildMultiPiecePredicateMap helper (its coordinates are in structure-local space,
             // which is the established behavior for the multi-piece JEI preview).
-            StructureDefinition definition = controllerBase.getStructureDefinition();
-            boolean useSingleTemplatePath = definition == null || definition.isSinglePiece();
+            StructureDefinition<?> definition = controllerBase.getStructureDefinition();
+            boolean useSingleTemplatePath = definition.isSinglePiece();
             if (useSingleTemplatePath) {
-                BlockPatternTemplate tmpl = (definition != null)
-                        ? definition.getPrimaryTemplate()
-                        : controllerBase.getMultiblockState().getTemplate();
+                BlockPatternTemplate tmpl = definition.getPrimaryTemplate();
                 if (tmpl != null) {
                     RelativeDirection[] sDir = tmpl.getStructureDir();
                     BlockPatternTemplate.CenterOffset centerOff = tmpl.getCenterOffset();
