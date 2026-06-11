@@ -21,6 +21,8 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.SimpleStructureChannel;
 import gregtech.api.pattern.casing.StructureChannel;
@@ -137,6 +139,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** Formed structure metadata: piece repeat counts + channel values (persisted to NBT) */
     @Nullable
     private FormedStructureMetadata formedMetadata;
+    /** V3 migration runtime wrapper. Mirrors existing fields for now. */
+    @Nullable
+    private StructureRuntime structureRuntime;
     @NotNull
     private Map<String, Integer> missingStructureAbilities = Collections.emptyMap();
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
@@ -479,9 +484,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.pieceRuntimes = (this.multiPiecePattern != null)
                 ? new PieceRuntimes(this.multiPiecePattern)
                 : null;
+        this.structureRuntime = new StructureRuntime(this.structureDefinition, this.patternTemplate,
+                this.multiblockState, this.multiPiecePattern, this.pieceRuntimes);
         this.structurePattern = (this.patternTemplate != null)
                 ? new BlockPattern(this.patternTemplate, this.multiblockState)
                 : null;
+        StructureTrace.debug(this, "runtime-reinitialized", this.structureRuntime.describeShape());
     }
 
     @Override
@@ -842,6 +850,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void checkStructurePattern() {
+        StructureTrace.debug(this, "check-start", structureRuntime == null ? null : structureRuntime.describeShape());
         // New system path: use StructureDefinition for checking
         if (this.structureDefinition != null) {
             StructureCheckState state = this.structureDefinition.createState();
@@ -851,6 +860,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 updateMissingStructureAbilities(Collections.emptyMap());
                 setFlipped(result.flipped);
                 this.formedMetadata = result.metadata;
+                if (structureRuntime != null) {
+                    structureRuntime.setFormedMetadata(result.metadata);
+                    structureRuntime.setLastFailure(null);
+                }
 
                 // Collect parts and abilities from the aggregated context
                 PatternMatchContext context = result.context;
@@ -871,8 +884,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     parts.forEach(part -> part.addToMultiBlock(this));
                     this.structureFormed = true;
                     this.formedChannelValues = StructureChannelValues.fromContext(context);
+                    if (structureRuntime != null) {
+                        structureRuntime.setChannelValues(this.formedChannelValues);
+                    }
                     writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
                     formStructure(context);
+                    StructureTrace.debug(this, "formed", "path=definition, metadata=" + this.formedMetadata +
+                            ", channels=" + this.formedChannelValues);
 
                     // Register with event-driven structure checking system
                     if (!(getWorld() instanceof DummyWorld)) {
@@ -886,12 +904,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 } else if (context != null && structureFormed) {
                     // Structure still valid, reassemble if parts changed
                     reassembleStructure(context);
+                    StructureTrace.debug(this, "still-valid", "path=definition, metadata=" + this.formedMetadata);
                 } else {
                     this.structureFormed = true;
                     formStructure(null);
+                    StructureTrace.debug(this, "formed", "path=definition, context=null");
                 }
             } else {
                 updateMissingStructureAbilities(result.missingAbilities);
+                if (structureRuntime != null) {
+                    structureRuntime.setLastFailure(StructureTrace.failure("definition", null, result.missingAbilities));
+                }
+                StructureTrace.debug(this, "check-failed", "path=definition, missingAbilities=" +
+                        StructureTrace.describeMissingAbilities(result.missingAbilities));
                 if (this.structureFormed) {
                     invalidateStructure();
                 }
@@ -903,10 +928,20 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
                 getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
                 isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
-        updateMissingStructureAbilities(context == null
+        Map<MultiblockAbility<?>, Integer> legacyMissingAbilities = context == null
                 ? multiblockState.getMissingAbilities()
-                : Collections.emptyMap());
+                : Collections.emptyMap();
+        updateMissingStructureAbilities(legacyMissingAbilities);
+        if (context == null && structureRuntime != null) {
+            structureRuntime.setLastFailure(StructureTrace.failure("legacy-template",
+                    multiblockState.getError(), legacyMissingAbilities));
+            StructureTrace.debug(this, "check-failed", "path=legacy-template, error=" +
+                    structureRuntime.getLastFailure());
+        }
         if (context != null && !structureFormed) {
+            if (structureRuntime != null) {
+                structureRuntime.setLastFailure(null);
+            }
             Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
             ArrayList<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
             for (IMultiblockPart part : parts) {
@@ -924,8 +959,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             parts.forEach(part -> part.addToMultiBlock(this));
             this.structureFormed = true;
             this.formedChannelValues = StructureChannelValues.fromContext(context);
+            if (structureRuntime != null) {
+                structureRuntime.setChannelValues(this.formedChannelValues);
+            }
             writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
             formStructure(context);
+            StructureTrace.debug(this, "formed", "path=legacy-template, channels=" + this.formedChannelValues);
 
             // Unregister from async checker since we're now formed (P2)
             AsyncStructureChecker.getInstance().unregister(this);
@@ -946,10 +985,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         } else if (context == null && structureFormed) {
             invalidateStructure();
         } else if (context != null) {
+            if (structureRuntime != null) {
+                structureRuntime.setLastFailure(null);
+            }
             // Structure still valid but blocks may have changed (e.g. hatch swapped in).
             // Perform a soft reassembly: re-collect parts/abilities without full invalidation
             // to avoid interrupting running recipes.
             reassembleStructure(context);
+            StructureTrace.debug(this, "still-valid", "path=legacy-template");
 
             // Re-register with event-driven system if cache was refreshed
             if (multiblockState != null && !multiblockState.cache.isEmpty()
@@ -1019,7 +1062,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
         // Update channel values and re-invoke subclass initialization
         this.formedChannelValues = StructureChannelValues.fromContext(context);
+        if (structureRuntime != null) {
+            structureRuntime.setChannelValues(this.formedChannelValues);
+        }
         formStructure(context);
+        StructureTrace.debug(this, "reassembled", "channels=" + this.formedChannelValues);
         return true;
     }
 
@@ -1211,7 +1258,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return formedMetadata;
     }
 
+    @Nullable
+    public StructureRuntime getStructureRuntime() {
+        return structureRuntime;
+    }
+
     public void invalidateStructure() {
+        StructureTrace.debug(this, "invalidate", structureRuntime == null ? null : "lastFailure=" +
+                structureRuntime.getLastFailure());
         // Unregister from event-driven structure checking system
         if (getWorld() != null && !getWorld().isRemote) {
             MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
@@ -1228,6 +1282,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.structureFormed = false;
         this.formedChannelValues = new StructureChannelValues();
         this.formedMetadata = null;
+        if (structureRuntime != null) {
+            structureRuntime.clearFormedState();
+        }
         this.asyncCheckFallbackTicks = 0;
         this.setFlipped(false);
         writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(false));

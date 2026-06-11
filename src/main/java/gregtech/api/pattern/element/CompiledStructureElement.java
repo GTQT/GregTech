@@ -6,10 +6,12 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -56,6 +58,12 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     }
 
     @Override
+    public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
+                                @NotNull ItemStack trigger) {
+        return source.couldBeValid(world, pos, context, trigger);
+    }
+
+    @Override
     public BlockInfo[] getCandidates() {
         return source.getCandidates();
     }
@@ -63,6 +71,22 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<T> context) {
         return source.getCandidates(context);
+    }
+
+    @Nullable
+    @Override
+    public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env) {
+        return source.getBlocksToPlace(world, pos, context, trigger, env);
+    }
+
+    @Nullable
+    @Override
+    public BlocksToPlace getBlocksToPlace(@NotNull StructureEvaluationContext<T> context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env) {
+        return source.getBlocksToPlace(context, trigger, env);
     }
 
     @Override
@@ -77,9 +101,32 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         return source.placeBlock(context, player, skipHatches);
     }
 
+    @NotNull
+    @Override
+    public PlaceResult survivalPlaceBlock(World world, BlockPos pos, PatternMatchContext context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env,
+                                          boolean skipHatches) {
+        return source.survivalPlaceBlock(world, pos, context, trigger, env, skipHatches);
+    }
+
+    @NotNull
+    @Override
+    public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<T> context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env,
+                                          boolean skipHatches) {
+        return source.survivalPlaceBlock(context, trigger, env, skipHatches);
+    }
+
     @Override
     public void spawnHint(World world, BlockPos pos) {
         source.spawnHint(world, pos);
+    }
+
+    @Override
+    public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
+        return source.spawnHint(world, pos, trigger);
     }
 
     @Override
@@ -115,6 +162,12 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public void addTooltip(List<String> tooltip) {
         source.addTooltip(tooltip);
+    }
+
+    @Nullable
+    @Override
+    public List<String> getDescription(@Nullable T context) {
+        return source.getDescription(context);
     }
 
     @Override

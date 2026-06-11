@@ -2,16 +2,23 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Element that chains multiple alternative elements together (any may match).
@@ -31,6 +38,17 @@ public class ChainElement implements IStructureElement<Object> {
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
         for (IStructureElement e : elements) {
             if (e.check(world, pos, context)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
+                                @NotNull ItemStack trigger) {
+        for (IStructureElement e : elements) {
+            if (e.couldBeValid(world, pos, context, trigger)) {
                 return true;
             }
         }
@@ -60,11 +78,50 @@ public class ChainElement implements IStructureElement<Object> {
         return false;
     }
 
+    @NotNull
+    @Override
+    public PlaceResult survivalPlaceBlock(World world, BlockPos pos, PatternMatchContext context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env,
+                                          boolean skipHatches) {
+        boolean allContinue = true;
+        for (IStructureElement e : elements) {
+            PlaceResult result = e.survivalPlaceBlock(world, pos, context, trigger, env, skipHatches);
+            switch (result) {
+                case REJECT_CONTINUE:
+                    break;
+                case REJECT:
+                    allContinue = false;
+                    break;
+                case SKIP:
+                case STOP:
+                case ACCEPT:
+                case ACCEPT_STOP:
+                    return result;
+                default:
+                    break;
+            }
+        }
+        return allContinue ? PlaceResult.REJECT_CONTINUE : PlaceResult.REJECT;
+    }
+
     @Override
     public void spawnHint(World world, BlockPos pos) {
         for (IStructureElement e : elements) {
-            e.spawnHint(world, pos);
+            if (e.spawnHint(world, pos, ItemStack.EMPTY)) {
+                return;
+            }
         }
+    }
+
+    @Override
+    public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
+        for (IStructureElement e : elements) {
+            if (e.spawnHint(world, pos, trigger)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -105,6 +162,19 @@ public class ChainElement implements IStructureElement<Object> {
         for (IStructureElement e : elements) {
             e.addTooltip(tooltip);
         }
+    }
+
+    @Nullable
+    @Override
+    public List<String> getDescription(@Nullable Object context) {
+        Set<String> descriptions = new LinkedHashSet<>();
+        for (IStructureElement e : elements) {
+            List<String> desc = e.getDescription(context);
+            if (desc != null) {
+                descriptions.addAll(desc);
+            }
+        }
+        return descriptions.isEmpty() ? null : new ArrayList<>(descriptions);
     }
 
     @Override

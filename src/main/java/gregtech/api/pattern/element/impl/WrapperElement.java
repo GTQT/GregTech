@@ -1,14 +1,20 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.BlockInfo;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -47,6 +53,13 @@ public class WrapperElement implements IStructureElement<Object> {
         if (lazySupplier != null && delegate == null) {
             if (resolved == null) {
                 resolved = lazySupplier.get();
+                if (ConfigHolder.machines.debugStructureCheck) {
+                    GTLog.logger.debug("[StructureElement] resolved lazy element delegate={}",
+                            resolved == null ? "null" : resolved.getClass().getName());
+                }
+                if (resolved == null) {
+                    throw new IllegalStateException("Lazy structure element supplier returned null");
+                }
             }
             return resolved;
         }
@@ -63,8 +76,44 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
+    public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+        boolean result = getDelegate().check(context);
+        if (result && callback != null) {
+            callback.accept(context.getLegacyContext());
+        }
+        return result;
+    }
+
+    @Override
+    public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
+                                @NotNull ItemStack trigger) {
+        return getDelegate().couldBeValid(world, pos, context, trigger);
+    }
+
+    @Override
     public BlockInfo[] getCandidates() {
         return getDelegate().getCandidates();
+    }
+
+    @Override
+    public BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<Object> context) {
+        return getDelegate().getCandidates(context);
+    }
+
+    @Nullable
+    @Override
+    public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env) {
+        return getDelegate().getBlocksToPlace(world, pos, context, trigger, env);
+    }
+
+    @Nullable
+    @Override
+    public BlocksToPlace getBlocksToPlace(@NotNull StructureEvaluationContext<Object> context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env) {
+        return getDelegate().getBlocksToPlace(context, trigger, env);
     }
 
     @Override
@@ -74,8 +123,42 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
+    public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                              @NotNull EntityPlayer player, boolean skipHatches) {
+        return getDelegate().placeBlock(context, player, skipHatches);
+    }
+
+    @NotNull
+    @Override
+    public PlaceResult survivalPlaceBlock(World world, BlockPos pos, PatternMatchContext context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env,
+                                          boolean skipHatches) {
+        return getDelegate().survivalPlaceBlock(world, pos, context, trigger, env, skipHatches);
+    }
+
+    @NotNull
+    @Override
+    public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<Object> context,
+                                          @NotNull ItemStack trigger,
+                                          @NotNull AutoPlaceEnvironment env,
+                                          boolean skipHatches) {
+        return getDelegate().survivalPlaceBlock(context, trigger, env, skipHatches);
+    }
+
+    @Override
     public void spawnHint(World world, BlockPos pos) {
         getDelegate().spawnHint(world, pos);
+    }
+
+    @Override
+    public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
+        return getDelegate().spawnHint(world, pos, trigger);
+    }
+
+    @Override
+    public void spawnHint(@NotNull StructureEvaluationContext<Object> context) {
+        getDelegate().spawnHint(context);
     }
 
     @Override
@@ -106,6 +189,12 @@ public class WrapperElement implements IStructureElement<Object> {
     @Override
     public void addTooltip(List<String> tooltip) {
         getDelegate().addTooltip(tooltip);
+    }
+
+    @Nullable
+    @Override
+    public List<String> getDescription(@Nullable Object context) {
+        return getDelegate().getDescription(context);
     }
 
     @Override
