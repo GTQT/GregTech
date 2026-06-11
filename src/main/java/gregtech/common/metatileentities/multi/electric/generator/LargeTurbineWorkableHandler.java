@@ -172,7 +172,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
             this.excessVoltage += (long) (producedVoltage - turbineMaxVoltage);
         }
 
-        RecipeBuilder<?> recipeBuilder = getRecipeMap().recipeBuilder();
+        RecipeBuilder<?> recipeBuilder = getRecipeMap().recipeBuilder().EUt(0);
         recipeBuilder.append(recipe, parallel, false)
                 .EUt(turbineMaxVoltage);
         applyParallelBonus(recipeBuilder);
