@@ -61,11 +61,13 @@ public class MultiPiecePattern {
     private final Map<String, StructurePiece> pieces;
     private final List<StructurePiece> pieceList;
     private final Map<MultiblockAbility<?>, int[]> abilityLimits;
+    private final List<AbilityGroupLimit> abilityGroupLimits;
 
     private MultiPiecePattern(Map<String, StructurePiece> pieces) {
         this.pieces = Collections.unmodifiableMap(pieces);
         this.pieceList = Collections.unmodifiableList(new ArrayList<>(pieces.values()));
         this.abilityLimits = Collections.emptyMap();
+        this.abilityGroupLimits = Collections.emptyList();
     }
 
     /**
@@ -81,6 +83,12 @@ public class MultiPiecePattern {
 
     public MultiPiecePattern(@NotNull List<StructurePiece> pieceList,
                              @NotNull Map<MultiblockAbility<?>, int[]> abilityLimits) {
+        this(pieceList, abilityLimits, Collections.emptyList());
+    }
+
+    public MultiPiecePattern(@NotNull List<StructurePiece> pieceList,
+                             @NotNull Map<MultiblockAbility<?>, int[]> abilityLimits,
+                             @NotNull List<AbilityGroupLimit> abilityGroupLimits) {
         Map<String, StructurePiece> map = new LinkedHashMap<>();
         for (StructurePiece piece : pieceList) {
             if (map.containsKey(piece.getName())) {
@@ -95,21 +103,22 @@ public class MultiPiecePattern {
             copiedLimits.put(entry.getKey(), entry.getValue().clone());
         }
         this.abilityLimits = Collections.unmodifiableMap(copiedLimits);
+        this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(abilityGroupLimits));
     }
 
     @NotNull
     public AbilityPlacementTracker createAbilityPlacementTracker() {
-        return new AbilityPlacementTracker(abilityLimits);
+        return new AbilityPlacementTracker(abilityLimits, abilityGroupLimits);
     }
 
     @NotNull
     public StructureMatchSession createMatchSession() {
-        return new StructureMatchSession(abilityLimits, null);
+        return new StructureMatchSession(abilityLimits, abilityGroupLimits, null);
     }
 
     @NotNull
     public StructureMatchSession createMatchSession(@Nullable PatternMatchContext initialContext) {
-        return new StructureMatchSession(abilityLimits, initialContext);
+        return new StructureMatchSession(abilityLimits, abilityGroupLimits, initialContext);
     }
 
     /**
@@ -122,6 +131,11 @@ public class MultiPiecePattern {
             copy.put(entry.getKey(), entry.getValue().clone());
         }
         return Collections.unmodifiableMap(copy);
+    }
+
+    @NotNull
+    public List<AbilityGroupLimit> getAbilityGroupLimits() {
+        return abilityGroupLimits;
     }
 
     /**

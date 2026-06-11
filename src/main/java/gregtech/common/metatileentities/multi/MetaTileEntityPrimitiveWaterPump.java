@@ -6,12 +6,10 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.IPrimitivePump;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.LocalizationUtils;
 import gregtech.client.renderer.ICubeRenderer;
@@ -44,8 +42,8 @@ import java.util.Set;
 
 public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase implements IPrimitivePump {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:primitive_water_pump", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:primitive_water_pump", () -> DeclarativePatternBuilder.start()
                     .aisle("XXXX", "**F*", "**F*")
                     .aisle("XXHX", "F**F", "FFFF")
                     .aisle("SXXX", "**F*", "**F*")
@@ -57,8 +55,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
                     .where('*', any())
                     .casing('X', CasingDefinition.simple(
                             MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK)))
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
     private IFluidTank waterTank;
     private int biomeModifier = 0;
@@ -151,8 +148,8 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
     }
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)

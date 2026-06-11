@@ -16,13 +16,11 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.category.ICategoryOverride;
@@ -186,8 +184,8 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     //
     // -----------------------------------------------------------------
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
-            .register("gregtech:battery_accumulator", () ->
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:battery_accumulator", () ->
                     DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                             // Base layer — electrical panel and controller
                             .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
@@ -204,12 +202,10 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                             .where('E', states(getHeatSinkState()))
                             .casing('X', CasingDefinition.simple(getCasingState()))
                                     .maintenance()
-                                    .energyInput(1, 4)
-                                    .energyOutput(1, 4)
+                                    .energyIO(1, 4)
                                     .fluidInput(1, 4)
                                     .fluidOutput(1, 4)
-                            .buildTemplate()
-            );
+                            .buildStructureDefinition());
 
     // -----------------------------------------------------------------
     // Constructor
@@ -235,8 +231,8 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     protected static IBlockState getCasingState() {

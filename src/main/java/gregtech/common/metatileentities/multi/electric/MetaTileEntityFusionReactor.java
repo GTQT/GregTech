@@ -20,8 +20,9 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCParams;
@@ -88,15 +89,19 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     protected static final int NO_COLOR = 0;
 
-    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
 
     static {
-        TEMPLATES.put("luv", TemplatePool.getInstance()
-                .register("gregtech:fusion_reactor.luv", () -> buildTemplate(FusionReactorType.MK1)));
-        TEMPLATES.put("zpm", TemplatePool.getInstance()
-                .register("gregtech:fusion_reactor.zpm", () -> buildTemplate(FusionReactorType.MK2)));
-        TEMPLATES.put("uv", TemplatePool.getInstance()
-                .register("gregtech:fusion_reactor.uv", () -> buildTemplate(FusionReactorType.MK3)));
+        STRUCTURE_DEFINITIONS.put("luv", TemplatePool.getInstance()
+                .registerStructure("gregtech:fusion_reactor.luv",
+                        () -> StructureDefinition.fromTemplate(buildTemplate(FusionReactorType.MK1))));
+        STRUCTURE_DEFINITIONS.put("zpm", TemplatePool.getInstance()
+                .registerStructure("gregtech:fusion_reactor.zpm",
+                        () -> StructureDefinition.fromTemplate(buildTemplate(FusionReactorType.MK2))));
+        STRUCTURE_DEFINITIONS.put("uv", TemplatePool.getInstance()
+                .registerStructure("gregtech:fusion_reactor.uv",
+                        () -> StructureDefinition.fromTemplate(buildTemplate(FusionReactorType.MK3))));
     }
 
     private final IFusionReactorType type;
@@ -122,7 +127,8 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     }
 
     public static void registerFusionType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        TEMPLATES.put(key, TemplatePool.getInstance().register(key, templateSupplier));
+        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
+                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
     }
 
     public static BlockPatternTemplate buildTemplate(IFusionReactorType type) {
@@ -175,12 +181,12 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        SoftTemplate softTemplate = TEMPLATES.get(type.getName());
-        if (softTemplate == null) {
+    protected StructureDefinition createStructureDefinition() {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
+        if (definition == null) {
             throw new IllegalStateException("Unknown turbine type: " + type.getName());
         }
-        return softTemplate.get();
+        return definition.get();
     }
 
     @SideOnly(Side.CLIENT)

@@ -1,6 +1,7 @@
 package gregtech.api.pattern.casing;
 
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +69,7 @@ public class DeclarativePatternBuilder {
     private final Map<Character, TieredSlotInfo> tieredSlots = new HashMap<>();
     private final Map<Character, TraceabilityPredicate> rawPredicates = new HashMap<>();
     private final Map<Character, IStructureElement> elementMappings = new HashMap<>();
+    private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
 
     private PieceDef currentPiece;
     private boolean multiPieceMode;
@@ -224,6 +227,15 @@ public class DeclarativePatternBuilder {
         return new TieredCasingSlot(this, info);
     }
 
+    public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                  int minCount,
+                                                  int maxCount,
+                                                  @NotNull MultiblockAbility<?>... abilities) {
+        abilityGroupLimits.add(new AbilityGroupLimit(
+                displayAbility, minCount, maxCount, Arrays.asList(abilities)));
+        return this;
+    }
+
     // --- Build methods ---
 
     /**
@@ -302,6 +314,11 @@ public class DeclarativePatternBuilder {
                     builder.globalAbilityLimit(hatch.ability, hatch.minCount, hatch.maxCount);
                 }
             }
+        }
+        for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
+            builder.globalAbilityGroupLimit(
+                    groupLimit.getDisplayAbility(), groupLimit.getMin(), groupLimit.getMax(),
+                    groupLimit.getAbilities().toArray(new MultiblockAbility<?>[0]));
         }
         return builder.build();
     }
@@ -680,6 +697,11 @@ public class DeclarativePatternBuilder {
             }
         }
 
+        for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
+            lines.add("hatch_group:" + groupLimit.getDisplayAbility() + ":"
+                    + groupLimit.getMin() + ":" + groupLimit.getMax());
+        }
+
         return lines;
     }
 
@@ -810,6 +832,13 @@ public class DeclarativePatternBuilder {
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
             return parent.tieredCasing(symbol, group);
+        }
+
+        public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                      int minCount,
+                                                      int maxCount,
+                                                      @NotNull MultiblockAbility<?>... abilities) {
+            return parent.abilityGroup(displayAbility, minCount, maxCount, abilities);
         }
 
         public PieceBuilder piece(@NotNull String name) {
@@ -1048,6 +1077,38 @@ public class DeclarativePatternBuilder {
             return optionalHatch(MultiblockAbility.OUTPUT_LASER, maxCount);
         }
 
+        public CasingSlot universalEnergyInput(int minCount, int maxPerType) {
+            optionalEnergyInput(maxPerType);
+            optionalSubstationInput(maxPerType);
+            optionalLaserInput(maxPerType);
+            builder.abilityGroup(MultiblockAbility.INPUT_ENERGY_GROUP, minCount, -1,
+                    MultiblockAbility.INPUT_ENERGY,
+                    MultiblockAbility.SUBSTATION_INPUT_ENERGY,
+                    MultiblockAbility.INPUT_LASER);
+            return this;
+        }
+
+        public CasingSlot universalEnergyOutput(int minCount, int maxPerType) {
+            optionalEnergyOutput(maxPerType);
+            optionalSubstationOutput(maxPerType);
+            optionalLaserOutput(maxPerType);
+            builder.abilityGroup(MultiblockAbility.OUTPUT_ENERGY_GROUP, minCount, -1,
+                    MultiblockAbility.OUTPUT_ENERGY,
+                    MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
+                    MultiblockAbility.OUTPUT_LASER);
+            return this;
+        }
+
+        public CasingSlot energyIO(int minCount, int maxPerType) {
+            optionalEnergyInput(maxPerType);
+            optionalEnergyOutput(maxPerType);
+            int maxTotal = maxPerType < 0 ? -1 : maxPerType * 2;
+            builder.abilityGroup(MultiblockAbility.ENERGY_IO_GROUP, minCount, maxTotal,
+                    MultiblockAbility.INPUT_ENERGY,
+                    MultiblockAbility.OUTPUT_ENERGY);
+            return this;
+        }
+
         public CasingSlot fluidInput(int minCount, int maxCount) {
             return hatch(MultiblockAbility.IMPORT_FLUIDS, minCount, maxCount);
         }
@@ -1152,6 +1213,13 @@ public class DeclarativePatternBuilder {
             return builder.tieredCasing(symbol, group);
         }
 
+        public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                      int minCount,
+                                                      int maxCount,
+                                                      @NotNull MultiblockAbility<?>... abilities) {
+            return builder.abilityGroup(displayAbility, minCount, maxCount, abilities);
+        }
+
         public PieceBuilder piece(@NotNull String name) {
             return builder.piece(name);
         }
@@ -1219,6 +1287,13 @@ public class DeclarativePatternBuilder {
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
             return builder.tieredCasing(symbol, group);
+        }
+
+        public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                      int minCount,
+                                                      int maxCount,
+                                                      @NotNull MultiblockAbility<?>... abilities) {
+            return builder.abilityGroup(displayAbility, minCount, maxCount, abilities);
         }
 
         public PieceBuilder piece(@NotNull String name) {

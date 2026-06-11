@@ -296,11 +296,17 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             if (!multiblock.isStructureFormed()) {
                 MultiblockState state = multiblock.getMultiblockState();
                 PatternError error = state != null ? state.getError() : null;
+                if (error == null) {
+                    error = multiblock.getLastStructureError();
+                }
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
                             new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
                     for (List<ItemStack> stack : error.getCandidates()) {
+                        if (stack == null || stack.isEmpty() || stack.get(0).isEmpty()) {
+                            continue;
+                        }
                         player.sendMessage(new TextComponentString(
                                 TextFormatting.RED + "  " + stack.get(0).getDisplayName()));
                     }

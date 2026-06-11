@@ -64,14 +64,22 @@ GregTech already has part of the V3 shape:
 - `StructureCompiler` can compile those definitions into the current multi-piece runtime.
 - `DeclarativePatternBuilder` already carries GregTech-specific casing, hatch, tier, channel, tooltip, and ability-limit
   semantics.
-- Fixed single-piece controllers are being migrated to return cached definitions directly. The first batch covers the
-  vacuum freezer, implosion compressor, coke oven, saw mill, steam grinder, and steam oven.
+- Fixed single-piece controllers are being migrated to return cached definitions directly. The completed batches cover
+  the vacuum freezer, implosion compressor, coke oven, saw mill, steam grinder, steam oven, active transformer,
+  battery accumulator, network switch, research station, primitive water pump, primitive blast furnace, pyrolyse oven,
+  processing array, multi smelter, multi alloy furnace, electric blast furnace, cracking unit, large chemical reactor,
+  multiblock tank, large boiler, large combustion engine, large turbine, large miner, fluid drill, and fusion reactor.
+- Large turbine, large miner, fluid drill, and fusion reactor still expose their existing `buildTemplate()` and
+  `register...Type(Supplier<BlockPatternTemplate>)` compatibility APIs, but controller runtime now consumes the
+  registered structures through cached `StructureDefinition` adapters.
+- The network switch now explicitly overrides `createStructureDefinition()`, preventing the canonical resolver from
+  selecting the inherited data bank definition before reaching the switch's legacy template hook.
 
 However, the migration is not complete yet:
 
 - Legacy declarations and custom predicate alternatives still execute through `TraceabilityPredicate`.
-- Most controller subclasses still override legacy template or pattern hooks and need incremental migration to
-  `createStructureDefinition()`.
+- The remaining controller-owned legacy hooks are limited to the dynamically generated charcoal pile and the Godforge
+  module/controller path, plus base compatibility surfaces for addons.
 - `StructureMatchCollector` is backed by `PatternMatchContext`; collector state has not moved to a standalone operation
   result yet.
 - The operation evaluator delegates to separate single-piece, multi-piece, preview, and build traversals. Those

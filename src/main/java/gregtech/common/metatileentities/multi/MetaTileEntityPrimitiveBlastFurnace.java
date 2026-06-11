@@ -9,12 +9,10 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.widget.RecipeProgressWidget;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -63,8 +61,8 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
     private static final TraceabilityPredicate SNOW_PREDICATE = new TraceabilityPredicate(
             bws -> GTUtility.isBlockSnow(bws.getBlockState()));
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:primitive_blast_furnace.bronze", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:primitive_blast_furnace.bronze", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX", "XXX")
                     .aisle("XXX", "X&X", "X#X", "X#X")
                     .aisle("XXX", "XYX", "XXX", "XXX")
@@ -76,8 +74,7 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
                         .custom(
                                 metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
                                         .setMaxGlobalLimited(3), 3)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
     UITexture[] importOverlays = {
             GTGuiTextures.PRIMITIVE_INGOT_OVERLAY,
@@ -101,8 +98,8 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)

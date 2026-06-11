@@ -7,9 +7,11 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -23,6 +25,7 @@ public final class StructureMatchSession {
     @Nullable
     private final StructureMatchSession parent;
     private final Map<MultiblockAbility<?>, int[]> abilityLimits;
+    private final List<AbilityGroupLimit> abilityGroupLimits;
     private final PatternMatchContext context;
     private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
     private final Map<StructureSessionKey<?>, Object> typedData;
@@ -30,13 +33,15 @@ public final class StructureMatchSession {
     private Object controllerContext;
 
     public StructureMatchSession() {
-        this(Collections.emptyMap(), null);
+        this(Collections.emptyMap(), Collections.emptyList(), null);
     }
 
     public StructureMatchSession(@NotNull Map<MultiblockAbility<?>, int[]> abilityLimits,
+                                 @NotNull List<AbilityGroupLimit> abilityGroupLimits,
                                  @Nullable PatternMatchContext initialContext) {
         this.parent = null;
         this.abilityLimits = copyLimits(abilityLimits);
+        this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(abilityGroupLimits));
         this.context = initialContext == null ? new PatternMatchContext() : initialContext.copy();
         this.globalCount = new HashMap<>();
         this.typedData = new HashMap<>();
@@ -46,6 +51,7 @@ public final class StructureMatchSession {
     private StructureMatchSession(@NotNull StructureMatchSession parent) {
         this.parent = parent;
         this.abilityLimits = parent.abilityLimits;
+        this.abilityGroupLimits = parent.abilityGroupLimits;
         this.context = parent.context.copy();
         this.globalCount = new HashMap<>(parent.globalCount);
         this.typedData = copyTypedData(parent.typedData);
@@ -180,6 +186,22 @@ public final class StructureMatchSession {
                 } else if (range[1] >= 0 && count > range[1]) {
                     return Validation.failure("Ability '" + entry.getKey() + "' count " + count
                             + " is outside [" + range[0] + ", " + range[1] + "]");
+                }
+            }
+            for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
+                int count = 0;
+                for (IMultiblockPart part : parts) {
+                    if (part instanceof IMultiblockAbilityPart<?> abilityPart
+                            && groupLimit.matchesAny(abilityPart.getAbilities())) {
+                        count++;
+                    }
+                }
+                if (count < groupLimit.getMin()) {
+                    missingAbilities.merge(
+                            groupLimit.getDisplayAbility(), groupLimit.getMin() - count, Math::max);
+                } else if (groupLimit.getMax() >= 0 && count > groupLimit.getMax()) {
+                    return Validation.failure("Ability group '" + groupLimit.getDisplayAbility() + "' count "
+                            + count + " is outside [" + groupLimit.getMin() + ", " + groupLimit.getMax() + "]");
                 }
             }
         }

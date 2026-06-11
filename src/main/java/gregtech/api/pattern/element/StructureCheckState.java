@@ -3,6 +3,7 @@ package gregtech.api.pattern.element;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntime;
@@ -73,6 +74,9 @@ public final class StructureCheckState {
         @Nullable
         public final String errorMessage;
 
+        @Nullable
+        public final PatternError error;
+
         @NotNull
         public final Map<MultiblockAbility<?>, Integer> missingAbilities;
 
@@ -81,6 +85,7 @@ public final class StructureCheckState {
         private Result(boolean success, @Nullable FormedStructureMetadata metadata,
                        @Nullable PatternMatchContext context,
                        @Nullable BlockPos errorPos, @Nullable String errorMessage,
+                       @Nullable PatternError error,
                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
                        boolean flipped) {
             this.success = success;
@@ -88,6 +93,7 @@ public final class StructureCheckState {
             this.context = context;
             this.errorPos = errorPos;
             this.errorMessage = errorMessage;
+            this.error = error;
             this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
             this.flipped = flipped;
         }
@@ -97,24 +103,36 @@ public final class StructureCheckState {
         public static Result success(@NotNull FormedStructureMetadata metadata,
                                      @NotNull PatternMatchContext context,
                                      boolean flipped) {
-            return new Result(true, metadata, context, null, null, Collections.emptyMap(), flipped);
+            return new Result(true, metadata, context, null, null, null, Collections.emptyMap(), flipped);
         }
 
         /** Create a failure result with error info */
         @NotNull
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg) {
-            return new Result(false, null, null, pos, msg, Collections.emptyMap(), false);
+            return failure(pos, msg, null);
+        }
+
+        /** Create a failure result with error info */
+        @NotNull
+        public static Result failure(@NotNull BlockPos pos, @NotNull String msg, @Nullable PatternError error) {
+            return new Result(false, null, null, pos, msg, error, Collections.emptyMap(), false);
         }
 
         /** Create a failure result without specific position */
         @NotNull
         public static Result failure(@NotNull String msg) {
-            return new Result(false, null, null, null, msg, Collections.emptyMap(), false);
+            return failure(msg, null);
+        }
+
+        /** Create a failure result without specific position */
+        @NotNull
+        public static Result failure(@NotNull String msg, @Nullable PatternError error) {
+            return new Result(false, null, null, null, msg, error, Collections.emptyMap(), false);
         }
 
         @NotNull
         public static Result missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
-            return new Result(false, null, null, null, "Missing required multiblock abilities",
+            return new Result(false, null, null, null, "Missing required multiblock abilities", null,
                     missingAbilities, false);
         }
     }
@@ -206,7 +224,7 @@ public final class StructureCheckState {
                 if (!ok) {
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
-                    return Result.failure(controllerPos, lastErrorMessage);
+                    return Result.failure(controllerPos, lastErrorMessage, runtime.getState().getError());
                 }
 
                 // Extract repeat counts from the runtime's cached reps
@@ -227,7 +245,7 @@ public final class StructureCheckState {
                 if (pieceContext == null) {
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
-                    return Result.failure(centerPos, lastErrorMessage);
+                    return Result.failure(centerPos, lastErrorMessage, runtime.getState().getError());
                 }
                 pieceSession.commit();
 

@@ -62,13 +62,20 @@ public class MultiblockRemovalBehavior implements IItemBehaviour {
             if (!multiblock.isStructureFormed()) {
                 MultiblockState state = multiblock.getMultiblockState();
                 PatternError error = state != null ? state.getError() : null;
+                if (error == null) {
+                    error = multiblock.getLastStructureError();
+                }
                 if (error != null) {
 
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
                             new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
-                    for (List<ItemStack> stack : error.getCandidates())
+                    for (List<ItemStack> stack : error.getCandidates()) {
+                        if (stack == null || stack.isEmpty() || stack.get(0).isEmpty()) {
+                            continue;
+                        }
                         player.sendMessage(new TextComponentString("问题模块：" + stack.get(0).getDisplayName()));
+                    }
                     player.sendMessage(new TextComponentString("问题坐标：" + error.getPosString(error.getPos())));
                     player.sendMessage(new TextComponentString("————————————————————————————"));
                     player.sendMessage(new TextComponentString("整改建议："));

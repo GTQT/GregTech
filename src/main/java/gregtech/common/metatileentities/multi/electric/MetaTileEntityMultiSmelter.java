@@ -9,16 +9,14 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.casing.ICasing;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCParams;
@@ -48,7 +46,8 @@ import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
 public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:multi_furnace", () ->
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:multi_furnace", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "CCC", "XXX")
                     .aisle("XXX", "C#C", "XMX")
@@ -61,7 +60,7 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
                         .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                         .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     protected int heatingCoilLevel;
@@ -142,8 +141,8 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     public IBlockState getCasingState() {

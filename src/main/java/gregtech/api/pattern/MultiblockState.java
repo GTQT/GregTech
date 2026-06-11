@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.ExplicitFrontFacingBlockInfo;
 import gregtech.api.util.Mods;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
@@ -737,6 +738,7 @@ public class MultiblockState {
         Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
         Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, Object> blocks = new HashMap<>();
+        Map<BlockPos, EnumFacing> explicitFrontFacings = new HashMap<>();
         blocks.put(controllerBase.getPos(), controllerBase);
 
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
@@ -857,20 +859,8 @@ public class MultiblockState {
                                         .toArray(BlockInfo[]::new);
                             }
                             List<ItemStack> candidates = Arrays.stream(infos)
-                                    .map(info -> {
-                                        IBlockState blockState = info.getBlockState();
-                                        MetaTileEntity metaTileEntity = info
-                                                .getTileEntity() instanceof IGregTechTileEntity ?
-                                                        ((IGregTechTileEntity) info.getTileEntity())
-                                                                .getMetaTileEntity() :
-                                                        null;
-                                        if (metaTileEntity != null) {
-                                            return metaTileEntity.getStackForm();
-                                        } else {
-                                            return new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
-                                                    blockState.getBlock().damageDropped(blockState));
-                                        }
-                                    }).collect(Collectors.toList());
+                                    .map(MultiblockState::getStackForBlockInfo)
+                                    .collect(Collectors.toList());
                             if (candidates.isEmpty()) continue;
 
                             // skipHatches mode: replace hatch positions with casing blocks.
@@ -888,6 +878,7 @@ public class MultiblockState {
                                     }
                                     candidateIdx++;
                                 }
+                                boolean keepMatchedPredicate = !nonHatchInfos.isEmpty();
                                 if (nonHatchInfos.isEmpty()) {
                                     // All candidates in infos are hatches. Search all predicates
                                     // (both common and limited) for a non-hatch casing candidate.
@@ -949,7 +940,9 @@ public class MultiblockState {
                                 if (!nonHatchInfos.isEmpty()) {
                                     infos = nonHatchInfos.toArray(new BlockInfo[0]);
                                     candidates = nonHatchCandidates;
-                                    matchedPredicate = null;
+                                    if (!keepMatchedPredicate) {
+                                        matchedPredicate = null;
+                                    }
                                 }
                             }
 
@@ -975,8 +968,9 @@ public class MultiblockState {
                                         }
                                     }
                                 }
-                                int preferredIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
-                                if (found == null && preferredIdx > 0 && preferredIdx < candidates.size()) {
+                                int preferredIdx = getPreferredChannelCandidateIndex(
+                                        matchedPredicate, infos, channelValues);
+                                if (found == null && preferredIdx >= 0 && preferredIdx < candidates.size()) {
                                     ItemStack preferredStack = candidates.get(preferredIdx);
                                     for (ItemStack itemStack : player.inventory.mainInventory) {
                                         if (preferredStack.isItemEqual(itemStack) && !itemStack.isEmpty()) {
@@ -986,6 +980,14 @@ public class MultiblockState {
                                             break;
                                         }
                                     }
+                                    if (found == null) {
+                                        found = tryExtractFromAENetwork(
+                                                player, Collections.singletonList(preferredStack));
+                                        if (found != null) {
+                                            matchedInfo = infos[preferredIdx];
+                                        }
+                                    }
+                                    if (found == null) continue;
                                 }
                                 if (found == null) {
                                     for (int i = 0; i < candidates.size(); i++) {
@@ -1016,9 +1018,9 @@ public class MultiblockState {
                             } else {
                                 int preferredIndex = requiredAbilityIndex;
                                 if (preferredIndex < 0) {
-                                    int channelIndex = getChannelCandidateIndex(
+                                    int channelIndex = getPreferredChannelCandidateIndex(
                                             matchedPredicate, infos, channelValues);
-                                    if (channelIndex > 0) {
+                                    if (channelIndex >= 0) {
                                         preferredIndex = channelIndex;
                                     }
                                 }
@@ -1042,6 +1044,9 @@ public class MultiblockState {
                             IBlockState state = matchedInfo.getBlockState();
                             if (abilityTracker != null) {
                                 abilityTracker.record(matchedInfo);
+                            }
+                            if (matchedInfo instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
+                                explicitFrontFacings.put(pos, explicitInfo.getFrontFacing(controllerBase));
                             }
                             blocks.put(pos, state);
                             world.setBlockState(pos, state);
@@ -1071,6 +1076,11 @@ public class MultiblockState {
                 // player and must remain stable across multi-slice auto-build calls.
                 if (block == controllerBase) return;
                 MetaTileEntity metaTileEntity = (MetaTileEntity) block;
+                EnumFacing explicitFrontFacing = explicitFrontFacings.get(pos);
+                if (explicitFrontFacing != null && metaTileEntity.isValidFrontFacing(explicitFrontFacing)) {
+                    metaTileEntity.setFrontFacing(explicitFrontFacing);
+                    return;
+                }
                 boolean find = false;
                 for (EnumFacing enumFacing : facings) {
                     if (metaTileEntity.isValidFrontFacing(enumFacing)) {
@@ -1142,6 +1152,18 @@ public class MultiblockState {
             }
         }
         return -1;
+    }
+
+    @NotNull
+    private static ItemStack getStackForBlockInfo(@NotNull BlockInfo info) {
+        IBlockState blockState = info.getBlockState();
+        MetaTileEntity metaTileEntity = info.getTileEntity() instanceof IGregTechTileEntity ?
+                ((IGregTechTileEntity) info.getTileEntity()).getMetaTileEntity() : null;
+        if (metaTileEntity != null) {
+            return metaTileEntity.getStackForm();
+        }
+        return new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
+                blockState.getBlock().damageDropped(blockState));
     }
 
     /**
@@ -1376,7 +1398,13 @@ public class MultiblockState {
                             holder.setMetaTileEntity(
                                     ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity());
                             holder.getMetaTileEntity().onPlacement();
-                            info = new BlockInfo(holder.getMetaTileEntity().getBlock().getDefaultState(), holder);
+                            if (info instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
+                                info = new ExplicitFrontFacingBlockInfo(
+                                        holder.getMetaTileEntity().getBlock().getDefaultState(), holder,
+                                        controller -> explicitInfo.getFrontFacing(controller));
+                            } else {
+                                info = new BlockInfo(holder.getMetaTileEntity().getBlock().getDefaultState(), holder);
+                            }
                         }
                         blocks.put(pos, info);
                         minX = Math.min(pos.getX(), minX);
@@ -1431,12 +1459,20 @@ public class MultiblockState {
     private static int getChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
                                                  @Nullable BlockInfo[] infos,
                                                  @Nullable Map<String, Integer> channelValues) {
-        if (predicate == null || infos == null || infos.length == 0) return 0;
-        if (channelValues == null || predicate.channelName == null) return 0;
+        int preferredIndex = getPreferredChannelCandidateIndex(predicate, infos, channelValues);
+        if (preferredIndex >= 0) return preferredIndex;
+        return 0;
+    }
+
+    private static int getPreferredChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
+                                                         @Nullable BlockInfo[] infos,
+                                                         @Nullable Map<String, Integer> channelValues) {
+        if (predicate == null || infos == null || infos.length == 0) return -1;
+        if (channelValues == null || predicate.channelName == null) return -1;
         Integer cv = channelValues.get(predicate.channelName);
-        if (cv == null || cv <= 0) return 0;
+        if (cv == null || cv <= 0) return -1;
         int idx = cv - 1;
-        return idx < infos.length ? idx : 0;
+        return idx < infos.length ? idx : -1;
     }
 
     /**

@@ -6,15 +6,13 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
@@ -44,7 +42,8 @@ import java.util.List;
 
 public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:large_chemical_reactor", () ->
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:large_chemical_reactor", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XCX", "CPC", "XCX")
@@ -63,7 +62,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                             Elements.block(getCasingState())))
                     .casing('X', CasingDefinition.simple(getCasingState()))
                         .maintenance().preset(HatchPresets.STANDARD_IO).optionalEnergyInput(2)
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeChemicalReactor(ResourceLocation metaTileEntityId) {
@@ -77,8 +76,8 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

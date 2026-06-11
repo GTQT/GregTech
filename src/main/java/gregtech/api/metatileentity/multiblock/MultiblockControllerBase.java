@@ -1,14 +1,10 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.capability.GregtechCapabilities;
-import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
@@ -17,20 +13,18 @@ import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
+import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
-import gregtech.api.pattern.RepeatGroupPiece;
-import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.SimpleStructureChannel;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCheckState;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTLog;
@@ -43,8 +37,6 @@ import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.common.ConfigHolder;
-import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityLaserHatch;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -80,17 +72,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -166,138 +154,39 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public static TraceabilityPredicate tilePredicate(
             @NotNull BiFunction<BlockWorldState, MetaTileEntity, Boolean> predicate,
             @Nullable Supplier<BlockInfo[]> candidates) {
-        return new TraceabilityPredicate(blockWorldState -> {
-            TileEntity tileEntity = blockWorldState.getTileEntity();
-            if (!(tileEntity instanceof IGregTechTileEntity))
-                return false;
-            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-            if (predicate.apply(blockWorldState, metaTileEntity)) {
-                if (metaTileEntity instanceof IMultiblockPart) {
-                    Set<IMultiblockPart> partsFound = blockWorldState.getMatchContext().getOrCreate("MultiblockParts",
-                            HashSet::new);
-                    partsFound.add((IMultiblockPart) metaTileEntity);
-                }
-                return true;
-            }
-            return false;
-        }, candidates);
+        return MultiblockPredicates.tilePredicate(predicate, candidates);
     }
 
     public static TraceabilityPredicate metaTileEntities(MetaTileEntity... metaTileEntities) {
-        ResourceLocation[] ids = Arrays.stream(metaTileEntities).filter(Objects::nonNull)
-                .map(tile -> tile.metaTileEntityId).toArray(ResourceLocation[]::new);
-        return tilePredicate((state, tile) -> ArrayUtils.contains(ids, tile.metaTileEntityId),
-                getCandidates(metaTileEntities));
-    }
-
-    private static Supplier<BlockInfo[]> getCandidates(MetaTileEntity... metaTileEntities) {
-        return () -> Arrays.stream(metaTileEntities).filter(Objects::nonNull).map(tile -> {
-            // TODO
-            MetaTileEntityHolder holder = new MetaTileEntityHolder();
-            holder.setMetaTileEntity(tile);
-            holder.getMetaTileEntity().onPlacement();
-            holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
-            return new BlockInfo(tile.getBlock().getDefaultState(), holder);
-        }).toArray(BlockInfo[]::new);
-    }
-
-    private static Supplier<BlockInfo[]> getCandidates(MultiblockAbility<?>... allowedAbilities) {
-        return () -> Arrays.stream(allowedAbilities)
-                .filter(Objects::nonNull)
-                .map(MultiblockAbility.REGISTRY::get)
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .filter(Objects::nonNull)
-                .map(tile -> {
-                    // TODO
-                    MetaTileEntityHolder holder = new MetaTileEntityHolder();
-                    holder.setMetaTileEntity(tile);
-                    holder.getMetaTileEntity().onPlacement();
-                    holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
-                    return new BlockInfo(tile.getBlock().getDefaultState(), holder);
-                }).toArray(BlockInfo[]::new);
-    }
-
-    private static Supplier<BlockInfo[]> getCandidates(IBlockState... allowedStates) {
-        return () -> Arrays.stream(allowedStates).map(state -> new BlockInfo(state, null)).toArray(BlockInfo[]::new);
+        return MultiblockPredicates.metaTileEntities(metaTileEntities);
     }
 
     public static TraceabilityPredicate abilities(MultiblockAbility<?>... allowedAbilities) {
-        TraceabilityPredicate predicate = tilePredicate((state, tile) -> {
-            if (tile instanceof IMultiblockAbilityPart<?> abilityPart) {
-                for (var ability : abilityPart.getAbilities()) {
-                    if (ArrayUtils.contains(allowedAbilities, ability))
-                        return true;
-                }
-            }
-            return false;
-        }, getCandidates(allowedAbilities));
-        if (allowedAbilities.length == 1) {
-            predicate.setAbility(allowedAbilities[0]);
-        }
-        return predicate;
+        return MultiblockPredicates.abilities(allowedAbilities);
     }
 
     public static TraceabilityPredicate states(IBlockState... allowedStates) {
-        return new TraceabilityPredicate(blockWorldState -> {
-            IBlockState state = blockWorldState.getBlockState();
-            if (state.getBlock() instanceof VariantActiveBlock) {
-                blockWorldState.getMatchContext().getOrPut("VABlock", new LinkedList<>()).add(blockWorldState.getPos());
-            }
-            return ArrayUtils.contains(allowedStates, state);
-        }, getCandidates(allowedStates));
+        return MultiblockPredicates.states(allowedStates);
     }
 
     @NotNull
     protected static TraceabilityPredicate energyOutput(int tier, boolean isMinTier) {
-        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
-                .filter(mte -> {
-                    IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
-                            null);
-                    return container != null && ( isMinTier ? (container.getOutputVoltage() * container.getOutputAmperage() >=
-                            GTValues.V[tier]) : (container.getOutputVoltage() * container.getOutputAmperage() <=
-                            GTValues.V[tier]));
-                })
-                .toArray(MetaTileEntity[]::new));
+        return MultiblockPredicates.energyOutput(tier, isMinTier);
     }
 
     @NotNull
     protected static TraceabilityPredicate energyInput(int tier, boolean isMinTier) {
-        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.INPUT_ENERGY).stream()
-                .filter(mte -> {
-                    IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
-                            null);
-                    return container != null && ( isMinTier ? (container.getInputVoltage() * container.getInputAmperage() >=
-                            GTValues.V[tier]) : (container.getInputVoltage() * container.getInputAmperage() <=
-                            GTValues.V[tier]));
-                })
-                .toArray(MetaTileEntity[]::new));
+        return MultiblockPredicates.energyInput(tier, isMinTier);
     }
 
     @NotNull
     protected static TraceabilityPredicate laserOutput(int tier, boolean isMinTier) {
-        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_LASER).stream()
-                .filter(mte -> {
-                    if (mte instanceof MetaTileEntityLaserHatch laserHatch) {
-                        if(isMinTier) return laserHatch.getTier() >= tier;
-                        return laserHatch.getTier() <= tier;
-                    }
-                    return false;
-                })
-                .toArray(MetaTileEntity[]::new));
+        return MultiblockPredicates.laserOutput(tier, isMinTier);
     }
 
     @NotNull
     protected static TraceabilityPredicate laserInput(int tier, boolean isMinTier) {
-        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.INPUT_LASER).stream()
-                .filter(mte -> {
-                    if (mte instanceof MetaTileEntityLaserHatch laserHatch) {
-                        if(isMinTier) return laserHatch.getTier() >= tier;
-                        return laserHatch.getTier() <= tier;
-                    }
-                    return false;
-                })
-                .toArray(MetaTileEntity[]::new));
+        return MultiblockPredicates.laserInput(tier, isMinTier);
     }
 
 
@@ -305,21 +194,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Use this predicate for Frames in your Multiblock. Allows for Framed Pipes as well as normal Frame blocks.
      */
     public static TraceabilityPredicate frames(Material... frameMaterials) {
-        return states(Arrays.stream(frameMaterials).map(m -> MetaBlocks.FRAMES.get(m).getBlock(m))
-                .toArray(IBlockState[]::new))
-                .or(new TraceabilityPredicate(blockWorldState -> {
-                    TileEntity tileEntity = blockWorldState.getTileEntity();
-                    if (!(tileEntity instanceof IPipeTile<?, ?> pipeTile)) {
-                        return false;
-                    }
-                    return ArrayUtils.contains(frameMaterials, pipeTile.getFrameMaterial());
-                }));
+        return MultiblockPredicates.frames(frameMaterials);
     }
 
     public static TraceabilityPredicate blocks(Block... block) {
-        return new TraceabilityPredicate(
-                blockWorldState -> ArrayUtils.contains(block, blockWorldState.getBlockState().getBlock()),
-                getCandidates(Arrays.stream(block).map(Block::getDefaultState).toArray(IBlockState[]::new)));
+        return MultiblockPredicates.blocks(block);
     }
 
     public static TraceabilityPredicate air() {
@@ -357,37 +236,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     public static TraceabilityPredicate selfPredicate(
             @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
-        return tilePredicate((state, tile) -> controllerClass.isInstance(tile),
-                getCandidatesByClass(controllerClass)).setCenter();
-    }
-
-    /**
-     * Collect all registered MetaTileEntities whose class matches the given controller class and return them as
-     * candidate BlockInfo array.
-     */
-    @NotNull
-    private static Supplier<BlockInfo[]> getCandidatesByClass(
-            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
-        return () -> {
-            List<MetaTileEntity> matches = new ArrayList<>();
-            for (var registry : GregTechAPI.mteManager.getRegistries()) {
-                for (MetaTileEntity mte : registry) {
-                    if (controllerClass.isInstance(mte)) {
-                        matches.add(mte);
-                    }
-                }
-            }
-            if (matches.isEmpty()) {
-                return new BlockInfo[] { BlockInfo.EMPTY };
-            }
-            return matches.stream().map(tile -> {
-                MetaTileEntityHolder holder = new MetaTileEntityHolder();
-                holder.setMetaTileEntity(tile);
-                holder.getMetaTileEntity().onPlacement();
-                holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
-                return new BlockInfo(tile.getBlock().getDefaultState(), holder);
-            }).toArray(BlockInfo[]::new);
-        };
+        return MultiblockPredicates.selfPredicate(controllerClass);
     }
 
     /**
@@ -396,53 +245,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     protected static List<StructureChannel> collectChannelsFromTemplate(
             @NotNull BlockPatternTemplate template) {
-        Set<String> seen = new java.util.LinkedHashSet<>();
-        TraceabilityPredicate[][][] matches = template.getBlockMatches();
-        for (TraceabilityPredicate[][] layer : matches) {
-            for (TraceabilityPredicate[] row : layer) {
-                for (TraceabilityPredicate predicate : row) {
-                    if (predicate == null) continue;
-                    collectChannelNames(predicate.common, seen);
-                    collectChannelNames(predicate.limited, seen);
-                }
-            }
-        }
-        List<StructureChannel> result = new ArrayList<>();
-        for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
-            String name = aisle.channelName();
-            if (name != null && !name.isEmpty()) {
-                seen.add(name);
-            }
-        }
-        for (String name : seen) {
-            StructureChannel channel =
-                    gregtech.api.pattern.casing.StructureChannelRegistry.resolve(name);
-            if (channel != null) {
-                result.add(channel);
-            }
-        }
-        return result;
-    }
-
-    private static void collectChannelNames(
-            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
-            @NotNull Set<String> out) {
-        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
-            if (sp.channelName != null && !sp.channelName.isEmpty()) {
-                out.add(sp.channelName);
-            }
-        }
-    }
-
-    private static int countChannelCandidates(
-            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
-            @NotNull String channelName) {
-        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
-            if (channelName.equals(sp.channelName) && sp.candidates != null) {
-                return sp.candidates.get().length;
-            }
-        }
-        return 0;
+        return MultiblockStructureChannels.collectChannelsFromTemplate(template);
     }
 
     @Override
@@ -925,7 +728,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 updateMissingStructureAbilities(result.missingAbilities);
                 if (structureRuntime != null) {
                     structureRuntime.setLastFailure(StructureTrace.failure(this, "definition", "CHECK",
-                            null, result.missingAbilities));
+                            result.error, result.missingAbilities));
                 }
                 StructureTrace.debug(this, "check-failed", "path=definition, missingAbilities=" +
                         StructureTrace.describeMissingAbilities(result.missingAbilities));
@@ -1223,6 +1026,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return multiblockState;
     }
 
+    @Nullable
+    public PatternError getLastStructureError() {
+        StructureFailureTrace failure = structureRuntime == null ? null : structureRuntime.getLastFailure();
+        return failure == null ? null : failure.getError();
+    }
+
     /**
      * Get the canonical structure definition. Legacy templates are adapted into
      * this model during {@link #reinitializeStructurePattern()}.
@@ -1503,6 +1312,20 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     return String.format("  %d-%dx %s", min, max, name);
                 }
             }
+            case "hatch_group": {
+                // "hatch_group:<abilityName>:<minCount>:<maxCount>"
+                String name = I18n.format("gregtech.multiblock.ability." + parts[1]);
+                int min = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+                int max = parts.length > 3 ? Integer.parseInt(parts[3]) : min;
+                if (max < 0) {
+                    return String.format("  %s %dx %s",
+                            I18n.format("gregtech.multiblock.tooltip.at_least"), min, name);
+                } else if (min == max) {
+                    return String.format("  %dx %s", max, name);
+                } else {
+                    return String.format("  %d-%dx %s", min, max, name);
+                }
+            }
             case "tiered": {
                 // "tiered:<translationKey>:<requiresUniform>"
                 String name = I18n.format(parts[1]);
@@ -1600,43 +1423,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (patternTemplate == null) {
             reinitializeStructurePattern();
             if (patternTemplate == null) {
-                return collectChannelsFromMultiPiece();
+                return MultiblockStructureChannels.collectChannelsFromMultiPiece(multiPiecePattern);
             }
         }
         return collectChannelsFromTemplate(patternTemplate);
-    }
-
-    /**
-     * Collect channels from the multi-piece structure definition.
-     * Iterates over all pieces and aggregates their channel names.
-     */
-    @NotNull
-    private List<StructureChannel> collectChannelsFromMultiPiece() {
-        if (multiPiecePattern == null) return Collections.emptyList();
-        List<StructureChannel> channels = new ArrayList<>();
-        Set<String> seenNames = new HashSet<>();
-        for (StructurePiece piece : multiPiecePattern.getPieceList()) {
-            // Check RepeatGroupPiece for repeat channel names
-            if (piece instanceof RepeatGroupPiece) {
-                String[] channelNames = ((RepeatGroupPiece) piece).getRepeatChannelNames();
-                if (channelNames != null) {
-                    for (String name : channelNames) {
-                        if (name != null && seenNames.add(name)) {
-                            channels.add(new SimpleStructureChannel(name));
-                        }
-                    }
-                }
-            }
-            // Also check the piece template's aisle channels
-            BlockPatternTemplate template = piece.getTemplate();
-            for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
-                String name = aisle.channelName();
-                if (name != null && seenNames.add(name)) {
-                    channels.add(new SimpleStructureChannel(name));
-                }
-            }
-        }
-        return channels;
     }
 
     /**
@@ -1651,85 +1441,23 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (patternTemplate == null) {
             reinitializeStructurePattern();
             if (patternTemplate == null) {
-                return getChannelRangeFromMultiPiece(channel);
+                return MultiblockStructureChannels.getChannelRangeFromMultiPiece(multiPiecePattern, channel);
             }
         }
         String channelName = channel.getName();
-
-        // Check repeatable aisle channels first
-        BlockPatternTemplate.AisleDef[] aisles = patternTemplate.getAisles();
-        for (BlockPatternTemplate.AisleDef aisle : aisles) {
-            if (channelName.equals(aisle.channelName())) {
-                return new int[] { aisle.minRepeat(), aisle.maxRepeat() };
-            }
-        }
-
-        // Check tiered casing channels: count max candidates in predicates with this channelName
-        int maxCandidates = 0;
-        TraceabilityPredicate[][][] matches = patternTemplate.getBlockMatches();
-        for (TraceabilityPredicate[][] layer : matches) {
-            for (TraceabilityPredicate[] row : layer) {
-                for (TraceabilityPredicate predicate : row) {
-                    if (predicate == null) continue;
-                    maxCandidates = Math.max(maxCandidates,
-                            countChannelCandidates(predicate.common, channelName));
-                    maxCandidates = Math.max(maxCandidates,
-                            countChannelCandidates(predicate.limited, channelName));
-                }
-            }
-        }
-        if (maxCandidates > 0) {
-            // Channel value semantics: 0 = auto, 1..N = specific candidate (1-based).
-            // getChannelCandidateIndex uses (cv - 1) as 0-based index into candidates array.
-            return new int[] { 0, maxCandidates };
-        }
-        return new int[] { 0, 0 };
-    }
-
-    /**
-     * Get channel range from multi-piece structure definition.
-     * Searches all pieces for the given channel name.
-     */
-    @NotNull
-    private int[] getChannelRangeFromMultiPiece(@NotNull StructureChannel channel) {
-        if (multiPiecePattern == null || structureDefinition == null) {
-            return new int[] { 0, 0 };
-        }
-        String channelName = channel.getName();
-
-        // Check each piece for aisle channel ranges
-        for (StructurePiece piece : multiPiecePattern.getPieceList()) {
-            if (piece instanceof RepeatGroupPiece) {
-                String[] channelNames = ((RepeatGroupPiece) piece).getRepeatChannelNames();
-                int[][] ranges = ((RepeatGroupPiece) piece).getRepeatRanges();
-                if (channelNames != null && ranges != null) {
-                    for (int i = 0; i < channelNames.length; i++) {
-                        if (channelName.equals(channelNames[i])) {
-                            return new int[] { ranges[i][0], ranges[i][1] };
-                        }
-                    }
-                }
-            }
-            // Also check the piece template's aisle channels
-            BlockPatternTemplate template = piece.getTemplate();
-            for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
-                if (channelName.equals(aisle.channelName())) {
-                    return new int[] { aisle.minRepeat(), aisle.maxRepeat() };
-                }
-            }
-        }
-        return new int[] { 0, 0 };
+        return MultiblockStructureChannels.getTemplateChannelRange(patternTemplate, channelName);
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes() {
         if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
             if (this.patternTemplate == null) {
-                return buildMultiPieceShapes(null);
+                return MultiblockStructurePreviews.buildMultiPieceShapes(this, multiPiecePattern,
+                        pieceRuntimes, structureRuntime, null);
             }
         }
-        int[][] aisleRepetitions = this.patternTemplate.getAisleRepetitions();
-        return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), null);
+        return MultiblockStructurePreviews.getMatchingShapes(this, this.patternTemplate,
+                this.multiblockState, this.structureRuntime, null);
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
@@ -1739,11 +1467,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (this.patternTemplate == null) {
             this.reinitializeStructurePattern();
             if (this.patternTemplate == null) {
-                return buildMultiPieceShapes(channelValues);
+                return MultiblockStructurePreviews.buildMultiPieceShapes(this, multiPiecePattern,
+                        pieceRuntimes, structureRuntime, channelValues);
             }
         }
-        int[][] aisleRepetitions = this.patternTemplate.getAisleRepetitions();
-        return repetitionDFS(new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues);
+        return MultiblockStructurePreviews.getMatchingShapes(this, this.patternTemplate,
+                this.multiblockState, this.structureRuntime, channelValues);
     }
 
     /**
@@ -1756,15 +1485,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * worldX = char index, worldY = repeat/aisle index, worldZ = -row index.
      * So merging along the aisle direction offsets worldY (the second array dimension).
      */
-    private List<MultiblockShapeInfo> buildMultiPieceShapes(@Nullable Map<String, Integer> channelValues) {
-        if (multiPiecePattern == null || structureDefinition == null) {
-            return Collections.emptyList();
-        }
-        MultiPiecePreviewAssembler.Result preview = structureRuntime == null
-                ? MultiPiecePreviewAssembler.assemble(
-                        multiPiecePattern, pieceRuntimes, channelValues, this)
-                : structureRuntime.getEvaluator().previewMultiPiece(channelValues, this);
-        return Collections.singletonList(preview.getShape());
+    List<MultiblockShapeInfo> buildMultiPieceShapes(@Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructurePreviews.buildMultiPieceShapes(this, multiPiecePattern,
+                pieceRuntimes, structureRuntime, channelValues);
     }
 
     /**
@@ -1780,52 +1503,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
-        if (multiPiecePattern == null) return new HashMap<>();
-        MultiPiecePreviewAssembler.Result preview = structureRuntime == null
-                ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, null, this)
-                : structureRuntime.getEvaluator().previewMultiPiece(null, this);
-        return new HashMap<>(preview.getPredicates());
-    }
-
-    private List<MultiblockShapeInfo> repetitionDFS(List<MultiblockShapeInfo> pages, int[][] aisleRepetitions,
-                                                    Stack<Integer> repetitionStack,
-                                                    @Nullable Map<String, Integer> channelValues) {
-        if (repetitionStack.size() == aisleRepetitions.length) {
-            int[] repetition = new int[repetitionStack.size()];
-            for (int i = 0; i < repetitionStack.size(); i++) {
-                repetition[i] = repetitionStack.get(i);
-            }
-            BlockInfo[][][] preview = structureRuntime == null
-                    ? Objects.requireNonNull(this.multiblockState).getPreview(repetition, channelValues)
-                    : structureRuntime.getEvaluator().previewSingle(repetition, channelValues);
-            pages.add(new MultiblockShapeInfo(preview));
-        } else {
-            int aisleIdx = repetitionStack.size();
-            String channelName = null;
-            BlockPatternTemplate.AisleDef[] aisles = this.patternTemplate.getAisles();
-            if (aisleIdx < aisles.length) {
-                channelName = aisles[aisleIdx].channelName();
-            }
-
-            // If this aisle is controlled by a channel and a value is provided, use it directly
-            if (channelName != null && channelValues != null && channelValues.containsKey(channelName)) {
-                int channelValue = channelValues.get(channelName);
-                // Clamp to valid range
-                int min = aisleRepetitions[aisleIdx][0];
-                int max = aisleRepetitions[aisleIdx][1];
-                int clamped = Math.max(min, Math.min(max, channelValue));
-                repetitionStack.push(clamped);
-                repetitionDFS(pages, aisleRepetitions, repetitionStack, channelValues);
-                repetitionStack.pop();
-            } else {
-                for (int i = aisleRepetitions[aisleIdx][0]; i <= aisleRepetitions[aisleIdx][1]; i++) {
-                    repetitionStack.push(i);
-                    repetitionDFS(pages, aisleRepetitions, repetitionStack, channelValues);
-                    repetitionStack.pop();
-                }
-            }
-        }
-        return pages;
+        return MultiblockStructurePreviews.buildMultiPiecePredicateMap(this, multiPiecePattern,
+                pieceRuntimes, structureRuntime);
     }
 
     /**
@@ -1839,24 +1518,15 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @Nullable
     public MultiblockShapeInfo getMatchingShapeForPiece(int pieceIndex,
                                                          @Nullable Map<String, Integer> channelValues) {
-        MultiPiecePreviewAssembler.PieceResult preview =
-                getMatchingPreviewPiece(pieceIndex, channelValues);
-        return preview == null ? null : preview.getShape();
+        return MultiblockStructurePreviews.getMatchingShapeForPiece(this, multiPiecePattern,
+                pieceRuntimes, structureRuntime, pieceIndex, channelValues);
     }
 
     @Nullable
     public MultiPiecePreviewAssembler.PieceResult getMatchingPreviewPiece(
             int pieceIndex, @Nullable Map<String, Integer> channelValues) {
-        if (multiPiecePattern == null
-                || pieceIndex < 1
-                || pieceIndex > multiPiecePattern.getPieceList().size()) {
-            return null;
-        }
-        MultiPiecePreviewAssembler.Result preview = structureRuntime == null
-                ? MultiPiecePreviewAssembler.assemble(
-                        multiPiecePattern, pieceRuntimes, channelValues, this)
-                : structureRuntime.getEvaluator().previewMultiPiece(channelValues, this);
-        return preview.getPiece(pieceIndex);
+        return MultiblockStructurePreviews.getMatchingPreviewPiece(this, multiPiecePattern,
+                pieceRuntimes, structureRuntime, pieceIndex, channelValues);
     }
 
     @SideOnly(Side.CLIENT)

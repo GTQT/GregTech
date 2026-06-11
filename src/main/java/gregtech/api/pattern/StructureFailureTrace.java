@@ -48,6 +48,8 @@ public final class StructureFailureTrace {
     private final String expected;
     @Nullable
     private final String actual;
+    @Nullable
+    private final PatternError error;
     @NotNull
     private final String missingAbilities;
 
@@ -65,6 +67,7 @@ public final class StructureFailureTrace {
         this.errorPos = builder.errorPos;
         this.expected = builder.expected;
         this.actual = builder.actual;
+        this.error = builder.error;
         this.missingAbilities = builder.missingAbilities;
     }
 
@@ -146,6 +149,11 @@ public final class StructureFailureTrace {
     @Nullable
     public String getActual() {
         return actual;
+    }
+
+    @Nullable
+    public PatternError getError() {
+        return error;
     }
 
     @NotNull
@@ -269,6 +277,8 @@ public final class StructureFailureTrace {
         private String expected;
         @Nullable
         private String actual;
+        @Nullable
+        private PatternError error;
         @NotNull
         private String missingAbilities = "{}";
 
@@ -313,6 +323,7 @@ public final class StructureFailureTrace {
 
         @NotNull
         public Builder error(@Nullable PatternError error) {
+            this.error = error;
             this.errorPos = getErrorPos(error);
             this.expected = describeExpected(error);
             this.actual = describeActual(error);

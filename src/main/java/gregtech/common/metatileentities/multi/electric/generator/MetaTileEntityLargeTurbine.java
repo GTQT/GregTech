@@ -17,10 +17,11 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
 
@@ -52,15 +53,16 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
     private static final int MIN_DURABILITY_TO_WARN = 10;
-    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
 
     static {
-        TEMPLATES.put("steam", TemplatePool.getInstance()
-                .register("gregtech:large_turbine.steam", () -> buildTemplate(LargeTurbineType.STEAM)));
-        TEMPLATES.put("gas", TemplatePool.getInstance()
-                .register("gregtech:large_turbine.gas", () -> buildTemplate(LargeTurbineType.GAS)));
-        TEMPLATES.put("plasma", TemplatePool.getInstance()
-                .register("gregtech:large_turbine.plasma", () -> buildTemplate(LargeTurbineType.PLASMA)));
+        STRUCTURE_DEFINITIONS.put("steam", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_turbine.steam", () -> buildStructureDefinition(LargeTurbineType.STEAM)));
+        STRUCTURE_DEFINITIONS.put("gas", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_turbine.gas", () -> buildStructureDefinition(LargeTurbineType.GAS)));
+        STRUCTURE_DEFINITIONS.put("plasma", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_turbine.plasma", () -> buildStructureDefinition(LargeTurbineType.PLASMA)));
     }
 
     public final ILargeTurbineType type;
@@ -79,10 +81,19 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
      */
 
     public static void registerTurbineType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        TEMPLATES.put(key, TemplatePool.getInstance().register(key, templateSupplier));
+        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
+                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
     }
 
     public static BlockPatternTemplate buildTemplate(ILargeTurbineType type) {
+        return structureBuilder(type).buildTemplate();
+    }
+
+    private static StructureDefinition buildStructureDefinition(ILargeTurbineType type) {
+        return structureBuilder(type).buildStructureDefinition();
+    }
+
+    private static DeclarativePatternBuilder.CasingSlot structureBuilder(ILargeTurbineType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
@@ -102,8 +113,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                 .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
                 .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
-                .buildTemplate();
+                .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0);
     }
 
     @Override
@@ -225,12 +235,12 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        SoftTemplate softTemplate = TEMPLATES.get(type.getName());
-        if (softTemplate == null) {
+    protected StructureDefinition createStructureDefinition() {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
+        if (definition == null) {
             throw new IllegalStateException("Unknown turbine type: " + type.getName());
         }
-        return softTemplate.get();
+        return definition.get();
     }
 
     @Override

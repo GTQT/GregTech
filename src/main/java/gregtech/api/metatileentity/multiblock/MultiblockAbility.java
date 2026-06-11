@@ -58,6 +58,12 @@ public class MultiblockAbility<T> {
             "substation_input_energy", IEnergyContainer.class);
     public static final MultiblockAbility<IEnergyContainer> SUBSTATION_OUTPUT_ENERGY = ability(
             "substation_output_energy", IEnergyContainer.class);
+    public static final MultiblockAbility<Object> INPUT_ENERGY_GROUP = ability(
+            "input_energy_group", Object.class);
+    public static final MultiblockAbility<Object> OUTPUT_ENERGY_GROUP = ability(
+            "output_energy_group", Object.class);
+    public static final MultiblockAbility<Object> ENERGY_IO_GROUP = ability(
+            "energy_io_group", Object.class);
 
     public static final MultiblockAbility<IRotorHolder> ROTOR_HOLDER = ability(
             "rotor_holder", IRotorHolder.class);

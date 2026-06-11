@@ -8,6 +8,7 @@ import gregtech.api.capability.IOpticalComputationReceiver;
 import gregtech.api.capability.impl.ComputationRecipeLogic;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
@@ -15,16 +16,20 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.util.BlockInfo;
 import gregtech.api.util.AssemblyLineManager;
+import gregtech.api.util.ExplicitFrontFacingBlockInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -38,8 +43,11 @@ import gregtech.common.metatileentities.MetaTileEntities;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.init.Blocks;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -62,8 +70,8 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         implements IOpticalComputationReceiver {
 
     @NotNull
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:research_station", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:research_station", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "VVV", "PPP", "PPP", "PPP", "VVV", "XXX")
                     .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
                     .aisle("XXX", "VAV", "XAX", "XSX", "XAX", "VAV", "XXX")
@@ -77,13 +85,12 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     .where('-', air())
                     .where('V', states(getVentState()))
                     .where('A', states(getAdvancedState()))
-                    .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
+                    .where('H', objectHolderFacingController())
                     .casing('P', CasingDefinition.simple(getCasingState()))
                     .energyInput(1, 4)
                     .maintenance()
                     .computerReception()
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
     private IOpticalComputationProvider computationProvider;
     private IObjectHolder objectHolder;
 
@@ -105,6 +112,100 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     @NotNull
     private static IBlockState getCasingState() {
         return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
+    }
+
+    @NotNull
+    private static IStructureElement<Object> objectHolderFacingController() {
+        return ObjectHolderElement.INSTANCE;
+    }
+
+    @NotNull
+    private static BlockInfo[] getObjectHolderCandidates() {
+        MetaTileEntityHolder holder = new MetaTileEntityHolder();
+        holder.setMetaTileEntity(MetaTileEntities.OBJECT_HOLDER);
+        holder.getMetaTileEntity().onPlacement();
+        holder.getMetaTileEntity().setFrontFacing(EnumFacing.NORTH);
+        return new BlockInfo[] {
+                new ExplicitFrontFacingBlockInfo(
+                        MetaTileEntities.OBJECT_HOLDER.getBlock().getDefaultState(), holder,
+                        controller -> controller.getFrontFacing().getOpposite())
+        };
+    }
+
+    private static boolean isObjectHolder(TileEntity tileEntity) {
+        if (!(tileEntity instanceof IGregTechTileEntity)) {
+            return false;
+        }
+        return ((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof IObjectHolder;
+    }
+
+    private enum ObjectHolderElement implements IStructureElement<Object> {
+        INSTANCE;
+
+        private final TraceabilityPredicate legacyPredicate = new TraceabilityPredicate(
+                blockWorldState -> isObjectHolder(blockWorldState.getTileEntity()),
+                MetaTileEntityResearchStation::getObjectHolderCandidates)
+                        .addTooltips("gregtech.multiblock.pattern.error.object_holder_facing")
+                        .setAbility(MultiblockAbility.OBJECT_HOLDER);
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            context.getCollector().declareAbility(
+                    this, MultiblockAbility.OBJECT_HOLDER, 1, 1);
+
+            MetaTileEntityResearchStation controller = context.getController() instanceof MetaTileEntityResearchStation ?
+                    (MetaTileEntityResearchStation) context.getController() : null;
+            if (controller == null) {
+                return false;
+            }
+
+            TileEntity tileEntity = context.getTileEntity();
+            if (!(tileEntity instanceof IGregTechTileEntity)) {
+                return false;
+            }
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (!(metaTileEntity instanceof IObjectHolder objectHolder)) {
+                return false;
+            }
+
+            if (objectHolder.getFrontFacing() != controller.getFrontFacing().getOpposite()) {
+                context.setError(new PatternStringError(
+                        "gregtech.multiblock.pattern.error.object_holder_facing"));
+                return false;
+            }
+
+            return context.getCollector().recordAbility(this, (IMultiblockPart) metaTileEntity);
+        }
+
+        @Override
+        public void collectRequirements(@NotNull StructureEvaluationContext<Object> context) {
+            context.getCollector().declareAbility(
+                    this, MultiblockAbility.OBJECT_HOLDER, 1, 1);
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return isObjectHolder(world.getTileEntity(pos));
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return getObjectHolderCandidates();
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @Override
+        public TraceabilityPredicate toPredicate() {
+            return legacyPredicate;
+        }
     }
 
     @Override
@@ -168,8 +269,8 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     }
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package gregtech.api.pattern.element;
 
+import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
@@ -7,6 +8,7 @@ import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.RepeatGroupPiece;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureCondition;
 import gregtech.api.pattern.StructureSizeDescriptor;
@@ -25,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +61,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     private final RelativeDirection[] structureDir;
     private final List<PieceEntry> pieceEntries;
     private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits;
+    private final List<AbilityGroupLimit> abilityGroupLimits;
+    @Nullable
+    private final SoftReferenceHolder<StructureDefinition<T>> delegate;
 
     // Compiled products: computed lazily on first access and cached for the
     // lifetime of this SD instance. The SD is itself held in TemplatePool
@@ -74,6 +80,8 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.structureDir = new RelativeDirection[]{b.charDir, b.stringDir, b.aisleDir};
         this.pieceEntries = Collections.unmodifiableList(new ArrayList<>(b.pieceEntries));
         this.abilityLimits = Collections.unmodifiableMap(new HashMap<>(b.abilityLimits));
+        this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(b.abilityGroupLimits));
+        this.delegate = null;
         this.compiledPattern = b.compiledPattern;
         if (b.compiledPattern != null) {
             this.singlePiece = b.compiledPattern.getPieceCount() == 1
@@ -83,13 +91,27 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         }
     }
 
+    private StructureDefinition(@NotNull SoftReferenceHolder<StructureDefinition<T>> delegate) {
+        this.structureDir = new RelativeDirection[0];
+        this.pieceEntries = Collections.emptyList();
+        this.abilityLimits = Collections.emptyMap();
+        this.abilityGroupLimits = Collections.emptyList();
+        this.delegate = delegate;
+        this.singlePiece = false;
+    }
+
+    @NotNull
+    private StructureDefinition<T> resolve() {
+        return delegate == null ? this : delegate.get();
+    }
+
     /**
      * Create a new check state from this definition.
      * Each check operation should use its own state instance.
      */
     @NotNull
     public StructureCheckState createState() {
-        return new StructureCheckState(this);
+        return new StructureCheckState(resolve());
     }
 
     /**
@@ -104,6 +126,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     /** Get the compiled MultiPiecePattern. Computed lazily and cached. */
     @NotNull
     public MultiPiecePattern getCompiledPattern() {
+        if (delegate != null) {
+            return delegate.get().getCompiledPattern();
+        }
         MultiPiecePattern local = compiledPattern;
         if (local == null) {
             // Double-checked init is unnecessary here: even if multiple
@@ -122,6 +147,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     @NotNull
     public BlockPos[] computeWorldAABB(@NotNull BlockPos center, @NotNull EnumFacing front,
                                        @NotNull EnumFacing up, boolean flipped, int margin) {
+        if (delegate != null) {
+            return delegate.get().computeWorldAABB(center, front, up, flipped, margin);
+        }
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         int minZ = Integer.MAX_VALUE;
@@ -193,6 +221,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
 
     /** Whether this definition has exactly one non-repeatable piece. */
     public boolean isSinglePiece() {
+        if (delegate != null) {
+            return delegate.get().isSinglePiece();
+        }
         return singlePiece;
     }
 
@@ -229,6 +260,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      */
     @Nullable
     public BlockPatternTemplate getPrimaryTemplate(@Nullable List<String> structureDescription) {
+        if (delegate != null) {
+            return delegate.get().getPrimaryTemplate(structureDescription);
+        }
         if (!singlePiece) return null;
         return StructureCompiler.compilePieceTemplate(
                 getPieceEntries().get(0).piece, getStructureDir(), structureDescription);
@@ -236,16 +270,33 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
 
     @NotNull
     List<PieceEntry> getPieceEntries() {
+        if (delegate != null) {
+            return delegate.get().getPieceEntries();
+        }
         return pieceEntries;
     }
 
     @NotNull
     Map<MultiblockAbility<?>, AbilityLimit> getAbilityLimits() {
+        if (delegate != null) {
+            return delegate.get().getAbilityLimits();
+        }
         return abilityLimits;
     }
 
     @NotNull
+    List<AbilityGroupLimit> getAbilityGroupLimits() {
+        if (delegate != null) {
+            return delegate.get().getAbilityGroupLimits();
+        }
+        return abilityGroupLimits;
+    }
+
+    @NotNull
     public RelativeDirection[] getStructureDir() {
+        if (delegate != null) {
+            return delegate.get().getStructureDir();
+        }
         return structureDir;
     }
 
@@ -261,6 +312,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      */
     @NotNull
     public StructureSizeDescriptor getStructureSizeDescriptor() {
+        if (delegate != null) {
+            return delegate.get().getStructureSizeDescriptor();
+        }
         StructureSizeDescriptor local = sizeDescriptor;
         if (local == null) {
             // Trigger compilation first so getCompiledPattern() is non-null
@@ -296,7 +350,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     public static <T extends MultiblockControllerBase> StructureDefinition<T> getOrBuild(
             @NotNull String key,
             @NotNull Supplier<StructureDefinition<T>> factory) {
-        return TemplatePool.getInstance().registerStructure(key, factory).get();
+        return new StructureDefinition<>(TemplatePool.getInstance().registerStructure(key, factory));
     }
 
     /**
@@ -354,6 +408,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         for (Map.Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
             int[] range = entry.getValue();
             builder.globalAbilityLimit(entry.getKey(), range[0], range[1]);
+        }
+        for (AbilityGroupLimit groupLimit : pattern.getAbilityGroupLimits()) {
+            builder.globalAbilityGroupLimit(
+                    groupLimit.getDisplayAbility(), groupLimit.getMin(), groupLimit.getMax(),
+                    groupLimit.getAbilities().toArray(new MultiblockAbility<?>[0]));
         }
         builder.compiledPattern = pattern;
         return builder.build();
@@ -421,6 +480,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         private final RelativeDirection aisleDir;
         private final List<PieceEntry> pieceEntries = new ArrayList<>();
         private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits = new HashMap<>();
+        private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
         @Nullable
         private MultiPiecePattern compiledPattern;
 
@@ -583,6 +643,16 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                     (left, right) -> new AbilityLimit(
                             left.min + right.min,
                             left.max < 0 || right.max < 0 ? -1 : left.max + right.max));
+            return this;
+        }
+
+        @NotNull
+        public Builder<T> globalAbilityGroupLimit(@NotNull MultiblockAbility<?> displayAbility,
+                                                  int min,
+                                                  int max,
+                                                  @NotNull MultiblockAbility<?>... abilities) {
+            abilityGroupLimits.add(new AbilityGroupLimit(
+                    displayAbility, min, max, Arrays.asList(abilities)));
             return this;
         }
 

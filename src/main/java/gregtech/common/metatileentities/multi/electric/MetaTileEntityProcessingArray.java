@@ -16,14 +16,12 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.OCParams;
@@ -64,11 +62,10 @@ import static gregtech.api.recipes.logic.OverclockingLogic.subTickNonParallelOC;
 public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         implements IMachineHatchMultiblock {
 
-    // Static template cache: one SoftTemplate per tier (0 = normal, 1 = advanced)
-    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[] {
-            TemplatePool.getInstance().register("gregtech:processing_array/normal", () -> buildTemplate(
+    private static final StructureDefinition[] STRUCTURE_DEFINITIONS = new StructureDefinition[] {
+            StructureDefinition.getOrBuild("gregtech:processing_array/normal", () -> buildStructureDefinition(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST))),
-            TemplatePool.getInstance().register("gregtech:processing_array/advanced", () -> buildTemplate(
+            StructureDefinition.getOrBuild("gregtech:processing_array/advanced", () -> buildStructureDefinition(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
     };
 
@@ -80,7 +77,7 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         this.recipeMapWorkable = new ProcessingArrayWorkable(this);
     }
 
-    private static BlockPatternTemplate buildTemplate(IBlockState casingState) {
+    private static StructureDefinition buildStructureDefinition(IBlockState casingState) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
@@ -93,7 +90,7 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                 .muffler()
                 .preset(HatchPresets.STANDARD_IO)
                 .hatch(MultiblockAbility.MACHINE_HATCH, 1, 1)
-                .buildTemplate();
+                .buildStructureDefinition();
     }
 
     @Override
@@ -114,8 +111,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES[tier].get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITIONS[tier];
     }
 
     public IBlockState getCasingState() {

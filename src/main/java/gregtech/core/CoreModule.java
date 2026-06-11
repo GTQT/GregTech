@@ -19,6 +19,7 @@ import gregtech.api.modules.IGregTechModule;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.recipes.RecipeMap;
@@ -337,6 +338,7 @@ public class CoreModule implements IGregTechModule {
         GTCasingGroups.heatingCoils();
         GTCasingGroups.machineCasings();
         GTCasingGroups.borosilicateGlasses();
+        TemplatePool.getInstance().evictAll();
     }
 
     @Override

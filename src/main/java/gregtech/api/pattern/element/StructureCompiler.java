@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.DynamicOffsetPiece;
 import gregtech.api.pattern.DynamicRepeatGroupPiece;
@@ -195,7 +196,8 @@ public final class StructureCompiler {
                 def.getAbilityLimits().entrySet()) {
             abilityLimits.put(entry.getKey(), new int[]{entry.getValue().min, entry.getValue().max});
         }
-        return new MultiPiecePattern(pieces, abilityLimits);
+        List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>(def.getAbilityGroupLimits());
+        return new MultiPiecePattern(pieces, abilityLimits, abilityGroupLimits);
     }
 
     // --- AABB computation ---

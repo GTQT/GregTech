@@ -14,13 +14,13 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.KeyUtil;
@@ -61,11 +61,14 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     @Getter
     private boolean boostAllowed;
 
-    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[2];
+    private static final SoftReferenceHolder<? extends StructureDefinition<?>>[] STRUCTURE_DEFINITIONS =
+            new SoftReferenceHolder[2];
 
     static {
-        TEMPLATES[0] = TemplatePool.getInstance().register("gregtech:large_combustion_engine", () -> buildTemplate(false));
-        TEMPLATES[1] = TemplatePool.getInstance().register("gregtech:extreme_combustion_engine", () -> buildTemplate(true));
+        STRUCTURE_DEFINITIONS[0] = TemplatePool.getInstance()
+                .registerStructure("gregtech:large_combustion_engine", () -> buildStructureDefinition(false));
+        STRUCTURE_DEFINITIONS[1] = TemplatePool.getInstance()
+                .registerStructure("gregtech:extreme_combustion_engine", () -> buildStructureDefinition(true));
     }
 
     public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId, int tier) {
@@ -143,12 +146,12 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES[isExtreme?1:0].get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITIONS[isExtreme ? 1 : 0].get();
     }
 
 
-    private static BlockPatternTemplate buildTemplate(boolean isExtreme) {
+    private static StructureDefinition buildStructureDefinition(boolean isExtreme) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XDX", "XXX")
                 .aisle("XCX", "CGC", "XCX")
@@ -164,7 +167,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .casing('C', CasingDefinition.simple(getCasingState(isExtreme)))
                 .preset(HatchPresets.STANDARD_FLUID_IO)
                 .preset(HatchPresets.MUFFLER_IO)
-                .buildTemplate();
+                .buildStructureDefinition();
     }
 
     private static int getTier(boolean isExtreme) {

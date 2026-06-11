@@ -11,16 +11,14 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.casing.ICasing;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
@@ -54,7 +52,8 @@ import java.util.List;
 
 public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockController implements IHeatingCoil {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:electric_blast_furnace", () ->
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:electric_blast_furnace", () ->
                     DeclarativePatternBuilder.start()
                             .aisle("XXX", "CCC", "CCC", "XXX")
                             .aisle("XXX", "C#C", "C#C", "XMX")
@@ -66,7 +65,7 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                             .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .buildTemplate()
+                            .buildStructureDefinition()
             );
 
     private int blastFurnaceTemperature;
@@ -124,8 +123,8 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     protected IBlockState getCasingState() {

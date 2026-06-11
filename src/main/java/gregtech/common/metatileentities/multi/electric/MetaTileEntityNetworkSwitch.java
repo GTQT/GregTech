@@ -9,12 +9,10 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -100,8 +98,8 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
         return true;
     }
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:network_switch", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:network_switch", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XAX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
@@ -112,11 +110,11 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
                         .maintenance()
                         .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
                         .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    @Override
+    protected @NotNull StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     private static @NotNull IBlockState getCasingState() {

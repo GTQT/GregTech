@@ -20,10 +20,11 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
@@ -68,15 +69,16 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         implements ITieredMetaTileEntity, IWorkable, ProgressBarMultiblock {
 
-    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
 
     static {
-        TEMPLATES.put("mv", TemplatePool.getInstance()
-                .register("gregtech:fluid_drilling_rig.mv", () -> buildTemplate(FluidDrillType.BASIC)));
-        TEMPLATES.put("hv", TemplatePool.getInstance()
-                .register("gregtech:fluid_drilling_rig.hv", () -> buildTemplate(FluidDrillType.NORMAL)));
-        TEMPLATES.put("ev", TemplatePool.getInstance()
-                .register("gregtech:fluid_drilling_rig.ev", () -> buildTemplate(FluidDrillType.ADVANCED)));
+        STRUCTURE_DEFINITIONS.put("mv", TemplatePool.getInstance()
+                .registerStructure("gregtech:fluid_drilling_rig.mv", () -> buildStructureDefinition(FluidDrillType.BASIC)));
+        STRUCTURE_DEFINITIONS.put("hv", TemplatePool.getInstance()
+                .registerStructure("gregtech:fluid_drilling_rig.hv", () -> buildStructureDefinition(FluidDrillType.NORMAL)));
+        STRUCTURE_DEFINITIONS.put("ev", TemplatePool.getInstance()
+                .registerStructure("gregtech:fluid_drilling_rig.ev", () -> buildStructureDefinition(FluidDrillType.ADVANCED)));
     }
 
     private final FluidDrillLogic minerLogic;
@@ -92,10 +94,19 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
     }
 
     public static void registerFluidDrillType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        TEMPLATES.put(key, TemplatePool.getInstance().register(key, templateSupplier));
+        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
+                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
     }
 
     public static BlockPatternTemplate buildTemplate(IFluidDrillType type) {
+        return structureBuilder(type).buildTemplate();
+    }
+
+    private static StructureDefinition buildStructureDefinition(IFluidDrillType type) {
+        return structureBuilder(type).buildStructureDefinition();
+    }
+
+    private static DeclarativePatternBuilder.CasingSlot structureBuilder(IFluidDrillType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
@@ -106,8 +117,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
                 .where('#', any())
                 .casing('X', CasingDefinition.simple(type.getCasingState()))
                 .energyInput(1,3)
-                .fluidOutput(1)
-                .buildTemplate();
+                .fluidOutput(1);
     }
 
     private static @NotNull String getDepletionLang(IntSyncValue operationsValue) {
@@ -165,12 +175,12 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        SoftTemplate softTemplate = TEMPLATES.get(type.getName());
-        if (softTemplate == null) {
+    protected StructureDefinition createStructureDefinition() {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
+        if (definition == null) {
             throw new IllegalStateException("Unknown turbine type: " + type.getName());
         }
-        return softTemplate.get();
+        return definition.get();
     }
 
     @SideOnly(Side.CLIENT)

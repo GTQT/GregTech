@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
@@ -18,7 +17,6 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -34,9 +32,7 @@ import gregtech.client.utils.TooltipHelper;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.BlockMetalCasing;
-import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
@@ -106,6 +102,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                     }
                     return false;
                 }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
+                .filter(entry -> entry.getValue().getCapacity() > 0)
                 .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
                 .map(entry -> new BlockInfo(entry.getKey(), null))
                 .toArray(BlockInfo[]::new))
@@ -372,37 +369,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     // no runtime-editable dimensions.
     protected StructureDefinition createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        List<MultiblockShapeInfo> shapeInfo = new ArrayList<>();
-        MultiblockShapeInfo.Builder builder = MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                .aisle("CCCCC", "CCCCC", "GGGGG", "GGGGG", "GGGGG")
-                .aisle("CCCCC", "CCCCC", "GBBBG", "GBBBG", "GGGGG")
-                .aisle("CCCCC", "CCCCC", "GBBBG", "GBBBG", "GGGGG")
-                .aisle("CCCCC", "CCCCC", "GBBBG", "GBBBG", "GGGGG")
-                .aisle("ICSCO", "NCMCT", "GGGGG", "GGGGG", "GGGGG")
-                .where('S', MetaTileEntities.POWER_SUBSTATION, EnumFacing.SOUTH)
-                .where('C', getCasingState())
-                .where('G', getGlassState())
-                .where('I', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                .where('N', MetaTileEntities.SUBSTATION_ENERGY_INPUT_HATCH[0], EnumFacing.SOUTH)
-                .where('O', MetaTileEntities.ENERGY_OUTPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                .where('T', MetaTileEntities.SUBSTATION_ENERGY_OUTPUT_HATCH[0], EnumFacing.SOUTH)
-                .where('M',
-                        () -> ConfigHolder.machines.enableMaintenance ? MetaTileEntities.MAINTENANCE_HATCH :
-                                MetaBlocks.METAL_CASING.getState(MetalCasingType.PALLADIUM_SUBSTATION),
-                        EnumFacing.SOUTH);
-
-        GregTechAPI.PSS_BATTERIES.entrySet().stream()
-                // filter out empty batteries in example structures, though they are still
-                // allowed in the predicate (so you can see them on right-click)
-                .filter(entry -> entry.getValue().getCapacity() > 0)
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .forEach(entry -> shapeInfo.add(builder.where('B', entry.getKey()).build()));
-
-        return shapeInfo;
     }
 
     @SideOnly(Side.CLIENT)
