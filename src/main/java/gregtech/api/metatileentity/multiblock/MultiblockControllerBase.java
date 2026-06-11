@@ -860,9 +860,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         StructureTrace.debug(this, "check-start", structureRuntime == null ? null : structureRuntime.describeShape());
         // New system path: use StructureDefinition for checking
         if (this.structureDefinition != null) {
-            StructureCheckState state = this.structureDefinition.createState();
-            StructureCheckState.Result result = state.check(getWorld(), getPos(),
-                    getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(), null, this);
+            StructureCheckState.Result result = structureRuntime == null
+                    ? this.structureDefinition.createState().check(
+                            getWorld(), getPos(), getFrontFacingForStructure(),
+                            getUpwardsFacing(), allowsFlip(), null, this)
+                    : structureRuntime.getEvaluator().checkDefinition(
+                            getWorld(), getPos(), getFrontFacingForStructure(),
+                            getUpwardsFacing(), allowsFlip(), null, this);
             if (result.success) {
                 updateMissingStructureAbilities(Collections.emptyMap());
                 setFlipped(result.flipped);
@@ -933,9 +937,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         if (multiblockState == null) return;
-        PatternMatchContext context = multiblockState.checkPatternFastAt(getWorld(), getPos(),
-                getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
-                isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
+        PatternMatchContext context = structureRuntime == null
+                ? multiblockState.checkPatternFastAt(
+                        getWorld(), getPos(), getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
+                        isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample)
+                : structureRuntime.getEvaluator().checkSingle(
+                        getWorld(), getPos(), getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
+                        isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
         Map<MultiblockAbility<?>, Integer> legacyMissingAbilities = context == null
                 ? multiblockState.getMissingAbilities()
                 : Collections.emptyMap();
@@ -1752,8 +1760,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         if (multiPiecePattern == null || structureDefinition == null) {
             return Collections.emptyList();
         }
-        MultiPiecePreviewAssembler.Result preview = MultiPiecePreviewAssembler.assemble(
-                multiPiecePattern, pieceRuntimes, channelValues, this);
+        MultiPiecePreviewAssembler.Result preview = structureRuntime == null
+                ? MultiPiecePreviewAssembler.assemble(
+                        multiPiecePattern, pieceRuntimes, channelValues, this)
+                : structureRuntime.getEvaluator().previewMultiPiece(channelValues, this);
         return Collections.singletonList(preview.getShape());
     }
 
@@ -1771,8 +1781,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
         if (multiPiecePattern == null) return new HashMap<>();
-        return new HashMap<>(MultiPiecePreviewAssembler.assemble(
-                multiPiecePattern, pieceRuntimes, null, this).getPredicates());
+        MultiPiecePreviewAssembler.Result preview = structureRuntime == null
+                ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, null, this)
+                : structureRuntime.getEvaluator().previewMultiPiece(null, this);
+        return new HashMap<>(preview.getPredicates());
     }
 
     private List<MultiblockShapeInfo> repetitionDFS(List<MultiblockShapeInfo> pages, int[][] aisleRepetitions,
@@ -1783,9 +1795,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             for (int i = 0; i < repetitionStack.size(); i++) {
                 repetition[i] = repetitionStack.get(i);
             }
-            BlockInfo[][][] preview = channelValues != null
+            BlockInfo[][][] preview = structureRuntime == null
                     ? Objects.requireNonNull(this.multiblockState).getPreview(repetition, channelValues)
-                    : Objects.requireNonNull(this.multiblockState).getPreview(repetition);
+                    : structureRuntime.getEvaluator().previewSingle(repetition, channelValues);
             pages.add(new MultiblockShapeInfo(preview));
         } else {
             int aisleIdx = repetitionStack.size();
@@ -1840,8 +1852,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 || pieceIndex > multiPiecePattern.getPieceList().size()) {
             return null;
         }
-        return MultiPiecePreviewAssembler.assemble(
-                multiPiecePattern, pieceRuntimes, channelValues, this).getPiece(pieceIndex);
+        MultiPiecePreviewAssembler.Result preview = structureRuntime == null
+                ? MultiPiecePreviewAssembler.assemble(
+                        multiPiecePattern, pieceRuntimes, channelValues, this)
+                : structureRuntime.getEvaluator().previewMultiPiece(channelValues, this);
+        return preview.getPiece(pieceIndex);
     }
 
     @SideOnly(Side.CLIENT)
@@ -1878,8 +1893,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         World world = getWorld();
 
         // Get all block positions in the structure
-        Map<BlockPos, BlockInfo> blocks = state.getAllStructureBlocks(
-                world, getPos(), getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
+        Map<BlockPos, BlockInfo> blocks = structureRuntime == null
+                ? state.getAllStructureBlocks(
+                        world, getPos(), getFrontFacingForStructure(), getUpwardsFacing(), isFlipped())
+                : structureRuntime.getEvaluator().iterateSingle(
+                        world, getPos(), getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
 
         ArrayList<ItemStack> drops = new ArrayList<>();
 

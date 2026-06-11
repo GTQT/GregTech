@@ -33,6 +33,7 @@ public class BlockPattern {
 
     private final BlockPatternTemplate template;
     private final MultiblockState state;
+    private final StructureOperationEvaluator evaluator;
 
     /**
      * Direct access to the formed structure cache for backward compatibility.
@@ -66,6 +67,7 @@ public class BlockPattern {
                         @NotNull int[][] aisleRepetitions) {
         this.template = new BlockPatternTemplate(predicatesIn, structureDir, aisleRepetitions);
         this.state = template.createState();
+        this.evaluator = new StructureOperationEvaluator(null, state, null, null);
         // Expose state fields directly for backward compatibility
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
@@ -79,6 +81,7 @@ public class BlockPattern {
     public BlockPattern(@NotNull BlockPatternTemplate template) {
         this.template = template;
         this.state = template.createState();
+        this.evaluator = new StructureOperationEvaluator(null, state, null, null);
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
         this.aisleRepetitions = template.getAisleRepetitions();
@@ -92,6 +95,7 @@ public class BlockPattern {
     public BlockPattern(@NotNull BlockPatternTemplate template, @NotNull MultiblockState state) {
         this.template = template;
         this.state = state;
+        this.evaluator = new StructureOperationEvaluator(null, state, null, null);
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
         this.aisleRepetitions = template.getAisleRepetitions();
@@ -161,44 +165,46 @@ public class BlockPattern {
 
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip) {
-        return state.checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip);
+        return evaluator.checkSingle(
+                world, centerPos, frontFacing, upwardsFacing, allowsFlip, true);
     }
 
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip,
                                                   boolean doRandomCheck) {
-        return state.checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, doRandomCheck);
+        return evaluator.checkSingle(
+                world, centerPos, frontFacing, upwardsFacing, allowsFlip, doRandomCheck);
     }
 
     public void clearCache() {
-        state.clearCache();
+        evaluator.clearSingleCache();
     }
 
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase) {
-        state.autoBuild(player, controllerBase);
+        evaluator.creativeBuildSingle(player, controllerBase, null, false);
     }
 
     @Deprecated
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
-        state.autoBuild(player, controllerBase, tier);
+        evaluator.creativeBuildSingle(player, controllerBase, tier);
     }
 
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,
                           java.util.Map<String, Integer> channelValues, boolean skipHatches) {
-        state.autoBuild(player, controllerBase, channelValues, skipHatches);
+        evaluator.creativeBuildSingle(player, controllerBase, channelValues, skipHatches);
     }
 
     public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
-        return state.getAllStructureBlocks(world, centerPos, frontFacing, upwardsFacing, isFlipped);
+        return evaluator.iterateSingle(world, centerPos, frontFacing, upwardsFacing, isFlipped);
     }
 
     public BlockInfo[][][] getPreview(int[] repetition) {
-        return state.getPreview(repetition);
+        return evaluator.previewSingle(repetition, null);
     }
 
     public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
-        return state.getPreview(repetition, channelValues);
+        return evaluator.previewSingle(repetition, channelValues);
     }
 }

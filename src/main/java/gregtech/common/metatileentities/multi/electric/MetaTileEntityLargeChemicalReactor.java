@@ -12,7 +12,9 @@ import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
@@ -48,13 +50,17 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                     .aisle("XCX", "CPC", "XCX")
                     .aisle("XXX", "XSX", "XXX")
                     .where('S', selfPredicate(MetaTileEntityLargeChemicalReactor.class))
-                    .where('P', states(getPipeCasingState()))
-                    .where('C', heatingCoils().setMinGlobalLimited(1).setMaxGlobalLimited(1)
-                            .or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(0))
-                            .or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(0))
-                            .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(0))
-                            .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(0))
-                            .or(states(getCasingState())))
+                    .where('P', Elements.block(getPipeCasingState()))
+                    .where('C', Elements.chain(
+                            Elements.tieredCasing(
+                                    GTCasingGroups.heatingCoils().group(),
+                                    GTCasingGroups.heatingCoils().channel().getName(),
+                                    1, 1),
+                            Elements.hatch(MultiblockAbility.IMPORT_ITEMS, 0, -1, 0),
+                            Elements.hatch(MultiblockAbility.EXPORT_ITEMS, 0, -1, 0),
+                            Elements.hatch(MultiblockAbility.IMPORT_FLUIDS, 0, -1, 0),
+                            Elements.hatch(MultiblockAbility.EXPORT_FLUIDS, 0, -1, 0),
+                            Elements.block(getCasingState())))
                     .casing('X', CasingDefinition.simple(getCasingState()))
                         .maintenance().preset(HatchPresets.STANDARD_IO).optionalEnergyInput(2)
                     .buildTemplate()

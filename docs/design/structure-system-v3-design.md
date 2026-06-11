@@ -51,24 +51,29 @@ GregTech already has part of the V3 shape:
   old declarations and tools. New structure declarations should return one definition from `createStructureDefinition()`.
 - `StructureRuntime` exists as the per-controller state holder skeleton and carries the resolved definition, single-piece
   template view, piece runtimes, formed metadata, channel values, and last failure trace.
+- `StructureOperationEvaluator` is the thin operation boundary used by controller checks, previews, creative build
+  tools, legacy `BlockPattern`, and structure iteration while delegating to the existing implementations.
 - `gregtech.api.pattern.element.IStructureElement` exists and has context-aware methods for check, candidates, hints,
   creative placement, and survival placement.
+- New elements no longer require `toPredicate()`. `CompiledStructureElement` executes direct elements without routing
+  them through a predicate; `LegacyElement` retains predicate execution for compatibility declarations.
+- Block, air, any, self, chain, wrapper, hatch, casing, tiered casing, and coil declarations have direct runtime paths.
+- `StructureMatchCollector` owns transactional ability collection, element counts, tier/channel capture, active casing
+  positions, and deferred requirement validation over the current `PatternMatchContext`.
 - `StructureDefinition` can describe single-piece and multi-piece structures.
 - `StructureCompiler` can compile those definitions into the current multi-piece runtime.
 - `DeclarativePatternBuilder` already carries GregTech-specific casing, hatch, tier, channel, tooltip, and ability-limit
   semantics.
 
-However, the element boundary is not clean yet:
+However, the migration is not complete yet:
 
-- `IStructureElement` still requires `toPredicate()`, so every new element must be expressible as a
-  `TraceabilityPredicate`.
-- `CompiledStructureElement` currently compiles new elements back into a sorted `TraceabilityPredicate` before runtime
-  execution.
-- `StructureEvaluationContext` can execute an element only after a compiled predicate has been rebound.
-- Domain side effects still happen inside predicate checks through `PatternMatchContext`, `BlockWorldState`, count maps,
-  and error state.
-- Hatch collection, ability limits, tier capture, channel values, coil uniformity, formed metadata, and failure reporting
-  are spread across predicates, match context, controller code, and runtime code.
+- Legacy declarations and custom predicate alternatives still execute through `TraceabilityPredicate`.
+- `StructureMatchCollector` is backed by `PatternMatchContext`; collector state has not moved to a standalone operation
+  result yet.
+- The operation evaluator delegates to separate single-piece, multi-piece, preview, and build traversals. Those
+  traversals have not yet converged on one implementation.
+- Formed metadata, global ability policy, diagnostics, and failure reporting still span session, controller, runtime,
+  and legacy error objects.
 - Survival construction may call `check` to decide whether a block is already valid. If `check` mutates match state, the
   construction path can accidentally pollute formation state.
 

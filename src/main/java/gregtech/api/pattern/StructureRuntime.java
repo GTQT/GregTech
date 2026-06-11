@@ -13,10 +13,10 @@ import java.util.Map;
 /**
  * Thin per-controller structure runtime.
  *
- * <p>V3 will move check/build/preview orchestration into this class. For now it
- * is deliberately a small state holder over the existing template, state, and
- * multi-piece runtime fields so the migration can start without changing
- * structure behavior.
+ * <p>The runtime owns a thin {@link StructureOperationEvaluator} that routes
+ * check, build, preview, and iteration operations to the existing
+ * implementations. The evaluator is deliberately delegating for now so the
+ * migration does not change structure behavior.
  */
 public final class StructureRuntime {
 
@@ -30,6 +30,8 @@ public final class StructureRuntime {
     private final MultiPiecePattern multiPiecePattern;
     @Nullable
     private final PieceRuntimes pieceRuntimes;
+    @NotNull
+    private final StructureOperationEvaluator evaluator;
 
     @NotNull
     private StructureChannelValues channelValues = new StructureChannelValues();
@@ -50,6 +52,8 @@ public final class StructureRuntime {
         this.state = state;
         this.multiPiecePattern = multiPiecePattern;
         this.pieceRuntimes = pieceRuntimes;
+        this.evaluator = new StructureOperationEvaluator(
+                definition, state, multiPiecePattern, pieceRuntimes);
     }
 
     @Nullable
@@ -75,6 +79,11 @@ public final class StructureRuntime {
     @Nullable
     public PieceRuntimes getPieceRuntimes() {
         return pieceRuntimes;
+    }
+
+    @NotNull
+    public StructureOperationEvaluator getEvaluator() {
+        return evaluator;
     }
 
     @NotNull

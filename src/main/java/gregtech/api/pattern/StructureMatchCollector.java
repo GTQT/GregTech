@@ -3,6 +3,8 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 
+import net.minecraft.util.math.BlockPos;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,6 +12,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -24,8 +28,9 @@ import java.util.function.Supplier;
 public final class StructureMatchCollector {
 
     private static final String MULTIBLOCK_PARTS_KEY = "MultiblockParts";
-    private static final String ABILITY_REQUIREMENTS_KEY = "__StructureAbilityRequirements";
-    private static final String ABILITY_COUNTS_KEY = "__StructureAbilityCounts";
+    private static final String REQUIREMENTS_KEY = "__StructureRequirements";
+    private static final String COUNTS_KEY = "__StructureCounts";
+    private static final String VARIANT_ACTIVE_BLOCKS_KEY = "VABlock";
 
     private final PatternMatchContext context;
 
@@ -40,20 +45,33 @@ public final class StructureMatchCollector {
     public void declareAbility(@NotNull Object key, @NotNull MultiblockAbility<?> ability, int min, int max,
                                @Nullable Supplier<PatternError> minErrorFactory,
                                @Nullable Supplier<PatternError> maxErrorFactory) {
-        requirements(context).putIfAbsent(
-                key, new AbilityRequirement(ability, min, max, minErrorFactory, maxErrorFactory));
+        declareCount(key, min, max, ability, minErrorFactory, maxErrorFactory);
+    }
+
+    public void declareCount(@NotNull Object key, int min, int max,
+                             @Nullable Supplier<PatternError> minErrorFactory,
+                             @Nullable Supplier<PatternError> maxErrorFactory) {
+        declareCount(key, min, max, null, minErrorFactory, maxErrorFactory);
     }
 
     public boolean canRecordAbility(@NotNull Object key) {
-        AbilityRequirement requirement = requirements(context).get(key);
+        return canRecordCount(key);
+    }
+
+    public boolean canRecordCount(@NotNull Object key) {
+        CountRequirement requirement = requirements(context).get(key);
         if (requirement == null || requirement.max < 0) {
             return true;
         }
-        return getAbilityCount(key) < requirement.max;
+        return getCount(key) < requirement.max;
     }
 
     public boolean recordAbility(@NotNull Object key, @NotNull IMultiblockPart part) {
         addPart(part);
+        return recordCount(key);
+    }
+
+    public boolean recordCount(@NotNull Object key) {
         Map<Object, int[]> counts = counts(context);
         int[] count = counts.get(key);
         if (count == null) {
@@ -61,7 +79,7 @@ public final class StructureMatchCollector {
             counts.put(key, count);
         }
         count[0]++;
-        AbilityRequirement requirement = requirements(context).get(key);
+        CountRequirement requirement = requirements(context).get(key);
         return requirement == null || requirement.max < 0 || count[0] <= requirement.max;
     }
 
@@ -71,8 +89,32 @@ public final class StructureMatchCollector {
     }
 
     public int getAbilityCount(@NotNull Object key) {
+        return getCount(key);
+    }
+
+    public int getCount(@NotNull Object key) {
         int[] count = counts(context).get(key);
         return count == null ? 0 : count[0];
+    }
+
+    public void recordVariantActiveBlock(@NotNull BlockPos pos) {
+        List<BlockPos> positions = context.getOrCreate(VARIANT_ACTIVE_BLOCKS_KEY, LinkedList::new);
+        positions.add(pos);
+    }
+
+    public boolean recordChannelValue(@NotNull String channelName,
+                                      @NotNull Object value,
+                                      boolean requiresUniformValue) {
+        Object existing = context.get(channelName);
+        if (existing == null) {
+            context.set(channelName, value);
+            return true;
+        }
+        return !requiresUniformValue || existing.equals(value);
+    }
+
+    public void setValue(@NotNull String key, @NotNull Object value) {
+        context.set(key, value);
     }
 
     @NotNull
@@ -83,20 +125,26 @@ public final class StructureMatchCollector {
     @NotNull
     public static Validation validate(@NotNull PatternMatchContext context) {
         Map<MultiblockAbility<?>, Integer> missingAbilities = new LinkedHashMap<>();
-        AbilityRequirement firstMissing = null;
-        AbilityRequirement firstExceeded = null;
+        CountRequirement firstMissing = null;
+        CountRequirement firstMissingAbility = null;
+        CountRequirement firstExceeded = null;
         int exceededCount = 0;
 
-        Map<Object, AbilityRequirement> requirements = requirements(context);
+        Map<Object, CountRequirement> requirements = requirements(context);
         Map<Object, int[]> counts = counts(context);
-        for (Map.Entry<Object, AbilityRequirement> entry : requirements.entrySet()) {
-            AbilityRequirement requirement = entry.getValue();
+        for (Map.Entry<Object, CountRequirement> entry : requirements.entrySet()) {
+            CountRequirement requirement = entry.getValue();
             int count = countValue(counts.get(entry.getKey()));
             if (count < requirement.min) {
                 if (firstMissing == null) {
                     firstMissing = requirement;
                 }
-                missingAbilities.merge(requirement.ability, requirement.min - count, Integer::sum);
+                if (requirement.ability != null) {
+                    if (firstMissingAbility == null) {
+                        firstMissingAbility = requirement;
+                    }
+                    missingAbilities.merge(requirement.ability, requirement.min - count, Integer::sum);
+                }
             } else if (requirement.max >= 0 && count > requirement.max) {
                 if (firstExceeded == null) {
                     firstExceeded = requirement;
@@ -106,16 +154,20 @@ public final class StructureMatchCollector {
         }
 
         if (firstExceeded != null) {
-            return Validation.failure("Ability '" + firstExceeded.ability + "' count " + exceededCount
-                    + " exceeds maximum " + firstExceeded.max, firstExceeded.createMaxError());
+            String subject = firstExceeded.ability == null
+                    ? "Structure element"
+                    : "Ability '" + firstExceeded.ability + "'";
+            return Validation.failure(subject + " count " + exceededCount
+                    + " exceeds maximum " + firstExceeded.max,
+                    firstExceeded.createMaxError());
         }
         if (!missingAbilities.isEmpty()) {
             return Validation.missingAbilities(missingAbilities,
-                    firstMissing == null ? null : firstMissing.createMinError());
+                    firstMissingAbility == null ? null : firstMissingAbility.createMinError());
         }
         if (firstMissing != null) {
             return Validation.failure(
-                    "A structure ability requirement did not reach its minimum count",
+                    "A structure element requirement did not reach its minimum count",
                     firstMissing.createMinError());
         }
         return Validation.success();
@@ -123,23 +175,31 @@ public final class StructureMatchCollector {
 
     @NotNull
     @SuppressWarnings("unchecked")
-    private static Map<Object, AbilityRequirement> requirements(@NotNull PatternMatchContext context) {
-        return context.getOrCreate(ABILITY_REQUIREMENTS_KEY, HashMap::new);
+    private static Map<Object, CountRequirement> requirements(@NotNull PatternMatchContext context) {
+        return context.getOrCreate(REQUIREMENTS_KEY, HashMap::new);
     }
 
     @NotNull
     @SuppressWarnings("unchecked")
     private static Map<Object, int[]> counts(@NotNull PatternMatchContext context) {
-        return context.getOrCreate(ABILITY_COUNTS_KEY, HashMap::new);
+        return context.getOrCreate(COUNTS_KEY, HashMap::new);
     }
 
     private static int countValue(@Nullable int[] count) {
         return count == null || count.length == 0 ? 0 : count[0];
     }
 
-    private static final class AbilityRequirement {
+    private void declareCount(@NotNull Object key, int min, int max,
+                              @Nullable MultiblockAbility<?> ability,
+                              @Nullable Supplier<PatternError> minErrorFactory,
+                              @Nullable Supplier<PatternError> maxErrorFactory) {
+        requirements(context).putIfAbsent(
+                key, new CountRequirement(ability, min, max, minErrorFactory, maxErrorFactory));
+    }
 
-        @NotNull
+    private static final class CountRequirement {
+
+        @Nullable
         private final MultiblockAbility<?> ability;
         private final int min;
         private final int max;
@@ -148,9 +208,9 @@ public final class StructureMatchCollector {
         @Nullable
         private final Supplier<PatternError> maxErrorFactory;
 
-        private AbilityRequirement(@NotNull MultiblockAbility<?> ability, int min, int max,
-                                   @Nullable Supplier<PatternError> minErrorFactory,
-                                   @Nullable Supplier<PatternError> maxErrorFactory) {
+        private CountRequirement(@Nullable MultiblockAbility<?> ability, int min, int max,
+                                 @Nullable Supplier<PatternError> minErrorFactory,
+                                 @Nullable Supplier<PatternError> maxErrorFactory) {
             this.ability = ability;
             this.min = Math.max(0, min);
             this.max = max;

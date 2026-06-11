@@ -232,20 +232,28 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             if (pieceIndex > 0) {
                 // Build a specific piece from the MultiPiecePattern
                 var multiPiece = multiblock.getMultiPiecePattern();
+                var runtime = multiblock.getStructureRuntime();
                 if (multiPiece != null) {
                     var abilityTracker = multiPiece.createAbilityPlacementTracker();
-                    multiPiece.autoBuildPiece(pieceIndex, player, multiblock, channels, noHatch,
-                            multiblock.getPieceRuntimes(), abilityTracker);
+                    if (runtime != null) {
+                        runtime.getEvaluator().creativeBuildPiece(
+                                pieceIndex, player, multiblock, channels, noHatch, abilityTracker);
+                    } else {
+                        multiPiece.autoBuildPiece(
+                                pieceIndex, player, multiblock, channels, noHatch,
+                                multiblock.getPieceRuntimes(), abilityTracker);
+                    }
                 }
                 return EnumActionResult.SUCCESS;
             }
 
             if (!multiblock.isStructureFormed()) {
                 MultiblockState state = multiblock.getMultiblockState();
-                if (state != null) {
+                var runtime = multiblock.getStructureRuntime();
+                if (state != null && runtime != null) {
                     // Single-piece multiblock: build the main pattern via its MultiblockState.
-                    state.autoBuild(player, multiblock, channels, noHatch);
-                } else {
+                    runtime.getEvaluator().creativeBuildSingle(player, multiblock, channels, noHatch);
+                } else if (runtime != null) {
                     // Multi-piece multiblock (e.g. Distillation Tower): the controller's
                     // MultiblockState is null because each piece owns its own state.
                     // Iterate every piece and let the MultiPiecePattern place them at
@@ -253,12 +261,18 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     // tower body) read their repeat count from channel values, so the
                     // STRUCTURE_WIDTH / STRUCTURE_HEIGHT / STRUCTURE_LENGTH channels
                     // on the projector still control the final dimensions.
+                    runtime.getEvaluator().creativeBuildAllPieces(
+                            player, multiblock, channels, noHatch);
+                } else if (state != null) {
+                    state.autoBuild(player, multiblock, channels, noHatch);
+                } else {
                     var multiPiece = multiblock.getMultiPiecePattern();
                     if (multiPiece != null) {
                         int pieceCount = multiPiece.getPieceCount();
                         var abilityTracker = multiPiece.createAbilityPlacementTracker();
                         for (int i = 1; i <= pieceCount; i++) {
-                            multiPiece.autoBuildPiece(i, player, multiblock, channels, noHatch,
+                            multiPiece.autoBuildPiece(
+                                    i, player, multiblock, channels, noHatch,
                                     multiblock.getPieceRuntimes(), abilityTracker);
                         }
                     }

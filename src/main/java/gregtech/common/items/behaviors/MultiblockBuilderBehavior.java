@@ -134,6 +134,12 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
     private boolean autoBuildAllPieces(@NotNull MultiblockControllerBase multiblock,
                                        @NotNull EntityPlayer player,
                                        @NotNull Map<String, Integer> channelValues) {
+        var runtime = multiblock.getStructureRuntime();
+        if (runtime != null) {
+            return runtime.getEvaluator().creativeBuildAllPieces(
+                    player, multiblock, channelValues, false);
+        }
+
         StructureDefinition<?> definition = multiblock.getStructureDefinition();
         MultiPiecePattern multiPiece = definition.getCompiledPattern();
         int pieceCount = multiPiece.getPieceList().size();

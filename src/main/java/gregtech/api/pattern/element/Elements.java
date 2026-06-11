@@ -3,6 +3,7 @@ package gregtech.api.pattern.element;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -62,9 +63,19 @@ public final class Elements {
         return ElementUtility.ofHatchAdder(ability, min, max);
     }
 
+    /** Hatch adder element with count constraints and an explicit preview count */
+    public static IStructureElement hatch(MultiblockAbility<?> ability, int min, int max, int previewCount) {
+        return ElementUtility.ofHatchAdder(ability, min, max, previewCount);
+    }
+
     /** Tiered block element */
     public static IStructureElement tiered(Supplier<BlockInfo[]> candidates, String channel) {
         return ElementUtility.ofTieredBlock(candidates, channel);
+    }
+
+    /** Tiered casing element with channel capture and count constraints */
+    public static IStructureElement tieredCasing(ICasingGroup group, String channel, int min, int max) {
+        return ElementUtility.ofTieredCasing(group, channel, min, max);
     }
 
     /** Lazy element */

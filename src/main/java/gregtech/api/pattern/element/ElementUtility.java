@@ -3,6 +3,7 @@ package gregtech.api.pattern.element;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.pattern.element.impl.AirElement;
 import gregtech.api.pattern.element.impl.AnyElement;
 import gregtech.api.pattern.element.impl.BlockElement;
@@ -10,6 +11,7 @@ import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.pattern.element.impl.LegacyElement;
 import gregtech.api.pattern.element.impl.SelfElement;
+import gregtech.api.pattern.element.impl.TieredCasingElement;
 import gregtech.api.pattern.element.impl.TieredElement;
 import gregtech.api.pattern.element.impl.WrapperElement;
 import gregtech.api.util.BlockInfo;
@@ -63,9 +65,19 @@ public final class ElementUtility {
         return new HatchElement(ability, min, max);
     }
 
+    /** Create a hatch adder element with count constraints and an explicit preview count */
+    public static IStructureElement ofHatchAdder(MultiblockAbility<?> ability, int min, int max, int previewCount) {
+        return new HatchElement(ability, min, max, previewCount);
+    }
+
     /** Create a tiered block element with channel name */
     public static IStructureElement ofTieredBlock(Supplier<BlockInfo[]> candidates, String channelName) {
         return new TieredElement(candidates, channelName);
+    }
+
+    /** Create a tiered casing element with channel capture and count constraints */
+    public static IStructureElement ofTieredCasing(ICasingGroup group, String channelName, int min, int max) {
+        return new TieredCasingElement(group, channelName, min, max);
     }
 
     /** Create a lazily-initialized element */

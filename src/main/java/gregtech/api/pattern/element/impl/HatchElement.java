@@ -18,6 +18,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -28,15 +30,33 @@ public class HatchElement implements IStructureElement<Object> {
     private final MultiblockAbility<?> ability;
     private final int minCount;
     private final int maxCount;
+    private final TraceabilityPredicate legacyPredicate;
+    private final TraceabilityPredicate.SimplePredicate limitPredicate;
 
     public HatchElement(MultiblockAbility<?> ability) {
-        this(ability, 0, -1);
+        this(ability, 0, -1, -1);
     }
 
     public HatchElement(MultiblockAbility<?> ability, int minCount, int maxCount) {
+        this(ability, minCount, maxCount, -1);
+    }
+
+    public HatchElement(MultiblockAbility<?> ability, int minCount, int maxCount, int previewCount) {
         this.ability = ability;
         this.minCount = minCount;
         this.maxCount = maxCount;
+        TraceabilityPredicate predicate = MultiblockControllerBase.abilities(ability);
+        if (minCount > 0) {
+            predicate.setMinGlobalLimited(minCount);
+        }
+        if (maxCount > 0) {
+            predicate.setMaxGlobalLimited(maxCount);
+        }
+        if (previewCount >= 0) {
+            predicate.setPreviewCount(previewCount);
+        }
+        this.legacyPredicate = predicate;
+        this.limitPredicate = findLimitPredicate(predicate);
     }
 
     @Override
@@ -68,7 +88,10 @@ public class HatchElement implements IStructureElement<Object> {
 
     @Override
     public BlockInfo[] getCandidates() {
-        return new BlockInfo[0];
+        List<BlockInfo> candidates = new ArrayList<>();
+        collectCandidates(legacyPredicate.common, candidates);
+        collectCandidates(legacyPredicate.limited, candidates);
+        return candidates.toArray(new BlockInfo[0]);
     }
 
     @Override
@@ -102,14 +125,7 @@ public class HatchElement implements IStructureElement<Object> {
 
     @Override
     public TraceabilityPredicate toPredicate() {
-        TraceabilityPredicate pred = MultiblockControllerBase.abilities(ability);
-        if (minCount > 0) {
-            pred = pred.setMinGlobalLimited(minCount);
-        }
-        if (maxCount > 0) {
-            pred = pred.setMaxGlobalLimited(maxCount);
-        }
-        return pred;
+        return legacyPredicate;
     }
 
     private static MetaTileEntity getMetaTileEntity(TileEntity tileEntity) {
@@ -138,19 +154,29 @@ public class HatchElement implements IStructureElement<Object> {
     }
 
     private TraceabilityPredicate.SimplePredicate limitPredicate() {
-        TraceabilityPredicate predicate = toPredicate();
+        return limitPredicate;
+    }
+
+    private static TraceabilityPredicate.SimplePredicate findLimitPredicate(
+            TraceabilityPredicate predicate) {
         if (!predicate.limited.isEmpty()) {
             return predicate.limited.get(0);
         }
         if (!predicate.common.isEmpty()) {
             return predicate.common.get(0);
         }
-        TraceabilityPredicate.SimplePredicate fallback =
-                new TraceabilityPredicate.SimplePredicate(state -> false, this::getCandidates);
-        fallback.minGlobalCount = minCount;
-        fallback.maxGlobalCount = maxCount;
-        fallback.previewCount = Math.max(1, minCount);
-        fallback.ability = ability;
-        return fallback;
+        throw new IllegalStateException("Ability predicate did not contain a matcher");
+    }
+
+    private static void collectCandidates(
+            List<TraceabilityPredicate.SimplePredicate> predicates,
+            List<BlockInfo> candidates) {
+        for (TraceabilityPredicate.SimplePredicate predicate : predicates) {
+            if (predicate.candidates == null) continue;
+            BlockInfo[] values = predicate.candidates.get();
+            if (values != null) {
+                candidates.addAll(Arrays.asList(values));
+            }
+        }
     }
 }

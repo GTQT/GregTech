@@ -1,21 +1,18 @@
 package gregtech.api.pattern.casing;
 
-import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiPiecePattern;
-import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.util.BlockInfo;
+import gregtech.api.pattern.element.impl.CasingElement;
+import gregtech.api.pattern.element.impl.HatchElement;
+import gregtech.api.pattern.element.impl.TieredCasingElement;
 import gregtech.api.util.RelativeDirection;
 
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.Vec3i;
 
 import org.jetbrains.annotations.ApiStatus;
@@ -24,7 +21,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -474,16 +470,17 @@ public class DeclarativePatternBuilder {
         // Check casing slots
         CasingSlotInfo casingInfo = casingSlots.get(c);
         if (casingInfo != null) {
-            TraceabilityPredicate casingPred = buildCasingPredicate(casingInfo);
-            if (casingPred != null) return Elements.legacy(casingPred);
+            return buildCasingElement(
+                    casingInfo,
+                    countCharInAllPieces(casingInfo.symbol),
+                    false);
         }
         // Check tiered slots
         TieredSlotInfo tieredInfo = tieredSlots.get(c);
         if (tieredInfo != null) {
             String channelName = tieredInfo.channel != null
                     ? tieredInfo.channel.getName() : tieredInfo.group.getTierChannel();
-            TraceabilityPredicate tieredPred = createTieredPredicate(tieredInfo.group, channelName);
-            return Elements.legacy(tieredPred);
+            return new TieredCasingElement(tieredInfo.group, channelName);
         }
         return null;
     }
@@ -607,73 +604,46 @@ public class DeclarativePatternBuilder {
         // Check casing slots (per-piece count)
         CasingSlotInfo casingInfo = casingSlots.get(c);
         if (casingInfo != null) {
-            TraceabilityPredicate casingPred = buildPieceCasingPredicate(casingInfo, piece);
-            if (casingPred != null) return Elements.legacy(casingPred);
+            return buildCasingElement(
+                    casingInfo,
+                    countCharInPiece(piece, casingInfo.symbol),
+                    multiPieceMode);
         }
         // Check tiered slots
         TieredSlotInfo tieredInfo = tieredSlots.get(c);
         if (tieredInfo != null) {
             String channelName = tieredInfo.channel != null
                     ? tieredInfo.channel.getName() : tieredInfo.group.getTierChannel();
-            TraceabilityPredicate tieredPred = createTieredPredicate(tieredInfo.group, channelName);
-            return Elements.legacy(tieredPred);
+            return new TieredCasingElement(tieredInfo.group, channelName);
         }
         return null;
     }
 
     /**
-     * Build a per-piece casing predicate (counts only within the given piece).
+     * Build a direct casing element with hatch alternatives.
      */
-    private TraceabilityPredicate buildPieceCasingPredicate(@NotNull CasingSlotInfo info,
-                                                             @NotNull PieceDef piece) {
-        int totalCount = countCharInPiece(piece, info.symbol);
+    private IStructureElement buildCasingElement(@NotNull CasingSlotInfo info,
+                                                  int totalCount,
+                                                  boolean deferHatchMinimums) {
         int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
                 + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
         int minCasings = Math.max(0, totalCount - maxHatches);
 
-        TraceabilityPredicate predicate = createCasingPredicate(info.casing)
-                .setMinGlobalLimited(minCasings);
-
+        List<IStructureElement> alternatives = new ArrayList<>();
+        alternatives.add(new CasingElement(info.casing, minCasings));
         for (HatchInfo hatch : info.hatches) {
-            predicate = predicate.or(
-                    MultiblockControllerBase.abilities(hatch.ability)
-                            .setMinGlobalLimited(multiPieceMode ? 0 : hatch.minCount)
-                            .setMaxGlobalLimited(hatch.maxCount)
-                            .setPreviewCount(Math.max(1, hatch.minCount)));
+            alternatives.add(new HatchElement(
+                    hatch.ability,
+                    deferHatchMinimums ? 0 : hatch.minCount,
+                    hatch.maxCount,
+                    Math.max(1, hatch.minCount)));
         }
-
         for (CustomHatchInfo customHatch : info.customHatches) {
-            predicate = predicate.or(customHatch.predicate);
+            alternatives.add(Elements.legacy(customHatch.predicate));
         }
-
-        return predicate;
-    }
-
-    /**
-     * Build a TraceabilityPredicate for a casing slot (including hatches).
-     */
-    private TraceabilityPredicate buildCasingPredicate(@NotNull CasingSlotInfo info) {
-        int totalCount = countCharInAllPieces(info.symbol);
-        int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
-                + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
-        int minCasings = Math.max(0, totalCount - maxHatches);
-
-        TraceabilityPredicate predicate = createCasingPredicate(info.casing)
-                .setMinGlobalLimited(minCasings);
-
-        for (HatchInfo hatch : info.hatches) {
-            predicate = predicate.or(
-                    MultiblockControllerBase.abilities(hatch.ability)
-                            .setMinGlobalLimited(hatch.minCount)
-                            .setMaxGlobalLimited(hatch.maxCount)
-                            .setPreviewCount(Math.max(1, hatch.minCount)));
-        }
-
-        for (CustomHatchInfo customHatch : info.customHatches) {
-            predicate = predicate.or(customHatch.predicate);
-        }
-
-        return predicate;
+        return alternatives.size() == 1
+                ? alternatives.get(0)
+                : Elements.chain(alternatives.toArray(new IStructureElement[0]));
     }
 
     // --- Structure description ---
@@ -743,68 +713,6 @@ public class DeclarativePatternBuilder {
             }
         }
         return count;
-    }
-
-    private TraceabilityPredicate createCasingPredicate(@NotNull ICasing casing) {
-        IBlockState state = casing.getBlockState();
-        return new TraceabilityPredicate(
-                blockWorldState -> {
-                    if (!blockWorldState.getBlockState().equals(state)) return false;
-                    trackVariantActiveBlock(blockWorldState);
-                    return true;
-                },
-                () -> new BlockInfo[] { new BlockInfo(state, null) });
-    }
-
-    private TraceabilityPredicate createTieredPredicate(@NotNull ICasingGroup group, @NotNull String channelName) {
-        boolean requiresUniform = group.requiresUniformTier();
-        List<ICasing> casings = group.getCasings();
-
-        Map<IBlockState, ICasing> stateMap = new HashMap<>();
-        for (ICasing c : casings) {
-            stateMap.put(c.getBlockState(), c);
-        }
-
-        TraceabilityPredicate predicate = new TraceabilityPredicate(blockWorldState -> {
-            IBlockState blockState = blockWorldState.getBlockState();
-            ICasing matched = stateMap.get(blockState);
-            if (matched == null) return false;
-            trackVariantActiveBlock(blockWorldState);
-
-            if (requiresUniform) {
-                Object existing = blockWorldState.getMatchContext().getOrPut(channelName, matched);
-                if (!existing.equals(matched)) {
-                    blockWorldState.setError(new PatternStringError(
-                            "gregtech.multiblock.pattern.error.casing_tier_mismatch"));
-                    return false;
-                }
-            } else {
-                blockWorldState.getMatchContext().getOrPut(channelName, matched);
-            }
-            if (matched.isTiered()) {
-                blockWorldState.getMatchContext().set(channelName + ".tier", matched.getTier());
-            }
-            return true;
-        }, () -> casings.stream()
-                .map(c -> new BlockInfo(c.getBlockState(), null))
-                .toArray(BlockInfo[]::new))
-                .addTooltips("gregtech.multiblock.pattern.error.casing_tier_mismatch");
-
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
-            sp.channelName = channelName;
-        }
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
-            sp.channelName = channelName;
-        }
-
-        return predicate;
-    }
-
-    private static void trackVariantActiveBlock(@NotNull BlockWorldState blockWorldState) {
-        if (blockWorldState.getBlockState().getBlock() instanceof VariantActiveBlock) {
-            blockWorldState.getMatchContext().getOrPut("VABlock", new LinkedList<>())
-                    .add(blockWorldState.getPos());
-        }
     }
 
     // --- AisleDef (per-aisle metadata) ---
