@@ -6,11 +6,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.NoEnergyMultiblockController;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -35,8 +33,8 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
         return new MetaTileEntitySawMill(metaTileEntityId);
     }
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:saw_mill", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:saw_mill", () -> DeclarativePatternBuilder.start()
                     .aisle("PPPPP", "    F", "    F")
                     .aisle("PXXXP", "XX XF", "FFFFF")
                     .aisle("PXXXP", "XX XF", " F  F")
@@ -51,11 +49,11 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
                         .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 2)
                         .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 2)
                         .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 2)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    @Override
+    protected @NotNull StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

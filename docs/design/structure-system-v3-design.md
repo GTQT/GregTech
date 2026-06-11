@@ -64,10 +64,14 @@ GregTech already has part of the V3 shape:
 - `StructureCompiler` can compile those definitions into the current multi-piece runtime.
 - `DeclarativePatternBuilder` already carries GregTech-specific casing, hatch, tier, channel, tooltip, and ability-limit
   semantics.
+- Fixed single-piece controllers are being migrated to return cached definitions directly. The first batch covers the
+  vacuum freezer, implosion compressor, coke oven, saw mill, steam grinder, and steam oven.
 
 However, the migration is not complete yet:
 
 - Legacy declarations and custom predicate alternatives still execute through `TraceabilityPredicate`.
+- Most controller subclasses still override legacy template or pattern hooks and need incremental migration to
+  `createStructureDefinition()`.
 - `StructureMatchCollector` is backed by `PatternMatchContext`; collector state has not moved to a standalone operation
   result yet.
 - The operation evaluator delegates to separate single-piece, multi-piece, preview, and build traversals. Those
