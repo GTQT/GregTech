@@ -7,6 +7,9 @@ import gregtech.api.pattern.casing.StructureChannelValues;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Thin per-controller structure runtime.
  *
@@ -33,7 +36,9 @@ public final class StructureRuntime {
     @Nullable
     private FormedStructureMetadata formedMetadata;
     @Nullable
-    private StructureTrace.Failure lastFailure;
+    private StructureFailureTrace lastFailure;
+    @NotNull
+    private Map<String, Integer> missingAbilities = Collections.emptyMap();
 
     public StructureRuntime(@Nullable StructureDefinition<?> definition,
                             @Nullable BlockPatternTemplate template,
@@ -91,12 +96,21 @@ public final class StructureRuntime {
     }
 
     @Nullable
-    public StructureTrace.Failure getLastFailure() {
+    public StructureFailureTrace getLastFailure() {
         return lastFailure;
     }
 
-    public void setLastFailure(@Nullable StructureTrace.Failure lastFailure) {
+    public void setLastFailure(@Nullable StructureFailureTrace lastFailure) {
         this.lastFailure = lastFailure;
+    }
+
+    @NotNull
+    public Map<String, Integer> getMissingAbilities() {
+        return missingAbilities;
+    }
+
+    public void setMissingAbilities(@NotNull Map<String, Integer> missingAbilities) {
+        this.missingAbilities = missingAbilities;
     }
 
     public void clearFormedState() {

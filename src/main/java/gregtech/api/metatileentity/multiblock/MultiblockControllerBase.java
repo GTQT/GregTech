@@ -142,8 +142,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** V3 migration runtime wrapper. Mirrors existing fields for now. */
     @Nullable
     private StructureRuntime structureRuntime;
-    @NotNull
-    private Map<String, Integer> missingStructureAbilities = Collections.emptyMap();
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -922,7 +920,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             } else {
                 updateMissingStructureAbilities(result.missingAbilities);
                 if (structureRuntime != null) {
-                    structureRuntime.setLastFailure(StructureTrace.failure("definition", null, result.missingAbilities));
+                    structureRuntime.setLastFailure(StructureTrace.failure(this, "definition", "CHECK",
+                            null, result.missingAbilities));
                 }
                 StructureTrace.debug(this, "check-failed", "path=definition, missingAbilities=" +
                         StructureTrace.describeMissingAbilities(result.missingAbilities));
@@ -942,7 +941,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 : Collections.emptyMap();
         updateMissingStructureAbilities(legacyMissingAbilities);
         if (context == null && structureRuntime != null) {
-            structureRuntime.setLastFailure(StructureTrace.failure("legacy-template",
+            structureRuntime.setLastFailure(StructureTrace.failure(this, "legacy-template", "CHECK",
                     multiblockState.getError(), legacyMissingAbilities));
             StructureTrace.debug(this, "check-failed", "path=legacy-template, error=" +
                     structureRuntime.getLastFailure());
@@ -1230,13 +1229,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     @NotNull
     public Map<String, Integer> getMissingStructureAbilities() {
-        return missingStructureAbilities;
+        return structureRuntime == null ? Collections.emptyMap() : structureRuntime.getMissingAbilities();
     }
 
     private void updateMissingStructureAbilities(
             @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (structureRuntime == null) {
+            return;
+        }
         if (missingAbilities.isEmpty()) {
-            this.missingStructureAbilities = Collections.emptyMap();
+            structureRuntime.setMissingAbilities(Collections.emptyMap());
             return;
         }
 
@@ -1246,7 +1248,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 sorted.put(entry.getKey().toString(), entry.getValue());
             }
         }
-        this.missingStructureAbilities = Collections.unmodifiableMap(sorted);
+        structureRuntime.setMissingAbilities(Collections.unmodifiableMap(sorted));
     }
 
     /**
