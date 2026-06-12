@@ -2,9 +2,11 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -17,6 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,14 +39,33 @@ public class ChainElement implements IStructureElement<Object> {
         this.elements = elements;
     }
 
+    @NotNull
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        EnumSet<StructureElementCapability> capabilities =
+                EnumSet.allOf(StructureElementCapability.class);
+        for (IStructureElement element : elements) {
+            capabilities.retainAll(element.getCapabilities());
+        }
+        return Collections.unmodifiableSet(capabilities);
+    }
+
     @Override
     public boolean check(@NotNull StructureEvaluationContext<Object> context) {
         for (IStructureElement e : elements) {
-            PatternMatchContext.Checkpoint checkpoint = context.getLegacyContext().checkpoint();
+            StructureMatchSession session = context.getSession();
+            StructureMatchSession.Checkpoint sessionCheckpoint =
+                    session == null ? null : session.checkpoint();
+            PatternMatchContext.Checkpoint contextCheckpoint =
+                    session == null ? context.getLegacyContext().checkpoint() : null;
             if (e.check(context)) {
                 return true;
             }
-            context.getLegacyContext().restore(checkpoint);
+            if (session != null) {
+                session.restore(sessionCheckpoint);
+            } else {
+                context.getLegacyContext().restore(contextCheckpoint);
+            }
         }
         return false;
     }

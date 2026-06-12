@@ -9,6 +9,7 @@ import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructureMatchSession;
+import gregtech.api.pattern.StructureOperationState;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.util.GTLog;
@@ -36,7 +37,7 @@ import java.util.Map;
  * <ul>
  *   <li>Success/failure status</li>
  *   <li>{@link FormedStructureMetadata} on success (actual repeat counts + channel values)</li>
- *   <li>Aggregated {@link PatternMatchContext} on success (contains "MultiblockParts")</li>
+ *   <li>Typed {@link StructureOperationState} plus a legacy context view on success</li>
  *   <li>Error position and message on failure</li>
  * </ul>
  */
@@ -64,9 +65,12 @@ public final class StructureCheckState {
         @Nullable
         public final FormedStructureMetadata metadata;
 
-        /** Aggregated PatternMatchContext from all pieces (contains "MultiblockParts"). */
+        /** Legacy context data from all pieces. Collector-owned data is stored separately. */
         @Nullable
         public final PatternMatchContext context;
+
+        @Nullable
+        public final StructureOperationState operationState;
 
         @Nullable
         public final BlockPos errorPos;
@@ -84,6 +88,7 @@ public final class StructureCheckState {
 
         private Result(boolean success, @Nullable FormedStructureMetadata metadata,
                        @Nullable PatternMatchContext context,
+                       @Nullable StructureOperationState operationState,
                        @Nullable BlockPos errorPos, @Nullable String errorMessage,
                        @Nullable PatternError error,
                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
@@ -91,6 +96,7 @@ public final class StructureCheckState {
             this.success = success;
             this.metadata = metadata;
             this.context = context;
+            this.operationState = operationState;
             this.errorPos = errorPos;
             this.errorMessage = errorMessage;
             this.error = error;
@@ -102,8 +108,11 @@ public final class StructureCheckState {
         @NotNull
         public static Result success(@NotNull FormedStructureMetadata metadata,
                                      @NotNull PatternMatchContext context,
+                                     @NotNull StructureOperationState operationState,
                                      boolean flipped) {
-            return new Result(true, metadata, context, null, null, null, Collections.emptyMap(), flipped);
+            return new Result(
+                    true, metadata, context, operationState,
+                    null, null, null, Collections.emptyMap(), flipped);
         }
 
         /** Create a failure result with error info */
@@ -115,7 +124,9 @@ public final class StructureCheckState {
         /** Create a failure result with error info */
         @NotNull
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg, @Nullable PatternError error) {
-            return new Result(false, null, null, pos, msg, error, Collections.emptyMap(), false);
+            return new Result(
+                    false, null, null, null,
+                    pos, msg, error, Collections.emptyMap(), false);
         }
 
         /** Create a failure result without specific position */
@@ -127,13 +138,16 @@ public final class StructureCheckState {
         /** Create a failure result without specific position */
         @NotNull
         public static Result failure(@NotNull String msg, @Nullable PatternError error) {
-            return new Result(false, null, null, null, msg, error, Collections.emptyMap(), false);
+            return new Result(
+                    false, null, null, null,
+                    null, msg, error, Collections.emptyMap(), false);
         }
 
         @NotNull
         public static Result missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
-            return new Result(false, null, null, null, "Missing required multiblock abilities", null,
-                    missingAbilities, false);
+            return new Result(
+                    false, null, null, null,
+                    null, "Missing required multiblock abilities", null, missingAbilities, false);
         }
     }
 
@@ -279,7 +293,8 @@ public final class StructureCheckState {
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 pieceRepeats, channelValues, pieceCenters);
-        return Result.success(metadata, session.getContext(), flipped);
+        return Result.success(
+                metadata, session.getContext().copy(), session.copyOperationState(), flipped);
     }
 
     /**

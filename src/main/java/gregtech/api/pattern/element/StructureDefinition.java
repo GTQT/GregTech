@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -74,7 +75,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     // just to register a redundant TemplatePool entry.
     private MultiPiecePattern compiledPattern;
     private StructureSizeDescriptor sizeDescriptor;
-    private final boolean singlePiece;
+    @Nullable
+    private volatile Set<StructureElementCapability> supportedElementCapabilities;
+    private final boolean supportsSingleTemplatePath;
 
     private StructureDefinition(Builder<T> b) {
         this.structureDir = new RelativeDirection[]{b.charDir, b.stringDir, b.aisleDir};
@@ -84,10 +87,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.delegate = null;
         this.compiledPattern = b.compiledPattern;
         if (b.compiledPattern != null) {
-            this.singlePiece = b.compiledPattern.getPieceCount() == 1
+            this.supportsSingleTemplatePath = b.compiledPattern.getPieceCount() == 1
                     && !(b.compiledPattern.getPrimaryPiece() instanceof RepeatGroupPiece);
         } else {
-            this.singlePiece = pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
+            this.supportsSingleTemplatePath =
+                    pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
         }
     }
 
@@ -97,7 +101,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.abilityLimits = Collections.emptyMap();
         this.abilityGroupLimits = Collections.emptyList();
         this.delegate = delegate;
-        this.singlePiece = false;
+        this.supportsSingleTemplatePath = false;
     }
 
     @NotNull
@@ -139,6 +143,47 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             compiledPattern = local;
         }
         return local;
+    }
+
+    /**
+     * Conservatively report whether every compiled cell can execute an
+     * operation. Conditional pieces are excluded from snapshot matching until
+     * activation conditions have their own explicit capability contract.
+     */
+    public boolean supportsElementCapability(
+            @NotNull StructureElementCapability capability) {
+        if (delegate != null) {
+            return delegate.get().supportsElementCapability(capability);
+        }
+        Set<StructureElementCapability> local = supportedElementCapabilities;
+        if (local == null) {
+            local = computeSupportedElementCapabilities();
+            supportedElementCapabilities = local;
+        }
+        return local.contains(capability);
+    }
+
+    @NotNull
+    private Set<StructureElementCapability> computeSupportedElementCapabilities() {
+        EnumSet<StructureElementCapability> capabilities =
+                EnumSet.allOf(StructureElementCapability.class);
+        for (StructurePiece piece : getCompiledPattern().getPieceList()) {
+            if (piece.isConditional()) {
+                capabilities.remove(StructureElementCapability.SNAPSHOT_MATCH);
+            }
+            for (IStructureElement<?>[][] layer : piece.getPieceTemplate().getElements()) {
+                for (IStructureElement<?>[] row : layer) {
+                    for (IStructureElement<?> element : row) {
+                        if (element == null) {
+                            capabilities.clear();
+                            return Collections.emptySet();
+                        }
+                        capabilities.retainAll(element.getCapabilities());
+                    }
+                }
+            }
+        }
+        return Collections.unmodifiableSet(capabilities);
     }
 
     /**
@@ -219,22 +264,29 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         };
     }
 
-    /** Whether this definition has exactly one non-repeatable piece. */
-    public boolean isSinglePiece() {
+    /**
+     * Whether this definition can use the legacy single-template runtime path.
+     *
+     * <p>This is intentionally narrower than "contains one declared piece": a
+     * single repeatable piece still requires the multi-piece runtime because it
+     * compiles to a {@link RepeatGroupPiece}.
+     */
+    public boolean supportsSingleTemplatePath() {
         if (delegate != null) {
-            return delegate.get().isSinglePiece();
+            return delegate.get().supportsSingleTemplatePath();
         }
-        return singlePiece;
+        return supportsSingleTemplatePath;
     }
 
     /**
-     * Convenience: get the primary piece's template (the 1-piece view).
-     * Returns {@code null} if this definition is not a single-piece definition.
+     * Convenience: get the primary piece's template when the definition supports
+     * the single-template runtime path.
+     * Returns {@code null} for multi-piece and repeatable-piece definitions.
      *
      * <p>This bypasses the {@link MultiPiecePattern} wrapping step and compiles
      * the single piece's template directly via
      * {@link StructureCompiler#compilePieceTemplate(IStructurePiece, RelativeDirection[])}.
-     * For 1-piece callers (the common case), this avoids one unnecessary
+     * For eligible 1-piece callers (the common case), this avoids one unnecessary
      * {@code ArrayList<StructurePiece>}, one {@code StructurePiece}, and one
      * {@code MultiPiecePattern} allocation per call compared to going through
      * {@link #getCompiledPattern()}.
@@ -250,20 +302,20 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
-     * Get the primary (single-piece) compiled template, optionally with an auto-generated
-     * structure description. Returns {@code null} for multi-piece definitions; multi-piece
-     * callers should iterate {@link #getCompiledPattern()} instead.
+     * Get the primary single-template compiled form, optionally with an auto-generated
+     * structure description. Returns {@code null} for definitions that require the
+     * multi-piece runtime; those callers should iterate {@link #getCompiledPattern()} instead.
      *
      * @param structureDescription  optional description lines to embed in the template;
      *                               {@code null} or empty means "no description"
-     * @return the compiled template, or {@code null} for multi-piece structures
+     * @return the compiled template, or {@code null} when the multi-piece runtime is required
      */
     @Nullable
     public BlockPatternTemplate getPrimaryTemplate(@Nullable List<String> structureDescription) {
         if (delegate != null) {
             return delegate.get().getPrimaryTemplate(structureDescription);
         }
-        if (!singlePiece) return null;
+        if (!supportsSingleTemplatePath) return null;
         return StructureCompiler.compilePieceTemplate(
                 getPieceEntries().get(0).piece, getStructureDir(), structureDescription);
     }
@@ -867,6 +919,10 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         /** Finish this piece and return to the parent builder. */
         @NotNull
         public Builder<T> end() {
+            if (piece.repeatAxes.length == 0) {
+                throw new IllegalStateException("Repeatable piece '" + piece.name
+                        + "' requires at least one repeat axis; use piece(...) for a fixed piece");
+            }
             parent.addPiece(piece);
             return parent;
         }

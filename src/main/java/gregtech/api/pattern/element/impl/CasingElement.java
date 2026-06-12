@@ -8,6 +8,7 @@ import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -18,6 +19,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * Direct element for one declarative casing state.
@@ -37,6 +39,11 @@ public final class CasingElement implements IStructureElement<Object> {
                 this::getCandidates)
                 .setMinGlobalLimited(this.minGlobalCount);
         this.countPredicate = legacyPredicate.limited.get(0);
+    }
+
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        return StructureElementCapability.snapshotSafe();
     }
 
     @Override

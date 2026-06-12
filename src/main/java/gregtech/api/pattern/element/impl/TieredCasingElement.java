@@ -10,6 +10,7 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -22,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Direct element for a declarative tiered casing group.
@@ -67,6 +69,11 @@ public final class TieredCasingElement implements IStructureElement<Object> {
         predicate.limited.forEach(simple -> simple.channelName = channelName);
         this.legacyPredicate = predicate;
         this.countPredicate = findCountPredicate(predicate);
+    }
+
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        return StructureElementCapability.snapshotSafe();
     }
 
     @Override

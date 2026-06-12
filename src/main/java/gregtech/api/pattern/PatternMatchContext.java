@@ -31,6 +31,10 @@ public class PatternMatchContext {
         this.data.put(key, value);
     }
 
+    public void remove(String key) {
+        this.data.remove(key);
+    }
+
     public int getInt(String key) {
         return data.containsKey(key) ? (int) data.get(key) : 0;
     }

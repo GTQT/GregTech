@@ -15,6 +15,7 @@ import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureTrace;
@@ -22,7 +23,6 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.pattern.element.FormedStructureMetadata;
-import gregtech.api.pattern.element.StructureCheckState;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
@@ -117,6 +117,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** V3 per-controller structure runtime. */
     @Nullable
     private StructureRuntime structureRuntime;
+    /** Invalidates detached async work whenever compiled runtime objects are rebuilt. */
+    private volatile long structureRuntimeGeneration;
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -247,7 +249,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         StructureRuntime previousRuntime = this.structureRuntime;
         this.structureDefinition = resolveStructureDefinition();
         this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
-        if (this.structureDefinition.isSinglePiece()) {
+        if (this.structureDefinition.supportsSingleTemplatePath()) {
             this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
             this.multiblockState = this.patternTemplate.createState();
         } else {
@@ -259,6 +261,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.pieceRuntimes = new PieceRuntimes(this.multiPiecePattern);
         this.structureRuntime = new StructureRuntime(this.structureDefinition, this.patternTemplate,
                 this.multiblockState, this.multiPiecePattern, this.pieceRuntimes);
+        this.structureRuntimeGeneration++;
         this.structureRuntime.copyFormedStateFrom(previousRuntime);
         this.structurePattern = (this.patternTemplate != null)
                 ? new BlockPattern(this.patternTemplate, this.multiblockState)
@@ -588,173 +591,15 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void checkStructurePattern() {
-        StructureTrace.debug(this, "check-start", structureRuntime == null ? null : structureRuntime.describeShape());
-        if (this.structureDefinition != null) {
-            checkDefinitionStructure();
-            return;
+        if (structureRuntime == null) {
+            reinitializeStructurePattern();
         }
-        checkLegacyStructure();
-    }
-
-    private void checkDefinitionStructure() {
-        StructureCheckState.Result result = structureRuntime == null
-                ? this.structureDefinition.createState().check(
-                        getWorld(), getPos(), getFrontFacingForStructure(),
-                        getUpwardsFacing(), allowsFlip(), null, this)
-                : structureRuntime.getEvaluator().checkDefinition(
-                        getWorld(), getPos(), getFrontFacingForStructure(),
-                        getUpwardsFacing(), allowsFlip(), null, this);
-        if (!result.success) {
-            if (structureRuntime != null) {
-                StructureFailureTrace failure = StructureTrace.failure(
-                        this, "definition", "CHECK", result.error, result.missingAbilities);
-                structureRuntime.recordCheckFailure(failure, result.missingAbilities);
-            }
-            StructureTrace.debug(this, "check-failed", "path=definition, missingAbilities=" +
-                    StructureTrace.describeMissingAbilities(result.missingAbilities));
-            if (this.structureFormed) {
-                invalidateStructure();
-            }
-            return;
-        }
-
-        PatternMatchContext context = result.context;
-        if (context == null) {
-            recordAssemblyRejection("definition", "Successful definition check returned no match context");
-            return;
-        }
-
-        StructureChannelValues channelValues = StructureChannelValues.fromContext(context);
-        if (!structureFormed) {
-            MultiblockStructureAssembler.Assembly assembly =
-                    MultiblockStructureAssembler.assemble(this, context);
-            if (!assembly.successful) {
-                recordAssemblyRejection("definition", assembly.failureMessage);
-                return;
-            }
-
-            formNewStructure(context, assembly, result.metadata, channelValues, result.flipped, "definition");
-            MultiblockStructureRegistration.registerFormedDefinition(this, multiPiecePattern, pieceRuntimes);
-            return;
-        }
-
-        MultiblockStructureAssembler.Reassembly reassembly =
-                MultiblockStructureAssembler.reassemble(this, context, this.multiblockParts);
-        if (!reassembly.successful) {
-            recordAssemblyRejection("definition", reassembly.failureMessage);
-            return;
-        }
-
-        setFlipped(result.flipped);
-        commitReassembly(context, reassembly, result.metadata, channelValues);
-        StructureTrace.debug(this, "still-valid", "path=definition, metadata=" + getFormedMetadata());
-    }
-
-    private void checkLegacyStructure() {
-        if (multiblockState == null) return;
-
-        PatternMatchContext context = structureRuntime == null
-                ? multiblockState.checkPatternFastAt(
-                        getWorld(), getPos(), getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
-                        isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample)
-                : structureRuntime.getEvaluator().checkSingle(
-                        getWorld(), getPos(), getFrontFacingForStructure(), getUpwardsFacing(), allowsFlip(),
-                        isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample);
-        Map<MultiblockAbility<?>, Integer> legacyMissingAbilities = context == null
-                ? multiblockState.getMissingAbilities()
-                : Collections.emptyMap();
-        if (context == null && structureRuntime != null) {
-            StructureFailureTrace failure = StructureTrace.failure(this, "legacy-template", "CHECK",
-                    multiblockState.getError(), legacyMissingAbilities);
-            structureRuntime.recordCheckFailure(failure, legacyMissingAbilities);
-            StructureTrace.debug(this, "check-failed", "path=legacy-template, error=" +
-                    structureRuntime.getLastFailure());
-        }
-        if (context != null && !structureFormed) {
-            MultiblockStructureAssembler.Assembly assembly =
-                    MultiblockStructureAssembler.assemble(this, context);
-            if (!assembly.successful) {
-                recordAssemblyRejection("legacy-template", assembly.failureMessage);
-                return;
-            }
-
-            StructureChannelValues channelValues = StructureChannelValues.fromContext(context);
-            formNewStructure(context, assembly, null, channelValues, context.neededFlip(), "legacy-template");
-
-            // Unregister from async checker since we're now formed (P2)
-            AsyncStructureChecker.getInstance().unregister(this);
-
-            MultiblockStructureRegistration.registerFormedLegacy(this, multiPiecePattern, pieceRuntimes,
-                    multiblockState);
-        } else if (context == null && structureFormed) {
-            invalidateStructure();
-        } else if (context != null) {
-            MultiblockStructureAssembler.Reassembly reassembly =
-                    MultiblockStructureAssembler.reassemble(this, context, this.multiblockParts);
-            if (!reassembly.successful) {
-                recordAssemblyRejection("legacy-template", reassembly.failureMessage);
-                return;
-            }
-
-            setFlipped(context.neededFlip());
-            commitReassembly(context, reassembly, getFormedMetadata(),
-                    StructureChannelValues.fromContext(context));
-            StructureTrace.debug(this, "still-valid", "path=legacy-template");
-
-            MultiblockStructureRegistration.reregisterLegacyCache(this, multiblockState);
-        }
-    }
-
-    private void formNewStructure(@NotNull PatternMatchContext context,
-                                  @NotNull MultiblockStructureAssembler.Assembly assembly,
-                                  @Nullable FormedStructureMetadata metadata,
-                                  @NotNull StructureChannelValues channelValues,
-                                  boolean flipped,
-                                  @NotNull String path) {
-        setFlipped(flipped);
-        this.multiblockParts.addAll(assembly.parts);
-        this.multiblockAbilities.putAll(assembly.abilities);
-        assembly.parts.forEach(part -> part.addToMultiBlock(this));
-        this.structureFormed = true;
-        if (structureRuntime != null) {
-            structureRuntime.commitSuccessfulCheck(metadata, channelValues);
-        }
-        writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
-        formStructure(context);
-        StructureTrace.debug(this, "formed", "path=" + path + ", metadata=" + metadata +
-                ", channels=" + channelValues);
-    }
-
-    private boolean commitReassembly(@NotNull PatternMatchContext context,
-                                     @NotNull MultiblockStructureAssembler.Reassembly reassembly,
-                                     @Nullable FormedStructureMetadata metadata,
-                                     @NotNull StructureChannelValues channelValues) {
-        if (reassembly.changed) {
-            reassembly.removedParts.forEach(part -> part.removeFromMultiBlock(this));
-            this.multiblockParts.clear();
-            this.multiblockParts.addAll(reassembly.parts);
-            this.multiblockAbilities.clear();
-            this.multiblockAbilities.putAll(reassembly.abilities);
-            reassembly.addedParts.forEach(part -> part.addToMultiBlock(this));
-        }
-
-        if (structureRuntime != null) {
-            structureRuntime.commitSuccessfulCheck(metadata, channelValues);
-        }
-        if (reassembly.changed) {
-            formStructure(context);
-            StructureTrace.debug(this, "reassembled", "channels=" + channelValues);
-        }
-        return reassembly.changed;
-    }
-
-    private void recordAssemblyRejection(@NotNull String path, @Nullable String detail) {
-        String message = detail == null ? "Structure assembly was rejected without a reason" : detail;
-        StructureTrace.debug(this, "commit-rejected", "path=" + path + ", reason=" + message);
-        if (structureRuntime != null) {
-            StructureFailureTrace failure = StructureTrace.commitFailure(this, path, message);
-            structureRuntime.recordCheckFailure(failure, Collections.emptyMap());
-        }
+        StructureTrace.debug(this, "check-start", structureRuntime.describeShape());
+        StructureCheckResult result = structureRuntime.getEvaluator().check(
+                getWorld(), getPos(), getFrontFacingForStructure(), getUpwardsFacing(),
+                allowsFlip(), isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample,
+                null, this);
+        MultiblockStructureCommitter.applyCheckResult(this, result);
     }
 
     /**
@@ -765,16 +610,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * @return true if the part/ability set changed and subclass form logic was re-run
      */
     protected boolean reassembleStructure(@NotNull PatternMatchContext context) {
-        MultiblockStructureAssembler.Reassembly reassembly =
-                MultiblockStructureAssembler.reassemble(this, context, this.multiblockParts);
-        if (!reassembly.successful) {
-            recordAssemblyRejection("runtime", reassembly.failureMessage);
-            return false;
-        }
-
-        setFlipped(context.neededFlip());
-        return commitReassembly(context, reassembly, getFormedMetadata(),
-                StructureChannelValues.fromContext(context));
+        return MultiblockStructureCommitter.reassemble(this, context);
     }
 
     /**
@@ -807,10 +643,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * @return the immutable pattern template, or null if not initialized
-     * @deprecated Prefer {@link #getStructureDefinition()} and (for 1-piece views)
+     * @deprecated Prefer {@link #getStructureDefinition()} and (for single-template views)
      *             {@link StructureDefinition#getPrimaryTemplate()}. This accessor only
-     *             returns a non-null value when the definition is a single piece;
-     *             multi-piece structures must use {@link #getStructureDefinition()}.
+     *             returns a non-null value when the definition supports the
+     *             single-template runtime path; repeatable and multi-piece structures
+     *             must use {@link #getStructureDefinition()}.
      */
     @Nullable
     @Deprecated
@@ -924,6 +761,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return structureRuntime;
     }
 
+    long getStructureRuntimeGeneration() {
+        return structureRuntimeGeneration;
+    }
+
     /**
      * Hook for multiblocks whose preview/build dimensions are controlled by channels
      * outside the canonical runtime template. Returning {@code true} means the
@@ -978,6 +819,21 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public List<IMultiblockPart> getMultiblockParts() {
         return Collections.unmodifiableList(multiblockParts);
+    }
+
+    @NotNull
+    List<IMultiblockPart> mutableMultiblockParts() {
+        return multiblockParts;
+    }
+
+    @NotNull
+    Map<MultiblockAbility<Object>, AbilityInstances> mutableMultiblockAbilities() {
+        return multiblockAbilities;
+    }
+
+    void publishStructureFormed() {
+        this.structureFormed = true;
+        writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
     }
 
     @Override

@@ -4,11 +4,14 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import java.util.Set;
 
 /**
  * Element that matches any block (wildcard).
@@ -20,6 +23,11 @@ public class AnyElement implements IStructureElement<Object> {
     private final TraceabilityPredicate cachedPredicate = TraceabilityPredicate.ANY;
 
     private AnyElement() {}
+
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        return StructureElementCapability.snapshotSafe();
+    }
 
     @Override
     public boolean check(StructureEvaluationContext<Object> context) {

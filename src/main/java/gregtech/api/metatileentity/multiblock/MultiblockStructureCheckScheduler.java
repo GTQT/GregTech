@@ -1,5 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.world.DummyWorld;
 import gregtech.common.ConfigHolder;
@@ -66,17 +67,17 @@ final class MultiblockStructureCheckScheduler {
     }
 
     private boolean tryAsyncCheck(MultiblockControllerBase controller) {
+        AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
         if (!ConfigHolder.machines.enableAsyncStructureCheck
                 || !controller.allowsAsyncStructureCheck()
                 || controller.isStructureFormed()
                 || controller.getWorld() == null
                 || controller.getWorld().isRemote
-                || controller.getWorld() instanceof DummyWorld) {
-            return false;
-        }
-
-        AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
-        if (!checker.isRunning()) {
+                || controller.getWorld() instanceof DummyWorld
+                || !controller.getStructureDefinition().supportsElementCapability(
+                        StructureElementCapability.SNAPSHOT_MATCH)
+                || !checker.isRunning()) {
+            checker.unregister(controller);
             return false;
         }
 

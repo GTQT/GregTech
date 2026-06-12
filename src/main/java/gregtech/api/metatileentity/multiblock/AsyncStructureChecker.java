@@ -6,6 +6,7 @@ import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTLog;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manages asynchronous structure checking for unformed multiblock controllers.
@@ -63,14 +66,19 @@ public class AsyncStructureChecker {
     /** Results from async checks that need main-thread processing */
     private final Queue<AsyncCheckResult> resultQueue = new ConcurrentLinkedQueue<>();
 
-    /** Controllers currently being processed (avoid double submission) */
-    private final Set<MultiblockControllerBase> inFlight = ConcurrentHashMap.newKeySet();
+    /** Controller -> registration generation currently being processed. */
+    private final Map<MultiblockControllerBase, Long> inFlight = new ConcurrentHashMap<>();
+
+    /** Registration generations prevent an old task surviving unregister/re-register. */
+    private final Map<MultiblockControllerBase, Long> registrationGenerations =
+            new ConcurrentHashMap<>();
+    private final AtomicLong nextRegistrationGeneration = new AtomicLong();
 
     /**
      * Controllers whose structure AABB is too large to snapshot safely.
      * These are handed back to the main thread for direct polling instead.
      */
-    private final Queue<MultiblockControllerBase> oversizedQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<AsyncCheckToken> oversizedQueue = new ConcurrentLinkedQueue<>();
 
     private final ScheduledExecutorService executor;
     private ScheduledFuture<?> scheduledTask;
@@ -129,6 +137,7 @@ public class AsyncStructureChecker {
             snapshotQueue.clear();
             resultQueue.clear();
             inFlight.clear();
+            registrationGenerations.clear();
             oversizedQueue.clear();
         }
     }
@@ -140,8 +149,9 @@ public class AsyncStructureChecker {
      * @param controller the unformed multiblock controller
      */
     public void registerForAsyncCheck(@NotNull MultiblockControllerBase controller) {
-        if (running.get()) {
-            pendingControllers.add(controller);
+        if (running.get() && pendingControllers.add(controller)) {
+            registrationGenerations.put(
+                    controller, nextRegistrationGeneration.incrementAndGet());
         }
     }
 
@@ -154,6 +164,7 @@ public class AsyncStructureChecker {
     public void unregister(@NotNull MultiblockControllerBase controller) {
         pendingControllers.remove(controller);
         inFlight.remove(controller);
+        registrationGenerations.remove(controller);
     }
 
     /**
@@ -168,44 +179,53 @@ public class AsyncStructureChecker {
         int prepared = 0;
         for (MultiblockControllerBase controller : pendingControllers) {
             if (prepared >= MAX_SNAPSHOTS_PER_TICK) break;
-            if (inFlight.contains(controller)) continue;
+            if (inFlight.containsKey(controller)) continue;
 
             // Staggering: only process controllers whose hash aligns with this tick
             if ((controller.hashCode() + tickCounter) % 4 != 0) continue;
+
+            Long registrationGeneration = registrationGenerations.get(controller);
+            if (registrationGeneration == null) continue;
 
             World world = controller.getWorld();
             if (world == null || world.isRemote) continue;
 
             // Verify the controller is still valid and unformed
             if (controller.isStructureFormed()) {
-                pendingControllers.remove(controller);
+                unregister(controller);
                 continue;
             }
 
             BlockPos pos = controller.getPos();
             if (pos == null) continue;
+            StructureDefinition<?> definition = controller.getStructureDefinition();
+            long runtimeGeneration = controller.getStructureRuntimeGeneration();
+            EnumFacing frontFacing = controller.getFrontFacingForStructure();
+            EnumFacing upwardsFacing = controller.getUpwardsFacing();
+            boolean allowsFlip = controller.allowsFlip();
 
             // Compute precise snapshot region from template AABB
-            BlockStateSnapshot snapshot = captureSnapshotForController(world, controller, pos);
+            SnapshotCapture capture = captureSnapshotForController(
+                    world, controller, definition, pos,
+                    frontFacing, upwardsFacing, allowsFlip);
+            AsyncCheckToken token = new AsyncCheckToken(
+                    controller, registrationGeneration, runtimeGeneration,
+                    world, pos.toImmutable(), frontFacing, upwardsFacing,
+                    allowsFlip, definition, capture.changeSnapshot);
 
-            if (snapshot == null) {
+            if (capture.oversized) {
                 // Structure AABB exceeds volume cap — route to oversized queue for main-thread fallback
-                pendingControllers.remove(controller);
-                oversizedQueue.offer(controller);
+                inFlight.put(controller, registrationGeneration);
+                oversizedQueue.offer(token);
+                prepared++;
                 continue;
             }
+            if (capture.snapshot == null || !isCurrent(token)) continue;
 
             // Create task and enqueue for async processing
-            SnapshotTask task = new SnapshotTask(
-                    controller,
-                    snapshot,
-                    pos.toImmutable(),
-                    controller.getFrontFacingForStructure(),
-                    controller.getUpwardsFacing(),
-                    controller.allowsFlip()
-            );
+            SnapshotTask task = new SnapshotTask(token, capture.snapshot);
 
-            inFlight.add(controller);
+            inFlight.put(controller, registrationGeneration);
             snapshotQueue.offer(task);
             prepared++;
         }
@@ -219,26 +239,35 @@ public class AsyncStructureChecker {
     public void processResults() {
         if (!running.get()) return;
 
-        // Process oversized controllers: perform a direct main-thread structure check.
-        // These controllers were removed from pendingControllers in prepareSnapshots(),
-        // so re-register them for async after a successful main-thread form, or fall back to polling.
-        MultiblockControllerBase oversized;
+        // Process oversized controllers with the same generation/orientation
+        // checks as snapshot results before falling back to a live check.
+        AsyncCheckToken oversized;
         while ((oversized = oversizedQueue.poll()) != null) {
-            if (oversized.getWorld() == null || oversized.isStructureFormed()) continue;
-            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
-                GTLog.logger.debug("[AsyncStructureCheck] Oversized AABB fallback for {}", oversized.getMetaName());
+            complete(oversized);
+            String staleReason = staleReason(oversized);
+            if (staleReason != null) {
+                traceStale(oversized, staleReason);
+                continue;
             }
-            oversized.checkStructurePattern();
+            MultiblockControllerBase controller = oversized.controller;
+            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug("[AsyncStructureCheck] Oversized AABB fallback for {}",
+                        controller.getMetaName());
+            }
+            controller.checkStructurePattern();
         }
 
         AsyncCheckResult result;
         while ((result = resultQueue.poll()) != null) {
-            MultiblockControllerBase controller = result.controller;
-            inFlight.remove(controller);
+            AsyncCheckToken token = result.token;
+            MultiblockControllerBase controller = token.controller;
+            complete(token);
 
-            // Double-check the controller is still valid and unformed
-            if (controller.getWorld() == null || controller.isStructureFormed()) {
-                pendingControllers.remove(controller);
+            String staleReason = result.staleReason == null
+                    ? staleReason(token)
+                    : result.staleReason;
+            if (staleReason != null) {
+                traceStale(token, staleReason);
                 continue;
             }
 
@@ -252,11 +281,64 @@ public class AsyncStructureChecker {
                 controller.checkStructurePattern();
 
                 if (controller.isStructureFormed()) {
-                    pendingControllers.remove(controller);
+                    unregister(controller);
                 }
             }
             // If not matched, controller stays in pendingControllers for next cycle
         }
+    }
+
+    private void complete(@NotNull AsyncCheckToken token) {
+        inFlight.remove(token.controller, token.registrationGeneration);
+    }
+
+    private boolean isCurrent(@NotNull AsyncCheckToken token) {
+        return staleReason(token) == null;
+    }
+
+    @Nullable
+    private String staleReason(@NotNull AsyncCheckToken token) {
+        Long currentRegistration = registrationGenerations.get(token.controller);
+        if (currentRegistration == null
+                || currentRegistration != token.registrationGeneration) {
+            return "registration-generation";
+        }
+        if (!pendingControllers.contains(token.controller)) {
+            return "not-pending";
+        }
+        if (token.controller.getWorld() != token.world) {
+            return "world";
+        }
+        if (token.controller.isStructureFormed()) {
+            return "already-formed";
+        }
+        if (!Objects.equals(token.controller.getPos(), token.centerPos)) {
+            return "controller-position";
+        }
+        if (token.controller.getStructureRuntimeGeneration() != token.runtimeGeneration) {
+            return "runtime-generation";
+        }
+        if (token.controller.getFrontFacingForStructure() != token.frontFacing
+                || token.controller.getUpwardsFacing() != token.upwardsFacing
+                || token.controller.allowsFlip() != token.allowsFlip) {
+            return "orientation";
+        }
+        if (token.changeSnapshot != null
+                && !MultiblockWorldData.get(token.world)
+                        .isChangeSnapshotCurrent(token.changeSnapshot)) {
+            return "snapshot-version";
+        }
+        return null;
+    }
+
+    private static void traceStale(@NotNull AsyncCheckToken token,
+                                   @NotNull String reason) {
+        StructureTrace.debug(
+                token.controller,
+                "async-stale-rejected",
+                "reason=" + reason
+                        + ", registrationGeneration=" + token.registrationGeneration
+                        + ", runtimeGeneration=" + token.runtimeGeneration);
     }
 
     /**
@@ -265,24 +347,30 @@ public class AsyncStructureChecker {
      * <p>Uses {@link StructureDefinition#computeWorldAABB} to determine the exact bounding box
      * of the structure in world coordinates, avoiding the wasteful symmetric cubic approximation.
      *
-     * <p>Returns {@code null} if the computed AABB volume exceeds {@link #MAX_SNAPSHOT_VOLUME},
-     * signalling the caller to route the controller to main-thread fallback instead.
+     * <p>The result distinguishes a successful stable capture, an oversized
+     * region that requires live fallback, and a region that changed while it
+     * was being captured.
      */
-    @Nullable
-    private BlockStateSnapshot captureSnapshotForController(World world, MultiblockControllerBase controller,
-                                                            BlockPos pos) {
-        StructureDefinition<?> definition = controller.getStructureDefinition();
+    @NotNull
+    private SnapshotCapture captureSnapshotForController(
+            World world,
+            MultiblockControllerBase controller,
+            StructureDefinition<?> definition,
+            BlockPos pos,
+            EnumFacing frontFacing,
+            EnumFacing upwardsFacing,
+            boolean allowsFlip) {
         BlockPos[] aabb = definition.computeWorldAABB(
                 pos,
-                controller.getFrontFacingForStructure(),
-                controller.getUpwardsFacing(),
+                frontFacing,
+                upwardsFacing,
                 false,
                 SNAPSHOT_MARGIN);
-        if (controller.allowsFlip()) {
+        if (allowsFlip) {
             BlockPos[] flippedAabb = definition.computeWorldAABB(
                     pos,
-                    controller.getFrontFacingForStructure(),
-                    controller.getUpwardsFacing(),
+                    frontFacing,
+                    upwardsFacing,
                     true,
                     SNAPSHOT_MARGIN);
             aabb = unionAABB(aabb, flippedAabb);
@@ -302,10 +390,21 @@ public class AsyncStructureChecker {
                         "[AsyncStructureCheck] Snapshot AABB too large ({} blocks) for {}, routing to main-thread fallback",
                         volume, controller.getMetaName());
             }
-            return null;
+            return SnapshotCapture.oversized();
         }
 
-        return BlockStateSnapshot.captureRegion(world, minCorner, maxCorner);
+        MultiblockWorldData worldData = MultiblockWorldData.get(world);
+        MultiblockWorldData.ChangeSnapshot before =
+                worldData.captureChangeSnapshot(minCorner, maxCorner);
+        BlockStateSnapshot snapshot =
+                BlockStateSnapshot.captureRegion(world, minCorner, maxCorner);
+        MultiblockWorldData.ChangeSnapshot after =
+                worldData.captureChangeSnapshot(minCorner, maxCorner);
+        if (!worldData.isChangeSnapshotCurrent(before)
+                || !worldData.isChangeSnapshotCurrent(after)) {
+            return SnapshotCapture.changedDuringCapture();
+        }
+        return SnapshotCapture.success(snapshot, after);
     }
 
     /**
@@ -317,13 +416,21 @@ public class AsyncStructureChecker {
             SnapshotTask task;
             while ((task = snapshotQueue.poll()) != null) {
                 if (!running.get()) return;
-                if (!pendingControllers.contains(task.controller)) {
-                    inFlight.remove(task.controller);
+                String staleReason = staleReason(task.token);
+                if (staleReason != null) {
+                    resultQueue.offer(AsyncCheckResult.stale(task.token, staleReason));
                     continue;
                 }
 
-                boolean matched = performAsyncCheck(task);
-                resultQueue.offer(new AsyncCheckResult(task.controller, matched));
+                try {
+                    boolean matched = performAsyncCheck(task);
+                    resultQueue.offer(AsyncCheckResult.completed(task.token, matched));
+                } catch (RuntimeException e) {
+                    GTLog.logger.error(
+                            "Error checking async structure snapshot for {}",
+                            task.token.controller.getMetaName(), e);
+                    resultQueue.offer(AsyncCheckResult.completed(task.token, false));
+                }
             }
         } catch (Exception e) {
             // Catch all exceptions to prevent the scheduled task from dying
@@ -340,9 +447,9 @@ public class AsyncStructureChecker {
      * are adapted before this checker sees them.
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
-        StructureDefinition<?> definition = task.controller.getStructureDefinition();
+        StructureDefinition<?> definition = task.token.definition;
         return performDefinitionCheck(task, definition, false)
-                || task.allowsFlip && performDefinitionCheck(task, definition, true);
+                || task.token.allowsFlip && performDefinitionCheck(task, definition, true);
     }
 
     private boolean performDefinitionCheck(@NotNull SnapshotTask task,
@@ -351,7 +458,7 @@ public class AsyncStructureChecker {
         MultiPiecePattern multiPiece = definition.getCompiledPattern();
         PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
         StructureMatchSession session = multiPiece.createMatchSession();
-        session.setControllerContext(task.controller);
+        session.setControllerContext(task.token.controller);
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
 
@@ -359,20 +466,23 @@ public class AsyncStructureChecker {
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(pieceRepeats), new HashMap<>(), new HashMap<>(pieceCenters));
             StructureActivationContext<MultiblockControllerBase> activation =
-                    new StructureActivationContext<>(task.controller, null, task.centerPos, prior, session);
+                    new StructureActivationContext<>(
+                            task.token.controller, null, task.token.centerPos, prior, session);
             if (!piece.isActive(activation)) continue;
             PieceRuntime runtime = asyncRuntimes.get(piece);
             BlockPos checkOrigin;
             if (piece instanceof gregtech.api.pattern.RepeatGroupPiece) {
-                checkOrigin = task.centerPos;
+                checkOrigin = task.token.centerPos;
             } else {
                 checkOrigin = piece.getCenterPos(
-                        task.centerPos, task.frontFacing, task.upwardsFacing, flipped, prior);
+                        task.token.centerPos, task.token.frontFacing,
+                        task.token.upwardsFacing, flipped, prior);
             }
 
             StructureMatchSession pieceSession = session.fork();
             if (!piece.checkOnSnapshot(task.snapshot, checkOrigin,
-                    task.frontFacing, task.upwardsFacing, flipped, prior, runtime, pieceSession)) {
+                    task.token.frontFacing, task.token.upwardsFacing,
+                    flipped, prior, runtime, pieceSession)) {
                 return false;
             }
             pieceSession.commit();
@@ -384,7 +494,8 @@ public class AsyncStructureChecker {
                 pieceRepeats.put(piece.getName(), reps.clone());
             }
             pieceCenters.put(piece.getName(), piece.getCenterPos(
-                    task.centerPos, task.frontFacing, task.upwardsFacing, flipped, prior));
+                    task.token.centerPos, task.token.frontFacing,
+                    task.token.upwardsFacing, flipped, prior));
         }
         return session.validate(false).success;
     }
@@ -408,8 +519,11 @@ public class AsyncStructureChecker {
      */
     public void clearWorld(@NotNull World world) {
         pendingControllers.removeIf(c -> c.getWorld() == world);
-        inFlight.removeIf(c -> c.getWorld() == world);
-        oversizedQueue.removeIf(c -> c.getWorld() == world);
+        inFlight.keySet().removeIf(c -> c.getWorld() == world);
+        registrationGenerations.keySet().removeIf(c -> c.getWorld() == world);
+        snapshotQueue.removeIf(task -> task.token.world == world);
+        resultQueue.removeIf(result -> result.token.world == world);
+        oversizedQueue.removeIf(token -> token.world == world);
     }
 
     /**
@@ -428,34 +542,105 @@ public class AsyncStructureChecker {
 
     // --- Internal data classes ---
 
-    private static class SnapshotTask {
+    private static class AsyncCheckToken {
 
         final MultiblockControllerBase controller;
-        final BlockStateSnapshot snapshot;
+        final long registrationGeneration;
+        final long runtimeGeneration;
+        final World world;
         final BlockPos centerPos;
         final EnumFacing frontFacing;
         final EnumFacing upwardsFacing;
         final boolean allowsFlip;
+        final StructureDefinition<?> definition;
+        @Nullable
+        final MultiblockWorldData.ChangeSnapshot changeSnapshot;
 
-        SnapshotTask(MultiblockControllerBase controller, BlockStateSnapshot snapshot,
-                     BlockPos centerPos, EnumFacing frontFacing, EnumFacing upwardsFacing, boolean allowsFlip) {
+        AsyncCheckToken(MultiblockControllerBase controller,
+                        long registrationGeneration,
+                        long runtimeGeneration,
+                        World world,
+                        BlockPos centerPos,
+                        EnumFacing frontFacing,
+                        EnumFacing upwardsFacing,
+                        boolean allowsFlip,
+                        StructureDefinition<?> definition,
+                        @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot) {
             this.controller = controller;
-            this.snapshot = snapshot;
+            this.registrationGeneration = registrationGeneration;
+            this.runtimeGeneration = runtimeGeneration;
+            this.world = world;
             this.centerPos = centerPos;
             this.frontFacing = frontFacing;
             this.upwardsFacing = upwardsFacing;
             this.allowsFlip = allowsFlip;
+            this.definition = definition;
+            this.changeSnapshot = changeSnapshot;
+        }
+    }
+
+    private static class SnapshotCapture {
+
+        @Nullable
+        final BlockStateSnapshot snapshot;
+        @Nullable
+        final MultiblockWorldData.ChangeSnapshot changeSnapshot;
+        final boolean oversized;
+
+        private SnapshotCapture(@Nullable BlockStateSnapshot snapshot,
+                                @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot,
+                                boolean oversized) {
+            this.snapshot = snapshot;
+            this.changeSnapshot = changeSnapshot;
+            this.oversized = oversized;
+        }
+
+        static SnapshotCapture success(
+                BlockStateSnapshot snapshot,
+                MultiblockWorldData.ChangeSnapshot changeSnapshot) {
+            return new SnapshotCapture(snapshot, changeSnapshot, false);
+        }
+
+        static SnapshotCapture changedDuringCapture() {
+            return new SnapshotCapture(null, null, false);
+        }
+
+        static SnapshotCapture oversized() {
+            return new SnapshotCapture(null, null, true);
+        }
+    }
+
+    private static class SnapshotTask {
+
+        final AsyncCheckToken token;
+        final BlockStateSnapshot snapshot;
+
+        SnapshotTask(AsyncCheckToken token, BlockStateSnapshot snapshot) {
+            this.token = token;
+            this.snapshot = snapshot;
         }
     }
 
     private static class AsyncCheckResult {
 
-        final MultiblockControllerBase controller;
+        final AsyncCheckToken token;
         final boolean matched;
+        @Nullable
+        final String staleReason;
 
-        AsyncCheckResult(MultiblockControllerBase controller, boolean matched) {
-            this.controller = controller;
+        private AsyncCheckResult(AsyncCheckToken token, boolean matched,
+                                 @Nullable String staleReason) {
+            this.token = token;
             this.matched = matched;
+            this.staleReason = staleReason;
+        }
+
+        static AsyncCheckResult completed(AsyncCheckToken token, boolean matched) {
+            return new AsyncCheckResult(token, matched, null);
+        }
+
+        static AsyncCheckResult stale(AsyncCheckToken token, String reason) {
+            return new AsyncCheckResult(token, false, reason);
         }
     }
 }

@@ -3,6 +3,7 @@ package gregtech.api.pattern;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.element.CompiledStructureElement;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.impl.AnyElement;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
@@ -94,7 +95,7 @@ public final class PieceTemplateCompiler {
         }
         if (flags != 0x7) throw new IllegalArgumentException("Must have 3 different axes!");
         this.symbolMap.put(' ', TraceabilityPredicate.ANY);
-        this.elementMap.put(' ', CompiledStructureElement.legacy(TraceabilityPredicate.ANY));
+        this.elementMap.put(' ', AnyElement.INSTANCE.compile());
     }
 
     /**

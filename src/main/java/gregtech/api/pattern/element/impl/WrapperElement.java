@@ -5,6 +5,7 @@ import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.BlockInfo;
 import gregtech.common.ConfigHolder;
@@ -18,7 +19,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -64,6 +68,23 @@ public class WrapperElement implements IStructureElement<Object> {
             return resolved;
         }
         return delegate;
+    }
+
+    @NotNull
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        Set<StructureElementCapability> delegateCapabilities =
+                getDelegate().getCapabilities();
+        if (callback == null && lazySupplier == null) {
+            return delegateCapabilities;
+        }
+        if (delegateCapabilities.isEmpty()) {
+            return delegateCapabilities;
+        }
+        EnumSet<StructureElementCapability> capabilities =
+                EnumSet.copyOf(delegateCapabilities);
+        capabilities.remove(StructureElementCapability.SNAPSHOT_MATCH);
+        return Collections.unmodifiableSet(capabilities);
     }
 
     @Override

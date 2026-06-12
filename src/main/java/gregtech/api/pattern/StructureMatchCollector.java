@@ -19,22 +19,29 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * Transitional collector for V3 element-side match effects.
+ * Collector for V3 element-side match effects.
  *
- * <p>The backing data intentionally lives in {@link PatternMatchContext} so
- * existing session checkpoint/restore logic stays transactional while elements
- * move away from executing {@link TraceabilityPredicate} directly.
+ * <p>Direct element state lives in {@link StructureOperationState}. The
+ * context-only constructor remains as a compatibility path for legacy
+ * traversals that do not yet create a {@link StructureMatchSession}.
  */
 public final class StructureMatchCollector {
 
-    private static final String MULTIBLOCK_PARTS_KEY = "MultiblockParts";
     private static final String REQUIREMENTS_KEY = "__StructureRequirements";
     private static final String COUNTS_KEY = "__StructureCounts";
-    private static final String VARIANT_ACTIVE_BLOCKS_KEY = "VABlock";
 
+    @Nullable
+    private final StructureOperationState operationState;
     private final PatternMatchContext context;
 
     public StructureMatchCollector(@NotNull PatternMatchContext context) {
+        this.operationState = null;
+        this.context = context;
+    }
+
+    StructureMatchCollector(@NotNull StructureOperationState operationState,
+                            @NotNull PatternMatchContext context) {
+        this.operationState = operationState;
         this.context = context;
     }
 
@@ -59,7 +66,7 @@ public final class StructureMatchCollector {
     }
 
     public boolean canRecordCount(@NotNull Object key) {
-        CountRequirement requirement = requirements(context).get(key);
+        CountRequirement requirement = requirements().get(key);
         if (requirement == null || requirement.max < 0) {
             return true;
         }
@@ -72,19 +79,26 @@ public final class StructureMatchCollector {
     }
 
     public boolean recordCount(@NotNull Object key) {
-        Map<Object, int[]> counts = counts(context);
-        int[] count = counts.get(key);
-        if (count == null) {
-            count = new int[]{0};
-            counts.put(key, count);
+        if (operationState != null) {
+            int count = operationState.counts.merge(key, 1, Integer::sum);
+            CountRequirement requirement = operationState.requirements.get(key);
+            return requirement == null || requirement.max < 0 || count <= requirement.max;
         }
+
+        Map<Object, int[]> legacyCounts = legacyCounts(context);
+        int[] count = legacyCounts.computeIfAbsent(key, ignored -> new int[]{0});
         count[0]++;
-        CountRequirement requirement = requirements(context).get(key);
+        CountRequirement requirement = legacyRequirements(context).get(key);
         return requirement == null || requirement.max < 0 || count[0] <= requirement.max;
     }
 
     public void addPart(@NotNull IMultiblockPart part) {
-        Set<IMultiblockPart> parts = context.getOrCreate(MULTIBLOCK_PARTS_KEY, HashSet::new);
+        if (operationState != null) {
+            operationState.parts.add(part);
+            return;
+        }
+        Set<IMultiblockPart> parts =
+                context.getOrCreate(StructureOperationState.MULTIBLOCK_PARTS_KEY, HashSet::new);
         parts.add(part);
     }
 
@@ -93,12 +107,20 @@ public final class StructureMatchCollector {
     }
 
     public int getCount(@NotNull Object key) {
-        int[] count = counts(context).get(key);
-        return count == null ? 0 : count[0];
+        if (operationState != null) {
+            return operationState.counts.getOrDefault(key, 0);
+        }
+        int[] count = legacyCounts(context).get(key);
+        return countValue(count);
     }
 
     public void recordVariantActiveBlock(@NotNull BlockPos pos) {
-        List<BlockPos> positions = context.getOrCreate(VARIANT_ACTIVE_BLOCKS_KEY, LinkedList::new);
+        if (operationState != null) {
+            operationState.variantActiveBlocks.add(pos);
+            return;
+        }
+        List<BlockPos> positions =
+                context.getOrCreate(StructureOperationState.VARIANT_ACTIVE_BLOCKS_KEY, LinkedList::new);
         positions.add(pos);
     }
 
@@ -119,19 +141,29 @@ public final class StructureMatchCollector {
 
     @NotNull
     public Validation validate() {
-        return validate(context);
+        return operationState == null ? validate(context) : validate(operationState);
     }
 
     @NotNull
     public static Validation validate(@NotNull PatternMatchContext context) {
+        return validate(legacyRequirements(context), legacyCounts(context));
+    }
+
+    @NotNull
+    static Validation validate(@NotNull StructureOperationState operationState) {
+        return validate(operationState.requirements, operationState.counts);
+    }
+
+    @NotNull
+    private static Validation validate(
+            @NotNull Map<Object, CountRequirement> requirements,
+            @NotNull Map<Object, ?> counts) {
         Map<MultiblockAbility<?>, Integer> missingAbilities = new LinkedHashMap<>();
         CountRequirement firstMissing = null;
         CountRequirement firstMissingAbility = null;
         CountRequirement firstExceeded = null;
         int exceededCount = 0;
 
-        Map<Object, CountRequirement> requirements = requirements(context);
-        Map<Object, int[]> counts = counts(context);
         for (Map.Entry<Object, CountRequirement> entry : requirements.entrySet()) {
             CountRequirement requirement = entry.getValue();
             int count = countValue(counts.get(entry.getKey()));
@@ -175,29 +207,48 @@ public final class StructureMatchCollector {
 
     @NotNull
     @SuppressWarnings("unchecked")
-    private static Map<Object, CountRequirement> requirements(@NotNull PatternMatchContext context) {
+    private static Map<Object, CountRequirement> legacyRequirements(@NotNull PatternMatchContext context) {
         return context.getOrCreate(REQUIREMENTS_KEY, HashMap::new);
     }
 
     @NotNull
     @SuppressWarnings("unchecked")
-    private static Map<Object, int[]> counts(@NotNull PatternMatchContext context) {
+    private static Map<Object, int[]> legacyCounts(@NotNull PatternMatchContext context) {
         return context.getOrCreate(COUNTS_KEY, HashMap::new);
     }
 
-    private static int countValue(@Nullable int[] count) {
-        return count == null || count.length == 0 ? 0 : count[0];
+    @NotNull
+    private Map<Object, CountRequirement> requirements() {
+        return operationState == null
+                ? legacyRequirements(context)
+                : operationState.requirements;
+    }
+
+    private static int countValue(@Nullable Object count) {
+        if (count instanceof Integer) {
+            return (Integer) count;
+        }
+        if (count instanceof int[]) {
+            int[] values = (int[]) count;
+            return values.length == 0 ? 0 : values[0];
+        }
+        return 0;
     }
 
     private void declareCount(@NotNull Object key, int min, int max,
                               @Nullable MultiblockAbility<?> ability,
                               @Nullable Supplier<PatternError> minErrorFactory,
                               @Nullable Supplier<PatternError> maxErrorFactory) {
-        requirements(context).putIfAbsent(
-                key, new CountRequirement(ability, min, max, minErrorFactory, maxErrorFactory));
+        CountRequirement requirement =
+                new CountRequirement(ability, min, max, minErrorFactory, maxErrorFactory);
+        if (operationState != null) {
+            operationState.requirements.putIfAbsent(key, requirement);
+        } else {
+            legacyRequirements(context).putIfAbsent(key, requirement);
+        }
     }
 
-    private static final class CountRequirement {
+    static final class CountRequirement {
 
         @Nullable
         private final MultiblockAbility<?> ability;

@@ -331,6 +331,12 @@ public final class StructureFailureTrace {
         }
 
         @NotNull
+        public Builder errorPosition(@Nullable BlockPos errorPos) {
+            this.errorPos = errorPos;
+            return this;
+        }
+
+        @NotNull
         public Builder actual(@Nullable String actual) {
             this.actual = actual;
             return this;

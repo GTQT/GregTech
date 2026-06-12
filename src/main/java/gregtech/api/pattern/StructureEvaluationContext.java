@@ -63,7 +63,9 @@ public final class StructureEvaluationContext<T> {
 
     @NotNull
     public StructureMatchCollector getCollector() {
-        return new StructureMatchCollector(getLegacyContext());
+        return session == null
+                ? new StructureMatchCollector(getLegacyContext())
+                : new StructureMatchCollector(session.getOperationState(), getLegacyContext());
     }
 
     @NotNull

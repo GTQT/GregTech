@@ -1073,7 +1073,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             // buildMultiPiecePredicateMap helper (its coordinates are in structure-local space,
             // which is the established behavior for the multi-piece JEI preview).
             StructureDefinition<?> definition = controllerBase.getStructureDefinition();
-            boolean useSingleTemplatePath = definition.isSinglePiece();
+            boolean useSingleTemplatePath = definition.supportsSingleTemplatePath();
             if (useSingleTemplatePath) {
                 BlockPatternTemplate tmpl = definition.getPrimaryTemplate();
                 if (tmpl != null) {

@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Immutable execution form of one structure element.
@@ -26,11 +27,13 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     private final IStructureElement<T> source;
     private final TraceabilityPredicate predicateView;
+    private final Set<StructureElementCapability> capabilities;
 
     private CompiledStructureElement(@NotNull IStructureElement<T> source,
                                      @NotNull TraceabilityPredicate predicateView) {
         this.source = source;
         this.predicateView = predicateView;
+        this.capabilities = StructureElementCapability.copyOf(source.getCapabilities());
     }
 
     @NotNull
@@ -60,6 +63,12 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public boolean check(@NotNull StructureEvaluationContext<T> context) {
         return source.check(context);
+    }
+
+    @NotNull
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        return capabilities;
     }
 
     @Override

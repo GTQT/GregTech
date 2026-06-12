@@ -4,12 +4,15 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import java.util.Set;
 
 /**
  * Element that matches one or more specific block states.
@@ -33,6 +36,11 @@ public class BlockElement implements IStructureElement<Object> {
             }
         }
         return false;
+    }
+
+    @Override
+    public Set<StructureElementCapability> getCapabilities() {
+        return StructureElementCapability.snapshotSafe();
     }
 
     @Override

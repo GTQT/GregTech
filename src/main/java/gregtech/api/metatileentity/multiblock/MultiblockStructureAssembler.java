@@ -1,7 +1,7 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureOperationState;
 
 import net.minecraft.util.math.BlockPos;
 
@@ -23,41 +23,36 @@ final class MultiblockStructureAssembler {
     private MultiblockStructureAssembler() {}
 
     @NotNull
-    static Assembly assemble(@NotNull MultiblockControllerBase controller,
-                             @NotNull PatternMatchContext context) {
-        Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
+    static PreparedCommit prepare(@NotNull MultiblockControllerBase controller,
+                                  @NotNull StructureOperationState operationState,
+                                  @NotNull List<IMultiblockPart> currentParts,
+                                  boolean formed) {
+        Set<IMultiblockPart> rawPartsSet = operationState.getParts();
         ArrayList<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
-        IMultiblockPart conflict = findAttachConflict(parts, Collections.emptyList());
+        IMultiblockPart conflict = findAttachConflict(
+                parts, formed ? currentParts : Collections.emptyList());
         if (conflict != null) {
-            return Assembly.failed(describeAttachConflict(conflict));
+            return PreparedCommit.failed(describeAttachConflict(conflict));
         }
-        sortParts(controller, parts);
-        return Assembly.success(parts, collectAbilities(controller, parts));
-    }
 
-    @NotNull
-    static Reassembly reassemble(@NotNull MultiblockControllerBase controller,
-                                 @NotNull PatternMatchContext context,
-                                 @NotNull List<IMultiblockPart> currentParts) {
-        Set<IMultiblockPart> newPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
-        ArrayList<IMultiblockPart> newParts = new ArrayList<>(newPartsSet);
-        IMultiblockPart conflict = findAttachConflict(newParts, currentParts);
-        if (conflict != null) {
-            return Reassembly.failed(describeAttachConflict(conflict));
+        if (!formed) {
+            sortParts(controller, parts);
+            return PreparedCommit.initial(parts, collectAbilities(controller, parts));
         }
 
         Set<IMultiblockPart> oldPartsSet = new HashSet<>(currentParts);
         Set<IMultiblockPart> removedParts = new HashSet<>(oldPartsSet);
-        removedParts.removeAll(newPartsSet);
-        Set<IMultiblockPart> addedParts = new HashSet<>(newPartsSet);
+        removedParts.removeAll(rawPartsSet);
+        Set<IMultiblockPart> addedParts = new HashSet<>(rawPartsSet);
         addedParts.removeAll(oldPartsSet);
 
         if (removedParts.isEmpty() && addedParts.isEmpty()) {
-            return Reassembly.unchanged();
+            return PreparedCommit.unchanged();
         }
 
-        sortParts(controller, newParts);
-        return Reassembly.changed(newParts, collectAbilities(controller, newParts), removedParts, addedParts);
+        sortParts(controller, parts);
+        return PreparedCommit.changed(
+                parts, collectAbilities(controller, parts), removedParts, addedParts);
     }
 
     @Nullable
@@ -111,60 +106,30 @@ final class MultiblockStructureAssembler {
         return abilities;
     }
 
-    static final class Assembly {
+    static final class PreparedCommit {
 
         final boolean successful;
-        @NotNull
-        final List<IMultiblockPart> parts;
-        @NotNull
-        final Map<MultiblockAbility<Object>, AbilityInstances> abilities;
-        @Nullable
-        final String failureMessage;
-
-        private Assembly(boolean successful,
-                         @NotNull List<IMultiblockPart> parts,
-                         @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
-                         @Nullable String failureMessage) {
-            this.successful = successful;
-            this.parts = parts;
-            this.abilities = abilities;
-            this.failureMessage = failureMessage;
-        }
-
-        @NotNull
-        static Assembly success(@NotNull List<IMultiblockPart> parts,
-                                @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities) {
-            return new Assembly(true, parts, abilities, null);
-        }
-
-        @NotNull
-        static Assembly failed(@NotNull String failureMessage) {
-            return new Assembly(false, Collections.emptyList(), Collections.emptyMap(), failureMessage);
-        }
-    }
-
-    static final class Reassembly {
-
-        final boolean successful;
+        final boolean initial;
         final boolean changed;
         @NotNull
         final List<IMultiblockPart> parts;
         @NotNull
         final Map<MultiblockAbility<Object>, AbilityInstances> abilities;
+        @Nullable
+        final String failureMessage;
         @NotNull
         final Set<IMultiblockPart> removedParts;
         @NotNull
         final Set<IMultiblockPart> addedParts;
-        @Nullable
-        final String failureMessage;
 
-        private Reassembly(boolean successful, boolean changed,
-                           @NotNull List<IMultiblockPart> parts,
-                           @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
-                           @NotNull Set<IMultiblockPart> removedParts,
-                           @NotNull Set<IMultiblockPart> addedParts,
-                           @Nullable String failureMessage) {
+        private PreparedCommit(boolean successful, boolean initial, boolean changed,
+                               @NotNull List<IMultiblockPart> parts,
+                               @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
+                               @NotNull Set<IMultiblockPart> removedParts,
+                               @NotNull Set<IMultiblockPart> addedParts,
+                               @Nullable String failureMessage) {
             this.successful = successful;
+            this.initial = initial;
             this.changed = changed;
             this.parts = parts;
             this.abilities = abilities;
@@ -174,22 +139,35 @@ final class MultiblockStructureAssembler {
         }
 
         @NotNull
-        static Reassembly changed(@NotNull List<IMultiblockPart> parts,
-                                  @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
-                                  @NotNull Set<IMultiblockPart> removedParts,
-                                  @NotNull Set<IMultiblockPart> addedParts) {
-            return new Reassembly(true, true, parts, abilities, removedParts, addedParts, null);
+        static PreparedCommit initial(
+                @NotNull List<IMultiblockPart> parts,
+                @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities) {
+            return new PreparedCommit(
+                    true, true, true, parts, abilities,
+                    Collections.emptySet(), new HashSet<>(parts), null);
         }
 
         @NotNull
-        static Reassembly unchanged() {
-            return new Reassembly(true, false, Collections.emptyList(), Collections.emptyMap(),
+        static PreparedCommit changed(
+                @NotNull List<IMultiblockPart> parts,
+                @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
+                @NotNull Set<IMultiblockPart> removedParts,
+                @NotNull Set<IMultiblockPart> addedParts) {
+            return new PreparedCommit(
+                    true, false, true, parts, abilities, removedParts, addedParts, null);
+        }
+
+        @NotNull
+        static PreparedCommit unchanged() {
+            return new PreparedCommit(
+                    true, false, false, Collections.emptyList(), Collections.emptyMap(),
                     Collections.emptySet(), Collections.emptySet(), null);
         }
 
         @NotNull
-        static Reassembly failed(@NotNull String failureMessage) {
-            return new Reassembly(false, false, Collections.emptyList(), Collections.emptyMap(),
+        static PreparedCommit failed(@NotNull String failureMessage) {
+            return new PreparedCommit(
+                    false, false, false, Collections.emptyList(), Collections.emptyMap(),
                     Collections.emptySet(), Collections.emptySet(), failureMessage);
         }
     }

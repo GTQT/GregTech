@@ -10,10 +10,12 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manages event-driven structure checking for formed multiblocks.
@@ -46,6 +48,10 @@ public class MultiblockWorldData {
 
     /** Controllers that have been notified of a block change and need re-validation on next tick */
     private final Set<MultiblockControllerBase> pendingRecheck = ConcurrentHashMap.newKeySet();
+
+    /** Monotonic revision assigned to each changed chunk for async snapshot validation. */
+    private final AtomicLong changeRevision = new AtomicLong();
+    private final Map<ChunkPos, Long> chunkChangeRevisions = new ConcurrentHashMap<>();
 
     /**
      * Controllers that are currently suppressing event-driven recheck notifications.
@@ -139,6 +145,9 @@ public class MultiblockWorldData {
      * @return true if at least one registered multiblock was affected by this position
      */
     public boolean onBlockChanged(BlockPos pos, long gameTick) {
+        chunkChangeRevisions.put(
+                new ChunkPos(pos), changeRevision.incrementAndGet());
+
         ChunkPos chunkPos = new ChunkPos(pos);
         Set<MultiblockControllerBase> controllers = chunkIndex.get(chunkPos);
         if (controllers == null || controllers.isEmpty()) return false;
@@ -167,6 +176,34 @@ public class MultiblockWorldData {
             }
         }
         return affected;
+    }
+
+    /**
+     * Capture the change revisions for every chunk touched by a snapshot AABB.
+     */
+    ChangeSnapshot captureChangeSnapshot(BlockPos minCorner, BlockPos maxCorner) {
+        Map<ChunkPos, Long> revisions = new HashMap<>();
+        int minChunkX = minCorner.getX() >> 4;
+        int maxChunkX = maxCorner.getX() >> 4;
+        int minChunkZ = minCorner.getZ() >> 4;
+        int maxChunkZ = maxCorner.getZ() >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                ChunkPos chunk = new ChunkPos(chunkX, chunkZ);
+                revisions.put(chunk, chunkChangeRevisions.getOrDefault(chunk, 0L));
+            }
+        }
+        return new ChangeSnapshot(revisions);
+    }
+
+    boolean isChangeSnapshotCurrent(ChangeSnapshot snapshot) {
+        for (Map.Entry<ChunkPos, Long> entry : snapshot.revisions.entrySet()) {
+            if (!entry.getValue().equals(
+                    chunkChangeRevisions.getOrDefault(entry.getKey(), 0L))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -228,7 +265,18 @@ public class MultiblockWorldData {
         controllerPiecePatterns.clear();
         pendingRecheck.clear();
         lastChangedTick.clear();
+        chunkChangeRevisions.clear();
+        changeRevision.set(0);
         suppressedControllers.clear();
+    }
+
+    static final class ChangeSnapshot {
+
+        private final Map<ChunkPos, Long> revisions;
+
+        private ChangeSnapshot(Map<ChunkPos, Long> revisions) {
+            this.revisions = Collections.unmodifiableMap(new HashMap<>(revisions));
+        }
     }
 
     /**

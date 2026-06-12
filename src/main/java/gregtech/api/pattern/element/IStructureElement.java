@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -37,6 +38,20 @@ import java.util.function.Predicate;
  * view for old tooling.
  */
 public interface IStructureElement<T> {
+
+    /**
+     * Operations this element can execute safely. Snapshot matching is opt-in
+     * because legacy predicates and tile-entity reads are not thread-safe by
+     * default.
+     */
+    @NotNull
+    default Set<StructureElementCapability> getCapabilities() {
+        return StructureElementCapability.standard();
+    }
+
+    default boolean supports(@NotNull StructureElementCapability capability) {
+        return getCapabilities().contains(capability);
+    }
 
     /**
      * Canonical runtime match entry. Compiled templates call this method for
@@ -334,6 +349,11 @@ public interface IStructureElement<T> {
     default IStructureElementNoPlacement<T> noPlacement() {
         return new IStructureElementNoPlacement<T>() {
             @Override
+            public boolean check(@NotNull StructureEvaluationContext<T> context) {
+                return IStructureElement.this.check(context);
+            }
+
+            @Override
             public boolean check(World world, BlockPos pos, PatternMatchContext context) {
                 return IStructureElement.this.check(world, pos, context);
             }
@@ -347,6 +367,11 @@ public interface IStructureElement<T> {
             @Override
             public BlockInfo[] getCandidates() {
                 return IStructureElement.this.getCandidates();
+            }
+
+            @Override
+            public BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<T> context) {
+                return IStructureElement.this.getCandidates(context);
             }
 
             @Override
@@ -368,6 +393,21 @@ public interface IStructureElement<T> {
             @Override
             public void collectRequirements(@NotNull StructureEvaluationContext<T> context) {
                 IStructureElement.this.collectRequirements(context);
+            }
+
+            @NotNull
+            @Override
+            public Set<StructureElementCapability> getCapabilities() {
+                Set<StructureElementCapability> capabilities =
+                        IStructureElement.this.getCapabilities();
+                if (capabilities.isEmpty()) {
+                    return capabilities;
+                }
+                java.util.EnumSet<StructureElementCapability> copy =
+                        java.util.EnumSet.copyOf(capabilities);
+                copy.remove(StructureElementCapability.CREATIVE_PLACEMENT);
+                copy.remove(StructureElementCapability.SURVIVAL_PLACEMENT);
+                return java.util.Collections.unmodifiableSet(copy);
             }
 
             @Override

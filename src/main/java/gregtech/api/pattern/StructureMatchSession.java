@@ -27,6 +27,7 @@ public final class StructureMatchSession {
     private final Map<MultiblockAbility<?>, int[]> abilityLimits;
     private final List<AbilityGroupLimit> abilityGroupLimits;
     private final PatternMatchContext context;
+    private final StructureOperationState operationState;
     private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
     private final Map<StructureSessionKey<?>, Object> typedData;
     @Nullable
@@ -43,6 +44,7 @@ public final class StructureMatchSession {
         this.abilityLimits = copyLimits(abilityLimits);
         this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(abilityGroupLimits));
         this.context = initialContext == null ? new PatternMatchContext() : initialContext.copy();
+        this.operationState = new StructureOperationState();
         this.globalCount = new HashMap<>();
         this.typedData = new HashMap<>();
         this.controllerContext = null;
@@ -53,6 +55,7 @@ public final class StructureMatchSession {
         this.abilityLimits = parent.abilityLimits;
         this.abilityGroupLimits = parent.abilityGroupLimits;
         this.context = parent.context.copy();
+        this.operationState = parent.operationState.copy();
         this.globalCount = new HashMap<>(parent.globalCount);
         this.typedData = copyTypedData(parent.typedData);
         this.controllerContext = parent.controllerContext;
@@ -68,6 +71,7 @@ public final class StructureMatchSession {
             throw new IllegalStateException("Root structure match session cannot be committed");
         }
         parent.context.replaceWith(context);
+        parent.operationState.replaceWith(operationState);
         parent.globalCount.clear();
         parent.globalCount.putAll(globalCount);
         parent.typedData.clear();
@@ -76,11 +80,14 @@ public final class StructureMatchSession {
 
     @NotNull
     public Checkpoint checkpoint() {
-        return new Checkpoint(context.copy(), new HashMap<>(globalCount), copyTypedData(typedData));
+        return new Checkpoint(
+                context.copy(), operationState.copy(),
+                new HashMap<>(globalCount), copyTypedData(typedData));
     }
 
     public void restore(@NotNull Checkpoint checkpoint) {
         context.replaceWith(checkpoint.context);
+        operationState.replaceWith(checkpoint.operationState);
         globalCount.clear();
         globalCount.putAll(checkpoint.globalCount);
         typedData.clear();
@@ -90,6 +97,20 @@ public final class StructureMatchSession {
     @NotNull
     public PatternMatchContext getContext() {
         return context;
+    }
+
+    @NotNull
+    StructureOperationState getOperationState() {
+        return operationState;
+    }
+
+    /**
+     * Snapshot collector-owned state and merge any compatibility data produced
+     * by legacy predicates during the same operation.
+     */
+    @NotNull
+    public StructureOperationState copyOperationState() {
+        return operationState.copyIncludingLegacy(context);
     }
 
     @NotNull
@@ -158,20 +179,18 @@ public final class StructureMatchSession {
             }
         }
 
-        StructureMatchCollector.Validation collectorValidation = new StructureMatchCollector(context).validate();
-        if (!collectorValidation.success) {
-            if (!collectorValidation.missingAbilities.isEmpty()) {
-                collectorValidation.missingAbilities.forEach(
-                        (ability, deficit) -> missingAbilities.merge(ability, deficit, Integer::sum));
-            } else {
-                return Validation.failure(collectorValidation.errorMessage == null
-                        ? "A structure element requirement failed"
-                        : collectorValidation.errorMessage);
-            }
+        String collectorFailure = mergeCollectorValidation(
+                StructureMatchCollector.validate(operationState), missingAbilities);
+        if (collectorFailure == null) {
+            collectorFailure = mergeCollectorValidation(
+                    StructureMatchCollector.validate(context), missingAbilities);
+        }
+        if (collectorFailure != null) {
+            return Validation.failure(collectorFailure);
         }
 
         if (includeAbilityLimits) {
-            Set<IMultiblockPart> parts = context.getOrDefault("MultiblockParts", Collections.emptySet());
+            Set<IMultiblockPart> parts = copyOperationState().getParts();
             for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {
                 int count = 0;
                 for (IMultiblockPart part : parts) {
@@ -215,6 +234,23 @@ public final class StructureMatchSession {
         return Validation.success();
     }
 
+    @Nullable
+    private static String mergeCollectorValidation(
+            @NotNull StructureMatchCollector.Validation validation,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (validation.success) {
+            return null;
+        }
+        if (!validation.missingAbilities.isEmpty()) {
+            validation.missingAbilities.forEach(
+                    (ability, deficit) -> missingAbilities.merge(ability, deficit, Integer::sum));
+            return null;
+        }
+        return validation.errorMessage == null
+                ? "A structure element requirement failed"
+                : validation.errorMessage;
+    }
+
     @NotNull
     private static Map<MultiblockAbility<?>, int[]> copyLimits(
             @NotNull Map<MultiblockAbility<?>, int[]> limits) {
@@ -243,13 +279,16 @@ public final class StructureMatchSession {
     public static final class Checkpoint {
 
         private final PatternMatchContext context;
+        private final StructureOperationState operationState;
         private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
         private final Map<StructureSessionKey<?>, Object> typedData;
 
         private Checkpoint(@NotNull PatternMatchContext context,
+                           @NotNull StructureOperationState operationState,
                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
                            @NotNull Map<StructureSessionKey<?>, Object> typedData) {
             this.context = context;
+            this.operationState = operationState;
             this.globalCount = globalCount;
             this.typedData = typedData;
         }

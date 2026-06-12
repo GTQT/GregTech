@@ -46,6 +46,25 @@ public final class StructureOperationEvaluator {
     }
 
     @NotNull
+    public StructureCheckResult check(
+            @NotNull World world,
+            @NotNull BlockPos controllerPos,
+            @NotNull EnumFacing front,
+            @NotNull EnumFacing up,
+            boolean allowsFlip,
+            boolean doRandomCheck,
+            @Nullable PatternMatchContext context,
+            @Nullable MultiblockControllerBase controller) {
+        if (definition != null) {
+            return StructureCheckResult.fromDefinition(checkDefinition(
+                    world, controllerPos, front, up, allowsFlip, context, controller));
+        }
+        PatternMatchContext legacyContext = checkSingle(
+                world, controllerPos, front, up, allowsFlip, doRandomCheck);
+        return StructureCheckResult.fromLegacy(legacyContext, requireState());
+    }
+
+    @NotNull
     public StructureCheckState.Result checkDefinition(
             @NotNull World world,
             @NotNull BlockPos controllerPos,
