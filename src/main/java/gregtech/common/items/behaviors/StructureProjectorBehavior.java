@@ -333,16 +333,11 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                                             @NotNull EntityPlayer player,
                                             @NotNull ItemStack triggerStack,
                                             @NotNull Map<String, Integer> channelValues) {
-        var runtime = multiblock.getOrCreateStructureRuntime();
         Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
         StructureOperationRequest request = StructureOperationRequest.hint(
                 player, multiblock, StructureOrientation.fromController(multiblock),
                 channels, triggerStack);
-        if (runtime.getState() != null) {
-            runtime.spawnHintsSingle(request);
-        } else {
-            runtime.spawnHintsAllPieces(request);
-        }
+        multiblock.spawnStructureHints(request);
     }
 
     @Override

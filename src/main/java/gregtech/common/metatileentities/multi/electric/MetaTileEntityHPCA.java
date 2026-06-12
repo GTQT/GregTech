@@ -37,6 +37,7 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockComputerCasing;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;
@@ -101,12 +102,17 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
                     .where('S', selfPredicate(MetaTileEntityHPCA.class))
                     .where('A', states(getAdvancedState()))
                     .where('V', states(getVentState()))
-                    .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
+                    .where('X', abilities(MultiblockAbility.HPCA_COMPONENT)
+                            .setDefaultCandidate(() -> MetaTileEntities.HPCA_EMPTY_COMPONENT))
                     .casing('C', CasingDefinition.simple(getCasingState()))
-                        .maintenance()
-                        .energyInput(1, 3)
-                        .optionalFluidInput(1)
-                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1)
+                        .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
+                                () -> MetaTileEntities.MAINTENANCE_HATCH)
+                        .hatch(MultiblockAbility.INPUT_ENERGY, 1, 3,
+                                () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
+                        .hatch(MultiblockAbility.IMPORT_FLUIDS, 0, 1,
+                                () -> MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.LV])
+                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 1,
+                                () -> MetaTileEntities.COMPUTATION_HATCH_TRANSMITTER[GTValues.LuV])
                     .buildStructureDefinition());
     private final HPCAGridHandler hpcaHandler;
     private final TimedProgressSupplier progressSupplier;

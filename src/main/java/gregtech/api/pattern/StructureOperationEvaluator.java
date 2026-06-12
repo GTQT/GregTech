@@ -370,21 +370,41 @@ public final class StructureOperationEvaluator {
     }
 
     public void spawnHintsSingle(@NotNull StructureOperationRequest request) {
+        hintSingle(request);
+    }
+
+    @NotNull
+    public StructureHintResult hintSingle(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.HINT);
         StructureTrace.debug(request.requireController(), "hint-single",
                 "path=single-piece-fixed-walker, operation=" + request.getEvaluationOperation());
-        requireState().spawnHintsAt(request.requireWorld(), request.requireController(),
-                request.requireControllerPos(), request.requireOrientation(),
-                request.getChannelValues(), request.requireTriggerStack());
+        StructureHintResult result = StructureHintResult.builder()
+                .recordActivePiece()
+                .merge(requireState().spawnHintsAtWithResult(
+                        request.requireWorld(), request.requireController(),
+                        request.requireControllerPos(), request.requireOrientation(),
+                        request.getChannelValues(), request.requireTriggerStack()))
+                .build();
+        StructureTrace.debug(request.requireController(), "hint-single-result",
+                result.describeCounts());
+        return result;
     }
 
     public boolean spawnHintsAllPieces(@NotNull StructureOperationRequest request) {
+        return hintAllPieces(request).isAttempted();
+    }
+
+    @NotNull
+    public StructureHintResult hintAllPieces(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.HINT);
         StructureTrace.debug(request.requireController(), "hint-all-pieces",
                 "path=multi-piece-fixed-walker, operation=" + request.getEvaluationOperation());
-        return requireMultiPiecePattern().spawnHintsAllPieces(
+        StructureHintResult result = requireMultiPiecePattern().spawnHintsAllPiecesWithResult(
                 request.requireWorld(), request.requireController(), request.requireOrientation(),
                 request.getChannelValues(), requirePieceRuntimes(), request.requireTriggerStack());
+        StructureTrace.debug(request.requireController(), "hint-all-pieces-result",
+                result.describeCounts());
+        return result;
     }
 
     @NotNull

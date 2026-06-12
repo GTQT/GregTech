@@ -536,9 +536,21 @@ public class MultiPiecePattern {
                                        @Nullable Map<String, Integer> channelValues,
                                        @NotNull PieceRuntimes runtimes,
                                        @NotNull ItemStack triggerStack) {
+        return spawnHintsAllPiecesWithResult(
+                world, controller, orientation, channelValues, runtimes, triggerStack).isAttempted();
+    }
+
+    @NotNull
+    public StructureHintResult spawnHintsAllPiecesWithResult(
+            @NotNull World world,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            @NotNull PieceRuntimes runtimes,
+            @NotNull ItemStack triggerStack) {
         Map<String, int[]> priorRepeats = new HashMap<>();
         Map<String, BlockPos> priorCenters = new HashMap<>();
-        boolean visited = false;
+        StructureHintResult.Builder result = StructureHintResult.builder();
 
         for (StructurePiece piece : pieceList) {
             PieceRuntime runtime = runtimes.get(piece);
@@ -547,29 +559,32 @@ public class MultiPiecePattern {
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
             if (!piece.isActive(activationContext(controller, prior, null))) {
+                result.recordInactivePiece();
                 continue;
             }
 
+            result.recordActivePiece();
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
             if (piece instanceof RepeatGroupPiece repeatPiece) {
-                repeatPiece.spawnHintsAtRepeated(world, controller, controller.getPos(),
-                        orientation, prior, channelValues, runtime, triggerStack);
+                result.merge(repeatPiece.spawnHintsAtRepeatedWithResult(
+                        world, controller, controller.getPos(),
+                        orientation, prior, channelValues, runtime, triggerStack));
                 int[] reps = runtime.getLastFormedReps();
                 if (reps != null && reps.length > 0) {
                     priorRepeats.put(piece.getName(), reps);
                 }
             } else {
-                runtime.getState().spawnHintsAt(world, controller, pieceCenter, orientation,
-                        channelValues, triggerStack);
+                result.merge(runtime.getState().spawnHintsAtWithResult(
+                        world, controller, pieceCenter, orientation,
+                        channelValues, triggerStack));
                 int[] reps = runtime.getLastFormedReps();
                 if (reps != null && reps.length > 0) {
                     priorRepeats.put(piece.getName(), reps);
                 }
             }
             priorCenters.put(piece.getName(), pieceCenter);
-            visited = true;
         }
-        return visited;
+        return result.build();
     }
 
     /**

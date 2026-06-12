@@ -163,8 +163,18 @@ public final class StructureRuntime {
         evaluator.spawnHintsSingle(request);
     }
 
+    @NotNull
+    public StructureHintResult hintSingle(@NotNull StructureOperationRequest request) {
+        return evaluator.hintSingle(request);
+    }
+
     public boolean spawnHintsAllPieces(@NotNull StructureOperationRequest request) {
         return evaluator.spawnHintsAllPieces(request);
+    }
+
+    @NotNull
+    public StructureHintResult hintAllPieces(@NotNull StructureOperationRequest request) {
+        return evaluator.hintAllPieces(request);
     }
 
     @NotNull

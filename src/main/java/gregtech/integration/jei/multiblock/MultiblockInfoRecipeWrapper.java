@@ -438,7 +438,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         int min = channelRanges[channelIndex][0];
         int max = channelRanges[channelIndex][1];
         int current = channelValues.getOrDefault(channelName, 0);
-        int newValue = Math.max(0, Math.min(max, current + delta));
+        int currentIndex = channelValueToSliderIndex(current, min, max);
+        int newIndex = Math.max(0, Math.min(getSliderStepCount(min, max), currentIndex + delta));
+        int newValue = sliderIndexToChannelValue(newIndex, min, max);
         if (newValue == 0) {
             channelValues.remove(channelName);
         } else {
@@ -450,8 +452,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void setChannelValue(int channelIndex, int value) {
         if (channelIndex < 0 || channelIndex >= supportedChannels.size()) return;
         String channelName = supportedChannels.get(channelIndex).getName();
+        int min = channelRanges[channelIndex][0];
         int max = channelRanges[channelIndex][1];
-        int clamped = Math.max(0, Math.min(max, value));
+        int firstValue = getFirstSelectableValue(min);
+        int clamped = value <= 0 || max < firstValue ? 0 : Math.max(firstValue, Math.min(max, value));
         if (clamped == 0) {
             channelValues.remove(channelName);
         } else {
@@ -722,8 +726,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             drawRect(trackX, trackY, trackX + sliderWidth, trackY + trackHeight, 0xFFAAAAAA);
 
             // Draw slider handle
-            int range = Math.max(1, max);
-            float ratio = (float) value / range;
+            int stepCount = getSliderStepCount(min, max);
+            int sliderIndex = channelValueToSliderIndex(value, min, max);
+            float ratio = stepCount == 0 ? 0.0F : (float) sliderIndex / stepCount;
             int handleX = trackX + (int) (ratio * (sliderWidth - 4));
             drawRect(handleX, trackY - 1, handleX + 4, trackY + trackHeight + 1, 0xFF4488CC);
 
@@ -755,6 +760,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         return recipeWidth - PARTS_WIDTH - 10;
     }
 
+    private static int getFirstSelectableValue(int min) {
+        return Math.max(1, min);
+    }
+
+    private static int getSliderStepCount(int min, int max) {
+        int firstValue = getFirstSelectableValue(min);
+        return max < firstValue ? 0 : max - firstValue + 1;
+    }
+
+    private static int channelValueToSliderIndex(int value, int min, int max) {
+        int firstValue = getFirstSelectableValue(min);
+        if (value <= 0 || max < firstValue) return 0;
+        int clamped = Math.max(firstValue, Math.min(max, value));
+        return clamped - firstValue + 1;
+    }
+
+    private static int sliderIndexToChannelValue(int index, int min, int max) {
+        int firstValue = getFirstSelectableValue(min);
+        if (index <= 0 || max < firstValue) return 0;
+        return Math.min(max, firstValue + index - 1);
+    }
+
     @Override
     public boolean handleClick(@NotNull Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
         // Handle channel slider clicks
@@ -767,9 +794,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 // Click area: track region with some vertical tolerance
                 if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth
                         && mouseY >= trackY - 3 && mouseY <= trackY + 7) {
+                    int min = channelRanges[i][0];
                     int max = channelRanges[i][1];
                     float ratio = (float) (mouseX - sliderX) / sliderWidth;
-                    int newValue = Math.round(ratio * max);
+                    int newIndex = Math.round(ratio * getSliderStepCount(min, max));
+                    int newValue = sliderIndexToChannelValue(newIndex, min, max);
                     setChannelValue(i, newValue);
                     return true;
                 }

@@ -1,5 +1,6 @@
 package gregtech.api.pattern.casing;
 
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPattern;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A declarative builder for multiblock structure patterns.
@@ -653,7 +655,8 @@ public class DeclarativePatternBuilder {
                     hatch.ability,
                     deferHatchMinimums ? 0 : hatch.minCount,
                     hatch.maxCount,
-                    Math.max(1, hatch.minCount)));
+                    Math.max(1, hatch.minCount),
+                    hatch.defaultCandidate));
         }
         for (CustomHatchInfo customHatch : info.customHatches) {
             alternatives.add(Elements.legacy(customHatch.predicate));
@@ -974,8 +977,13 @@ public class DeclarativePatternBuilder {
         }
 
         public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
+            return hatch(ability, minCount, maxCount, null);
+        }
+
+        public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount,
+                                @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
             if (maxCount == 0) return this;
-            info.hatches.add(new HatchInfo(ability, minCount, maxCount));
+            info.hatches.add(new HatchInfo(ability, minCount, maxCount, defaultCandidate));
             return this;
         }
 
@@ -1345,11 +1353,19 @@ public class DeclarativePatternBuilder {
         final MultiblockAbility<?> ability;
         final int minCount;
         final int maxCount;
+        @Nullable
+        final Supplier<? extends MetaTileEntity> defaultCandidate;
 
         HatchInfo(MultiblockAbility<?> ability, int minCount, int maxCount) {
+            this(ability, minCount, maxCount, null);
+        }
+
+        HatchInfo(MultiblockAbility<?> ability, int minCount, int maxCount,
+                  @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
             this.ability = ability;
             this.minCount = minCount;
             this.maxCount = maxCount;
+            this.defaultCandidate = defaultCandidate;
         }
     }
 

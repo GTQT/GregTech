@@ -70,16 +70,19 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.collect.Lists;
+import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.PERFECT_HALF_DURATION_FACTOR;
 import static gregtech.api.recipes.logic.OverclockingLogic.PERFECT_HALF_VOLTAGE_FACTOR;
@@ -150,12 +153,9 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                 .aisle("###############", "######OSO######", "###############")
                 .where('S', selfPredicate(MetaTileEntityFusionReactor.class))
                 .where('G', states(type.getCasingState(), type.getGlassState()))
-                .where('E',
-                        states(type.getCasingState(), type.getGlassState()).or(metaTileEntities(Arrays
-                                .stream(MetaTileEntities.ENERGY_INPUT_HATCH)
-                                .filter(mte -> mte != null && type.getTier() <= mte.getTier())
-                                .toArray(MetaTileEntity[]::new))
-                                .setMinGlobalLimited(1).setPreviewCount(16)))
+                .where('E', metaTileEntities(getAllowedEnergyHatches(type))
+                        .setAbility(MultiblockAbility.INPUT_ENERGY)
+                        .setPreviewCount(16))
                 .where('C', states(type.getCasingState()))
                 .where('K', states(type.getCoilState()))
                 .where('O', states(type.getCasingState(), type.getGlassState())
@@ -167,6 +167,19 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                                 abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(2)))
                 .where('#', any())
                 .buildTemplate();
+    }
+
+    private static MetaTileEntity[] getAllowedEnergyHatches(IFusionReactorType type) {
+        return Stream
+                .concat(
+                        Arrays.stream(MetaTileEntities.ENERGY_INPUT_HATCH),
+                        MultiblockAbility.REGISTRY
+                                .getOrDefault(MultiblockAbility.INPUT_ENERGY, Collections.emptyList())
+                                .stream()
+                                .filter(MetaTileEntityWirelessEnergyHatch.class::isInstance))
+                .filter(mte -> mte instanceof ITieredMetaTileEntity tiered &&
+                        type.getTier() <= tiered.getTier())
+                .toArray(MetaTileEntity[]::new);
     }
 
     private static BloomType getBloomType() {

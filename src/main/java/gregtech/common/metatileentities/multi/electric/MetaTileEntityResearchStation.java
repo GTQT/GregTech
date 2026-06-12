@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
+import gregtech.api.GTValues;
 import gregtech.api.capability.IObjectHolder;
 import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalComputationProvider;
@@ -81,9 +82,12 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     .where('A', states(getAdvancedState()))
                     .where('H', objectHolderFacingController())
                     .casing('P', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 4)
-                    .maintenance()
-                    .computerReception()
+                    .hatch(MultiblockAbility.INPUT_ENERGY, 1, 4,
+                            () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
+                    .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
+                            () -> MetaTileEntities.MAINTENANCE_HATCH)
+                    .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 1,
+                            () -> MetaTileEntities.COMPUTATION_HATCH_RECEIVER[GTValues.LuV])
                     .buildStructureDefinition());
     private IOpticalComputationProvider computationProvider;
     private IObjectHolder objectHolder;

@@ -30,6 +30,7 @@ import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.TemplatePool;
@@ -613,7 +614,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         if (GTStructureChannels.STRUCTURE_WIDTH.getName().equals(channelName) ||
                 GTStructureChannels.STRUCTURE_HEIGHT.getName().equals(channelName) ||
                 GTStructureChannels.STRUCTURE_LENGTH.getName().equals(channelName)) {
-            return new int[] { 0, MAX_STRUCTURE_SIZE };
+            return new int[] { MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE };
         }
         return super.getChannelRange(channel);
     }
@@ -634,6 +635,14 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
         BlockPattern pattern = buildStructurePatternForChannelValues(request.getChannelValues());
         return autoBuildDynamicStructure(request.withChannelValues(Collections.emptyMap()),
+                "cleanroom_dynamic", pattern.getTemplate());
+    }
+
+    @Override
+    @NotNull
+    public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
+        BlockPattern pattern = buildStructurePatternForChannelValues(request.getChannelValues());
+        return hintDynamicStructure(request.withChannelValues(Collections.emptyMap()),
                 "cleanroom_dynamic", pattern.getTemplate());
     }
 

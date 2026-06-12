@@ -604,6 +604,16 @@ public class MultiblockState {
         private final StructureBuildResult.Builder result = StructureBuildResult.builder();
     }
 
+    private static final class HintTraversalState {
+
+        @NotNull
+        private final BlockWorldState worldState = new BlockWorldState();
+        @NotNull
+        private final StructureEvaluationContext<Object> evaluationContext = new StructureEvaluationContext<>();
+        @NotNull
+        private final StructureHintResult.Builder result = StructureHintResult.builder();
+    }
+
     private static final class PreviewTraversalState {
 
         @NotNull
@@ -718,7 +728,9 @@ public class MultiblockState {
             @Nullable TraceabilityPredicate.SimplePredicate matchedPredicate,
             @Nullable Map<String, Integer> channelValues,
             @Nullable AbilityPlacementTracker abilityTracker) {
-        int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker);
+        int preferredCandidateIndex = getPreferredCandidateIndex(matchedPredicate, infos, channelValues);
+        int requiredAbilityIndex = findRequiredAbilityCandidate(
+                infos, abilityTracker, preferredCandidateIndex);
         if (!player.isCreative()) {
             if (requiredAbilityIndex >= 0) {
                 BuildCandidate required = selectSurvivalCandidate(
@@ -728,7 +740,7 @@ public class MultiblockState {
                     return required;
                 }
             }
-            int preferredIdx = getPreferredChannelCandidateIndex(matchedPredicate, infos, channelValues);
+            int preferredIdx = preferredCandidateIndex;
             if (preferredIdx >= 0 && preferredIdx < candidates.size()) {
                 BuildCandidate preferred = selectSurvivalCandidate(
                         player, infos, Collections.singletonList(candidates.get(preferredIdx)), preferredIdx);
@@ -751,10 +763,7 @@ public class MultiblockState {
 
         int preferredIndex = requiredAbilityIndex;
         if (preferredIndex < 0) {
-            int channelIndex = getPreferredChannelCandidateIndex(matchedPredicate, infos, channelValues);
-            if (channelIndex >= 0) {
-                preferredIndex = channelIndex;
-            }
+            preferredIndex = preferredCandidateIndex;
         }
         if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
             return new BuildCandidate(candidates.get(preferredIndex).copy(), infos[preferredIndex]);
@@ -913,8 +922,9 @@ public class MultiblockState {
                             common.candidates == null ? null : common.candidates.get());
                 }
                 infos = ArrayUtils.addAll(infos, buildState.cacheInfos.get(common));
-                if (common.channelName != null &&
-                        (matchedPredicate == null || matchedPredicate.channelName == null)) {
+                if ((common.channelName != null || common.defaultCandidate != null) &&
+                        (matchedPredicate == null ||
+                                (matchedPredicate.channelName == null && common.channelName != null))) {
                     matchedPredicate = common;
                 }
             }
@@ -1433,7 +1443,21 @@ public class MultiblockState {
                              @NotNull StructureOrientation orientation,
                              @Nullable Map<String, Integer> channelValues,
                              @NotNull ItemStack triggerStack) {
-        spawnHintsAt(world, controllerBase, centerPos, orientation, 0, 0, 0, channelValues, triggerStack);
+        spawnHintsAtWithResult(
+                world, controllerBase, centerPos, orientation, channelValues, triggerStack);
+    }
+
+    @NotNull
+    public StructureHintResult spawnHintsAtWithResult(
+            @NotNull World world,
+            @NotNull MultiblockControllerBase controllerBase,
+            @NotNull BlockPos centerPos,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            @NotNull ItemStack triggerStack) {
+        return spawnHintsAtWithResult(
+                world, controllerBase, centerPos, orientation,
+                0, 0, 0, channelValues, triggerStack);
     }
 
     @SuppressWarnings("unchecked")
@@ -1444,18 +1468,38 @@ public class MultiblockState {
                              int xOffset, int yOffset, int zOffset,
                              @Nullable Map<String, Integer> channelValues,
                              @NotNull ItemStack triggerStack) {
-        BuildTraversalState hintState = new BuildTraversalState();
+        spawnHintsAtWithResult(
+                world, controllerBase, centerPos, orientation,
+                xOffset, yOffset, zOffset, channelValues, triggerStack);
+    }
+
+    @SuppressWarnings("unchecked")
+    @NotNull
+    public StructureHintResult spawnHintsAtWithResult(
+            @NotNull World world,
+            @NotNull MultiblockControllerBase controllerBase,
+            @NotNull BlockPos centerPos,
+            @NotNull StructureOrientation orientation,
+            int xOffset, int yOffset, int zOffset,
+            @Nullable Map<String, Integer> channelValues,
+            @NotNull ItemStack triggerStack) {
+        HintTraversalState hintState = new HintTraversalState();
+        hintState.result.recordAttemptedTraversal();
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
         visitFixedStructureCells(repetitions, centerPos, orientation, xOffset, yOffset, zOffset, (cell, layerCounts) -> {
+            hintState.result.recordVisitedCell();
             updateOperationCellContext(hintState.evaluationContext, hintState.worldState,
                     world, cell.worldPos, cell.predicate, controllerBase,
                     StructureEvaluationContext.Operation.HINT);
             IStructureElement<Object> typedElement = (IStructureElement<Object>) cell.element;
             if (typedElement.spawnHint(world, cell.worldPos, triggerStack)) {
+                hintState.result.recordTriggerHandledCell();
                 return;
             }
+            hintState.result.recordContextFallbackCell();
             typedElement.spawnHint(hintState.evaluationContext);
         });
+        return hintState.result.build();
     }
 
     @NotNull
@@ -1654,8 +1698,14 @@ public class MultiblockState {
     }
 
     private static int findRequiredAbilityCandidate(
-            BlockInfo[] infos, @Nullable AbilityPlacementTracker abilityTracker) {
+            BlockInfo[] infos, @Nullable AbilityPlacementTracker abilityTracker,
+            int preferredCandidateIndex) {
         if (abilityTracker == null) return -1;
+        if (preferredCandidateIndex >= 0
+                && preferredCandidateIndex < infos.length
+                && abilityTracker.isStillRequired(infos[preferredCandidateIndex])) {
+            return preferredCandidateIndex;
+        }
         for (int i = infos.length - 1; i >= 0; i--) {
             if (abilityTracker.isStillRequired(infos[i])) {
                 return i;
@@ -1817,9 +1867,36 @@ public class MultiblockState {
     private static int getChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
                                                  @Nullable BlockInfo[] infos,
                                                  @Nullable Map<String, Integer> channelValues) {
-        int preferredIndex = getPreferredChannelCandidateIndex(predicate, infos, channelValues);
+        int preferredIndex = getPreferredCandidateIndex(predicate, infos, channelValues);
         if (preferredIndex >= 0) return preferredIndex;
         return 0;
+    }
+
+    private static int getPreferredCandidateIndex(
+            @Nullable TraceabilityPredicate.SimplePredicate predicate,
+            @Nullable BlockInfo[] infos,
+            @Nullable Map<String, Integer> channelValues) {
+        int channelIndex = getPreferredChannelCandidateIndex(predicate, infos, channelValues);
+        if (channelIndex >= 0) {
+            return channelIndex;
+        }
+        if (predicate == null || infos == null || predicate.defaultCandidate == null) {
+            return -1;
+        }
+        MetaTileEntity preferred = predicate.defaultCandidate.get();
+        if (preferred == null) {
+            return -1;
+        }
+        for (int i = 0; i < infos.length; i++) {
+            TileEntity tileEntity = infos[i].getTileEntity();
+            if (tileEntity instanceof IGregTechTileEntity gregTechTile) {
+                MetaTileEntity candidate = gregTechTile.getMetaTileEntity();
+                if (candidate != null && preferred.metaTileEntityId.equals(candidate.metaTileEntityId)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     private static int getPreferredChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,

@@ -238,6 +238,17 @@ public class TraceabilityPredicate {
     }
 
     /**
+     * Select the default machine candidate used by previews and automatic construction.
+     * The supplier is resolved lazily because multiblock definitions may be initialized
+     * before all multiblock parts have been registered.
+     */
+    public TraceabilityPredicate setDefaultCandidate(Supplier<? extends MetaTileEntity> candidate) {
+        common.forEach(predicate -> predicate.defaultCandidate = candidate);
+        limited.forEach(predicate -> predicate.defaultCandidate = candidate);
+        return this;
+    }
+
+    /**
      * Returns the ability when this cell exclusively accepts one hatch ability.
      */
     public MultiblockAbility<?> getSingleAbility() {
@@ -395,6 +406,7 @@ public class TraceabilityPredicate {
 
         public String channelName = null;
         public MultiblockAbility<?> ability = null;
+        public Supplier<? extends MetaTileEntity> defaultCandidate = null;
 
         public SimplePredicate(Predicate<BlockWorldState> predicate, Supplier<BlockInfo[]> candidates) {
             this.predicate = predicate;

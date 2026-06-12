@@ -94,15 +94,10 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
     private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,
                                             @NotNull EntityPlayer player,
                                             @NotNull ItemStack triggerStack) {
-        var runtime = multiblock.getOrCreateStructureRuntime();
         StructureOperationRequest request = StructureOperationRequest.hint(
                 player, multiblock, StructureOrientation.fromController(multiblock),
                 Collections.emptyMap(), triggerStack);
-        if (runtime.getState() != null) {
-            runtime.spawnHintsSingle(request);
-        } else {
-            runtime.spawnHintsAllPieces(request);
-        }
+        multiblock.spawnStructureHints(request);
     }
 
     private void autoBuildStructure(@NotNull MultiblockControllerBase multiblock,

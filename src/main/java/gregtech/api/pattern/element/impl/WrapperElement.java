@@ -286,6 +286,7 @@ public class WrapperElement implements IStructureElement<Object> {
         wrapped.maxLayerCount = sp.maxLayerCount;
         wrapped.previewCount = sp.previewCount;
         wrapped.ability = sp.ability;
+        wrapped.defaultCandidate = sp.defaultCandidate;
         return wrapped;
     }
 }

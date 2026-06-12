@@ -18,9 +18,12 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Element that matches hatch positions for multiblock abilities.
@@ -34,18 +37,26 @@ public class HatchElement implements IStructureElement<Object> {
     private final TraceabilityPredicate.SimplePredicate limitPredicate;
 
     public HatchElement(MultiblockAbility<?> ability) {
-        this(ability, 0, -1, -1);
+        this(ability, 0, -1, -1, null);
     }
 
     public HatchElement(MultiblockAbility<?> ability, int minCount, int maxCount) {
-        this(ability, minCount, maxCount, -1);
+        this(ability, minCount, maxCount, -1, null);
     }
 
     public HatchElement(MultiblockAbility<?> ability, int minCount, int maxCount, int previewCount) {
+        this(ability, minCount, maxCount, previewCount, null);
+    }
+
+    public HatchElement(MultiblockAbility<?> ability, int minCount, int maxCount, int previewCount,
+                        @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
         this.ability = ability;
         this.minCount = minCount;
         this.maxCount = maxCount;
         TraceabilityPredicate predicate = MultiblockControllerBase.abilities(ability);
+        if (defaultCandidate != null) {
+            predicate.setDefaultCandidate(defaultCandidate);
+        }
         if (minCount > 0) {
             predicate.setMinGlobalLimited(minCount);
         }

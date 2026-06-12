@@ -833,10 +833,26 @@ public class RepeatGroupPiece extends StructurePiece {
                                      @Nullable Map<String, Integer> channelValues,
                                      @NotNull PieceRuntime runtime,
                                      @NotNull ItemStack triggerStack) {
+        spawnHintsAtRepeatedWithResult(
+                world, controller, controllerOrigin, orientation, prior,
+                channelValues, runtime, triggerStack);
+    }
+
+    @NotNull
+    public StructureHintResult spawnHintsAtRepeatedWithResult(
+            @NotNull World world,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull BlockPos controllerOrigin,
+            @NotNull StructureOrientation orientation,
+            @Nullable FormedStructureMetadata prior,
+            @Nullable Map<String, Integer> channelValues,
+            @NotNull PieceRuntime runtime,
+            @NotNull ItemStack triggerStack) {
         int[] reps = resolveRepetitions(channelValues);
         MultiblockState state = runtime.getState();
         BlockPos pieceCenter = getCenterPos(controllerOrigin, orientation, prior);
         runtime.cacheFormedReps(reps);
+        StructureHintResult.Builder result = StructureHintResult.builder();
 
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];
@@ -845,8 +861,9 @@ public class RepeatGroupPiece extends StructurePiece {
             for (int r = 0; r < count; r++) {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
-                state.spawnHintsAt(world, controller, pieceCenter, orientation,
-                        local[0], local[1], local[2], channelValues, triggerStack);
+                result.merge(state.spawnHintsAtWithResult(
+                        world, controller, pieceCenter, orientation,
+                        local[0], local[1], local[2], channelValues, triggerStack));
             }
         } else {
             int[] currentIndices = new int[repeatAxes.length];
@@ -856,8 +873,9 @@ public class RepeatGroupPiece extends StructurePiece {
                 for (int i = 0; i < repeatAxes.length; i++) {
                     local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
                 }
-                state.spawnHintsAt(world, controller, pieceCenter, orientation,
-                        local[0], local[1], local[2], channelValues, triggerStack);
+                result.merge(state.spawnHintsAtWithResult(
+                        world, controller, pieceCenter, orientation,
+                        local[0], local[1], local[2], channelValues, triggerStack));
 
                 hasMore = false;
                 for (int i = 0; i < repeatAxes.length; i++) {
@@ -870,6 +888,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 }
             }
         }
+        return result.build();
     }
 
     @NotNull

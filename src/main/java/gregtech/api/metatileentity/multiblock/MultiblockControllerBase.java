@@ -16,10 +16,11 @@ import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructureCheckResult;
+import gregtech.api.pattern.StructureFailureTrace;
+import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
-import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
@@ -790,6 +791,27 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
+     * Spawns structure hints for this controller. Dynamic structures can override this
+     * to build a disposable definition from the requested channel values.
+     */
+    public void spawnStructureHints(@NotNull StructureOperationRequest request) {
+        hintStructure(request);
+    }
+
+    /**
+     * Spawns structure hints and returns a traversal summary.
+     */
+    @NotNull
+    public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.HINT);
+        StructureRuntime runtime = getOrCreateStructureRuntime();
+        if (runtime.getState() != null) {
+            return runtime.hintSingle(request);
+        }
+        return runtime.hintAllPieces(request);
+    }
+
+    /**
      * Creates a disposable runtime for dynamic build definitions. The returned runtime
      * is not published as this controller's canonical runtime and must only be used for
      * the current tool operation.
@@ -813,6 +835,31 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                         + ", piece=" + pieceName + ", " + dynamicRuntime.describeShape());
         dynamicRuntime.buildSingle(request);
         return true;
+    }
+
+    /**
+     * Executes dynamic single-template hint generation through a disposable runtime.
+     */
+    protected void spawnDynamicStructureHints(@NotNull StructureOperationRequest request,
+                                              @NotNull String pieceName,
+                                              @NotNull BlockPatternTemplate template) {
+        hintDynamicStructure(request, pieceName, template);
+    }
+
+    /**
+     * Executes dynamic single-template hint generation and returns a traversal summary.
+     */
+    @NotNull
+    protected StructureHintResult hintDynamicStructure(@NotNull StructureOperationRequest request,
+                                                       @NotNull String pieceName,
+                                                       @NotNull BlockPatternTemplate template) {
+        request.requireKind(StructureOperationRequest.Kind.HINT);
+        StructureRuntime dynamicRuntime = createDynamicStructureRuntime(
+                StructureDefinition.fromTemplate(pieceName, template));
+        StructureTrace.debug(this, "dynamic-hint",
+                "path=dynamic-runtime, operation=" + request.getEvaluationOperation()
+                        + ", piece=" + pieceName + ", " + dynamicRuntime.describeShape());
+        return dynamicRuntime.hintSingle(request);
     }
 
     /**
