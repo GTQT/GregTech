@@ -98,6 +98,13 @@ GregTech already has part of the V3 shape:
   `StructureRuntime`. `MultiblockControllerBase` no longer mirrors metadata and channels in separate fields.
 - `StructureOperationEvaluator` is the thin operation boundary used by controller checks, previews, creative build
   tools, legacy `BlockPattern`, and structure iteration while delegating to the existing implementations.
+- `StructureOperationRequest` exists as the first immutable request shape for runtime-routed operations. It currently
+  backs controller checks, single-piece and multi-piece previews, creative build, and iteration; survival build and
+  hints remain future request/session work. `StructureRuntime` now accepts these requests and keeps
+  `StructureOperationEvaluator` as an internal delegating implementation detail for runtime-owned operations.
+- Single-piece fixed-repetition traversal now has a shared cell walker for orientation-aware coordinate resolution.
+  Creative build and structure iteration both use that walker; creative build keeps legacy candidate selection in an
+  operation-local build adapter and updates a `CREATIVE_BUILD` cell context without collecting formation requirements.
 - Synchronous definition and legacy-template checks are normalized into immutable `StructureCheckResult` values before
   controller assembly. Match context, channel values, operation state, and missing abilities are copied at this boundary.
 - Initial formation and reassembly produce one `PreparedCommit` shape and pass through
@@ -121,9 +128,10 @@ GregTech already has part of the V3 shape:
   construction, controller-facing evaluator check/iteration entry points, definition/check-state/AABB entry points,
   `StructurePiece` center/snapshot entry points, `StructureCompiler` snapshot closures, template AABB/predicate facades,
   repeat-group live/snapshot slice, backtracking, axis-line, and auto-build metadata paths, multi-piece dirty/full check
-  entry points, and `MultiblockState` exact live/snapshot/axis-line traversal loops use it. The remaining
-  `front/up/flipped` arguments are compatibility facades, low-level `RelativeDirection` inputs, and auto-build/preview
-  placement internals that still read orientation from controller state.
+  entry points, `MultiblockState` exact live/snapshot/axis-line traversal loops, and creative-build evaluator paths use
+  it. The remaining
+  `front/up/flipped` arguments are compatibility facades, low-level `RelativeDirection` inputs, preview/hint placement
+  internals, and legacy/dynamic auto-build adapters that still read orientation from controller state.
 - Controller-side orchestration has started moving into focused helpers:
   `MultiblockStructureCheckScheduler`, `MultiblockStructureAssembler`, `MultiblockStructureRegistration`,
   `MultiblockStructureCommitter`, `MultiblockStructurePreviews`, `MultiblockStructureChannels`, and
@@ -163,7 +171,8 @@ The migration is not complete yet:
   carry typed collector state through `StructureCheckResult` and only materialize legacy keys for compatibility
   callbacks.
 - `StructureOperationEvaluator` delegates to separate single-piece, multi-piece, preview, build, and iteration
-  traversals. Those traversals have not yet converged on one implementation.
+  traversals. Creative build and iteration now share the single-piece fixed-repetition coordinate walker, but matching,
+  snapshot checks, preview-space assembly, hints, and survival build have not yet converged on one implementation.
 - Survival build and hints are not fully routed through the same operation request/session/result model as checks.
 - Global ability policy and diagnostics still span session, controller, runtime, and legacy error objects.
 - `MultiblockControllerBase` still owns lifecycle policy such as invalidation and exposes the final `formStructure()`
@@ -554,6 +563,16 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
     `StructurePiece` center/snapshot entry points, `StructureCompiler` snapshot closures, template AABB/predicate
     facades, repeat-group live/snapshot slice, backtracking, axis-line, and auto-build metadata paths, multi-piece
     dirty/full check entry points, and `MultiblockState` exact live/snapshot/axis-line traversal loops.
+14. Add orientation-native creative-build entry points through `StructureOperationEvaluator`, `MultiPiecePattern`,
+    repeat-group construction, and `MultiblockState` placement traversal while keeping legacy build signatures as
+    compatibility adapters.
+15. Add the initial immutable `StructureOperationRequest` and route controller checks, single-piece previews, creative
+    build, and iteration through request-backed evaluator methods while preserving the old public entry points.
+16. Route controller, preview-helper, projector, and multiblock-builder runtime operations through
+    `StructureRuntime` request methods instead of exposing evaluator calls at those runtime-owned call sites.
+17. Introduce the single-piece fixed-repetition cell walker in `MultiblockState` and route creative-build placement and
+    formed-block iteration through it. Creative build now carries operation-local build state and updates a
+    `CREATIVE_BUILD` cell context while preserving the existing candidate-selection and placement behavior.
 
 ### Mostly Done
 
@@ -564,18 +583,26 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
 
 ### In Progress
 
-1. Route check, preview, creative build, and iteration through the evaluator while preserving existing traversals.
-2. Route survival build and hints through the same operation request/session/result model.
-3. Extract controller orchestration into scheduler, assembly, registration, preview, channel, and client-hook helpers.
+1. Continue expanding runtime-owned request routing beyond check, preview, creative build, and iteration while
+   preserving existing traversals and legacy evaluator facades.
+2. Promote the fixed-repetition cell walker from a creative-build/iteration helper into the common coordinate layer for
+   preview-space assembly, hint placement, and survival build once each caller's side effects are explicit.
+3. Route survival build and hints through the same operation request/session/result model.
+4. Extract controller orchestration into scheduler, assembly, registration, preview, channel, and client-hook helpers.
 
 ### Planned
 
 1. Converge single-piece, multi-piece, live, and snapshot checks on one traversal implementation.
-2. Converge preview, hints, creative build, survival build, and iteration on the same coordinate traversal.
-3. Retire remaining `front/up/flipped` compatibility facades once template iteration, auto-build placement,
-   preview/hint placement, and addon-facing legacy hooks have orientation-native callers.
-4. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
-5. Add diagnostic command and in-game structure trace view.
+2. Unify preview coordinate projection with the fixed-repetition walker without changing JEI/projector layout.
+3. Add a survival-build request/session/result shape with placement budgets, item-source accounting, and rollback-safe
+   consumed/required item reporting.
+4. Add a hints request path and trigger-aware hint callers after the tool/controller entry points are identified.
+5. Retire the remaining creative-build candidate-selection adapter once direct element placement and predicate fallback
+   have one operation-local selection path.
+6. Retire remaining `front/up/flipped` compatibility facades once template iteration, preview/hint placement,
+   legacy/dynamic auto-build adapters, and addon-facing legacy hooks have orientation-native callers.
+7. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
+8. Add diagnostic command and in-game structure trace view.
 
 ## Verification Matrix
 

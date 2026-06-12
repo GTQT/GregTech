@@ -4,6 +4,9 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.casing.StructureChannelValues;
+import gregtech.api.util.BlockInfo;
+
+import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -84,9 +87,47 @@ public final class StructureRuntime {
         return pieceRuntimes;
     }
 
+    /**
+     * @deprecated Runtime-owned operations should call the request methods on
+     *             this runtime. This accessor remains for legacy adapters while
+     *             the evaluator is still a separate delegating implementation.
+     */
+    @Deprecated
     @NotNull
     public StructureOperationEvaluator getEvaluator() {
         return evaluator;
+    }
+
+    @NotNull
+    public StructureCheckResult check(@NotNull StructureOperationRequest request) {
+        return evaluator.check(request);
+    }
+
+    public void creativeBuildSingle(@NotNull StructureOperationRequest request) {
+        evaluator.creativeBuildSingle(request);
+    }
+
+    public boolean creativeBuildPiece(@NotNull StructureOperationRequest request) {
+        return evaluator.creativeBuildPiece(request);
+    }
+
+    public boolean creativeBuildAllPieces(@NotNull StructureOperationRequest request) {
+        return evaluator.creativeBuildAllPieces(request);
+    }
+
+    @NotNull
+    public BlockInfo[][][] previewSingle(@NotNull StructureOperationRequest request) {
+        return evaluator.previewSingle(request);
+    }
+
+    @NotNull
+    public MultiPiecePreviewAssembler.Result previewMultiPiece(@NotNull StructureOperationRequest request) {
+        return evaluator.previewMultiPiece(request);
+    }
+
+    @NotNull
+    public Map<BlockPos, BlockInfo> iterateSingle(@NotNull StructureOperationRequest request) {
+        return evaluator.iterateSingle(request);
     }
 
     @NotNull

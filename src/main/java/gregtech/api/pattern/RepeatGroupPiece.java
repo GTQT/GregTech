@@ -767,7 +767,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
                 state.autoBuildAt(player, controller, pieceCenter,
-                        local[0], local[1], local[2],
+                        orientation, local[0], local[1], local[2],
                         channelValues, skipHatches, abilityTracker);
             }
         } else {
@@ -779,7 +779,7 @@ public class RepeatGroupPiece extends StructurePiece {
                     local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
                 }
                 state.autoBuildAt(player, controller, pieceCenter,
-                        local[0], local[1], local[2],
+                        orientation, local[0], local[1], local[2],
                         channelValues, skipHatches, abilityTracker);
 
                 hasMore = false;

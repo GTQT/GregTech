@@ -462,6 +462,15 @@ public class MultiPiecePattern {
                                   @Nullable Map<String, Integer> channelValues, boolean skipHatches,
                                   @NotNull PieceRuntimes runtimes,
                                   @NotNull AbilityPlacementTracker abilityTracker) {
+        return autoBuildPiece(pieceIndex, player, controller, StructureOrientation.fromController(controller),
+                channelValues, skipHatches, runtimes, abilityTracker);
+    }
+
+    public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
+                                  @NotNull StructureOrientation orientation,
+                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @NotNull AbilityPlacementTracker abilityTracker) {
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
@@ -473,7 +482,6 @@ public class MultiPiecePattern {
         // the auto-build path is per-piece, so we rebuild it on demand from
         // whatever the previous pieces' runtimes have cached via
         // PieceRuntime.getLastFormedReps().
-        StructureOrientation orientation = StructureOrientation.fromController(controller);
         FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller, orientation);
         if (!piece.isActive(activationContext(controller, prior, null))) {
             return false;
@@ -486,8 +494,8 @@ public class MultiPiecePattern {
             // prior metadata and can compute its dynamic position. Non-anchor
             // pieces ignore the prior and behave identically to the 3-arg form.
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
-            runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues,
-                    skipHatches, abilityTracker);
+            runtime.getState().autoBuildAt(player, controller, pieceCenter, orientation,
+                    0, 0, 0, channelValues, skipHatches, abilityTracker);
         }
         return true;
     }

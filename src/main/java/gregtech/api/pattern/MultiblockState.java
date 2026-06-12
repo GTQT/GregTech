@@ -477,6 +477,452 @@ public class MultiblockState {
         return typedElement.check(evaluationContext);
     }
 
+    @FunctionalInterface
+    private interface FixedStructureCellVisitor {
+
+        void visit(@NotNull FixedStructureCell cell,
+                   @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts);
+    }
+
+    private static final class FixedStructureCell {
+
+        private final int aisleIndex;
+        private final int repetitionIndex;
+        private final int localX;
+        private final int localY;
+        private final int localZ;
+        @NotNull
+        private final BlockPos worldPos;
+        @NotNull
+        private final IStructureElement<?> element;
+        @NotNull
+        private final TraceabilityPredicate predicate;
+
+        private FixedStructureCell(int aisleIndex, int repetitionIndex,
+                                   int localX, int localY, int localZ,
+                                   @NotNull BlockPos worldPos,
+                                   @NotNull IStructureElement<?> element,
+                                   @NotNull TraceabilityPredicate predicate) {
+            this.aisleIndex = aisleIndex;
+            this.repetitionIndex = repetitionIndex;
+            this.localX = localX;
+            this.localY = localY;
+            this.localZ = localZ;
+            this.worldPos = worldPos;
+            this.element = element;
+            this.predicate = predicate;
+        }
+    }
+
+    private void visitFixedStructureCells(@NotNull int[] repetitions,
+                                          @NotNull BlockPos centerPos,
+                                          @NotNull StructureOrientation orientation,
+                                          int xOffset, int yOffset, int zOffset,
+                                          @NotNull FixedStructureCellVisitor visitor) {
+        IStructureElement<?>[][][] elements = template.getElements();
+        RelativeDirection[] structureDir = template.getStructureDir();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
+
+        int z = -centerOffset.maxZ();
+        for (int c = 0; c < fingerLength; c++) {
+            int repetitionCount = c < repetitions.length ? repetitions[c] : 0;
+            for (int r = 0; r < repetitionCount; r++) {
+                Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts = new HashMap<>();
+                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
+                        IStructureElement<?> element = elements[c][b][a];
+                        TraceabilityPredicate predicate = element.toPredicate();
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
+                                x + xOffset, y + yOffset, z + zOffset,
+                                orientation.getStructureFront(), orientation.getUp(),
+                                orientation.isFlipped(), structureDir)
+                                .add(centerPos);
+                        visitor.visit(new FixedStructureCell(
+                                c, r, x, y, z, pos, element, predicate), layerCounts);
+                    }
+                }
+                z++;
+            }
+        }
+    }
+
+    private void updateBuildCellContext(@NotNull StructureEvaluationContext<Object> buildEvaluationContext,
+                                        @NotNull BlockWorldState buildWorldState,
+                                        @NotNull World world,
+                                        @NotNull BlockPos pos,
+                                        @NotNull TraceabilityPredicate predicate,
+                                        @NotNull MultiblockControllerBase controllerBase) {
+        buildWorldState.update(world, pos, matchContext, globalCount, layerCount, predicate);
+        buildEvaluationContext.update(controllerBase, null, buildWorldState,
+                StructureEvaluationContext.Operation.CREATIVE_BUILD);
+    }
+
+    private boolean placeBuildCandidate(@NotNull BlockInfo matchedInfo,
+                                        @NotNull StructureEvaluationContext<Object> context) {
+        World world = context.getWorld();
+        if (world == null) {
+            return false;
+        }
+        world.setBlockState(context.getPos(), matchedInfo.getBlockState());
+        return true;
+    }
+
+    private static final class BuildCandidate {
+
+        @NotNull
+        private final ItemStack found;
+        @NotNull
+        private final BlockInfo matchedInfo;
+
+        private BuildCandidate(@NotNull ItemStack found, @NotNull BlockInfo matchedInfo) {
+            this.found = found;
+            this.matchedInfo = matchedInfo;
+        }
+    }
+
+    private static final class BuildTraversalState {
+
+        @NotNull
+        private final BlockWorldState worldState = new BlockWorldState();
+        @NotNull
+        private final StructureEvaluationContext<Object> evaluationContext = new StructureEvaluationContext<>();
+        @NotNull
+        private final Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
+        @NotNull
+        private final Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
+        @NotNull
+        private final Map<BlockPos, Object> blocks = new HashMap<>();
+        @NotNull
+        private final Map<BlockPos, EnumFacing> explicitFrontFacings = new HashMap<>();
+    }
+
+    @Nullable
+    private static BuildCandidate selectBuildCandidate(
+            @NotNull EntityPlayer player,
+            @NotNull BlockInfo[] infos,
+            @NotNull List<ItemStack> candidates,
+            @Nullable TraceabilityPredicate.SimplePredicate matchedPredicate,
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable AbilityPlacementTracker abilityTracker) {
+        int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker);
+        if (!player.isCreative()) {
+            if (requiredAbilityIndex >= 0) {
+                BuildCandidate required = selectSurvivalCandidate(
+                        player, infos, Collections.singletonList(candidates.get(requiredAbilityIndex)),
+                        requiredAbilityIndex);
+                if (required != null) {
+                    return required;
+                }
+            }
+            int preferredIdx = getPreferredChannelCandidateIndex(matchedPredicate, infos, channelValues);
+            if (preferredIdx >= 0 && preferredIdx < candidates.size()) {
+                BuildCandidate preferred = selectSurvivalCandidate(
+                        player, infos, Collections.singletonList(candidates.get(preferredIdx)), preferredIdx);
+                return preferred;
+            }
+            BuildCandidate inventoryCandidate = selectSurvivalCandidate(player, infos, candidates, -1);
+            if (inventoryCandidate != null) {
+                return inventoryCandidate;
+            }
+            ItemStack found = tryExtractFromAENetwork(player, candidates);
+            if (found != null) {
+                for (int i = 0; i < candidates.size(); i++) {
+                    if (candidates.get(i).isItemEqual(found)) {
+                        return new BuildCandidate(found, infos[i]);
+                    }
+                }
+            }
+            return null;
+        }
+
+        int preferredIndex = requiredAbilityIndex;
+        if (preferredIndex < 0) {
+            int channelIndex = getPreferredChannelCandidateIndex(matchedPredicate, infos, channelValues);
+            if (channelIndex >= 0) {
+                preferredIndex = channelIndex;
+            }
+        }
+        if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
+            return new BuildCandidate(candidates.get(preferredIndex).copy(), infos[preferredIndex]);
+        }
+        for (int i = candidates.size() - 1; i >= 0; i--) {
+            ItemStack found = candidates.get(i).copy();
+            if (!found.isEmpty()) {
+                return new BuildCandidate(found, infos[i]);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BuildCandidate selectSurvivalCandidate(@NotNull EntityPlayer player,
+                                                          @NotNull BlockInfo[] infos,
+                                                          @NotNull List<ItemStack> candidates,
+                                                          int fixedCandidateIndex) {
+        if (fixedCandidateIndex >= 0) {
+            ItemStack found = extractCandidateFromInventory(player, candidates.get(0));
+            if (found != null) {
+                return new BuildCandidate(found, infos[fixedCandidateIndex]);
+            }
+            found = tryExtractFromAENetwork(player, candidates);
+            return found == null ? null : new BuildCandidate(found, infos[fixedCandidateIndex]);
+        }
+
+        for (int i = 0; i < candidates.size(); i++) {
+            ItemStack found = extractCandidateFromInventory(player, candidates.get(i));
+            if (found != null) {
+                return new BuildCandidate(found, infos[i]);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static ItemStack extractCandidateFromInventory(@NotNull EntityPlayer player,
+                                                           @NotNull ItemStack candidate) {
+        for (ItemStack itemStack : player.inventory.mainInventory) {
+            if (candidate.isItemEqual(itemStack) && !itemStack.isEmpty()) {
+                ItemStack found = itemStack.copy();
+                itemStack.setCount(itemStack.getCount() - 1);
+                return found;
+            }
+        }
+        return null;
+    }
+
+    private void autoBuildCell(@NotNull FixedStructureCell cell,
+                               @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer,
+                               @NotNull EntityPlayer player,
+                               @NotNull MultiblockControllerBase controllerBase,
+                               @Nullable Map<String, Integer> channelValues,
+                               boolean skipHatches,
+                               @Nullable AbilityPlacementTracker abilityTracker,
+                               @NotNull BuildTraversalState buildState) {
+        World world = player.world;
+        TraceabilityPredicate predicate = cell.predicate;
+        BlockPos pos = cell.worldPos;
+
+        updateBuildCellContext(buildState.evaluationContext, buildState.worldState,
+                world, pos, predicate, controllerBase);
+        if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
+            buildState.blocks.put(pos, world.getBlockState(pos));
+            if (abilityTracker != null) {
+                abilityTracker.recordWorldTile(pos, world.getTileEntity(pos));
+            }
+            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+                limit.testLimited(buildState.worldState);
+            }
+            return;
+        }
+
+        boolean find = false;
+        BlockInfo[] infos = new BlockInfo[0];
+        TraceabilityPredicate.SimplePredicate matchedPredicate = null;
+        for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+            if (limit.minLayerCount > 0) {
+                if (!cacheLayer.containsKey(limit)) {
+                    cacheLayer.put(limit, 1);
+                } else if (cacheLayer.get(limit) < limit.minLayerCount &&
+                        (limit.maxLayerCount == -1 ||
+                                cacheLayer.get(limit) < limit.maxLayerCount)) {
+                    cacheLayer.put(limit, cacheLayer.get(limit) + 1);
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+            if (!buildState.cacheInfos.containsKey(limit)) {
+                buildState.cacheInfos.put(limit,
+                        limit.candidates == null ? null : limit.candidates.get());
+            }
+            infos = buildState.cacheInfos.get(limit);
+            matchedPredicate = limit;
+            find = true;
+            break;
+        }
+        if (!find) {
+            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+                if (limit.minGlobalCount > 0) {
+                    if (!buildState.cacheGlobal.containsKey(limit)) {
+                        buildState.cacheGlobal.put(limit, 1);
+                    } else if (buildState.cacheGlobal.get(limit) < limit.minGlobalCount &&
+                            (limit.maxGlobalCount == -1 ||
+                                    buildState.cacheGlobal.get(limit) < limit.maxGlobalCount)) {
+                        buildState.cacheGlobal.put(limit, buildState.cacheGlobal.get(limit) + 1);
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+                if (!buildState.cacheInfos.containsKey(limit)) {
+                    buildState.cacheInfos.put(limit,
+                            limit.candidates == null ? null : limit.candidates.get());
+                }
+                infos = buildState.cacheInfos.get(limit);
+                matchedPredicate = limit;
+                find = true;
+                break;
+            }
+        }
+        if (!find) {
+            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+                if (limit.maxLayerCount != -1 &&
+                        cacheLayer.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxLayerCount)
+                    continue;
+                if (limit.maxGlobalCount != -1 &&
+                        buildState.cacheGlobal.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxGlobalCount)
+                    continue;
+                if (!buildState.cacheInfos.containsKey(limit)) {
+                    buildState.cacheInfos.put(limit,
+                            limit.candidates == null ? null : limit.candidates.get());
+                }
+                if (cacheLayer.containsKey(limit)) {
+                    cacheLayer.put(limit, cacheLayer.get(limit) + 1);
+                } else {
+                    cacheLayer.put(limit, 1);
+                }
+                if (buildState.cacheGlobal.containsKey(limit)) {
+                    buildState.cacheGlobal.put(limit, buildState.cacheGlobal.get(limit) + 1);
+                } else {
+                    buildState.cacheGlobal.put(limit, 1);
+                }
+                infos = ArrayUtils.addAll(infos, buildState.cacheInfos.get(limit));
+            }
+            for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
+                if (!buildState.cacheInfos.containsKey(common)) {
+                    buildState.cacheInfos.put(common,
+                            common.candidates == null ? null : common.candidates.get());
+                }
+                infos = ArrayUtils.addAll(infos, buildState.cacheInfos.get(common));
+                if (common.channelName != null &&
+                        (matchedPredicate == null || matchedPredicate.channelName == null)) {
+                    matchedPredicate = common;
+                }
+            }
+        }
+
+        if (infos != null) {
+            infos = Arrays.stream(infos)
+                    .filter(info -> info.getBlockState().getBlock() != Blocks.AIR)
+                    .filter(info -> abilityTracker == null || abilityTracker.canPlace(info))
+                    .toArray(BlockInfo[]::new);
+        }
+        List<ItemStack> candidates = Arrays.stream(infos)
+                .map(MultiblockState::getStackForBlockInfo)
+                .collect(Collectors.toList());
+        if (candidates.isEmpty()) return;
+
+        if (skipHatches) {
+            List<BlockInfo> nonHatchInfos = new ArrayList<>();
+            List<ItemStack> nonHatchCandidates = new ArrayList<>();
+            int candidateIdx = 0;
+            for (BlockInfo info : infos) {
+                if (info.getBlockState().getBlock() == Blocks.AIR) continue;
+                if (!(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                    nonHatchInfos.add(info);
+                    nonHatchCandidates.add(candidates.get(candidateIdx));
+                }
+                candidateIdx++;
+            }
+            boolean keepMatchedPredicate = !nonHatchInfos.isEmpty();
+            if (nonHatchInfos.isEmpty()) {
+                // All candidates in infos are hatches. Search all predicates
+                // (both common and limited) for a non-hatch casing candidate.
+                // Skip predicates that have already reached their maxGlobalCount
+                // to avoid placing excess blocks (e.g. a second coil when max=1).
+                for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
+                    if (sp.maxGlobalCount != -1 &&
+                            buildState.cacheGlobal.getOrDefault(sp, 0) >= sp.maxGlobalCount) {
+                        continue;
+                    }
+                    if (!buildState.cacheInfos.containsKey(sp)) {
+                        buildState.cacheInfos.put(sp,
+                                sp.candidates == null ? null : sp.candidates.get());
+                    }
+                    BlockInfo[] spInfos = buildState.cacheInfos.get(sp);
+                    if (spInfos != null) {
+                        for (BlockInfo info : spInfos) {
+                            if (info.getBlockState().getBlock() != Blocks.AIR &&
+                                    !(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                                nonHatchInfos.add(info);
+                            }
+                        }
+                    }
+                    if (!nonHatchInfos.isEmpty()) break;
+                }
+                if (nonHatchInfos.isEmpty()) {
+                    for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
+                        if (!buildState.cacheInfos.containsKey(sp)) {
+                            buildState.cacheInfos.put(sp,
+                                    sp.candidates == null ? null : sp.candidates.get());
+                        }
+                        BlockInfo[] spInfos = buildState.cacheInfos.get(sp);
+                        if (spInfos != null) {
+                            for (BlockInfo info : spInfos) {
+                                if (info.getBlockState().getBlock() != Blocks.AIR &&
+                                        !(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                                    nonHatchInfos.add(info);
+                                }
+                            }
+                        }
+                        if (!nonHatchInfos.isEmpty()) break;
+                    }
+                }
+                if (!nonHatchInfos.isEmpty() && nonHatchCandidates.isEmpty()) {
+                    nonHatchCandidates = nonHatchInfos.stream()
+                            .map(info -> {
+                                IBlockState blockState = info.getBlockState();
+                                return new ItemStack(
+                                        Item.getItemFromBlock(blockState.getBlock()),
+                                        1, blockState.getBlock().damageDropped(blockState));
+                            }).collect(Collectors.toList());
+                }
+            }
+            if (!nonHatchInfos.isEmpty()) {
+                infos = nonHatchInfos.toArray(new BlockInfo[0]);
+                candidates = nonHatchCandidates;
+                if (!keepMatchedPredicate) {
+                    matchedPredicate = null;
+                }
+            }
+        }
+
+        BuildCandidate buildCandidate = selectBuildCandidate(
+                player, infos, candidates, matchedPredicate, channelValues, abilityTracker);
+        if (buildCandidate == null) return;
+        ItemStack found = buildCandidate.found;
+        BlockInfo matchedInfo = buildCandidate.matchedInfo;
+
+        if (!placeBuildCandidate(matchedInfo, buildState.evaluationContext)) {
+            return;
+        }
+        IBlockState state = matchedInfo.getBlockState();
+        if (abilityTracker != null) {
+            abilityTracker.record(matchedInfo);
+        }
+        if (matchedInfo instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
+            buildState.explicitFrontFacings.put(pos, explicitInfo.getFrontFacing(controllerBase));
+        }
+        buildState.blocks.put(pos, state);
+        if (matchedInfo.getTileEntity() instanceof IGregTechTileEntity igtteInfo) {
+            TileEntity holder = world.getTileEntity(pos);
+            if (holder instanceof IGregTechTileEntity igtte) {
+                MetaTileEntity sampleMetaTileEntity = igtteInfo.getMetaTileEntity();
+                if (sampleMetaTileEntity != null) {
+                    MetaTileEntity metaTileEntity = igtte.setMetaTileEntity(
+                            sampleMetaTileEntity, null, found.getTagCompound());
+                    metaTileEntity.onPlacement(player);
+                    buildState.blocks.put(pos, metaTileEntity);
+                }
+            }
+        }
+    }
+
     private boolean hasFixedAisleLayout() {
         for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
             if (aisle.minRepeat() != aisle.maxRepeat()) return false;
@@ -760,360 +1206,34 @@ public class MultiblockState {
                             BlockPos centerPos, int xOffset, int yOffset, int zOffset,
                             Map<String, Integer> channelValues, boolean skipHatches,
                             @Nullable AbilityPlacementTracker abilityTracker) {
-        IStructureElement<?>[][][] elements = template.getElements();
-        int[][] aisleRepetitions = template.getAisleRepetitions();
-        RelativeDirection[] structureDir = template.getStructureDir();
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
-        int fingerLength = template.getZLength();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
+        autoBuildAt(player, controllerBase, centerPos,
+                StructureOrientation.fromController(controllerBase),
+                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker);
+    }
 
+    public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
+                            BlockPos centerPos, @NotNull StructureOrientation orientation,
+                            int xOffset, int yOffset, int zOffset,
+                            Map<String, Integer> channelValues, boolean skipHatches,
+                            @Nullable AbilityPlacementTracker abilityTracker) {
         World world = player.world;
-        BlockWorldState bws = new BlockWorldState();
-        int minZ = -centerOffset.maxZ();
-        EnumFacing facing = controllerBase.getFrontFacingForStructure();
-        Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
-        Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
-        Map<BlockPos, Object> blocks = new HashMap<>();
-        Map<BlockPos, EnumFacing> explicitFrontFacings = new HashMap<>();
-        blocks.put(controllerBase.getPos(), controllerBase);
-
+        BuildTraversalState buildState = new BuildTraversalState();
+        buildState.blocks.put(controllerBase.getPos(), controllerBase);
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
-        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
-            for (r = 0; r < repetitions[c]; r++) {
-                Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
-                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
-                        IStructureElement<?> element = elements[c][b][a];
-                        TraceabilityPredicate predicate = element.toPredicate();
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
-                                z + zOffset, facing,
-                                controllerBase.getUpwardsFacing(),
-                                controllerBase.isFlipped(), structureDir)
-                                .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
-                        bws.update(world, pos, matchContext, globalCount, layerCount, predicate);
-                        if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
-                            blocks.put(pos, world.getBlockState(pos));
-                            if (abilityTracker != null) {
-                                abilityTracker.recordWorldTile(pos, world.getTileEntity(pos));
-                            }
-                            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                                limit.testLimited(bws);
-                            }
-                        } else {
-                            boolean find = false;
-                            BlockInfo[] infos = new BlockInfo[0];
-                            TraceabilityPredicate.SimplePredicate matchedPredicate = null;
-                            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                                if (limit.minLayerCount > 0) {
-                                    if (!cacheLayer.containsKey(limit)) {
-                                        cacheLayer.put(limit, 1);
-                                    } else if (cacheLayer.get(limit) < limit.minLayerCount &&
-                                            (limit.maxLayerCount == -1 ||
-                                                    cacheLayer.get(limit) < limit.maxLayerCount)) {
-                                        cacheLayer.put(limit, cacheLayer.get(limit) + 1);
-                                    } else {
-                                        continue;
-                                    }
-                                } else {
-                                    continue;
-                                }
-                                if (!cacheInfos.containsKey(limit)) {
-                                    cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
-                                }
-                                infos = cacheInfos.get(limit);
-                                matchedPredicate = limit;
-                                find = true;
-                                break;
-                            }
-                            if (!find) {
-                                for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                                    if (limit.minGlobalCount > 0) {
-                                        if (!cacheGlobal.containsKey(limit)) {
-                                            cacheGlobal.put(limit, 1);
-                                        } else if (cacheGlobal.get(limit) < limit.minGlobalCount &&
-                                                (limit.maxGlobalCount == -1 ||
-                                                        cacheGlobal.get(limit) < limit.maxGlobalCount)) {
-                                            cacheGlobal.put(limit, cacheGlobal.get(limit) + 1);
-                                        } else {
-                                            continue;
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                    if (!cacheInfos.containsKey(limit)) {
-                                        cacheInfos.put(limit,
-                                                limit.candidates == null ? null : limit.candidates.get());
-                                    }
-                                    infos = cacheInfos.get(limit);
-                                    matchedPredicate = limit;
-                                    find = true;
-                                    break;
-                                }
-                            }
-                            if (!find) {
-                                for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                                    if (limit.maxLayerCount != -1 &&
-                                            cacheLayer.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxLayerCount)
-                                        continue;
-                                    if (limit.maxGlobalCount != -1 &&
-                                            cacheGlobal.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxGlobalCount)
-                                        continue;
-                                    if (!cacheInfos.containsKey(limit)) {
-                                        cacheInfos.put(limit,
-                                                limit.candidates == null ? null : limit.candidates.get());
-                                    }
-                                    if (cacheLayer.containsKey(limit)) {
-                                        cacheLayer.put(limit, cacheLayer.get(limit) + 1);
-                                    } else {
-                                        cacheLayer.put(limit, 1);
-                                    }
-                                    if (cacheGlobal.containsKey(limit)) {
-                                        cacheGlobal.put(limit, cacheGlobal.get(limit) + 1);
-                                    } else {
-                                        cacheGlobal.put(limit, 1);
-                                    }
-                                    infos = ArrayUtils.addAll(infos, cacheInfos.get(limit));
-                                }
-                                for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
-                                    if (!cacheInfos.containsKey(common)) {
-                                        cacheInfos.put(common,
-                                                common.candidates == null ? null : common.candidates.get());
-                                    }
-                                    infos = ArrayUtils.addAll(infos, cacheInfos.get(common));
-                                    if (common.channelName != null &&
-                                            (matchedPredicate == null || matchedPredicate.channelName == null)) {
-                                        matchedPredicate = common;
-                                    }
-                                }
-                            }
-
-                            if (infos != null) {
-                                infos = Arrays.stream(infos)
-                                        .filter(info -> info.getBlockState().getBlock() != Blocks.AIR)
-                                        .filter(info -> abilityTracker == null || abilityTracker.canPlace(info))
-                                        .toArray(BlockInfo[]::new);
-                            }
-                            List<ItemStack> candidates = Arrays.stream(infos)
-                                    .map(MultiblockState::getStackForBlockInfo)
-                                    .collect(Collectors.toList());
-                            if (candidates.isEmpty()) continue;
-
-                            // skipHatches mode: replace hatch positions with casing blocks.
-                            // Dedicated hatch positions (like muffler) where no non-hatch candidate
-                            // can be found will still place the hatch normally.
-                            if (skipHatches) {
-                                List<BlockInfo> nonHatchInfos = new ArrayList<>();
-                                List<ItemStack> nonHatchCandidates = new ArrayList<>();
-                                int candidateIdx = 0;
-                                for (BlockInfo info : infos) {
-                                    if (info.getBlockState().getBlock() == Blocks.AIR) continue;
-                                    if (!(info.getTileEntity() instanceof IGregTechTileEntity)) {
-                                        nonHatchInfos.add(info);
-                                        nonHatchCandidates.add(candidates.get(candidateIdx));
-                                    }
-                                    candidateIdx++;
-                                }
-                                boolean keepMatchedPredicate = !nonHatchInfos.isEmpty();
-                                if (nonHatchInfos.isEmpty()) {
-                                    // All candidates in infos are hatches. Search all predicates
-                                    // (both common and limited) for a non-hatch casing candidate.
-                                    // Skip predicates that have already reached their maxGlobalCount
-                                    // to avoid placing excess blocks (e.g. a second coil when max=1).
-                                    for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
-                                        if (sp.maxGlobalCount != -1 &&
-                                                cacheGlobal.getOrDefault(sp, 0) >= sp.maxGlobalCount) {
-                                            continue;
-                                        }
-                                        if (!cacheInfos.containsKey(sp)) {
-                                            cacheInfos.put(sp,
-                                                    sp.candidates == null ? null : sp.candidates.get());
-                                        }
-                                        BlockInfo[] spInfos = cacheInfos.get(sp);
-                                        if (spInfos != null) {
-                                            for (BlockInfo info : spInfos) {
-                                                if (info.getBlockState().getBlock() != Blocks.AIR &&
-                                                        !(info.getTileEntity() instanceof IGregTechTileEntity)) {
-                                                    nonHatchInfos.add(info);
-                                                }
-                                            }
-                                        }
-                                        if (!nonHatchInfos.isEmpty()) break;
-                                    }
-                                    if (nonHatchInfos.isEmpty()) {
-                                        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
-                                            if (!cacheInfos.containsKey(sp)) {
-                                                cacheInfos.put(sp,
-                                                        sp.candidates == null ? null : sp.candidates.get());
-                                            }
-                                            BlockInfo[] spInfos = cacheInfos.get(sp);
-                                            if (spInfos != null) {
-                                                for (BlockInfo info : spInfos) {
-                                                    if (info.getBlockState().getBlock() != Blocks.AIR &&
-                                                            !(info.getTileEntity() instanceof IGregTechTileEntity)) {
-                                                        nonHatchInfos.add(info);
-                                                    }
-                                                }
-                                            }
-                                            if (!nonHatchInfos.isEmpty()) break;
-                                        }
-                                    }
-                                    if (nonHatchInfos.isEmpty()) {
-                                        // No non-hatch candidate found anywhere in this position's predicates.
-                                        // This is a dedicated hatch position (e.g. muffler).
-                                        // Fall through to place the hatch normally.
-                                    }
-                                    if (!nonHatchInfos.isEmpty() && nonHatchCandidates.isEmpty()) {
-                                        nonHatchCandidates = nonHatchInfos.stream()
-                                                .map(info -> {
-                                                    IBlockState blockState = info.getBlockState();
-                                                    return new ItemStack(
-                                                            Item.getItemFromBlock(blockState.getBlock()),
-                                                            1, blockState.getBlock().damageDropped(blockState));
-                                                }).collect(Collectors.toList());
-                                    }
-                                }
-                                if (!nonHatchInfos.isEmpty()) {
-                                    infos = nonHatchInfos.toArray(new BlockInfo[0]);
-                                    candidates = nonHatchCandidates;
-                                    if (!keepMatchedPredicate) {
-                                        matchedPredicate = null;
-                                    }
-                                }
-                            }
-
-                            ItemStack found = null;
-                            BlockInfo matchedInfo = null;
-                            int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker);
-                            if (!player.isCreative()) {
-                                if (requiredAbilityIndex >= 0) {
-                                    ItemStack requiredStack = candidates.get(requiredAbilityIndex);
-                                    for (ItemStack itemStack : player.inventory.mainInventory) {
-                                        if (requiredStack.isItemEqual(itemStack) && !itemStack.isEmpty()) {
-                                            found = itemStack.copy();
-                                            itemStack.setCount(itemStack.getCount() - 1);
-                                            matchedInfo = infos[requiredAbilityIndex];
-                                            break;
-                                        }
-                                    }
-                                    if (found == null) {
-                                        found = tryExtractFromAENetwork(
-                                                player, Collections.singletonList(requiredStack));
-                                        if (found != null) {
-                                            matchedInfo = infos[requiredAbilityIndex];
-                                        }
-                                    }
-                                }
-                                int preferredIdx = getPreferredChannelCandidateIndex(
-                                        matchedPredicate, infos, channelValues);
-                                if (found == null && preferredIdx >= 0 && preferredIdx < candidates.size()) {
-                                    ItemStack preferredStack = candidates.get(preferredIdx);
-                                    for (ItemStack itemStack : player.inventory.mainInventory) {
-                                        if (preferredStack.isItemEqual(itemStack) && !itemStack.isEmpty()) {
-                                            found = itemStack.copy();
-                                            itemStack.setCount(itemStack.getCount() - 1);
-                                            matchedInfo = infos[preferredIdx];
-                                            break;
-                                        }
-                                    }
-                                    if (found == null) {
-                                        found = tryExtractFromAENetwork(
-                                                player, Collections.singletonList(preferredStack));
-                                        if (found != null) {
-                                            matchedInfo = infos[preferredIdx];
-                                        }
-                                    }
-                                    if (found == null) continue;
-                                }
-                                if (found == null) {
-                                    for (int i = 0; i < candidates.size(); i++) {
-                                        ItemStack candidate = candidates.get(i);
-                                        for (ItemStack itemStack : player.inventory.mainInventory) {
-                                            if (candidate.isItemEqual(itemStack) && !itemStack.isEmpty()) {
-                                                found = itemStack.copy();
-                                                itemStack.setCount(itemStack.getCount() - 1);
-                                                matchedInfo = infos[i];
-                                                break;
-                                            }
-                                        }
-                                        if (found != null) break;
-                                    }
-                                }
-                                if (found == null) {
-                                    found = tryExtractFromAENetwork(player, candidates);
-                                    if (found != null) {
-                                        for (int i = 0; i < candidates.size(); i++) {
-                                            if (candidates.get(i).isItemEqual(found)) {
-                                                matchedInfo = infos[i];
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                if (found == null || matchedInfo == null) continue;
-                            } else {
-                                int preferredIndex = requiredAbilityIndex;
-                                if (preferredIndex < 0) {
-                                    int channelIndex = getPreferredChannelCandidateIndex(
-                                            matchedPredicate, infos, channelValues);
-                                    if (channelIndex >= 0) {
-                                        preferredIndex = channelIndex;
-                                    }
-                                }
-                                if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
-                                    found = candidates.get(preferredIndex).copy();
-                                    matchedInfo = infos[preferredIndex];
-                                }
-                                if (found == null) {
-                                    for (int i = candidates.size() - 1; i >= 0; i--) {
-                                        found = candidates.get(i).copy();
-                                        if (!found.isEmpty()) {
-                                            matchedInfo = infos[i];
-                                            break;
-                                        }
-                                        found = null;
-                                    }
-                                }
-                                if (found == null || matchedInfo == null) continue;
-                            }
-
-                            IBlockState state = matchedInfo.getBlockState();
-                            if (abilityTracker != null) {
-                                abilityTracker.record(matchedInfo);
-                            }
-                            if (matchedInfo instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
-                                explicitFrontFacings.put(pos, explicitInfo.getFrontFacing(controllerBase));
-                            }
-                            blocks.put(pos, state);
-                            world.setBlockState(pos, state);
-                            if (matchedInfo.getTileEntity() instanceof IGregTechTileEntity igtteInfo) {
-                                TileEntity holder = world.getTileEntity(pos);
-                                if (holder instanceof IGregTechTileEntity igtte) {
-                                    MetaTileEntity sampleMetaTileEntity = igtteInfo.getMetaTileEntity();
-                                    if (sampleMetaTileEntity != null) {
-                                        MetaTileEntity metaTileEntity = igtte.setMetaTileEntity(
-                                                sampleMetaTileEntity, null, found.getTagCompound());
-                                        metaTileEntity.onPlacement(player);
-                                        blocks.put(pos, metaTileEntity);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                z++;
-            }
-        }
+        visitFixedStructureCells(repetitions, centerPos, orientation, xOffset, yOffset, zOffset,
+                (cell, layerCounts) -> autoBuildCell(
+                        cell, layerCounts, player, controllerBase, channelValues,
+                        skipHatches, abilityTracker, buildState));
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
                 RelativeDirection.ALL_FACINGS);
-        blocks.forEach((pos, block) -> {
+        buildState.blocks.forEach((pos, block) -> {
             if (block instanceof MetaTileEntity) {
                 // Do not reassign the controller's front facing — it was set by the
                 // player and must remain stable across multi-slice auto-build calls.
                 if (block == controllerBase) return;
                 MetaTileEntity metaTileEntity = (MetaTileEntity) block;
-                EnumFacing explicitFrontFacing = explicitFrontFacings.get(pos);
+                EnumFacing explicitFrontFacing = buildState.explicitFrontFacings.get(pos);
                 if (explicitFrontFacing != null && metaTileEntity.isValidFrontFacing(explicitFrontFacing)) {
                     metaTileEntity.setFrontFacing(explicitFrontFacing);
                     return;
@@ -1121,7 +1241,7 @@ public class MultiblockState {
                 boolean find = false;
                 for (EnumFacing enumFacing : facings) {
                     if (metaTileEntity.isValidFrontFacing(enumFacing)) {
-                        if (!blocks.containsKey(pos.offset(enumFacing))) {
+                        if (!buildState.blocks.containsKey(pos.offset(enumFacing))) {
                             metaTileEntity.setFrontFacing(enumFacing);
                             find = true;
                             break;
@@ -1209,8 +1329,16 @@ public class MultiblockState {
     public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
+        return getAllStructureBlocks(world, centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false));
+    }
+
+    /**
+     * Get all structure blocks (from cache or by calculating positions).
+     */
+    public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
+                                                          @NotNull StructureOrientation orientation) {
         Map<BlockPos, BlockInfo> blocks = new HashMap<>();
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
 
         if (!cache.isEmpty()) {
             cache.forEach((posLong, blockInfo) -> {
@@ -1226,38 +1354,28 @@ public class MultiblockState {
             return blocks;
         }
 
-        int fingerLength = template.getZLength();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
-        RelativeDirection[] structureDir = template.getStructureDir();
-
-        int minZ = -centerOffset.maxZ();
-        for (int c = 0, z = minZ, r; c < fingerLength; c++) {
-            int repetitions = (formedRepetitionCount != null && c < formedRepetitionCount.length)
+        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        int[] repetitions = new int[aisles.length];
+        for (int c = 0; c < repetitions.length; c++) {
+            repetitions[c] = (formedRepetitionCount != null && c < formedRepetitionCount.length)
                     ? formedRepetitionCount[c]
-                    : template.getAisles()[c].minRepeat();
-
-            for (r = 0; r < repetitions; r++) {
-                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
-                                        x, y, z, frontFacing, upwardsFacing, isFlipped, structureDir)
-                                .add(centerPos);
-
-                        if (pos.equals(centerPos)) continue;
-
-                        if (world != null && world.isBlockLoaded(pos)) {
-                            TileEntity tileEntity = world.getTileEntity(pos);
-                            IBlockState blockState = world.getBlockState(pos);
-                            if (blockState.getBlock() != Blocks.AIR) {
-                                blocks.put(pos, new BlockInfo(blockState, tileEntity));
-                            }
-                        }
-                    }
-                }
-                z++;
-            }
+                    : aisles[c].minRepeat();
         }
+
+        visitFixedStructureCells(repetitions, centerPos, orientation, 0, 0, 0, (cell, layerCounts) -> {
+            BlockPos pos = cell.worldPos;
+            if (pos.equals(centerPos)) {
+                return;
+            }
+
+            if (world != null && world.isBlockLoaded(pos)) {
+                TileEntity tileEntity = world.getTileEntity(pos);
+                IBlockState blockState = world.getBlockState(pos);
+                if (blockState.getBlock() != Blocks.AIR) {
+                    blocks.put(pos, new BlockInfo(blockState, tileEntity));
+                }
+            }
+        });
         return blocks;
     }
 

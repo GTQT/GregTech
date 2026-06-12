@@ -6,6 +6,7 @@ import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
@@ -105,7 +106,8 @@ final class MultiblockStructurePreviews {
             @Nullable Map<String, Integer> channelValues) {
         return structureRuntime == null
                 ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues, controller)
-                : structureRuntime.getEvaluator().previewMultiPiece(channelValues, controller);
+                : structureRuntime.previewMultiPiece(
+                        StructureOperationRequest.previewMultiPiece(channelValues, controller));
     }
 
     private static List<MultiblockShapeInfo> repetitionDFS(
@@ -124,7 +126,8 @@ final class MultiblockStructurePreviews {
             }
             BlockInfo[][][] preview = structureRuntime == null
                     ? Objects.requireNonNull(multiblockState).getPreview(repetition, channelValues)
-                    : structureRuntime.getEvaluator().previewSingle(repetition, channelValues);
+                    : structureRuntime.previewSingle(
+                            StructureOperationRequest.preview(repetition, channelValues));
             pages.add(new MultiblockShapeInfo(preview));
         } else {
             int aisleIdx = repetitionStack.size();

@@ -10,6 +10,8 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.GTUtility;
@@ -236,8 +238,9 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 if (multiPiece != null) {
                     var abilityTracker = multiPiece.createAbilityPlacementTracker();
                     if (runtime != null) {
-                        runtime.getEvaluator().creativeBuildPiece(
-                                pieceIndex, player, multiblock, channels, noHatch, abilityTracker);
+                        runtime.creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
+                                pieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
+                                channels, noHatch, abilityTracker));
                     } else {
                         multiPiece.autoBuildPiece(
                                 pieceIndex, player, multiblock, channels, noHatch,
@@ -255,7 +258,9 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 var runtime = multiblock.getStructureRuntime();
                 if (state != null && runtime != null) {
                     // Single-piece multiblock: build the main pattern via its MultiblockState.
-                    runtime.getEvaluator().creativeBuildSingle(player, multiblock, channels, noHatch);
+                    runtime.creativeBuildSingle(StructureOperationRequest.creativeBuild(
+                            player, multiblock, StructureOrientation.fromController(multiblock),
+                            channels, noHatch));
                 } else if (runtime != null) {
                     // Multi-piece multiblock (e.g. Distillation Tower): the controller's
                     // MultiblockState is null because each piece owns its own state.
@@ -264,8 +269,9 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     // tower body) read their repeat count from channel values, so the
                     // STRUCTURE_WIDTH / STRUCTURE_HEIGHT / STRUCTURE_LENGTH channels
                     // on the projector still control the final dimensions.
-                    runtime.getEvaluator().creativeBuildAllPieces(
-                            player, multiblock, channels, noHatch);
+                    runtime.creativeBuildAllPieces(StructureOperationRequest.creativeBuild(
+                            player, multiblock, StructureOrientation.fromController(multiblock),
+                            channels, noHatch));
                 } else if (state != null) {
                     state.autoBuild(player, multiblock, channels, noHatch);
                 } else {

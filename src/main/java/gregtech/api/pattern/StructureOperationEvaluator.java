@@ -53,17 +53,25 @@ public final class StructureOperationEvaluator {
             boolean doRandomCheck,
             @Nullable PatternMatchContext context,
             @Nullable MultiblockControllerBase controller) {
+        return check(StructureOperationRequest.check(
+                world, controllerPos, orientation, doRandomCheck, context, controller));
+    }
+
+    @NotNull
+    public StructureCheckResult check(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.CHECK);
         if (definition != null) {
             return StructureCheckResult.fromDefinition(checkDefinition(
-                    world, controllerPos, orientation, context, controller));
+                    request.requireWorld(), request.requireControllerPos(), request.requireOrientation(),
+                    request.getMatchContext(), request.getController()));
         }
         PatternMatchContext legacyContext = checkSingle(
-                world,
-                controllerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.allowsFlip(),
-                doRandomCheck);
+                request.requireWorld(),
+                request.requireControllerPos(),
+                request.requireOrientation().getStructureFront(),
+                request.requireOrientation().getUp(),
+                request.requireOrientation().allowsFlip(),
+                request.doRandomCheck());
         return StructureCheckResult.fromLegacy(legacyContext, requireState());
     }
 
@@ -137,7 +145,25 @@ public final class StructureOperationEvaluator {
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues,
             boolean skipHatches) {
-        requireState().autoBuild(player, controller, channelValues, skipHatches);
+        creativeBuildSingle(player, controller, StructureOrientation.fromController(controller),
+                channelValues, skipHatches);
+    }
+
+    public void creativeBuildSingle(
+            @NotNull EntityPlayer player,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
+        creativeBuildSingle(StructureOperationRequest.creativeBuild(
+                player, controller, orientation, channelValues, skipHatches));
+    }
+
+    public void creativeBuildSingle(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.CREATIVE_BUILD);
+        requireState().autoBuildAt(request.requirePlayer(), request.requireController(),
+                request.requireControllerPos(), request.requireOrientation(),
+                0, 0, 0, request.getChannelValues(), request.skipHatches(), null);
     }
 
     @Deprecated
@@ -155,9 +181,9 @@ public final class StructureOperationEvaluator {
             @Nullable Map<String, Integer> channelValues,
             boolean skipHatches,
             @NotNull AbilityPlacementTracker abilityTracker) {
-        return requireMultiPiecePattern().autoBuildPiece(
-                pieceIndex, player, controller, channelValues, skipHatches,
-                requirePieceRuntimes(), abilityTracker);
+        return creativeBuildPiece(
+                pieceIndex, player, controller, StructureOrientation.fromController(controller),
+                channelValues, skipHatches, abilityTracker);
     }
 
     public boolean creativeBuildAllPieces(
@@ -165,29 +191,80 @@ public final class StructureOperationEvaluator {
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues,
             boolean skipHatches) {
+        return creativeBuildAllPieces(player, controller, StructureOrientation.fromController(controller),
+                channelValues, skipHatches);
+    }
+
+    public boolean creativeBuildAllPieces(
+            @NotNull EntityPlayer player,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
+        return creativeBuildAllPieces(StructureOperationRequest.creativeBuild(
+                player, controller, orientation, channelValues, skipHatches));
+    }
+
+    public boolean creativeBuildAllPieces(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.CREATIVE_BUILD);
         MultiPiecePattern pattern = requireMultiPiecePattern();
         AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
         int pieceCount = pattern.getPieceCount();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
-            creativeBuildPiece(
-                    pieceIndex, player, controller, channelValues, skipHatches, abilityTracker);
+            creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
+                    pieceIndex, request.requirePlayer(), request.requireController(),
+                    request.requireOrientation(), request.getChannelValues(),
+                    request.skipHatches(), abilityTracker));
         }
         return pieceCount > 0;
+    }
+
+    public boolean creativeBuildPiece(
+            int pieceIndex,
+            @NotNull EntityPlayer player,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches,
+            @NotNull AbilityPlacementTracker abilityTracker) {
+        return creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
+                pieceIndex, player, controller, orientation, channelValues, skipHatches, abilityTracker));
+    }
+
+    public boolean creativeBuildPiece(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.CREATIVE_BUILD);
+        return requireMultiPiecePattern().autoBuildPiece(
+                request.getPieceIndex(), request.requirePlayer(), request.requireController(),
+                request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
+                requirePieceRuntimes(), request.requireAbilityTracker());
     }
 
     @NotNull
     public BlockInfo[][][] previewSingle(
             @NotNull int[] repetitions,
             @Nullable Map<String, Integer> channelValues) {
-        return requireState().getPreview(repetitions, channelValues);
+        return previewSingle(StructureOperationRequest.preview(repetitions, channelValues));
+    }
+
+    @NotNull
+    public BlockInfo[][][] previewSingle(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.PREVIEW);
+        return requireState().getPreview(request.requireRepetitions(), request.getChannelValues());
     }
 
     @NotNull
     public MultiPiecePreviewAssembler.Result previewMultiPiece(
             @Nullable Map<String, Integer> channelValues,
             @Nullable MultiblockControllerBase controller) {
+        return previewMultiPiece(StructureOperationRequest.previewMultiPiece(channelValues, controller));
+    }
+
+    @NotNull
+    public MultiPiecePreviewAssembler.Result previewMultiPiece(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.PREVIEW);
         return MultiPiecePreviewAssembler.assemble(
-                requireMultiPiecePattern(), requirePieceRuntimes(), channelValues, controller);
+                requireMultiPiecePattern(), requirePieceRuntimes(),
+                request.getChannelValues(), request.getController());
     }
 
     @NotNull
@@ -195,12 +272,14 @@ public final class StructureOperationEvaluator {
             @NotNull World world,
             @NotNull BlockPos centerPos,
             @NotNull StructureOrientation orientation) {
-        return iterateSingle(
-                world,
-                centerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped());
+        return iterateSingle(StructureOperationRequest.iterate(world, centerPos, orientation));
+    }
+
+    @NotNull
+    public Map<BlockPos, BlockInfo> iterateSingle(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.ITERATE);
+        return requireState().getAllStructureBlocks(
+                request.requireWorld(), request.requireControllerPos(), request.requireOrientation());
     }
 
     @NotNull

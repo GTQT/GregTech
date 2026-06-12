@@ -8,6 +8,8 @@ import gregtech.api.pattern.AbilityPlacementTracker;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTUtility;
 
@@ -100,8 +102,9 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
                                        @NotNull Map<String, Integer> channelValues) {
         var runtime = multiblock.getStructureRuntime();
         if (runtime != null) {
-            return runtime.getEvaluator().creativeBuildAllPieces(
-                    player, multiblock, channelValues, false);
+            return runtime.creativeBuildAllPieces(StructureOperationRequest.creativeBuild(
+                    player, multiblock, StructureOrientation.fromController(multiblock),
+                    channelValues, false));
         }
 
         StructureDefinition<?> definition = multiblock.getStructureDefinition();

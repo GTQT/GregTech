@@ -23,7 +23,8 @@ public final class StructureEvaluationContext<T> {
         PREVIEW,
         HINT,
         CREATIVE_BUILD,
-        SURVIVAL_BUILD
+        SURVIVAL_BUILD,
+        ITERATE
     }
 
     @Nullable
