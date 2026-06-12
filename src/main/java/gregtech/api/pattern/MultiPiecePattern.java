@@ -261,8 +261,26 @@ public class MultiPiecePattern {
                 runtimes, null);
     }
 
+    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
+                                    @NotNull StructureOrientation orientation,
+                                    @NotNull PieceRuntimes runtimes) {
+        return checkDirtyPieces(world, controllerPos, orientation, runtimes, null);
+    }
+
     public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
                                     EnumFacing upwardsFacing, boolean flipped,
+                                    @NotNull PieceRuntimes runtimes,
+                                    @Nullable MultiblockControllerBase controller) {
+        return checkDirtyPieces(
+                world,
+                controllerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, flipped, false),
+                runtimes,
+                controller);
+    }
+
+    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
+                                    @NotNull StructureOrientation orientation,
                                     @NotNull PieceRuntimes runtimes,
                                     @Nullable MultiblockControllerBase controller) {
         StructureMatchSession session = createMatchSession();
@@ -279,18 +297,15 @@ public class MultiPiecePattern {
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
             if (!piece.isActive(activation)) continue;
-            BlockPos pieceCenter = piece.getCenterPos(
-                    controllerPos, frontFacing, upwardsFacing, flipped, prior);
+            BlockPos pieceCenter = piece.getCenterPos(controllerPos, orientation, prior);
 
             if (piece instanceof RepeatGroupPiece repeatPiece) {
-                boolean ok = repeatPiece.checkSync(world, controllerPos, frontFacing,
-                        upwardsFacing, flipped, prior, runtime, session);
+                boolean ok = repeatPiece.checkSync(world, controllerPos, orientation, prior, runtime, session);
                 runtime.setValidated(ok);
             } else {
                 StructureMatchSession pieceSession = session.fork();
                 PatternMatchContext result = runtime.getState().checkPatternAtExact(
-                        world, pieceCenter, frontFacing, upwardsFacing, flipped,
-                        0, 0, 0, pieceSession);
+                        world, pieceCenter, orientation, 0, 0, 0, pieceSession);
 
                 if (result != null) {
                     pieceSession.commit();
@@ -343,8 +358,26 @@ public class MultiPiecePattern {
                 runtimes, null);
     }
 
+    public boolean checkAllPieces(World world, BlockPos controllerPos,
+                                  @NotNull StructureOrientation orientation,
+                                  @NotNull PieceRuntimes runtimes) {
+        return checkAllPieces(world, controllerPos, orientation, runtimes, null);
+    }
+
     public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
                                   EnumFacing upwardsFacing, boolean flipped,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable MultiblockControllerBase controller) {
+        return checkAllPieces(
+                world,
+                controllerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, flipped, false),
+                runtimes,
+                controller);
+    }
+
+    public boolean checkAllPieces(World world, BlockPos controllerPos,
+                                  @NotNull StructureOrientation orientation,
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable MultiblockControllerBase controller) {
         for (StructurePiece piece : pieceList) {
@@ -353,8 +386,7 @@ public class MultiPiecePattern {
                 runtime.markDirty();
             }
         }
-        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, flipped,
-                runtimes, controller);
+        return checkDirtyPieces(world, controllerPos, orientation, runtimes, controller);
     }
 
     /**

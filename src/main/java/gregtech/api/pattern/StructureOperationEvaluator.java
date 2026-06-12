@@ -49,19 +49,55 @@ public final class StructureOperationEvaluator {
     public StructureCheckResult check(
             @NotNull World world,
             @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            boolean doRandomCheck,
+            @Nullable PatternMatchContext context,
+            @Nullable MultiblockControllerBase controller) {
+        if (definition != null) {
+            return StructureCheckResult.fromDefinition(checkDefinition(
+                    world, controllerPos, orientation, context, controller));
+        }
+        PatternMatchContext legacyContext = checkSingle(
+                world,
+                controllerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.allowsFlip(),
+                doRandomCheck);
+        return StructureCheckResult.fromLegacy(legacyContext, requireState());
+    }
+
+    @NotNull
+    public StructureCheckResult check(
+            @NotNull World world,
+            @NotNull BlockPos controllerPos,
             @NotNull EnumFacing front,
             @NotNull EnumFacing up,
             boolean allowsFlip,
             boolean doRandomCheck,
             @Nullable PatternMatchContext context,
             @Nullable MultiblockControllerBase controller) {
-        if (definition != null) {
-            return StructureCheckResult.fromDefinition(checkDefinition(
-                    world, controllerPos, front, up, allowsFlip, context, controller));
+        return check(
+                world,
+                controllerPos,
+                StructureOrientation.of(front, front, up, false, allowsFlip),
+                doRandomCheck,
+                context,
+                controller);
+    }
+
+    @NotNull
+    public StructureCheckState.Result checkDefinition(
+            @NotNull World world,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @Nullable PatternMatchContext context,
+            @Nullable MultiblockControllerBase controller) {
+        if (definition == null) {
+            throw new IllegalStateException("Definition check requested without a structure definition");
         }
-        PatternMatchContext legacyContext = checkSingle(
-                world, controllerPos, front, up, allowsFlip, doRandomCheck);
-        return StructureCheckResult.fromLegacy(legacyContext, requireState());
+        return definition.createState().check(
+                world, controllerPos, orientation, context, controller);
     }
 
     @NotNull
@@ -152,6 +188,19 @@ public final class StructureOperationEvaluator {
             @Nullable MultiblockControllerBase controller) {
         return MultiPiecePreviewAssembler.assemble(
                 requireMultiPiecePattern(), requirePieceRuntimes(), channelValues, controller);
+    }
+
+    @NotNull
+    public Map<BlockPos, BlockInfo> iterateSingle(
+            @NotNull World world,
+            @NotNull BlockPos centerPos,
+            @NotNull StructureOrientation orientation) {
+        return iterateSingle(
+                world,
+                centerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped());
     }
 
     @NotNull

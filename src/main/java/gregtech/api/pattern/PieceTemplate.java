@@ -256,6 +256,15 @@ public final class PieceTemplate {
         }
     }
 
+    public void forEachPredicate(@NotNull StructureOrientation orientation,
+                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
+        forEachPredicate(
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                consumer);
+    }
+
     /**
      * Compute the precise world-space AABB for this structure template given the controller state.
      * Returns a pair of BlockPos: [min corner, max corner] in world coordinates.
@@ -297,6 +306,18 @@ public final class PieceTemplate {
         BlockPos min = centerPos.add(worldMinX - margin, worldMinY - margin, worldMinZ - margin);
         BlockPos max = centerPos.add(worldMaxX + margin, worldMaxY + margin, worldMaxZ + margin);
         return new BlockPos[] { min, max };
+    }
+
+    @NotNull
+    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos,
+                                       @NotNull StructureOrientation orientation,
+                                       int margin) {
+        return computeWorldAABB(
+                centerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                margin);
     }
 
     @NotNull

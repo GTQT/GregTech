@@ -205,6 +205,11 @@ public class BlockPatternTemplate {
         delegate.forEachPredicate(front, up, flipped, consumer);
     }
 
+    public void forEachPredicate(@NotNull StructureOrientation orientation,
+                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
+        delegate.forEachPredicate(orientation, consumer);
+    }
+
     /**
      * Compute the precise world-space AABB for this structure template given the controller state.
      */
@@ -212,6 +217,13 @@ public class BlockPatternTemplate {
     public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos, @NotNull EnumFacing frontFacing,
                                        @NotNull EnumFacing upwardsFacing, boolean isFlipped, int margin) {
         return delegate.computeWorldAABB(centerPos, frontFacing, upwardsFacing, isFlipped, margin);
+    }
+
+    @NotNull
+    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos,
+                                       @NotNull StructureOrientation orientation,
+                                       int margin) {
+        return delegate.computeWorldAABB(centerPos, orientation, margin);
     }
 
     @NotNull

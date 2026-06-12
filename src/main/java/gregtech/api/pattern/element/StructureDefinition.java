@@ -11,6 +11,7 @@ import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureCondition;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureSizeDescriptor;
 import gregtech.api.pattern.StructureSizeDescriptor.PieceSize;
 import gregtech.api.pattern.TemplatePool;
@@ -122,6 +123,15 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * Convenience: synchronous check.
      */
     public boolean check(@NotNull World world, @NotNull BlockPos controllerPos,
+                         @NotNull StructureOrientation orientation,
+                         @Nullable PatternMatchContext context) {
+        return createState().check(world, controllerPos, orientation, context).success;
+    }
+
+    /**
+     * Convenience: synchronous check.
+     */
+    public boolean check(@NotNull World world, @NotNull BlockPos controllerPos,
                          @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
                          @Nullable PatternMatchContext context) {
         return createState().check(world, controllerPos, front, up, allowsFlip, context).success;
@@ -190,10 +200,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * Compute the world AABB for the maximum repeat range.
      */
     @NotNull
-    public BlockPos[] computeWorldAABB(@NotNull BlockPos center, @NotNull EnumFacing front,
-                                       @NotNull EnumFacing up, boolean flipped, int margin) {
+    public BlockPos[] computeWorldAABB(@NotNull BlockPos center,
+                                       @NotNull StructureOrientation orientation,
+                                       int margin) {
         if (delegate != null) {
-            return delegate.get().computeWorldAABB(center, front, up, flipped, margin);
+            return delegate.get().computeWorldAABB(center, orientation, margin);
         }
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
@@ -207,7 +218,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         for (StructurePiece piece : getCompiledPattern().getPieceList()) {
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(maxRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
-            BlockPos pieceCenter = piece.getCenterPos(center, front, up, flipped, prior);
+            BlockPos pieceCenter = piece.getCenterPos(center, orientation, prior);
             PieceTemplate template = piece.getPieceTemplate();
 
             if (piece instanceof RepeatGroupPiece repeatPiece) {
@@ -223,9 +234,10 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                     }
                     BlockPos shift = RelativeDirection.setActualRelativeOffset(
                             local[0], local[1], local[2],
-                            front, up, flipped, template.getStructureDir());
+                            orientation.getStructureFront(), orientation.getUp(),
+                            orientation.isFlipped(), template.getStructureDir());
                     BlockPos[] pieceAabb = template.computeWorldAABB(
-                            pieceCenter.add(shift), front, up, flipped, 0);
+                            pieceCenter.add(shift), orientation, 0);
                     minX = Math.min(minX, pieceAabb[0].getX());
                     minY = Math.min(minY, pieceAabb[0].getY());
                     minZ = Math.min(minZ, pieceAabb[0].getZ());
@@ -241,7 +253,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                 maxRepeats.put(piece.getName(), repeats);
             } else {
                 BlockPos[] pieceAabb = template.computeWorldAABB(
-                        pieceCenter, front, up, flipped, 0);
+                        pieceCenter, orientation, 0);
                 minX = Math.min(minX, pieceAabb[0].getX());
                 minY = Math.min(minY, pieceAabb[0].getY());
                 minZ = Math.min(minZ, pieceAabb[0].getZ());
@@ -262,6 +274,12 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                 new BlockPos(minX - margin, minY - margin, minZ - margin),
                 new BlockPos(maxX + margin, maxY + margin, maxZ + margin)
         };
+    }
+
+    @NotNull
+    public BlockPos[] computeWorldAABB(@NotNull BlockPos center, @NotNull EnumFacing front,
+                                       @NotNull EnumFacing up, boolean flipped, int margin) {
+        return computeWorldAABB(center, StructureOrientation.of(front, front, up, flipped, true), margin);
     }
 
     /**

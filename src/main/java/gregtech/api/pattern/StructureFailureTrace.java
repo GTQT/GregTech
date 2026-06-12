@@ -79,8 +79,7 @@ public final class StructureFailureTrace {
                                                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
         Builder builder = new Builder(controller.getMetaName(), controller.getPos())
                 .formed(controller.isStructureFormed())
-                .orientation(controller.getFrontFacing(), controller.getFrontFacingForStructure(),
-                        controller.getUpwardsFacing(), controller.isFlipped())
+                .orientation(StructureOrientation.fromController(controller))
                 .path(path)
                 .operation(operation)
                 .result("failed")
@@ -301,6 +300,15 @@ public final class StructureFailureTrace {
             this.up = up;
             this.flipped = flipped;
             return this;
+        }
+
+        @NotNull
+        public Builder orientation(@NotNull StructureOrientation orientation) {
+            return orientation(
+                    orientation.getFront(),
+                    orientation.getStructureFront(),
+                    orientation.getUp(),
+                    orientation.isFlipped());
         }
 
         @NotNull

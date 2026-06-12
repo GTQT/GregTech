@@ -177,8 +177,7 @@ public final class StructureCheckResult {
         StructureFailureTrace.Builder builder =
                 new StructureFailureTrace.Builder(controller.getMetaName(), controller.getPos())
                         .formed(controller.isStructureFormed())
-                        .orientation(controller.getFrontFacing(), controller.getFrontFacingForStructure(),
-                                controller.getUpwardsFacing(), controller.isFlipped())
+                        .orientation(StructureOrientation.fromController(controller))
                         .path(getTracePath())
                         .operation("CHECK")
                         .result("failed")

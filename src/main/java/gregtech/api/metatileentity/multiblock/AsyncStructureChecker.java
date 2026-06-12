@@ -5,6 +5,7 @@ import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.element.FormedStructureMetadata;
@@ -200,18 +201,16 @@ public class AsyncStructureChecker {
             if (pos == null) continue;
             StructureDefinition<?> definition = controller.getStructureDefinition();
             long runtimeGeneration = controller.getStructureRuntimeGeneration();
-            EnumFacing frontFacing = controller.getFrontFacingForStructure();
-            EnumFacing upwardsFacing = controller.getUpwardsFacing();
-            boolean allowsFlip = controller.allowsFlip();
+            StructureOrientation orientation = StructureOrientation.fromController(controller);
 
             // Compute precise snapshot region from template AABB
             SnapshotCapture capture = captureSnapshotForController(
                     world, controller, definition, pos,
-                    frontFacing, upwardsFacing, allowsFlip);
+                    orientation);
             AsyncCheckToken token = new AsyncCheckToken(
                     controller, registrationGeneration, runtimeGeneration,
-                    world, pos.toImmutable(), frontFacing, upwardsFacing,
-                    allowsFlip, definition, capture.changeSnapshot);
+                    world, pos.toImmutable(), orientation, definition,
+                    capture.changeSnapshot);
 
             if (capture.oversized) {
                 // Structure AABB exceeds volume cap — route to oversized queue for main-thread fallback
@@ -318,9 +317,7 @@ public class AsyncStructureChecker {
         if (token.controller.getStructureRuntimeGeneration() != token.runtimeGeneration) {
             return "runtime-generation";
         }
-        if (token.controller.getFrontFacingForStructure() != token.frontFacing
-                || token.controller.getUpwardsFacing() != token.upwardsFacing
-                || token.controller.allowsFlip() != token.allowsFlip) {
+        if (!token.orientation.matchesControllerForCheck(token.controller)) {
             return "orientation";
         }
         if (token.changeSnapshot != null
@@ -357,21 +354,15 @@ public class AsyncStructureChecker {
             MultiblockControllerBase controller,
             StructureDefinition<?> definition,
             BlockPos pos,
-            EnumFacing frontFacing,
-            EnumFacing upwardsFacing,
-            boolean allowsFlip) {
+            StructureOrientation orientation) {
         BlockPos[] aabb = definition.computeWorldAABB(
                 pos,
-                frontFacing,
-                upwardsFacing,
-                false,
+                orientation.withFlipped(false),
                 SNAPSHOT_MARGIN);
-        if (allowsFlip) {
+        if (orientation.allowsFlip()) {
             BlockPos[] flippedAabb = definition.computeWorldAABB(
                     pos,
-                    frontFacing,
-                    upwardsFacing,
-                    true,
+                    orientation.withFlipped(true),
                     SNAPSHOT_MARGIN);
             aabb = unionAABB(aabb, flippedAabb);
         }
@@ -449,7 +440,7 @@ public class AsyncStructureChecker {
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
         StructureDefinition<?> definition = task.token.definition;
         return performDefinitionCheck(task, definition, false)
-                || task.token.allowsFlip && performDefinitionCheck(task, definition, true);
+                || task.token.orientation.allowsFlip() && performDefinitionCheck(task, definition, true);
     }
 
     private boolean performDefinitionCheck(@NotNull SnapshotTask task,
@@ -459,6 +450,7 @@ public class AsyncStructureChecker {
         PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
         StructureMatchSession session = multiPiece.createMatchSession();
         session.setControllerContext(task.token.controller);
+        StructureOrientation orientation = task.token.orientation.withFlipped(flipped);
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
 
@@ -474,15 +466,11 @@ public class AsyncStructureChecker {
             if (piece instanceof gregtech.api.pattern.RepeatGroupPiece) {
                 checkOrigin = task.token.centerPos;
             } else {
-                checkOrigin = piece.getCenterPos(
-                        task.token.centerPos, task.token.frontFacing,
-                        task.token.upwardsFacing, flipped, prior);
+                checkOrigin = piece.getCenterPos(task.token.centerPos, orientation, prior);
             }
 
             StructureMatchSession pieceSession = session.fork();
-            if (!piece.checkOnSnapshot(task.snapshot, checkOrigin,
-                    task.token.frontFacing, task.token.upwardsFacing,
-                    flipped, prior, runtime, pieceSession)) {
+            if (!piece.checkOnSnapshot(task.snapshot, checkOrigin, orientation, prior, runtime, pieceSession)) {
                 return false;
             }
             pieceSession.commit();
@@ -493,9 +481,7 @@ public class AsyncStructureChecker {
             if (reps != null && reps.length > 0) {
                 pieceRepeats.put(piece.getName(), reps.clone());
             }
-            pieceCenters.put(piece.getName(), piece.getCenterPos(
-                    task.token.centerPos, task.token.frontFacing,
-                    task.token.upwardsFacing, flipped, prior));
+            pieceCenters.put(piece.getName(), piece.getCenterPos(task.token.centerPos, orientation, prior));
         }
         return session.validate(false).success;
     }
@@ -549,9 +535,7 @@ public class AsyncStructureChecker {
         final long runtimeGeneration;
         final World world;
         final BlockPos centerPos;
-        final EnumFacing frontFacing;
-        final EnumFacing upwardsFacing;
-        final boolean allowsFlip;
+        final StructureOrientation orientation;
         final StructureDefinition<?> definition;
         @Nullable
         final MultiblockWorldData.ChangeSnapshot changeSnapshot;
@@ -561,9 +545,7 @@ public class AsyncStructureChecker {
                         long runtimeGeneration,
                         World world,
                         BlockPos centerPos,
-                        EnumFacing frontFacing,
-                        EnumFacing upwardsFacing,
-                        boolean allowsFlip,
+                        StructureOrientation orientation,
                         StructureDefinition<?> definition,
                         @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot) {
             this.controller = controller;
@@ -571,9 +553,7 @@ public class AsyncStructureChecker {
             this.runtimeGeneration = runtimeGeneration;
             this.world = world;
             this.centerPos = centerPos;
-            this.frontFacing = frontFacing;
-            this.upwardsFacing = upwardsFacing;
-            this.allowsFlip = allowsFlip;
+            this.orientation = orientation;
             this.definition = definition;
             this.changeSnapshot = changeSnapshot;
         }

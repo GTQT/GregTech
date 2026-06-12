@@ -268,6 +268,20 @@ public class StructurePiece {
      */
     @NotNull
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
+                                 @NotNull StructureOrientation orientation) {
+        return getCenterPos(
+                controllerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped());
+    }
+
+    /**
+     * Compute the piece center with the same complete orientation used for
+     * transforming pattern cells.
+     */
+    @NotNull
+    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull EnumFacing frontFacing,
                                  @NotNull EnumFacing upFacing,
                                  boolean flipped) {
@@ -296,6 +310,24 @@ public class StructurePiece {
      */
     @NotNull
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
+                                 @NotNull StructureOrientation orientation,
+                                 @Nullable FormedStructureMetadata prior) {
+        return getCenterPos(
+                controllerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                prior);
+    }
+
+    /**
+     * Compute the actual center position, with access to the prior pieces' runtime
+     * metadata. This overload supports pieces whose offset depends on the runtime
+     * repeat count of an earlier piece (e.g. the "top" piece that follows a
+     * repeatable "body" piece in the middle of a structure).
+     */
+    @NotNull
+    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull EnumFacing frontFacing,
                                  @NotNull EnumFacing upFacing,
                                  boolean flipped,
@@ -311,12 +343,47 @@ public class StructurePiece {
      * @param runtime the per-controller state holder for this piece
      */
     public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
+                                   @NotNull StructureOrientation orientation,
+                                   @Nullable FormedStructureMetadata prior,
+                                   @NotNull PieceRuntime runtime) {
+        return checkOnSnapshot(
+                snap,
+                origin,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                prior,
+                runtime);
+    }
+
+    /**
+     * Async structure check entry point.
+     * Delegates to the snapshot checker bound at construction time, passing in
+     * the per-controller {@link PieceRuntime}.
+     */
+    public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                    @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
                                    @Nullable FormedStructureMetadata prior,
                                    @NotNull PieceRuntime runtime) {
         StructureMatchSession session = new StructureMatchSession();
         return checkOnSnapshot(snap, origin, front, up, flipped, prior, runtime, session)
                 && session.validate(false).success;
+    }
+
+    public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
+                                   @NotNull StructureOrientation orientation,
+                                   @Nullable FormedStructureMetadata prior,
+                                   @NotNull PieceRuntime runtime,
+                                   @NotNull StructureMatchSession session) {
+        return checkOnSnapshot(
+                snap,
+                origin,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                prior,
+                runtime,
+                session);
     }
 
     public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,

@@ -11,6 +11,7 @@ import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.StructureOperationState;
 import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
@@ -164,19 +165,20 @@ public final class StructureCheckState {
      */
     @NotNull
     public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
-                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
+                        @NotNull StructureOrientation orientation,
                         @Nullable PatternMatchContext context) {
-        return check(world, controllerPos, front, up, allowsFlip, context, null);
+        return check(world, controllerPos, orientation, context, null);
     }
 
     @NotNull
     public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
-                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
+                        @NotNull StructureOrientation orientation,
                         @Nullable PatternMatchContext context,
                         @Nullable MultiblockControllerBase controller) {
-        Result result = checkOrientation(world, controllerPos, front, up, false, context, controller);
-        if (!result.success && allowsFlip) {
-            Result flippedResult = checkOrientation(world, controllerPos, front, up, true, context, controller);
+        Result result = checkOrientation(world, controllerPos, orientation.withFlipped(false), context, controller);
+        if (!result.success && orientation.allowsFlip()) {
+            Result flippedResult =
+                    checkOrientation(world, controllerPos, orientation.withFlipped(true), context, controller);
             if (!flippedResult.success && flippedResult.missingAbilities.isEmpty()
                     && !result.missingAbilities.isEmpty()) {
                 return result;
@@ -187,8 +189,28 @@ public final class StructureCheckState {
     }
 
     @NotNull
+    public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
+                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
+                        @Nullable PatternMatchContext context) {
+        return check(world, controllerPos, front, up, allowsFlip, context, null);
+    }
+
+    @NotNull
+    public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
+                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
+                        @Nullable PatternMatchContext context,
+                        @Nullable MultiblockControllerBase controller) {
+        return check(
+                world,
+                controllerPos,
+                StructureOrientation.of(front, front, up, false, allowsFlip),
+                context,
+                controller);
+    }
+
+    @NotNull
     private Result checkOrientation(@NotNull World world, @NotNull BlockPos controllerPos,
-                                    @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                                    @NotNull StructureOrientation orientation,
                                     @Nullable PatternMatchContext context,
                                     @Nullable MultiblockControllerBase controller) {
         MultiPiecePattern pattern = definition.getCompiledPattern();
@@ -222,19 +244,19 @@ public final class StructureCheckState {
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
             if (!piece.isActive(activation)) continue;
-            BlockPos centerPos = piece.getCenterPos(
-                    controllerPos, front, up, flipped, prior);
+            BlockPos centerPos = piece.getCenterPos(controllerPos, orientation, prior);
             if (ConfigHolder.machines.debugStructureCheck) {
                 GTLog.logger.debug(
                         "[StructureDefinition] checking piece={} center={} front={} up={} flipped={}",
-                        piece.getName(), centerPos, front, up, flipped);
+                        piece.getName(), centerPos, orientation.getStructureFront(),
+                        orientation.getUp(), orientation.isFlipped());
             }
 
             if (piece instanceof RepeatGroupPiece repeatPiece) {
                 // Repeatable piece: use synchronous World-based check
                 // (uses checkPatternFastAt for cache-accelerated checks)
                 boolean ok = repeatPiece.checkSync(
-                        world, controllerPos, front, up, flipped, prior, runtime, session);
+                        world, controllerPos, orientation, prior, runtime, session);
                 if (!ok) {
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
@@ -254,7 +276,7 @@ public final class StructureCheckState {
                 // their position from the prior pieces' repeat counts.
                 StructureMatchSession pieceSession = session.fork();
                 PatternMatchContext pieceContext = runtime.getState().checkPatternAtExact(
-                        world, centerPos, front, up, flipped, 0, 0, 0, pieceSession);
+                        world, centerPos, orientation, 0, 0, 0, pieceSession);
 
                 if (pieceContext == null) {
                     lastErrorPos = centerPos;
@@ -294,7 +316,7 @@ public final class StructureCheckState {
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 pieceRepeats, channelValues, pieceCenters);
         return Result.success(
-                metadata, session.getContext().copy(), session.copyOperationState(), flipped);
+                metadata, session.getContext().copy(), session.copyOperationState(), orientation.isFlipped());
     }
 
     /**

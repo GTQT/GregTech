@@ -51,8 +51,7 @@ public final class StructureTrace {
                                                       @NotNull String detail) {
         return new StructureFailureTrace.Builder(controller.getMetaName(), controller.getPos())
                 .formed(controller.isStructureFormed())
-                .orientation(controller.getFrontFacing(), controller.getFrontFacingForStructure(),
-                        controller.getUpwardsFacing(), controller.isFlipped())
+                .orientation(StructureOrientation.fromController(controller))
                 .path(path)
                 .operation("COMMIT")
                 .result("assembly-rejected")

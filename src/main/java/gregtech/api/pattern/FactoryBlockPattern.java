@@ -49,7 +49,7 @@ public class FactoryBlockPattern {
      *         {@code .repeatableX(...) / .repeatableY(...) / .repeatableZ(...)} (uniform single-axis)
      *         or {@code .repeatablePiece(...).repeatAxes(...)} (uniform multi-axis) instead.
      *         This API will be removed in 2.10. New machines must use
-     *         {@code createStructureDefinition()} (see {@code docs/structure-element-system-design-v2.md} §14).
+     *         {@code createStructureDefinition()} (see {@code docs/design/structure-system-v3-design.md}).
      */
     @Deprecated
     @ApiStatus.ScheduledForRemoval(inVersion = "2.10")

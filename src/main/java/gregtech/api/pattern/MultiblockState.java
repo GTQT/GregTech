@@ -534,6 +534,12 @@ public class MultiblockState {
         return checkPatternAtExact(world, centerPos, frontFacing, upwardsFacing, isFlipped, 0, 0, 0);
     }
 
+    @Nullable
+    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                                   @NotNull StructureOrientation orientation) {
+        return checkPatternAtExact(world, centerPos, orientation, 0, 0, 0);
+    }
+
     /**
      * Exact-orientation check with a template-local offset applied to every cell.
      */
@@ -544,6 +550,14 @@ public class MultiblockState {
                                                    boolean isFlipped,
                                                    int xOffset, int yOffset, int zOffset) {
         return checkPatternAtExact(world, centerPos, frontFacing, upwardsFacing, isFlipped,
+                xOffset, yOffset, zOffset, null);
+    }
+
+    @Nullable
+    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                                   @NotNull StructureOrientation orientation,
+                                                   int xOffset, int yOffset, int zOffset) {
+        return checkPatternAtExact(world, centerPos, orientation,
                 xOffset, yOffset, zOffset, null);
     }
 
@@ -562,6 +576,23 @@ public class MultiblockState {
                 xOffset, yOffset, zOffset, session);
         if (result == null) clearCache();
         return result;
+    }
+
+    @Nullable
+    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                                   @NotNull StructureOrientation orientation,
+                                                   int xOffset, int yOffset, int zOffset,
+                                                   @Nullable StructureMatchSession session) {
+        return checkPatternAtExact(
+                world,
+                centerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                xOffset,
+                yOffset,
+                zOffset,
+                session);
     }
 
     /**
@@ -1611,6 +1642,13 @@ public class MultiblockState {
                 0, 0, 0);
     }
 
+    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                               @NotNull BlockPos pieceOrigin,
+                                               int axis,
+                                               @NotNull StructureOrientation orientation) {
+        return checkAxisLineFastAtSnapshot(snap, pieceOrigin, axis, orientation, 0, 0, 0);
+    }
+
     /**
      * 1D slice verification along a specific axis (tensor product piece optimization),
      * with an additional template-local cell offset folded into the per-cell transformation.
@@ -1662,6 +1700,23 @@ public class MultiblockState {
             }
         }
         return true;
+    }
+
+    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                               @NotNull BlockPos pieceOrigin,
+                                               int axis,
+                                               @NotNull StructureOrientation orientation,
+                                               int xOffset, int yOffset, int zOffset) {
+        return checkAxisLineFastAtSnapshot(
+                snap,
+                pieceOrigin,
+                axis,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                xOffset,
+                yOffset,
+                zOffset);
     }
 
     /**
@@ -1802,6 +1857,16 @@ public class MultiblockState {
                 xOffset, yOffset, zOffset, null);
     }
 
+    @Nullable
+    public PatternMatchContext checkPatternAtSnapshotExact(
+            @NotNull net.minecraft.world.IBlockAccess blockAccess,
+            @NotNull BlockPos centerPos,
+            @NotNull StructureOrientation orientation,
+            int xOffset, int yOffset, int zOffset) {
+        return checkPatternAtSnapshotExact(blockAccess, centerPos, orientation,
+                xOffset, yOffset, zOffset, null);
+    }
+
     /**
      * Snapshot check participating in a larger transactional match.
      */
@@ -1817,6 +1882,25 @@ public class MultiblockState {
         return checkPatternAtSnapshot(
                 blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped,
                 xOffset, yOffset, zOffset, session);
+    }
+
+    @Nullable
+    public PatternMatchContext checkPatternAtSnapshotExact(
+            @NotNull net.minecraft.world.IBlockAccess blockAccess,
+            @NotNull BlockPos centerPos,
+            @NotNull StructureOrientation orientation,
+            int xOffset, int yOffset, int zOffset,
+            @Nullable StructureMatchSession session) {
+        return checkPatternAtSnapshotExact(
+                blockAccess,
+                centerPos,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                xOffset,
+                yOffset,
+                zOffset,
+                session);
     }
 }
 

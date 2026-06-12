@@ -2,25 +2,32 @@
 
 **Implementation status snapshot:** 2026-06-12
 
-## Goals
+## Executive Summary
 
-The V3 structure system keeps GregTech's existing multiblock domain model, but gives the structure checker a cleaner
-library boundary inspired by StructureLib.
+V3 keeps GregTech's existing multiblock domain model, but moves structure checking toward a cleaner library boundary
+inspired by StructureLib:
 
-The goal is not to copy StructureLib and not to replace the current checker in one pass. The immediate goal is to make
-the current behavior observable, move controller-owned structure state behind one runtime, and then redesign the element
-execution boundary without breaking existing multiblocks.
+- `StructureDefinition` is the canonical public declaration shape for new multiblocks.
+- `StructureRuntime` is the canonical per-controller owner for V3 structure state.
+- Structure operations should normalize into request, session, result, and server-thread commit phases.
+- Direct `IStructureElement` implementations are the primary cell runtime. `TraceabilityPredicate` remains as a
+  compatibility adapter, not the execution model for new elements.
 
-The central technical debt is now clear: GregTech already has a new `IStructureElement` package, but new elements are
-still forced through the legacy `TraceabilityPredicate` execution model. V3 must make structure elements the primary
-runtime contract and keep `TraceabilityPredicate` as a compatibility adapter.
+The goal is not to copy StructureLib and not to replace the current checker in one pass. The current strategy is to
+keep existing behavior observable, preserve addon compatibility, and tighten ownership boundaries until one traversal
+engine can safely serve checks, previews, hints, creative build, survival build, iteration, and snapshot checks.
 
-## What StructureLib Does Better
+When matching behavior is uncertain, prefer adding trace output first and ask for the resulting logs before changing
+logic.
+
+## Design Drivers
+
+### What StructureLib Does Better
 
 StructureLib has a stronger separation between structure declaration, structure execution, and user tools:
 
-- `IStructureDefinition<T>` is a library-level contract. It can check, hint, build, survival-build, and iterate with the
-  same shape definition.
+- `IStructureDefinition<T>` is a library-level contract. It can check, hint, build, survival-build, and iterate with
+  the same shape definition.
 - `IStructureElement<T>` owns cell-level behavior: match, hint, description, possible blocks, and placement.
 - `ExtendedFacing` represents direction, rotation, and flip as one complete orientation state.
 - `IConstructable` and `ISurvivalConstructable` let tools trigger hints and construction without knowing the machine
@@ -30,7 +37,7 @@ StructureLib has a stronger separation between structure declaration, structure 
 
 GregTech should absorb these boundaries, not copy the implementation directly.
 
-## What GregTech Should Keep
+### What GregTech Should Keep
 
 GregTech already has structure capabilities that are more specific and more valuable than StructureLib's generic layer:
 
@@ -42,82 +49,132 @@ GregTech already has structure capabilities that are more specific and more valu
 
 V3 should make these concepts easier to reason about and less scattered.
 
-## Current State And Gaps
+### Non-Goals For The First Pass
+
+- No rewrite of `MultiblockState` matching.
+- No behavior change to structure formation.
+- No removal of legacy `FactoryBlockPattern`.
+- No removal of `TraceabilityPredicate`.
+- No change to JEI preview format.
+- No change to auto-build placement rules.
+- No broad controller refactor before trace logging exists.
+
+## Terminology And Ownership
+
+| Concept | Ownership | Role |
+|---|---|---|
+| `StructureDefinition` | Immutable, shared | Canonical public declaration for new structures. |
+| `PieceTemplate` | Immutable, shared | Canonical compiled piece representation. |
+| `BlockPatternTemplate` | Immutable, shared | Compatibility facade for single-piece APIs and legacy tools. |
+| `MultiPiecePattern` | Immutable, shared | Compiled multi-piece structure shape. |
+| `MultiblockState` | Per controller | Mutable single-piece checker state retained for compatibility. |
+| `PieceRuntimes` / `PieceRuntime` | Per controller | Mutable multi-piece checker state, dirty flags, caches, and formed positions. |
+| `StructureRuntime` | Per controller | V3 home for resolved definition, compatibility views, formed metadata, channels, missing abilities, evaluator, and last failure. |
+| `StructureMatchSession` | Per operation attempt | Speculative state for branches, forks, checkpoints, collectors, and typed context. |
+| `StructureOperationState` | Per operation result | Typed collected state for parts, active casing positions, counts, and requirements. |
+| `StructureOrientation` | Immutable value | Captures controller front, structure front, up direction, flip, and flip policy for operation tokens and diagnostics. |
+| `PatternMatchContext` | Compatibility view | Legacy string-keyed context. New state should move to typed keys or collectors. |
+| `StructureCheckResult` | Immutable operation result | Normalized synchronous check result before assembly and commit. |
+| `MultiblockStructureCommitter` | Server-thread commit helper | Validates prepared results and publishes controller/runtime state. |
+
+The important rule is simple: immutable definitions may be shared, but mutable checker state and formed state must belong
+to one controller runtime or one operation-local session.
+
+## Current Implementation Snapshot
+
+### Already Implemented
 
 GregTech already has part of the V3 shape:
 
-- Controller runtime initialization now resolves a canonical `StructureDefinition<T>` first. Legacy
-  `BlockPatternTemplate` and `MultiPiecePattern` hooks are adapted into definitions before runtime/checker code sees
-  them.
+- Controller runtime initialization resolves a canonical `StructureDefinition<?>` first. Direct
+  `createStructureDefinition()` wins; legacy `createMultiPiecePattern()` and `createStructureTemplate()` hooks are
+  adapted into definitions before runtime/checker code sees them.
 - `FactoryBlockPattern`, `BlockPatternTemplate`, `BlockPattern`, and `MultiPiecePattern` are compatibility surfaces for
-  old declarations and tools. New structure declarations should return one definition from `createStructureDefinition()`.
-- `StructureRuntime` exists as the per-controller state holder skeleton and carries the resolved definition,
-  single-template compatibility view, piece runtimes, formed metadata, channel values, and last failure trace.
-- Formed metadata, formed channel values, missing abilities, and the last failure now have one canonical owner in
-  `StructureRuntime`; `MultiblockControllerBase` no longer mirrors metadata and channels in separate fields.
-- Successful definition checks now validate assembly/reassembly before publishing runtime state. Part-sharing rejection
-  is recorded as a `COMMIT` failure and does not overwrite the last committed formed metadata.
+  old declarations and tools. New structure declarations should return one definition from
+  `createStructureDefinition()`.
+- `StructureRuntime` exists as the per-controller state holder. It carries the resolved definition, single-template
+  compatibility view, piece runtimes, formed metadata, channel values, missing abilities, evaluator, and last failure.
+- Formed metadata, formed channel values, missing abilities, and last failure now have one canonical owner in
+  `StructureRuntime`. `MultiblockControllerBase` no longer mirrors metadata and channels in separate fields.
 - `StructureOperationEvaluator` is the thin operation boundary used by controller checks, previews, creative build
   tools, legacy `BlockPattern`, and structure iteration while delegating to the existing implementations.
 - Synchronous definition and legacy-template checks are normalized into immutable `StructureCheckResult` values before
-  controller assembly. Match context, channel values, and missing abilities are copied at this boundary.
-- Initial formation and reassembly now produce one `PreparedCommit` shape and pass through
-  `MultiblockStructureCommitter`, preserving validation-before-publication for both paths and keeping commit side effects
-  out of controller check orchestration.
-- Compiled elements expose `StructureElementCapability`; snapshot matching is opt-in, with legacy predicates,
-  tile-entity elements, wrappers with callbacks, and conditional pieces falling back to live checks.
+  controller assembly. Match context, channel values, operation state, and missing abilities are copied at this boundary.
+- Initial formation and reassembly produce one `PreparedCommit` shape and pass through
+  `MultiblockStructureCommitter`. Commit validation happens before controller/runtime state is published.
+- Successful definition checks validate assembly/reassembly before publishing runtime state. Part-sharing rejection is
+  recorded as a `COMMIT` failure and does not overwrite the last committed formed metadata.
+- `StructureEvaluationContext`, `StructureMatchCollector`, `StructureOperationState`, and `StructureMatchSession` carry
+  typed collector state through V3 checks, forks, checkpoints, result creation, and assembly. Legacy context-only
+  traversals still use compatibility keys.
+- `gregtech.api.pattern.element.IStructureElement` exists and has context-aware methods for check, candidates, hints,
+  creative placement, survival placement, and deferred requirement collection.
+- New elements no longer require `toPredicate()`. `CompiledStructureElement` executes direct elements without routing
+  them through a predicate. `LegacyElement` retains predicate execution for compatibility declarations.
+- Block, air, any, self, chain, wrapper, hatch, casing, tiered casing, coil, and related domain declarations have direct
+  runtime paths.
+- Compiled elements expose `StructureElementCapability`. Snapshot matching is opt-in; legacy predicates, tile-entity
+  elements, wrappers with callbacks, and conditional pieces fall back to live checks when needed.
 - Async snapshot tasks carry registration/runtime generations, orientation, and covered-chunk change revisions. Stale
-  tasks and results are trace-rejected without changing formed or failure state.
+  tasks and results are trace-rejected before they can change formed or failure state.
+- `StructureOrientation` exists as the initial unified orientation value object. Async check tokens, failure trace
+  construction, controller-facing evaluator check/iteration entry points, definition/check-state/AABB entry points,
+  `StructurePiece` center/snapshot entry points, template AABB/predicate facades, repeat-group synchronous entry points,
+  multi-piece dirty/full check entry points, and `MultiblockState` exact live/snapshot entry points use it. Low-level
+  template, repeat-group, and `MultiblockState`
+  traversal internals still receive legacy `front/up/flipped` arguments.
 - Controller-side orchestration has started moving into focused helpers:
   `MultiblockStructureCheckScheduler`, `MultiblockStructureAssembler`, `MultiblockStructureRegistration`,
   `MultiblockStructureCommitter`, `MultiblockStructurePreviews`, `MultiblockStructureChannels`, and
   `MultiblockControllerClientHooks`. These helpers are transitional implementation boundaries, not new addon APIs.
-- `gregtech.api.pattern.element.IStructureElement` exists and has context-aware methods for check, candidates, hints,
-  creative placement, and survival placement.
-- New elements no longer require `toPredicate()`. `CompiledStructureElement` executes direct elements without routing
-  them through a predicate; `LegacyElement` retains predicate execution for compatibility declarations.
-- Block, air, any, self, chain, wrapper, hatch, casing, tiered casing, and coil declarations have direct runtime paths.
-- `StructureOperationState` and `StructureMatchCollector` own transactional direct-element parts, counts, active casing
-  positions, and deferred requirements. `StructureMatchSession` copies this typed state across forks and checkpoints.
-- `StructureDefinition` can describe single-piece and multi-piece structures.
-- `StructureCompiler` can compile those definitions into the current multi-piece runtime.
-- `DeclarativePatternBuilder` already carries GregTech-specific casing, hatch, tier, channel, tooltip, and ability-limit
-  semantics.
-- Fixed single-piece controllers are being migrated to return cached definitions directly. The completed batches cover
-  the vacuum freezer, implosion compressor, coke oven, saw mill, steam grinder, steam oven, active transformer,
-  battery accumulator, network switch, research station, primitive water pump, primitive blast furnace, pyrolyse oven,
-  processing array, multi smelter, multi alloy furnace, electric blast furnace, cracking unit, large chemical reactor,
-  multiblock tank, large boiler, large combustion engine, large turbine, large miner, fluid drill, and fusion reactor.
-- Large turbine, large miner, fluid drill, and fusion reactor still expose their existing `buildTemplate()` and
-  `register...Type(Supplier<BlockPatternTemplate>)` compatibility APIs, but controller runtime now consumes the
-  registered structures through cached `StructureDefinition` adapters.
-- The network switch now explicitly overrides `createStructureDefinition()`, preventing the canonical resolver from
-  selecting the inherited data bank definition before reaching the switch's legacy template hook.
 - `PieceTemplate` is the canonical compiled piece representation for new definitions. `BlockPatternTemplate` remains the
   public compatibility facade required by existing APIs and controller fields.
 
-However, the migration is not complete yet:
+### Controller Migration Snapshot
 
-- Legacy declarations and custom predicate alternatives still execute through `TraceabilityPredicate`.
-- The remaining controller-owned legacy hooks are limited to the dynamically generated charcoal pile and the Godforge
-  module/controller path, plus base compatibility surfaces for addons.
+Fixed single-piece and multi-piece core controllers are being migrated to return cached definitions directly. Completed
+or already definition-backed examples include the vacuum freezer, implosion compressor, coke oven, saw mill, steam
+grinder, steam oven, active transformer, battery accumulator, network switch, research station, primitive water pump,
+primitive blast furnace, pyrolyse oven, processing array, multi smelter, multi alloy furnace, electric blast furnace,
+cracking unit, large chemical reactor, multiblock tank, large boiler, large combustion engine, large turbine, large
+miner, fluid drill, fusion reactor, assembly line, distillation tower, data bank, HPCA, power substation, central
+monitor, and cleanroom.
+
+Some controllers intentionally still build definitions from compatibility pieces:
+
+- Cleanroom returns a `StructureDefinition`, but still builds a dynamic `FactoryBlockPattern` internally because its
+  dimensions are discovered at runtime.
+- Large turbine, large miner, fluid drill, and fusion reactor still expose existing `buildTemplate()` and registration
+  compatibility APIs, but controller runtime consumes registered structures through cached `StructureDefinition`
+  adapters.
+- The network switch explicitly overrides `createStructureDefinition()`, preventing the canonical resolver from
+  selecting the inherited data bank definition before reaching the switch structure.
+
+The remaining controller-owned legacy hooks are mainly the dynamically generated charcoal pile and the Godforge
+controller/module path, plus base compatibility surfaces for addons.
+
+### Known Gaps
+
+The migration is not complete yet:
+
+- Legacy declarations and custom predicate alternatives can still execute through `TraceabilityPredicate`.
 - Context-only legacy traversals still use `PatternMatchContext` collector keys as an adapter. Session-backed V3 checks
-  carry typed collector state through `StructureCheckResult` and only materialize legacy keys for compatibility callbacks.
-- The operation evaluator delegates to separate single-piece, multi-piece, preview, and build traversals. Those
-  traversals have not yet converged on one implementation.
+  carry typed collector state through `StructureCheckResult` and only materialize legacy keys for compatibility
+  callbacks.
+- `StructureOperationEvaluator` delegates to separate single-piece, multi-piece, preview, build, and iteration
+  traversals. Those traversals have not yet converged on one implementation.
+- Survival build and hints are not fully routed through the same operation request/session/result model as checks.
 - Global ability policy and diagnostics still span session, controller, runtime, and legacy error objects.
 - `MultiblockControllerBase` still owns lifecycle policy such as invalidation and exposes the final `formStructure()`
-  callback, but synchronous check-result publication, part attachment, runtime publication, and registration now pass
-  through `MultiblockStructureCommitter`. Direct async-result publication remains future work; the current async path
-  generation-checks snapshot results before requesting main-thread confirmation.
+  callback. Synchronous check-result publication, part attachment, runtime publication, and registration now pass
+  through `MultiblockStructureCommitter`; direct async-result publication remains future work.
 - Snapshot capability is explicit for compiled elements, but legacy predicates, tile-entity elements, and conditional
   piece activation remain live-world fallbacks until immutable snapshot inputs cover those cases.
 - Survival construction may call `check` to decide whether a block is already valid. If `check` mutates match state, the
   construction path can accidentally pollute formation state.
 
-This means the structure element system needs an architectural boundary redesign. It does not mean the whole structure
-system should be deleted and rewritten. The migration should keep current behavior observable and compatible while the
-element runtime becomes the primary execution model.
+These gaps mean the element runtime needs a tighter architectural boundary. They do not mean the whole structure system
+should be deleted and rewritten.
 
 ## Target Architecture
 
@@ -125,11 +182,9 @@ element runtime becomes the primary execution model.
 
 New multiblocks should expose a single `StructureDefinition`.
 
-Single-piece templates, legacy `FactoryBlockPattern`, and `BlockPattern` remain as adapters. A single-piece structure is
-just a `StructureDefinition` with one piece.
-
-Business code should not need to choose between `BlockPatternTemplate`, `BlockPattern`, and `MultiPiecePattern` for new
-structures.
+Single-piece templates, legacy `FactoryBlockPattern`, and legacy `BlockPattern` remain as adapters. A single-piece
+structure is just a `StructureDefinition` with one piece. Business code should not need to choose between
+`BlockPatternTemplate`, `BlockPattern`, and `MultiPiecePattern` for new structures.
 
 ### 2. One Per-Controller Runtime
 
@@ -162,7 +217,7 @@ All structure actions should go through one traversal/evaluation path:
 
 This removes drift between JEI preview, auto-build, async check, and main-thread formation checks.
 
-### 4. Element Runtime Boundary
+### 4. Direct Element Runtime Boundary
 
 V3 element execution should be a primary runtime contract, not a wrapper around `TraceabilityPredicate`.
 
@@ -176,9 +231,9 @@ The new element contract should cover:
 - `survivalPlace(context)`
 - `collectRequirements(context)`
 
-`toPredicate()` must not be required for new elements. Legacy predicates should enter the system through a
-`LegacyElement` or equivalent adapter. New elements may optionally expose a predicate adapter for old callers, but the
-operation evaluator must not depend on that adapter.
+`toPredicate()` must not be required for new elements. Legacy predicates should enter the system through `LegacyElement`
+or an equivalent adapter. New elements may optionally expose a predicate adapter for old callers, but the operation
+evaluator must not depend on that adapter.
 
 ### 5. Pure Matching And Side-Effect Collection
 
@@ -201,16 +256,16 @@ This is the most important tightening point in the current system.
 
 ### 6. Unified Orientation
 
-V3 should introduce a `StructureOrientation` value object that represents:
+V3 has introduced a `StructureOrientation` value object that represents:
 
 - Front direction.
+- Structure front direction.
 - Up direction.
-- Rotation.
 - Flip.
 - Allowed orientation limits.
 
-The existing `front/up/flipped` fields and `allowsExtendedFacing()` remain as compatibility surfaces while the internal
-checker moves to a single orientation transform.
+The existing `front/up/flipped` fields, low-level method arguments, and `allowsExtendedFacing()` remain as compatibility
+surfaces while the internal checker moves to a single orientation transform.
 
 ### 7. Runtime World Index
 
@@ -231,7 +286,7 @@ The controller should not duplicate this policy.
 GregTech should keep `DeclarativePatternBuilder` as the domain-facing DSL, but its output should converge on
 `StructureDefinition`.
 
-`buildTemplate()` should become a compatibility API. New code should prefer `buildDefinition()` /
+`buildTemplate()` should become a compatibility API. New code should prefer `buildDefinition()` or
 `buildStructureDefinition()`.
 
 GregTech-specific DSL features remain first-class:
@@ -243,7 +298,7 @@ GregTech-specific DSL features remain first-class:
 - automatic tooltips
 - global ability limits
 
-StructureLib's channel-trigger tool chain can be adapted later as a GregTech channel item or GUI, but that is a tooling
+StructureLib's channel-trigger tool chain can be adapted later as a GregTech channel item or GUI. That is a tooling
 feature on top of the runtime boundary, not the foundation of the redesign.
 
 ## Architecture Invariants
@@ -298,8 +353,8 @@ One request creates one root `StructureMatchSession`. The session owns all specu
 - Visited positions and dirty-piece information.
 - Diagnostic candidates and failure details.
 
-Alternative branches use `fork()` or checkpoints. A branch commits only after its complete cell and deferred
-requirements succeed. This rule applies to:
+Alternative branches use forks or checkpoints. A branch commits only after its complete cell and deferred requirements
+succeed. This rule applies to:
 
 - Predicate/element chains.
 - Flip and orientation attempts.
@@ -321,7 +376,7 @@ The target cell sequence is:
 5. Record only operation-local effects.
 6. Commit the cell branch or restore its checkpoint.
 
-Matching is "pure" relative to the controller and world. It may record effects in the operation-local collector, but it
+Matching is pure relative to the controller and world. It may record effects in the operation-local collector, but it
 must not attach parts, update machine fields, place blocks, mark the runtime formed, or write a failure directly to the
 controller.
 
@@ -386,7 +441,7 @@ a child session whose effects are always discarded.
 Snapshot checking is valid only when every active piece and element can execute from `IBlockAccess` data captured by the
 snapshot. V3 should make this explicit rather than relying on a null `World` failure.
 
-Each compiled element should eventually advertise operation capabilities, including:
+Each compiled element should advertise operation capabilities, including:
 
 - Live-world match support.
 - Snapshot match support.
@@ -427,7 +482,7 @@ Controller compatibility hooks follow the same rule:
 - `BlockPattern`, `BlockPatternTemplate`, and legacy error accessors are output facades.
 - No new core controller should add logic that is reachable only through a legacy hook.
 
-## Failure Selection
+## Failure Diagnostics And Trace Logging
 
 Diagnostics must be deterministic. The evaluator should retain the failure from the branch that made the most progress,
 with stable tie-breaking by definition order. A useful failure record contains:
@@ -442,9 +497,7 @@ with stable tie-breaking by definition order. A useful failure record contains:
 When both non-flipped and flipped checks fail, missing required abilities should not be hidden by a less useful generic
 cell mismatch from the other branch. The selection policy belongs in the evaluator and should be covered by tests.
 
-## Trace Logging
-
-Uncertain failures should first become observable. V3 adds trace logging behind `debugStructureTrace`.
+Trace logging exists to make uncertain failures observable. V3 adds trace logging behind `debugStructureTrace`.
 
 Trace events should include:
 
@@ -463,8 +516,6 @@ Trace events should include:
 `StructureFailureTrace` should store the last failure on the runtime for commands such as
 `/gt_structure_trace <pos>`.
 
-When behavior is uncertain, prefer adding trace output before changing matching logic.
-
 Trace logging and stored failure state serve different purposes:
 
 - Debug trace is chronological and may contain many lifecycle events.
@@ -473,41 +524,56 @@ Trace logging and stored failure state serve different purposes:
 - A successful committed structure check clears the last formation failure.
 - Async stale-result rejection should be traceable but should not replace a more useful current mismatch.
 
-## Migration Plan
+When behavior is uncertain, add trace output before changing matching logic.
+
+## Migration Roadmap
 
 Status labels describe the code in the 2026-06-12 implementation snapshot.
 
-1. **Done:** Add `debugStructureTrace` and lightweight lifecycle trace events without changing matching behavior.
-2. **Done:** Add `StructureFailureTrace` and store observable failures where the existing checker knows them.
-3. **Done:** Add `StructureRuntime` and a thin `StructureOperationEvaluator`.
-4. **Mostly done:** Formed metadata, channels, missing abilities, and last failure are runtime-owned. Checker caches,
-   formed flag, attached parts, and ability instances still live in controller/piece state.
-5. **Done, transitional:** Introduce `StructureEvaluationContext` and `StructureMatchCollector` backed by
-   `PatternMatchContext`.
-6. **Done:** Make direct elements independent of mandatory `toPredicate()` execution.
-7. **Done:** Keep `TraceabilityPredicate` support through `LegacyElement`.
-8. **Done:** Execute direct elements through `CompiledStructureElement`.
-9. **Done:** Convert block, air, any, self, chain, and wrapper elements.
-10. **Done:** Convert hatch, casing, tiered casing, coil, and related domain elements to direct execution paths.
-11. **In progress:** Route check, preview, creative build, and iteration through the evaluator while preserving existing
-    traversals.
-12. **In progress:** Route survival build and hints through the same operation request/session/result model.
-13. **Mostly done:** Convert fixed core controllers to `createStructureDefinition()`. Dynamic charcoal-pile and Godforge
-    paths remain intentional migration cases; addon compatibility hooks remain.
-14. **In progress:** Extract controller orchestration into scheduler, assembly, registration, preview, channel, and
-    client-hook helpers.
-15. **Done for synchronous checks:** `StructureCheckResult` provides an immutable synchronous check result, initial
-    assembly and reassembly produce one `PreparedCommit`, and `MultiblockStructureCommitter` owns the shared
-    validation-before-publication commit phase.
-16. **Done for session-backed V3 checks:** `StructureOperationState` carries collector-owned parts, counts, active
-    positions, and requirements through session forks, checkpoints, immutable check results, and assembly. Legacy
-    context-only traversals retain a compatibility adapter.
-17. **Done for the current snapshot-confirmation path:** Compiled elements advertise operation capabilities; unsupported
-    snapshot elements use live polling. Async tasks/results reject stale registration/runtime generations, orientation,
-    and covered-chunk revisions before requesting a main-thread confirmation.
-18. **Planned:** Converge single-piece, multi-piece, live, and snapshot checks on one traversal implementation.
-19. **Planned:** Converge preview, hints, creative build, survival build, and iteration on the same coordinate traversal.
-20. **Planned:** Add diagnostic command and in-game structure trace view.
+### Done
+
+1. Add `debugStructureTrace` and lightweight lifecycle trace events without changing matching behavior.
+2. Add `StructureFailureTrace` and store observable failures where the existing checker knows them.
+3. Add `StructureRuntime` and a thin `StructureOperationEvaluator`.
+4. Introduce `StructureEvaluationContext` and `StructureMatchCollector` backed by `PatternMatchContext`.
+5. Make direct elements independent of mandatory `toPredicate()` execution.
+6. Keep `TraceabilityPredicate` support through `LegacyElement`.
+7. Execute direct elements through `CompiledStructureElement`.
+8. Convert block, air, any, self, chain, wrapper, hatch, casing, tiered casing, coil, and related domain elements to
+   direct execution paths.
+9. Normalize synchronous checks into `StructureCheckResult`.
+10. Share the validation-before-publication commit phase for initial assembly and reassembly through
+    `MultiblockStructureCommitter`.
+11. Carry collector-owned parts, counts, active positions, and requirements through session forks, checkpoints,
+    immutable check results, and assembly for session-backed V3 checks.
+12. Advertise compiled element capabilities and reject stale async snapshot tasks/results before they can change runtime
+    state.
+13. Add the initial `StructureOrientation` value object and use it for async tokens, failure trace construction,
+    controller-facing evaluator check/iteration entry points, definition/check-state/AABB entry points,
+    `StructurePiece` center/snapshot entry points, template AABB/predicate facades, repeat-group synchronous entry
+    points, multi-piece dirty/full check entry points, and `MultiblockState` exact live/snapshot entry points.
+
+### Mostly Done
+
+1. Formed metadata, channels, missing abilities, and last failure are runtime-owned. Checker caches, formed flag,
+   attached parts, and ability instances still live in controller/piece state.
+2. Fixed core controllers are largely converted to `createStructureDefinition()`. Dynamic charcoal-pile and Godforge
+   paths remain intentional migration cases; addon compatibility hooks remain.
+
+### In Progress
+
+1. Route check, preview, creative build, and iteration through the evaluator while preserving existing traversals.
+2. Route survival build and hints through the same operation request/session/result model.
+3. Extract controller orchestration into scheduler, assembly, registration, preview, channel, and client-hook helpers.
+
+### Planned
+
+1. Converge single-piece, multi-piece, live, and snapshot checks on one traversal implementation.
+2. Converge preview, hints, creative build, survival build, and iteration on the same coordinate traversal.
+3. Migrate remaining template, repeat-group, and `MultiblockState` traversal internals to accept
+   `StructureOrientation` directly.
+4. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
+5. Add diagnostic command and in-game structure trace view.
 
 ## Verification Matrix
 
@@ -542,13 +608,3 @@ V3 is the primary runtime when all of the following are true:
 - `StructureFailureTrace` can identify the failing piece/cell or deferred requirement without enabling broad debug logs.
 - New core multiblocks only declare `StructureDefinition`; legacy hooks are compatibility-only.
 - Removing a compatibility facade would require addon migration, but would not require redesigning the V3 evaluator.
-
-## Non-Goals For The First Pass
-
-- No rewrite of `MultiblockState` matching.
-- No behavior change to structure formation.
-- No removal of legacy `FactoryBlockPattern`.
-- No removal of `TraceabilityPredicate`.
-- No change to JEI preview format.
-- No change to auto-build placement rules.
-- No broad controller refactor before trace logging exists.

@@ -16,6 +16,7 @@ import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructureCheckResult;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureTrace;
@@ -596,8 +597,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
         StructureTrace.debug(this, "check-start", structureRuntime.describeShape());
         StructureCheckResult result = structureRuntime.getEvaluator().check(
-                getWorld(), getPos(), getFrontFacingForStructure(), getUpwardsFacing(),
-                allowsFlip(), isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample,
+                getWorld(), getPos(), StructureOrientation.fromController(this),
+                isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample,
                 null, this);
         MultiblockStructureCommitter.applyCheckResult(this, result);
     }
@@ -1160,11 +1161,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         World world = getWorld();
 
         // Get all block positions in the structure
+        StructureOrientation orientation = StructureOrientation.fromController(this);
         Map<BlockPos, BlockInfo> blocks = structureRuntime == null
                 ? state.getAllStructureBlocks(
-                        world, getPos(), getFrontFacingForStructure(), getUpwardsFacing(), isFlipped())
+                        world, getPos(), orientation.getStructureFront(), orientation.getUp(),
+                        orientation.isFlipped())
                 : structureRuntime.getEvaluator().iterateSingle(
-                        world, getPos(), getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
+                        world, getPos(), orientation);
 
         ArrayList<ItemStack> drops = new ArrayList<>();
 

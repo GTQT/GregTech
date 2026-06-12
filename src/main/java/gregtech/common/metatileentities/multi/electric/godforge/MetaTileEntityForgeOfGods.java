@@ -20,6 +20,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -427,8 +428,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 && beamShaftRuntime.isDirty();
 
         boolean allValid = multiPiecePattern.checkDirtyPieces(
-                getWorld(), getPos(), getFrontFacingForStructure(),
-                getUpwardsFacing(), isFlipped(), runtimes, this);
+                getWorld(), getPos(), StructureOrientation.fromController(this), runtimes, this);
 
         if (!allValid && isStructureFormed()) {
             invalidateStructure();

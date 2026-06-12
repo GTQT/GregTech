@@ -3,6 +3,7 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.util.world.DummyWorld;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -85,7 +86,6 @@ final class MultiblockStructureRegistration {
                                        @NotNull MultiPiecePattern multiPiecePattern,
                                        @Nullable PieceRuntimes pieceRuntimes) {
         multiPiecePattern.checkAllPieces(controller.getWorld(), controller.getPos(),
-                controller.getFrontFacingForStructure(), controller.getUpwardsFacing(), controller.isFlipped(),
-                pieceRuntimes, controller);
+                StructureOrientation.fromController(controller), pieceRuntimes, controller);
     }
 }

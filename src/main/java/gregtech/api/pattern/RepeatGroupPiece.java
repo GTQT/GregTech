@@ -185,6 +185,15 @@ public class RepeatGroupPiece extends StructurePiece {
     }
 
     public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
+                             @NotNull StructureOrientation orientation,
+                             @Nullable FormedStructureMetadata prior,
+                             @NotNull PieceRuntime runtime) {
+        StructureMatchSession session = new StructureMatchSession();
+        return checkSync(world, origin, orientation, prior, runtime, session)
+                && session.validate(false).success;
+    }
+
+    public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
                              @NotNull EnumFacing front, @NotNull EnumFacing up,
                              boolean flipped,
                              @Nullable FormedStructureMetadata prior,
@@ -220,6 +229,22 @@ public class RepeatGroupPiece extends StructurePiece {
                 break;
         }
         return ok;
+    }
+
+    public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
+                             @NotNull StructureOrientation orientation,
+                             @Nullable FormedStructureMetadata prior,
+                             @NotNull PieceRuntime runtime,
+                             @NotNull StructureMatchSession session) {
+        return checkSync(
+                world,
+                origin,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(),
+                prior,
+                runtime,
+                session);
     }
 
     // --- World-based search methods (synchronous, main thread) ---
