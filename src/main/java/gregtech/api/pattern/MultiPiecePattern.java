@@ -482,11 +482,30 @@ public class MultiPiecePattern {
                                   @NotNull PieceRuntimes runtimes,
                                   @NotNull AbilityPlacementTracker abilityTracker,
                                   @NotNull StructureEvaluationContext.Operation operation) {
-        if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
+        return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
+                skipHatches, runtimes, abilityTracker, operation).isAttempted();
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildPieceWithResult(int pieceIndex,
+                                                         EntityPlayer player,
+                                                         MultiblockControllerBase controller,
+                                                         @NotNull StructureOrientation orientation,
+                                                         @Nullable Map<String, Integer> channelValues,
+                                                         boolean skipHatches,
+                                                         @NotNull PieceRuntimes runtimes,
+                                                         @NotNull AbilityPlacementTracker abilityTracker,
+                                                         @NotNull StructureEvaluationContext.Operation operation) {
+        StructureBuildResult.Builder result = StructureBuildResult.builder();
+        if (pieceIndex < 1 || pieceIndex > pieceList.size()) {
+            return result.recordInvalidPieceRequest().build();
+        }
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
         PieceRuntime runtime = runtimes.get(piece);
-        if (runtime == null) return false;
+        if (runtime == null) {
+            return result.recordInvalidPieceRequest().build();
+        }
 
         // Build prior metadata from preceding pieces' runtime state. The
         // check path accumulates this incrementally as each piece is checked;
@@ -495,20 +514,20 @@ public class MultiPiecePattern {
         // PieceRuntime.getLastFormedReps().
         FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller, orientation);
         if (!piece.isActive(activationContext(controller, prior, null))) {
-            return false;
+            return result.recordInactivePiece().build();
         }
         if (piece instanceof RepeatGroupPiece repeatPiece) {
-            repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
-                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker, operation);
+            result.merge(repeatPiece.autoBuildAtRepeatedWithResult(player, controller, controller.getPos(),
+                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker, operation));
         } else {
             // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
             // prior metadata and can compute its dynamic position. Non-anchor
             // pieces ignore the prior and behave identically to the 3-arg form.
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
-            runtime.getState().autoBuildAt(player, controller, pieceCenter, orientation,
-                    0, 0, 0, channelValues, skipHatches, abilityTracker, operation);
+            result.merge(runtime.getState().autoBuildAtWithResult(player, controller, pieceCenter, orientation,
+                    0, 0, 0, channelValues, skipHatches, abilityTracker, operation));
         }
-        return true;
+        return result.build();
     }
 
     public boolean spawnHintsAllPieces(@NotNull World world,

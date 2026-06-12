@@ -105,7 +105,9 @@ GregTech already has part of the V3 shape:
   boundary. Tool callers now create one build request that selects `CREATIVE_BUILD` or `SURVIVAL_BUILD` from the
   player mode; dynamic controller build hooks also receive that request and execute channel-generated definitions
   through disposable `StructureRuntime` instances. `StructureRuntime` now accepts these requests and keeps
-  `StructureOperationEvaluator` as an internal delegating implementation detail for runtime-owned operations.
+  `StructureOperationEvaluator` as an internal delegating implementation detail for runtime-owned operations. Build
+  request methods now return `StructureBuildResult`, a lightweight summary of visited, existing, placed, unavailable,
+  skipped, and failed placement cells.
 - Single-piece fixed-repetition traversal now has a shared cell walker for orientation-aware coordinate resolution.
   Creative build, single-piece preview, hints, and structure iteration use that walker where they touch fixed cells.
   Creative build keeps legacy candidate selection in an operation-local build adapter and updates a `CREATIVE_BUILD`
@@ -178,13 +180,14 @@ The migration is not complete yet:
   carry typed collector state through `StructureCheckResult` and only materialize legacy keys for compatibility
   callbacks.
 - `StructureOperationEvaluator` delegates to separate single-piece, multi-piece, preview, build, hint, and iteration
-  traversals. Creative build, single-piece preview, hints, and iteration now share the fixed-repetition coordinate
-  walker where they touch single-piece cells, but matching, snapshot checks, multi-piece preview assembly, and survival
-  build have not yet converged on one implementation.
+  traversals. Creative build, survival build, single-piece preview, multi-piece preview assembly, hints, and iteration
+  now share the fixed-repetition coordinate walker where they touch single-piece cells, but matching and snapshot checks
+  have not yet converged on one implementation.
 - Survival build and hints have request/runtime entry points, but they are not fully routed through the same
-  session/result model as checks. Survival build still uses the legacy candidate-selection and placement side effects;
-  hints now have trigger-aware tool callers and multi-piece/dynamic-piece traversal, while visible hint behavior still
-  depends on each element's hint implementation.
+  session/result model as checks. Survival build now returns a lightweight build result over the legacy
+  candidate-selection and placement side effects, but placement budgets, item-source accounting, and rollback-safe item
+  reporting are still future work; hints now have trigger-aware tool callers and multi-piece/dynamic-piece traversal,
+  while visible hint behavior still depends on each element's hint implementation.
 - Global ability policy and diagnostics still span session, controller, runtime, and legacy error objects.
 - `MultiblockControllerBase` still owns lifecycle policy such as invalidation and exposes the final `formStructure()`
   callback. Synchronous check-result publication, part attachment, runtime publication, and registration now pass
@@ -413,6 +416,8 @@ able to carry:
 - Visited positions for world-index registration.
 - A structured `StructureFailureTrace`.
 - Placement progress and consumed/required item information for survival build.
+- The current build path already reports placement progress through `StructureBuildResult`; consumed/required item
+  accounting remains future work.
 
 Legacy `PatternMatchContext`, `PatternError`, and boolean return values should be views of this result, not independent
 sources of truth.
@@ -531,6 +536,7 @@ Trace events should include:
 - Piece name and local structure coordinates when available.
 - Expected element description and actual block/tile when available.
 - Missing abilities.
+- Build result counts for placement-style operations.
 - Pattern error position when available.
 - Formed metadata and channel values where available.
 
@@ -596,6 +602,12 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
     runtime dispatch surface, and Cleanroom/charcoal-pile dynamic builds wrap their channel-generated templates in
     disposable `StructureRuntime` instances instead of bypassing the request boundary. The old controller
     `autoBuildStructure(player, channels, skipHatches)` hook remains only as an addon compatibility bridge.
+21. Route multi-piece preview assembly through the same fixed-repetition preview cell traversal and candidate-selection
+    result as single-piece preview. The assembler now consumes positioned preview cells/predicates instead of rebuilding
+    raw bounds, centers, and predicate maps, while preserving the JEI/projector `BlockInfo[][][]` output shape.
+22. Add the initial `StructureBuildResult` shell for runtime-routed creative and survival build requests. Single-piece,
+    multi-piece, repeat-group, and dynamic runtime build paths now merge placement-progress counts without changing
+    block placement, candidate selection, item extraction, or rollback semantics.
 
 ### Mostly Done
 
@@ -610,26 +622,25 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
    survival build, hint result reporting, and diagnostics, while preserving existing traversals and legacy evaluator
    facades.
 2. Promote the fixed-repetition cell walker from a creative-build/iteration helper into the common coordinate layer for
-   multi-piece preview assembly and survival build once each caller's side effects are explicit.
+   live and snapshot checks once their matching side effects are explicit.
 3. Finish giving survival build and hints the same session/result model as checks. Request/runtime routing now exists
-   for tool-triggered fixed, multi-piece, and dynamic build paths; remaining work is session/result collection,
-   placement budgets, item-source accounting, and hint result reporting.
+   for tool-triggered fixed, multi-piece, and dynamic build paths, and survival build now has lightweight
+   placement-progress results; remaining work is placement budgets, item-source accounting, rollback-safe
+   consumed/required item reporting, and hint result reporting.
 4. Extract controller orchestration into scheduler, assembly, registration, preview, channel, and client-hook helpers.
 
 ### Planned
 
 1. Converge single-piece, multi-piece, live, and snapshot checks on one traversal implementation.
-2. Converge multi-piece preview assembly with the fixed-repetition coordinate layer without changing JEI/projector
-   layout.
-3. Add a survival-build request/session/result shape with placement budgets, item-source accounting, and rollback-safe
+2. Extend the survival-build result shape with placement budgets, item-source accounting, and rollback-safe
    consumed/required item reporting.
-4. Add structured hint results once hint rendering/particle effects are explicit per element.
-5. Retire the remaining creative-build candidate-selection adapter once direct element placement and predicate fallback
+3. Add structured hint results once hint rendering/particle effects are explicit per element.
+4. Retire the remaining creative-build candidate-selection adapter once direct element placement and predicate fallback
    have one operation-local selection path.
-6. Retire remaining `front/up/flipped` compatibility facades once template iteration, preview/hint placement, and
+5. Retire remaining `front/up/flipped` compatibility facades once template iteration, preview/hint placement, and
    addon-facing legacy hooks have orientation-native callers.
-7. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
-8. Add diagnostic command and in-game structure trace view.
+6. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
+7. Add diagnostic command and in-game structure trace view.
 
 ## Verification Matrix
 

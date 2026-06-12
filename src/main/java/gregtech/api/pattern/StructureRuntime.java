@@ -114,39 +114,48 @@ public final class StructureRuntime {
         return evaluator.check(request);
     }
 
-    public void buildSingle(@NotNull StructureOperationRequest request) {
-        evaluator.buildSingle(request);
+    @NotNull
+    public StructureBuildResult buildSingle(@NotNull StructureOperationRequest request) {
+        return evaluator.buildSingle(request);
     }
 
-    public boolean buildPiece(@NotNull StructureOperationRequest request) {
+    @NotNull
+    public StructureBuildResult buildPiece(@NotNull StructureOperationRequest request) {
         return evaluator.buildPiece(request);
     }
 
-    public boolean buildAllPieces(@NotNull StructureOperationRequest request) {
+    @NotNull
+    public StructureBuildResult buildAllPieces(@NotNull StructureOperationRequest request) {
         return evaluator.buildAllPieces(request);
     }
 
-    public void creativeBuildSingle(@NotNull StructureOperationRequest request) {
-        evaluator.creativeBuildSingle(request);
+    @NotNull
+    public StructureBuildResult creativeBuildSingle(@NotNull StructureOperationRequest request) {
+        return evaluator.creativeBuildSingle(request);
     }
 
-    public boolean creativeBuildPiece(@NotNull StructureOperationRequest request) {
+    @NotNull
+    public StructureBuildResult creativeBuildPiece(@NotNull StructureOperationRequest request) {
         return evaluator.creativeBuildPiece(request);
     }
 
-    public boolean creativeBuildAllPieces(@NotNull StructureOperationRequest request) {
+    @NotNull
+    public StructureBuildResult creativeBuildAllPieces(@NotNull StructureOperationRequest request) {
         return evaluator.creativeBuildAllPieces(request);
     }
 
-    public void survivalBuildSingle(@NotNull StructureOperationRequest request) {
-        evaluator.survivalBuildSingle(request);
+    @NotNull
+    public StructureBuildResult survivalBuildSingle(@NotNull StructureOperationRequest request) {
+        return evaluator.survivalBuildSingle(request);
     }
 
-    public boolean survivalBuildPiece(@NotNull StructureOperationRequest request) {
+    @NotNull
+    public StructureBuildResult survivalBuildPiece(@NotNull StructureOperationRequest request) {
         return evaluator.survivalBuildPiece(request);
     }
 
-    public boolean survivalBuildAllPieces(@NotNull StructureOperationRequest request) {
+    @NotNull
+    public StructureBuildResult survivalBuildAllPieces(@NotNull StructureOperationRequest request) {
         return evaluator.survivalBuildAllPieces(request);
     }
 

@@ -30,6 +30,8 @@ public final class MultiPiecePreviewAssembler {
 
     private static final EnumFacing CANONICAL_FRONT = EnumFacing.SOUTH;
     private static final EnumFacing CANONICAL_UPWARDS = EnumFacing.NORTH;
+    private static final StructureOrientation CANONICAL_PREVIEW_ORIENTATION = StructureOrientation.of(
+            CANONICAL_FRONT, CANONICAL_FRONT, CANONICAL_UPWARDS, false, false);
 
     private MultiPiecePreviewAssembler() {}
 
@@ -73,44 +75,33 @@ public final class MultiPiecePreviewAssembler {
                 continue;
             }
 
-            BlockInfo[][][] preview = runtime.getState().getPreview(internalRepetitions, channelValues);
-            Bounds rawBounds = computeRawBounds(template, internalRepetitions);
-            BlockPos rawCenter = computeRawCenter(template, internalRepetitions);
-            Map<BlockPos, TraceabilityPredicate> basePredicates =
-                    buildBasePredicateMap(template, internalRepetitions, rawCenter);
+            MultiblockState.PreviewCells preview = runtime.getState().createPreviewCells(
+                    internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION);
             Map<BlockPos, BlockInfo> pieceBlocks = new HashMap<>();
             forEachExternalRepeat(piece, externalRepetitions, localShift -> {
                 BlockPos canonicalShift = RelativeDirection.setActualRelativeOffset(
                         localShift.getX(), localShift.getY(), localShift.getZ(),
                         CANONICAL_FRONT, CANONICAL_UPWARDS, false, template.getStructureDir());
 
-                for (int x = 0; x < preview.length; x++) {
-                    for (int y = 0; y < preview[x].length; y++) {
-                        for (int z = 0; z < preview[x][y].length; z++) {
-                            BlockInfo info = preview[x][y][z];
-                            if (info == null || info.getBlockState() == null) continue;
-                            BlockPos raw = new BlockPos(
-                                    x + rawBounds.minX,
-                                    y + rawBounds.minY,
-                                    z + rawBounds.minZ);
-                            BlockPos baseRelative = raw.subtract(rawCenter);
-                            TraceabilityPredicate predicate = basePredicates.get(baseRelative);
-                            BlockInfo selected = info;
-                            if (!abilityTracker.canPlace(selected)) {
-                                selected = findFallback(predicate, abilityTracker);
-                            }
-                            abilityTracker.record(selected);
-
-                            BlockPos relative = baseRelative.add(canonicalShift);
-                            BlockPos global = pieceCenter.add(relative);
-                            pieceBlocks.put(relative, selected);
-                            allBlocks.put(global, selected);
-                        }
+                for (Map.Entry<BlockPos, BlockInfo> entry : preview.getBlocks().entrySet()) {
+                    BlockInfo info = entry.getValue();
+                    if (info == null || info.getBlockState() == null) continue;
+                    BlockPos baseRelative = entry.getKey().subtract(preview.getCenter());
+                    TraceabilityPredicate predicate = preview.getPredicates().get(entry.getKey());
+                    BlockInfo selected = info;
+                    if (!abilityTracker.canPlace(selected)) {
+                        selected = findFallback(predicate, abilityTracker);
                     }
+                    abilityTracker.record(selected);
+
+                    BlockPos relative = baseRelative.add(canonicalShift);
+                    BlockPos global = pieceCenter.add(relative);
+                    pieceBlocks.put(relative, selected);
+                    allBlocks.put(global, selected);
                 }
 
-                for (Map.Entry<BlockPos, TraceabilityPredicate> entry : basePredicates.entrySet()) {
-                    BlockPos relative = entry.getKey().add(canonicalShift);
+                for (Map.Entry<BlockPos, TraceabilityPredicate> entry : preview.getPredicates().entrySet()) {
+                    BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
                     allPredicates.put(pieceCenter.add(relative), entry.getValue());
                 }
             });
@@ -233,58 +224,6 @@ public final class MultiPiecePreviewAssembler {
                     : MultiblockState.resolveRepetitionValue(value, ranges[i][0], ranges[i][1]);
         }
         return repetitions;
-    }
-
-    private static Bounds computeRawBounds(@NotNull PieceTemplate template, @NotNull int[] repetitions) {
-        Bounds bounds = new Bounds();
-        int finger = 0;
-        for (int aisle = 0; aisle < template.getZLength(); aisle++) {
-            for (int repeat = 0; repeat < repetitions[aisle]; repeat++, finger++) {
-                for (int y = 0; y < template.getYLength(); y++) {
-                    for (int x = 0; x < template.getXLength(); x++) {
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
-                                x, y, finger, CANONICAL_FRONT, CANONICAL_UPWARDS,
-                                false, template.getStructureDir());
-                        bounds.include(pos);
-                    }
-                }
-            }
-        }
-        return bounds;
-    }
-
-    private static BlockPos computeRawCenter(@NotNull PieceTemplate template, @NotNull int[] repetitions) {
-        BlockPatternTemplate.CenterOffset center = template.getCenterOffset();
-        int finger = 0;
-        for (int i = 0; i < center.z() && i < repetitions.length; i++) {
-            finger += repetitions[i];
-        }
-        return RelativeDirection.setActualRelativeOffset(
-                center.x(), center.y(), finger,
-                CANONICAL_FRONT, CANONICAL_UPWARDS, false, template.getStructureDir());
-    }
-
-    @NotNull
-    private static Map<BlockPos, TraceabilityPredicate> buildBasePredicateMap(
-            @NotNull PieceTemplate template, @NotNull int[] repetitions, @NotNull BlockPos rawCenter) {
-        Map<BlockPos, TraceabilityPredicate> predicates = new HashMap<>();
-        TraceabilityPredicate[][][] matches = template.getBlockMatches();
-        int finger = 0;
-        for (int aisle = 0; aisle < template.getZLength(); aisle++) {
-            for (int repeat = 0; repeat < repetitions[aisle]; repeat++, finger++) {
-                for (int y = 0; y < template.getYLength(); y++) {
-                    for (int x = 0; x < template.getXLength(); x++) {
-                        TraceabilityPredicate predicate = matches[aisle][y][x];
-                        if (predicate == null || predicate == TraceabilityPredicate.ANY) continue;
-                        BlockPos raw = RelativeDirection.setActualRelativeOffset(
-                                x, y, finger, CANONICAL_FRONT, CANONICAL_UPWARDS,
-                                false, template.getStructureDir());
-                        predicates.put(raw.subtract(rawCenter), predicate);
-                    }
-                }
-            }
-        }
-        return predicates;
     }
 
     private static void forEachExternalRepeat(@NotNull StructurePiece piece,

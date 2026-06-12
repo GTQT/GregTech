@@ -19,6 +19,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -115,6 +116,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private long lastRingStateLogTime = -1;
     private int patternBuiltForRenderedRingMask = 0;
     private boolean pendingStructureRefresh = false;
+    private boolean recoveringRenderedStructure = false;
 
     /**
      * Dirty flag for ring block replacement. Set when ring state changes
@@ -175,12 +177,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return StructureDefinition.fromMultiPiecePattern(GODFORGE_STRUCTURE_DIRECTIONS, buildGodforgeMultiPiecePattern());
     }
 
-    @Nullable
-    @Override
-    protected MultiPiecePattern createMultiPiecePattern() {
-        return buildGodforgeMultiPiecePattern();
-    }
-
     private MultiPiecePattern buildGodforgeMultiPiecePattern() {
         int renderedRingMask = getRenderedRingTemplateMask();
         patternBuiltForRenderedRingMask = renderedRingMask;
@@ -225,7 +221,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private boolean isRenderedRingOwnedByRenderer(int ringIndex) {
-        return data.isRenderActive() && data.isRingCleared(ringIndex);
+        return (data.isRenderActive() || recoveringRenderedStructure) && data.isRingCleared(ringIndex);
     }
 
     private boolean isRendererOwnedByThisController() {
@@ -269,7 +265,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private int getStructureRingTargetAmount() {
-        int renderedRings = data.isRenderActive() ? data.getClearedRingAmount() : 0;
+        int renderedRings = (data.isRenderActive() || recoveringRenderedStructure) ? data.getClearedRingAmount() : 0;
         return Math.max(getDesiredRingAmount(), renderedRings);
     }
 
@@ -436,12 +432,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     public void checkStructurePattern() {
         ensurePatternMatchesRenderState();
         super.checkStructurePattern();
-        if (!isStructureFormed() && tryRecoverRenderedStructure()) {
-            ensurePatternMatchesRenderState();
-            super.checkStructurePattern();
-            if (isStructureFormed()) {
-                ensureRendererState();
-            }
+        if (!isStructureFormed()) {
+            tryRecoverRenderedStructure();
         }
         if (!isStructureFormed()) {
             logStructureFailure();
@@ -464,14 +456,21 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (getWorld() == null || getWorld().isRemote || getPos() == null) return false;
         if (data.getInternalBattery() <= 0) return false;
         if (data.getClearedRingAmount() <= 0) return false;
-        if (!isBeamShaftStillFormed()) return false;
-        if (!isRingTemplateFormed(FIRST_RING_AIR_TEMPLATE, FIRST_RING_OFFSET)) return false;
-        if (data.getClearedRingAmount() >= 2 &&
-                !isRingTemplateFormed(SECOND_RING_AIR_TEMPLATE, SECOND_RING_OFFSET)) {
-            return false;
+
+        recoveringRenderedStructure = true;
+        try {
+            reinitializeStructurePattern();
+            super.checkStructurePattern();
+        } finally {
+            recoveringRenderedStructure = false;
         }
-        if (data.getClearedRingAmount() >= 3 &&
-                !isRingTemplateFormed(THIRD_RING_AIR_TEMPLATE, THIRD_RING_OFFSET)) {
+
+        if (!isStructureFormed()) {
+            reinitializeStructurePattern();
+            GTLog.logger.info("[FOG] persisted rendered structure recovery failed at {}; clearedRings={}, " +
+                            "battery={}, ownedByThis={}, owner={}",
+                    getPos(), data.getClearedRingAmount(), data.getInternalBattery(),
+                    isRendererOwnedByThisController(), describeRendererOwnershipForLog());
             return false;
         }
 
@@ -480,7 +479,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 getPos(), data.getClearedRingAmount(), data.getInternalBattery(),
                 isRendererOwnedByThisController(), describeRendererOwnershipForLog());
         data.setRenderActive(true);
+        reinitializeStructurePattern();
         logRingState("recover-rendered-structure", true);
+        ensureRendererState();
         markDirty();
         return true;
     }
@@ -522,32 +523,15 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
     }
 
-    private boolean isBeamShaftStillFormed() {
-        if (getWorld() == null || getPos() == null) return false;
-        return BEAM_SHAFT_TEMPLATE.get()
-                .createState()
-                .checkPatternFastAt(getWorld(), getPos(), getFrontFacingForStructure(),
-                        getUpwardsFacing(), allowsFlip(), false) != null;
-    }
-
-    private boolean isRingTemplateFormed(SoftTemplate template, Vec3i pieceOffset) {
-        BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
-                new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
-        return template.get()
-                .createState()
-                .checkPatternFastAt(getWorld(), pieceOrigin, getFrontFacingForStructure(),
-                        getUpwardsFacing(), allowsFlip(), false) != null;
-    }
-
     private void logStructureFailure() {
-        if (getWorld() == null || getWorld().isRemote || multiblockState == null) return;
+        if (getWorld() == null || getWorld().isRemote) return;
 
         long worldTime = getWorld().getTotalWorldTime();
         if (lastStructureFailureLogTime >= 0 && worldTime - lastStructureFailureLogTime < TICK_INTERVAL) return;
         lastStructureFailureLogTime = worldTime;
 
-        PatternError error = multiblockState.getError();
+        StructureFailureTrace failure = getLastFailureTrace();
+        PatternError error = failure == null ? getLastStructureError() : failure.getError();
         BlockPos renderPos = getRenderPos();
         String renderState = "null";
         if (renderPos != null) {
@@ -559,29 +543,84 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (error == null) {
             GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, up={}, renderActive={}, " +
                             "rendererDisabled={}, battery={}, formedRings={}, desiredRings={}, clearedRings={}, " +
+                            "structureTarget={}, renderedMask={}, renderOwner={}, tracePath={}, traceOperation={}, " +
+                            "traceResult={}, traceErrorPos={}, traceExpected={}, traceActual={}, missingAbilities={}, " +
                             "renderPos={}, renderState={}, no pattern error",
                     getPos(), getFrontFacing(), getUpwardsFacing(), data.isRenderActive(), data.isRendererDisabled(),
                     data.getInternalBattery(), getFormedRingAmount(), getDesiredRingAmount(),
-                    data.getClearedRingAmount(), renderPos, renderState);
+                    data.getClearedRingAmount(), getStructureRingTargetAmount(), getRenderedRingTemplateMask(),
+                    describeRendererOwnershipForLog(), describeFailurePath(failure), describeFailureOperation(failure),
+                    describeFailureResult(failure), describeFailureErrorPos(failure), describeFailureExpected(failure),
+                    describeFailureActual(failure), describeFailureMissingAbilities(failure), renderPos, renderState);
             return;
         }
 
-        BlockPos errorPos = error.getPos();
-        IBlockState actualState = getWorld().isBlockLoaded(errorPos) ?
+        BlockPos errorPos = getFailureErrorPos(failure, error);
+        IBlockState actualState = errorPos != null && getWorld().isBlockLoaded(errorPos) ?
                 getWorld().getBlockState(errorPos) :
                 null;
         TileEntity actualTile = actualState != null ? getWorld().getTileEntity(errorPos) : null;
 
         GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, up={}, renderActive={}, " +
                         "rendererDisabled={}, battery={}, formedRings={}, desiredRings={}, clearedRings={}, " +
-                        "renderPos={}, renderState={}, errorType={}, errorPos={}, actualState={}, actualTile={}, " +
-                        "candidates={}",
+                        "structureTarget={}, renderedMask={}, renderOwner={}, tracePath={}, traceOperation={}, " +
+                        "traceResult={}, traceExpected={}, traceActual={}, missingAbilities={}, renderPos={}, " +
+                        "renderState={}, errorType={}, errorPos={}, actualState={}, actualTile={}, candidates={}",
                 getPos(), getFrontFacing(), getUpwardsFacing(), data.isRenderActive(), data.isRendererDisabled(),
                 data.getInternalBattery(), getFormedRingAmount(), getDesiredRingAmount(),
-                data.getClearedRingAmount(), renderPos, renderState,
+                data.getClearedRingAmount(), getStructureRingTargetAmount(), getRenderedRingTemplateMask(),
+                describeRendererOwnershipForLog(), describeFailurePath(failure), describeFailureOperation(failure),
+                describeFailureResult(failure), describeFailureExpected(failure), describeFailureActual(failure),
+                describeFailureMissingAbilities(failure), renderPos, renderState,
                 error.getClass().getSimpleName(), errorPos,
                 actualState != null ? actualState : "unloaded",
                 describeTileEntity(actualTile), describeCandidates(error));
+    }
+
+    @Nullable
+    private StructureFailureTrace getLastFailureTrace() {
+        return getStructureRuntime() == null ? null : getStructureRuntime().getLastFailure();
+    }
+
+    private static String describeFailurePath(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getPath();
+    }
+
+    private static String describeFailureOperation(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getOperation();
+    }
+
+    private static String describeFailureResult(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getResult();
+    }
+
+    private static String describeFailureExpected(@Nullable StructureFailureTrace failure) {
+        return failure == null || failure.getExpected() == null ? "none" : failure.getExpected();
+    }
+
+    private static String describeFailureActual(@Nullable StructureFailureTrace failure) {
+        return failure == null || failure.getActual() == null ? "none" : failure.getActual();
+    }
+
+    private static String describeFailureMissingAbilities(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getMissingAbilities();
+    }
+
+    @Nullable
+    private static BlockPos describeFailureErrorPos(@Nullable StructureFailureTrace failure) {
+        return failure == null ? null : failure.getErrorPos();
+    }
+
+    @Nullable
+    private static BlockPos getFailureErrorPos(@Nullable StructureFailureTrace failure, @NotNull PatternError error) {
+        if (failure != null && failure.getErrorPos() != null) {
+            return failure.getErrorPos();
+        }
+        try {
+            return error.getPos();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private static String describeTileEntity(@Nullable TileEntity tileEntity) {

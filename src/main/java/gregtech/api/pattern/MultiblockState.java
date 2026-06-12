@@ -70,6 +70,9 @@ import java.util.stream.Collectors;
  */
 public class MultiblockState {
 
+    private static final StructureOrientation DEFAULT_PREVIEW_ORIENTATION = StructureOrientation.of(
+            EnumFacing.SOUTH, EnumFacing.SOUTH, EnumFacing.UP, false, false);
+
     /**
      * The canonical piece IR. The legacy
      * {@link #getTemplate()} accessor returns a {@link BlockPatternTemplate}
@@ -597,6 +600,8 @@ public class MultiblockState {
         private final Map<BlockPos, Object> blocks = new HashMap<>();
         @NotNull
         private final Map<BlockPos, EnumFacing> explicitFrontFacings = new HashMap<>();
+        @NotNull
+        private final StructureBuildResult.Builder result = StructureBuildResult.builder();
     }
 
     private static final class PreviewTraversalState {
@@ -607,6 +612,8 @@ public class MultiblockState {
         private final Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
         @NotNull
         private final Map<BlockPos, BlockInfo> blocks = new HashMap<>();
+        @NotNull
+        private final Map<BlockPos, TraceabilityPredicate> predicates = new HashMap<>();
         private int minX = Integer.MAX_VALUE;
         private int minY = Integer.MAX_VALUE;
         private int minZ = Integer.MAX_VALUE;
@@ -614,14 +621,92 @@ public class MultiblockState {
         private int maxY = Integer.MIN_VALUE;
         private int maxZ = Integer.MIN_VALUE;
 
-        private void record(@NotNull BlockPos pos, @NotNull BlockInfo info) {
+        private void record(@NotNull BlockPos pos, @NotNull BlockInfo info,
+                            @NotNull TraceabilityPredicate predicate) {
             blocks.put(pos, info);
+            if (predicate != TraceabilityPredicate.ANY) {
+                predicates.put(pos, predicate);
+            }
             minX = Math.min(pos.getX(), minX);
             minY = Math.min(pos.getY(), minY);
             minZ = Math.min(pos.getZ(), minZ);
             maxX = Math.max(pos.getX(), maxX);
             maxY = Math.max(pos.getY(), maxY);
             maxZ = Math.max(pos.getZ(), maxZ);
+        }
+
+        @NotNull
+        private PreviewCells toCells(@NotNull BlockPos center) {
+            if (blocks.isEmpty()) {
+                return new PreviewCells(Collections.emptyMap(), Collections.emptyMap(),
+                        center, 0, 0, 0, 0, 0, 0);
+            }
+            return new PreviewCells(blocks, predicates, center, minX, minY, minZ, maxX, maxY, maxZ);
+        }
+    }
+
+    public static final class PreviewCells {
+
+        @NotNull
+        private final Map<BlockPos, BlockInfo> blocks;
+        @NotNull
+        private final Map<BlockPos, TraceabilityPredicate> predicates;
+        @NotNull
+        private final BlockPos center;
+        private final int minX;
+        private final int minY;
+        private final int minZ;
+        private final int maxX;
+        private final int maxY;
+        private final int maxZ;
+
+        private PreviewCells(@NotNull Map<BlockPos, BlockInfo> blocks,
+                             @NotNull Map<BlockPos, TraceabilityPredicate> predicates,
+                             @NotNull BlockPos center,
+                             int minX, int minY, int minZ,
+                             int maxX, int maxY, int maxZ) {
+            this.blocks = Collections.unmodifiableMap(new HashMap<>(blocks));
+            this.predicates = Collections.unmodifiableMap(new HashMap<>(predicates));
+            this.center = center;
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
+        }
+
+        @NotNull
+        public Map<BlockPos, BlockInfo> getBlocks() {
+            return blocks;
+        }
+
+        @NotNull
+        public Map<BlockPos, TraceabilityPredicate> getPredicates() {
+            return predicates;
+        }
+
+        /**
+         * Actual selected preview center in the same coordinate frame as {@link #getBlocks()}.
+         */
+        @NotNull
+        public BlockPos getCenter() {
+            return center;
+        }
+
+        @NotNull
+        public BlockInfo[][][] toBlockArray() {
+            if (blocks.isEmpty()) {
+                return new BlockInfo[][][]{{{BlockInfo.EMPTY}}};
+            }
+            BlockInfo[][][] result = (BlockInfo[][][]) Array.newInstance(
+                    BlockInfo.class,
+                    maxX - minX + 1,
+                    maxY - minY + 1,
+                    maxZ - minZ + 1);
+            blocks.forEach((pos, info) ->
+                    result[pos.getX() - minX][pos.getY() - minY][pos.getZ() - minZ] = info);
+            return result;
         }
     }
 
@@ -731,10 +816,12 @@ public class MultiblockState {
         World world = player.world;
         TraceabilityPredicate predicate = cell.predicate;
         BlockPos pos = cell.worldPos;
+        buildState.result.recordVisitedCell();
 
         updateOperationCellContext(buildState.evaluationContext, buildState.worldState,
                 world, pos, predicate, controllerBase, operation);
         if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
+            buildState.result.recordExistingCell();
             buildState.blocks.put(pos, world.getBlockState(pos));
             if (abilityTracker != null) {
                 abilityTracker.recordWorldTile(pos, world.getTileEntity(pos));
@@ -833,7 +920,13 @@ public class MultiblockState {
             }
         }
 
-        if (infos != null) {
+        int availableCandidateCount = 0;
+        if (infos == null) {
+            infos = new BlockInfo[0];
+        } else {
+            availableCandidateCount = (int) Arrays.stream(infos)
+                    .filter(info -> info.getBlockState().getBlock() != Blocks.AIR)
+                    .count();
             infos = Arrays.stream(infos)
                     .filter(info -> info.getBlockState().getBlock() != Blocks.AIR)
                     .filter(info -> abilityTracker == null || abilityTracker.canPlace(info))
@@ -842,15 +935,25 @@ public class MultiblockState {
         List<ItemStack> candidates = Arrays.stream(infos)
                 .map(MultiblockState::getStackForBlockInfo)
                 .collect(Collectors.toList());
-        if (candidates.isEmpty()) return;
+        if (candidates.isEmpty()) {
+            if (abilityTracker != null && availableCandidateCount > 0) {
+                buildState.result.recordAbilityLimitBlockedCell();
+            } else {
+                buildState.result.recordMissingCandidateCell();
+            }
+            return;
+        }
 
         if (skipHatches) {
             List<BlockInfo> nonHatchInfos = new ArrayList<>();
             List<ItemStack> nonHatchCandidates = new ArrayList<>();
             int candidateIdx = 0;
+            boolean hadHatchCandidates = false;
             for (BlockInfo info : infos) {
                 if (info.getBlockState().getBlock() == Blocks.AIR) continue;
-                if (!(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                if (info.getTileEntity() instanceof IGregTechTileEntity) {
+                    hadHatchCandidates = true;
+                } else {
                     nonHatchInfos.add(info);
                     nonHatchCandidates.add(candidates.get(candidateIdx));
                 }
@@ -916,19 +1019,27 @@ public class MultiblockState {
                 if (!keepMatchedPredicate) {
                     matchedPredicate = null;
                 }
+                if (hadHatchCandidates) {
+                    buildState.result.recordSkippedHatchCell();
+                }
             }
         }
 
         BuildCandidate buildCandidate = selectBuildCandidate(
                 player, infos, candidates, matchedPredicate, channelValues, abilityTracker);
-        if (buildCandidate == null) return;
+        if (buildCandidate == null) {
+            buildState.result.recordUnavailableItemCell();
+            return;
+        }
         ItemStack found = buildCandidate.found;
         BlockInfo matchedInfo = buildCandidate.matchedInfo;
 
         if (!placeBuildCandidate(matchedInfo, buildState.evaluationContext)) {
+            buildState.result.recordPlacementFailureCell();
             return;
         }
         IBlockState state = matchedInfo.getBlockState();
+        buildState.result.recordPlacedCell();
         if (abilityTracker != null) {
             abilityTracker.record(matchedInfo);
         }
@@ -1254,8 +1365,23 @@ public class MultiblockState {
                             Map<String, Integer> channelValues, boolean skipHatches,
                             @Nullable AbilityPlacementTracker abilityTracker,
                             @NotNull StructureEvaluationContext.Operation operation) {
+        autoBuildAtWithResult(player, controllerBase, centerPos, orientation,
+                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker, operation);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtWithResult(EntityPlayer player,
+                                                      MultiblockControllerBase controllerBase,
+                                                      BlockPos centerPos,
+                                                      @NotNull StructureOrientation orientation,
+                                                      int xOffset, int yOffset, int zOffset,
+                                                      Map<String, Integer> channelValues,
+                                                      boolean skipHatches,
+                                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                                      @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
         BuildTraversalState buildState = new BuildTraversalState();
+        buildState.result.recordAttemptedTraversal();
         buildState.blocks.put(controllerBase.getPos(), controllerBase);
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
@@ -1297,6 +1423,7 @@ public class MultiblockState {
                 }
             }
         });
+        return buildState.result.build();
     }
 
     @SuppressWarnings("unchecked")
@@ -1619,23 +1746,30 @@ public class MultiblockState {
      * @param channelValues map of channel name -> desired tier (1-based, null or 0 = auto)
      */
     public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
+        return createPreviewCells(repetition, channelValues).toBlockArray();
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues) {
+        return createPreviewCells(repetition, channelValues, DEFAULT_PREVIEW_ORIENTATION);
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues,
+                                           @NotNull StructureOrientation previewOrientation) {
         PreviewTraversalState previewState = new PreviewTraversalState();
-        StructureOrientation previewOrientation = StructureOrientation.of(
-                EnumFacing.SOUTH, EnumFacing.SOUTH, EnumFacing.UP, false, false);
         visitFixedStructureCells(repetition, BlockPos.ORIGIN, previewOrientation, 0, 0, 0, (cell, layerCounts) -> {
             BlockInfo info = selectPreviewBlockInfo(cell.predicate, layerCounts, previewState, channelValues);
-            previewState.record(cell.worldPos, info);
+            previewState.record(cell.worldPos, info, cell.predicate);
         });
+        orientPreviewControllers(previewState.blocks);
+        return previewState.toCells(calculatePreviewCenter(repetition, previewOrientation));
+    }
 
-        BlockInfo[][][] result = (BlockInfo[][][]) Array.newInstance(
-                BlockInfo.class,
-                previewState.maxX - previewState.minX + 1,
-                previewState.maxY - previewState.minY + 1,
-                previewState.maxZ - previewState.minZ + 1);
-        int finalMinX = previewState.minX;
-        int finalMinY = previewState.minY;
-        int finalMinZ = previewState.minZ;
-        previewState.blocks.forEach((pos, info) -> {
+    private static void orientPreviewControllers(@NotNull Map<BlockPos, BlockInfo> blocks) {
+        blocks.forEach((pos, info) -> {
             if (info.getTileEntity() instanceof MetaTileEntityHolder) {
                 MetaTileEntity metaTileEntity = ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity();
                 // Try to find a boundary direction (no block in that direction).
@@ -1652,15 +1786,27 @@ public class MultiblockState {
                 // the default in place.
                 for (EnumFacing enumFacing : RelativeDirection.ALL_FACINGS) {
                     if (metaTileEntity.isValidFrontFacing(enumFacing) &&
-                            !previewState.blocks.containsKey(pos.offset(enumFacing))) {
+                            !blocks.containsKey(pos.offset(enumFacing))) {
                         metaTileEntity.setFrontFacing(enumFacing);
                         break;
                     }
                 }
             }
-            result[pos.getX() - finalMinX][pos.getY() - finalMinY][pos.getZ() - finalMinZ] = info;
         });
-        return result;
+    }
+
+    @NotNull
+    private BlockPos calculatePreviewCenter(@NotNull int[] repetition,
+                                            @NotNull StructureOrientation orientation) {
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int finger = -centerOffset.maxZ();
+        for (int i = 0; i < centerOffset.z() && i < repetition.length; i++) {
+            finger += repetition[i];
+        }
+        return RelativeDirection.setActualRelativeOffset(
+                0, 0, finger,
+                orientation.getStructureFront(), orientation.getUp(),
+                orientation.isFlipped(), template.getStructureDir());
     }
 
     /**

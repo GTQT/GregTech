@@ -745,6 +745,21 @@ public class RepeatGroupPiece extends StructurePiece {
                                     @NotNull PieceRuntime runtime,
                                     @NotNull AbilityPlacementTracker abilityTracker,
                                     @NotNull StructureEvaluationContext.Operation operation) {
+        autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
+                channelValues, skipHatches, runtime, abilityTracker, operation);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtRepeatedWithResult(@NotNull EntityPlayer player,
+                                                              @NotNull MultiblockControllerBase controller,
+                                                              @NotNull BlockPos controllerOrigin,
+                                                              @NotNull StructureOrientation orientation,
+                                                              @Nullable FormedStructureMetadata prior,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              boolean skipHatches,
+                                                              @NotNull PieceRuntime runtime,
+                                                              @NotNull AbilityPlacementTracker abilityTracker,
+                                                              @NotNull StructureEvaluationContext.Operation operation) {
         int[] reps = new int[repeatAxes.length];
         for (int i = 0; i < repeatAxes.length; i++) {
             reps[i] = repeatRanges[i][1];
@@ -771,6 +786,7 @@ public class RepeatGroupPiece extends StructurePiece {
         // resolve the anchor's repeat count and the following piece falls
         // back to its static baseOffset.
         runtime.cacheFormedReps(reps);
+        StructureBuildResult.Builder result = StructureBuildResult.builder();
 
         if (repeatAxes.length == 1) {
             int axis = repeatAxes[0];
@@ -779,9 +795,9 @@ public class RepeatGroupPiece extends StructurePiece {
             for (int r = 0; r < count; r++) {
                 int[] local = {0, 0, 0};
                 local[axis] = stepSize * r;
-                state.autoBuildAt(player, controller, pieceCenter,
+                result.merge(state.autoBuildAtWithResult(player, controller, pieceCenter,
                         orientation, local[0], local[1], local[2],
-                        channelValues, skipHatches, abilityTracker, operation);
+                        channelValues, skipHatches, abilityTracker, operation));
             }
         } else {
             int[] currentIndices = new int[repeatAxes.length];
@@ -791,9 +807,9 @@ public class RepeatGroupPiece extends StructurePiece {
                 for (int i = 0; i < repeatAxes.length; i++) {
                     local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
                 }
-                state.autoBuildAt(player, controller, pieceCenter,
+                result.merge(state.autoBuildAtWithResult(player, controller, pieceCenter,
                         orientation, local[0], local[1], local[2],
-                        channelValues, skipHatches, abilityTracker, operation);
+                        channelValues, skipHatches, abilityTracker, operation));
 
                 hasMore = false;
                 for (int i = 0; i < repeatAxes.length; i++) {
@@ -806,6 +822,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 }
             }
         }
+        return result.build();
     }
 
     public void spawnHintsAtRepeated(@NotNull World world,
