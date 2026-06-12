@@ -6,6 +6,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,8 +27,9 @@ final class MultiblockStructureAssembler {
                              @NotNull PatternMatchContext context) {
         Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
         ArrayList<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
-        if (!canAttachAll(parts, Collections.emptyList())) {
-            return Assembly.failed();
+        IMultiblockPart conflict = findAttachConflict(parts, Collections.emptyList());
+        if (conflict != null) {
+            return Assembly.failed(describeAttachConflict(conflict));
         }
         sortParts(controller, parts);
         return Assembly.success(parts, collectAbilities(controller, parts));
@@ -39,8 +41,9 @@ final class MultiblockStructureAssembler {
                                  @NotNull List<IMultiblockPart> currentParts) {
         Set<IMultiblockPart> newPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
         ArrayList<IMultiblockPart> newParts = new ArrayList<>(newPartsSet);
-        if (!canAttachAll(newParts, currentParts)) {
-            return Reassembly.failed();
+        IMultiblockPart conflict = findAttachConflict(newParts, currentParts);
+        if (conflict != null) {
+            return Reassembly.failed(describeAttachConflict(conflict));
         }
 
         Set<IMultiblockPart> oldPartsSet = new HashSet<>(currentParts);
@@ -57,14 +60,27 @@ final class MultiblockStructureAssembler {
         return Reassembly.changed(newParts, collectAbilities(controller, newParts), removedParts, addedParts);
     }
 
-    private static boolean canAttachAll(@NotNull List<IMultiblockPart> parts,
-                                        @NotNull Collection<IMultiblockPart> alreadyAttachedParts) {
+    @Nullable
+    private static IMultiblockPart findAttachConflict(
+            @NotNull List<IMultiblockPart> parts,
+            @NotNull Collection<IMultiblockPart> alreadyAttachedParts) {
         for (IMultiblockPart part : parts) {
             if (part.isAttachedToMultiBlock() && !alreadyAttachedParts.contains(part) && !part.canPartShare()) {
-                return false;
+                return part;
             }
         }
-        return true;
+        return null;
+    }
+
+    @NotNull
+    private static String describeAttachConflict(@NotNull IMultiblockPart part) {
+        if (part instanceof MetaTileEntity) {
+            MetaTileEntity metaTileEntity = (MetaTileEntity) part;
+            return "Part " + metaTileEntity.getMetaName() + " at " + metaTileEntity.getPos()
+                    + " is already attached to another multiblock";
+        }
+        return "A non-shareable part is already attached to another multiblock: "
+                + part.getClass().getName();
     }
 
     private static void sortParts(@NotNull MultiblockControllerBase controller,
@@ -102,24 +118,28 @@ final class MultiblockStructureAssembler {
         final List<IMultiblockPart> parts;
         @NotNull
         final Map<MultiblockAbility<Object>, AbilityInstances> abilities;
+        @Nullable
+        final String failureMessage;
 
         private Assembly(boolean successful,
                          @NotNull List<IMultiblockPart> parts,
-                         @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities) {
+                         @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
+                         @Nullable String failureMessage) {
             this.successful = successful;
             this.parts = parts;
             this.abilities = abilities;
+            this.failureMessage = failureMessage;
         }
 
         @NotNull
         static Assembly success(@NotNull List<IMultiblockPart> parts,
                                 @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities) {
-            return new Assembly(true, parts, abilities);
+            return new Assembly(true, parts, abilities, null);
         }
 
         @NotNull
-        static Assembly failed() {
-            return new Assembly(false, Collections.emptyList(), Collections.emptyMap());
+        static Assembly failed(@NotNull String failureMessage) {
+            return new Assembly(false, Collections.emptyList(), Collections.emptyMap(), failureMessage);
         }
     }
 
@@ -135,18 +155,22 @@ final class MultiblockStructureAssembler {
         final Set<IMultiblockPart> removedParts;
         @NotNull
         final Set<IMultiblockPart> addedParts;
+        @Nullable
+        final String failureMessage;
 
         private Reassembly(boolean successful, boolean changed,
                            @NotNull List<IMultiblockPart> parts,
                            @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
                            @NotNull Set<IMultiblockPart> removedParts,
-                           @NotNull Set<IMultiblockPart> addedParts) {
+                           @NotNull Set<IMultiblockPart> addedParts,
+                           @Nullable String failureMessage) {
             this.successful = successful;
             this.changed = changed;
             this.parts = parts;
             this.abilities = abilities;
             this.removedParts = removedParts;
             this.addedParts = addedParts;
+            this.failureMessage = failureMessage;
         }
 
         @NotNull
@@ -154,19 +178,19 @@ final class MultiblockStructureAssembler {
                                   @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
                                   @NotNull Set<IMultiblockPart> removedParts,
                                   @NotNull Set<IMultiblockPart> addedParts) {
-            return new Reassembly(true, true, parts, abilities, removedParts, addedParts);
+            return new Reassembly(true, true, parts, abilities, removedParts, addedParts, null);
         }
 
         @NotNull
         static Reassembly unchanged() {
             return new Reassembly(true, false, Collections.emptyList(), Collections.emptyMap(),
-                    Collections.emptySet(), Collections.emptySet());
+                    Collections.emptySet(), Collections.emptySet(), null);
         }
 
         @NotNull
-        static Reassembly failed() {
+        static Reassembly failed(@NotNull String failureMessage) {
             return new Reassembly(false, false, Collections.emptyList(), Collections.emptyMap(),
-                    Collections.emptySet(), Collections.emptySet());
+                    Collections.emptySet(), Collections.emptySet(), failureMessage);
         }
     }
 }

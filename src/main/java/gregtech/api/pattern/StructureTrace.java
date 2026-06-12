@@ -46,6 +46,21 @@ public final class StructureTrace {
     }
 
     @NotNull
+    public static StructureFailureTrace commitFailure(@NotNull MultiblockControllerBase controller,
+                                                      @NotNull String path,
+                                                      @NotNull String detail) {
+        return new StructureFailureTrace.Builder(controller.getMetaName(), controller.getPos())
+                .formed(controller.isStructureFormed())
+                .orientation(controller.getFrontFacing(), controller.getFrontFacingForStructure(),
+                        controller.getUpwardsFacing(), controller.isFlipped())
+                .path(path)
+                .operation("COMMIT")
+                .result("assembly-rejected")
+                .actual(detail)
+                .build();
+    }
+
+    @NotNull
     public static String describeMissingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
         return StructureFailureTrace.describeMissingAbilities(missingAbilities);
     }

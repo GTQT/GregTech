@@ -206,6 +206,14 @@ public final class StructureChannelValues {
     }
 
     /**
+     * Create an independent mutable copy.
+     */
+    @NotNull
+    public StructureChannelValues copy() {
+        return new StructureChannelValues(new LinkedHashMap<>(values));
+    }
+
+    /**
      * @return an unmodifiable view of this StructureChannelValues
      */
     @NotNull

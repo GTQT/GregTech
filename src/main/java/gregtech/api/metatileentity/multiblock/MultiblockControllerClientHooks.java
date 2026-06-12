@@ -2,6 +2,7 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.util.tooltips.TooltipBuilder;
+import gregtech.client.renderer.handler.GhostBlockRenderer;
 import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
 
 import net.minecraft.client.resources.I18n;
@@ -73,6 +74,7 @@ final class MultiblockControllerClientHooks {
     static void refreshPreviewOnClient(@NotNull MultiblockControllerBase controller) {
         if (controller.getWorld() != null && controller.getWorld().isRemote) {
             MultiblockPreviewRenderer.refreshCurrentPreview(controller);
+            GhostBlockRenderer.refreshCurrentPreview(controller);
         }
     }
 

@@ -217,25 +217,32 @@ public class GhostBlockRenderer {
      * only computes world-space position list, no VBO/geometry building.
      */
     public static void renderGhostPreview(MultiblockControllerBase controller, long durTimeMillis) {
-        if (controller.getPos().equals(ghostPos)) {
-            // Same controller: advance layer
-            layer++;
-            ghostEndTime = System.currentTimeMillis() + durTimeMillis;
-            // Recompute comparison data for updated layer
-            if (compareMode) {
-                recomputeComparison(controller);
-            }
+        int requestedLayer = controller.getPos().equals(ghostPos) ? layer + 1 : 0;
+        rebuildGhostPreview(controller, durTimeMillis, requestedLayer);
+    }
+
+    /**
+     * Rebuild an active projector preview after the controller transform changes.
+     * Unlike normal activation, this preserves the selected preview layer.
+     */
+    public static void refreshCurrentPreview(MultiblockControllerBase controller) {
+        long remainingTime = ghostEndTime - System.currentTimeMillis();
+        if (controller == null || ghostPos == null || ghostBlocks.isEmpty() || remainingTime <= 0 ||
+                !controller.getPos().equals(ghostPos)) {
             return;
         }
+        rebuildGhostPreview(controller, remainingTime, layer);
+    }
 
-        // New controller or first activation
+    private static void rebuildGhostPreview(MultiblockControllerBase controller, long durTimeMillis,
+                                            int requestedLayer) {
         resetGhostRender();
         // Cancel any active controller preview
         MultiblockPreviewRenderer.resetMultiblockRender();
 
         ghostPos = controller.getPos();
         ghostEndTime = System.currentTimeMillis() + durTimeMillis;
-        layer = 0;
+        layer = requestedLayer;
 
         // Get shape info
         List<MultiblockShapeInfo> shapes = channelValues != null

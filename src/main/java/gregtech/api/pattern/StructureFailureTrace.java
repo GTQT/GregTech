@@ -331,6 +331,12 @@ public final class StructureFailureTrace {
         }
 
         @NotNull
+        public Builder actual(@Nullable String actual) {
+            this.actual = actual;
+            return this;
+        }
+
+        @NotNull
         public Builder missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
             this.missingAbilities = describeMissingAbilities(missingAbilities);
             return this;

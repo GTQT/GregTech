@@ -26,10 +26,14 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
@@ -53,6 +57,7 @@ import net.minecraft.block.BlockDoor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -91,6 +96,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
@@ -101,6 +107,8 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     public static final int MIN_RADIUS = 2;
     public static final int MIN_DEPTH = 4;
+    private static final int MIN_STRUCTURE_SIZE = 5;
+    private static final int MAX_STRUCTURE_SIZE = 15;
 
     private int lDist = 0;
     private int rDist = 0;
@@ -486,6 +494,13 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
      */
     @NotNull
     private FactoryBlockPattern buildFactoryPattern() {
+        return buildFactoryPattern(lDist, rDist, bDist, fDist, hDist);
+    }
+
+    @NotNull
+    private FactoryBlockPattern buildFactoryPattern(int leftDistance, int rightDistance,
+                                                    int backDistance, int frontDistance,
+                                                    int heightDistance) {
         // build each row of the structure
         StringBuilder borderBuilder = new StringBuilder();     // BBBBB
         StringBuilder wallBuilder = new StringBuilder();       // BXXXB
@@ -495,7 +510,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         StringBuilder centerBuilder = new StringBuilder();     // BXKXB
 
         // everything to the left of the controller
-        for (int i = 0; i < lDist; i++) {
+        for (int i = 0; i < leftDistance; i++) {
             borderBuilder.append("B");
             if (i == 0) {
                 wallBuilder.append("B");
@@ -521,9 +536,9 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         centerBuilder.append("K");
 
         // everything to the right of the controller
-        for (int i = 0; i < rDist; i++) {
+        for (int i = 0; i < rightDistance; i++) {
             borderBuilder.append("B");
-            if (i == rDist - 1) {
+            if (i == rightDistance - 1) {
                 wallBuilder.append("B");
                 insideBuilder.append("X");
                 roofBuilder.append("B");
@@ -539,12 +554,12 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         }
 
         // build each slice of the structure
-        String[] wall = new String[hDist + 1]; // "BBBBB", "BXXXB", "BXXXB", "BXXXB", "BBBBB"
+        String[] wall = new String[heightDistance + 1]; // "BBBBB", "BXXXB", "BXXXB", "BXXXB", "BBBBB"
         Arrays.fill(wall, wallBuilder.toString());
         wall[0] = borderBuilder.toString();
         wall[wall.length - 1] = borderBuilder.toString();
 
-        String[] slice = new String[hDist + 1]; // "BXXXB", "X X", "X X", "X X", "BFFFB"
+        String[] slice = new String[heightDistance + 1]; // "BXXXB", "X X", "X X", "X X", "BFFFB"
         Arrays.fill(slice, insideBuilder.toString());
         slice[0] = wallBuilder.toString();
         slice[slice.length - 1] = roofBuilder.toString();
@@ -565,9 +580,9 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         // layer the slices one behind the next
         return FactoryBlockPattern.start()
                 .aisle(wall)
-                .aisle(slice).setRepeatable(bDist - 1)
+                .aisle(slice).setRepeatable(backDistance - 1)
                 .aisle(center)
-                .aisle(slice).setRepeatable(fDist - 1)
+                .aisle(slice).setRepeatable(frontDistance - 1)
                 .aisle(wall)
                 .where('S', selfPredicate())
                 .where('B', states(getCasingState()).or(basePredicate))
@@ -579,6 +594,87 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                 .where('F', filterPredicate())
                 .where(' ', innerPredicate());
     }
+
+    @NotNull
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Arrays.asList(
+                GTStructureChannels.STRUCTURE_WIDTH,
+                GTStructureChannels.STRUCTURE_HEIGHT,
+                GTStructureChannels.STRUCTURE_LENGTH);
+    }
+
+    @NotNull
+    @Override
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        String channelName = channel.getName();
+        if (GTStructureChannels.STRUCTURE_WIDTH.getName().equals(channelName) ||
+                GTStructureChannels.STRUCTURE_HEIGHT.getName().equals(channelName) ||
+                GTStructureChannels.STRUCTURE_LENGTH.getName().equals(channelName)) {
+            return new int[] { 0, MAX_STRUCTURE_SIZE };
+        }
+        return super.getChannelRange(channel);
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes() {
+        return getMatchingShapes(Collections.emptyMap());
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
+        BlockPattern pattern = buildStructurePatternForChannelValues(channelValues);
+        return Collections.singletonList(new MultiblockShapeInfo(
+                pattern.getPreview(getFixedRepetitions(pattern), Collections.emptyMap())));
+    }
+
+    @Override
+    public boolean autoBuildStructure(@NotNull EntityPlayer player,
+                                      @Nullable Map<String, Integer> channelValues,
+                                      boolean skipHatches) {
+        buildStructurePatternForChannelValues(channelValues)
+                .autoBuild(player, this, Collections.emptyMap(), skipHatches);
+        return true;
+    }
+
+    @NotNull
+    private BlockPattern buildStructurePatternForChannelValues(@Nullable Map<String, Integer> channelValues) {
+        int width = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_WIDTH.getName());
+        int height = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_HEIGHT.getName());
+        int length = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_LENGTH.getName());
+
+        int leftDistance = (width - 1) / 2;
+        int rightDistance = width - 1 - leftDistance;
+        int backDistance = (length - 1) / 2;
+        int frontDistance = length - 1 - backDistance;
+
+        if (this.frontFacing == EnumFacing.EAST || this.frontFacing == EnumFacing.WEST) {
+            int tmp = leftDistance;
+            leftDistance = rightDistance;
+            rightDistance = tmp;
+        }
+
+        return buildFactoryPattern(leftDistance, rightDistance, backDistance, frontDistance, height - 1).build();
+    }
+
+    private static int resolveChannelSize(@Nullable Map<String, Integer> channelValues,
+                                          @NotNull String channelName) {
+        if (channelValues == null) return MAX_STRUCTURE_SIZE;
+        Integer value = channelValues.get(channelName);
+        return value == null ? MAX_STRUCTURE_SIZE :
+                MultiblockState.resolveRepetitionValue(value, MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE);
+    }
+
+    @NotNull
+    private static int[] getFixedRepetitions(@NotNull BlockPattern pattern) {
+        int[][] ranges = pattern.getAisleRepetitions();
+        int[] repetitions = new int[ranges.length];
+        for (int i = 0; i < ranges.length; i++) {
+            repetitions[i] = ranges[i][0];
+        }
+        return repetitions;
+    }
+
     @NotNull
     protected static TraceabilityPredicate improvedDoorPredicate() {
         return new TraceabilityPredicate(blockWorldState -> {
