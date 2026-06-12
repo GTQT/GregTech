@@ -30,6 +30,8 @@ import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -629,12 +631,20 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     }
 
     @Override
+    public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
+        BlockPattern pattern = buildStructurePatternForChannelValues(request.getChannelValues());
+        return autoBuildDynamicStructure(request.withChannelValues(Collections.emptyMap()),
+                "cleanroom_dynamic", pattern.getTemplate());
+    }
+
+    @Override
+    @Deprecated
     public boolean autoBuildStructure(@NotNull EntityPlayer player,
                                       @Nullable Map<String, Integer> channelValues,
                                       boolean skipHatches) {
-        buildStructurePatternForChannelValues(channelValues)
-                .autoBuild(player, this, Collections.emptyMap(), skipHatches);
-        return true;
+        return autoBuildStructure(StructureOperationRequest.build(
+                player, this, StructureOrientation.fromController(this),
+                channelValues, skipHatches, ItemStack.EMPTY));
     }
 
     @NotNull

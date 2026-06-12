@@ -62,6 +62,17 @@ public final class StructureRuntime {
                 definition, state, multiPiecePattern, pieceRuntimes);
     }
 
+    @NotNull
+    public static StructureRuntime fromDefinition(@NotNull StructureDefinition<?> definition) {
+        MultiPiecePattern multiPiecePattern = definition.getCompiledPattern();
+        BlockPatternTemplate template = definition.supportsSingleTemplatePath()
+                ? multiPiecePattern.getPrimaryPiece().getTemplate()
+                : null;
+        MultiblockState state = template == null ? null : template.createState();
+        return new StructureRuntime(definition, template, state, multiPiecePattern,
+                new PieceRuntimes(multiPiecePattern));
+    }
+
     @Nullable
     public StructureDefinition<?> getDefinition() {
         return definition;
@@ -101,6 +112,18 @@ public final class StructureRuntime {
     @NotNull
     public StructureCheckResult check(@NotNull StructureOperationRequest request) {
         return evaluator.check(request);
+    }
+
+    public void buildSingle(@NotNull StructureOperationRequest request) {
+        evaluator.buildSingle(request);
+    }
+
+    public boolean buildPiece(@NotNull StructureOperationRequest request) {
+        return evaluator.buildPiece(request);
+    }
+
+    public boolean buildAllPieces(@NotNull StructureOperationRequest request) {
+        return evaluator.buildAllPieces(request);
     }
 
     public void creativeBuildSingle(@NotNull StructureOperationRequest request) {

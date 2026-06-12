@@ -784,6 +784,47 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * outside the canonical runtime template. Returning {@code true} means the
      * structure build was handled by the controller.
      */
+    public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
+        request.requireBuildKind();
+        return autoBuildStructure(request.requirePlayer(), request.getChannelValues(), request.skipHatches());
+    }
+
+    /**
+     * Creates a disposable runtime for dynamic build definitions. The returned runtime
+     * is not published as this controller's canonical runtime and must only be used for
+     * the current tool operation.
+     */
+    @NotNull
+    protected StructureRuntime createDynamicStructureRuntime(@NotNull StructureDefinition<?> definition) {
+        return StructureRuntime.fromDefinition(definition);
+    }
+
+    /**
+     * Executes a dynamic single-template build through the request/runtime boundary.
+     */
+    protected boolean autoBuildDynamicStructure(@NotNull StructureOperationRequest request,
+                                                @NotNull String pieceName,
+                                                @NotNull BlockPatternTemplate template) {
+        request.requireBuildKind();
+        StructureRuntime dynamicRuntime = createDynamicStructureRuntime(
+                StructureDefinition.fromTemplate(pieceName, template));
+        StructureTrace.debug(this, "dynamic-build",
+                "path=dynamic-runtime, operation=" + request.getEvaluationOperation()
+                        + ", piece=" + pieceName + ", " + dynamicRuntime.describeShape());
+        dynamicRuntime.buildSingle(request);
+        return true;
+    }
+
+    /**
+     * Hook for multiblocks whose preview/build dimensions are controlled by channels
+     * outside the canonical runtime template. Returning {@code true} means the
+     * structure build was handled by the controller.
+     *
+     * @deprecated Tool callers should submit a {@link StructureOperationRequest}
+     *             to {@link #autoBuildStructure(StructureOperationRequest)} so
+     *             the build operation token is preserved.
+     */
+    @Deprecated
     public boolean autoBuildStructure(@NotNull EntityPlayer player,
                                       @Nullable Map<String, Integer> channelValues,
                                       boolean skipHatches) {

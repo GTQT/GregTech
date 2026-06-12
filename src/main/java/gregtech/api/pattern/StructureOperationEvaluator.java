@@ -141,6 +141,29 @@ public final class StructureOperationEvaluator {
         requireState().clearCache();
     }
 
+    public void buildSingle(@NotNull StructureOperationRequest request) {
+        request.requireBuildKind();
+        if (request.getKind() == StructureOperationRequest.Kind.CREATIVE_BUILD) {
+            creativeBuildSingle(request);
+        } else {
+            survivalBuildSingle(request);
+        }
+    }
+
+    public boolean buildAllPieces(@NotNull StructureOperationRequest request) {
+        request.requireBuildKind();
+        return request.getKind() == StructureOperationRequest.Kind.CREATIVE_BUILD
+                ? creativeBuildAllPieces(request)
+                : survivalBuildAllPieces(request);
+    }
+
+    public boolean buildPiece(@NotNull StructureOperationRequest request) {
+        request.requireBuildKind();
+        return request.getKind() == StructureOperationRequest.Kind.CREATIVE_BUILD
+                ? creativeBuildPiece(request)
+                : survivalBuildPiece(request);
+    }
+
     public void creativeBuildSingle(
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
@@ -297,14 +320,19 @@ public final class StructureOperationEvaluator {
 
     public boolean survivalBuildPiece(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.SURVIVAL_BUILD);
+        MultiPiecePattern pattern = requireMultiPiecePattern();
+        AbilityPlacementTracker abilityTracker = request.getAbilityTracker();
+        if (abilityTracker == null) {
+            abilityTracker = pattern.createAbilityPlacementTracker();
+        }
         StructureTrace.debug(request.requireController(), "survival-build-piece",
                 "path=multi-piece-legacy-autobuild, pieceIndex=" + request.getPieceIndex()
                         + ", operation=" + request.getEvaluationOperation()
                         + ", skipHatches=" + request.skipHatches());
-        return requireMultiPiecePattern().autoBuildPiece(
+        return pattern.autoBuildPiece(
                 request.getPieceIndex(), request.requirePlayer(), request.requireController(),
                 request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
-                requirePieceRuntimes(), request.requireAbilityTracker(),
+                requirePieceRuntimes(), abilityTracker,
                 request.getEvaluationOperation());
     }
 

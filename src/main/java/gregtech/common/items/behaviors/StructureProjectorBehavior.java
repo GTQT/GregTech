@@ -232,15 +232,18 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Check if a specific piece is requested via STRUCTURE_PIECE channel
             int pieceIndex = channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
             if (pieceIndex > 0) {
-                creativeBuildPiece(multiblock, player, pieceIndex, channels, noHatch);
+                buildPiece(multiblock, player, pieceIndex, channels, noHatch, heldStack);
                 return EnumActionResult.SUCCESS;
             }
 
             if (!multiblock.isStructureFormed()) {
-                if (multiblock.autoBuildStructure(player, channels, noHatch)) {
+                StructureOperationRequest request = StructureOperationRequest.build(
+                        player, multiblock, StructureOrientation.fromController(multiblock),
+                        channels, noHatch, heldStack);
+                if (multiblock.autoBuildStructure(request)) {
                     return EnumActionResult.SUCCESS;
                 }
-                creativeBuildStructure(multiblock, player, channels, noHatch);
+                buildStructure(multiblock, request);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -304,29 +307,26 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         writeChannelRanges(stack, ranges);
     }
 
-    private static void creativeBuildStructure(@NotNull MultiblockControllerBase multiblock,
-                                               @NotNull EntityPlayer player,
-                                               Map<String, Integer> channels,
-                                               boolean noHatch) {
+    private static void buildStructure(@NotNull MultiblockControllerBase multiblock,
+                                       @NotNull StructureOperationRequest request) {
         var runtime = multiblock.getOrCreateStructureRuntime();
-        StructureOperationRequest request = StructureOperationRequest.creativeBuild(
-                player, multiblock, StructureOrientation.fromController(multiblock), channels, noHatch);
         if (runtime.getState() != null) {
-            runtime.creativeBuildSingle(request);
+            runtime.buildSingle(request);
         } else {
-            runtime.creativeBuildAllPieces(request);
+            runtime.buildAllPieces(request);
         }
     }
 
-    private static void creativeBuildPiece(@NotNull MultiblockControllerBase multiblock,
-                                           @NotNull EntityPlayer player,
-                                           int pieceIndex,
-                                           Map<String, Integer> channels,
-                                           boolean noHatch) {
+    private static void buildPiece(@NotNull MultiblockControllerBase multiblock,
+                                   @NotNull EntityPlayer player,
+                                   int pieceIndex,
+                                   Map<String, Integer> channels,
+                                   boolean noHatch,
+                                   @NotNull ItemStack triggerStack) {
         var runtime = multiblock.getOrCreateStructureRuntime();
-        runtime.creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
+        runtime.buildPiece(StructureOperationRequest.buildPiece(
                 pieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
-                channels, noHatch));
+                channels, noHatch, triggerStack));
     }
 
     private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,

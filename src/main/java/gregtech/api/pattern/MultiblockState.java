@@ -599,6 +599,32 @@ public class MultiblockState {
         private final Map<BlockPos, EnumFacing> explicitFrontFacings = new HashMap<>();
     }
 
+    private static final class PreviewTraversalState {
+
+        @NotNull
+        private final Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
+        @NotNull
+        private final Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
+        @NotNull
+        private final Map<BlockPos, BlockInfo> blocks = new HashMap<>();
+        private int minX = Integer.MAX_VALUE;
+        private int minY = Integer.MAX_VALUE;
+        private int minZ = Integer.MAX_VALUE;
+        private int maxX = Integer.MIN_VALUE;
+        private int maxY = Integer.MIN_VALUE;
+        private int maxZ = Integer.MIN_VALUE;
+
+        private void record(@NotNull BlockPos pos, @NotNull BlockInfo info) {
+            blocks.put(pos, info);
+            minX = Math.min(pos.getX(), minX);
+            minY = Math.min(pos.getY(), minY);
+            minZ = Math.min(pos.getZ(), minZ);
+            maxX = Math.max(pos.getX(), maxX);
+            maxY = Math.max(pos.getY(), maxY);
+            maxZ = Math.max(pos.getZ(), maxZ);
+        }
+    }
+
     @Nullable
     private static BuildCandidate selectBuildCandidate(
             @NotNull EntityPlayer player,
@@ -1305,6 +1331,162 @@ public class MultiblockState {
         });
     }
 
+    @NotNull
+    private static BlockInfo copyPreviewTileEntity(@NotNull BlockInfo info) {
+        if (info.getTileEntity() instanceof MetaTileEntityHolder) {
+            MetaTileEntityHolder holder = new MetaTileEntityHolder();
+            holder.setMetaTileEntity(
+                    ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity());
+            holder.getMetaTileEntity().onPlacement();
+            if (info instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
+                return new ExplicitFrontFacingBlockInfo(
+                        holder.getMetaTileEntity().getBlock().getDefaultState(), holder,
+                        controller -> explicitInfo.getFrontFacing(controller));
+            }
+            return new BlockInfo(holder.getMetaTileEntity().getBlock().getDefaultState(), holder);
+        }
+        return info;
+    }
+
+    @NotNull
+    private static BlockInfo selectPreviewBlockInfo(@NotNull TraceabilityPredicate predicate,
+                                                    @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer,
+                                                    @NotNull PreviewTraversalState previewState,
+                                                    @Nullable Map<String, Integer> channelValues) {
+        boolean find = false;
+        BlockInfo[] infos = null;
+        TraceabilityPredicate.SimplePredicate matchedPredicate = null;
+        for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+            if (limit.minLayerCount > 0) {
+                if (!cacheLayer.containsKey(limit)) {
+                    cacheLayer.put(limit, 1);
+                } else if (cacheLayer.get(limit) < limit.minLayerCount) {
+                    cacheLayer.put(limit, cacheLayer.get(limit) + 1);
+                } else {
+                    continue;
+                }
+                if (previewState.cacheGlobal.getOrDefault(limit, 0) < limit.previewCount) {
+                    if (!previewState.cacheGlobal.containsKey(limit)) {
+                        previewState.cacheGlobal.put(limit, 1);
+                    } else if (previewState.cacheGlobal.get(limit) < limit.previewCount) {
+                        previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
+                    } else {
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            }
+            if (!previewState.cacheInfos.containsKey(limit)) {
+                previewState.cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
+            }
+            infos = previewState.cacheInfos.get(limit);
+            matchedPredicate = limit;
+            find = true;
+            break;
+        }
+        if (!find) {
+            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+                if (limit.minGlobalCount == -1 && limit.previewCount == -1) continue;
+                if (previewState.cacheGlobal.getOrDefault(limit, 0) < limit.previewCount) {
+                    if (!previewState.cacheGlobal.containsKey(limit)) {
+                        previewState.cacheGlobal.put(limit, 1);
+                    } else if (previewState.cacheGlobal.get(limit) < limit.previewCount) {
+                        previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
+                    } else {
+                        continue;
+                    }
+                } else if (limit.minGlobalCount > 0) {
+                    if (!previewState.cacheGlobal.containsKey(limit)) {
+                        previewState.cacheGlobal.put(limit, 1);
+                    } else if (previewState.cacheGlobal.get(limit) < limit.minGlobalCount) {
+                        previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+                if (!previewState.cacheInfos.containsKey(limit)) {
+                    previewState.cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
+                }
+                infos = previewState.cacheInfos.get(limit);
+                matchedPredicate = limit;
+                find = true;
+                break;
+            }
+        }
+        if (!find) {
+            for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
+                if (common.previewCount > 0) {
+                    if (!previewState.cacheGlobal.containsKey(common)) {
+                        previewState.cacheGlobal.put(common, 1);
+                    } else if (previewState.cacheGlobal.get(common) < common.previewCount) {
+                        previewState.cacheGlobal.put(common, previewState.cacheGlobal.get(common) + 1);
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+                if (!previewState.cacheInfos.containsKey(common)) {
+                    previewState.cacheInfos.put(common, common.candidates == null ? null : common.candidates.get());
+                }
+                infos = previewState.cacheInfos.get(common);
+                matchedPredicate = common;
+                find = true;
+                break;
+            }
+        }
+        if (!find) {
+            for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
+                if (common.previewCount == -1) {
+                    if (!previewState.cacheInfos.containsKey(common)) {
+                        previewState.cacheInfos.put(common,
+                                common.candidates == null ? null : common.candidates.get());
+                    }
+                    infos = previewState.cacheInfos.get(common);
+                    matchedPredicate = common;
+                    find = true;
+                    break;
+                }
+            }
+        }
+        if (!find) {
+            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+                if (limit.previewCount != -1) {
+                    continue;
+                } else if (limit.maxGlobalCount != -1 || limit.maxLayerCount != -1) {
+                    if (previewState.cacheGlobal.getOrDefault(limit, 0) < limit.maxGlobalCount) {
+                        if (!previewState.cacheGlobal.containsKey(limit)) {
+                            previewState.cacheGlobal.put(limit, 1);
+                        } else {
+                            previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
+                        }
+                    } else if (cacheLayer.getOrDefault(limit, 0) < limit.maxLayerCount) {
+                        if (!cacheLayer.containsKey(limit)) {
+                            cacheLayer.put(limit, 1);
+                        } else {
+                            cacheLayer.put(limit, cacheLayer.get(limit) + 1);
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+
+                if (!previewState.cacheInfos.containsKey(limit)) {
+                    previewState.cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
+                }
+                infos = previewState.cacheInfos.get(limit);
+                matchedPredicate = limit;
+                break;
+            }
+        }
+        int candidateIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
+        BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[candidateIdx];
+        return copyPreviewTileEntity(info);
+    }
+
     /**
      * 尝试从玩家的 AE2 无线终端网络中提取物品。
      * 仅在服务端生效，需要 AE2 已加载且玩家拥有已连接的无线终端。
@@ -1437,192 +1619,23 @@ public class MultiblockState {
      * @param channelValues map of channel name -> desired tier (1-based, null or 0 = auto)
      */
     public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
-        IStructureElement<?>[][][] elements = template.getElements();
-        RelativeDirection[] structureDir = template.getStructureDir();
-        int fingerLength = template.getZLength();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
+        PreviewTraversalState previewState = new PreviewTraversalState();
+        StructureOrientation previewOrientation = StructureOrientation.of(
+                EnumFacing.SOUTH, EnumFacing.SOUTH, EnumFacing.UP, false, false);
+        visitFixedStructureCells(repetition, BlockPos.ORIGIN, previewOrientation, 0, 0, 0, (cell, layerCounts) -> {
+            BlockInfo info = selectPreviewBlockInfo(cell.predicate, layerCounts, previewState, channelValues);
+            previewState.record(cell.worldPos, info);
+        });
 
-        Map<TraceabilityPredicate.SimplePredicate, BlockInfo[]> cacheInfos = new HashMap<>();
-        Map<TraceabilityPredicate.SimplePredicate, Integer> cacheGlobal = new HashMap<>();
-        Map<BlockPos, BlockInfo> blocks = new HashMap<>();
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (int l = 0, x = 0; l < fingerLength; l++) {
-            for (int r = 0; r < repetition[l]; r++) {
-                Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer = new HashMap<>();
-                for (int y = 0; y < thumbLength; y++) {
-                    for (int z = 0; z < palmLength; z++) {
-                        IStructureElement<?> element = elements[l][y][z];
-                        TraceabilityPredicate predicate = element.toPredicate();
-                        boolean find = false;
-                        BlockInfo[] infos = null;
-                        TraceabilityPredicate.SimplePredicate matchedPredicate = null;
-                        for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                            if (limit.minLayerCount > 0) {
-                                if (!cacheLayer.containsKey(limit)) {
-                                    cacheLayer.put(limit, 1);
-                                } else if (cacheLayer.get(limit) < limit.minLayerCount) {
-                                    cacheLayer.put(limit, cacheLayer.get(limit) + 1);
-                                } else {
-                                    continue;
-                                }
-                                if (cacheGlobal.getOrDefault(limit, 0) < limit.previewCount) {
-                                    if (!cacheGlobal.containsKey(limit)) {
-                                        cacheGlobal.put(limit, 1);
-                                    } else if (cacheGlobal.get(limit) < limit.previewCount) {
-                                        cacheGlobal.put(limit, cacheGlobal.get(limit) + 1);
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                            } else {
-                                continue;
-                            }
-                            if (!cacheInfos.containsKey(limit)) {
-                                cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
-                            }
-                            infos = cacheInfos.get(limit);
-                            matchedPredicate = limit;
-                            find = true;
-                            break;
-                        }
-                        if (!find) {
-                            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                                if (limit.minGlobalCount == -1 && limit.previewCount == -1) continue;
-                                if (cacheGlobal.getOrDefault(limit, 0) < limit.previewCount) {
-                                    if (!cacheGlobal.containsKey(limit)) {
-                                        cacheGlobal.put(limit, 1);
-                                    } else if (cacheGlobal.get(limit) < limit.previewCount) {
-                                        cacheGlobal.put(limit, cacheGlobal.get(limit) + 1);
-                                    } else {
-                                        continue;
-                                    }
-                                } else if (limit.minGlobalCount > 0) {
-                                    if (!cacheGlobal.containsKey(limit)) {
-                                        cacheGlobal.put(limit, 1);
-                                    } else if (cacheGlobal.get(limit) < limit.minGlobalCount) {
-                                        cacheGlobal.put(limit, cacheGlobal.get(limit) + 1);
-                                    } else {
-                                        continue;
-                                    }
-                                } else {
-                                    continue;
-                                }
-                                if (!cacheInfos.containsKey(limit)) {
-                                    cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
-                                }
-                                infos = cacheInfos.get(limit);
-                                matchedPredicate = limit;
-                                find = true;
-                                break;
-                            }
-                        }
-                        if (!find) {
-                            for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
-                                if (common.previewCount > 0) {
-                                    if (!cacheGlobal.containsKey(common)) {
-                                        cacheGlobal.put(common, 1);
-                                    } else if (cacheGlobal.get(common) < common.previewCount) {
-                                        cacheGlobal.put(common, cacheGlobal.get(common) + 1);
-                                    } else {
-                                        continue;
-                                    }
-                                } else {
-                                    continue;
-                                }
-                                if (!cacheInfos.containsKey(common)) {
-                                    cacheInfos.put(common, common.candidates == null ? null : common.candidates.get());
-                                }
-                                infos = cacheInfos.get(common);
-                                matchedPredicate = common;
-                                find = true;
-                                break;
-                            }
-                        }
-                        if (!find) {
-                            for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
-                                if (common.previewCount == -1) {
-                                    if (!cacheInfos.containsKey(common)) {
-                                        cacheInfos.put(common,
-                                                common.candidates == null ? null : common.candidates.get());
-                                    }
-                                    infos = cacheInfos.get(common);
-                                    matchedPredicate = common;
-                                    find = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!find) {
-                            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                                if (limit.previewCount != -1) {
-                                    continue;
-                                } else if (limit.maxGlobalCount != -1 || limit.maxLayerCount != -1) {
-                                    if (cacheGlobal.getOrDefault(limit, 0) < limit.maxGlobalCount) {
-                                        if (!cacheGlobal.containsKey(limit)) {
-                                            cacheGlobal.put(limit, 1);
-                                        } else {
-                                            cacheGlobal.put(limit, cacheGlobal.get(limit) + 1);
-                                        }
-                                    } else if (cacheLayer.getOrDefault(limit, 0) < limit.maxLayerCount) {
-                                        if (!cacheLayer.containsKey(limit)) {
-                                            cacheLayer.put(limit, 1);
-                                        } else {
-                                            cacheLayer.put(limit, cacheLayer.get(limit) + 1);
-                                        }
-                                    } else {
-                                        continue;
-                                    }
-                                }
-
-                                if (!cacheInfos.containsKey(limit)) {
-                                    cacheInfos.put(limit, limit.candidates == null ? null : limit.candidates.get());
-                                }
-                                infos = cacheInfos.get(limit);
-                                matchedPredicate = limit;
-                                break;
-                            }
-                        }
-                        int candidateIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
-                        BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[candidateIdx];
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(z, y, x, EnumFacing.SOUTH,
-                                EnumFacing.UP, false, structureDir);
-                        if (info.getTileEntity() instanceof MetaTileEntityHolder) {
-                            MetaTileEntityHolder holder = new MetaTileEntityHolder();
-                            holder.setMetaTileEntity(
-                                    ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity());
-                            holder.getMetaTileEntity().onPlacement();
-                            if (info instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
-                                info = new ExplicitFrontFacingBlockInfo(
-                                        holder.getMetaTileEntity().getBlock().getDefaultState(), holder,
-                                        controller -> explicitInfo.getFrontFacing(controller));
-                            } else {
-                                info = new BlockInfo(holder.getMetaTileEntity().getBlock().getDefaultState(), holder);
-                            }
-                        }
-                        blocks.put(pos, info);
-                        minX = Math.min(pos.getX(), minX);
-                        minY = Math.min(pos.getY(), minY);
-                        minZ = Math.min(pos.getZ(), minZ);
-                        maxX = Math.max(pos.getX(), maxX);
-                        maxY = Math.max(pos.getY(), maxY);
-                        maxZ = Math.max(pos.getZ(), maxZ);
-                    }
-                }
-                x++;
-            }
-        }
-        BlockInfo[][][] result = (BlockInfo[][][]) Array.newInstance(BlockInfo.class, maxX - minX + 1, maxY - minY + 1,
-                maxZ - minZ + 1);
-        int finalMinX = minX;
-        int finalMinY = minY;
-        int finalMinZ = minZ;
-        blocks.forEach((pos, info) -> {
+        BlockInfo[][][] result = (BlockInfo[][][]) Array.newInstance(
+                BlockInfo.class,
+                previewState.maxX - previewState.minX + 1,
+                previewState.maxY - previewState.minY + 1,
+                previewState.maxZ - previewState.minZ + 1);
+        int finalMinX = previewState.minX;
+        int finalMinY = previewState.minY;
+        int finalMinZ = previewState.minZ;
+        previewState.blocks.forEach((pos, info) -> {
             if (info.getTileEntity() instanceof MetaTileEntityHolder) {
                 MetaTileEntity metaTileEntity = ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity();
                 // Try to find a boundary direction (no block in that direction).
@@ -1639,7 +1652,7 @@ public class MultiblockState {
                 // the default in place.
                 for (EnumFacing enumFacing : RelativeDirection.ALL_FACINGS) {
                     if (metaTileEntity.isValidFrontFacing(enumFacing) &&
-                            !blocks.containsKey(pos.offset(enumFacing))) {
+                            !previewState.blocks.containsKey(pos.offset(enumFacing))) {
                         metaTileEntity.setFrontFacing(enumFacing);
                         break;
                     }

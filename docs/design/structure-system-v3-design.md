@@ -102,11 +102,15 @@ GregTech already has part of the V3 shape:
   backs controller checks, single-piece and multi-piece previews, creative build, survival build entry points,
   single-piece and multi-piece hints, and iteration. Survival build still delegates to the existing legacy auto-build
   placement semantics, but now carries `SURVIVAL_BUILD` as the operation token through the shared request/runtime
-  boundary. `StructureRuntime` now accepts these requests and keeps
+  boundary. Tool callers now create one build request that selects `CREATIVE_BUILD` or `SURVIVAL_BUILD` from the
+  player mode; dynamic controller build hooks also receive that request and execute channel-generated definitions
+  through disposable `StructureRuntime` instances. `StructureRuntime` now accepts these requests and keeps
   `StructureOperationEvaluator` as an internal delegating implementation detail for runtime-owned operations.
 - Single-piece fixed-repetition traversal now has a shared cell walker for orientation-aware coordinate resolution.
-  Creative build and structure iteration both use that walker; creative build keeps legacy candidate selection in an
-  operation-local build adapter and updates a `CREATIVE_BUILD` cell context without collecting formation requirements.
+  Creative build, single-piece preview, hints, and structure iteration use that walker where they touch fixed cells.
+  Creative build keeps legacy candidate selection in an operation-local build adapter and updates a `CREATIVE_BUILD`
+  cell context without collecting formation requirements; single-piece preview keeps the legacy JEI/projector array
+  layout by using a preview-local orientation over the shared cell traversal.
 - Synchronous definition and legacy-template checks are normalized into immutable `StructureCheckResult` values before
   controller assembly. Match context, channel values, operation state, and missing abilities are copied at this boundary.
 - Initial formation and reassembly produce one `PreparedCommit` shape and pass through
@@ -133,7 +137,7 @@ GregTech already has part of the V3 shape:
   entry points, `MultiblockState` exact live/snapshot/axis-line traversal loops, and creative-build evaluator paths use
   it. The remaining
   `front/up/flipped` arguments are compatibility facades, low-level `RelativeDirection` inputs, preview/hint placement
-  internals, and legacy/dynamic auto-build adapters that still read orientation from controller state.
+  internals, and addon-facing legacy auto-build adapters that still read orientation from controller state.
 - Controller-side orchestration has started moving into focused helpers:
   `MultiblockStructureCheckScheduler`, `MultiblockStructureAssembler`, `MultiblockStructureRegistration`,
   `MultiblockStructureCommitter`, `MultiblockStructurePreviews`, `MultiblockStructureChannels`, and
@@ -153,16 +157,17 @@ monitor, and cleanroom.
 
 Some controllers intentionally still build definitions from compatibility pieces:
 
-- Cleanroom returns a `StructureDefinition`, but still builds a dynamic `FactoryBlockPattern` internally because its
-  dimensions are discovered at runtime.
+- Cleanroom returns a `StructureDefinition`, but still builds dynamic `FactoryBlockPattern` instances internally because
+  its dimensions are discovered at runtime. Its tool-triggered dynamic build path wraps those generated templates in a
+  disposable `StructureRuntime` instead of bypassing the operation request boundary.
 - Large turbine, large miner, fluid drill, and fusion reactor still expose existing `buildTemplate()` and registration
   compatibility APIs, but controller runtime consumes registered structures through cached `StructureDefinition`
   adapters.
 - The network switch explicitly overrides `createStructureDefinition()`, preventing the canonical resolver from
   selecting the inherited data bank definition before reaching the switch structure.
 
-The remaining controller-owned legacy hooks are mainly the dynamically generated charcoal pile and the Godforge
-controller/module path, plus base compatibility surfaces for addons.
+The remaining controller-owned legacy hooks are mainly the dynamically generated charcoal-pile check/preview path and
+the Godforge controller/module path, plus base compatibility surfaces for addons.
 
 ### Known Gaps
 
@@ -173,9 +178,9 @@ The migration is not complete yet:
   carry typed collector state through `StructureCheckResult` and only materialize legacy keys for compatibility
   callbacks.
 - `StructureOperationEvaluator` delegates to separate single-piece, multi-piece, preview, build, hint, and iteration
-  traversals. Creative build, hints, and iteration now share the fixed-repetition coordinate walker where they touch
-  single-piece cells, but matching, snapshot checks, preview-space assembly, and survival build have not yet converged
-  on one implementation.
+  traversals. Creative build, single-piece preview, hints, and iteration now share the fixed-repetition coordinate
+  walker where they touch single-piece cells, but matching, snapshot checks, multi-piece preview assembly, and survival
+  build have not yet converged on one implementation.
 - Survival build and hints have request/runtime entry points, but they are not fully routed through the same
   session/result model as checks. Survival build still uses the legacy candidate-selection and placement side effects;
   hints now have trigger-aware tool callers and multi-piece/dynamic-piece traversal, while visible hint behavior still
@@ -584,6 +589,13 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
 18. Add a hint request path from the structure projector and legacy multiblock builder through `StructureRuntime`.
     Single-piece hints use the fixed cell walker; multi-piece hints traverse active pieces, repeat groups, and dynamic
     offsets using the same piece-center metadata rules as build/preview paths.
+19. Route single-piece preview coordinate projection through the fixed-repetition cell walker while preserving the
+    existing JEI/projector `BlockInfo[][][]` layout and preview candidate-selection semantics.
+20. Route tool-triggered build requests through one runtime build dispatcher. The projector and legacy builder now
+    create `CREATIVE_BUILD` or `SURVIVAL_BUILD` requests from player mode, single-piece and multi-piece builds share the
+    runtime dispatch surface, and Cleanroom/charcoal-pile dynamic builds wrap their channel-generated templates in
+    disposable `StructureRuntime` instances instead of bypassing the request boundary. The old controller
+    `autoBuildStructure(player, channels, skipHatches)` hook remains only as an addon compatibility bridge.
 
 ### Mostly Done
 
@@ -598,23 +610,24 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
    survival build, hint result reporting, and diagnostics, while preserving existing traversals and legacy evaluator
    facades.
 2. Promote the fixed-repetition cell walker from a creative-build/iteration helper into the common coordinate layer for
-   preview-space assembly and survival build once each caller's side effects are explicit.
-3. Finish routing survival build and hints through the same operation request/session/result model. Initial
-   request/runtime routing exists; remaining work is session/result collection, placement budgets, item-source
-   accounting, and hint result reporting.
+   multi-piece preview assembly and survival build once each caller's side effects are explicit.
+3. Finish giving survival build and hints the same session/result model as checks. Request/runtime routing now exists
+   for tool-triggered fixed, multi-piece, and dynamic build paths; remaining work is session/result collection,
+   placement budgets, item-source accounting, and hint result reporting.
 4. Extract controller orchestration into scheduler, assembly, registration, preview, channel, and client-hook helpers.
 
 ### Planned
 
 1. Converge single-piece, multi-piece, live, and snapshot checks on one traversal implementation.
-2. Unify preview coordinate projection with the fixed-repetition walker without changing JEI/projector layout.
+2. Converge multi-piece preview assembly with the fixed-repetition coordinate layer without changing JEI/projector
+   layout.
 3. Add a survival-build request/session/result shape with placement budgets, item-source accounting, and rollback-safe
    consumed/required item reporting.
 4. Add structured hint results once hint rendering/particle effects are explicit per element.
 5. Retire the remaining creative-build candidate-selection adapter once direct element placement and predicate fallback
    have one operation-local selection path.
-6. Retire remaining `front/up/flipped` compatibility facades once template iteration, preview/hint placement,
-   legacy/dynamic auto-build adapters, and addon-facing legacy hooks have orientation-native callers.
+6. Retire remaining `front/up/flipped` compatibility facades once template iteration, preview/hint placement, and
+   addon-facing legacy hooks have orientation-native callers.
 7. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
 8. Add diagnostic command and in-game structure trace view.
 

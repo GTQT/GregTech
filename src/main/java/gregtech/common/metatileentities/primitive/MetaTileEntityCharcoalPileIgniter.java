@@ -286,12 +286,20 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     }
 
     @Override
+    public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
+        BlockPattern pattern = buildStructurePatternForChannelValues(request.getChannelValues());
+        return autoBuildDynamicStructure(request.withChannelValues(Collections.emptyMap()),
+                "charcoal_pile_dynamic", pattern.getTemplate());
+    }
+
+    @Override
+    @Deprecated
     public boolean autoBuildStructure(@NotNull EntityPlayer player,
                                       @Nullable Map<String, Integer> channelValues,
                                       boolean skipHatches) {
-        buildStructurePatternForChannelValues(channelValues)
-                .autoBuild(player, this, Collections.emptyMap(), skipHatches);
-        return true;
+        return autoBuildStructure(StructureOperationRequest.build(
+                player, this, StructureOrientation.fromController(this),
+                channelValues, skipHatches, ItemStack.EMPTY));
     }
 
     @NotNull

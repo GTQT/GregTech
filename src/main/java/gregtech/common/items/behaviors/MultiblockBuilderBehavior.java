@@ -48,13 +48,13 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
         if (player.isSneaking()) {
             if (!multiblock.isStructureFormed()) {
                 Map<String, Integer> channelValues = Collections.emptyMap();
-                if (multiblock.autoBuildStructure(player, channelValues, false)) {
+                StructureOperationRequest request = StructureOperationRequest.build(
+                        player, multiblock, StructureOrientation.fromController(multiblock),
+                        channelValues, false, player.getHeldItem(hand));
+                if (multiblock.autoBuildStructure(request)) {
                     return EnumActionResult.SUCCESS;
                 }
-                // Multi-piece structures need per-piece auto-build so dynamic offsets can resolve anchors.
-                if (autoBuildAllPieces(multiblock, player, channelValues)) {
-                    return EnumActionResult.SUCCESS;
-                }
+                autoBuildStructure(multiblock, request);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -105,13 +105,14 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
         }
     }
 
-    private boolean autoBuildAllPieces(@NotNull MultiblockControllerBase multiblock,
-                                       @NotNull EntityPlayer player,
-                                       @NotNull Map<String, Integer> channelValues) {
-        return multiblock.getOrCreateStructureRuntime().creativeBuildAllPieces(
-                StructureOperationRequest.creativeBuild(
-                        player, multiblock, StructureOrientation.fromController(multiblock),
-                        channelValues, false));
+    private void autoBuildStructure(@NotNull MultiblockControllerBase multiblock,
+                                    @NotNull StructureOperationRequest request) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        if (runtime.getState() != null) {
+            runtime.buildSingle(request);
+        } else {
+            runtime.buildAllPieces(request);
+        }
     }
 
     @Override

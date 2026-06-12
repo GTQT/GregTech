@@ -153,6 +153,18 @@ public final class StructureOperationRequest {
     }
 
     @NotNull
+    public static StructureOperationRequest build(@NotNull EntityPlayer player,
+                                                  @NotNull MultiblockControllerBase controller,
+                                                  @NotNull StructureOrientation orientation,
+                                                  @Nullable Map<String, Integer> channelValues,
+                                                  boolean skipHatches,
+                                                  @NotNull ItemStack triggerStack) {
+        return player.isCreative()
+                ? creativeBuild(player, controller, orientation, channelValues, skipHatches)
+                : survivalBuild(player, controller, orientation, channelValues, skipHatches, triggerStack);
+    }
+
+    @NotNull
     public static StructureOperationRequest creativeBuildPiece(int pieceIndex,
                                                                @NotNull EntityPlayer player,
                                                                @NotNull MultiblockControllerBase controller,
@@ -180,6 +192,20 @@ public final class StructureOperationRequest {
     }
 
     @NotNull
+    public static StructureOperationRequest buildPiece(int pieceIndex,
+                                                       @NotNull EntityPlayer player,
+                                                       @NotNull MultiblockControllerBase controller,
+                                                       @NotNull StructureOrientation orientation,
+                                                       @Nullable Map<String, Integer> channelValues,
+                                                       boolean skipHatches,
+                                                       @NotNull ItemStack triggerStack) {
+        return player.isCreative()
+                ? creativeBuildPiece(pieceIndex, player, controller, orientation, channelValues, skipHatches)
+                : survivalBuildPiece(pieceIndex, player, controller, orientation, channelValues,
+                        skipHatches, triggerStack);
+    }
+
+    @NotNull
     public static StructureOperationRequest survivalBuild(@NotNull EntityPlayer player,
                                                           @NotNull MultiblockControllerBase controller,
                                                           @NotNull StructureOrientation orientation,
@@ -198,12 +224,33 @@ public final class StructureOperationRequest {
                                                                @NotNull StructureOrientation orientation,
                                                                @Nullable Map<String, Integer> channelValues,
                                                                boolean skipHatches,
+                                                               @NotNull ItemStack triggerStack) {
+        return new StructureOperationRequest(
+                Kind.SURVIVAL_BUILD, player.world, controller.getPos(), orientation, null,
+                controller, player, channelValues, null, null, triggerStack,
+                false, skipHatches, pieceIndex);
+    }
+
+    @NotNull
+    public static StructureOperationRequest survivalBuildPiece(int pieceIndex,
+                                                               @NotNull EntityPlayer player,
+                                                               @NotNull MultiblockControllerBase controller,
+                                                               @NotNull StructureOrientation orientation,
+                                                               @Nullable Map<String, Integer> channelValues,
+                                                               boolean skipHatches,
                                                                @NotNull AbilityPlacementTracker abilityTracker,
                                                                @NotNull ItemStack triggerStack) {
         return new StructureOperationRequest(
                 Kind.SURVIVAL_BUILD, player.world, controller.getPos(), orientation, null,
                 controller, player, channelValues, null, abilityTracker, triggerStack,
                 false, skipHatches, pieceIndex);
+    }
+
+    @NotNull
+    public StructureOperationRequest withChannelValues(@Nullable Map<String, Integer> channelValues) {
+        return new StructureOperationRequest(
+                kind, world, controllerPos, orientation, matchContext, controller, player,
+                channelValues, repetitions, abilityTracker, triggerStack, doRandomCheck, skipHatches, pieceIndex);
     }
 
     @NotNull
@@ -228,6 +275,16 @@ public final class StructureOperationRequest {
     public void requireKind(@NotNull Kind expected) {
         if (kind != expected) {
             throw new IllegalArgumentException("Expected " + expected + " request, got " + kind);
+        }
+    }
+
+    public boolean isBuildKind() {
+        return kind == Kind.CREATIVE_BUILD || kind == Kind.SURVIVAL_BUILD;
+    }
+
+    public void requireBuildKind() {
+        if (!isBuildKind()) {
+            throw new IllegalArgumentException("Expected build request, got " + kind);
         }
     }
 
