@@ -232,21 +232,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Check if a specific piece is requested via STRUCTURE_PIECE channel
             int pieceIndex = channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
             if (pieceIndex > 0) {
-                // Build a specific piece from the MultiPiecePattern
-                var multiPiece = multiblock.getMultiPiecePattern();
-                var runtime = multiblock.getStructureRuntime();
-                if (multiPiece != null) {
-                    var abilityTracker = multiPiece.createAbilityPlacementTracker();
-                    if (runtime != null) {
-                        runtime.creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
-                                pieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
-                                channels, noHatch, abilityTracker));
-                    } else {
-                        multiPiece.autoBuildPiece(
-                                pieceIndex, player, multiblock, channels, noHatch,
-                                multiblock.getPieceRuntimes(), abilityTracker);
-                    }
-                }
+                creativeBuildPiece(multiblock, player, pieceIndex, channels, noHatch);
                 return EnumActionResult.SUCCESS;
             }
 
@@ -254,38 +240,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 if (multiblock.autoBuildStructure(player, channels, noHatch)) {
                     return EnumActionResult.SUCCESS;
                 }
-                MultiblockState state = multiblock.getMultiblockState();
-                var runtime = multiblock.getStructureRuntime();
-                if (state != null && runtime != null) {
-                    // Single-piece multiblock: build the main pattern via its MultiblockState.
-                    runtime.creativeBuildSingle(StructureOperationRequest.creativeBuild(
-                            player, multiblock, StructureOrientation.fromController(multiblock),
-                            channels, noHatch));
-                } else if (runtime != null) {
-                    // Multi-piece multiblock (e.g. Distillation Tower): the controller's
-                    // MultiblockState is null because each piece owns its own state.
-                    // Iterate every piece and let the MultiPiecePattern place them at
-                    // their correct world-space offsets. Repeatable pieces (e.g. the
-                    // tower body) read their repeat count from channel values, so the
-                    // STRUCTURE_WIDTH / STRUCTURE_HEIGHT / STRUCTURE_LENGTH channels
-                    // on the projector still control the final dimensions.
-                    runtime.creativeBuildAllPieces(StructureOperationRequest.creativeBuild(
-                            player, multiblock, StructureOrientation.fromController(multiblock),
-                            channels, noHatch));
-                } else if (state != null) {
-                    state.autoBuild(player, multiblock, channels, noHatch);
-                } else {
-                    var multiPiece = multiblock.getMultiPiecePattern();
-                    if (multiPiece != null) {
-                        int pieceCount = multiPiece.getPieceCount();
-                        var abilityTracker = multiPiece.createAbilityPlacementTracker();
-                        for (int i = 1; i <= pieceCount; i++) {
-                            multiPiece.autoBuildPiece(
-                                    i, player, multiblock, channels, noHatch,
-                                    multiblock.getPieceRuntimes(), abilityTracker);
-                        }
-                    }
-                }
+                creativeBuildStructure(multiblock, player, channels, noHatch);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -300,6 +255,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
             // Server-side: store supported channel ranges into NBT for GUI use
             saveControllerChannelRanges(heldStack, multiblock);
+            spawnStructureHints(multiblock, player, heldStack, channelValues);
 
             // Server-side: show error info if structure is not formed
             if (!multiblock.isStructureFormed()) {
@@ -346,6 +302,47 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             ranges.put(ch.getName(), range);
         }
         writeChannelRanges(stack, ranges);
+    }
+
+    private static void creativeBuildStructure(@NotNull MultiblockControllerBase multiblock,
+                                               @NotNull EntityPlayer player,
+                                               Map<String, Integer> channels,
+                                               boolean noHatch) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        StructureOperationRequest request = StructureOperationRequest.creativeBuild(
+                player, multiblock, StructureOrientation.fromController(multiblock), channels, noHatch);
+        if (runtime.getState() != null) {
+            runtime.creativeBuildSingle(request);
+        } else {
+            runtime.creativeBuildAllPieces(request);
+        }
+    }
+
+    private static void creativeBuildPiece(@NotNull MultiblockControllerBase multiblock,
+                                           @NotNull EntityPlayer player,
+                                           int pieceIndex,
+                                           Map<String, Integer> channels,
+                                           boolean noHatch) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        runtime.creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
+                pieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
+                channels, noHatch));
+    }
+
+    private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,
+                                            @NotNull EntityPlayer player,
+                                            @NotNull ItemStack triggerStack,
+                                            @NotNull Map<String, Integer> channelValues) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
+        StructureOperationRequest request = StructureOperationRequest.hint(
+                player, multiblock, StructureOrientation.fromController(multiblock),
+                channels, triggerStack);
+        if (runtime.getState() != null) {
+            runtime.spawnHintsSingle(request);
+        } else {
+            runtime.spawnHintsAllPieces(request);
+        }
     }
 
     @Override

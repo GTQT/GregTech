@@ -115,6 +115,26 @@ public final class StructureRuntime {
         return evaluator.creativeBuildAllPieces(request);
     }
 
+    public void survivalBuildSingle(@NotNull StructureOperationRequest request) {
+        evaluator.survivalBuildSingle(request);
+    }
+
+    public boolean survivalBuildPiece(@NotNull StructureOperationRequest request) {
+        return evaluator.survivalBuildPiece(request);
+    }
+
+    public boolean survivalBuildAllPieces(@NotNull StructureOperationRequest request) {
+        return evaluator.survivalBuildAllPieces(request);
+    }
+
+    public void spawnHintsSingle(@NotNull StructureOperationRequest request) {
+        evaluator.spawnHintsSingle(request);
+    }
+
+    public boolean spawnHintsAllPieces(@NotNull StructureOperationRequest request) {
+        return evaluator.spawnHintsAllPieces(request);
+    }
+
     @NotNull
     public BlockInfo[][][] previewSingle(@NotNull StructureOperationRequest request) {
         return evaluator.previewSingle(request);

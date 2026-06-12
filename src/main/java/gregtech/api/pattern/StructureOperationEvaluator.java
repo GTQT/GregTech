@@ -6,6 +6,7 @@ import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -233,10 +234,96 @@ public final class StructureOperationEvaluator {
 
     public boolean creativeBuildPiece(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.CREATIVE_BUILD);
+        MultiPiecePattern pattern = requireMultiPiecePattern();
+        AbilityPlacementTracker abilityTracker = request.getAbilityTracker();
+        if (abilityTracker == null) {
+            abilityTracker = pattern.createAbilityPlacementTracker();
+        }
+        return pattern.autoBuildPiece(
+                request.getPieceIndex(), request.requirePlayer(), request.requireController(),
+                request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
+                requirePieceRuntimes(), abilityTracker);
+    }
+
+    public void survivalBuildSingle(
+            @NotNull EntityPlayer player,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches,
+            @NotNull ItemStack triggerStack) {
+        survivalBuildSingle(StructureOperationRequest.survivalBuild(
+                player, controller, orientation, channelValues, skipHatches, triggerStack));
+    }
+
+    public void survivalBuildSingle(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.SURVIVAL_BUILD);
+        StructureTrace.debug(request.requireController(), "survival-build-single",
+                "path=single-piece-legacy-autobuild, operation=" + request.getEvaluationOperation()
+                        + ", skipHatches=" + request.skipHatches());
+        requireState().autoBuildAt(request.requirePlayer(), request.requireController(),
+                request.requireControllerPos(), request.requireOrientation(),
+                0, 0, 0, request.getChannelValues(), request.skipHatches(), null,
+                request.getEvaluationOperation());
+    }
+
+    public boolean survivalBuildAllPieces(
+            @NotNull EntityPlayer player,
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureOrientation orientation,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches,
+            @NotNull ItemStack triggerStack) {
+        return survivalBuildAllPieces(StructureOperationRequest.survivalBuild(
+                player, controller, orientation, channelValues, skipHatches, triggerStack));
+    }
+
+    public boolean survivalBuildAllPieces(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.SURVIVAL_BUILD);
+        StructureTrace.debug(request.requireController(), "survival-build-all-pieces",
+                "path=multi-piece-legacy-autobuild, operation=" + request.getEvaluationOperation()
+                        + ", skipHatches=" + request.skipHatches());
+        MultiPiecePattern pattern = requireMultiPiecePattern();
+        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
+        int pieceCount = pattern.getPieceCount();
+        for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
+            survivalBuildPiece(StructureOperationRequest.survivalBuildPiece(
+                    pieceIndex, request.requirePlayer(), request.requireController(),
+                    request.requireOrientation(), request.getChannelValues(),
+                    request.skipHatches(), abilityTracker, request.requireTriggerStack()));
+        }
+        return pieceCount > 0;
+    }
+
+    public boolean survivalBuildPiece(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.SURVIVAL_BUILD);
+        StructureTrace.debug(request.requireController(), "survival-build-piece",
+                "path=multi-piece-legacy-autobuild, pieceIndex=" + request.getPieceIndex()
+                        + ", operation=" + request.getEvaluationOperation()
+                        + ", skipHatches=" + request.skipHatches());
         return requireMultiPiecePattern().autoBuildPiece(
                 request.getPieceIndex(), request.requirePlayer(), request.requireController(),
                 request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
-                requirePieceRuntimes(), request.requireAbilityTracker());
+                requirePieceRuntimes(), request.requireAbilityTracker(),
+                request.getEvaluationOperation());
+    }
+
+    public void spawnHintsSingle(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.HINT);
+        StructureTrace.debug(request.requireController(), "hint-single",
+                "path=single-piece-fixed-walker, operation=" + request.getEvaluationOperation());
+        requireState().spawnHintsAt(request.requireWorld(), request.requireController(),
+                request.requireControllerPos(), request.requireOrientation(),
+                request.getChannelValues(), request.requireTriggerStack());
+    }
+
+    public boolean spawnHintsAllPieces(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.HINT);
+        StructureTrace.debug(request.requireController(), "hint-all-pieces",
+                "path=multi-piece-fixed-walker, operation=" + request.getEvaluationOperation());
+        return requireMultiPiecePattern().spawnHintsAllPieces(
+                request.requireWorld(), request.requireController(), request.requireOrientation(),
+                request.getChannelValues(), requirePieceRuntimes(), request.requireTriggerStack());
     }
 
     @NotNull

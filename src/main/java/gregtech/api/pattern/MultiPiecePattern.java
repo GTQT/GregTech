@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
@@ -471,6 +472,16 @@ public class MultiPiecePattern {
                                   @Nullable Map<String, Integer> channelValues, boolean skipHatches,
                                   @NotNull PieceRuntimes runtimes,
                                   @NotNull AbilityPlacementTracker abilityTracker) {
+        return autoBuildPiece(pieceIndex, player, controller, orientation, channelValues, skipHatches,
+                runtimes, abilityTracker, StructureEvaluationContext.Operation.CREATIVE_BUILD);
+    }
+
+    public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
+                                  @NotNull StructureOrientation orientation,
+                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @NotNull AbilityPlacementTracker abilityTracker,
+                                  @NotNull StructureEvaluationContext.Operation operation) {
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) return false;
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
@@ -488,16 +499,58 @@ public class MultiPiecePattern {
         }
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
-                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker);
+                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker, operation);
         } else {
             // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
             // prior metadata and can compute its dynamic position. Non-anchor
             // pieces ignore the prior and behave identically to the 3-arg form.
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
             runtime.getState().autoBuildAt(player, controller, pieceCenter, orientation,
-                    0, 0, 0, channelValues, skipHatches, abilityTracker);
+                    0, 0, 0, channelValues, skipHatches, abilityTracker, operation);
         }
         return true;
+    }
+
+    public boolean spawnHintsAllPieces(@NotNull World world,
+                                       @NotNull MultiblockControllerBase controller,
+                                       @NotNull StructureOrientation orientation,
+                                       @Nullable Map<String, Integer> channelValues,
+                                       @NotNull PieceRuntimes runtimes,
+                                       @NotNull ItemStack triggerStack) {
+        Map<String, int[]> priorRepeats = new HashMap<>();
+        Map<String, BlockPos> priorCenters = new HashMap<>();
+        boolean visited = false;
+
+        for (StructurePiece piece : pieceList) {
+            PieceRuntime runtime = runtimes.get(piece);
+            if (runtime == null) continue;
+
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
+            if (!piece.isActive(activationContext(controller, prior, null))) {
+                continue;
+            }
+
+            BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
+            if (piece instanceof RepeatGroupPiece repeatPiece) {
+                repeatPiece.spawnHintsAtRepeated(world, controller, controller.getPos(),
+                        orientation, prior, channelValues, runtime, triggerStack);
+                int[] reps = runtime.getLastFormedReps();
+                if (reps != null && reps.length > 0) {
+                    priorRepeats.put(piece.getName(), reps);
+                }
+            } else {
+                runtime.getState().spawnHintsAt(world, controller, pieceCenter, orientation,
+                        channelValues, triggerStack);
+                int[] reps = runtime.getLastFormedReps();
+                if (reps != null && reps.length > 0) {
+                    priorRepeats.put(piece.getName(), reps);
+                }
+            }
+            priorCenters.put(piece.getName(), pieceCenter);
+            visited = true;
+        }
+        return visited;
     }
 
     /**

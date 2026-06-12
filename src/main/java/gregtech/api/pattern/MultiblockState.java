@@ -549,15 +549,15 @@ public class MultiblockState {
         }
     }
 
-    private void updateBuildCellContext(@NotNull StructureEvaluationContext<Object> buildEvaluationContext,
-                                        @NotNull BlockWorldState buildWorldState,
-                                        @NotNull World world,
-                                        @NotNull BlockPos pos,
-                                        @NotNull TraceabilityPredicate predicate,
-                                        @NotNull MultiblockControllerBase controllerBase) {
-        buildWorldState.update(world, pos, matchContext, globalCount, layerCount, predicate);
-        buildEvaluationContext.update(controllerBase, null, buildWorldState,
-                StructureEvaluationContext.Operation.CREATIVE_BUILD);
+    private void updateOperationCellContext(@NotNull StructureEvaluationContext<Object> evaluationContext,
+                                            @NotNull BlockWorldState operationWorldState,
+                                            @NotNull World world,
+                                            @NotNull BlockPos pos,
+                                            @NotNull TraceabilityPredicate predicate,
+                                            @NotNull MultiblockControllerBase controllerBase,
+                                            @NotNull StructureEvaluationContext.Operation operation) {
+        operationWorldState.update(world, pos, matchContext, globalCount, layerCount, predicate);
+        evaluationContext.update(controllerBase, null, operationWorldState, operation);
     }
 
     private boolean placeBuildCandidate(@NotNull BlockInfo matchedInfo,
@@ -700,13 +700,14 @@ public class MultiblockState {
                                @Nullable Map<String, Integer> channelValues,
                                boolean skipHatches,
                                @Nullable AbilityPlacementTracker abilityTracker,
-                               @NotNull BuildTraversalState buildState) {
+                               @NotNull BuildTraversalState buildState,
+                               @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
         TraceabilityPredicate predicate = cell.predicate;
         BlockPos pos = cell.worldPos;
 
-        updateBuildCellContext(buildState.evaluationContext, buildState.worldState,
-                world, pos, predicate, controllerBase);
+        updateOperationCellContext(buildState.evaluationContext, buildState.worldState,
+                world, pos, predicate, controllerBase, operation);
         if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
             buildState.blocks.put(pos, world.getBlockState(pos));
             if (abilityTracker != null) {
@@ -1216,6 +1217,17 @@ public class MultiblockState {
                             int xOffset, int yOffset, int zOffset,
                             Map<String, Integer> channelValues, boolean skipHatches,
                             @Nullable AbilityPlacementTracker abilityTracker) {
+        autoBuildAt(player, controllerBase, centerPos, orientation,
+                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker,
+                StructureEvaluationContext.Operation.CREATIVE_BUILD);
+    }
+
+    public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
+                            BlockPos centerPos, @NotNull StructureOrientation orientation,
+                            int xOffset, int yOffset, int zOffset,
+                            Map<String, Integer> channelValues, boolean skipHatches,
+                            @Nullable AbilityPlacementTracker abilityTracker,
+                            @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
         BuildTraversalState buildState = new BuildTraversalState();
         buildState.blocks.put(controllerBase.getPos(), controllerBase);
@@ -1224,7 +1236,7 @@ public class MultiblockState {
         visitFixedStructureCells(repetitions, centerPos, orientation, xOffset, yOffset, zOffset,
                 (cell, layerCounts) -> autoBuildCell(
                         cell, layerCounts, player, controllerBase, channelValues,
-                        skipHatches, abilityTracker, buildState));
+                        skipHatches, abilityTracker, buildState, operation));
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
                 RelativeDirection.ALL_FACINGS);
         buildState.blocks.forEach((pos, block) -> {
@@ -1258,6 +1270,38 @@ public class MultiblockState {
                     }
                 }
             }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    public void spawnHintsAt(@NotNull World world,
+                             @NotNull MultiblockControllerBase controllerBase,
+                             @NotNull BlockPos centerPos,
+                             @NotNull StructureOrientation orientation,
+                             @Nullable Map<String, Integer> channelValues,
+                             @NotNull ItemStack triggerStack) {
+        spawnHintsAt(world, controllerBase, centerPos, orientation, 0, 0, 0, channelValues, triggerStack);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void spawnHintsAt(@NotNull World world,
+                             @NotNull MultiblockControllerBase controllerBase,
+                             @NotNull BlockPos centerPos,
+                             @NotNull StructureOrientation orientation,
+                             int xOffset, int yOffset, int zOffset,
+                             @Nullable Map<String, Integer> channelValues,
+                             @NotNull ItemStack triggerStack) {
+        BuildTraversalState hintState = new BuildTraversalState();
+        int[] repetitions = calculateRepetitionsFromChannels(channelValues);
+        visitFixedStructureCells(repetitions, centerPos, orientation, xOffset, yOffset, zOffset, (cell, layerCounts) -> {
+            updateOperationCellContext(hintState.evaluationContext, hintState.worldState,
+                    world, cell.worldPos, cell.predicate, controllerBase,
+                    StructureEvaluationContext.Operation.HINT);
+            IStructureElement<Object> typedElement = (IStructureElement<Object>) cell.element;
+            if (typedElement.spawnHint(world, cell.worldPos, triggerStack)) {
+                return;
+            }
+            typedElement.spawnHint(hintState.evaluationContext);
         });
     }
 

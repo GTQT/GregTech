@@ -767,6 +767,14 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return structureRuntime;
     }
 
+    @NotNull
+    public StructureRuntime getOrCreateStructureRuntime() {
+        if (structureRuntime == null) {
+            reinitializeStructurePattern();
+        }
+        return structureRuntime;
+    }
+
     long getStructureRuntimeGeneration() {
         return structureRuntimeGeneration;
     }

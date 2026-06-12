@@ -5,11 +5,12 @@ import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -732,6 +733,18 @@ public class RepeatGroupPiece extends StructurePiece {
                                     @Nullable Map<String, Integer> channelValues, boolean skipHatches,
                                     @NotNull PieceRuntime runtime,
                                     @NotNull AbilityPlacementTracker abilityTracker) {
+        autoBuildAtRepeated(player, controller, controllerOrigin, orientation, prior, channelValues,
+                skipHatches, runtime, abilityTracker, StructureEvaluationContext.Operation.CREATIVE_BUILD);
+    }
+
+    public void autoBuildAtRepeated(@NotNull EntityPlayer player, @NotNull MultiblockControllerBase controller,
+                                    @NotNull BlockPos controllerOrigin,
+                                    @NotNull StructureOrientation orientation,
+                                    @Nullable FormedStructureMetadata prior,
+                                    @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                    @NotNull PieceRuntime runtime,
+                                    @NotNull AbilityPlacementTracker abilityTracker,
+                                    @NotNull StructureEvaluationContext.Operation operation) {
         int[] reps = new int[repeatAxes.length];
         for (int i = 0; i < repeatAxes.length; i++) {
             reps[i] = repeatRanges[i][1];
@@ -768,7 +781,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 local[axis] = stepSize * r;
                 state.autoBuildAt(player, controller, pieceCenter,
                         orientation, local[0], local[1], local[2],
-                        channelValues, skipHatches, abilityTracker);
+                        channelValues, skipHatches, abilityTracker, operation);
             }
         } else {
             int[] currentIndices = new int[repeatAxes.length];
@@ -780,7 +793,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 }
                 state.autoBuildAt(player, controller, pieceCenter,
                         orientation, local[0], local[1], local[2],
-                        channelValues, skipHatches, abilityTracker);
+                        channelValues, skipHatches, abilityTracker, operation);
 
                 hasMore = false;
                 for (int i = 0; i < repeatAxes.length; i++) {
@@ -793,6 +806,72 @@ public class RepeatGroupPiece extends StructurePiece {
                 }
             }
         }
+    }
+
+    public void spawnHintsAtRepeated(@NotNull World world,
+                                     @NotNull MultiblockControllerBase controller,
+                                     @NotNull BlockPos controllerOrigin,
+                                     @NotNull StructureOrientation orientation,
+                                     @Nullable FormedStructureMetadata prior,
+                                     @Nullable Map<String, Integer> channelValues,
+                                     @NotNull PieceRuntime runtime,
+                                     @NotNull ItemStack triggerStack) {
+        int[] reps = resolveRepetitions(channelValues);
+        MultiblockState state = runtime.getState();
+        BlockPos pieceCenter = getCenterPos(controllerOrigin, orientation, prior);
+        runtime.cacheFormedReps(reps);
+
+        if (repeatAxes.length == 1) {
+            int axis = repeatAxes[0];
+            int stepSize = stepSizes[0];
+            int count = reps[0];
+            for (int r = 0; r < count; r++) {
+                int[] local = {0, 0, 0};
+                local[axis] = stepSize * r;
+                state.spawnHintsAt(world, controller, pieceCenter, orientation,
+                        local[0], local[1], local[2], channelValues, triggerStack);
+            }
+        } else {
+            int[] currentIndices = new int[repeatAxes.length];
+            boolean hasMore = true;
+            while (hasMore) {
+                int[] local = {0, 0, 0};
+                for (int i = 0; i < repeatAxes.length; i++) {
+                    local[repeatAxes[i]] += stepSizes[i] * currentIndices[i];
+                }
+                state.spawnHintsAt(world, controller, pieceCenter, orientation,
+                        local[0], local[1], local[2], channelValues, triggerStack);
+
+                hasMore = false;
+                for (int i = 0; i < repeatAxes.length; i++) {
+                    currentIndices[i]++;
+                    if (currentIndices[i] < reps[i]) {
+                        hasMore = true;
+                        break;
+                    }
+                    currentIndices[i] = 0;
+                }
+            }
+        }
+    }
+
+    @NotNull
+    private int[] resolveRepetitions(@Nullable Map<String, Integer> channelValues) {
+        int[] reps = new int[repeatAxes.length];
+        for (int i = 0; i < repeatAxes.length; i++) {
+            reps[i] = repeatRanges[i][1];
+        }
+        if (channelValues != null && repeatChannelNames != null) {
+            for (int i = 0; i < repeatChannelNames.length && i < repeatAxes.length; i++) {
+                String name = repeatChannelNames[i];
+                if (name != null && channelValues.containsKey(name)) {
+                    int val = channelValues.get(name);
+                    reps[i] = MultiblockState.resolveRepetitionValue(
+                            val, repeatRanges[i][0], repeatRanges[i][1]);
+                }
+            }
+        }
+        return reps;
     }
 
     /**

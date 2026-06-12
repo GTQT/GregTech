@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.multi.electric.godforge.util;
 
+import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.CD;
 import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.END;
 
 import java.math.BigInteger;
@@ -49,6 +50,7 @@ public class ForgeOfGodsData {
     private int maxBatteryCharge = DEFAULT_MAX_BATTERY_CHARGE;
     private int gravitonShardsAvailable;
     private int gravitonShardsSpent;
+    // Save-compatible storage for the highest ring tier committed by structure formation.
     private int ringAmount = DEFAULT_RING_AMOUNT;
     private int clearedRingAmount;
     private int stellarFuelAmount;
@@ -140,6 +142,30 @@ public class ForgeOfGodsData {
 
     public void setRingAmount(int ringAmount) {
         this.ringAmount = MathHelper.clamp(ringAmount, DEFAULT_RING_AMOUNT, MAX_RING_AMOUNT);
+    }
+
+    public int getFormedRingAmount() {
+        return getRingAmount();
+    }
+
+    public void setFormedRingAmount(int formedRingAmount) {
+        setRingAmount(formedRingAmount);
+    }
+
+    /**
+     * Ring tier the next explicit structure operation should try to validate.
+     * This is intentionally separate from {@link #getFormedRingAmount()} so
+     * upgrades can request a larger structure without granting formed benefits.
+     */
+    public int getDesiredRingAmount() {
+        int desired = getFormedRingAmount();
+        if (isUpgradeActive(CD)) {
+            desired = Math.max(desired, 2);
+        }
+        if (isUpgradeActive(END)) {
+            desired = Math.max(desired, MAX_RING_AMOUNT);
+        }
+        return MathHelper.clamp(desired, DEFAULT_RING_AMOUNT, MAX_RING_AMOUNT);
     }
 
     public int getClearedRingAmount() {

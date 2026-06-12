@@ -99,8 +99,10 @@ GregTech already has part of the V3 shape:
 - `StructureOperationEvaluator` is the thin operation boundary used by controller checks, previews, creative build
   tools, legacy `BlockPattern`, and structure iteration while delegating to the existing implementations.
 - `StructureOperationRequest` exists as the first immutable request shape for runtime-routed operations. It currently
-  backs controller checks, single-piece and multi-piece previews, creative build, and iteration; survival build and
-  hints remain future request/session work. `StructureRuntime` now accepts these requests and keeps
+  backs controller checks, single-piece and multi-piece previews, creative build, survival build entry points,
+  single-piece and multi-piece hints, and iteration. Survival build still delegates to the existing legacy auto-build
+  placement semantics, but now carries `SURVIVAL_BUILD` as the operation token through the shared request/runtime
+  boundary. `StructureRuntime` now accepts these requests and keeps
   `StructureOperationEvaluator` as an internal delegating implementation detail for runtime-owned operations.
 - Single-piece fixed-repetition traversal now has a shared cell walker for orientation-aware coordinate resolution.
   Creative build and structure iteration both use that walker; creative build keeps legacy candidate selection in an
@@ -170,10 +172,14 @@ The migration is not complete yet:
 - Context-only legacy traversals still use `PatternMatchContext` collector keys as an adapter. Session-backed V3 checks
   carry typed collector state through `StructureCheckResult` and only materialize legacy keys for compatibility
   callbacks.
-- `StructureOperationEvaluator` delegates to separate single-piece, multi-piece, preview, build, and iteration
-  traversals. Creative build and iteration now share the single-piece fixed-repetition coordinate walker, but matching,
-  snapshot checks, preview-space assembly, hints, and survival build have not yet converged on one implementation.
-- Survival build and hints are not fully routed through the same operation request/session/result model as checks.
+- `StructureOperationEvaluator` delegates to separate single-piece, multi-piece, preview, build, hint, and iteration
+  traversals. Creative build, hints, and iteration now share the fixed-repetition coordinate walker where they touch
+  single-piece cells, but matching, snapshot checks, preview-space assembly, and survival build have not yet converged
+  on one implementation.
+- Survival build and hints have request/runtime entry points, but they are not fully routed through the same
+  session/result model as checks. Survival build still uses the legacy candidate-selection and placement side effects;
+  hints now have trigger-aware tool callers and multi-piece/dynamic-piece traversal, while visible hint behavior still
+  depends on each element's hint implementation.
 - Global ability policy and diagnostics still span session, controller, runtime, and legacy error objects.
 - `MultiblockControllerBase` still owns lifecycle policy such as invalidation and exposes the final `formStructure()`
   callback. Synchronous check-result publication, part attachment, runtime publication, and registration now pass
@@ -569,10 +575,15 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
 15. Add the initial immutable `StructureOperationRequest` and route controller checks, single-piece previews, creative
     build, and iteration through request-backed evaluator methods while preserving the old public entry points.
 16. Route controller, preview-helper, projector, and multiblock-builder runtime operations through
-    `StructureRuntime` request methods instead of exposing evaluator calls at those runtime-owned call sites.
+    `StructureRuntime` request methods instead of exposing evaluator calls at those runtime-owned call sites. The
+    structure projector and legacy multiblock builder no longer fall back to direct `MultiPiecePattern`,
+    `PieceRuntimes`, or `MultiblockState.autoBuild` placement paths; they submit runtime-owned build requests.
 17. Introduce the single-piece fixed-repetition cell walker in `MultiblockState` and route creative-build placement and
     formed-block iteration through it. Creative build now carries operation-local build state and updates a
     `CREATIVE_BUILD` cell context while preserving the existing candidate-selection and placement behavior.
+18. Add a hint request path from the structure projector and legacy multiblock builder through `StructureRuntime`.
+    Single-piece hints use the fixed cell walker; multi-piece hints traverse active pieces, repeat groups, and dynamic
+    offsets using the same piece-center metadata rules as build/preview paths.
 
 ### Mostly Done
 
@@ -583,11 +594,14 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
 
 ### In Progress
 
-1. Continue expanding runtime-owned request routing beyond check, preview, creative build, and iteration while
-   preserving existing traversals and legacy evaluator facades.
+1. Continue expanding request/session/result coverage for operation types that still have partial routing, especially
+   survival build, hint result reporting, and diagnostics, while preserving existing traversals and legacy evaluator
+   facades.
 2. Promote the fixed-repetition cell walker from a creative-build/iteration helper into the common coordinate layer for
-   preview-space assembly, hint placement, and survival build once each caller's side effects are explicit.
-3. Route survival build and hints through the same operation request/session/result model.
+   preview-space assembly and survival build once each caller's side effects are explicit.
+3. Finish routing survival build and hints through the same operation request/session/result model. Initial
+   request/runtime routing exists; remaining work is session/result collection, placement budgets, item-source
+   accounting, and hint result reporting.
 4. Extract controller orchestration into scheduler, assembly, registration, preview, channel, and client-hook helpers.
 
 ### Planned
@@ -596,7 +610,7 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
 2. Unify preview coordinate projection with the fixed-repetition walker without changing JEI/projector layout.
 3. Add a survival-build request/session/result shape with placement budgets, item-source accounting, and rollback-safe
    consumed/required item reporting.
-4. Add a hints request path and trigger-aware hint callers after the tool/controller entry points are identified.
+4. Add structured hint results once hint rendering/particle effects are explicit per element.
 5. Retire the remaining creative-build candidate-selection adapter once direct element placement and predicate fallback
    have one operation-local selection path.
 6. Retire remaining `front/up/flipped` compatibility facades once template iteration, preview/hint placement,

@@ -4,13 +4,10 @@ import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.AbilityPlacementTracker;
-import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
-import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTUtility;
 
 import net.minecraft.client.resources.I18n;
@@ -58,14 +55,11 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
                 if (autoBuildAllPieces(multiblock, player, channelValues)) {
                     return EnumActionResult.SUCCESS;
                 }
-                MultiblockState state = multiblock.getMultiblockState();
-                if (state != null) {
-                    state.autoBuild(player, multiblock, channelValues, false);
-                }
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
         } else {
+            spawnStructureHints(multiblock, player, player.getHeldItem(hand));
             if (!multiblock.isStructureFormed()) {
                 MultiblockState state = multiblock.getMultiblockState();
                 PatternError error = state != null ? state.getError() : null;
@@ -97,26 +91,27 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
         }
     }
 
+    private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,
+                                            @NotNull EntityPlayer player,
+                                            @NotNull ItemStack triggerStack) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        StructureOperationRequest request = StructureOperationRequest.hint(
+                player, multiblock, StructureOrientation.fromController(multiblock),
+                Collections.emptyMap(), triggerStack);
+        if (runtime.getState() != null) {
+            runtime.spawnHintsSingle(request);
+        } else {
+            runtime.spawnHintsAllPieces(request);
+        }
+    }
+
     private boolean autoBuildAllPieces(@NotNull MultiblockControllerBase multiblock,
                                        @NotNull EntityPlayer player,
                                        @NotNull Map<String, Integer> channelValues) {
-        var runtime = multiblock.getStructureRuntime();
-        if (runtime != null) {
-            return runtime.creativeBuildAllPieces(StructureOperationRequest.creativeBuild(
-                    player, multiblock, StructureOrientation.fromController(multiblock),
-                    channelValues, false));
-        }
-
-        StructureDefinition<?> definition = multiblock.getStructureDefinition();
-        MultiPiecePattern multiPiece = definition.getCompiledPattern();
-        int pieceCount = multiPiece.getPieceList().size();
-        if (pieceCount == 0) return false;
-        AbilityPlacementTracker abilityTracker = multiPiece.createAbilityPlacementTracker();
-        for (int i = 1; i <= pieceCount; i++) {
-            multiPiece.autoBuildPiece(i, player, multiblock, channelValues, false,
-                    multiblock.getPieceRuntimes(), abilityTracker);
-        }
-        return true;
+        return multiblock.getOrCreateStructureRuntime().creativeBuildAllPieces(
+                StructureOperationRequest.creativeBuild(
+                        player, multiblock, StructureOrientation.fromController(multiblock),
+                        channelValues, false));
     }
 
     @Override
