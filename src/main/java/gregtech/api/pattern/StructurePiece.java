@@ -54,7 +54,7 @@ public class StructurePiece {
     @FunctionalInterface
     public interface SnapshotChecker {
         boolean check(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
-                      @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+                      @NotNull StructureOrientation orientation,
                       @Nullable FormedStructureMetadata prior,
                       @NotNull PieceRuntime runtime,
                       @NotNull StructureMatchSession session);
@@ -183,7 +183,7 @@ public class StructurePiece {
     }
 
     private static SnapshotChecker noopSnapshotChecker() {
-        return (s, o, f, u, fl, p, r, session) -> false;
+        return (s, o, orientation, p, r, session) -> false;
     }
 
     /**
@@ -346,14 +346,9 @@ public class StructurePiece {
                                    @NotNull StructureOrientation orientation,
                                    @Nullable FormedStructureMetadata prior,
                                    @NotNull PieceRuntime runtime) {
-        return checkOnSnapshot(
-                snap,
-                origin,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                prior,
-                runtime);
+        StructureMatchSession session = new StructureMatchSession();
+        return checkOnSnapshot(snap, origin, orientation, prior, runtime, session)
+                && session.validate(false).success;
     }
 
     /**
@@ -365,9 +360,12 @@ public class StructurePiece {
                                    @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
                                    @Nullable FormedStructureMetadata prior,
                                    @NotNull PieceRuntime runtime) {
-        StructureMatchSession session = new StructureMatchSession();
-        return checkOnSnapshot(snap, origin, front, up, flipped, prior, runtime, session)
-                && session.validate(false).success;
+        return checkOnSnapshot(
+                snap,
+                origin,
+                StructureOrientation.of(front, front, up, flipped, false),
+                prior,
+                runtime);
     }
 
     public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
@@ -375,15 +373,7 @@ public class StructurePiece {
                                    @Nullable FormedStructureMetadata prior,
                                    @NotNull PieceRuntime runtime,
                                    @NotNull StructureMatchSession session) {
-        return checkOnSnapshot(
-                snap,
-                origin,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                prior,
-                runtime,
-                session);
+        return snapshotChecker.check(snap, origin, orientation, prior, runtime, session);
     }
 
     public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
@@ -391,6 +381,12 @@ public class StructurePiece {
                                    @Nullable FormedStructureMetadata prior,
                                    @NotNull PieceRuntime runtime,
                                    @NotNull StructureMatchSession session) {
-        return snapshotChecker.check(snap, origin, front, up, flipped, prior, runtime, session);
+        return checkOnSnapshot(
+                snap,
+                origin,
+                StructureOrientation.of(front, front, up, flipped, false),
+                prior,
+                runtime,
+                session);
     }
 }

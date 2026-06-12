@@ -109,9 +109,9 @@ public final class StructureCompiler {
                     // `mp.legacyTemplate` is fine across controllers.
                     StructurePiece piece = new StructurePiece(p.getName(), mp.legacyTemplate,
                              entry.baseOffset, entry.offsetMode, entry.condition,
-                             (snap, origin, front, up, flipped, prior, runtime, session) ->
+                             (snap, origin, orientation, prior, runtime, session) ->
                                      runtime.getState().checkPatternAtSnapshotExact(
-                                             snap, origin, front, up, flipped, 0, 0, 0, session) != null);
+                                             snap, origin, orientation, 0, 0, 0, session) != null);
                     pieces.add(piece);
                     // Record centerOffset from legacy templates that have isCenter
                     if (referenceCenterOffset == null) {
@@ -185,9 +185,9 @@ public final class StructureCompiler {
                 // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
                 StructurePiece piece = new StructurePiece(p.getName(), tplFacade,
                          entry.baseOffset, entry.offsetMode, entry.condition,
-                         (snap, origin, front, up, flipped, prior, runtime, session) ->
+                         (snap, origin, orientation, prior, runtime, session) ->
                                  runtime.getState().checkPatternAtSnapshotExact(
-                                         snap, origin, front, up, flipped, 0, 0, 0, session) != null);
+                                         snap, origin, orientation, 0, 0, 0, session) != null);
                 pieces.add(piece);
             }
         }

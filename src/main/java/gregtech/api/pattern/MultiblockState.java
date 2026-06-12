@@ -325,12 +325,22 @@ public class MultiblockState {
     private PatternMatchContext checkPatternAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                EnumFacing upwardsFacing, boolean isFlipped,
                                                int xOffset, int yOffset, int zOffset) {
-        return checkPatternAt(world, centerPos, frontFacing, upwardsFacing, isFlipped,
+        return checkPatternAt(world, centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
                 xOffset, yOffset, zOffset, null);
     }
 
     private PatternMatchContext checkPatternAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                EnumFacing upwardsFacing, boolean isFlipped,
+                                               int xOffset, int yOffset, int zOffset,
+                                               @Nullable StructureMatchSession session) {
+        return checkPatternAt(world, centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
+                xOffset, yOffset, zOffset, session);
+    }
+
+    private PatternMatchContext checkPatternAt(World world, BlockPos centerPos,
+                                               @NotNull StructureOrientation orientation,
                                                int xOffset, int yOffset, int zOffset,
                                                @Nullable StructureMatchSession session) {
         IStructureElement<?>[][][] elements = template.getElements();
@@ -373,8 +383,10 @@ public class MultiblockState {
                     for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                         IStructureElement<?> element = elements[c][b][a];
                         TraceabilityPredicate predicate = element.toPredicate();
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing,
-                                isFlipped, structureDir)
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
+                                x, y, z,
+                                orientation.getStructureFront(), orientation.getUp(),
+                                orientation.isFlipped(), structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
                         worldState.update(world, pos, activeContext, activeGlobalCount, layerCount, predicate);
                         TileEntity tileEntity = worldState.getTileEntity();
@@ -440,7 +452,7 @@ public class MultiblockState {
         if (session == null && failForMissingGlobalPredicates(activeGlobalCount)) return null;
 
         worldState.setError(null);
-        activeContext.setNeededFlip(isFlipped);
+        activeContext.setNeededFlip(orientation.isFlipped());
         return activeContext;
     }
 
@@ -571,11 +583,11 @@ public class MultiblockState {
                                                    boolean isFlipped,
                                                    int xOffset, int yOffset, int zOffset,
                                                    @Nullable StructureMatchSession session) {
-        PatternMatchContext result = checkPatternAt(
-                world, centerPos, frontFacing, upwardsFacing, isFlipped,
+        return checkPatternAtExact(
+                world,
+                centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
                 xOffset, yOffset, zOffset, session);
-        if (result == null) clearCache();
-        return result;
     }
 
     @Nullable
@@ -583,16 +595,10 @@ public class MultiblockState {
                                                    @NotNull StructureOrientation orientation,
                                                    int xOffset, int yOffset, int zOffset,
                                                    @Nullable StructureMatchSession session) {
-        return checkPatternAtExact(
-                world,
-                centerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                xOffset,
-                yOffset,
-                zOffset,
-                session);
+        PatternMatchContext result = checkPatternAt(
+                world, centerPos, orientation, xOffset, yOffset, zOffset, session);
+        if (result == null) clearCache();
+        return result;
     }
 
     /**
@@ -1668,6 +1674,21 @@ public class MultiblockState {
                                                 @NotNull EnumFacing upwardsFacing,
                                                 boolean isFlipped,
                                                 int xOffset, int yOffset, int zOffset) {
+        return checkAxisLineFastAtSnapshot(
+                snap,
+                pieceOrigin,
+                axis,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
+                xOffset,
+                yOffset,
+                zOffset);
+    }
+
+    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                               @NotNull BlockPos pieceOrigin,
+                                               int axis,
+                                               @NotNull StructureOrientation orientation,
+                                               int xOffset, int yOffset, int zOffset) {
         // For tensor product pieces, all cells are identical,
         // so we only need to check one "line" along the axis.
         // This is a simplified check that verifies the outermost slice.
@@ -1690,8 +1711,9 @@ public class MultiblockState {
                 IStructureElement<?> element = elements[0][b][a];
                 TraceabilityPredicate predicate = element.toPredicate();
                 BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
-                        z + zOffset, frontFacing, upwardsFacing,
-                        isFlipped, structureDir)
+                        z + zOffset,
+                        orientation.getStructureFront(), orientation.getUp(),
+                        orientation.isFlipped(), structureDir)
                         .add(pieceOrigin.getX(), pieceOrigin.getY(), pieceOrigin.getZ());
                 worldState.updateFromBlockAccess(snap, pos, matchContext, globalCount, layerCount, predicate);
                 if (!checkElement(element, null, StructureEvaluationContext.Operation.MATCH_SNAPSHOT)) {
@@ -1702,23 +1724,6 @@ public class MultiblockState {
         return true;
     }
 
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               @NotNull BlockPos pieceOrigin,
-                                               int axis,
-                                               @NotNull StructureOrientation orientation,
-                                               int xOffset, int yOffset, int zOffset) {
-        return checkAxisLineFastAtSnapshot(
-                snap,
-                pieceOrigin,
-                axis,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                xOffset,
-                yOffset,
-                zOffset);
-    }
-
     /**
      * Internal pattern check against a snapshot.
      * Simplified version that uses IBlockAccess instead of World.
@@ -1726,7 +1731,9 @@ public class MultiblockState {
     private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
                                                        BlockPos centerPos, EnumFacing frontFacing,
                                                        EnumFacing upwardsFacing, boolean isFlipped) {
-        return checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped, 0, 0, 0);
+        return checkPatternAtSnapshot(blockAccess, centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
+                0, 0, 0, null);
     }
 
     /**
@@ -1739,13 +1746,24 @@ public class MultiblockState {
                                                        BlockPos centerPos, EnumFacing frontFacing,
                                                        EnumFacing upwardsFacing, boolean isFlipped,
                                                        int xOffset, int yOffset, int zOffset) {
-        return checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped,
+        return checkPatternAtSnapshot(blockAccess, centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
                 xOffset, yOffset, zOffset, null);
     }
 
     private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
                                                        BlockPos centerPos, EnumFacing frontFacing,
                                                        EnumFacing upwardsFacing, boolean isFlipped,
+                                                       int xOffset, int yOffset, int zOffset,
+                                                       @Nullable StructureMatchSession session) {
+        return checkPatternAtSnapshot(blockAccess, centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
+                xOffset, yOffset, zOffset, session);
+    }
+
+    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                                       BlockPos centerPos,
+                                                       @NotNull StructureOrientation orientation,
                                                        int xOffset, int yOffset, int zOffset,
                                                        @Nullable StructureMatchSession session) {
         IStructureElement<?>[][][] elements = template.getElements();
@@ -1784,8 +1802,9 @@ public class MultiblockState {
                         IStructureElement<?> element = elements[c][b][a];
                         TraceabilityPredicate predicate = element.toPredicate();
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
-                                z + zOffset, frontFacing, upwardsFacing,
-                                isFlipped, structureDir)
+                                z + zOffset,
+                                orientation.getStructureFront(), orientation.getUp(),
+                                orientation.isFlipped(), structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
 
                         // Use snapshot-aware update
@@ -1838,7 +1857,7 @@ public class MultiblockState {
         if (session == null && failForMissingGlobalPredicates(activeGlobalCount)) return null;
 
         worldState.setError(null);
-        activeContext.setNeededFlip(isFlipped);
+        activeContext.setNeededFlip(orientation.isFlipped());
         return activeContext;
     }
 
@@ -1879,8 +1898,10 @@ public class MultiblockState {
             boolean isFlipped,
             int xOffset, int yOffset, int zOffset,
             @Nullable StructureMatchSession session) {
-        return checkPatternAtSnapshot(
-                blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped,
+        return checkPatternAtSnapshotExact(
+                blockAccess,
+                centerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
                 xOffset, yOffset, zOffset, session);
     }
 
@@ -1891,16 +1912,8 @@ public class MultiblockState {
             @NotNull StructureOrientation orientation,
             int xOffset, int yOffset, int zOffset,
             @Nullable StructureMatchSession session) {
-        return checkPatternAtSnapshotExact(
-                blockAccess,
-                centerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                xOffset,
-                yOffset,
-                zOffset,
-                session);
+        return checkPatternAtSnapshot(blockAccess, centerPos, orientation,
+                xOffset, yOffset, zOffset, session);
     }
 }
 

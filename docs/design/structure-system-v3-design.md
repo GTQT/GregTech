@@ -119,10 +119,11 @@ GregTech already has part of the V3 shape:
   tasks and results are trace-rejected before they can change formed or failure state.
 - `StructureOrientation` exists as the initial unified orientation value object. Async check tokens, failure trace
   construction, controller-facing evaluator check/iteration entry points, definition/check-state/AABB entry points,
-  `StructurePiece` center/snapshot entry points, template AABB/predicate facades, repeat-group synchronous entry points,
-  multi-piece dirty/full check entry points, and `MultiblockState` exact live/snapshot entry points use it. Low-level
-  template, repeat-group, and `MultiblockState`
-  traversal internals still receive legacy `front/up/flipped` arguments.
+  `StructurePiece` center/snapshot entry points, `StructureCompiler` snapshot closures, template AABB/predicate facades,
+  repeat-group live/snapshot slice, backtracking, axis-line, and auto-build metadata paths, multi-piece dirty/full check
+  entry points, and `MultiblockState` exact live/snapshot/axis-line traversal loops use it. The remaining
+  `front/up/flipped` arguments are compatibility facades, low-level `RelativeDirection` inputs, and auto-build/preview
+  placement internals that still read orientation from controller state.
 - Controller-side orchestration has started moving into focused helpers:
   `MultiblockStructureCheckScheduler`, `MultiblockStructureAssembler`, `MultiblockStructureRegistration`,
   `MultiblockStructureCommitter`, `MultiblockStructurePreviews`, `MultiblockStructureChannels`, and
@@ -550,8 +551,9 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
     state.
 13. Add the initial `StructureOrientation` value object and use it for async tokens, failure trace construction,
     controller-facing evaluator check/iteration entry points, definition/check-state/AABB entry points,
-    `StructurePiece` center/snapshot entry points, template AABB/predicate facades, repeat-group synchronous entry
-    points, multi-piece dirty/full check entry points, and `MultiblockState` exact live/snapshot entry points.
+    `StructurePiece` center/snapshot entry points, `StructureCompiler` snapshot closures, template AABB/predicate
+    facades, repeat-group live/snapshot slice, backtracking, axis-line, and auto-build metadata paths, multi-piece
+    dirty/full check entry points, and `MultiblockState` exact live/snapshot/axis-line traversal loops.
 
 ### Mostly Done
 
@@ -570,8 +572,8 @@ Status labels describe the code in the 2026-06-12 implementation snapshot.
 
 1. Converge single-piece, multi-piece, live, and snapshot checks on one traversal implementation.
 2. Converge preview, hints, creative build, survival build, and iteration on the same coordinate traversal.
-3. Migrate remaining template, repeat-group, and `MultiblockState` traversal internals to accept
-   `StructureOrientation` directly.
+3. Retire remaining `front/up/flipped` compatibility facades once template iteration, auto-build placement,
+   preview/hint placement, and addon-facing legacy hooks have orientation-native callers.
 4. Add `StructureWorldIndex` or equivalent runtime dirty-index boundary.
 5. Add diagnostic command and in-game structure trace view.
 

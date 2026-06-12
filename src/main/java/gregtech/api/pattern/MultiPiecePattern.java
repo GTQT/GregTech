@@ -473,21 +473,19 @@ public class MultiPiecePattern {
         // the auto-build path is per-piece, so we rebuild it on demand from
         // whatever the previous pieces' runtimes have cached via
         // PieceRuntime.getLastFormedReps().
-        FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller);
+        StructureOrientation orientation = StructureOrientation.fromController(controller);
+        FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller, orientation);
         if (!piece.isActive(activationContext(controller, prior, null))) {
             return false;
         }
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             repeatPiece.autoBuildAtRepeated(player, controller, controller.getPos(),
-                    controller.getFrontFacingForStructure(), controller.getUpwardsFacing(),
-                    controller.isFlipped(), prior, channelValues, skipHatches, runtime, abilityTracker);
+                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker);
         } else {
             // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
             // prior metadata and can compute its dynamic position. Non-anchor
             // pieces ignore the prior and behave identically to the 3-arg form.
-            BlockPos pieceCenter = piece.getCenterPos(
-                    controller.getPos(), controller.getFrontFacingForStructure(),
-                    controller.getUpwardsFacing(), controller.isFlipped(), prior);
+            BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
             runtime.getState().autoBuildAt(player, controller, pieceCenter, channelValues,
                     skipHatches, abilityTracker);
         }
@@ -508,6 +506,13 @@ public class MultiPiecePattern {
     @NotNull
     private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes,
                                                        @NotNull MultiblockControllerBase controller) {
+        return buildPriorMetadata(upToIndex, runtimes, controller, StructureOrientation.fromController(controller));
+    }
+
+    @NotNull
+    private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes,
+                                                       @NotNull MultiblockControllerBase controller,
+                                                       @NotNull StructureOrientation orientation) {
         Map<String, int[]> priorRepeats = new HashMap<>();
         Map<String, BlockPos> priorCenters = new HashMap<>();
         for (int i = 0; i < upToIndex - 1; i++) {
@@ -516,9 +521,7 @@ public class MultiPiecePattern {
             if (r == null) continue;
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
-            BlockPos center = p.getCenterPos(
-                    controller.getPos(), controller.getFrontFacingForStructure(),
-                    controller.getUpwardsFacing(), controller.isFlipped(), prior);
+            BlockPos center = p.getCenterPos(controller.getPos(), orientation, prior);
             priorCenters.put(p.getName(), center);
             int[] reps = r.getLastFormedReps();
             if (reps != null && reps.length > 0) {
