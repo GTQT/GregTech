@@ -1,5 +1,8 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.pattern.StructureFailureTrace;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.world.DummyWorld;
@@ -74,9 +77,13 @@ final class MultiblockStructureCheckScheduler {
                 || controller.getWorld() == null
                 || controller.getWorld().isRemote
                 || controller.getWorld() instanceof DummyWorld
-                || !controller.getStructureDefinition().supportsElementCapability(
-                        StructureElementCapability.SNAPSHOT_MATCH)
                 || !checker.isRunning()) {
+            checker.unregister(controller);
+            return false;
+        }
+        if (!controller.getStructureDefinition().supportsElementCapability(
+                StructureElementCapability.SNAPSHOT_MATCH)) {
+            recordCapabilityUnsupported(controller, StructureElementCapability.SNAPSHOT_MATCH);
             checker.unregister(controller);
             return false;
         }
@@ -94,5 +101,20 @@ final class MultiblockStructureCheckScheduler {
             }
         }
         return true;
+    }
+
+    private static void recordCapabilityUnsupported(
+            MultiblockControllerBase controller,
+            StructureElementCapability capability) {
+        StructureRuntime runtime = controller.getStructureRuntime();
+        if (runtime == null) {
+            return;
+        }
+        runtime.recordLifecycleFailure(StructureTrace.lifecycleFailure(
+                controller,
+                "definition",
+                "ASYNC",
+                StructureFailureTrace.Kind.CAPABILITY_UNSUPPORTED,
+                "Structure definition does not support " + capability));
     }
 }

@@ -7,7 +7,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.ExplicitFrontFacingBlockInfo;
-import gregtech.api.util.Mods;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.RelativeDirection;
@@ -16,21 +15,11 @@ import gregtech.common.ConfigHolder;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-
-import appeng.api.AEApi;
-import appeng.api.config.Actionable;
-import appeng.api.networking.storage.IStorageGrid;
-import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.channels.IItemStorageChannel;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.util.PlayerWirelessGridHelper;
-import appeng.me.helpers.BaseActionSource;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -40,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -243,24 +231,15 @@ public class MultiblockState {
         return matchContext;
     }
 
-    /**
-     * Fast pattern check using cache, then full check if needed.
-     */
-    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
-                                                  EnumFacing upwardsFacing, boolean allowsFlip) {
-        return checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, true, 0, 0, 0);
+    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos,
+                                                  @NotNull StructureOrientation orientation) {
+        return checkPatternFastAt(world, centerPos, orientation, true, 0, 0, 0);
     }
 
-    /**
-     * Fast pattern check using cache, then full check if needed.
-     *
-     * @param doRandomCheck if true and cache is large (>512), use random sampling instead of full scan
-     */
-    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
-                                                  EnumFacing upwardsFacing, boolean allowsFlip,
+    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos,
+                                                  @NotNull StructureOrientation orientation,
                                                   boolean doRandomCheck) {
-        return checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, doRandomCheck,
-                0, 0, 0);
+        return checkPatternFastAt(world, centerPos, orientation, doRandomCheck, 0, 0, 0);
     }
 
     /**
@@ -281,8 +260,8 @@ public class MultiblockState {
      * @param yOffset       template-local y offset added to every cell before transformation
      * @param zOffset       template-local z offset added to every cell before transformation
      */
-    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
-                                                  EnumFacing upwardsFacing, boolean allowsFlip,
+    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos,
+                                                  @NotNull StructureOrientation orientation,
                                                   boolean doRandomCheck,
                                                   int xOffset, int yOffset, int zOffset) {
         // Cache fast-path is only valid when the offsets used to build the cache match
@@ -360,40 +339,24 @@ public class MultiblockState {
             }
         }
 
-        PatternMatchContext pmc = checkPatternAt(world, centerPos, frontFacing, upwardsFacing, false,
-                xOffset, yOffset, zOffset);
-        if (allowsFlip) {
+        PatternMatchContext pmc = checkPatternAt(world, centerPos, orientation.withFlipped(false),
+                xOffset, yOffset, zOffset, null);
+        if (orientation.allowsFlip()) {
             if (pmc != null) {
                 return pmc;
             }
             Map<MultiblockAbility<?>, Integer> unflippedMissingAbilities = missingAbilities;
             PatternError unflippedError = worldState.error;
-            pmc = checkPatternAt(world, centerPos, frontFacing, upwardsFacing, true,
-                    xOffset, yOffset, zOffset);
-            if (pmc == null && missingAbilities.isEmpty() && !unflippedMissingAbilities.isEmpty()) {
+            pmc = checkPatternAt(world, centerPos, orientation.withFlipped(true),
+                    xOffset, yOffset, zOffset, null);
+            if (pmc == null && shouldKeepUnflippedFailure(unflippedError, unflippedMissingAbilities,
+                    worldState.error, missingAbilities)) {
                 missingAbilities = unflippedMissingAbilities;
                 worldState.setError(unflippedError);
             }
         }
         if (pmc == null) clearCache();
         return pmc;
-    }
-
-    private PatternMatchContext checkPatternAt(World world, BlockPos centerPos, EnumFacing frontFacing,
-                                               EnumFacing upwardsFacing, boolean isFlipped,
-                                               int xOffset, int yOffset, int zOffset) {
-        return checkPatternAt(world, centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset, yOffset, zOffset, null);
-    }
-
-    private PatternMatchContext checkPatternAt(World world, BlockPos centerPos, EnumFacing frontFacing,
-                                               EnumFacing upwardsFacing, boolean isFlipped,
-                                               int xOffset, int yOffset, int zOffset,
-                                               @Nullable StructureMatchSession session) {
-        return checkPatternAt(world, centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset, yOffset, zOffset, session);
     }
 
     private PatternMatchContext checkPatternAt(World world, BlockPos centerPos,
@@ -403,6 +366,50 @@ public class MultiblockState {
         return checkFixedStructureCells(world, null, centerPos, orientation,
                 xOffset, yOffset, zOffset, session,
                 StructureEvaluationContext.Operation.MATCH_WORLD, true);
+    }
+
+    private static boolean shouldKeepUnflippedFailure(
+            @Nullable PatternError unflippedError,
+            @NotNull Map<MultiblockAbility<?>, Integer> unflippedMissingAbilities,
+            @Nullable PatternError flippedError,
+            @NotNull Map<MultiblockAbility<?>, Integer> flippedMissingAbilities) {
+        StructureFailureTrace unflipped = failureForSelection(false, unflippedError, unflippedMissingAbilities);
+        StructureFailureTrace flipped = failureForSelection(true, flippedError, flippedMissingAbilities);
+        return StructureFailureSelection.select(unflipped, flipped) == unflipped;
+    }
+
+    @NotNull
+    private static StructureFailureTrace failureForSelection(
+            boolean flipped,
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        return new StructureFailureTrace.Builder("legacy", BlockPos.ORIGIN)
+                .orientation(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, flipped)
+                .path("legacy-template")
+                .operation("CHECK")
+                .result("failed")
+                .kind(classifyLegacyFailure(error, missingAbilities))
+                .progressDepth(error == null ? 0 : 1)
+                .missingAbilities(missingAbilities)
+                .error(error)
+                .build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Kind classifyLegacyFailure(
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (!missingAbilities.isEmpty()) {
+            return StructureFailureTrace.Kind.MISSING_ABILITY;
+        }
+        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
+            TraceabilityPredicate.SinglePredicateError single =
+                    (TraceabilityPredicate.SinglePredicateError) error;
+            if (single.type == 0 || single.type == 2) {
+                return StructureFailureTrace.Kind.COUNT_LIMIT;
+            }
+        }
+        return error == null ? StructureFailureTrace.Kind.LEGACY_PATTERN : StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }
 
     private void recordMissingFixedAbility(@NotNull TraceabilityPredicate predicate) {
@@ -691,21 +698,21 @@ public class MultiblockState {
         if (world == null) {
             return false;
         }
-        world.setBlockState(context.getPos(), matchedInfo.getBlockState());
-        return true;
+        return world.setBlockState(context.getPos(), matchedInfo.getBlockState());
     }
 
-    private static final class BuildCandidate {
+    @SuppressWarnings("unchecked")
+    private boolean elementMatches(@NotNull IStructureElement<?> element,
+                                   @NotNull StructureEvaluationContext<Object> context) {
+        return ((IStructureElement<Object>) element).match(context);
+    }
 
-        @NotNull
-        private final ItemStack found;
-        @NotNull
-        private final BlockInfo matchedInfo;
-
-        private BuildCandidate(@NotNull ItemStack found, @NotNull BlockInfo matchedInfo) {
-            this.found = found;
-            this.matchedInfo = matchedInfo;
-        }
+    @SuppressWarnings("unchecked")
+    @NotNull
+    private BlockInfo[] getElementCandidates(@NotNull IStructureElement<?> element,
+                                             @NotNull StructureEvaluationContext<Object> context) {
+        BlockInfo[] candidates = ((IStructureElement<Object>) element).getCandidates(context);
+        return candidates == null ? new BlockInfo[0] : candidates;
     }
 
     private static final class BuildTraversalState {
@@ -842,108 +849,16 @@ public class MultiblockState {
         }
     }
 
-    @Nullable
-    private static BuildCandidate selectBuildCandidate(
-            @NotNull EntityPlayer player,
-            @NotNull BlockInfo[] infos,
-            @NotNull List<ItemStack> candidates,
-            @Nullable TraceabilityPredicate.SimplePredicate matchedPredicate,
-            @Nullable Map<String, Integer> channelValues,
-            @Nullable AbilityPlacementTracker abilityTracker) {
-        int preferredCandidateIndex = getPreferredCandidateIndex(matchedPredicate, infos, channelValues);
-        int requiredAbilityIndex = findRequiredAbilityCandidate(
-                infos, abilityTracker, preferredCandidateIndex);
-        if (!player.isCreative()) {
-            if (requiredAbilityIndex >= 0) {
-                BuildCandidate required = selectSurvivalCandidate(
-                        player, infos, Collections.singletonList(candidates.get(requiredAbilityIndex)),
-                        requiredAbilityIndex);
-                if (required != null) {
-                    return required;
-                }
-            }
-            int preferredIdx = preferredCandidateIndex;
-            if (preferredIdx >= 0 && preferredIdx < candidates.size()) {
-                BuildCandidate preferred = selectSurvivalCandidate(
-                        player, infos, Collections.singletonList(candidates.get(preferredIdx)), preferredIdx);
-                return preferred;
-            }
-            BuildCandidate inventoryCandidate = selectSurvivalCandidate(player, infos, candidates, -1);
-            if (inventoryCandidate != null) {
-                return inventoryCandidate;
-            }
-            ItemStack found = tryExtractFromAENetwork(player, candidates);
-            if (found != null) {
-                for (int i = 0; i < candidates.size(); i++) {
-                    if (candidates.get(i).isItemEqual(found)) {
-                        return new BuildCandidate(found, infos[i]);
-                    }
-                }
-            }
-            return null;
-        }
-
-        int preferredIndex = requiredAbilityIndex;
-        if (preferredIndex < 0) {
-            preferredIndex = preferredCandidateIndex;
-        }
-        if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
-            return new BuildCandidate(candidates.get(preferredIndex).copy(), infos[preferredIndex]);
-        }
-        for (int i = candidates.size() - 1; i >= 0; i--) {
-            ItemStack found = candidates.get(i).copy();
-            if (!found.isEmpty()) {
-                return new BuildCandidate(found, infos[i]);
-            }
-        }
-        return null;
-    }
-
-    @Nullable
-    private static BuildCandidate selectSurvivalCandidate(@NotNull EntityPlayer player,
-                                                          @NotNull BlockInfo[] infos,
-                                                          @NotNull List<ItemStack> candidates,
-                                                          int fixedCandidateIndex) {
-        if (fixedCandidateIndex >= 0) {
-            ItemStack found = extractCandidateFromInventory(player, candidates.get(0));
-            if (found != null) {
-                return new BuildCandidate(found, infos[fixedCandidateIndex]);
-            }
-            found = tryExtractFromAENetwork(player, candidates);
-            return found == null ? null : new BuildCandidate(found, infos[fixedCandidateIndex]);
-        }
-
-        for (int i = 0; i < candidates.size(); i++) {
-            ItemStack found = extractCandidateFromInventory(player, candidates.get(i));
-            if (found != null) {
-                return new BuildCandidate(found, infos[i]);
-            }
-        }
-        return null;
-    }
-
-    @Nullable
-    private static ItemStack extractCandidateFromInventory(@NotNull EntityPlayer player,
-                                                           @NotNull ItemStack candidate) {
-        for (ItemStack itemStack : player.inventory.mainInventory) {
-            if (candidate.isItemEqual(itemStack) && !itemStack.isEmpty()) {
-                ItemStack found = itemStack.copy();
-                itemStack.setCount(itemStack.getCount() - 1);
-                return found;
-            }
-        }
-        return null;
-    }
-
     private void autoBuildCell(@NotNull FixedStructureCell cell,
-                               @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer,
-                               @NotNull EntityPlayer player,
-                               @NotNull MultiblockControllerBase controllerBase,
-                               @Nullable Map<String, Integer> channelValues,
-                               boolean skipHatches,
-                               @Nullable AbilityPlacementTracker abilityTracker,
-                               @NotNull BuildTraversalState buildState,
-                               @NotNull StructureEvaluationContext.Operation operation) {
+                                @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> cacheLayer,
+                                @NotNull EntityPlayer player,
+                                @NotNull MultiblockControllerBase controllerBase,
+                                @Nullable Map<String, Integer> channelValues,
+                                boolean skipHatches,
+                                @Nullable AbilityPlacementTracker abilityTracker,
+                                @NotNull ItemStack triggerStack,
+                                @NotNull BuildTraversalState buildState,
+                                @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
         TraceabilityPredicate predicate = cell.predicate;
         BlockPos pos = cell.worldPos;
@@ -951,7 +866,7 @@ public class MultiblockState {
 
         updateOperationCellContext(buildState.evaluationContext, buildState.worldState,
                 world, pos, predicate, controllerBase, operation);
-        if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
+        if (buildState.evaluationContext.probe(evaluation -> elementMatches(cell.element, evaluation))) {
             buildState.result.recordExistingCell();
             buildState.blocks.put(pos, world.getBlockState(pos));
             if (abilityTracker != null) {
@@ -960,6 +875,11 @@ public class MultiblockState {
             for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
                 limit.testLimited(buildState.worldState);
             }
+            return;
+        }
+        if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
+            buildState.result.recordPlacementBudget();
+            buildState.result.recordPlacementFailureCell();
             return;
         }
 
@@ -1052,22 +972,16 @@ public class MultiblockState {
             }
         }
 
-        int availableCandidateCount = 0;
-        if (infos == null) {
-            infos = new BlockInfo[0];
-        } else {
-            availableCandidateCount = (int) Arrays.stream(infos)
-                    .filter(info -> info.getBlockState().getBlock() != Blocks.AIR)
-                    .count();
-            infos = Arrays.stream(infos)
-                    .filter(info -> info.getBlockState().getBlock() != Blocks.AIR)
-                    .filter(info -> abilityTracker == null || abilityTracker.canPlace(info))
-                    .toArray(BlockInfo[]::new);
+        int availableCandidateCount = StructurePlacementDecision.countPlaceable(infos);
+        infos = StructurePlacementDecision.filterPlaceable(infos, abilityTracker);
+        if (infos.length == 0 && !find) {
+            BlockInfo[] directCandidates = getElementCandidates(cell.element, buildState.evaluationContext);
+            availableCandidateCount = StructurePlacementDecision.countPlaceable(directCandidates);
+            infos = StructurePlacementDecision.filterPlaceable(directCandidates, abilityTracker);
         }
-        List<ItemStack> candidates = Arrays.stream(infos)
-                .map(MultiblockState::getStackForBlockInfo)
-                .collect(Collectors.toList());
+        List<ItemStack> candidates = StructurePlacementDecision.toItemStacks(infos);
         if (candidates.isEmpty()) {
+            buildState.result.recordPlacementBudget();
             if (abilityTracker != null && availableCandidateCount > 0) {
                 buildState.result.recordAbilityLimitBlockedCell();
             } else {
@@ -1137,12 +1051,8 @@ public class MultiblockState {
                 }
                 if (!nonHatchInfos.isEmpty() && nonHatchCandidates.isEmpty()) {
                     nonHatchCandidates = nonHatchInfos.stream()
-                            .map(info -> {
-                                IBlockState blockState = info.getBlockState();
-                                return new ItemStack(
-                                        Item.getItemFromBlock(blockState.getBlock()),
-                                        1, blockState.getBlock().damageDropped(blockState));
-                            }).collect(Collectors.toList());
+                            .map(StructurePlacementDecision::getStackForBlockInfo)
+                            .collect(Collectors.toList());
                 }
             }
             if (!nonHatchInfos.isEmpty()) {
@@ -1157,21 +1067,46 @@ public class MultiblockState {
             }
         }
 
-        BuildCandidate buildCandidate = selectBuildCandidate(
-                player, infos, candidates, matchedPredicate, channelValues, abilityTracker);
+        buildState.result.recordPlacementBudget();
+        ItemStack representativeRequired = operation.isSurvivalBuild()
+                ? StructurePlacementDecision.representativeRequiredStack(
+                        infos, candidates, matchedPredicate, channelValues, abilityTracker)
+                : ItemStack.EMPTY;
+
+        StructurePlacementDecision.Selection buildCandidate = StructurePlacementDecision.select(
+                player, infos, candidates, matchedPredicate, channelValues, abilityTracker, operation);
         if (buildCandidate == null) {
             buildState.result.recordUnavailableItemCell();
+            if (!representativeRequired.isEmpty()) {
+                buildState.result.recordRequiredItem(representativeRequired);
+                buildState.result.recordMissingItem(representativeRequired);
+            }
             return;
         }
-        ItemStack found = buildCandidate.found;
-        BlockInfo matchedInfo = buildCandidate.matchedInfo;
+        ItemStack found = buildCandidate.getRequiredStack();
+        BlockInfo matchedInfo = buildCandidate.getMatchedInfo();
 
+        if (operation.isSurvivalBuild()) {
+            buildState.result.recordRequiredItem(found);
+        }
+        IBlockState previousState = world.getBlockState(pos);
         if (!placeBuildCandidate(matchedInfo, buildState.evaluationContext)) {
             buildState.result.recordPlacementFailureCell();
             return;
         }
+        if (!buildCandidate.consume(player)) {
+            world.setBlockState(pos, previousState);
+            buildState.result.recordUnavailableItemCell();
+            if (operation.isSurvivalBuild()) {
+                buildState.result.recordMissingItem(found);
+            }
+            return;
+        }
         IBlockState state = matchedInfo.getBlockState();
         buildState.result.recordPlacedCell();
+        if (buildCandidate.consumesItem()) {
+            buildState.result.recordConsumedItem(found);
+        }
         if (abilityTracker != null) {
             abilityTracker.record(matchedInfo);
         }
@@ -1251,34 +1186,10 @@ public class MultiblockState {
         return true;
     }
 
-    /**
-     * Check exactly one orientation. This does not try the opposite flip state.
-     */
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
-                                                   @NotNull EnumFacing frontFacing,
-                                                   @NotNull EnumFacing upwardsFacing,
-                                                   boolean isFlipped) {
-        return checkPatternAtExact(world, centerPos, frontFacing, upwardsFacing, isFlipped, 0, 0, 0);
-    }
-
     @Nullable
     public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
                                                    @NotNull StructureOrientation orientation) {
         return checkPatternAtExact(world, centerPos, orientation, 0, 0, 0);
-    }
-
-    /**
-     * Exact-orientation check with a template-local offset applied to every cell.
-     */
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
-                                                   @NotNull EnumFacing frontFacing,
-                                                   @NotNull EnumFacing upwardsFacing,
-                                                   boolean isFlipped,
-                                                   int xOffset, int yOffset, int zOffset) {
-        return checkPatternAtExact(world, centerPos, frontFacing, upwardsFacing, isFlipped,
-                xOffset, yOffset, zOffset, null);
     }
 
     @Nullable
@@ -1287,23 +1198,6 @@ public class MultiblockState {
                                                    int xOffset, int yOffset, int zOffset) {
         return checkPatternAtExact(world, centerPos, orientation,
                 xOffset, yOffset, zOffset, null);
-    }
-
-    /**
-     * Exact-orientation check participating in a larger transactional match.
-     */
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
-                                                   @NotNull EnumFacing frontFacing,
-                                                   @NotNull EnumFacing upwardsFacing,
-                                                   boolean isFlipped,
-                                                   int xOffset, int yOffset, int zOffset,
-                                                   @Nullable StructureMatchSession session) {
-        return checkPatternAtExact(
-                world,
-                centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset, yOffset, zOffset, session);
     }
 
     @Nullable
@@ -1508,13 +1402,14 @@ public class MultiblockState {
     }
 
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
-                            BlockPos centerPos, @NotNull StructureOrientation orientation,
-                            int xOffset, int yOffset, int zOffset,
-                            Map<String, Integer> channelValues, boolean skipHatches,
-                            @Nullable AbilityPlacementTracker abilityTracker,
-                            @NotNull StructureEvaluationContext.Operation operation) {
+                             BlockPos centerPos, @NotNull StructureOrientation orientation,
+                             int xOffset, int yOffset, int zOffset,
+                             Map<String, Integer> channelValues, boolean skipHatches,
+                             @Nullable AbilityPlacementTracker abilityTracker,
+                             @NotNull StructureEvaluationContext.Operation operation) {
         autoBuildAtWithResult(player, controllerBase, centerPos, orientation,
-                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker, operation);
+                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker,
+                operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -1527,9 +1422,25 @@ public class MultiblockState {
                                                       boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation) {
+        return autoBuildAtWithResult(player, controllerBase, centerPos, orientation,
+                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker,
+                operation, ItemStack.EMPTY);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtWithResult(EntityPlayer player,
+                                                      MultiblockControllerBase controllerBase,
+                                                      BlockPos centerPos,
+                                                      @NotNull StructureOrientation orientation,
+                                                      int xOffset, int yOffset, int zOffset,
+                                                      Map<String, Integer> channelValues,
+                                                      boolean skipHatches,
+                                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                                      @NotNull StructureEvaluationContext.Operation operation,
+                                                      @NotNull ItemStack triggerStack) {
         return autoBuildAtWithResult(player, controllerBase,
                 StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
-                channelValues, skipHatches, abilityTracker, operation);
+                channelValues, skipHatches, abilityTracker, operation, triggerStack);
     }
 
     @NotNull
@@ -1540,6 +1451,19 @@ public class MultiblockState {
                                                       boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation) {
+        return autoBuildAtWithResult(player, controllerBase, traversal, channelValues,
+                skipHatches, abilityTracker, operation, ItemStack.EMPTY);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtWithResult(EntityPlayer player,
+                                                      MultiblockControllerBase controllerBase,
+                                                      @NotNull StructureCellTraversal traversal,
+                                                      Map<String, Integer> channelValues,
+                                                      boolean skipHatches,
+                                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                                      @NotNull StructureEvaluationContext.Operation operation,
+                                                      @NotNull ItemStack triggerStack) {
         World world = player.world;
         BuildTraversalState buildState = new BuildTraversalState();
         buildState.result.recordAttemptedTraversal();
@@ -1550,7 +1474,7 @@ public class MultiblockState {
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
                 (cell, layerCounts) -> autoBuildCell(
                         cell, layerCounts, player, controllerBase, channelValues,
-                        skipHatches, abilityTracker, buildState, operation));
+                        skipHatches, abilityTracker, triggerStack, buildState, operation));
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
                 RelativeDirection.ALL_FACINGS);
         buildState.blocks.forEach((pos, block) -> {
@@ -1822,87 +1746,9 @@ public class MultiblockState {
                 break;
             }
         }
-        int candidateIdx = getChannelCandidateIndex(matchedPredicate, infos, channelValues);
+        int candidateIdx = StructurePlacementDecision.getChannelCandidateIndex(matchedPredicate, infos, channelValues);
         BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[candidateIdx];
         return copyPreviewTileEntity(info);
-    }
-
-    /**
-     * 尝试从玩家的 AE2 无线终端网络中提取物品。
-     * 仅在服务端生效，需要 AE2 已加载且玩家拥有已连接的无线终端。
-     *
-     * @param player     玩家
-     * @param candidates 候选物品列表
-     * @return 提取到的 ItemStack，失败返回 null
-     */
-    @Nullable
-    private static ItemStack tryExtractFromAENetwork(EntityPlayer player, List<ItemStack> candidates) {
-        if (!Mods.AppliedEnergistics2.isModLoaded()) return null;
-        if (player.world.isRemote) return null;
-
-        try {
-            IStorageGrid storageGrid = PlayerWirelessGridHelper.getStorageGrid(player);
-            if (storageGrid == null) return null;
-
-            IItemStorageChannel channel = AEApi.instance().storage()
-                    .getStorageChannel(IItemStorageChannel.class);
-            IMEMonitor<IAEItemStack> monitor = storageGrid.getInventory(channel);
-            if (monitor == null) return null;
-
-            for (ItemStack candidate : candidates) {
-                if (candidate.isEmpty()) continue;
-
-                IAEItemStack request = channel.createStack(candidate);
-                request.setStackSize(1);
-                IAEItemStack extracted = monitor.extractItems(request, Actionable.MODULATE,
-                        new BaseActionSource());
-                if (extracted != null && extracted.getStackSize() > 0) {
-                    return candidate.copy();
-                }
-            }
-        } catch (Exception ignored) {
-            // 无线终端可能超出范围、没电或网络不可用
-        }
-        return null;
-    }
-
-    private static int findRequiredAbilityCandidate(
-            BlockInfo[] infos, @Nullable AbilityPlacementTracker abilityTracker,
-            int preferredCandidateIndex) {
-        if (abilityTracker == null) return -1;
-        if (preferredCandidateIndex >= 0
-                && preferredCandidateIndex < infos.length
-                && abilityTracker.isStillRequired(infos[preferredCandidateIndex])) {
-            return preferredCandidateIndex;
-        }
-        for (int i = infos.length - 1; i >= 0; i--) {
-            if (abilityTracker.isStillRequired(infos[i])) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    @NotNull
-    private static ItemStack getStackForBlockInfo(@NotNull BlockInfo info) {
-        IBlockState blockState = info.getBlockState();
-        MetaTileEntity metaTileEntity = info.getTileEntity() instanceof IGregTechTileEntity ?
-                ((IGregTechTileEntity) info.getTileEntity()).getMetaTileEntity() : null;
-        if (metaTileEntity != null) {
-            return metaTileEntity.getStackForm();
-        }
-        return new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
-                blockState.getBlock().damageDropped(blockState));
-    }
-
-    /**
-     * Get all structure blocks (from cache or by calculating positions).
-     */
-    public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
-                                                          EnumFacing frontFacing, EnumFacing upwardsFacing,
-                                                          boolean isFlipped) {
-        return getAllStructureBlocks(world, centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false));
     }
 
     /**
@@ -2028,98 +1874,29 @@ public class MultiblockState {
                 orientation.isFlipped(), template.getStructureDir());
     }
 
-    /**
-     * Determine the candidate index based on channel values.
-     * If the predicate has a channel name and channelValues specifies a tier,
-     * use that tier (1-based) as the index. Otherwise use 0 (default).
-     */
-    private static int getChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
-                                                 @Nullable BlockInfo[] infos,
-                                                 @Nullable Map<String, Integer> channelValues) {
-        int preferredIndex = getPreferredCandidateIndex(predicate, infos, channelValues);
-        if (preferredIndex >= 0) return preferredIndex;
-        return 0;
-    }
-
-    private static int getPreferredCandidateIndex(
-            @Nullable TraceabilityPredicate.SimplePredicate predicate,
-            @Nullable BlockInfo[] infos,
-            @Nullable Map<String, Integer> channelValues) {
-        int channelIndex = getPreferredChannelCandidateIndex(predicate, infos, channelValues);
-        if (channelIndex >= 0) {
-            return channelIndex;
-        }
-        if (predicate == null || infos == null || predicate.defaultCandidate == null) {
-            return -1;
-        }
-        MetaTileEntity preferred = predicate.defaultCandidate.get();
-        if (preferred == null) {
-            return -1;
-        }
-        for (int i = 0; i < infos.length; i++) {
-            TileEntity tileEntity = infos[i].getTileEntity();
-            if (tileEntity instanceof IGregTechTileEntity gregTechTile) {
-                MetaTileEntity candidate = gregTechTile.getMetaTileEntity();
-                if (candidate != null && preferred.metaTileEntityId.equals(candidate.metaTileEntityId)) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
-    private static int getPreferredChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
-                                                         @Nullable BlockInfo[] infos,
-                                                         @Nullable Map<String, Integer> channelValues) {
-        if (predicate == null || infos == null || infos.length == 0) return -1;
-        if (channelValues == null || predicate.channelName == null) return -1;
-        Integer cv = channelValues.get(predicate.channelName);
-        if (cv == null || cv <= 0) return -1;
-        int idx = cv - 1;
-        return idx < infos.length ? idx : -1;
-    }
-
-    /**
-     * Perform pattern checking against a snapshot (IBlockAccess) instead of a live World.
-     * Used by the async structure checker (P2) for thread-safe pattern matching.
-     *
-     * <p>This is a simplified version that only checks IBlockState matches (no TileEntity checks).
-     * If this returns non-null, a confirmatory check should be done on the main thread.
-     *
-     * @param blockAccess    the snapshot to check against
-     * @param centerPos      the center position of the pattern
-     * @param frontFacing    the front facing direction
-     * @param upwardsFacing  the upwards facing direction
-     * @param allowsFlip     whether flipping is allowed
-     * @return the match context if the pattern matches, or null
-     */
     public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                          BlockPos centerPos, EnumFacing frontFacing,
-                                                          EnumFacing upwardsFacing, boolean allowsFlip) {
-        return checkPatternFastAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing, allowsFlip,
-                0, 0, 0);
+                                                          BlockPos centerPos,
+                                                          @NotNull StructureOrientation orientation) {
+        return checkPatternFastAtSnapshot(blockAccess, centerPos, orientation, 0, 0, 0);
     }
 
-    /**
-     * Snapshot variant of {@link #checkPatternFastAt(World, BlockPos, EnumFacing, EnumFacing,
-     * boolean, boolean, int, int, int)}. See that method for the cell-offset contract.
-     */
     public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                          BlockPos centerPos, EnumFacing frontFacing,
-                                                          EnumFacing upwardsFacing, boolean allowsFlip,
+                                                          BlockPos centerPos,
+                                                          @NotNull StructureOrientation orientation,
                                                           int xOffset, int yOffset, int zOffset) {
         // For snapshot checks, we skip the cache fast-path and do a full pattern check
-        PatternMatchContext pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing,
-                false, xOffset, yOffset, zOffset);
-        if (allowsFlip) {
+        PatternMatchContext pmc = checkPatternAtSnapshot(blockAccess, centerPos,
+                orientation.withFlipped(false), xOffset, yOffset, zOffset, null);
+        if (orientation.allowsFlip()) {
             if (pmc != null) {
                 return pmc;
             }
             Map<MultiblockAbility<?>, Integer> unflippedMissingAbilities = missingAbilities;
             PatternError unflippedError = worldState.error;
-            pmc = checkPatternAtSnapshot(blockAccess, centerPos, frontFacing, upwardsFacing,
-                    true, xOffset, yOffset, zOffset);
-            if (pmc == null && missingAbilities.isEmpty() && !unflippedMissingAbilities.isEmpty()) {
+            pmc = checkPatternAtSnapshot(blockAccess, centerPos,
+                    orientation.withFlipped(true), xOffset, yOffset, zOffset, null);
+            if (pmc == null && shouldKeepUnflippedFailure(unflippedError, unflippedMissingAbilities,
+                    worldState.error, missingAbilities)) {
                 missingAbilities = unflippedMissingAbilities;
                 worldState.setError(unflippedError);
             }
@@ -2127,29 +1904,14 @@ public class MultiblockState {
         return pmc;
     }
 
-    /**
-     * Perform pattern checking against a snapshot with prior metadata for acceleration.
-     * If prior is available, uses the known repeat counts as an initial guess for O(1) verification.
-     * Falls back to full search if prior verification fails.
-     *
-     * @param snap          the snapshot to check against
-     * @param centerPos     the center position of the pattern
-     * @param frontFacing   the front facing direction
-     * @param upwardsFacing the upwards facing direction
-     * @param allowsFlip    whether flipping is allowed
-     * @param prior         prior formed metadata (null = no prior, do full search)
-     * @return the match context if the pattern matches, or null
-     */
     @Nullable
     public PatternMatchContext checkOnSnapshotWithPrior(@NotNull net.minecraft.world.IBlockAccess snap,
-                                                         @NotNull BlockPos centerPos,
-                                                         @NotNull EnumFacing frontFacing,
-                                                         @NotNull EnumFacing upwardsFacing,
-                                                         boolean allowsFlip,
-                                                         @Nullable FormedStructureMetadata prior) {
+                                                        @NotNull BlockPos centerPos,
+                                                        @NotNull StructureOrientation orientation,
+                                                        @Nullable FormedStructureMetadata prior) {
         if (prior == null) {
             // No prior: delegate to standard snapshot check
-            return checkPatternFastAtSnapshot(snap, centerPos, frontFacing, upwardsFacing, allowsFlip);
+            return checkPatternFastAtSnapshot(snap, centerPos, orientation);
         }
 
         // Fast path: verify cached positions against snapshot
@@ -2161,7 +1923,7 @@ public class MultiblockState {
         }
 
         // Cache miss or verification failed: full search
-        return checkPatternFastAtSnapshot(snap, centerPos, frontFacing, upwardsFacing, allowsFlip);
+        return checkPatternFastAtSnapshot(snap, centerPos, orientation);
     }
 
     /**
@@ -2192,63 +1954,11 @@ public class MultiblockState {
         return true;
     }
 
-    /**
-     * 1D slice verification along a specific axis (tensor product piece optimization).
-     * Only checks the cells along the specified axis direction, not the entire base piece.
-     * Used by RepeatGroupPiece for INDEPENDENT_1D search strategy.
-     *
-     * @param snap          the snapshot to check against
-     * @param pieceOrigin   the center position for this piece
-     * @param axis          the axis to check along (0=X, 1=Y, 2=Z)
-     * @param frontFacing   the front facing direction
-     * @param upwardsFacing the upwards facing direction
-     * @param isFlipped     whether the structure is flipped
-     * @return true if the 1D slice matches
-     */
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                                @NotNull BlockPos pieceOrigin,
-                                                int axis,
-                                                @NotNull EnumFacing frontFacing,
-                                                @NotNull EnumFacing upwardsFacing,
-                                                boolean isFlipped) {
-        return checkAxisLineFastAtSnapshot(snap, pieceOrigin, axis, frontFacing, upwardsFacing, isFlipped,
-                0, 0, 0);
-    }
-
     public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
                                                @NotNull BlockPos pieceOrigin,
                                                int axis,
                                                @NotNull StructureOrientation orientation) {
         return checkAxisLineFastAtSnapshot(snap, pieceOrigin, axis, orientation, 0, 0, 0);
-    }
-
-    /**
-     * 1D slice verification along a specific axis (tensor product piece optimization),
-     * with an additional template-local cell offset folded into the per-cell transformation.
-     * <p>
-     * Mirrors the contract of
-     * {@link #checkPatternFastAt(World, BlockPos, EnumFacing, EnumFacing, boolean, boolean,
-     * int, int, int)}: the offsets are added to every cell's (x, y, z) before
-     * {@link RelativeDirection#setActualRelativeOffset} runs, so the transformation happens
-     * exactly once per cell. The {@code pieceOrigin} here is the world-space center of the
-     * piece (typically {@link StructurePiece#getCenterPos}), and the offsets encode the
-     * template-local slice step the caller wants to verify.
-     */
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                                @NotNull BlockPos pieceOrigin,
-                                                int axis,
-                                                @NotNull EnumFacing frontFacing,
-                                                @NotNull EnumFacing upwardsFacing,
-                                                boolean isFlipped,
-                                                int xOffset, int yOffset, int zOffset) {
-        return checkAxisLineFastAtSnapshot(
-                snap,
-                pieceOrigin,
-                axis,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset,
-                yOffset,
-                zOffset);
     }
 
     public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
@@ -2292,39 +2002,6 @@ public class MultiblockState {
      * Simplified version that uses IBlockAccess instead of World.
      */
     private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                       BlockPos centerPos, EnumFacing frontFacing,
-                                                       EnumFacing upwardsFacing, boolean isFlipped) {
-        return checkPatternAtSnapshot(blockAccess, centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                0, 0, 0, null);
-    }
-
-    /**
-     * Snapshot variant of {@link #checkPatternAt} that accepts template-local cell offsets.
-     * The offsets are added to every cell's (x, y, z) before
-     * {@link RelativeDirection#setActualRelativeOffset} runs, so the transformation happens
-     * exactly once per cell.
-     */
-    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                       BlockPos centerPos, EnumFacing frontFacing,
-                                                       EnumFacing upwardsFacing, boolean isFlipped,
-                                                       int xOffset, int yOffset, int zOffset) {
-        return checkPatternAtSnapshot(blockAccess, centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset, yOffset, zOffset, null);
-    }
-
-    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                       BlockPos centerPos, EnumFacing frontFacing,
-                                                       EnumFacing upwardsFacing, boolean isFlipped,
-                                                       int xOffset, int yOffset, int zOffset,
-                                                       @Nullable StructureMatchSession session) {
-        return checkPatternAtSnapshot(blockAccess, centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset, yOffset, zOffset, session);
-    }
-
-    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
                                                        BlockPos centerPos,
                                                        @NotNull StructureOrientation orientation,
                                                        int xOffset, int yOffset, int zOffset,
@@ -2332,21 +2009,6 @@ public class MultiblockState {
         return checkFixedStructureCells(null, blockAccess, centerPos, orientation,
                 xOffset, yOffset, zOffset, session,
                 StructureEvaluationContext.Operation.MATCH_SNAPSHOT, false);
-    }
-
-    /**
-     * Snapshot check for exactly one orientation.
-     */
-    @Nullable
-    public PatternMatchContext checkPatternAtSnapshotExact(
-            @NotNull net.minecraft.world.IBlockAccess blockAccess,
-            @NotNull BlockPos centerPos,
-            @NotNull EnumFacing frontFacing,
-            @NotNull EnumFacing upwardsFacing,
-            boolean isFlipped,
-            int xOffset, int yOffset, int zOffset) {
-        return checkPatternAtSnapshotExact(blockAccess, centerPos, frontFacing, upwardsFacing, isFlipped,
-                xOffset, yOffset, zOffset, null);
     }
 
     @Nullable
@@ -2357,25 +2019,6 @@ public class MultiblockState {
             int xOffset, int yOffset, int zOffset) {
         return checkPatternAtSnapshotExact(blockAccess, centerPos, orientation,
                 xOffset, yOffset, zOffset, null);
-    }
-
-    /**
-     * Snapshot check participating in a larger transactional match.
-     */
-    @Nullable
-    public PatternMatchContext checkPatternAtSnapshotExact(
-            @NotNull net.minecraft.world.IBlockAccess blockAccess,
-            @NotNull BlockPos centerPos,
-            @NotNull EnumFacing frontFacing,
-            @NotNull EnumFacing upwardsFacing,
-            boolean isFlipped,
-            int xOffset, int yOffset, int zOffset,
-            @Nullable StructureMatchSession session) {
-        return checkPatternAtSnapshotExact(
-                blockAccess,
-                centerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, isFlipped, false),
-                xOffset, yOffset, zOffset, session);
     }
 
     @Nullable

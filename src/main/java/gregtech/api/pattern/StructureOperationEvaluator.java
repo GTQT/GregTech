@@ -7,7 +7,6 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -69,30 +68,9 @@ public final class StructureOperationEvaluator {
         PatternMatchContext legacyContext = checkSingle(
                 request.requireWorld(),
                 request.requireControllerPos(),
-                request.requireOrientation().getStructureFront(),
-                request.requireOrientation().getUp(),
-                request.requireOrientation().allowsFlip(),
+                request.requireOrientation(),
                 request.doRandomCheck());
         return StructureCheckResult.fromLegacy(legacyContext, requireState());
-    }
-
-    @NotNull
-    public StructureCheckResult check(
-            @NotNull World world,
-            @NotNull BlockPos controllerPos,
-            @NotNull EnumFacing front,
-            @NotNull EnumFacing up,
-            boolean allowsFlip,
-            boolean doRandomCheck,
-            @Nullable PatternMatchContext context,
-            @Nullable MultiblockControllerBase controller) {
-        return check(
-                world,
-                controllerPos,
-                StructureOrientation.of(front, front, up, false, allowsFlip),
-                doRandomCheck,
-                context,
-                controller);
     }
 
     @NotNull
@@ -109,32 +87,14 @@ public final class StructureOperationEvaluator {
                 world, controllerPos, orientation, context, controller);
     }
 
-    @NotNull
-    public StructureCheckState.Result checkDefinition(
-            @NotNull World world,
-            @NotNull BlockPos controllerPos,
-            @NotNull EnumFacing front,
-            @NotNull EnumFacing up,
-            boolean allowsFlip,
-            @Nullable PatternMatchContext context,
-            @Nullable MultiblockControllerBase controller) {
-        if (definition == null) {
-            throw new IllegalStateException("Definition check requested without a structure definition");
-        }
-        return definition.createState().check(
-                world, controllerPos, front, up, allowsFlip, context, controller);
-    }
-
     @Nullable
     public PatternMatchContext checkSingle(
             @NotNull World world,
             @NotNull BlockPos centerPos,
-            @NotNull EnumFacing front,
-            @NotNull EnumFacing up,
-            boolean allowsFlip,
+            @NotNull StructureOrientation orientation,
             boolean doRandomCheck) {
         return requireState().checkPatternFastAt(
-                world, centerPos, front, up, allowsFlip, doRandomCheck);
+                world, centerPos, orientation, doRandomCheck);
     }
 
     public void clearSingleCache() {
@@ -192,7 +152,7 @@ public final class StructureOperationEvaluator {
                 request.requirePlayer(), request.requireController(),
                 request.requireControllerPos(), request.requireOrientation(),
                 0, 0, 0, request.getChannelValues(), request.skipHatches(), null,
-                request.getEvaluationOperation());
+                request.getEvaluationOperation(), ItemStack.EMPTY);
         StructureTrace.debug(request.requireController(), "creative-build-single-result",
                 result.describeCounts());
         return result;
@@ -281,7 +241,7 @@ public final class StructureOperationEvaluator {
                 request.getPieceIndex(), request.requirePlayer(), request.requireController(),
                 request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
                 requirePieceRuntimes(), abilityTracker,
-                request.getEvaluationOperation());
+                request.getEvaluationOperation(), ItemStack.EMPTY);
         StructureTrace.debug(request.requireController(), "creative-build-piece-result",
                 "pieceIndex=" + request.getPieceIndex() + ", " + result.describeCounts());
         return result;
@@ -308,7 +268,7 @@ public final class StructureOperationEvaluator {
                 request.requirePlayer(), request.requireController(),
                 request.requireControllerPos(), request.requireOrientation(),
                 0, 0, 0, request.getChannelValues(), request.skipHatches(), null,
-                request.getEvaluationOperation());
+                request.getEvaluationOperation(), request.requireTriggerStack());
         StructureTrace.debug(request.requireController(), "survival-build-single-result",
                 result.describeCounts());
         return result;
@@ -363,7 +323,7 @@ public final class StructureOperationEvaluator {
                 request.getPieceIndex(), request.requirePlayer(), request.requireController(),
                 request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
                 requirePieceRuntimes(), abilityTracker,
-                request.getEvaluationOperation());
+                request.getEvaluationOperation(), request.requireTriggerStack());
         StructureTrace.debug(request.requireController(), "survival-build-piece-result",
                 "pieceIndex=" + request.getPieceIndex() + ", " + result.describeCounts());
         return result;
@@ -448,16 +408,6 @@ public final class StructureOperationEvaluator {
         request.requireKind(StructureOperationRequest.Kind.ITERATE);
         return requireState().getAllStructureBlocks(
                 request.requireWorld(), request.requireControllerPos(), request.requireOrientation());
-    }
-
-    @NotNull
-    public Map<BlockPos, BlockInfo> iterateSingle(
-            @NotNull World world,
-            @NotNull BlockPos centerPos,
-            @NotNull EnumFacing front,
-            @NotNull EnumFacing up,
-            boolean flipped) {
-        return requireState().getAllStructureBlocks(world, centerPos, front, up, flipped);
     }
 
     @NotNull

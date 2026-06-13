@@ -6,7 +6,6 @@ import gregtech.api.pattern.element.FormedStructureMetadata;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
@@ -51,7 +50,7 @@ import java.util.function.BooleanSupplier;
  *     .build();
  *
  * PieceRuntimes runtimes = new PieceRuntimes(pattern);
- * pattern.checkDirtyPieces(world, controllerPos, front, up, flipped, runtimes);
+     * pattern.checkDirtyPieces(world, controllerPos, orientation, runtimes);
  * }</pre>
  *
  * @see StructurePiece for individual piece definition
@@ -249,35 +248,13 @@ public class MultiPiecePattern {
      *
      * @param world          the world to check against
      * @param controllerPos  the controller's position
-     * @param frontFacing    the controller's front facing (opposite of the facing used for pattern)
-     * @param upwardsFacing  the upwards facing
-     * @param allowsFlip     whether flipping is allowed
      * @param runtimes       per-controller state for each piece
      * @return true if all active pieces are valid
      */
-    public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                     EnumFacing upwardsFacing, boolean flipped,
-                                     @NotNull PieceRuntimes runtimes) {
-        return checkDirtyPieces(world, controllerPos, frontFacing, upwardsFacing, flipped,
-                runtimes, null);
-    }
-
     public boolean checkDirtyPieces(World world, BlockPos controllerPos,
                                     @NotNull StructureOrientation orientation,
                                     @NotNull PieceRuntimes runtimes) {
         return checkDirtyPieces(world, controllerPos, orientation, runtimes, null);
-    }
-
-    public boolean checkDirtyPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                    EnumFacing upwardsFacing, boolean flipped,
-                                    @NotNull PieceRuntimes runtimes,
-                                    @Nullable MultiblockControllerBase controller) {
-        return checkDirtyPieces(
-                world,
-                controllerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, flipped, false),
-                runtimes,
-                controller);
     }
 
     public boolean checkDirtyPieces(World world, BlockPos controllerPos,
@@ -359,35 +336,13 @@ public class MultiPiecePattern {
      *
      * @param world          the world to check against
      * @param controllerPos  the controller's position
-     * @param frontFacing    the controller's front facing
-     * @param upwardsFacing  the upwards facing
-     * @param allowsFlip     whether flipping is allowed
      * @param runtimes       per-controller state for each piece
      * @return true if all active pieces are valid
      */
-    public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                   EnumFacing upwardsFacing, boolean flipped,
-                                   @NotNull PieceRuntimes runtimes) {
-        return checkAllPieces(world, controllerPos, frontFacing, upwardsFacing, flipped,
-                runtimes, null);
-    }
-
     public boolean checkAllPieces(World world, BlockPos controllerPos,
                                   @NotNull StructureOrientation orientation,
                                   @NotNull PieceRuntimes runtimes) {
         return checkAllPieces(world, controllerPos, orientation, runtimes, null);
-    }
-
-    public boolean checkAllPieces(World world, BlockPos controllerPos, EnumFacing frontFacing,
-                                  EnumFacing upwardsFacing, boolean flipped,
-                                  @NotNull PieceRuntimes runtimes,
-                                  @Nullable MultiblockControllerBase controller) {
-        return checkAllPieces(
-                world,
-                controllerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upwardsFacing, flipped, false),
-                runtimes,
-                controller);
     }
 
     public boolean checkAllPieces(World world, BlockPos controllerPos,
@@ -496,7 +451,21 @@ public class MultiPiecePattern {
                                   @NotNull AbilityPlacementTracker abilityTracker,
                                   @NotNull StructureEvaluationContext.Operation operation) {
         return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
-                skipHatches, runtimes, abilityTracker, operation).isAttempted();
+                skipHatches, runtimes, abilityTracker, operation, ItemStack.EMPTY).isAttempted();
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildPieceWithResult(int pieceIndex,
+                                                         EntityPlayer player,
+                                                         MultiblockControllerBase controller,
+                                                         @NotNull StructureOrientation orientation,
+                                                         @Nullable Map<String, Integer> channelValues,
+                                                          boolean skipHatches,
+                                                          @NotNull PieceRuntimes runtimes,
+                                                          @NotNull AbilityPlacementTracker abilityTracker,
+                                                          @NotNull StructureEvaluationContext.Operation operation) {
+        return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
+                skipHatches, runtimes, abilityTracker, operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -508,7 +477,8 @@ public class MultiPiecePattern {
                                                          boolean skipHatches,
                                                          @NotNull PieceRuntimes runtimes,
                                                          @NotNull AbilityPlacementTracker abilityTracker,
-                                                         @NotNull StructureEvaluationContext.Operation operation) {
+                                                         @NotNull StructureEvaluationContext.Operation operation,
+                                                         @NotNull ItemStack triggerStack) {
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) {
             return result.recordInvalidPieceRequest().build();
@@ -531,7 +501,7 @@ public class MultiPiecePattern {
         }
         if (piece instanceof RepeatGroupPiece repeatPiece) {
             result.merge(repeatPiece.autoBuildAtRepeatedWithResult(player, controller, controller.getPos(),
-                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker, operation));
+                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker, operation, triggerStack));
         } else {
             // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
             // prior metadata and can compute its dynamic position. Non-anchor
@@ -539,7 +509,7 @@ public class MultiPiecePattern {
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
             result.merge(runtime.getState().autoBuildAtWithResult(player, controller,
                     StructureCellTraversal.at(pieceCenter, orientation),
-                    channelValues, skipHatches, abilityTracker, operation));
+                    channelValues, skipHatches, abilityTracker, operation, triggerStack));
         }
         return result.build();
     }
@@ -610,7 +580,7 @@ public class MultiPiecePattern {
      *
      * <p>This is the auto-build equivalent of the incremental
      * {@code priorRepeats} accumulation done in
-     * {@link #checkDirtyPieces(World, BlockPos, EnumFacing, EnumFacing, boolean, PieceRuntimes)}.
+     * {@link #checkDirtyPieces(World, BlockPos, StructureOrientation, PieceRuntimes)}.
      */
     @NotNull
     private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes,

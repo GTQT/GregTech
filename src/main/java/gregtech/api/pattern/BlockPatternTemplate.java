@@ -200,9 +200,14 @@ public class BlockPatternTemplate {
      * invoke {@code consumer} with the pattern-local world position (as if the controller
      * were at the origin) and the predicate occupying that cell.
      */
+    /**
+     * @deprecated Legacy orientation facade. New code should pass
+     *             {@link StructureOrientation}.
+     */
+    @Deprecated
     public void forEachPredicate(@NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
                                  @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
-        delegate.forEachPredicate(front, up, flipped, consumer);
+        delegate.forEachPredicate(StructureOrientation.legacy(front, up, flipped, false), consumer);
     }
 
     public void forEachPredicate(@NotNull StructureOrientation orientation,
@@ -214,9 +219,15 @@ public class BlockPatternTemplate {
      * Compute the precise world-space AABB for this structure template given the controller state.
      */
     @NotNull
+    /**
+     * @deprecated Legacy orientation facade. New code should pass
+     *             {@link StructureOrientation}.
+     */
+    @Deprecated
     public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos, @NotNull EnumFacing frontFacing,
                                        @NotNull EnumFacing upwardsFacing, boolean isFlipped, int margin) {
-        return delegate.computeWorldAABB(centerPos, frontFacing, upwardsFacing, isFlipped, margin);
+        return delegate.computeWorldAABB(centerPos,
+                StructureOrientation.legacy(frontFacing, upwardsFacing, isFlipped, false), margin);
     }
 
     @NotNull

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Last observable structure failure for a controller runtime.
@@ -23,6 +24,37 @@ import java.util.StringJoiner;
  * existing checker so diagnostics can improve without changing match behavior.
  */
 public final class StructureFailureTrace {
+
+    private static final AtomicLong SEQUENCES = new AtomicLong();
+
+    public enum Kind {
+        BLOCK_MISMATCH(40, "block-mismatch"),
+        MISSING_ABILITY(90, "missing-ability"),
+        COUNT_LIMIT(80, "count-limit"),
+        CAPABILITY_UNSUPPORTED(70, "capability-unsupported"),
+        ASSEMBLY_REJECTION(75, "assembly-rejection"),
+        COMMIT_REJECTION(35, "commit-rejection"),
+        LEGACY_PATTERN(20, "legacy-pattern"),
+        UNKNOWN(0, "unknown");
+
+        private final int priority;
+        @NotNull
+        private final String traceName;
+
+        Kind(int priority, @NotNull String traceName) {
+            this.priority = priority;
+            this.traceName = traceName;
+        }
+
+        public int getPriority() {
+            return priority;
+        }
+
+        @NotNull
+        public String getTraceName() {
+            return traceName;
+        }
+    }
 
     @NotNull
     private final String controllerId;
@@ -42,6 +74,14 @@ public final class StructureFailureTrace {
     private final String operation;
     @NotNull
     private final String result;
+    @NotNull
+    private final Kind kind;
+    @Nullable
+    private final String piece;
+    @Nullable
+    private final String cell;
+    private final int progressDepth;
+    private final long sequence;
     @Nullable
     private final BlockPos errorPos;
     @Nullable
@@ -52,6 +92,8 @@ public final class StructureFailureTrace {
     private final PatternError error;
     @NotNull
     private final String missingAbilities;
+    @NotNull
+    private final String abilityCounts;
 
     private StructureFailureTrace(@NotNull Builder builder) {
         this.controllerId = builder.controllerId;
@@ -64,11 +106,17 @@ public final class StructureFailureTrace {
         this.path = builder.path;
         this.operation = builder.operation;
         this.result = builder.result;
+        this.kind = builder.kind;
+        this.piece = builder.piece;
+        this.cell = builder.cell;
+        this.progressDepth = builder.progressDepth;
+        this.sequence = builder.sequence;
         this.errorPos = builder.errorPos;
         this.expected = builder.expected;
         this.actual = builder.actual;
         this.error = builder.error;
         this.missingAbilities = builder.missingAbilities;
+        this.abilityCounts = builder.abilityCounts;
     }
 
     @NotNull
@@ -83,6 +131,7 @@ public final class StructureFailureTrace {
                 .path(path)
                 .operation(operation)
                 .result("failed")
+                .kind(missingAbilities.isEmpty() ? Kind.BLOCK_MISMATCH : Kind.MISSING_ABILITY)
                 .missingAbilities(missingAbilities);
         return builder.error(error).build();
     }
@@ -135,6 +184,38 @@ public final class StructureFailureTrace {
         return result;
     }
 
+    @NotNull
+    public Kind getKind() {
+        return kind;
+    }
+
+    @NotNull
+    public String getKindName() {
+        return kind.getTraceName();
+    }
+
+    @Nullable
+    public String getPiece() {
+        return piece;
+    }
+
+    @Nullable
+    public String getCell() {
+        return cell;
+    }
+
+    public int getProgressDepth() {
+        return progressDepth;
+    }
+
+    public int getReasonPriority() {
+        return kind.getPriority();
+    }
+
+    public long getSequence() {
+        return sequence;
+    }
+
     @Nullable
     public BlockPos getErrorPos() {
         return errorPos;
@@ -160,6 +241,28 @@ public final class StructureFailureTrace {
         return missingAbilities;
     }
 
+    @NotNull
+    public String getAbilityCounts() {
+        return abilityCounts;
+    }
+
+    @NotNull
+    public String describeForCommand() {
+        return "kind=" + kind.getTraceName() +
+                ", result=" + result +
+                ", path=" + path +
+                ", operation=" + operation +
+                ", piece=" + (piece == null ? "unknown" : piece) +
+                ", cell=" + (cell == null ? "unknown" : cell) +
+                ", worldPos=" + errorPos +
+                ", expected=" + expected +
+                ", actual=" + actual +
+                ", missingAbilities=" + missingAbilities +
+                ", abilityCounts=" + abilityCounts +
+                ", progressDepth=" + progressDepth +
+                ", flipped=" + flipped;
+    }
+
     @Override
     public String toString() {
         return "controller=" + controllerId +
@@ -172,24 +275,41 @@ public final class StructureFailureTrace {
                 ", path=" + path +
                 ", operation=" + operation +
                 ", result=" + result +
+                ", kind=" + kind.getTraceName() +
+                ", piece=" + piece +
+                ", cell=" + cell +
+                ", progressDepth=" + progressDepth +
                 ", errorPos=" + errorPos +
                 ", expected=" + expected +
                 ", actual=" + actual +
-                ", missingAbilities=" + missingAbilities;
+                ", missingAbilities=" + missingAbilities +
+                ", abilityCounts=" + abilityCounts;
     }
 
     @NotNull
     public static String describeMissingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        return describeAbilityMap(missingAbilities, false);
+    }
+
+    @NotNull
+    public static String describeAbilityCounts(@NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
+        return describeAbilityMap(abilityCounts, true);
+    }
+
+    @NotNull
+    private static String describeAbilityMap(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                             boolean includeZero) {
         if (missingAbilities.isEmpty()) {
             return "{}";
         }
         StringJoiner joiner = new StringJoiner(", ", "{", "}");
         for (Map.Entry<MultiblockAbility<?>, Integer> entry : missingAbilities.entrySet()) {
-            if (entry.getValue() > 0) {
+            if (includeZero || entry.getValue() > 0) {
                 joiner.add(entry.getKey() + "=" + entry.getValue());
             }
         }
-        return joiner.toString();
+        String result = joiner.toString();
+        return "{}".equals(result) ? "{}" : result;
     }
 
     @Nullable
@@ -270,6 +390,14 @@ public final class StructureFailureTrace {
         private String operation = "CHECK";
         @NotNull
         private String result = "failed";
+        @NotNull
+        private Kind kind = Kind.UNKNOWN;
+        @Nullable
+        private String piece;
+        @Nullable
+        private String cell;
+        private int progressDepth;
+        private long sequence = SEQUENCES.incrementAndGet();
         @Nullable
         private BlockPos errorPos;
         @Nullable
@@ -280,6 +408,8 @@ public final class StructureFailureTrace {
         private PatternError error;
         @NotNull
         private String missingAbilities = "{}";
+        @NotNull
+        private String abilityCounts = "{}";
 
         public Builder(@NotNull String controllerId, @NotNull BlockPos controllerPos) {
             this.controllerId = controllerId;
@@ -330,6 +460,36 @@ public final class StructureFailureTrace {
         }
 
         @NotNull
+        public Builder kind(@NotNull Kind kind) {
+            this.kind = kind;
+            return this;
+        }
+
+        @NotNull
+        public Builder piece(@Nullable String piece) {
+            this.piece = piece;
+            return this;
+        }
+
+        @NotNull
+        public Builder cell(@Nullable String cell) {
+            this.cell = cell;
+            return this;
+        }
+
+        @NotNull
+        public Builder progressDepth(int progressDepth) {
+            this.progressDepth = Math.max(0, progressDepth);
+            return this;
+        }
+
+        @NotNull
+        public Builder sequence(long sequence) {
+            this.sequence = sequence;
+            return this;
+        }
+
+        @NotNull
         public Builder error(@Nullable PatternError error) {
             this.error = error;
             this.errorPos = getErrorPos(error);
@@ -351,8 +511,26 @@ public final class StructureFailureTrace {
         }
 
         @NotNull
+        public Builder expected(@Nullable String expected) {
+            this.expected = expected;
+            return this;
+        }
+
+        @NotNull
         public Builder missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
             this.missingAbilities = describeMissingAbilities(missingAbilities);
+            return this;
+        }
+
+        @NotNull
+        public Builder abilityCounts(@NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
+            this.abilityCounts = describeAbilityCounts(abilityCounts);
+            return this;
+        }
+
+        @NotNull
+        public Builder abilityCountsDescription(@NotNull String abilityCounts) {
+            this.abilityCounts = abilityCounts;
             return this;
         }
 

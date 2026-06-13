@@ -19,7 +19,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.RelativeDirection;
 
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
@@ -126,15 +125,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                          @NotNull StructureOrientation orientation,
                          @Nullable PatternMatchContext context) {
         return createState().check(world, controllerPos, orientation, context).success;
-    }
-
-    /**
-     * Convenience: synchronous check.
-     */
-    public boolean check(@NotNull World world, @NotNull BlockPos controllerPos,
-                         @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
-                         @Nullable PatternMatchContext context) {
-        return createState().check(world, controllerPos, front, up, allowsFlip, context).success;
     }
 
     /** Get the compiled MultiPiecePattern. Computed lazily and cached. */
@@ -274,12 +264,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                 new BlockPos(minX - margin, minY - margin, minZ - margin),
                 new BlockPos(maxX + margin, maxY + margin, maxZ + margin)
         };
-    }
-
-    @NotNull
-    public BlockPos[] computeWorldAABB(@NotNull BlockPos center, @NotNull EnumFacing front,
-                                       @NotNull EnumFacing up, boolean flipped, int margin) {
-        return computeWorldAABB(center, StructureOrientation.of(front, front, up, flipped, true), margin);
     }
 
     /**

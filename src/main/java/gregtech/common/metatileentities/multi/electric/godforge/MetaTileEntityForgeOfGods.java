@@ -1599,7 +1599,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
         BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                 new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
+                StructureOrientation.fromController(this));
         int changed = 0;
 
         for (int z = 0; z < shape.length; z++) {
@@ -1658,7 +1658,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 int[] centerOffset = getRingCenter(ringIndex);
                 BlockPos pieceOrigin = OffsetMode.RELATIVE.apply(getPos(),
                         new int[] { pieceOffset.getX(), pieceOffset.getY(), pieceOffset.getZ() },
-                        getFrontFacingForStructure(), getUpwardsFacing(), isFlipped());
+                        StructureOrientation.fromController(MetaTileEntityForgeOfGods.this));
 
                 while (z < shape.length && processedBlocks < blockBudget) {
                     String[] layer = shape[z];

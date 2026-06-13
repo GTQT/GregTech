@@ -154,6 +154,94 @@ handler.determineLayerCount(this.multiblockState);
 
 ---
 
+## Optional: Request-Based Build Results
+
+Legacy auto-build methods remain available, but request-based build APIs now return
+`StructureBuildResult`. Addons that drive builders or custom tools can use this result
+to show stable survival-build feedback:
+
+- `getPlacementBudget()` counts cells that still needed a placement decision in this call.
+- `getRemainingPlacementBudget()` is the unresolved budget after placed cells are counted.
+- `hasPartialPlacement()` means this call placed at least one budgeted cell and left more work.
+- `requiresResume()` means running the same build request again can continue from already-placed cells.
+- `getRequiredItems()`, `getConsumedItems()`, and `getMissingItems()` summarize survival item accounting.
+
+Already-valid cells are reported as existing cells and do not consume placement budget.
+If a survival build selects a candidate but item consumption fails after placement, the just-placed
+block is rolled back and the result records missing/unavailable instead of consumed.
+
+```java
+StructureBuildResult result = controller.getOrCreateStructureRuntime().buildSingle(
+        StructureOperationRequest.build(
+                player,
+                controller,
+                StructureOrientation.fromController(controller),
+                channelValues,
+                skipHatches,
+                triggerStack));
+
+if (result.requiresResume()) {
+    // Show result.getMissingItems() or ask the player to run the builder again.
+}
+```
+
+### Orientation-Native Requests
+
+New runtime/evaluator APIs take `StructureOrientation` instead of separate
+`front/up/flipped` parameters:
+
+```java
+StructureOrientation orientation = StructureOrientation.fromController(controller);
+
+StructureCheckResult check = controller.getOrCreateStructureRuntime().check(
+        StructureOperationRequest.check(
+                controller.getWorld(),
+                controller.getPos(),
+                orientation,
+                true,
+                null,
+                controller));
+```
+
+Legacy `BlockPattern` / `BlockPatternTemplate` overloads that accept
+`front/up/flipped` remain as compatibility facades. They convert to
+`StructureOrientation` at the API edge before entering the runtime path. New
+addon code should construct `StructureOrientation` once and reuse it for check,
+build, hint, preview placement, iteration, AABB, and piece-center calculations.
+
+---
+
+## Optional: Structure Failure Diagnostics
+
+Multiblock controllers now keep the latest structured formation failure on their
+`StructureRuntime`. Addons that need developer-facing diagnostics can read it from
+`controller.getStructureRuntime().getLastFailure()` after ensuring the runtime exists.
+Player-facing missing ability summaries are still available through
+`controller.getMissingStructureAbilities()`.
+
+`StructureFailureTrace` reports the failure kind, operation path, orientation, piece/cell,
+world position, expected/actual values, missing abilities, operation-owned ability counts,
+progress depth, and whether the failed orientation was flipped. Common failures such as
+missing abilities, count limits, unsupported capabilities, assembly rejection, and commit
+rejection are represented in the same trace object instead of only as a generic mismatch or
+legacy pattern error.
+
+For in-game debugging, use the development command on the controller block:
+
+```text
+/gt structure_trace <x> <y> <z>
+```
+
+The command prints the controller runtime shape, formed state, and the current last failure.
+This is usually the quickest way to see which piece/cell/world position failed and what the
+checker expected to find there.
+
+When writing new direct elements, prefer recording ability and count information through the
+operation collector/state. That keeps diagnostics consistent with the checker and avoids
+re-scanning parts from controller or legacy state.
+
+---
+
 ## Optional: DeclarativePatternBuilder
 
 For new multiblocks, consider using `DeclarativePatternBuilder` instead of raw

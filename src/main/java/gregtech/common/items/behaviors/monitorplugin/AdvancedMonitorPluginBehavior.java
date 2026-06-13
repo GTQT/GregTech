@@ -10,6 +10,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.client.renderer.scene.FBOWorldSceneRenderer;
 import gregtech.client.renderer.scene.WorldSceneRenderer;
 import gregtech.client.utils.RenderUtil;
@@ -254,8 +255,7 @@ public class AdvancedMonitorPluginBehavior extends ProxyHolderPluginBehavior {
                             gregtech.api.pattern.MultiblockState state = entity.getMultiblockState();
                             if (state != null) {
                                 PatternMatchContext result = state.checkPatternFastAt(
-                                        entity.getWorld(), entity.getPos(), entity.getFrontFacingForStructure(),
-                                        entity.getUpwardsFacing(), entity.allowsFlip());
+                                        entity.getWorld(), entity.getPos(), StructureOrientation.fromController(entity));
                                 if (result != null) {
                                     validPos = state.cache.keySet().stream().map(BlockPos::fromLong)
                                             .collect(Collectors.toSet());

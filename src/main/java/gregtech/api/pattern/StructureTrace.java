@@ -37,6 +37,12 @@ public final class StructureTrace {
                 detail == null ? "" : detail);
     }
 
+    public static void debugLifecycle(@NotNull StructureFailureTrace failure) {
+        if (!isEnabled()) return;
+        GTLog.logger.debug("[StructureTrace] failure controller={} pos={} {}",
+                failure.getControllerId(), failure.getControllerPos(), failure.describeForCommand());
+    }
+
     public static StructureFailureTrace failure(@NotNull MultiblockControllerBase controller,
                                                 @NotNull String path,
                                                 @NotNull String operation,
@@ -49,12 +55,33 @@ public final class StructureTrace {
     public static StructureFailureTrace commitFailure(@NotNull MultiblockControllerBase controller,
                                                       @NotNull String path,
                                                       @NotNull String detail) {
+        return lifecycleFailure(controller, path, "COMMIT",
+                StructureFailureTrace.Kind.COMMIT_REJECTION, detail);
+    }
+
+    @NotNull
+    public static StructureFailureTrace assemblyFailure(@NotNull MultiblockControllerBase controller,
+                                                        @NotNull String path,
+                                                        @NotNull String detail) {
+        return lifecycleFailure(controller, path, "ASSEMBLY",
+                StructureFailureTrace.Kind.ASSEMBLY_REJECTION, detail);
+    }
+
+    @NotNull
+    public static StructureFailureTrace lifecycleFailure(@NotNull MultiblockControllerBase controller,
+                                                        @NotNull String path,
+                                                        @NotNull String operation,
+                                                        @NotNull StructureFailureTrace.Kind kind,
+                                                        @NotNull String detail) {
         return new StructureFailureTrace.Builder(controller.getMetaName(), controller.getPos())
                 .formed(controller.isStructureFormed())
                 .orientation(StructureOrientation.fromController(controller))
                 .path(path)
-                .operation("COMMIT")
-                .result("assembly-rejected")
+                .operation(operation)
+                .result(kind.getTraceName())
+                .kind(kind)
+                .piece("commit")
+                .cell("lifecycle")
                 .actual(detail)
                 .build();
     }

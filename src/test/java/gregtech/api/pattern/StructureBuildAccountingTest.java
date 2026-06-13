@@ -1,0 +1,553 @@
+package gregtech.api.pattern;
+
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.util.BlockInfo;
+import gregtech.api.util.RelativeDirection;
+import gregtech.client.renderer.ICubeRenderer;
+
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.init.Bootstrap;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.IChunkProvider;
+
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import sun.misc.Unsafe;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+import static gregtech.api.pattern.StructureEvaluationContext.Operation.CREATIVE_BUILD;
+import static gregtech.api.pattern.StructureEvaluationContext.Operation.SURVIVAL_BUILD;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class StructureBuildAccountingTest {
+
+    private static World world;
+    private static ItemStack stoneItem;
+    private static ItemStack dirtItem;
+    private static BlockInfo stoneInfo;
+    private static BlockInfo dirtInfo;
+
+    @BeforeAll
+    static void bootstrapMinecraft() {
+        if (!Bootstrap.isRegistered()) {
+            Bootstrap.register();
+        }
+        world = bareWorld();
+        stoneItem = new ItemStack(Blocks.STONE);
+        dirtItem = new ItemStack(Blocks.DIRT);
+        stoneInfo = new BlockInfo(Blocks.STONE.getDefaultState(), null);
+        dirtInfo = new BlockInfo(Blocks.DIRT.getDefaultState(), null);
+    }
+
+    @Test
+    void insufficientItemsAreReportedWithoutConsumingInventory() {
+        TestPlayer player = player(false);
+        player.inventory.mainInventory.set(0, new ItemStack(Blocks.STONE));
+
+        StructurePlacementDecision.Selection selection = StructurePlacementDecision.select(
+                player,
+                new BlockInfo[] { dirtInfo },
+                StructurePlacementDecision.toItemStacks(new BlockInfo[] { dirtInfo }),
+                null, null, null, SURVIVAL_BUILD);
+        StructureBuildResult result = StructureBuildResult.builder()
+                .recordAttemptedTraversal()
+                .recordVisitedCell()
+                .recordPlacementBudget()
+                .recordRequiredItem(dirtItem)
+                .recordUnavailableItemCell()
+                .recordMissingItem(dirtItem)
+                .build();
+
+        assertNull(selection);
+        assertEquals(1, result.getPlacementBudget());
+        assertEquals(1, result.getRemainingPlacementBudget());
+        assertEquals(1, result.getUnavailableItemCells());
+        assertEquals(1, result.getMissingItems().get(0).getCount());
+        assertEquals(1, player.inventory.mainInventory.get(0).getCount());
+        assertTrue(result.getConsumedItems().isEmpty());
+    }
+
+    @Test
+    void survivalSelectionConsumesOnlyAfterCallerCommitsPlacement() {
+        TestPlayer player = player(false);
+        player.inventory.mainInventory.set(0, new ItemStack(Blocks.STONE, 2));
+        StructurePlacementDecision.Selection selection = StructurePlacementDecision.select(
+                player,
+                new BlockInfo[] { stoneInfo },
+                StructurePlacementDecision.toItemStacks(new BlockInfo[] { stoneInfo }),
+                null, null, null, SURVIVAL_BUILD);
+
+        assertNotNull(selection);
+        assertEquals(2, player.inventory.mainInventory.get(0).getCount());
+
+        assertTrue(selection.consume(player));
+        assertEquals(1, player.inventory.mainInventory.get(0).getCount());
+    }
+
+    @Test
+    void partialPlacementResultKeepsResumeBudgetAndItemSummary() {
+        StructureBuildResult firstPass = StructureBuildResult.builder()
+                .recordAttemptedTraversal()
+                .recordPlacementBudget()
+                .recordRequiredItem(stoneItem)
+                .recordConsumedItem(stoneItem)
+                .recordPlacedCell()
+                .recordPlacementBudget()
+                .recordRequiredItem(dirtItem)
+                .recordUnavailableItemCell()
+                .recordMissingItem(dirtItem)
+                .build();
+
+        assertTrue(firstPass.hasPartialPlacement());
+        assertTrue(firstPass.requiresResume());
+        assertEquals(2, firstPass.getPlacementBudget());
+        assertEquals(1, firstPass.getRemainingPlacementBudget());
+        assertEquals(1, firstPass.getConsumedItems().get(0).getCount());
+        assertEquals(1, firstPass.getMissingItems().get(0).getCount());
+
+        StructureBuildResult resumePass = StructureBuildResult.builder()
+                .recordAttemptedTraversal()
+                .recordExistingCell()
+                .recordPlacementBudget()
+                .recordRequiredItem(dirtItem)
+                .recordConsumedItem(dirtItem)
+                .recordPlacedCell()
+                .build();
+
+        assertFalse(resumePass.hasPartialPlacement());
+        assertFalse(resumePass.requiresResume());
+        assertEquals(1, resumePass.getPlacementBudget());
+        assertEquals(0, resumePass.getRemainingPlacementBudget());
+    }
+
+    @Test
+    void alreadyValidProbeDoesNotPolluteFormationCollector() {
+        StructureMatchSession session = new StructureMatchSession();
+        PatternMatchContext legacyContext = session.getContext();
+        StructureEvaluationContext<Object> context = new StructureEvaluationContext<>();
+        BlockWorldState worldState = new BlockWorldState();
+        worldState.update(world, BlockPos.ORIGIN, legacyContext,
+                session.getGlobalCount(), new HashMap<>(), TraceabilityPredicate.ANY);
+        context.update(null, session, worldState, SURVIVAL_BUILD);
+        RecordingElement element = new RecordingElement(true);
+
+        assertTrue(context.probe(evaluation -> element.match(evaluation)));
+
+        assertEquals(0, session.getOperationState().getParts().size());
+        assertNull(legacyContext.get("build_probe"));
+    }
+
+    @Test
+    void branchFallbackUsesInventoryCandidateWhenPreferredIsUnavailable() {
+        TestPlayer player = player(false);
+        player.inventory.mainInventory.set(0, new ItemStack(Blocks.DIRT));
+        Map<String, Integer> channels = new HashMap<>();
+        channels.put("tier", 1);
+        TraceabilityPredicate.SimplePredicate predicate = new TraceabilityPredicate.SimplePredicate(
+                state -> true,
+                () -> new BlockInfo[] { stoneInfo, dirtInfo });
+        predicate.channelName = "tier";
+
+        StructurePlacementDecision.Selection selection = StructurePlacementDecision.select(
+                player,
+                new BlockInfo[] { stoneInfo, dirtInfo },
+                StructurePlacementDecision.toItemStacks(new BlockInfo[] { stoneInfo, dirtInfo }),
+                predicate, channels, null, SURVIVAL_BUILD);
+
+        assertNotNull(selection);
+        assertEquals(dirtItem.getItem(), selection.getRequiredStack().getItem());
+        assertEquals(1, player.inventory.mainInventory.get(0).getCount());
+    }
+
+    @Test
+    void creativeSelectionSharesPreferredCandidateLogic() {
+        TestPlayer player = player(true);
+        Map<String, Integer> channels = new HashMap<>();
+        channels.put("tier", 2);
+        TraceabilityPredicate.SimplePredicate predicate = new TraceabilityPredicate.SimplePredicate(
+                state -> true,
+                () -> new BlockInfo[] { stoneInfo, dirtInfo });
+        predicate.channelName = "tier";
+
+        StructurePlacementDecision.Selection selection = StructurePlacementDecision.select(
+                player,
+                new BlockInfo[] { stoneInfo, dirtInfo },
+                StructurePlacementDecision.toItemStacks(new BlockInfo[] { stoneInfo, dirtInfo }),
+                predicate, channels, null, CREATIVE_BUILD);
+
+        assertNotNull(selection);
+        assertEquals(dirtItem.getItem(), selection.getRequiredStack().getItem());
+        assertFalse(selection.consumesItem());
+    }
+
+    @Test
+    void directElementCandidatesAreUsedWhenLegacyPredicateHasNoCandidates() {
+        MutableWorld mutableWorld = mutableWorld();
+        TestPlayer player = player(false, mutableWorld);
+        player.inventory.mainInventory.set(0, new ItemStack(Blocks.DIRT));
+        MultiblockState state = new MultiblockState(singleCellTemplate(new DirectCandidateElement(dirtInfo)));
+
+        StructureBuildResult result = state.autoBuildAtWithResult(
+                player, controller(mutableWorld), BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0, null, false, null, SURVIVAL_BUILD, ItemStack.EMPTY);
+
+        assertEquals(1, result.getPlacementBudget());
+        assertEquals(1, result.getPlacedCells());
+        assertEquals(1, result.getConsumedItems().get(0).getCount());
+        assertEquals(dirtItem.getItem(), result.getConsumedItems().get(0).getStack().getItem());
+        assertEquals(Blocks.DIRT.getDefaultState(), mutableWorld.getBlockState(BlockPos.ORIGIN));
+    }
+
+    @Test
+    void consumeFailureAfterPlacementRollsBackWorldAndSummary() {
+        MutableWorld mutableWorld = mutableWorld();
+        TestPlayer player = player(false, mutableWorld);
+        player.inventory.mainInventory.set(0, new ItemStack(Blocks.DIRT));
+        mutableWorld.clearInventoryAfterNextPlacement(player);
+        MultiblockState state = new MultiblockState(singleCellTemplate(new DirectCandidateElement(dirtInfo)));
+
+        StructureBuildResult result = state.autoBuildAtWithResult(
+                player, controller(mutableWorld), BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0, null, false, null, SURVIVAL_BUILD, ItemStack.EMPTY);
+
+        assertEquals(1, result.getPlacementBudget());
+        assertEquals(0, result.getPlacedCells());
+        assertEquals(1, result.getUnavailableItemCells());
+        assertTrue(result.getConsumedItems().isEmpty());
+        assertEquals(1, result.getMissingItems().get(0).getCount());
+        assertEquals(Blocks.AIR.getDefaultState(), mutableWorld.getBlockState(BlockPos.ORIGIN));
+    }
+
+    private static TestPlayer player(boolean creative) {
+        return player(creative, world);
+    }
+
+    private static TestPlayer player(boolean creative, @NotNull World playerWorld) {
+        try {
+            TestPlayer player = (TestPlayer) unsafe().allocateInstance(TestPlayer.class);
+            player.world = playerWorld;
+            player.inventory = new InventoryPlayer(player);
+            player.creative = creative;
+            return player;
+        } catch (InstantiationException e) {
+            throw new AssertionError("Unable to allocate test player", e);
+        }
+    }
+
+    @NotNull
+    private static MutableWorld mutableWorld() {
+        try {
+            MutableWorld mutableWorld = (MutableWorld) unsafe().allocateInstance(MutableWorld.class);
+            mutableWorld.states = new HashMap<>();
+            return mutableWorld;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate mutable test world", e);
+        }
+    }
+
+    @NotNull
+    private static TestController controller(@NotNull World controllerWorld) {
+        try {
+            TestController controller = (TestController) unsafe().allocateInstance(TestController.class);
+            controller.world = controllerWorld;
+            controller.pos = BlockPos.ORIGIN;
+            return controller;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate test controller", e);
+        }
+    }
+
+    @NotNull
+    private static PieceTemplate singleCellTemplate(@NotNull IStructureElement<?> element) {
+        return new PieceTemplate(
+                new TraceabilityPredicate[][][] {
+                        {
+                                { element.toPredicate() }
+                        }
+                },
+                new IStructureElement<?>[][][] {
+                        {
+                                { element }
+                        }
+                },
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 1, 1 }
+                },
+                null,
+                new int[] {0, 0, 0, 0, 0},
+                null);
+    }
+
+    @NotNull
+    private static World bareWorld() {
+        try {
+            return (World) unsafe().allocateInstance(BareWorld.class);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate bare test world", e);
+        }
+    }
+
+    @NotNull
+    private static Unsafe unsafe() {
+        try {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            return (Unsafe) field.get(null);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to access Unsafe", e);
+        }
+    }
+
+    private static final class RecordingElement implements IStructureElement<Object> {
+
+        private final boolean matches;
+
+        private RecordingElement(boolean matches) {
+            this.matches = matches;
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            if (matches) {
+                context.getCollector().addPart(new TestPart());
+                context.getLegacyContext().set("build_probe", Boolean.TRUE);
+            }
+            return matches;
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return false;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+    }
+
+    private static final class DirectCandidateElement implements IStructureElement<Object> {
+
+        @NotNull
+        private final BlockInfo candidate;
+        @NotNull
+        private final TraceabilityPredicate predicate;
+
+        private DirectCandidateElement(@NotNull BlockInfo candidate) {
+            this.candidate = candidate;
+            this.predicate = new TraceabilityPredicate(
+                    worldState -> worldState.getBlockState() == candidate.getBlockState());
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            return context.getBlockState() == candidate.getBlockState();
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return world.getBlockState(pos) == candidate.getBlockState();
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] { candidate };
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return world.setBlockState(pos, candidate.getBlockState());
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @Override
+        public TraceabilityPredicate toPredicate() {
+            return predicate;
+        }
+    }
+
+    private static final class TestPart implements IMultiblockPart {
+
+        @Override
+        public boolean isAttachedToMultiBlock() {
+            return false;
+        }
+
+        @Override
+        public void addToMultiBlock(MultiblockControllerBase controllerBase) {}
+
+        @Override
+        public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {}
+    }
+
+    private static final class TestController extends MultiblockControllerBase {
+
+        private World world;
+        private BlockPos pos;
+
+        private TestController() {
+            super(new ResourceLocation("gregtech", "test_controller"));
+        }
+
+        @Override
+        public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+            return this;
+        }
+
+        @Override
+        public World getWorld() {
+            return world;
+        }
+
+        @Override
+        public BlockPos getPos() {
+            return pos;
+        }
+
+        @Override
+        public @NotNull EnumFacing getFrontFacing() {
+            return EnumFacing.NORTH;
+        }
+
+        @Override
+        protected void updateFormedValid() {}
+
+        @Override
+        public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+            return null;
+        }
+    }
+
+    private static final class TestPlayer extends EntityPlayer {
+
+        private boolean creative;
+
+        private TestPlayer(World world) {
+            super(world, null);
+        }
+
+        @Override
+        public boolean isSpectator() {
+            return false;
+        }
+
+        @Override
+        public boolean isCreative() {
+            return creative;
+        }
+    }
+
+    private static final class MutableWorld extends World {
+
+        private Map<BlockPos, IBlockState> states;
+        private TestPlayer playerToClear;
+
+        private MutableWorld() {
+            super(null, null, null, null, false);
+        }
+
+        private void clearInventoryAfterNextPlacement(@NotNull TestPlayer player) {
+            this.playerToClear = player;
+        }
+
+        @Override
+        public IBlockState getBlockState(BlockPos pos) {
+            return states.getOrDefault(pos.toImmutable(), Blocks.AIR.getDefaultState());
+        }
+
+        @Override
+        public boolean setBlockState(BlockPos pos, IBlockState newState) {
+            return setBlockState(pos, newState, 3);
+        }
+
+        @Override
+        public boolean setBlockState(BlockPos pos, IBlockState newState, int flags) {
+            states.put(pos.toImmutable(), newState);
+            if (playerToClear != null) {
+                playerToClear.inventory.mainInventory.set(0, ItemStack.EMPTY);
+                playerToClear = null;
+            }
+            return true;
+        }
+
+        @Override
+        public BlockPos getSpawnPoint() {
+            return BlockPos.ORIGIN;
+        }
+
+        @Override
+        protected IChunkProvider createChunkProvider() {
+            return null;
+        }
+
+        @Override
+        protected boolean isChunkLoaded(int x, int z, boolean allowEmpty) {
+            return false;
+        }
+    }
+
+    private static final class BareWorld extends World {
+
+        private BareWorld() {
+            super(null, null, null, null, false);
+        }
+
+        @Override
+        public IBlockState getBlockState(BlockPos pos) {
+            return Blocks.AIR.getDefaultState();
+        }
+
+        @Override
+        public BlockPos getSpawnPoint() {
+            return BlockPos.ORIGIN;
+        }
+
+        @Override
+        protected IChunkProvider createChunkProvider() {
+            return null;
+        }
+
+        @Override
+        protected boolean isChunkLoaded(int x, int z, boolean allowEmpty) {
+            return false;
+        }
+    }
+}

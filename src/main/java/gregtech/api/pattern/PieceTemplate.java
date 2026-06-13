@@ -4,7 +4,6 @@ import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.element.CompiledStructureElement;
 import gregtech.api.pattern.element.IStructureElement;
 
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
@@ -239,7 +238,7 @@ public final class PieceTemplate {
      * invoke {@code consumer} with the pattern-local world position and the predicate
      * occupying that cell.
      */
-    public void forEachPredicate(@NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
+    public void forEachPredicate(@NotNull StructureOrientation orientation,
                                  @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
         for (int iz = 0; iz < zLength; iz++) {
             TraceabilityPredicate[][] layer = blockMatches[iz];
@@ -249,20 +248,13 @@ public final class PieceTemplate {
                     TraceabilityPredicate pred = row[ix];
                     if (pred == null || pred == TraceabilityPredicate.ANY) continue;
                     BlockPos localPos = RelativeDirection.setActualRelativeOffset(
-                            ix, iy, iz, front, up, flipped, structureDir);
+                            ix, iy, iz,
+                            orientation.getStructureFront(), orientation.getUp(),
+                            orientation.isFlipped(), structureDir);
                     consumer.accept(localPos, pred);
                 }
             }
         }
-    }
-
-    public void forEachPredicate(@NotNull StructureOrientation orientation,
-                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
-        forEachPredicate(
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                consumer);
     }
 
     /**
@@ -270,8 +262,9 @@ public final class PieceTemplate {
      * Returns a pair of BlockPos: [min corner, max corner] in world coordinates.
      */
     @NotNull
-    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos, @NotNull EnumFacing frontFacing,
-                                       @NotNull EnumFacing upwardsFacing, boolean isFlipped, int margin) {
+    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos,
+                                       @NotNull StructureOrientation orientation,
+                                       int margin) {
         int maxFingerLen = getMaxExpandedFingerLength();
         BlockPatternTemplate.CenterOffset co = this.centerOffset;
 
@@ -292,7 +285,9 @@ public final class PieceTemplate {
                 for (int zi = 0; zi < 2; zi++) {
                     int lz = (zi == 0) ? zMin : zMax;
                     BlockPos offset = RelativeDirection.setActualRelativeOffset(
-                            lx, ly, lz, frontFacing, upwardsFacing, isFlipped, structureDir);
+                            lx, ly, lz,
+                            orientation.getStructureFront(), orientation.getUp(),
+                            orientation.isFlipped(), structureDir);
                     worldMinX = Math.min(worldMinX, offset.getX());
                     worldMinY = Math.min(worldMinY, offset.getY());
                     worldMinZ = Math.min(worldMinZ, offset.getZ());
@@ -306,18 +301,6 @@ public final class PieceTemplate {
         BlockPos min = centerPos.add(worldMinX - margin, worldMinY - margin, worldMinZ - margin);
         BlockPos max = centerPos.add(worldMaxX + margin, worldMaxY + margin, worldMaxZ + margin);
         return new BlockPos[] { min, max };
-    }
-
-    @NotNull
-    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos,
-                                       @NotNull StructureOrientation orientation,
-                                       int margin) {
-        return computeWorldAABB(
-                centerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                margin);
     }
 
     @NotNull

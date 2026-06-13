@@ -2,7 +2,6 @@ package gregtech.api.pattern;
 
 import gregtech.api.pattern.element.FormedStructureMetadata;
 
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 
@@ -33,7 +32,7 @@ import java.util.function.BooleanSupplier;
  * piece structures and first-time checks behave exactly like a regular
  * {@link StructurePiece}.
  *
- * @see StructurePiece#getCenterPos(BlockPos, EnumFacing, EnumFacing, boolean, FormedStructureMetadata)
+ * @see StructurePiece#getCenterPos(BlockPos, StructureOrientation, FormedStructureMetadata)
  */
 public final class DynamicOffsetPiece extends StructurePiece {
 
@@ -109,14 +108,4 @@ public final class DynamicOffsetPiece extends StructurePiece {
         return super.getOffsetMode().apply(anchorCenter, dynamic, orientation);
     }
 
-    @NotNull
-    @Override
-    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
-                                 @NotNull EnumFacing frontFacing,
-                                 @NotNull EnumFacing upFacing,
-                                 boolean flipped,
-                                 @Nullable FormedStructureMetadata prior) {
-        return getCenterPos(controllerPos,
-                StructureOrientation.of(frontFacing, frontFacing, upFacing, flipped, false), prior);
-    }
 }

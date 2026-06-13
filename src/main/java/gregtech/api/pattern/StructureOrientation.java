@@ -47,6 +47,14 @@ public final class StructureOrientation {
     }
 
     @NotNull
+    public static StructureOrientation legacy(@NotNull EnumFacing front,
+                                              @NotNull EnumFacing up,
+                                              boolean flipped,
+                                              boolean allowsFlip) {
+        return of(front, front, up, flipped, allowsFlip);
+    }
+
+    @NotNull
     public static StructureOrientation fromController(@NotNull MultiblockControllerBase controller) {
         return of(
                 controller.getFrontFacing(),

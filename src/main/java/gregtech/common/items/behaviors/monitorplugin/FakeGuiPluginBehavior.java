@@ -16,6 +16,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.common.gui.impl.FakeModularUIPluginContainer;
@@ -82,8 +83,7 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
                 return null;
             }
             PatternMatchContext context = state.checkPatternFastAt(
-                    target.getWorld(), target.getPos(), multi.getFrontFacingForStructure(), multi.getUpwardsFacing(),
-                    multi.allowsFlip());
+                    target.getWorld(), target.getPos(), StructureOrientation.fromController(multi));
             if (context == null) {
                 return null;
             }

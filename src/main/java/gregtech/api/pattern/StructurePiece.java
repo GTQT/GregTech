@@ -2,7 +2,6 @@ package gregtech.api.pattern;
 
 import gregtech.api.pattern.element.FormedStructureMetadata;
 
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.IBlockAccess;
@@ -274,19 +273,6 @@ public class StructurePiece {
     }
 
     /**
-     * Compute the piece center with the same complete orientation used for
-     * transforming pattern cells.
-     */
-    @NotNull
-    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
-                                 @NotNull EnumFacing frontFacing,
-                                 @NotNull EnumFacing upFacing,
-                                 boolean flipped) {
-        int[] off = { offset.getX(), offset.getY(), offset.getZ() };
-        return offsetMode.apply(controllerPos, off, frontFacing, upFacing, flipped);
-    }
-
-    /**
      * Compute the actual center position, with access to the prior pieces' runtime
      * metadata. This overload supports pieces whose offset depends on the runtime
      * repeat count of an earlier piece (e.g. the "top" piece that follows a
@@ -313,21 +299,6 @@ public class StructurePiece {
     }
 
     /**
-     * Compute the actual center position, with access to the prior pieces' runtime
-     * metadata. This overload supports pieces whose offset depends on the runtime
-     * repeat count of an earlier piece (e.g. the "top" piece that follows a
-     * repeatable "body" piece in the middle of a structure).
-     */
-    @NotNull
-    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
-                                 @NotNull EnumFacing frontFacing,
-                                 @NotNull EnumFacing upFacing,
-                                 boolean flipped,
-                                 @Nullable FormedStructureMetadata prior) {
-        return getCenterPos(controllerPos, frontFacing, upFacing, flipped);
-    }
-
-    /**
      * Async structure check entry point.
      * Delegates to the snapshot checker bound at construction time, passing in
      * the per-controller {@link PieceRuntime}.
@@ -343,23 +314,6 @@ public class StructurePiece {
                 && session.validate(false).success;
     }
 
-    /**
-     * Async structure check entry point.
-     * Delegates to the snapshot checker bound at construction time, passing in
-     * the per-controller {@link PieceRuntime}.
-     */
-    public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
-                                   @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
-                                   @Nullable FormedStructureMetadata prior,
-                                   @NotNull PieceRuntime runtime) {
-        return checkOnSnapshot(
-                snap,
-                origin,
-                StructureOrientation.of(front, front, up, flipped, false),
-                prior,
-                runtime);
-    }
-
     public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                    @NotNull StructureOrientation orientation,
                                    @Nullable FormedStructureMetadata prior,
@@ -368,17 +322,4 @@ public class StructurePiece {
         return snapshotChecker.check(snap, origin, orientation, prior, runtime, session);
     }
 
-    public boolean checkOnSnapshot(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
-                                   @NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
-                                   @Nullable FormedStructureMetadata prior,
-                                   @NotNull PieceRuntime runtime,
-                                   @NotNull StructureMatchSession session) {
-        return checkOnSnapshot(
-                snap,
-                origin,
-                StructureOrientation.of(front, front, up, flipped, false),
-                prior,
-                runtime,
-                session);
-    }
 }

@@ -83,7 +83,10 @@ public final class MultiPiecePreviewAssembler {
             forEachExternalRepeat(piece, externalRepetitions, localShift -> {
                 BlockPos canonicalShift = RelativeDirection.setActualRelativeOffset(
                         localShift.getX(), localShift.getY(), localShift.getZ(),
-                        CANONICAL_FRONT, CANONICAL_UPWARDS, false, template.getStructureDir());
+                        CANONICAL_PREVIEW_ORIENTATION.getStructureFront(),
+                        CANONICAL_PREVIEW_ORIENTATION.getUp(),
+                        CANONICAL_PREVIEW_ORIENTATION.isFlipped(),
+                        template.getStructureDir());
 
                 for (Map.Entry<BlockPos, BlockInfo> entry : preview.getBlocks().entrySet()) {
                     BlockInfo info = entry.getValue();
@@ -144,33 +147,6 @@ public final class MultiPiecePreviewAssembler {
      * Preview metadata stores canonical centers for array assembly, so only its
      * repeat counts are reused here; centers are rebuilt in the target frame.
      */
-    @NotNull
-    public static BlockPos resolveWorldPieceCenter(
-            @NotNull MultiPiecePattern pattern,
-            int oneBasedIndex,
-            @NotNull FormedStructureMetadata previewPrior,
-            @NotNull BlockPos controllerPos,
-            @NotNull EnumFacing front,
-            @NotNull EnumFacing upwards,
-            boolean flipped) {
-        return resolveWorldPieceCenter(pattern, oneBasedIndex, previewPrior, controllerPos,
-                StructureOrientation.of(front, front, upwards, flipped, false), null);
-    }
-
-    @NotNull
-    public static BlockPos resolveWorldPieceCenter(
-            @NotNull MultiPiecePattern pattern,
-            int oneBasedIndex,
-            @NotNull FormedStructureMetadata previewPrior,
-            @NotNull BlockPos controllerPos,
-            @NotNull EnumFacing front,
-            @NotNull EnumFacing upwards,
-            boolean flipped,
-            @Nullable MultiblockControllerBase controller) {
-        return resolveWorldPieceCenter(pattern, oneBasedIndex, previewPrior, controllerPos,
-                StructureOrientation.of(front, front, upwards, flipped, false), controller);
-    }
-
     @NotNull
     public static BlockPos resolveWorldPieceCenter(
             @NotNull MultiPiecePattern pattern,

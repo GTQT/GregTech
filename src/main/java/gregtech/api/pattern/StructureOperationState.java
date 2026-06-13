@@ -101,7 +101,7 @@ public final class StructureOperationState {
     }
 
     @NotNull
-    Map<MultiblockAbility<?>, Integer> getAbilityCounts() {
+    public Map<MultiblockAbility<?>, Integer> getAbilityCounts() {
         return Collections.unmodifiableMap(abilityCounts);
     }
 

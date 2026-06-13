@@ -49,6 +49,7 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.command.CommandHand;
 import gregtech.common.command.CommandRecipeCheck;
 import gregtech.common.command.CommandShaders;
+import gregtech.common.command.CommandStructureTrace;
 import gregtech.common.command.wireless.CommandWireless;
 import gregtech.common.command.worldgen.CommandWorldgen;
 import gregtech.common.covers.CoverBehaviors;
@@ -351,6 +352,7 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.commandManager.addCommand(new CommandHand());
         GregTechAPI.commandManager.addCommand(new CommandRecipeCheck());
         GregTechAPI.commandManager.addCommand(new CommandShaders());
+        GregTechAPI.commandManager.addCommand(new CommandStructureTrace());
         GregTechAPI.commandManager.addCommand(new CommandDataFix());
         GregTechAPI.commandManager.addCommand(new CommandWireless());
         CapesRegistry.load();

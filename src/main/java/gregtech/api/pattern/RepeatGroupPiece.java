@@ -6,7 +6,6 @@ import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.util.math.Vec3i;
@@ -179,37 +178,12 @@ public class RepeatGroupPiece extends StructurePiece {
      * @return true if the structure matches at some repeat count
      */
     public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
-                             @NotNull EnumFacing front, @NotNull EnumFacing up,
-                             boolean flipped,
-                             @Nullable FormedStructureMetadata prior,
-                             @NotNull PieceRuntime runtime) {
-        StructureMatchSession session = new StructureMatchSession();
-        return checkSync(world, origin, front, up, flipped, prior, runtime, session)
-                && session.validate(false).success;
-    }
-
-    public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
-                             @NotNull StructureOrientation orientation,
-                             @Nullable FormedStructureMetadata prior,
+                              @NotNull StructureOrientation orientation,
+                              @Nullable FormedStructureMetadata prior,
                              @NotNull PieceRuntime runtime) {
         StructureMatchSession session = new StructureMatchSession();
         return checkSync(world, origin, orientation, prior, runtime, session)
                 && session.validate(false).success;
-    }
-
-    public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
-                             @NotNull EnumFacing front, @NotNull EnumFacing up,
-                             boolean flipped,
-                             @Nullable FormedStructureMetadata prior,
-                             @NotNull PieceRuntime runtime,
-                             @NotNull StructureMatchSession session) {
-        return checkSync(
-                world,
-                origin,
-                StructureOrientation.of(front, front, up, flipped, false),
-                prior,
-                runtime,
-                session);
     }
 
     public boolean checkSync(@NotNull World world, @NotNull BlockPos origin,
@@ -640,29 +614,10 @@ public class RepeatGroupPiece extends StructurePiece {
      * per-cell world position shifts along the repeat axis / axes.
      */
     public void autoBuildAtRepeated(@NotNull EntityPlayer player, @NotNull MultiblockControllerBase controller,
-                                    @NotNull BlockPos controllerOrigin, @NotNull EnumFacing front,
-                                    @NotNull EnumFacing up, boolean flipped,
-                                    @Nullable FormedStructureMetadata prior,
-                                    @Nullable Map<String, Integer> channelValues, boolean skipHatches,
-                                    @NotNull PieceRuntime runtime,
-                                    @NotNull AbilityPlacementTracker abilityTracker) {
-        autoBuildAtRepeated(
-                player,
-                controller,
-                controllerOrigin,
-                StructureOrientation.of(front, front, up, flipped, false),
-                prior,
-                channelValues,
-                skipHatches,
-                runtime,
-                abilityTracker);
-    }
-
-    public void autoBuildAtRepeated(@NotNull EntityPlayer player, @NotNull MultiblockControllerBase controller,
-                                    @NotNull BlockPos controllerOrigin,
-                                    @NotNull StructureOrientation orientation,
-                                    @Nullable FormedStructureMetadata prior,
-                                    @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                     @NotNull BlockPos controllerOrigin,
+                                     @NotNull StructureOrientation orientation,
+                                     @Nullable FormedStructureMetadata prior,
+                                     @Nullable Map<String, Integer> channelValues, boolean skipHatches,
                                     @NotNull PieceRuntime runtime,
                                     @NotNull AbilityPlacementTracker abilityTracker) {
         autoBuildAtRepeated(player, controller, controllerOrigin, orientation, prior, channelValues,
@@ -676,9 +631,24 @@ public class RepeatGroupPiece extends StructurePiece {
                                     @Nullable Map<String, Integer> channelValues, boolean skipHatches,
                                     @NotNull PieceRuntime runtime,
                                     @NotNull AbilityPlacementTracker abilityTracker,
-                                    @NotNull StructureEvaluationContext.Operation operation) {
+                                     @NotNull StructureEvaluationContext.Operation operation) {
         autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
-                channelValues, skipHatches, runtime, abilityTracker, operation);
+                channelValues, skipHatches, runtime, abilityTracker, operation, ItemStack.EMPTY);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtRepeatedWithResult(@NotNull EntityPlayer player,
+                                                              @NotNull MultiblockControllerBase controller,
+                                                              @NotNull BlockPos controllerOrigin,
+                                                              @NotNull StructureOrientation orientation,
+                                                              @Nullable FormedStructureMetadata prior,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                               boolean skipHatches,
+                                                               @NotNull PieceRuntime runtime,
+                                                               @NotNull AbilityPlacementTracker abilityTracker,
+                                                               @NotNull StructureEvaluationContext.Operation operation) {
+        return autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
+                channelValues, skipHatches, runtime, abilityTracker, operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -691,7 +661,8 @@ public class RepeatGroupPiece extends StructurePiece {
                                                               boolean skipHatches,
                                                               @NotNull PieceRuntime runtime,
                                                               @NotNull AbilityPlacementTracker abilityTracker,
-                                                              @NotNull StructureEvaluationContext.Operation operation) {
+                                                              @NotNull StructureEvaluationContext.Operation operation,
+                                                              @NotNull ItemStack triggerStack) {
         int[] reps = resolveRepetitions(channelValues);
         MultiblockState state = runtime.getState();
         // Use the world-space piece center (OffsetMode applied) and fold only the per-slice
@@ -709,7 +680,7 @@ public class RepeatGroupPiece extends StructurePiece {
         visitRepeatOffsets(reps, local -> {
             result.merge(state.autoBuildAtWithResult(player, controller,
                     traversal(pieceCenter, orientation, local),
-                    channelValues, skipHatches, abilityTracker, operation));
+                    channelValues, skipHatches, abilityTracker, operation, triggerStack));
             return true;
         });
         return result.build();

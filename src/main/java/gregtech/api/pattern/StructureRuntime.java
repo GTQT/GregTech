@@ -26,6 +26,8 @@ import java.util.TreeMap;
  */
 public final class StructureRuntime {
 
+    private static final long FAILURE_TRACE_LOG_INTERVAL_MS = 5000L;
+
     @Nullable
     private final StructureDefinition<?> definition;
     @Nullable
@@ -45,6 +47,9 @@ public final class StructureRuntime {
     private FormedStructureMetadata formedMetadata;
     @Nullable
     private StructureFailureTrace lastFailure;
+    private long lastFailureLogTime = -1;
+    @Nullable
+    private String lastFailureLogSummary;
     @NotNull
     private Map<String, Integer> missingAbilities = Collections.emptyMap();
 
@@ -219,6 +224,10 @@ public final class StructureRuntime {
         this.lastFailure = lastFailure;
     }
 
+    public void recordLifecycleFailure(@NotNull StructureFailureTrace failure) {
+        recordSelectedFailure(failure);
+    }
+
     @NotNull
     public Map<String, Integer> getMissingAbilities() {
         return missingAbilities;
@@ -246,7 +255,7 @@ public final class StructureRuntime {
      */
     public void recordCheckFailure(@NotNull StructureFailureTrace failure,
                                    @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
-        this.lastFailure = failure;
+        recordFailure(failure);
         if (missingAbilities.isEmpty()) {
             this.missingAbilities = Collections.emptyMap();
             return;
@@ -259,6 +268,31 @@ public final class StructureRuntime {
             }
         }
         this.missingAbilities = Collections.unmodifiableMap(sorted);
+    }
+
+    private void recordFailure(@NotNull StructureFailureTrace failure) {
+        this.lastFailure = failure;
+        logFailure(failure);
+    }
+
+    private void recordSelectedFailure(@NotNull StructureFailureTrace failure) {
+        StructureFailureTrace selected = StructureFailureSelection.select(this.lastFailure, failure);
+        this.lastFailure = selected;
+        if (selected == failure) {
+            logFailure(failure);
+        }
+    }
+
+    private void logFailure(@NotNull StructureFailureTrace failure) {
+        String summary = failure.describeForCommand();
+        long now = System.currentTimeMillis();
+        if (!summary.equals(lastFailureLogSummary)
+                || lastFailureLogTime < 0
+                || now - lastFailureLogTime >= FAILURE_TRACE_LOG_INTERVAL_MS) {
+            StructureTrace.debugLifecycle(failure);
+            lastFailureLogSummary = summary;
+            lastFailureLogTime = now;
+        }
     }
 
     /**

@@ -56,7 +56,7 @@ V3 吸收了 StructureLib 的优点：声明、执行、工具调用、方向状
 | `PatternMatchContext` | 兼容视图 | 旧 string-keyed context。新逻辑应尽量走 typed collector 或 typed operation state。 |
 | `StructureOperationState` | 单次操作结果状态 | collected parts、active casing positions、counts、ability counts、ability contributors、requirements。 |
 | `StructureCheckResult` | 单次 check 结果 | check 成败、operation state、context、channels、missing abilities、failure trace。 |
-| `StructureBuildResult` | 单次 build 结果 | visited/existing/placed/unavailable/skipped/failed 等建造进度摘要。 |
+| `StructureBuildResult` | 单次 build 结果 | visited/existing/placed/unavailable/skipped/failed、placement budget、required/consumed/missing items 等建造进度摘要。 |
 | `StructureHintResult` | 单次 hint 结果 | active pieces、traversal、visited cells、trigger-aware/context-fallback dispatch 摘要。 |
 | `StructureFailureTrace` | runtime 最近失败 | 稳定的用户可读失败摘要，不等同于 debug 日志流。 |
 
@@ -190,7 +190,7 @@ legacy `BlockPattern` 和 structure iteration 使用。
 - repeat group 的 live/snapshot/build/hint slice offset 统一由 `visitRepeatOffsets(...)` 枚举。
 - formation collector/state 写入由 operation policy 和 session transaction 边界控制。
 
-后续剩余工作主要是 result 语义细化、survival item accounting、诊断和 async commit pipeline，而不是 P0 的坐标/cell walker 收敛。
+后续剩余工作主要是 orientation facade 收口、动态结构迁移、diagnostic UI 和 async commit pipeline，而不是 P0 的坐标/cell walker 收敛。
 
 ### 6.3 Result
 
@@ -210,7 +210,7 @@ legacy `BlockPattern` 和 structure iteration 使用。
 - failure trace。
 - 对 build 来说，还需要 item accounting 和 budget 信息。
 
-当前 check result 最接近完整模型；build/hint result 已有轻量摘要，但还没有完全承载 item accounting、render outcome 等细节。
+当前 check result 最接近完整模型；build result 已经承载 placement budget 和 survival item accounting；hint result 仍是轻量摘要，还没有承载 per-element rendering outcome。
 
 ## 7. Session、事务和回滚
 
@@ -267,7 +267,7 @@ formed positions、repeat counts、aggregated context 和 collector-owned format
 - fallback `spawnHint(StructureEvaluationContext)`
 - wrapper/no-placement adapter 的候选和 hint 转发
 
-world placement、item source 消耗、hint particles 这类外部副作用仍然可能发生；rollback 只覆盖结构 evaluation state。
+world placement、item source 消耗、hint particles 这类外部副作用仍然可能发生；rollback 只覆盖结构 evaluation state。默认 survival build 在提交 item source 消耗失败时会回滚本次刚放下的方块，并只记录 missing/unavailable，不记录 consumed。
 
 ## 8. Check 与 Commit 流程
 
@@ -312,15 +312,15 @@ Preview、build、hint 可以使用 disposable session 来解析 channel、分�
 
 `StructureOrientation` 是当前统一方向值对象，目标是替代散落的 `front/up/flipped` 参数组合。
 
-当前已经使用或开始使用 orientation-native path 的范围包括：
+当前已收口到 orientation-native path 的范围包括：
 
 - async check token
 - failure trace
-- controller-facing evaluator check/iterate
+- runtime/evaluator/request check/build/hint/preview/iterate
 - definition/check-state/AABB
 - `StructurePiece` center/snapshot
 - `StructureCompiler` snapshot closure
-- template AABB/predicate facade
+- template AABB/predicate core，legacy facade 只在入口转换
 - repeat-group live/snapshot slice
 - backtracking
 - axis-line
@@ -335,10 +335,10 @@ Preview、build、hint 可以使用 disposable session 来解析 channel、分�
 
 仍然保留的 `front/up/flipped` 主要是：
 
-- 兼容 facade
+- `BlockPattern` / `BlockPatternTemplate` 兼容 facade
 - `RelativeDirection` 低层输入
-- addon-facing legacy auto-build adapter
-- 仍从 controller state 读取方向的旧调用点
+- `StructureOrientation` 值对象构造/accessor、result/trace 字段
+- block/machine front-facing 这类非完整结构朝向语义
 
 ### 10.1 Shared cell walker
 
@@ -355,7 +355,8 @@ Preview、build、hint 可以使用 disposable session 来解析 channel、分�
 - multi-piece fixed piece check/build/hint
 
 `StructureCellTraversal` 是 P0 后的统一坐标输入：它承载 piece center、`StructureOrientation` 和 template-local cell offset。
-旧 `front/up/flipped` overload 仍保留给兼容 API，但新内部路径应优先构造 traversal/orientation 对象。
+旧 `front/up/flipped` overload 已从 runtime/evaluator/internal traversal API 移除；兼容 facade 在入口转换为
+`StructureOrientation` 后再进入内部路径。
 
 ## 11. Preview、Hint 和 Build
 
@@ -390,13 +391,16 @@ cell context，但不收集 formation requirements。
 
 ### 11.4 Survival build
 
-Survival build 已有 request/runtime entry 和 `StructureBuildResult` 摘要。当前仍缺：
+Survival build 已有 request/runtime entry、placement decision 和 `StructureBuildResult` accounting。当前语义：
 
-- placement budget 统一建模。
-- item source accounting。
-- consumed/required item report。
-- partial placement resume 的更完整结果表达。
-- rollback-safe item reporting。
+- `placementBudget` 只统计本次 invocation 中仍需要 placement decision 的 cell；already-valid cell 记录为 `existingCells`，不消耗 budget。
+- `remainingPlacementBudget = placementBudget - placedCells`，用于表达本次还未解决的 placement 工作量。
+- `hasPartialPlacement()` 表示本次至少放置了一个 budgeted cell，同时仍有 budget 未完成。
+- `requiresResume()` 表示本次结果还有 remaining placement budget；再次执行同一个 build request 会自然 resume，因为已放置 cell 会变成 already-valid。
+- survival build 记录 `requiredItems`、`consumedItems`、`missingItems`。有实际选择时 required 记录实际候选；完全不可用或提交消耗失败时 missing 记录对应缺项。
+- item source selection 先模拟 inventory/AE 可用性，world placement 成功后才提交消耗；如果提交消耗失败，会回滚本次刚放置的方块，并且不会记录 consumed。
+- candidate selection 由 `StructurePlacementDecision` 统一处理，creative/survival 共用 channel/default/ability 优先级。legacy predicate candidates 是兼容主路径；当 legacy fallback 没有可用候选时，direct element candidates 进入同一套 selection/accounting。
+- AE2 item source 是可选集成；测试或无 Loader 环境中 AE loaded probe 失败会安全返回 unavailable，而不是中断 build。
 
 默认 survival construction 的“already valid”检查已经通过 context probe 隔离，避免跳过已存在方块时污染 formation collector。
 
@@ -456,19 +460,26 @@ Deferred requirement collection 现在应跟随 canonical `match(StructureEvalua
 
 ### 14.1 Failure trace
 
-`StructureFailureTrace` 是 runtime 上最近一次相关失败的稳定摘要。它应该描述：
+`StructureFailureTrace` 是 runtime 上最近一次相关失败的稳定摘要。它当前记录：
 
 - controller id 和坐标。
-- operation kind。
-- orientation。
+- operation path、operation kind 和 result。
+- orientation：front、structure front、up、flipped。
 - piece 名称。
-- repeat index。
-- local coordinate。
+- cell / local coordinate。
 - world coordinate。
 - expected element description / candidates。
 - actual block/tile。
-- missing ability 或 count deficit/excess。
-- failure stage：match、requirement、capability、assembly、commit、stale async 等。
+- missing ability、operation-owned ability counts 或 count deficit/excess。
+- progress depth。
+- failure kind：block mismatch、missing ability、count limit、capability unsupported、assembly rejection、commit rejection、legacy pattern、unknown。
+
+failure selection 由 `StructureFailureSelection` 统一处理。flipped/non-flipped 或 lifecycle 阶段都失败时，优先保留 reason priority
+更高、progress depth 更深的失败；再用 piece/cell 的稳定顺序、non-flipped 优先和 sequence 做 tie-break。这样缺 ability 不会被另一方向的普通
+block mismatch 覆盖，commit rejection 也不会覆盖更有用的 current mismatch，除非它本身就是当前最有信息量的失败。
+
+开发命令 `/gt structure_trace <x> <y> <z>` 可以在控制器坐标上读取 runtime 当前形状、formed 状态和 last failure，并输出
+`kind/result/path/operation/piece/cell/worldPos/expected/actual/missingAbilities/abilityCounts/progressDepth/flipped`。
 
 成功 preview/build 不应清除 formation failure。成功 committed check 才能清除 formation failure。
 
@@ -492,6 +503,7 @@ Deferred requirement collection 现在应跟随 canonical `match(StructureEvalua
 - 不确定行为先加 trace，再改逻辑。
 - trace 必须受 debug gate 控制。
 - 不在 hot traversal path 无条件输出高频日志。
+- `debugStructureTrace` 的 lifecycle failure 日志由 `StructureRuntime` 低频输出，按 summary 去重并有最小间隔限制。
 - stored failure state 和 debug log 是不同用途，不能互相替代。
 
 ## 15. 兼容边界
@@ -538,8 +550,8 @@ new direct element -> toPredicate() -> legacy matcher
 12. operation state 显式记录 parts、counts、ability counts、ability contributors、active positions、requirements。
 13. collector 在写入前检查最大 count/ability 限制。
 14. async snapshot task/result 有 generation/orientation/chunk revision stale rejection。
-15. `StructureOrientation` 已接入主要 check、snapshot、trace、AABB、多 piece、exact-check、axis-line 和 creative-build 路径。
-16. controller、preview-helper、projector、multiblock-builder 等 runtime-owned 调用点通过 `StructureRuntime` request method 进入。
+15. `StructureOrientation` 已接入 check、snapshot、trace、AABB、多 piece、exact-check、axis-line、preview、hint、build 和 iteration 路径。
+16. controller、preview-helper、projector、multiblock-builder 等 runtime-owned 调用点通过 `StructureRuntime` request method 进入，runtime/evaluator 不再接收三散方向参数。
 17. 单 piece fixed repetition cell walker 已服务 creative build、formed iteration、hints、single-piece preview。
 18. multi-piece preview assembly 改为 positioned preview cell/predicate 输入。
 19. preview meta tile entity 尽量朝向开放邻格。
@@ -561,22 +573,31 @@ new direct element -> toPredicate() -> legacy matcher
 35. live/snapshot 坐标等价测试已覆盖 fixed traversal、repeat group 和 flipped orientation。
 36. formation collector/context mutation 失败回滚测试已覆盖 part、count、channel、tier、active position 和 legacy context key。
 37. multi-piece 全量检查失败会回滚 piece runtime、formed positions、repeat reps、cache 和 aggregated context。
+38. `StructureBuildResult` 已记录 placement budget、remaining budget、required items、consumed items、missing items，并定义 partial placement/resume 语义。
+39. `StructurePlacementDecision` 已统一 creative/survival candidate selection、channel/default/ability 优先级，以及 inventory/AE item source simulation/commit。
+40. survival build 的 already-valid probe、candidate fallback 和 item accounting 不写入 formation collector；扣物提交失败时回滚本次刚放置方块并保持 consumed summary 干净。
+41. `StructureFailureTrace` 已覆盖 block mismatch、missing ability、count limit、capability unsupported、assembly rejection、commit rejection、legacy pattern 和 unknown。
+42. `StructureFailureSelection` 已统一 flipped/non-flipped 和 lifecycle failure 的选择策略：reason priority、progress depth、稳定 piece/cell tie-break、non-flipped、sequence。
+43. ability diagnostics 已使用 operation-owned ability counts，failure trace 同时记录 `missingAbilities` 和 `abilityCounts`。
+44. 新增 `/gt structure_trace <x> <y> <z>` 开发命令，可查看控制器 runtime shape、formed 状态和 last failure 摘要。
+45. `debugStructureTrace` lifecycle 日志已接入 `StructureRuntime`，按 summary/时间低频输出，不在 cell hot path 无门控刷屏。
+46. P1 orientation 收口已完成：`OffsetMode`、`PieceTemplate`、`MultiblockState`、`StructurePiece`、`RepeatGroupPiece`、
+    `MultiPiecePattern`、preview placement、template iteration、AABB 和 axis-line 均使用 `StructureOrientation` /
+    `StructureCellTraversal`；旧 `front/up/flipped` 参数只保留在 legacy facade 和低层方向描述边界。
 
 ## 17. 已知缺口
 
 当前代码仍存在这些未收口点：
 
-1. survival build 虽有 request/result，但 item accounting、budget、partial placement report 还不完整。
-2. hint result 还不能表达每个 element 是否实际渲染了可见提示。
-3. ability diagnostics 仍跨 session、runtime、controller 和 legacy error object，需要更统一的 structured failure。
-4. 部分 addon-facing 或兼容 path 仍使用 `front/up/flipped` facade；内部新路径应优先使用 `StructureOrientation` / `StructureCellTraversal`。
-5. dynamic charcoal-pile 和 Godforge/controller-module 路径仍是主要迁移对象。
-6. controller lifecycle 仍有 formed flag、attached parts、ability instances 等状态留在控制器/piece runtime。
-7. `PatternMatchContext` 仍是 legacy adapter，部分旧调用点还依赖 string-keyed context。
-8. `TraceabilityPredicate` 仍是 addon 兼容所必需，不能直接移除。
-9. async checker 当前更多用于 snapshot precheck/fallback，还不是完整 async commit pipeline。
-10. `StructureWorldIndex` 或等价 dirty-index runtime 边界尚未建立。
-11. in-game diagnostic command / UI 仍未完成。
+1. hint result 还不能表达每个 element 是否实际渲染了可见提示。
+2. `BlockPattern` / `BlockPatternTemplate` 仍保留 legacy `front/up/flipped` facade，直到兼容 API 移除窗口。
+3. dynamic charcoal-pile 和 Godforge/controller-module 路径仍是主要迁移对象。
+4. controller lifecycle 仍有 formed flag、attached parts、ability instances 等状态留在控制器/piece runtime。
+5. `PatternMatchContext` 仍是 legacy adapter，部分旧调用点还依赖 string-keyed context。
+6. `TraceabilityPredicate` 仍是 addon 兼容所必需，不能直接移除。
+7. async checker 当前更多用于 snapshot precheck/fallback，还不是完整 async commit pipeline。
+8. `StructureWorldIndex` 或等价 dirty-index runtime 边界尚未建立。
+9. 可视化 diagnostic UI 仍未完成；当前已有 `/gt structure_trace <x> <y> <z>` 开发命令。
 
 ## 18. 路线图
 
@@ -591,7 +612,7 @@ new direct element -> toPredicate() -> legacy matcher
 - `StructureCellTraversal` 统一承载 center、orientation 和 template-local offset。
 - preview、hint、creative/survival build、formed-block iteration 复用同一 fixed cell visitor。
 - multi-piece fixed piece、repeat group 和 dynamic-offset piece 的坐标入口已压到 orientation/cell API。
-- dynamic fixed piece 和 dynamic repeat group 使用 orientation-native center resolution；旧 enum overload 只作为兼容适配。
+- dynamic fixed piece 和 dynamic repeat group 使用 orientation-native center resolution，不再暴露旧 enum overload。
 - `RepeatGroupPiece` 的 slice check 通过 `checkPatternAtExact(...)` / `checkPatternAtSnapshotExact(...)` 间接复用该 traversal；snapshot axis-line fast path 也复用了同一 slice visitor。
 - `RepeatGroupPiece` 的 repeat-axis offset 枚举已收敛到 `visitRepeatOffsets(...)`，live/snapshot/build/hint 不再各自维护 single-axis/multi-axis 分支和 odometer。
 - `RepeatGroupPieceTest` 覆盖了单轴、多轴笛卡尔顺序、零轴兜底和 visitor 早停。
@@ -608,20 +629,20 @@ new direct element -> toPredicate() -> legacy matcher
 - failed alternative 不留下 part、count、ability、channel、tier、active casing position 或 legacy context state。
 - preview/hint/build 不污染 formation state。
 
-P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-effect 边界；survival item accounting、diagnostic UI、async commit pipeline
+P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-effect 边界；survival item accounting 已在 P1 完成，可视化 diagnostic UI、async commit pipeline
 和 dirty-index runtime 属于后续 P1/P2 工作。
 
-### P1: 补完整 Survival Build
+### P1: 补完整 Survival Build（已完成）
 
 目标：让 survival build 和 check 一样有清晰 request/session/result。
 
-具体计划：
+完成内容：
 
 1. 扩展 `StructureBuildResult`，记录 placement budget、required items、consumed items、missing items。
 2. 明确 partial placement 和 resume 的结果语义。
 3. 把 item source accounting 做成 rollback-safe summary。
 4. 统一 direct element placement 和 legacy predicate fallback 的 candidate selection。
-5. 给 insufficient items、partial placement、already-valid probe、branch fallback 补测试。
+5. 给 insufficient items、partial placement、already-valid probe、branch fallback、direct element candidate fallback、consume failure rollback 补测试。
 
 完成标准：
 
@@ -629,17 +650,18 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 - probe 和候选失败不会污染 formation collector。
 - creative/survival build 共享尽可能多的 placement decision 代码。
 
-### P1: 统一 Failure Diagnostics
+### P1: 统一 Failure Diagnostics（已完成）
 
 目标：让结构失败可诊断，而不是只能看 generic mismatch 或 legacy pattern error。
 
-具体计划：
+完成内容：
 
 1. 把 missing ability、count limit、capability unsupported、assembly rejection、commit rejection 都归入 `StructureFailureTrace`。
-2. 定义 flipped/non-flipped 都失败时的 failure selection policy：优先保留最接近真实原因、进度最深、tie-break 稳定的失败。
+2. 定义 `StructureFailureSelection`：优先保留 reason priority 更高、progress depth 更深、piece/cell tie-break 稳定、non-flipped 优先的失败。
 3. 让 ability diagnostics 使用 operation-owned ability counts，而不是多处重新扫描。
-4. 增加 `/gt_structure_trace <pos>` 或等价开发命令。
-5. 加 debugStructureTrace 的低频生命周期日志，不在 cell hot path 无门控刷屏。
+4. 增加 `/gt structure_trace <x> <y> <z>` 开发命令。
+5. 加 `debugStructureTrace` 的低频生命周期日志，不在 cell hot path 无门控刷屏。
+6. `StructureFailureDiagnosticsTest` 覆盖 missing ability selection、count limit、capability unsupported、assembly/commit rejection selection 和 command summary 字段。
 
 完成标准：
 
@@ -647,7 +669,7 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 - 缺 ability 不会被另一方向的普通 block mismatch 覆盖。
 - commit rejection 不会覆盖更有用的 current mismatch，除非它就是最新形成失败。
 
-### P1: Orientation 收口
+### P1: Orientation 收口（已完成）
 
 目标：把剩余 `front/up/flipped` 兼容参数压到 API 边缘。
 
@@ -657,6 +679,18 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 2. addon-facing auto-build adapter 只在入口把旧参数转换为 orientation。
 3. `RelativeDirection` 继续作为低层方向描述，但不再承担完整结构朝向状态。
 4. 清理 template iteration、AABB、axis-line 中剩余的旧参数穿透。
+
+完成内容：
+
+1. `StructureRuntime` / `StructureOperationEvaluator` / `StructureOperationRequest` 不再接收三散方向参数。
+2. preview renderer、multi-piece preview world-center resolution、hint/build placement 都改为 `StructureOrientation` /
+   `StructureCellTraversal`。
+3. `OffsetMode`、`PieceTemplate`、`MultiblockState` exact live/snapshot/axis-line、`StructurePiece` center/snapshot、
+   `RepeatGroupPiece` 和 `MultiPiecePattern` 均已收口到 orientation-native API。
+4. `BlockPattern` / `BlockPatternTemplate` 保留 legacy facade，并在入口转换到 `StructureOrientation`。
+5. `RelativeDirection` 保持低层 offset/facing 投影工具，不再作为完整结构朝向状态在 runtime API 间传递。
+6. 已验证 `compileJava`，以及 `StructureTraversalBoundaryTest`、`StructureBuildAccountingTest`、
+   `StructureFailureDiagnosticsTest`。
 
 完成标准：
 

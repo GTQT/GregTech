@@ -7,6 +7,7 @@ import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
@@ -331,9 +332,7 @@ public class MultiblockPreviewRenderer {
                 pieceIndex,
                 piecePreview.getPrior(),
                 controller.getPos(),
-                controller.getFrontFacingForStructure(),
-                controller.getUpwardsFacing(),
-                controller.isFlipped(),
+                StructureOrientation.fromController(controller),
                 controller);
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();

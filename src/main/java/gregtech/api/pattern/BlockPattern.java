@@ -163,17 +163,29 @@ public class BlockPattern {
 
     // --- Delegated operations ---
 
+    /**
+     * @deprecated Legacy orientation facade. New runtime code should pass
+     *             {@link StructureOrientation} through {@link StructureOperationRequest}.
+     */
+    @Deprecated
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip) {
         return evaluator.checkSingle(
-                world, centerPos, frontFacing, upwardsFacing, allowsFlip, true);
+                world, centerPos, StructureOrientation.legacy(frontFacing, upwardsFacing, false, allowsFlip), true);
     }
 
+    /**
+     * @deprecated Legacy orientation facade. New runtime code should pass
+     *             {@link StructureOrientation} through {@link StructureOperationRequest}.
+     */
+    @Deprecated
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip,
                                                   boolean doRandomCheck) {
         return evaluator.checkSingle(
-                world, centerPos, frontFacing, upwardsFacing, allowsFlip, doRandomCheck);
+                world, centerPos,
+                StructureOrientation.legacy(frontFacing, upwardsFacing, false, allowsFlip),
+                doRandomCheck);
     }
 
     public void clearCache() {
@@ -194,10 +206,16 @@ public class BlockPattern {
         evaluator.creativeBuildSingle(player, controllerBase, channelValues, skipHatches);
     }
 
+    /**
+     * @deprecated Legacy orientation facade. New runtime code should use
+     *             {@link StructureOperationRequest#iterate(World, BlockPos, StructureOrientation)}.
+     */
+    @Deprecated
     public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
-        return evaluator.iterateSingle(world, centerPos, frontFacing, upwardsFacing, isFlipped);
+        return evaluator.iterateSingle(world, centerPos,
+                StructureOrientation.legacy(frontFacing, upwardsFacing, isFlipped, false));
     }
 
     public BlockInfo[][][] getPreview(int[] repetition) {

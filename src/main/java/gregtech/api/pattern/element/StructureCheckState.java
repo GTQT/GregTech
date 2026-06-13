@@ -11,12 +11,14 @@ import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.StructureOperationState;
 import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureFailureSelection;
+import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -82,8 +84,14 @@ public final class StructureCheckState {
         @Nullable
         public final PatternError error;
 
+        @Nullable
+        public final StructureFailureTrace failureTrace;
+
         @NotNull
         public final Map<MultiblockAbility<?>, Integer> missingAbilities;
+
+        @NotNull
+        public final Map<MultiblockAbility<?>, Integer> abilityCounts;
 
         public final boolean flipped;
 
@@ -92,7 +100,9 @@ public final class StructureCheckState {
                        @Nullable StructureOperationState operationState,
                        @Nullable BlockPos errorPos, @Nullable String errorMessage,
                        @Nullable PatternError error,
+                       @Nullable StructureFailureTrace failureTrace,
                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                       @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
                        boolean flipped) {
             this.success = success;
             this.metadata = metadata;
@@ -101,7 +111,9 @@ public final class StructureCheckState {
             this.errorPos = errorPos;
             this.errorMessage = errorMessage;
             this.error = error;
+            this.failureTrace = failureTrace;
             this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
+            this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
             this.flipped = flipped;
         }
 
@@ -113,7 +125,7 @@ public final class StructureCheckState {
                                      boolean flipped) {
             return new Result(
                     true, metadata, context, operationState,
-                    null, null, null, Collections.emptyMap(), flipped);
+                    null, null, null, null, Collections.emptyMap(), Collections.emptyMap(), flipped);
         }
 
         /** Create a failure result with error info */
@@ -127,7 +139,7 @@ public final class StructureCheckState {
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg, @Nullable PatternError error) {
             return new Result(
                     false, null, null, null,
-                    pos, msg, error, Collections.emptyMap(), false);
+                    pos, msg, error, null, Collections.emptyMap(), Collections.emptyMap(), false);
         }
 
         /** Create a failure result without specific position */
@@ -141,14 +153,32 @@ public final class StructureCheckState {
         public static Result failure(@NotNull String msg, @Nullable PatternError error) {
             return new Result(
                     false, null, null, null,
-                    null, msg, error, Collections.emptyMap(), false);
+                    null, msg, error, null, Collections.emptyMap(), Collections.emptyMap(), false);
         }
 
         @NotNull
-        public static Result missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        public static Result failure(@NotNull String msg,
+                                     @Nullable StructureFailureTrace failureTrace,
+                                     @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                     @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                     boolean flipped) {
             return new Result(
                     false, null, null, null,
-                    null, "Missing required multiblock abilities", null, missingAbilities, false);
+                    failureTrace == null ? null : failureTrace.getErrorPos(), msg,
+                    failureTrace == null ? null : failureTrace.getError(),
+                    failureTrace, missingAbilities, abilityCounts, flipped);
+        }
+
+        @NotNull
+        public static Result missingAbilities(@NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                              @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                              @Nullable StructureFailureTrace failureTrace,
+                                              boolean flipped) {
+            return new Result(
+                    false, null, null, null,
+                    null, "Missing required multiblock abilities",
+                    failureTrace == null ? null : failureTrace.getError(),
+                    failureTrace, missingAbilities, abilityCounts, flipped);
         }
     }
 
@@ -179,33 +209,14 @@ public final class StructureCheckState {
         if (!result.success && orientation.allowsFlip()) {
             Result flippedResult =
                     checkOrientation(world, controllerPos, orientation.withFlipped(true), context, controller);
-            if (!flippedResult.success && flippedResult.missingAbilities.isEmpty()
-                    && !result.missingAbilities.isEmpty()) {
-                return result;
+            if (!flippedResult.success) {
+                StructureFailureTrace selected = StructureFailureSelection.select(
+                        result.failureTrace, flippedResult.failureTrace);
+                return selected == result.failureTrace ? result : flippedResult;
             }
             return flippedResult;
         }
         return result;
-    }
-
-    @NotNull
-    public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
-                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
-                        @Nullable PatternMatchContext context) {
-        return check(world, controllerPos, front, up, allowsFlip, context, null);
-    }
-
-    @NotNull
-    public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
-                        @NotNull EnumFacing front, @NotNull EnumFacing up, boolean allowsFlip,
-                        @Nullable PatternMatchContext context,
-                        @Nullable MultiblockControllerBase controller) {
-        return check(
-                world,
-                controllerPos,
-                StructureOrientation.of(front, front, up, false, allowsFlip),
-                context,
-                controller);
     }
 
     @NotNull
@@ -227,6 +238,8 @@ public final class StructureCheckState {
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, Integer> channelValues = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
+        String lastActivePieceName = null;
+        BlockPos lastActivePieceCenter = null;
 
         for (StructurePiece piece : pattern.getPieceList()) {
             // Per-piece runtime for this check. Always non-null since we just built
@@ -245,6 +258,8 @@ public final class StructureCheckState {
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
             if (!piece.isActive(activation)) continue;
             BlockPos centerPos = piece.getCenterPos(controllerPos, orientation, prior);
+            lastActivePieceName = piece.getName();
+            lastActivePieceCenter = centerPos;
             if (ConfigHolder.machines.debugStructureCheck) {
                 GTLog.logger.debug(
                         "[StructureDefinition] checking piece={} center={} front={} up={} flipped={}",
@@ -260,7 +275,16 @@ public final class StructureCheckState {
                 if (!ok) {
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
-                    return Result.failure(controllerPos, lastErrorMessage, runtime.getState().getError());
+                    StructureFailureTrace failure = createFailureTrace(
+                            controller, controllerPos, orientation, piece.getName(), null,
+                            activePieceDepth(pattern, piece), lastErrorMessage,
+                            runtime.getState().getError(), runtime.getState().getMissingAbilities(),
+                            session.copyOperationState().getAbilityCounts(),
+                            classifyError(runtime.getState().getError(),
+                                    runtime.getState().getMissingAbilities()));
+                    return Result.failure(lastErrorMessage, failure,
+                            runtime.getState().getMissingAbilities(),
+                            session.copyOperationState().getAbilityCounts(), orientation.isFlipped());
                 }
 
                 // Extract repeat counts from the runtime's cached reps
@@ -280,7 +304,17 @@ public final class StructureCheckState {
                 if (!pieceMatched) {
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
-                    return Result.failure(centerPos, lastErrorMessage, runtime.getState().getError());
+                    StructureFailureTrace failure = createFailureTrace(
+                            controller, controllerPos, orientation, piece.getName(),
+                            describeCell(runtime.getState().getError()),
+                            activePieceDepth(pattern, piece), lastErrorMessage,
+                            runtime.getState().getError(), runtime.getState().getMissingAbilities(),
+                            session.copyOperationState().getAbilityCounts(),
+                            classifyError(runtime.getState().getError(),
+                                    runtime.getState().getMissingAbilities()));
+                    return Result.failure(lastErrorMessage, failure,
+                            runtime.getState().getMissingAbilities(),
+                            session.copyOperationState().getAbilityCounts(), orientation.isFlipped());
                 }
 
                 // Extract repeat counts from the piece's MultiblockState
@@ -304,11 +338,24 @@ public final class StructureCheckState {
         StructureMatchSession.Validation validation = session.validate(true);
         if (!validation.success) {
             if (!validation.missingAbilities.isEmpty()) {
-                return Result.missingAbilities(validation.missingAbilities);
+                StructureFailureTrace failure = createDeferredFailureTrace(
+                        controller, controllerPos, orientation, "Missing required multiblock abilities",
+                        StructureFailureTrace.Kind.MISSING_ABILITY,
+                        pattern.getPieceList().size(), validation.missingAbilities, validation.abilityCounts,
+                        lastActivePieceName, lastActivePieceCenter);
+                return Result.missingAbilities(validation.missingAbilities, validation.abilityCounts,
+                        failure, orientation.isFlipped());
             }
-            return Result.failure(validation.errorMessage == null
+            String message = validation.errorMessage == null
                     ? "Structure-wide validation failed"
-                    : validation.errorMessage);
+                    : validation.errorMessage;
+            StructureFailureTrace failure = createDeferredFailureTrace(
+                    controller, controllerPos, orientation, message,
+                    StructureFailureTrace.Kind.COUNT_LIMIT,
+                    pattern.getPieceList().size(), validation.missingAbilities, validation.abilityCounts,
+                    lastActivePieceName, lastActivePieceCenter);
+            return Result.failure(message, failure, validation.missingAbilities,
+                    validation.abilityCounts, orientation.isFlipped());
         }
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
@@ -328,6 +375,119 @@ public final class StructureCheckState {
                 channelValues.putIfAbsent(entry.getKey(), (Integer) entry.getValue());
             }
         }
+    }
+
+    @NotNull
+    private static StructureFailureTrace createDeferredFailureTrace(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull String message,
+            @NotNull StructureFailureTrace.Kind kind,
+            int progressDepth,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            @Nullable String pieceName,
+            @Nullable BlockPos errorPos) {
+        return traceBuilder(controller, controllerPos, orientation)
+                .path("definition")
+                .operation("CHECK")
+                .result(kind.getTraceName())
+                .kind(kind)
+                .piece(pieceName == null ? "deferred" : pieceName)
+                .cell("requirements")
+                .errorPosition(errorPos)
+                .progressDepth(progressDepth)
+                .expected(kind == StructureFailureTrace.Kind.MISSING_ABILITY
+                        ? "required abilities present"
+                        : "requirements within declared limits")
+                .actual(message)
+                .missingAbilities(missingAbilities)
+                .abilityCounts(abilityCounts)
+                .build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace createFailureTrace(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull String pieceName,
+            @Nullable String cell,
+            int progressDepth,
+            @NotNull String message,
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            @NotNull StructureFailureTrace.Kind kind) {
+        StructureFailureTrace.Builder builder = traceBuilder(controller, controllerPos, orientation)
+                .path("definition")
+                .operation("CHECK")
+                .result(kind.getTraceName())
+                .kind(kind)
+                .piece(pieceName)
+                .cell(cell)
+                .progressDepth(progressDepth)
+                .missingAbilities(missingAbilities)
+                .abilityCounts(abilityCounts);
+        if (error != null) {
+            builder.error(error);
+        } else {
+            builder.errorPosition(controllerPos)
+                    .expected("piece pattern matched")
+                    .actual(message);
+        }
+        return builder.build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Builder traceBuilder(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation) {
+        StructureFailureTrace.Builder builder = new StructureFailureTrace.Builder(
+                controller == null ? "unknown" : controller.getMetaName(), controllerPos)
+                .orientation(orientation);
+        if (controller != null) {
+            builder.formed(controller.isStructureFormed());
+        }
+        return builder;
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Kind classifyError(
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (!missingAbilities.isEmpty()) {
+            return StructureFailureTrace.Kind.MISSING_ABILITY;
+        }
+        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
+            TraceabilityPredicate.SinglePredicateError single =
+                    (TraceabilityPredicate.SinglePredicateError) error;
+            if (single.type == 0 || single.type == 2) {
+                return StructureFailureTrace.Kind.COUNT_LIMIT;
+            }
+        }
+        return StructureFailureTrace.Kind.BLOCK_MISMATCH;
+    }
+
+    @Nullable
+    private static String describeCell(@Nullable PatternError error) {
+        if (error == null) {
+            return null;
+        }
+        try {
+            BlockPos pos = error.getPos();
+            return pos == null ? null : pos.toString();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static int activePieceDepth(@NotNull MultiPiecePattern pattern,
+                                        @NotNull StructurePiece piece) {
+        int index = pattern.getPieceList().indexOf(piece);
+        return index < 0 ? 0 : index + 1;
     }
 
     @Nullable

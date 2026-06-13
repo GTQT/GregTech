@@ -238,6 +238,7 @@ public final class StructureMatchSession {
     @NotNull
     public Validation validate(boolean includeAbilityLimits) {
         Map<MultiblockAbility<?>, Integer> missingAbilities = new LinkedHashMap<>();
+        Map<MultiblockAbility<?>, Integer> abilityCounts = new LinkedHashMap<>();
         TraceabilityPredicate.SimplePredicate firstMissingPredicate = null;
 
         for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : globalCount.entrySet()) {
@@ -251,6 +252,7 @@ public final class StructureMatchSession {
                 missingAbilities.merge(predicate.ability, deficit, Integer::sum);
             }
         }
+        abilityCounts.putAll(operationStateAbilityCounts());
 
         String collectorFailure = mergeCollectorValidation(
                 StructureMatchCollector.validate(operationState), missingAbilities);
@@ -259,51 +261,51 @@ public final class StructureMatchSession {
                     StructureMatchCollector.validate(context), missingAbilities);
         }
         if (collectorFailure != null) {
-            return Validation.failure(collectorFailure);
+            return Validation.failure(collectorFailure, abilityCounts);
         }
 
         if (includeAbilityLimits) {
             Set<IMultiblockPart> parts = copyOperationState().getParts();
             Map<MultiblockAbility<?>, Integer> explicitAbilityCounts = operationState.getAbilityCounts();
-            Map<MultiblockAbility<?>, Integer> collectedAbilities = ConfigHolder.machines.debugStructureCheck
-                    ? new LinkedHashMap<>() : null;
             for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {
                 int explicitCount = explicitAbilityCounts.getOrDefault(entry.getKey(), 0);
                 int count = explicitCount + countAbilityParts(
                         parts, entry.getKey(), operationState.getExplicitAbilityParts(entry.getKey()));
-                if (collectedAbilities != null) {
-                    collectedAbilities.put(entry.getKey(), count);
-                }
+                abilityCounts.put(entry.getKey(), count);
                 int[] range = entry.getValue();
                 if (count < range[0]) {
                     missingAbilities.merge(entry.getKey(), range[0] - count, Math::max);
                 } else if (range[1] >= 0 && count > range[1]) {
-                    debugAbilityValidation(parts.size(), collectedAbilities, missingAbilities);
+                    debugAbilityValidation(parts.size(), abilityCounts, missingAbilities);
                     return Validation.failure("Ability '" + entry.getKey() + "' count " + count
-                            + " is outside [" + range[0] + ", " + range[1] + "]");
+                            + " is outside [" + range[0] + ", " + range[1] + "]",
+                            abilityCounts);
                 }
             }
             for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
                 int count = countAbilityGroup(parts, operationState, groupLimit);
+                abilityCounts.put(groupLimit.getDisplayAbility(), count);
                 if (count < groupLimit.getMin()) {
                     missingAbilities.merge(
                             groupLimit.getDisplayAbility(), groupLimit.getMin() - count, Math::max);
                 } else if (groupLimit.getMax() >= 0 && count > groupLimit.getMax()) {
-                    debugAbilityValidation(parts.size(), collectedAbilities, missingAbilities);
+                    debugAbilityValidation(parts.size(), abilityCounts, missingAbilities);
                     return Validation.failure("Ability group '" + groupLimit.getDisplayAbility() + "' count "
-                            + count + " is outside [" + groupLimit.getMin() + ", " + groupLimit.getMax() + "]");
+                            + count + " is outside [" + groupLimit.getMin() + ", " + groupLimit.getMax() + "]",
+                            abilityCounts);
                 }
             }
-            debugAbilityValidation(parts.size(), collectedAbilities, missingAbilities);
+            debugAbilityValidation(parts.size(), abilityCounts, missingAbilities);
         }
 
         if (!missingAbilities.isEmpty()) {
-            return Validation.missingAbilities(missingAbilities);
+            return Validation.missingAbilities(missingAbilities, abilityCounts);
         }
         if (firstMissingPredicate != null) {
-            return Validation.failure("A global structure predicate did not reach its minimum count");
+            return Validation.failure("A global structure predicate did not reach its minimum count",
+                    abilityCounts);
         }
-        return Validation.success();
+        return Validation.success(abilityCounts);
     }
 
     @Nullable
@@ -344,9 +346,9 @@ public final class StructureMatchSession {
     }
 
     private static void debugAbilityValidation(int partCount,
-                                               @Nullable Map<MultiblockAbility<?>, Integer> collectedAbilities,
+                                               @NotNull Map<MultiblockAbility<?>, Integer> collectedAbilities,
                                                @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
-        if (!ConfigHolder.machines.debugStructureCheck || collectedAbilities == null) {
+        if (!ConfigHolder.machines.debugStructureCheck) {
             return;
         }
         GTLog.logger.debug("[StructureDefinition] ability validation parts={} collected={} missing={}",
@@ -400,6 +402,22 @@ public final class StructureMatchSession {
         return count;
     }
 
+    @NotNull
+    private Map<MultiblockAbility<?>, Integer> operationStateAbilityCounts() {
+        Map<MultiblockAbility<?>, Integer> counts = new LinkedHashMap<>();
+        for (StructureMatchCollector.CountRequirement requirement : operationState.requirements.values()) {
+            MultiblockAbility<?> ability = requirement.getAbility();
+            if (ability == null) {
+                continue;
+            }
+            counts.putIfAbsent(ability, 0);
+        }
+        for (Map.Entry<MultiblockAbility<?>, Integer> entry : operationState.getAbilityCounts().entrySet()) {
+            counts.put(entry.getKey(), entry.getValue());
+        }
+        return counts;
+    }
+
     private static <T> T copyTypedValue(@NotNull StructureSessionKey<T> key,
                                         @NotNull Object value) {
         return key.copy((T) value);
@@ -430,28 +448,34 @@ public final class StructureMatchSession {
         public final String errorMessage;
         @NotNull
         public final Map<MultiblockAbility<?>, Integer> missingAbilities;
+        @NotNull
+        public final Map<MultiblockAbility<?>, Integer> abilityCounts;
 
         private Validation(boolean success, @Nullable String errorMessage,
-                           @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+                           @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                           @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
             this.success = success;
             this.errorMessage = errorMessage;
             this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
+            this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
         }
 
         @NotNull
-        private static Validation success() {
-            return new Validation(true, null, Collections.emptyMap());
+        private static Validation success(@NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
+            return new Validation(true, null, Collections.emptyMap(), abilityCounts);
         }
 
         @NotNull
-        private static Validation failure(@NotNull String errorMessage) {
-            return new Validation(false, errorMessage, Collections.emptyMap());
+        private static Validation failure(@NotNull String errorMessage,
+                                          @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
+            return new Validation(false, errorMessage, Collections.emptyMap(), abilityCounts);
         }
 
         @NotNull
         private static Validation missingAbilities(
-                @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
-            return new Validation(false, "Missing required multiblock abilities", missingAbilities);
+                @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
+            return new Validation(false, "Missing required multiblock abilities", missingAbilities, abilityCounts);
         }
     }
 }

@@ -328,6 +328,11 @@ public final class StructureMatchCollector {
         private PatternError createMaxError() {
             return maxErrorFactory == null ? null : maxErrorFactory.get();
         }
+
+        @Nullable
+        MultiblockAbility<?> getAbility() {
+            return ability;
+        }
     }
 
     public static final class Validation {

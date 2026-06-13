@@ -2,7 +2,6 @@ package gregtech.api.pattern;
 
 import gregtech.api.util.RelativeDirection;
 
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
@@ -16,8 +15,7 @@ public enum OffsetMode {
     ABSOLUTE {
         @Override
         public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
-                              @NotNull EnumFacing frontFacing, @NotNull EnumFacing upwardsFacing,
-                              boolean flipped) {
+                              @NotNull StructureOrientation orientation) {
             return controllerPos.add(offset[0], offset[1], offset[2]);
         }
     },
@@ -28,11 +26,11 @@ public enum OffsetMode {
     RELATIVE {
         @Override
         public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
-                              @NotNull EnumFacing frontFacing, @NotNull EnumFacing upwardsFacing,
-                              boolean flipped) {
+                              @NotNull StructureOrientation orientation) {
             BlockPos transformed = RelativeDirection.setActualRelativeOffset(
                     offset[0], offset[1], offset[2],
-                    frontFacing, upwardsFacing, flipped, PIECE_OFFSET_DIRECTIONS);
+                    orientation.getStructureFront(), orientation.getUp(),
+                    orientation.isFlipped(), PIECE_OFFSET_DIRECTIONS);
             return controllerPos.add(transformed);
         }
     },
@@ -43,11 +41,11 @@ public enum OffsetMode {
     HORIZONTAL_RELATIVE {
         @Override
         public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
-                              @NotNull EnumFacing frontFacing, @NotNull EnumFacing upwardsFacing,
-                              boolean flipped) {
+                              @NotNull StructureOrientation orientation) {
             BlockPos horizontal = RelativeDirection.setActualRelativeOffset(
                     offset[0], 0, offset[2],
-                    frontFacing, upwardsFacing, flipped, PIECE_OFFSET_DIRECTIONS);
+                    orientation.getStructureFront(), orientation.getUp(),
+                    orientation.isFlipped(), PIECE_OFFSET_DIRECTIONS);
             return controllerPos.add(horizontal.getX(), offset[1], horizontal.getZ());
         }
     };
@@ -59,17 +57,5 @@ public enum OffsetMode {
     };
 
     public abstract BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
-                                   @NotNull EnumFacing frontFacing, @NotNull EnumFacing upwardsFacing,
-                                   boolean flipped);
-
-    @NotNull
-    public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
-                          @NotNull StructureOrientation orientation) {
-        return apply(
-                controllerPos,
-                offset,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped());
-    }
+                                   @NotNull StructureOrientation orientation);
 }

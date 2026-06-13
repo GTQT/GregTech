@@ -56,8 +56,12 @@ public final class StructureCheckResult {
     private final BlockPos errorPos;
     @Nullable
     private final String errorMessage;
+    @Nullable
+    private final StructureFailureTrace failureTrace;
     @NotNull
     private final Map<MultiblockAbility<?>, Integer> missingAbilities;
+    @NotNull
+    private final Map<MultiblockAbility<?>, Integer> abilityCounts;
     @NotNull
     private final StructureChannelValues channelValues;
     private final boolean flipped;
@@ -70,7 +74,9 @@ public final class StructureCheckResult {
                                  @Nullable PatternError error,
                                  @Nullable BlockPos errorPos,
                                  @Nullable String errorMessage,
+                                 @Nullable StructureFailureTrace failureTrace,
                                  @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                 @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
                                  @NotNull StructureChannelValues channelValues,
                                  boolean flipped) {
         this.source = source;
@@ -81,7 +87,9 @@ public final class StructureCheckResult {
         this.error = error;
         this.errorPos = errorPos;
         this.errorMessage = errorMessage;
+        this.failureTrace = failureTrace;
         this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
+        this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
         this.channelValues = channelValues.copy();
         this.flipped = flipped;
     }
@@ -98,7 +106,9 @@ public final class StructureCheckResult {
                 result.error,
                 result.errorPos,
                 result.errorMessage,
+                result.failureTrace,
                 result.missingAbilities,
+                result.abilityCounts,
                 context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
                 result.flipped);
     }
@@ -119,7 +129,9 @@ public final class StructureCheckResult {
                 matched ? null : state.getError(),
                 null,
                 matched ? null : "Legacy structure template did not match",
+                null,
                 matched ? Collections.emptyMap() : state.getMissingAbilities(),
+                Collections.emptyMap(),
                 matched ? StructureChannelValues.fromContext(context) : new StructureChannelValues(),
                 matched && context.neededFlip());
     }
@@ -164,6 +176,11 @@ public final class StructureCheckResult {
     }
 
     @NotNull
+    public Map<MultiblockAbility<?>, Integer> getAbilityCounts() {
+        return abilityCounts;
+    }
+
+    @NotNull
     public StructureChannelValues copyChannelValues() {
         return channelValues.copy();
     }
@@ -174,14 +191,23 @@ public final class StructureCheckResult {
 
     @NotNull
     public StructureFailureTrace createFailureTrace(@NotNull MultiblockControllerBase controller) {
+        if (failureTrace != null) {
+            return failureTrace;
+        }
         StructureFailureTrace.Builder builder =
                 new StructureFailureTrace.Builder(controller.getMetaName(), controller.getPos())
                         .formed(controller.isStructureFormed())
                         .orientation(StructureOrientation.fromController(controller))
                         .path(getTracePath())
                         .operation("CHECK")
-                        .result("failed")
-                        .missingAbilities(missingAbilities);
+                        .result(missingAbilities.isEmpty()
+                                ? classifyError(error).getTraceName()
+                                : StructureFailureTrace.Kind.MISSING_ABILITY.getTraceName())
+                        .kind(missingAbilities.isEmpty()
+                                ? classifyError(error)
+                                : StructureFailureTrace.Kind.MISSING_ABILITY)
+                        .missingAbilities(missingAbilities)
+                        .abilityCounts(abilityCounts);
         if (error != null) {
             builder.error(error);
         } else {
@@ -191,5 +217,20 @@ public final class StructureCheckResult {
             builder.actual(errorMessage);
         }
         return builder.build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Kind classifyError(@Nullable PatternError error) {
+        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
+            TraceabilityPredicate.SinglePredicateError single =
+                    (TraceabilityPredicate.SinglePredicateError) error;
+            if (single.type == 0 || single.type == 2) {
+                return StructureFailureTrace.Kind.COUNT_LIMIT;
+            }
+        }
+        if (error == null) {
+            return StructureFailureTrace.Kind.LEGACY_PATTERN;
+        }
+        return StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }
 }

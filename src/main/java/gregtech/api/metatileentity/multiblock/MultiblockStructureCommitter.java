@@ -12,8 +12,6 @@ import gregtech.api.pattern.element.FormedStructureMetadata;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-
 /**
  * Server-thread boundary for publishing structure check results.
  *
@@ -142,8 +140,8 @@ final class MultiblockStructureCommitter {
                                         @Nullable String detail) {
         String message = detail == null ? "Structure assembly was rejected without a reason" : detail;
         StructureTrace.debug(controller, "commit-rejected", "path=" + path + ", reason=" + message);
-        StructureFailureTrace failure = StructureTrace.commitFailure(controller, path, message);
-        requireRuntime(controller).recordCheckFailure(failure, Collections.emptyMap());
+        StructureFailureTrace failure = StructureTrace.assemblyFailure(controller, path, message);
+        requireRuntime(controller).recordLifecycleFailure(failure);
     }
 
     @NotNull
