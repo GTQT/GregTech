@@ -2,19 +2,25 @@ package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
+import gregtech.client.renderer.ICubeRenderer;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.World;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import sun.misc.Unsafe;
@@ -27,6 +33,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -143,6 +150,56 @@ class StructureTraversalBoundaryTest {
         assertNull(legacyContext.get("custom"));
     }
 
+    @Test
+    void dirtyPieceRuntimeCheckReturnsCommitReadyResult() {
+        RecordingElement element = new RecordingElement(true);
+        StructurePiece piece = new StructurePiece(
+                "dirty", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
+        PieceRuntimes runtimes = new PieceRuntimes(pattern);
+        StructureRuntime runtime = new StructureRuntime(null, null, null, pattern, runtimes);
+
+        StructureCheckResult result = runtime.checkDirtyPieces(checkRequest());
+
+        assertTrue(result.isMatched());
+        assertEquals("dirty-piece", result.getTracePath());
+        assertNotNull(result.getMetadata());
+        assertEquals(BlockPos.ORIGIN, result.getMetadata().getPieceCenter("dirty"));
+        assertEquals(1, result.getMetadata().getChannelValue("channel"));
+        assertEquals(2, result.copyOperationState().getParts().size());
+        assertEquals(1, result.copyContext().getInt("channel"));
+        assertTrue(runtimes.get(piece).isValidated());
+        assertFalse(runtimes.get(piece).isDirty());
+    }
+
+    @Test
+    void dirtyPieceFailureRollsBackRuntimeAndReportsTrace() {
+        RecordingElement element = new RecordingElement(true);
+        StructurePiece piece = new StructurePiece(
+                "dirty", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
+        PieceRuntimes runtimes = new PieceRuntimes(pattern);
+        StructureRuntime runtime = new StructureRuntime(null, null, null, pattern, runtimes);
+
+        assertTrue(runtime.checkDirtyPieces(checkRequest()).isMatched());
+        PieceRuntime pieceRuntime = runtimes.get(piece);
+        LongSet formedPositions = new LongOpenHashSet(pieceRuntime.getPositions());
+
+        pieceRuntime.markDirty();
+        element.setMatches(false);
+        StructureCheckResult failed = runtime.checkDirtyPieces(checkRequest());
+
+        assertFalse(failed.isMatched());
+        assertEquals("dirty-piece", failed.getTracePath());
+        StructureFailureTrace failureTrace = failed.createFailureTrace(testController());
+        assertEquals(StructureFailureTrace.Kind.BLOCK_MISMATCH,
+                failureTrace.getKind());
+        assertEquals("dirty-piece", failureTrace.getPath());
+        assertTrue(pieceRuntime.isValidated());
+        assertTrue(pieceRuntime.isDirty());
+        assertEquals(formedPositions, pieceRuntime.getPositions());
+    }
+
     private static RepeatGroupPiece repeatPiece(PieceTemplate template, int[] axes, int[] steps) {
         int[][] ranges = new int[axes.length][2];
         for (int i = 0; i < axes.length; i++) {
@@ -197,12 +254,43 @@ class StructureTraversalBoundaryTest {
     @NotNull
     private static World bareWorld() {
         try {
-            Field field = Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            Unsafe unsafe = (Unsafe) field.get(null);
-            return (World) unsafe.allocateInstance(BareWorld.class);
+            return (World) unsafe().allocateInstance(BareWorld.class);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Unable to allocate bare test world", e);
+        }
+    }
+
+    @NotNull
+    private static StructureOperationRequest checkRequest() {
+        return StructureOperationRequest.check(
+                WORLD,
+                BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                false,
+                null,
+                null);
+    }
+
+    @NotNull
+    private static TestController testController() {
+        try {
+            TestController controller = (TestController) unsafe().allocateInstance(TestController.class);
+            controller.world = WORLD;
+            controller.pos = BlockPos.ORIGIN;
+            return controller;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate test controller", e);
+        }
+    }
+
+    @NotNull
+    private static Unsafe unsafe() {
+        try {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            return (Unsafe) field.get(null);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to access Unsafe", e);
         }
     }
 
@@ -218,36 +306,37 @@ class StructureTraversalBoundaryTest {
         private final List<BlockPos> visited;
         @NotNull
         private final State state;
-        private final boolean matches;
         private final TraceabilityPredicate predicate;
 
         private RecordingElement(boolean matches) {
-            this(new State(), matches, new TraceabilityPredicate());
+            this(new State(matches), new TraceabilityPredicate());
         }
 
         private RecordingElement(@NotNull State state,
-                                 boolean matches,
                                  @NotNull TraceabilityPredicate predicate) {
             this.state = state;
             this.visited = state.visited;
-            this.matches = matches;
             this.predicate = predicate;
         }
 
         private RecordingElement withPredicate(@NotNull TraceabilityPredicate predicate) {
-            return new RecordingElement(state, matches, predicate);
+            return new RecordingElement(state, predicate);
+        }
+
+        private void setMatches(boolean matches) {
+            state.matches = matches;
         }
 
         @Override
         public boolean check(@NotNull StructureEvaluationContext<Object> context) {
             visited.add(context.getPos());
             state.lastSession = context.getSession();
-            if (matches) {
+            if (state.matches) {
                 StructureMatchCollector collector = context.getCollector();
                 collector.addPart(new TestPart());
                 collector.recordChannelValue("channel", 1, true);
             }
-            return matches;
+            return state.matches;
         }
 
         @Override
@@ -284,6 +373,11 @@ class StructureTraversalBoundaryTest {
         @NotNull
         private final List<BlockPos> visited = new ArrayList<>();
         private StructureMatchSession lastSession;
+        private boolean matches;
+
+        private State(boolean matches) {
+            this.matches = matches;
+        }
     }
 
     private static final class TestPart implements IMultiblockPart {
@@ -298,6 +392,49 @@ class StructureTraversalBoundaryTest {
 
         @Override
         public void removeFromMultiBlock(MultiblockControllerBase controllerBase) {}
+    }
+
+    private static final class TestController extends MultiblockControllerBase {
+
+        private World world;
+        private BlockPos pos;
+
+        private TestController() {
+            super(new ResourceLocation("gregtech", "dirty_piece_test_controller"));
+        }
+
+        @Override
+        public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+            return this;
+        }
+
+        @Override
+        public World getWorld() {
+            return world;
+        }
+
+        @Override
+        public BlockPos getPos() {
+            return pos;
+        }
+
+        @Override
+        public @NotNull EnumFacing getFrontFacing() {
+            return EnumFacing.NORTH;
+        }
+
+        @Override
+        public String getMetaName() {
+            return "gregtech.machine.dirty_piece_test_controller";
+        }
+
+        @Override
+        protected void updateFormedValid() {}
+
+        @Override
+        public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+            return null;
+        }
     }
 
     private static final class BareWorld extends World {

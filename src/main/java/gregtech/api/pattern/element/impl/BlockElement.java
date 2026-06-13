@@ -5,6 +5,7 @@ import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -21,10 +22,12 @@ public class BlockElement implements IStructureElement<Object> {
 
     private final IBlockState[] states;
     private final TraceabilityPredicate cachedPredicate;
+    private final StructureElementPreview preview;
 
     public BlockElement(IBlockState... states) {
         this.states = states;
         this.cachedPredicate = buildPredicate();
+        this.preview = StructureElementPreview.of(this::getCandidates);
     }
 
     @Override
@@ -61,6 +64,11 @@ public class BlockElement implements IStructureElement<Object> {
             infos[i] = new BlockInfo(states[i], null);
         }
         return infos;
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
     }
 
     @Override

@@ -6,6 +6,7 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -100,6 +101,22 @@ public class ChainElement implements IStructureElement<Object> {
             }
         }
         return all.toArray(new BlockInfo[0]);
+    }
+
+    @NotNull
+    @Override
+    public StructureElementPreview getPreview() {
+        StructureElementPreview.Builder builder = StructureElementPreview.builder();
+        for (IStructureElement e : elements) {
+            StructureElementPreview preview = e.getPreview();
+            for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+                builder.limited(group);
+            }
+            for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+                builder.common(group);
+            }
+        }
+        return builder.build();
     }
 
     @Override
@@ -203,6 +220,13 @@ public class ChainElement implements IStructureElement<Object> {
     public void addTooltip(List<String> tooltip) {
         for (IStructureElement e : elements) {
             e.addTooltip(tooltip);
+        }
+    }
+
+    @Override
+    public void addPreviewTooltip(@NotNull List<String> tooltip) {
+        for (IStructureElement e : elements) {
+            e.addPreviewTooltip(tooltip);
         }
     }
 

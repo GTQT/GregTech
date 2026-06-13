@@ -3,26 +3,21 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.pattern.MultiPiecePattern;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Manages event-driven structure checking for formed multiblocks.
- * Instead of periodic polling, formed multiblocks register their block positions
- * and only re-validate when a block change occurs within their structure.
+ * Per-world facade for structure dirty indexing.
  *
- * Uses a ChunkPos-based index for O(1) lookup of affected multiblocks.
+ * <p>World callbacks record dirty controllers/pieces/chunks through this class.
+ * The scheduler consumes the dirty state later; block-change callbacks must not
+ * run structure checks directly.
  */
 public class MultiblockWorldData {
 
@@ -30,42 +25,7 @@ public class MultiblockWorldData {
     private static final Map<World, MultiblockWorldData> INSTANCES =
             Collections.synchronizedMap(new WeakHashMap<>());
 
-    /**
-     * Minimum server ticks between successive structure re-checks for the same controller.
-     * Prevents per-tick full pattern scans when a player rapidly breaks/places blocks.
-     * At 20 TPS this means at most one full check per 5 ticks (250 ms).
-     */
-    private static final int RECHECK_COOLDOWN_TICKS = 5;
-
-    /** ChunkPos -> Set of controllers that have blocks in this chunk */
-    private final Map<ChunkPos, Set<MultiblockControllerBase>> chunkIndex = new ConcurrentHashMap<>();
-
-    /** Controller -> Set of block positions (as longs) belonging to this controller's structure */
-    private final Map<MultiblockControllerBase, LongSet> controllerPositions = new ConcurrentHashMap<>();
-
-    /** Controller -> MultiPiecePattern for piece-level dirty marking (P3) */
-    private final Map<MultiblockControllerBase, MultiPiecePattern> controllerPiecePatterns = new ConcurrentHashMap<>();
-
-    /** Controllers that have been notified of a block change and need re-validation on next tick */
-    private final Set<MultiblockControllerBase> pendingRecheck = ConcurrentHashMap.newKeySet();
-
-    /** Monotonic revision assigned to each changed chunk for async snapshot validation. */
-    private final AtomicLong changeRevision = new AtomicLong();
-    private final Map<ChunkPos, Long> chunkChangeRevisions = new ConcurrentHashMap<>();
-
-    /**
-     * Controllers that are currently suppressing event-driven recheck notifications.
-     * Used by multiblocks (e.g., Forge of Gods) that intentionally modify blocks within
-     * their own structure (e.g., replacing rings with air for rendering). Block changes
-     * during suppression are silently ignored instead of triggering a recheck.
-     */
-    private final Set<MultiblockControllerBase> suppressedControllers = ConcurrentHashMap.newKeySet();
-
-    /**
-     * Controller -> server tick at which the last block-change event was received.
-     * Used together with {@link #RECHECK_COOLDOWN_TICKS} to debounce rapid block changes.
-     */
-    private final Map<MultiblockControllerBase, Long> lastChangedTick = new ConcurrentHashMap<>();
+    private final StructureWorldIndex structureIndex = new StructureWorldIndex();
 
     public static MultiblockWorldData get(World world) {
         return INSTANCES.computeIfAbsent(world, w -> new MultiblockWorldData());
@@ -83,13 +43,7 @@ public class MultiblockWorldData {
      * @param positions  the set of block positions (as longs) in the structure
      */
     public void registerMultiblock(MultiblockControllerBase controller, LongSet positions) {
-        controllerPositions.put(controller, positions);
-
-        for (long pos : positions) {
-            ChunkPos chunkPos = new ChunkPos(BlockPos.fromLong(pos));
-            chunkIndex.computeIfAbsent(chunkPos, k -> ConcurrentHashMap.newKeySet())
-                    .add(controller);
-        }
+        structureIndex.registerMultiblock(controller, positions);
     }
 
     /**
@@ -102,8 +56,7 @@ public class MultiblockWorldData {
      */
     public void registerMultiblock(MultiblockControllerBase controller, LongSet positions,
                                    MultiPiecePattern piecePattern) {
-        registerMultiblock(controller, positions);
-        controllerPiecePatterns.put(controller, piecePattern);
+        structureIndex.registerMultiblock(controller, positions, piecePattern);
     }
 
     /**
@@ -113,23 +66,7 @@ public class MultiblockWorldData {
      * @param controller the multiblock controller
      */
     public void unregisterMultiblock(MultiblockControllerBase controller) {
-        LongSet positions = controllerPositions.remove(controller);
-        if (positions == null) return;
-
-        for (long pos : positions) {
-            ChunkPos chunkPos = new ChunkPos(BlockPos.fromLong(pos));
-            Set<MultiblockControllerBase> controllers = chunkIndex.get(chunkPos);
-            if (controllers != null) {
-                controllers.remove(controller);
-                if (controllers.isEmpty()) {
-                    chunkIndex.remove(chunkPos);
-                }
-            }
-        }
-
-        controllerPiecePatterns.remove(controller);
-        pendingRecheck.remove(controller);
-        lastChangedTick.remove(controller);
+        structureIndex.unregisterMultiblock(controller);
     }
 
     /**
@@ -145,94 +82,35 @@ public class MultiblockWorldData {
      * @return true if at least one registered multiblock was affected by this position
      */
     public boolean onBlockChanged(BlockPos pos, long gameTick) {
-        chunkChangeRevisions.put(
-                new ChunkPos(pos), changeRevision.incrementAndGet());
-
-        ChunkPos chunkPos = new ChunkPos(pos);
-        Set<MultiblockControllerBase> controllers = chunkIndex.get(chunkPos);
-        if (controllers == null || controllers.isEmpty()) return false;
-
-        long posLong = pos.toLong();
-        boolean affected = false;
-        for (MultiblockControllerBase controller : controllers) {
-            LongSet positions = controllerPositions.get(controller);
-            if (positions != null && positions.contains(posLong)) {
-                // Skip controllers that are suppressing recheck (e.g., during ring replacement)
-                if (suppressedControllers.contains(controller)) {
-                    affected = true;
-                    continue;
-                }
-                // Check if this controller uses multi-piece pattern
-                MultiPiecePattern piecePattern = controllerPiecePatterns.get(controller);
-                if (piecePattern != null) {
-                    // Piece-level dirty marking: only mark the specific piece(s) containing this position
-                    // The per-controller PieceRuntimes carries the per-piece position sets and dirty flags
-                    piecePattern.markDirtyByPosition(posLong, controller.getPieceRuntimes(), controller);
-                }
-                // Record the tick of this change; doStructureCheck() will debounce using this value
-                lastChangedTick.put(controller, gameTick);
-                pendingRecheck.add(controller);
-                affected = true;
-            }
-        }
-        return affected;
+        return structureIndex.markBlockChanged(pos, gameTick);
     }
 
     /**
      * Capture the change revisions for every chunk touched by a snapshot AABB.
      */
     ChangeSnapshot captureChangeSnapshot(BlockPos minCorner, BlockPos maxCorner) {
-        Map<ChunkPos, Long> revisions = new HashMap<>();
-        int minChunkX = minCorner.getX() >> 4;
-        int maxChunkX = maxCorner.getX() >> 4;
-        int minChunkZ = minCorner.getZ() >> 4;
-        int maxChunkZ = maxCorner.getZ() >> 4;
-        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
-            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                ChunkPos chunk = new ChunkPos(chunkX, chunkZ);
-                revisions.put(chunk, chunkChangeRevisions.getOrDefault(chunk, 0L));
-            }
-        }
-        return new ChangeSnapshot(revisions);
+        return new ChangeSnapshot(structureIndex.captureChangeSnapshot(minCorner, maxCorner));
     }
 
     boolean isChangeSnapshotCurrent(ChangeSnapshot snapshot) {
-        for (Map.Entry<ChunkPos, Long> entry : snapshot.revisions.entrySet()) {
-            if (!entry.getValue().equals(
-                    chunkChangeRevisions.getOrDefault(entry.getKey(), 0L))) {
-                return false;
-            }
-        }
-        return true;
+        return structureIndex.isChangeSnapshotCurrent(snapshot.delegate);
     }
 
     /**
-     * Check if a controller has a pending re-check due to a block change event,
-     * applying a cooldown so that rapid consecutive changes collapse into one check.
-     *
-     * <p>Returns {@code true} (and clears the pending flag) only when both:
-     * <ul>
-     *   <li>the controller is in the pending set, AND</li>
-     *   <li>at least {@link #RECHECK_COOLDOWN_TICKS} ticks have elapsed since the last change</li>
-     * </ul>
-     *
-     * @param controller the controller to check
-     * @param currentTick the current server tick (from {@code world.getTotalWorldTime()})
-     * @return true if the controller should be re-validated this tick
+     * Consume pending dirty state for scheduler selection.
      */
+    @NotNull
+    DirtyCheckDecision consumeDirtyCheck(MultiblockControllerBase controller, long currentTick) {
+        return new DirtyCheckDecision(structureIndex.consumeDirtyCheck(controller, currentTick));
+    }
+
+    /**
+     * @deprecated Use {@link #consumeDirtyCheck(MultiblockControllerBase, long)}
+     *             so the scheduler can choose between piece and full checks.
+     */
+    @Deprecated
     public boolean hasPendingRecheck(MultiblockControllerBase controller, long currentTick) {
-        if (!pendingRecheck.contains(controller)) return false;
-
-        Long changed = lastChangedTick.get(controller);
-        if (changed != null && (currentTick - changed) < RECHECK_COOLDOWN_TICKS) {
-            // Still within the cooldown window — defer the check
-            return false;
-        }
-
-        // Cooldown expired: consume the pending flag and clear the tick record
-        pendingRecheck.remove(controller);
-        lastChangedTick.remove(controller);
-        return true;
+        return consumeDirtyCheck(controller, currentTick).shouldCheck();
     }
 
     /**
@@ -242,7 +120,7 @@ public class MultiblockWorldData {
      * @return true if the controller is registered
      */
     public boolean isRegistered(MultiblockControllerBase controller) {
-        return controllerPositions.containsKey(controller);
+        return structureIndex.isRegistered(controller);
     }
 
     /**
@@ -252,30 +130,52 @@ public class MultiblockWorldData {
      * @return the set of positions, or empty set if not registered
      */
     public LongSet getPositions(MultiblockControllerBase controller) {
-        LongSet positions = controllerPositions.get(controller);
-        return positions != null ? positions : new LongOpenHashSet();
+        return structureIndex.getPositions(controller);
     }
 
     /**
      * Clear all data. Called when a world is unloaded.
      */
     public void clear() {
-        chunkIndex.clear();
-        controllerPositions.clear();
-        controllerPiecePatterns.clear();
-        pendingRecheck.clear();
-        lastChangedTick.clear();
-        chunkChangeRevisions.clear();
-        changeRevision.set(0);
-        suppressedControllers.clear();
+        structureIndex.clear();
     }
 
     static final class ChangeSnapshot {
 
-        private final Map<ChunkPos, Long> revisions;
+        private final StructureWorldIndex.ChangeSnapshot delegate;
 
-        private ChangeSnapshot(Map<ChunkPos, Long> revisions) {
-            this.revisions = Collections.unmodifiableMap(new HashMap<>(revisions));
+        private ChangeSnapshot(@NotNull StructureWorldIndex.ChangeSnapshot delegate) {
+            this.delegate = delegate;
+        }
+    }
+
+    static final class DirtyCheckDecision {
+
+        private final StructureWorldIndex.DirtyCheckDecision delegate;
+
+        private DirtyCheckDecision(@NotNull StructureWorldIndex.DirtyCheckDecision delegate) {
+            this.delegate = delegate;
+        }
+
+        boolean isRegistered() {
+            return delegate.isRegistered();
+        }
+
+        boolean shouldCheck() {
+            return delegate.shouldCheck();
+        }
+
+        boolean shouldCheckPiece() {
+            return delegate.shouldCheckPiece();
+        }
+
+        @NotNull
+        String describeAction() {
+            return delegate.getAction().name();
+        }
+
+        long getLastChangedTick() {
+            return delegate.getLastChangedTick();
         }
     }
 
@@ -288,7 +188,7 @@ public class MultiblockWorldData {
      * @param controller the controller to suppress
      */
     public void suppressRecheck(MultiblockControllerBase controller) {
-        suppressedControllers.add(controller);
+        structureIndex.suppressRecheck(controller);
     }
 
     /**
@@ -298,8 +198,6 @@ public class MultiblockWorldData {
      * @param controller the controller to unsuppress
      */
     public void unsuppressRecheck(MultiblockControllerBase controller) {
-        suppressedControllers.remove(controller);
-        pendingRecheck.remove(controller);
-        lastChangedTick.remove(controller);
+        structureIndex.unsuppressRecheck(controller);
     }
 }

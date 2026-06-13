@@ -15,6 +15,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -111,6 +112,28 @@ public interface IStructureElement<T> {
      */
     default BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<T> context) {
         return getCandidates();
+    }
+
+    /**
+     * Direct preview/build metadata for this element.
+     *
+     * <p>New elements should override this when candidate selection needs
+     * channel preferences, preview counts, default candidates, or count-limited
+     * candidate groups. The default exposes {@link #getCandidates()} as one
+     * common group so V3 preview/build code does not need to inspect
+     * {@link TraceabilityPredicate} metadata.
+     */
+    @NotNull
+    default StructureElementPreview getPreview() {
+        return StructureElementPreview.of(this::getCandidates);
+    }
+
+    /**
+     * Context-aware direct preview/build metadata.
+     */
+    @NotNull
+    default StructureElementPreview getPreview(@NotNull StructureEvaluationContext<T> context) {
+        return getPreview();
     }
 
     /**
@@ -333,6 +356,17 @@ public interface IStructureElement<T> {
     default void addTooltip(List<String> tooltip) {}
 
     /**
+     * Direct tooltip entry for preview/projector/tooling surfaces.
+     *
+     * <p>This is the preferred replacement for attaching tooltip text through a
+     * legacy predicate view. The default delegates to the historical
+     * {@link #addTooltip(List)} hook for source compatibility.
+     */
+    default void addPreviewTooltip(@NotNull List<String> tooltip) {
+        addTooltip(tooltip);
+    }
+
+    /**
      * Register this element into a {@link PieceTemplateCompiler} under the
      * given symbol.
      *
@@ -350,6 +384,7 @@ public interface IStructureElement<T> {
      * directly. This hook exists only for migration cases whose matching still
      * depends on legacy predicate side effects.
      */
+    @ApiStatus.Internal
     default boolean usesLegacyPredicateRuntime() {
         return false;
     }
@@ -360,6 +395,7 @@ public interface IStructureElement<T> {
      * element runtime unless {@link #usesLegacyPredicateRuntime()} opts in.
      */
     @Nullable
+    @ApiStatus.Obsolete
     default TraceabilityPredicate toPredicate() {
         return null;
     }
@@ -399,6 +435,19 @@ public interface IStructureElement<T> {
                         IStructureElement.this.getCandidates(probeContext));
             }
 
+            @NotNull
+            @Override
+            public StructureElementPreview getPreview() {
+                return IStructureElement.this.getPreview();
+            }
+
+            @NotNull
+            @Override
+            public StructureElementPreview getPreview(@NotNull StructureEvaluationContext<T> context) {
+                return context.probeValue(probeContext ->
+                        IStructureElement.this.getPreview(probeContext));
+            }
+
             @Override
             public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
                 return IStructureElement.this.spawnHint(world, pos, trigger);
@@ -418,6 +467,11 @@ public interface IStructureElement<T> {
             @Override
             public List<String> getDescription(@Nullable T context) {
                 return IStructureElement.this.getDescription(context);
+            }
+
+            @Override
+            public void addPreviewTooltip(@NotNull List<String> tooltip) {
+                IStructureElement.this.addPreviewTooltip(tooltip);
             }
 
             @Override

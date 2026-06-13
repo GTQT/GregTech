@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
@@ -67,7 +68,7 @@ class StructureBuildAccountingTest {
                 player,
                 new BlockInfo[] { dirtInfo },
                 StructurePlacementDecision.toItemStacks(new BlockInfo[] { dirtInfo }),
-                null, null, null, SURVIVAL_BUILD);
+                (TraceabilityPredicate.SimplePredicate) null, null, null, SURVIVAL_BUILD);
         StructureBuildResult result = StructureBuildResult.builder()
                 .recordAttemptedTraversal()
                 .recordVisitedCell()
@@ -94,7 +95,7 @@ class StructureBuildAccountingTest {
                 player,
                 new BlockInfo[] { stoneInfo },
                 StructurePlacementDecision.toItemStacks(new BlockInfo[] { stoneInfo }),
-                null, null, null, SURVIVAL_BUILD);
+                (TraceabilityPredicate.SimplePredicate) null, null, null, SURVIVAL_BUILD);
 
         assertNotNull(selection);
         assertEquals(2, player.inventory.mainInventory.get(0).getCount());
@@ -219,6 +220,40 @@ class StructureBuildAccountingTest {
     }
 
     @Test
+    void directPreviewChannelSelectsBuildCandidateWithoutLegacyPredicateMetadata() {
+        MutableWorld mutableWorld = mutableWorld();
+        TestPlayer player = player(false, mutableWorld);
+        player.inventory.mainInventory.set(0, new ItemStack(Blocks.DIRT));
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new DirectChannelElement(stoneInfo, dirtInfo, "tier")));
+        Map<String, Integer> channels = new HashMap<>();
+        channels.put("tier", 2);
+
+        StructureBuildResult result = state.autoBuildAtWithResult(
+                player, controller(mutableWorld), BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0, channels, false, null, SURVIVAL_BUILD, ItemStack.EMPTY);
+
+        assertEquals(1, result.getPlacementBudget());
+        assertEquals(1, result.getPlacedCells());
+        assertEquals(dirtItem.getItem(), result.getConsumedItems().get(0).getStack().getItem());
+        assertEquals(Blocks.DIRT.getDefaultState(), mutableWorld.getBlockState(BlockPos.ORIGIN));
+    }
+
+    @Test
+    void directPreviewChannelSelectsPreviewCandidateWithoutLegacyPredicateMetadata() {
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new DirectChannelElement(stoneInfo, dirtInfo, "tier")));
+        Map<String, Integer> channels = new HashMap<>();
+        channels.put("tier", 2);
+
+        MultiblockState.PreviewCells preview = state.createPreviewCells(new int[] { 1 }, channels);
+
+        assertEquals(Blocks.DIRT.getDefaultState(),
+                preview.getBlocks().get(BlockPos.ORIGIN).getBlockState());
+    }
+
+    @Test
     void consumeFailureAfterPlacementRollsBackWorldAndSummary() {
         MutableWorld mutableWorld = mutableWorld();
         TestPlayer player = player(false, mutableWorld);
@@ -280,10 +315,17 @@ class StructureBuildAccountingTest {
 
     @NotNull
     private static PieceTemplate singleCellTemplate(@NotNull IStructureElement<?> element) {
+        TraceabilityPredicate predicate = element.toPredicate();
+        if (predicate == null) {
+            predicate = new TraceabilityPredicate(worldState -> true, element::getCandidates);
+            if (element.isCenter()) {
+                predicate.setCenter();
+            }
+        }
         return new PieceTemplate(
                 new TraceabilityPredicate[][][] {
                         {
-                                { element.toPredicate() }
+                                { predicate }
                         }
                 },
                 new IStructureElement<?>[][][] {
@@ -402,6 +444,60 @@ class StructureBuildAccountingTest {
         public TraceabilityPredicate toPredicate() {
             return predicate;
         }
+    }
+
+    private static final class DirectChannelElement implements IStructureElement<Object> {
+
+        @NotNull
+        private final BlockInfo first;
+        @NotNull
+        private final BlockInfo second;
+        @NotNull
+        private final StructureElementPreview preview;
+
+        private DirectChannelElement(@NotNull BlockInfo first,
+                                     @NotNull BlockInfo second,
+                                     @NotNull String channelName) {
+            this.first = first;
+            this.second = second;
+            this.preview = StructureElementPreview.builder()
+                    .common(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                            .channel(channelName)
+                            .build())
+                    .build();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            IBlockState blockState = context.getBlockState();
+            return blockState == first.getBlockState() || blockState == second.getBlockState();
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            IBlockState blockState = world.getBlockState(pos);
+            return blockState == first.getBlockState() || blockState == second.getBlockState();
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] { first, second };
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return world.setBlockState(pos, first.getBlockState());
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class TestPart implements IMultiblockPart {

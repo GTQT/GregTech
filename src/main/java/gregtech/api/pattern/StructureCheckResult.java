@@ -58,6 +58,10 @@ public final class StructureCheckResult {
     private final String errorMessage;
     @Nullable
     private final StructureFailureTrace failureTrace;
+    @Nullable
+    private final String tracePathOverride;
+    @Nullable
+    private final String traceActualDetail;
     @NotNull
     private final Map<MultiblockAbility<?>, Integer> missingAbilities;
     @NotNull
@@ -71,13 +75,15 @@ public final class StructureCheckResult {
                                  @Nullable PatternMatchContext context,
                                  @NotNull StructureOperationState operationState,
                                  @Nullable FormedStructureMetadata metadata,
-                                 @Nullable PatternError error,
-                                 @Nullable BlockPos errorPos,
-                                 @Nullable String errorMessage,
-                                 @Nullable StructureFailureTrace failureTrace,
-                                 @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
-                                 @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
-                                 @NotNull StructureChannelValues channelValues,
+                                  @Nullable PatternError error,
+                                  @Nullable BlockPos errorPos,
+                                  @Nullable String errorMessage,
+                                  @Nullable StructureFailureTrace failureTrace,
+                                  @Nullable String tracePathOverride,
+                                  @Nullable String traceActualDetail,
+                                  @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                  @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                  @NotNull StructureChannelValues channelValues,
                                  boolean flipped) {
         this.source = source;
         this.matched = matched;
@@ -88,6 +94,8 @@ public final class StructureCheckResult {
         this.errorPos = errorPos;
         this.errorMessage = errorMessage;
         this.failureTrace = failureTrace;
+        this.tracePathOverride = tracePathOverride;
+        this.traceActualDetail = traceActualDetail;
         this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
         this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
         this.channelValues = channelValues.copy();
@@ -107,10 +115,40 @@ public final class StructureCheckResult {
                 result.errorPos,
                 result.errorMessage,
                 result.failureTrace,
+                null,
+                null,
                 result.missingAbilities,
                 result.abilityCounts,
                 context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
                 result.flipped);
+    }
+
+    @NotNull
+    public static StructureCheckResult fromDirtyPieceDefinition(
+            boolean matched,
+            @Nullable PatternMatchContext context,
+            @Nullable StructureOperationState operationState,
+            @Nullable FormedStructureMetadata metadata,
+            @Nullable StructureFailureTrace failureTrace,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            boolean flipped) {
+        return new StructureCheckResult(
+                Source.DEFINITION,
+                matched,
+                context,
+                operationState == null ? new StructureOperationState() : operationState,
+                metadata,
+                failureTrace == null ? null : failureTrace.getError(),
+                failureTrace == null ? null : failureTrace.getErrorPos(),
+                matched ? null : "Dirty-piece structure check failed",
+                failureTrace,
+                "dirty-piece",
+                null,
+                missingAbilities,
+                abilityCounts,
+                context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
+                flipped);
     }
 
     @NotNull
@@ -130,6 +168,8 @@ public final class StructureCheckResult {
                 null,
                 matched ? null : "Legacy structure template did not match",
                 null,
+                null,
+                null,
                 matched ? Collections.emptyMap() : state.getMissingAbilities(),
                 Collections.emptyMap(),
                 matched ? StructureChannelValues.fromContext(context) : new StructureChannelValues(),
@@ -143,7 +183,28 @@ public final class StructureCheckResult {
 
     @NotNull
     public String getTracePath() {
-        return source.getTracePath();
+        return tracePathOverride == null ? source.getTracePath() : tracePathOverride;
+    }
+
+    @NotNull
+    public StructureCheckResult withTraceContext(@NotNull String tracePath,
+                                                 @Nullable String actualDetail) {
+        return new StructureCheckResult(
+                source,
+                matched,
+                context,
+                operationState,
+                metadata,
+                error,
+                errorPos,
+                errorMessage,
+                failureTrace,
+                tracePath,
+                actualDetail,
+                missingAbilities,
+                abilityCounts,
+                channelValues,
+                flipped);
     }
 
     public boolean isMatched() {
@@ -192,6 +253,9 @@ public final class StructureCheckResult {
     @NotNull
     public StructureFailureTrace createFailureTrace(@NotNull MultiblockControllerBase controller) {
         if (failureTrace != null) {
+            if (tracePathOverride != null || traceActualDetail != null) {
+                return copyFailureTrace(controller, failureTrace);
+            }
             return failureTrace;
         }
         StructureFailureTrace.Builder builder =
@@ -213,10 +277,50 @@ public final class StructureCheckResult {
         } else {
             builder.errorPosition(errorPos);
         }
-        if (error == null && errorMessage != null) {
+        if (traceActualDetail != null) {
+            builder.actual(errorMessage == null ? traceActualDetail : errorMessage + "; " + traceActualDetail);
+        } else if (error == null && errorMessage != null) {
             builder.actual(errorMessage);
         }
         return builder.build();
+    }
+
+    @NotNull
+    private StructureFailureTrace copyFailureTrace(@NotNull MultiblockControllerBase controller,
+                                                  @NotNull StructureFailureTrace failure) {
+        StructureFailureTrace.Builder builder =
+                new StructureFailureTrace.Builder(controller.getMetaName(), controller.getPos())
+                        .formed(controller.isStructureFormed())
+                        .orientation(StructureOrientation.fromController(controller))
+                        .path(getTracePath())
+                        .operation(failure.getOperation())
+                        .result(failure.getResult())
+                        .kind(failure.getKind())
+                        .piece(failure.getPiece())
+                        .cell(failure.getCell())
+                        .progressDepth(failure.getProgressDepth())
+                        .missingAbilities(missingAbilities)
+                        .abilityCounts(abilityCounts);
+        if (failure.getError() != null) {
+            builder.error(failure.getError());
+        } else {
+            builder.errorPosition(failure.getErrorPos());
+        }
+        builder.expected(failure.getExpected())
+                .actual(appendDetail(failure.getActual(), traceActualDetail));
+        return builder.build();
+    }
+
+    @Nullable
+    private static String appendDetail(@Nullable String actual,
+                                       @Nullable String detail) {
+        if (detail == null || detail.isEmpty()) {
+            return actual;
+        }
+        if (actual == null || actual.isEmpty()) {
+            return detail;
+        }
+        return actual + "; " + detail;
     }
 
     @NotNull

@@ -3,6 +3,7 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.StructureEvaluationContext.Operation;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.Mods;
 
@@ -80,12 +81,73 @@ final class StructurePlacementDecision {
     }
 
     @Nullable
+    static Selection select(@NotNull EntityPlayer player,
+                            @NotNull BlockInfo[] infos,
+                            @NotNull List<ItemStack> candidates,
+                            @Nullable StructureElementPreview.CandidateGroup matchedGroup,
+                            @Nullable Map<String, Integer> channelValues,
+                            @Nullable AbilityPlacementTracker abilityTracker,
+                            @NotNull Operation operation) {
+        int preferredCandidateIndex = getPreferredCandidateIndex(matchedGroup, infos, channelValues);
+        int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker, preferredCandidateIndex);
+        if (operation.isSurvivalBuild() && !player.isCreative()) {
+            Selection required = selectSurvivalCandidate(player, infos, candidates, requiredAbilityIndex);
+            if (required != null) {
+                return required;
+            }
+            Selection preferred = selectSurvivalCandidate(player, infos, candidates, preferredCandidateIndex);
+            if (preferred != null) {
+                return preferred;
+            }
+            Selection inventory = selectInventoryCandidate(player, infos, candidates);
+            if (inventory != null) {
+                return inventory;
+            }
+            return selectAeCandidate(player, infos, candidates);
+        }
+
+        int preferredIndex = requiredAbilityIndex >= 0 ? requiredAbilityIndex : preferredCandidateIndex;
+        if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
+            return Selection.creative(candidates.get(preferredIndex), infos[preferredIndex]);
+        }
+        for (int i = candidates.size() - 1; i >= 0; i--) {
+            ItemStack found = candidates.get(i);
+            if (!found.isEmpty()) {
+                return Selection.creative(found, infos[i]);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
     static ItemStack representativeRequiredStack(@NotNull BlockInfo[] infos,
                                                  @NotNull List<ItemStack> candidates,
                                                  @Nullable TraceabilityPredicate.SimplePredicate matchedPredicate,
                                                  @Nullable Map<String, Integer> channelValues,
                                                  @Nullable AbilityPlacementTracker abilityTracker) {
         int preferredCandidateIndex = getPreferredCandidateIndex(matchedPredicate, infos, channelValues);
+        int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker, preferredCandidateIndex);
+        if (requiredAbilityIndex >= 0 && requiredAbilityIndex < candidates.size()) {
+            return one(candidates.get(requiredAbilityIndex));
+        }
+        if (preferredCandidateIndex >= 0 && preferredCandidateIndex < candidates.size()) {
+            return one(candidates.get(preferredCandidateIndex));
+        }
+        for (ItemStack candidate : candidates) {
+            if (!candidate.isEmpty()) {
+                return one(candidate);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    static ItemStack representativeRequiredStack(@NotNull BlockInfo[] infos,
+                                                 @NotNull List<ItemStack> candidates,
+                                                 @Nullable StructureElementPreview.CandidateGroup matchedGroup,
+                                                 @Nullable Map<String, Integer> channelValues,
+                                                 @Nullable AbilityPlacementTracker abilityTracker) {
+        int preferredCandidateIndex = getPreferredCandidateIndex(matchedGroup, infos, channelValues);
         int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker, preferredCandidateIndex);
         if (requiredAbilityIndex >= 0 && requiredAbilityIndex < candidates.size()) {
             return one(candidates.get(requiredAbilityIndex));
@@ -156,6 +218,14 @@ final class StructurePlacementDecision {
         return 0;
     }
 
+    static int getChannelCandidateIndex(@Nullable StructureElementPreview.CandidateGroup group,
+                                        @Nullable BlockInfo[] infos,
+                                        @Nullable Map<String, Integer> channelValues) {
+        int preferredIndex = getPreferredCandidateIndex(group, infos, channelValues);
+        if (preferredIndex >= 0) return preferredIndex;
+        return 0;
+    }
+
     static int getPreferredCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
                                           @Nullable BlockInfo[] infos,
                                           @Nullable Map<String, Integer> channelValues) {
@@ -182,12 +252,49 @@ final class StructurePlacementDecision {
         return -1;
     }
 
+    static int getPreferredCandidateIndex(@Nullable StructureElementPreview.CandidateGroup group,
+                                          @Nullable BlockInfo[] infos,
+                                          @Nullable Map<String, Integer> channelValues) {
+        int channelIndex = getPreferredChannelCandidateIndex(group, infos, channelValues);
+        if (channelIndex >= 0) {
+            return channelIndex;
+        }
+        if (group == null || infos == null || group.getDefaultCandidate() == null) {
+            return -1;
+        }
+        MetaTileEntity preferred = group.getDefaultCandidate().get();
+        if (preferred == null) {
+            return -1;
+        }
+        for (int i = 0; i < infos.length; i++) {
+            TileEntity tileEntity = infos[i].getTileEntity();
+            if (tileEntity instanceof IGregTechTileEntity gregTechTile) {
+                MetaTileEntity candidate = gregTechTile.getMetaTileEntity();
+                if (candidate != null && preferred.metaTileEntityId.equals(candidate.metaTileEntityId)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
     private static int getPreferredChannelCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
                                                          @Nullable BlockInfo[] infos,
                                                          @Nullable Map<String, Integer> channelValues) {
         if (predicate == null || infos == null || infos.length == 0) return -1;
         if (channelValues == null || predicate.channelName == null) return -1;
         Integer cv = channelValues.get(predicate.channelName);
+        if (cv == null || cv <= 0) return -1;
+        int idx = cv - 1;
+        return idx < infos.length ? idx : -1;
+    }
+
+    private static int getPreferredChannelCandidateIndex(@Nullable StructureElementPreview.CandidateGroup group,
+                                                         @Nullable BlockInfo[] infos,
+                                                         @Nullable Map<String, Integer> channelValues) {
+        if (group == null || infos == null || infos.length == 0) return -1;
+        if (channelValues == null || group.getChannelName() == null) return -1;
+        Integer cv = channelValues.get(group.getChannelName());
         if (cv == null || cv <= 0) return -1;
         int idx = cv - 1;
         return idx < infos.length ? idx : -1;

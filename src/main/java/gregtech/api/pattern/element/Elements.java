@@ -98,7 +98,11 @@ public final class Elements {
         return ElementUtility.ofChain(elements);
     }
 
-    /** Legacy TraceabilityPredicate wrapper */
+    /**
+     * Compatibility wrapper for old {@link TraceabilityPredicate} declarations.
+     * New elements should implement the direct {@link IStructureElement} runtime,
+     * preview and hint methods instead of routing through this adapter.
+     */
     public static IStructureElement legacy(TraceabilityPredicate predicate) {
         return ElementUtility.ofLegacy(predicate);
     }

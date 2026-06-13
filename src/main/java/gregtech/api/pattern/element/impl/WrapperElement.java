@@ -6,6 +6,7 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.BlockInfo;
 import gregtech.common.ConfigHolder;
@@ -132,6 +133,22 @@ public class WrapperElement implements IStructureElement<Object> {
                 getDelegate().getCandidates(probeContext));
     }
 
+    @NotNull
+    @Override
+    public StructureElementPreview getPreview() {
+        StructureElementPreview preview = getDelegate().getPreview();
+        return channelName == null ? preview : applyChannel(preview, channelName);
+    }
+
+    @NotNull
+    @Override
+    public StructureElementPreview getPreview(@NotNull StructureEvaluationContext<Object> context) {
+        return context.probeValue(probeContext -> {
+            StructureElementPreview preview = getDelegate().getPreview(probeContext);
+            return channelName == null ? preview : applyChannel(preview, channelName);
+        });
+    }
+
     @Nullable
     @Override
     public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
@@ -227,6 +244,11 @@ public class WrapperElement implements IStructureElement<Object> {
         getDelegate().addTooltip(tooltip);
     }
 
+    @Override
+    public void addPreviewTooltip(@NotNull List<String> tooltip) {
+        getDelegate().addPreviewTooltip(tooltip);
+    }
+
     @Nullable
     @Override
     public List<String> getDescription(@Nullable Object context) {
@@ -303,6 +325,19 @@ public class WrapperElement implements IStructureElement<Object> {
         wrapped.ability = sp.ability;
         wrapped.defaultCandidate = sp.defaultCandidate;
         return wrapped;
+    }
+
+    @NotNull
+    private static StructureElementPreview applyChannel(@NotNull StructureElementPreview preview,
+                                                        @NotNull String channelName) {
+        StructureElementPreview.Builder builder = StructureElementPreview.builder();
+        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+            builder.limited(group.withChannel(channelName));
+        }
+        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+            builder.common(group.withChannel(channelName));
+        }
+        return builder.build();
     }
 
     private void runCallback(@NotNull PatternMatchContext context) {

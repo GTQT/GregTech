@@ -24,9 +24,10 @@ import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPattern;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -59,6 +60,7 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
     protected BigInteger powerTally = BigInteger.ZERO;
     protected long recipeTally = 0;
     protected long currentRecipeHeat = 0;
+    private StructureDefinition<?> structureDefinition;
 
     public MTEBaseModule(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap) {
         super(metaTileEntityId, recipeMap);
@@ -124,9 +126,15 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    // Retained on FactoryBlockPattern: uses abstract getCoilBlockPredicate() for per-module
-    // predicate customization, and all chars are simple states() with hatches on one slot only.
-    protected BlockPattern createStructurePattern() {
+    protected StructureDefinition<?> createStructureDefinition() {
+        if (structureDefinition == null) {
+            structureDefinition = StructureDefinition.fromTemplate("godforge_module", createStructureTemplateForModule());
+        }
+        return structureDefinition;
+    }
+
+    @NotNull
+    private BlockPatternTemplate createStructureTemplateForModule() {
         return FactoryBlockPattern.start()
                 .aisle("       ", "       ", "       ", "   G   ", "       ", "       ", "       ")
                 .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
@@ -153,7 +161,7 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
                 .where('E', states(getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING)))
                 .where('F', states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)))
                 .where('G', states(getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
-                .build();
+                .buildTemplate();
     }
 
     protected abstract TraceabilityPredicate getCoilBlockPredicate();

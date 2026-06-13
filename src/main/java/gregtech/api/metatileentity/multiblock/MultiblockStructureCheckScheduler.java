@@ -50,17 +50,18 @@ final class MultiblockStructureCheckScheduler {
             return false;
         }
 
-        MultiblockWorldData worldData = MultiblockWorldData.get(controller.getWorld());
-        if (!worldData.isRegistered(controller)) {
+        MultiblockWorldData.DirtyCheckDecision decision = MultiblockWorldData.get(controller.getWorld())
+                .consumeDirtyCheck(controller, controller.getWorld().getTotalWorldTime());
+        if (!decision.isRegistered()) {
             return false;
         }
 
-        if (worldData.hasPendingRecheck(controller, controller.getWorld().getTotalWorldTime())) {
+        if (decision.shouldCheck()) {
             if (ConfigHolder.machines.debugStructureCheck) {
-                GTLog.logger.debug("[StructureCheck] Event-driven recheck triggered for {}",
-                        controller.getMetaName());
+                GTLog.logger.debug("[StructureCheck] Event-driven {} recheck triggered for {}",
+                        decision.describeAction(), controller.getMetaName());
             }
-            if (controller.multiPiecePattern != null) {
+            if (decision.shouldCheckPiece()) {
                 controller.checkMultiPieceStructure();
             } else {
                 controller.checkStructurePattern();

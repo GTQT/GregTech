@@ -23,6 +23,7 @@ import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -218,6 +219,22 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     private boolean isRenderedRingTemplateActive(int ringIndex, int renderedRingMask) {
         return (renderedRingMask & (1 << (ringIndex - 1))) != 0;
+    }
+
+    private void refreshRuntimeForRenderedRingState(@NotNull String reason) {
+        int currentMask = getRenderedRingTemplateMask();
+        if (currentMask == patternBuiltForRenderedRingMask) {
+            return;
+        }
+        StructureTrace.debug(this, "godforge-dynamic-definition-refresh",
+                "reason=" + reason + ", previousRenderedMask=" + patternBuiltForRenderedRingMask
+                        + ", currentRenderedMask=" + currentMask
+                        + ", desiredRings=" + getDesiredRingAmount()
+                        + ", clearedRings=" + data.getClearedRingAmount()
+                        + ", structureTarget=" + getStructureRingTargetAmount()
+                        + ", renderActive=" + data.isRenderActive()
+                        + ", recovering=" + recoveringRenderedStructure);
+        reinitializeStructurePattern();
     }
 
     private boolean isRenderedRingOwnedByRenderer(int ringIndex) {
@@ -1524,6 +1541,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             data.setClearedRingAmount(task.ringAmount);
         }
         markDirty();
+        refreshRuntimeForRenderedRingState("ring-replacement-finished");
 
         if (task.restoreBlocks || task.changedBlocks > 0) {
             GTLog.logger.info(

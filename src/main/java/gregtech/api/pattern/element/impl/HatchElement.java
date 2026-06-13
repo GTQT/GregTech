@@ -11,6 +11,7 @@ import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,6 +36,7 @@ public class HatchElement implements IStructureElement<Object> {
     private final int maxCount;
     private final TraceabilityPredicate legacyPredicate;
     private final TraceabilityPredicate.SimplePredicate limitPredicate;
+    private final StructureElementPreview preview;
 
     public HatchElement(MultiblockAbility<?> ability) {
         this(ability, 0, -1, -1, null);
@@ -68,6 +70,7 @@ public class HatchElement implements IStructureElement<Object> {
         }
         this.legacyPredicate = predicate;
         this.limitPredicate = findLimitPredicate(predicate);
+        this.preview = StructureElementPreview.fromPredicate(predicate);
     }
 
     @Override
@@ -108,6 +111,11 @@ public class HatchElement implements IStructureElement<Object> {
         collectCandidates(legacyPredicate.common, candidates);
         collectCandidates(legacyPredicate.limited, candidates);
         return candidates.toArray(new BlockInfo[0]);
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
     }
 
     @Override

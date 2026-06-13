@@ -34,6 +34,7 @@ import java.util.Map;
  *     .build();
  * }</pre>
  */
+@ApiStatus.Obsolete
 public class FactoryBlockPattern {
 
     private final PieceTemplateCompiler compiler;

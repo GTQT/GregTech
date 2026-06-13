@@ -74,6 +74,18 @@ public final class StructureOperationEvaluator {
     }
 
     @NotNull
+    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.CHECK);
+        MultiPiecePattern.DirtyCheckResult result = requireMultiPiecePattern().checkDirtyPiecesWithResult(
+                request.requireWorld(), request.requireControllerPos(), request.requireOrientation(),
+                requirePieceRuntimes(), request.getController());
+        return StructureCheckResult.fromDirtyPieceDefinition(
+                result.isMatched(), result.copyContext(), result.copyOperationState(), result.getMetadata(),
+                result.getFailureTrace(), result.getMissingAbilities(), result.getAbilityCounts(),
+                result.isFlipped());
+    }
+
+    @NotNull
     public StructureCheckState.Result checkDefinition(
             @NotNull World world,
             @NotNull BlockPos controllerPos,

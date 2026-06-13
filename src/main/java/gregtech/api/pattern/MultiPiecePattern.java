@@ -261,24 +261,37 @@ public class MultiPiecePattern {
                                     @NotNull StructureOrientation orientation,
                                     @NotNull PieceRuntimes runtimes,
                                     @Nullable MultiblockControllerBase controller) {
+        return checkDirtyPiecesWithResult(world, controllerPos, orientation, runtimes, controller).isMatched();
+    }
+
+    @NotNull
+    public DirtyCheckResult checkDirtyPiecesWithResult(World world, BlockPos controllerPos,
+                                                       @NotNull StructureOrientation orientation,
+                                                       @NotNull PieceRuntimes runtimes,
+                                                       @Nullable MultiblockControllerBase controller) {
         StructureMatchSession session = createMatchSession();
         session.setControllerContext(controller);
         PieceRuntimes.Checkpoint runtimeCheckpoint = runtimes.checkpoint();
-        boolean matched = session.transaction(candidate ->
-                checkDirtyPiecesInSession(world, controllerPos, orientation, runtimes, controller, candidate));
-        if (!matched) {
+        DirtyCheckResult result = session.transactionValue(candidate ->
+                checkDirtyPiecesInSession(world, controllerPos, orientation, runtimes, controller, candidate),
+                DirtyCheckResult::isMatched);
+        if (!result.isMatched()) {
             runtimes.restoreTo(runtimeCheckpoint);
         }
-        return matched;
+        return result;
     }
 
-    private boolean checkDirtyPiecesInSession(World world, BlockPos controllerPos,
-                                             @NotNull StructureOrientation orientation,
-                                             @NotNull PieceRuntimes runtimes,
-                                             @Nullable MultiblockControllerBase controller,
-                                             @NotNull StructureMatchSession session) {
+    @NotNull
+    private DirtyCheckResult checkDirtyPiecesInSession(World world, BlockPos controllerPos,
+                                                      @NotNull StructureOrientation orientation,
+                                                      @NotNull PieceRuntimes runtimes,
+                                                      @Nullable MultiblockControllerBase controller,
+                                                      @NotNull StructureMatchSession session) {
         Map<String, int[]> priorRepeats = new HashMap<>();
         Map<String, BlockPos> priorCenters = new HashMap<>();
+        Map<String, Integer> channelValues = new HashMap<>();
+        String lastActivePieceName = null;
+        BlockPos lastActivePieceCenter = null;
 
         for (StructurePiece piece : pieceList) {
             PieceRuntime runtime = runtimes.get(piece);
@@ -290,6 +303,8 @@ public class MultiPiecePattern {
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
             if (!piece.isActive(activation)) continue;
             BlockPos pieceCenter = piece.getCenterPos(controllerPos, orientation, prior);
+            lastActivePieceName = piece.getName();
+            lastActivePieceCenter = pieceCenter;
 
             if (piece instanceof RepeatGroupPiece repeatPiece) {
                 boolean ok = repeatPiece.checkSync(world, controllerPos, orientation, prior, runtime, session);
@@ -310,7 +325,17 @@ public class MultiPiecePattern {
             runtime.clearDirty();
 
             if (!runtime.isValidated()) {
-                return false;
+                StructureFailureTrace failure = createDirtyFailureTrace(
+                        controller, controllerPos, orientation, piece.getName(),
+                        describeCell(runtime.getState().getError()), activePieceDepth(piece),
+                        "Dirty piece '" + piece.getName() + "' failed pattern check",
+                        runtime.getState().getError(), runtime.getState().getMissingAbilities(),
+                        session.copyOperationState().getAbilityCounts(),
+                        classifyError(runtime.getState().getError(), runtime.getState().getMissingAbilities()));
+                return DirtyCheckResult.failure(failure,
+                        runtime.getState().getMissingAbilities(),
+                        session.copyOperationState().getAbilityCounts(),
+                        orientation.isFlipped());
             }
 
             // Add this piece's repeat counts to the prior metadata so subsequent
@@ -327,8 +352,239 @@ public class MultiPiecePattern {
                 }
             }
             priorCenters.put(piece.getName(), pieceCenter);
+            extractChannelValues(session.getContext(), channelValues);
         }
-        return session.validate(true).success;
+
+        StructureMatchSession.Validation validation = session.validate(true);
+        if (!validation.success) {
+            StructureFailureTrace.Kind kind = validation.missingAbilities.isEmpty()
+                    ? StructureFailureTrace.Kind.COUNT_LIMIT
+                    : StructureFailureTrace.Kind.MISSING_ABILITY;
+            StructureFailureTrace failure = createDirtyValidationFailureTrace(
+                    controller, controllerPos, orientation,
+                    validation.errorMessage == null ? "Dirty-piece validation failed" : validation.errorMessage,
+                    kind, validation.missingAbilities, validation.abilityCounts,
+                    lastActivePieceName, lastActivePieceCenter);
+            return DirtyCheckResult.failure(
+                    failure, validation.missingAbilities, validation.abilityCounts, orientation.isFlipped());
+        }
+
+        FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
+                priorRepeats, channelValues, priorCenters);
+        return DirtyCheckResult.success(
+                metadata, session.getContext().copy(), session.copyOperationState(), orientation.isFlipped());
+    }
+
+    private static void extractChannelValues(@NotNull PatternMatchContext context,
+                                             @NotNull Map<String, Integer> channelValues) {
+        for (Map.Entry<String, Object> entry : context.entrySet()) {
+            if (entry.getValue() instanceof Integer) {
+                channelValues.putIfAbsent(entry.getKey(), (Integer) entry.getValue());
+            }
+        }
+    }
+
+    @NotNull
+    private StructureFailureTrace createDirtyValidationFailureTrace(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull String message,
+            @NotNull StructureFailureTrace.Kind kind,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            @Nullable String pieceName,
+            @Nullable BlockPos errorPos) {
+        return traceBuilder(controller, controllerPos, orientation)
+                .path("dirty-piece")
+                .operation("CHECK")
+                .result(kind.getTraceName())
+                .kind(kind)
+                .piece(pieceName == null ? "deferred" : pieceName)
+                .cell("requirements")
+                .errorPosition(errorPos)
+                .progressDepth(pieceList.size())
+                .expected(kind == StructureFailureTrace.Kind.MISSING_ABILITY
+                        ? "required abilities present"
+                        : "requirements within declared limits")
+                .actual(message)
+                .missingAbilities(missingAbilities)
+                .abilityCounts(abilityCounts)
+                .build();
+    }
+
+    @NotNull
+    private StructureFailureTrace createDirtyFailureTrace(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull String pieceName,
+            @Nullable String cell,
+            int progressDepth,
+            @NotNull String message,
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            @NotNull StructureFailureTrace.Kind kind) {
+        StructureFailureTrace.Builder builder = traceBuilder(controller, controllerPos, orientation)
+                .path("dirty-piece")
+                .operation("CHECK")
+                .result(kind.getTraceName())
+                .kind(kind)
+                .piece(pieceName)
+                .cell(cell)
+                .progressDepth(progressDepth)
+                .missingAbilities(missingAbilities)
+                .abilityCounts(abilityCounts);
+        if (error != null) {
+            builder.error(error);
+        } else {
+            builder.errorPosition(controllerPos)
+                    .expected("dirty piece matched")
+                    .actual(message);
+        }
+        return builder.build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Builder traceBuilder(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation) {
+        StructureFailureTrace.Builder builder = new StructureFailureTrace.Builder(
+                controller == null ? "unknown" : controller.getMetaName(), controllerPos)
+                .orientation(orientation);
+        if (controller != null) {
+            builder.formed(controller.isStructureFormed());
+        }
+        return builder;
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Kind classifyError(
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (!missingAbilities.isEmpty()) {
+            return StructureFailureTrace.Kind.MISSING_ABILITY;
+        }
+        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
+            TraceabilityPredicate.SinglePredicateError single =
+                    (TraceabilityPredicate.SinglePredicateError) error;
+            if (single.type == 0 || single.type == 2) {
+                return StructureFailureTrace.Kind.COUNT_LIMIT;
+            }
+        }
+        return StructureFailureTrace.Kind.BLOCK_MISMATCH;
+    }
+
+    @Nullable
+    private static String describeCell(@Nullable PatternError error) {
+        if (error == null) {
+            return null;
+        }
+        try {
+            BlockPos pos = error.getPos();
+            return pos == null ? null : pos.toString();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private int activePieceDepth(@NotNull StructurePiece piece) {
+        int index = pieceList.indexOf(piece);
+        return index < 0 ? 0 : index + 1;
+    }
+
+    public static final class DirtyCheckResult {
+
+        private final boolean matched;
+        @Nullable
+        private final FormedStructureMetadata metadata;
+        @Nullable
+        private final PatternMatchContext context;
+        @Nullable
+        private final StructureOperationState operationState;
+        @Nullable
+        private final StructureFailureTrace failureTrace;
+        @NotNull
+        private final Map<MultiblockAbility<?>, Integer> missingAbilities;
+        @NotNull
+        private final Map<MultiblockAbility<?>, Integer> abilityCounts;
+        private final boolean flipped;
+
+        private DirtyCheckResult(boolean matched,
+                                 @Nullable FormedStructureMetadata metadata,
+                                 @Nullable PatternMatchContext context,
+                                 @Nullable StructureOperationState operationState,
+                                 @Nullable StructureFailureTrace failureTrace,
+                                 @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                 @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                 boolean flipped) {
+            this.matched = matched;
+            this.metadata = metadata;
+            this.context = context == null ? null : context.copy();
+            this.operationState = operationState == null ? null : operationState.copy();
+            this.failureTrace = failureTrace;
+            this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
+            this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
+            this.flipped = flipped;
+        }
+
+        @NotNull
+        static DirtyCheckResult success(@NotNull FormedStructureMetadata metadata,
+                                        @NotNull PatternMatchContext context,
+                                        @NotNull StructureOperationState operationState,
+                                        boolean flipped) {
+            return new DirtyCheckResult(true, metadata, context, operationState, null,
+                    Collections.emptyMap(), Collections.emptyMap(), flipped);
+        }
+
+        @NotNull
+        static DirtyCheckResult failure(@NotNull StructureFailureTrace failureTrace,
+                                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                        @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                        boolean flipped) {
+            return new DirtyCheckResult(false, null, null, null, failureTrace,
+                    missingAbilities, abilityCounts, flipped);
+        }
+
+        public boolean isMatched() {
+            return matched;
+        }
+
+        @Nullable
+        public FormedStructureMetadata getMetadata() {
+            return metadata;
+        }
+
+        @Nullable
+        public PatternMatchContext copyContext() {
+            return context == null ? null : context.copy();
+        }
+
+        @Nullable
+        public StructureOperationState copyOperationState() {
+            return operationState == null ? null : operationState.copy();
+        }
+
+        @Nullable
+        public StructureFailureTrace getFailureTrace() {
+            return failureTrace;
+        }
+
+        @NotNull
+        public Map<MultiblockAbility<?>, Integer> getMissingAbilities() {
+            return missingAbilities;
+        }
+
+        @NotNull
+        public Map<MultiblockAbility<?>, Integer> getAbilityCounts() {
+            return abilityCounts;
+        }
+
+        public boolean isFlipped() {
+            return flipped;
+        }
     }
 
     /**

@@ -17,6 +17,8 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import org.jetbrains.annotations.ApiStatus;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static gregtech.api.metatileentity.multiblock.MultiblockControllerBase.abilities;
 
+@ApiStatus.Obsolete
 public class TraceabilityPredicate {
 
     // Allow any block.

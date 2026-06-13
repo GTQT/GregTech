@@ -4,6 +4,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -21,9 +22,11 @@ import java.util.List;
 public class LegacyElement implements IStructureElement<Object> {
 
     private final TraceabilityPredicate predicate;
+    private final StructureElementPreview preview;
 
     public LegacyElement(TraceabilityPredicate predicate) {
         this.predicate = predicate;
+        this.preview = StructureElementPreview.fromPredicate(predicate);
     }
 
     @Override
@@ -33,8 +36,8 @@ public class LegacyElement implements IStructureElement<Object> {
 
     @Override
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        // Direct check is not typically used for legacy predicates;
-        // matching goes through toPredicate() in the compiled BlockPatternTemplate path
+        // Direct check is not typically used for legacy predicates; V3 matching
+        // goes through StructureEvaluationContext.test(predicate).
         return false;
     }
 
@@ -79,6 +82,11 @@ public class LegacyElement implements IStructureElement<Object> {
         // TraceabilityPredicate lives in gregtech.api.pattern — accessing a
         // protected field across packages is not allowed.
         return predicate.isCenter();
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
     }
 
     @Override

@@ -68,6 +68,19 @@ final class MultiblockStructureRegistration {
         registerMultiPiecePattern(controller, multiPiecePattern, pieceRuntimes);
     }
 
+    static void refreshMultiPieceRegistrationFromRuntime(@NotNull MultiblockControllerBase controller,
+                                                         @Nullable MultiPiecePattern multiPiecePattern,
+                                                         @Nullable PieceRuntimes pieceRuntimes) {
+        if (multiPiecePattern == null || pieceRuntimes == null || !controller.isStructureFormed()
+                || controller.getWorld() instanceof DummyWorld) {
+            return;
+        }
+
+        MultiblockWorldData worldData = MultiblockWorldData.get(controller.getWorld());
+        worldData.unregisterMultiblock(controller);
+        registerMultiPiecePattern(controller, multiPiecePattern, pieceRuntimes);
+    }
+
     static void registerMultiPiecePattern(@NotNull MultiblockControllerBase controller,
                                           @Nullable MultiPiecePattern multiPiecePattern,
                                           @Nullable PieceRuntimes pieceRuntimes) {

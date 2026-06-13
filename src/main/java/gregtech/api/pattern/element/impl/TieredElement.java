@@ -4,6 +4,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -22,10 +23,16 @@ public class TieredElement implements IStructureElement<Object> {
 
     private final Supplier<BlockInfo[]> candidates;
     private final String channelName;
+    private final StructureElementPreview preview;
 
     public TieredElement(Supplier<BlockInfo[]> candidates, String channelName) {
         this.candidates = candidates;
         this.channelName = channelName;
+        this.preview = StructureElementPreview.builder()
+                .common(StructureElementPreview.CandidateGroup.builder(candidates)
+                        .channel(channelName)
+                        .build())
+                .build();
     }
 
     @Override
@@ -55,6 +62,11 @@ public class TieredElement implements IStructureElement<Object> {
     @Override
     public BlockInfo[] getCandidates() {
         return candidates.get();
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
     }
 
     @Override

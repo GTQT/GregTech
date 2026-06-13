@@ -117,6 +117,8 @@ protected StructureDefinition<?> createStructureDefinition()
 
 - `check` / canonical `match`
 - context-aware candidates
+- direct preview/build metadata
+- direct preview tooltip
 - `couldBeValid`
 - hint dispatch
 - creative placement
@@ -128,7 +130,8 @@ protected StructureDefinition<?> createStructureDefinition()
 
 ### 5.2 Legacy predicate 是兼容路径
 
-`TraceabilityPredicate` 仍用于旧声明、旧 tooltip、旧 preview 或 addon 兼容。它的执行必须服从 V3 checkpoint/rollback 语义：
+`TraceabilityPredicate` 仍用于旧声明、旧 tooltip、旧 preview 或 addon 兼容。V3 preview/build 先消费
+`StructureElementPreview`，legacy predicate 只会被适配成同一元数据形状。它的执行必须服从 V3 checkpoint/rollback 语义：
 
 - predicate alternative 失败时要恢复 `PatternMatchContext`。
 - legacy global count 和 layer count 要和 context 一起回滚。
@@ -386,8 +389,9 @@ Hint 请求已经通过 runtime request 返回 `StructureHintResult`。它能报
 
 ### 11.3 Creative build
 
-Creative build 已经从 runtime request 进入，并用 operation-local build adapter 保留 legacy candidate selection。它更新 `CREATIVE_BUILD`
-cell context，但不收集 formation requirements。
+Creative build 已经从 runtime request 进入，并用 operation-local build adapter 消费 direct `StructureElementPreview`
+候选元数据。legacy predicate candidates 会被适配成同一元数据形状。它更新 `CREATIVE_BUILD` cell context，
+但不收集 formation requirements。
 
 ### 11.4 Survival build
 
@@ -399,7 +403,8 @@ Survival build 已有 request/runtime entry、placement decision 和 `StructureB
 - `requiresResume()` 表示本次结果还有 remaining placement budget；再次执行同一个 build request 会自然 resume，因为已放置 cell 会变成 already-valid。
 - survival build 记录 `requiredItems`、`consumedItems`、`missingItems`。有实际选择时 required 记录实际候选；完全不可用或提交消耗失败时 missing 记录对应缺项。
 - item source selection 先模拟 inventory/AE 可用性，world placement 成功后才提交消耗；如果提交消耗失败，会回滚本次刚放置的方块，并且不会记录 consumed。
-- candidate selection 由 `StructurePlacementDecision` 统一处理，creative/survival 共用 channel/default/ability 优先级。legacy predicate candidates 是兼容主路径；当 legacy fallback 没有可用候选时，direct element candidates 进入同一套 selection/accounting。
+- candidate selection 由 `StructurePlacementDecision` 统一处理，creative/survival 共用 channel/default/ability 优先级。direct
+  `StructureElementPreview` 是主路径；legacy predicate candidates 只作为 adapter 输入进入同一套 selection/accounting。
 - AE2 item source 是可选集成；测试或无 Loader 环境中 AE loaded probe 失败会安全返回 unavailable，而不是中断 build。
 
 默认 survival construction 的“already valid”检查已经通过 context probe 隔离，避免跳过已存在方块时污染 formation collector。
@@ -584,6 +589,11 @@ new direct element -> toPredicate() -> legacy matcher
 46. P1 orientation 收口已完成：`OffsetMode`、`PieceTemplate`、`MultiblockState`、`StructurePiece`、`RepeatGroupPiece`、
     `MultiPiecePattern`、preview placement、template iteration、AABB 和 axis-line 均使用 `StructureOrientation` /
     `StructureCellTraversal`；旧 `front/up/flipped` 参数只保留在 legacy facade 和低层方向描述边界。
+47. P2 动态结构迁移、dirty index/scheduler 和 controller orchestration 清理已完成，动态结构、dirty-piece 和 controller facade
+    都从 `StructureOperationRequest` / `StructureRuntime` 进入。
+48. P3 兼容层瘦身已完成第一轮：新增 `StructureElementPreview`，direct element 的 preview/build channel/default/count
+    metadata 不再依赖 `TraceabilityPredicate.SimplePredicate`；runtime fixed cell 使用编译期 compat predicate view，
+    不再在 cell loop 调用 direct element `toPredicate()`。
 
 ## 17. 已知缺口
 
@@ -591,12 +601,12 @@ new direct element -> toPredicate() -> legacy matcher
 
 1. hint result 还不能表达每个 element 是否实际渲染了可见提示。
 2. `BlockPattern` / `BlockPatternTemplate` 仍保留 legacy `front/up/flipped` facade，直到兼容 API 移除窗口。
-3. dynamic charcoal-pile 和 Godforge/controller-module 路径仍是主要迁移对象。
+3. 更多 addon-facing 动态结构 hook 仍需兼容窗口。
 4. controller lifecycle 仍有 formed flag、attached parts、ability instances 等状态留在控制器/piece runtime。
 5. `PatternMatchContext` 仍是 legacy adapter，部分旧调用点还依赖 string-keyed context。
-6. `TraceabilityPredicate` 仍是 addon 兼容所必需，不能直接移除。
+6. `TraceabilityPredicate` 仍是 addon 兼容所必需，不能直接移除；新 direct element 已不需要通过它提供 preview/build metadata。
 7. async checker 当前更多用于 snapshot precheck/fallback，还不是完整 async commit pipeline。
-8. `StructureWorldIndex` 或等价 dirty-index runtime 边界尚未建立。
+8. dirty index 已拆成 `StructureWorldIndex`；后续可继续把 scheduler 策略做成可插拔 policy。
 9. 可视化 diagnostic UI 仍未完成；当前已有 `/gt structure_trace <x> <y> <z>` 开发命令。
 
 ## 18. 路线图
@@ -697,11 +707,11 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 - 新 runtime/evaluator API 不再接收三散参数。
 - 旧参数只在 legacy facade 出现。
 
-### P2: 动态结构迁移
+### P2: 动态结构迁移（已完成）
 
 目标：把剩余动态路径也纳入 V3 request/runtime。
 
-具体计划：
+完成内容：
 
 1. 梳理 charcoal pile 的动态 check/preview/build 路径。
 2. 梳理 Godforge controller/module 的结构声明、preview 和 formed state。
@@ -714,11 +724,23 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 - preview/build/check 的 channel 和 orientation 一致。
 - 动态失败也能生成稳定 failure trace。
 
-### P2: Dirty Index 与 Scheduler
+当前实现：
+
+- `MultiblockControllerBase` 提供 disposable dynamic runtime helper。动态 template/definition 不发布为 canonical runtime，
+  只在当前 `StructureOperationRequest` 内用于 check/preview/build/hint。
+- Charcoal pile 的动态尺寸 preview/build/hint/check 都通过 dynamic runtime 入口；channel 先解析为固定尺寸模板，
+  再以同一 request orientation 执行。
+- Godforge module 已从 legacy pattern hook 迁到 per-instance `StructureDefinition` cache；controller ring renderer 的
+  normal/air template 切换在 rendered mask 变化时重建 runtime。
+- 动态 check failure 使用 `dynamic-runtime` trace path，并把 piece/channel detail 写入 failure trace。
+
+验证：`compileJava`，`StructureFailureDiagnosticsTest`，`StructureBuildAccountingTest`。
+
+### P2: Dirty Index 与 Scheduler（已完成）
 
 目标：让世界方块变化只标记 dirty，由 scheduler 决定如何检查。
 
-具体计划：
+完成内容：
 
 1. 新增 `StructureWorldIndex` 或等价 runtime dirty-index。
 2. world block callback 只登记 dirty controller/piece/chunk。
@@ -731,11 +753,27 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 - dirty-piece check 能覆盖常见局部变化。
 - stale async result 永不改变 formed/failure state。
 
-### P2: Controller Orchestration 清理
+当前实现：
+
+- 新增 `StructureWorldIndex`，集中维护 formed position chunk index、controller/piece dirty 标记、recheck cooldown、
+  suppressed controller，以及 async snapshot 使用的 chunk revision。`MultiblockWorldData` 仅保留 per-world facade。
+- Forge/mixin block-change callback 只调用 `onBlockChanged(...)` 登记 dirty controller/piece/chunk；结构检查由
+  `MultiblockStructureCheckScheduler` 在 controller tick 中消费 `DirtyCheckDecision` 后选择执行。
+- scheduler 对 formed controller 的 dirty decision 分为 `DEFERRED`、`PIECE`、`FULL`：cooldown 内吞掉 polling fallback，
+  multi-piece dirty 走 `StructureRuntime.checkDirtyPieces(StructureOperationRequest.check(...))`，否则走 full live check。
+- dirty-piece runtime check 返回标准 `StructureCheckResult`，成功/失败都进入 `MultiblockStructureCommitter`；
+  失败 trace path 为 `dirty-piece`，失败时回滚 piece runtime cache/positions/reps。
+- dirty-piece 检查后只用已验证 runtime positions 刷新 world index，不再隐式触发 `checkAllPieces()`。
+- async snapshot result 仍只作为 scheduler/main-thread confirm 输入；registration/runtime/orientation/change-snapshot stale guard
+  会拒绝过期结果，不直接发布 formed/failure state。
+
+验证：`compileJava`，`StructureTraversalBoundaryTest`，`StructureFailureDiagnosticsTest`，`StructureBuildAccountingTest`。
+
+### P2: Controller Orchestration 清理（已完成）
 
 目标：进一步缩小控制器基类中的结构协调逻辑。
 
-具体计划：
+完成内容：
 
 1. 继续把 assembly、registration、previews、channels、client hooks、scheduler 逻辑迁入 helper。
 2. 明确哪些 helper 是内部实现，哪些可以成为 addon API。
@@ -747,11 +785,22 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 - 控制器基类不再直接协调 traversal 分支。
 - addon 看到的兼容 API 稳定，核心内部走 V3。
 
-### P3: 兼容层瘦身
+当前实现：
+
+- 新增 `MultiblockStructureOperations`，承接 controller 的 check、dirty-piece check、hint、dynamic runtime、
+  channel range 和 preview shape dispatch。
+- `MultiblockControllerBase` 保留原 public/protected API，但这些方法现在主要是 facade；请求构造、runtime dispatch、
+  commit 和 formed registration 顺序集中在 helper 内。
+- dynamic helper、preview/channel helper、dirty-piece helper 都使用 `StructureOperationRequest` / `StructureRuntime`
+  作为内部边界，legacy public method 不再直接分叉 traversal。
+
+验证：`compileJava`，`StructureTraversalBoundaryTest`，`StructureFailureDiagnosticsTest`，`StructureBuildAccountingTest`。
+
+### P3: 兼容层瘦身（已完成）
 
 目标：在 addon 迁移可接受后，减少 legacy facade 的核心影响。
 
-具体计划：
+完成内容：
 
 1. 写 addon migration guide：如何从 `FactoryBlockPattern` / `TraceabilityPredicate` 迁到 `StructureDefinition` / direct element。
 2. 标记只用于兼容的 hook 和 facade。
@@ -762,6 +811,23 @@ P0 边界说明：这里完成的是 traversal 坐标入口和 formation side-ef
 
 - 新核心结构不需要 legacy hook。
 - 移除 facade 只会影响 addon 迁移，不会影响 V3 evaluator 设计。
+
+当前实现：
+
+- 新增 `StructureElementPreview`，direct element 可直接声明 preview/build candidate group、channel、default candidate、
+  global/layer count 和 preview count；legacy `TraceabilityPredicate.SimplePredicate` 只被适配成该元数据形状。
+- `IStructureElement` 新增 `getPreview(...)` 和 `addPreviewTooltip(...)`，作为 direct element 的 preview、build、tooltip 替代 API；
+  `toPredicate()` 标记为 compat-only view。
+- `MultiblockState` 的 preview/build candidate selection 改为消费 direct `StructureElementPreview`；`StructurePlacementDecision`
+  同时支持 direct candidate group 和 legacy predicate adapter。
+- fixed cell runtime 从 `PieceTemplate` 的编译期 compat predicate view 取 legacy context，不再在 cell loop 调用 direct element
+  `toPredicate()`。
+- `FactoryBlockPattern`、`TraceabilityPredicate`、`Elements.legacy(...)` 保持兼容入口；新核心 evaluator/runtime 不再要求 direct element
+  通过 legacy hook 提供匹配、preview 或 build 行为。
+- `docs/addon-multiblock-migration-guide.md` 已补 `FactoryBlockPattern` / `TraceabilityPredicate` 到
+  `StructureDefinition` / direct element 的迁移说明，以及 direct preview/tooltip/hint API 示例。
+
+验证：`compileJava`，`StructureBuildAccountingTest`，`StructureTraversalBoundaryTest`，`StructureFailureDiagnosticsTest`。
 
 ## 19. 测试与验证矩阵
 

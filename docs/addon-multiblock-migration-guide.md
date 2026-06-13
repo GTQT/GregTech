@@ -242,6 +242,97 @@ re-scanning parts from controller or legacy state.
 
 ---
 
+## Migrating to StructureDefinition and Direct Elements
+
+`FactoryBlockPattern` and `TraceabilityPredicate` remain available as compatibility
+facades, but new addon code should declare structures through `StructureDefinition`
+or `DeclarativePatternBuilder` and implement custom cells as direct
+`IStructureElement` instances.
+
+Use these replacements when moving custom structures:
+
+| Old API | New API |
+|---------|---------|
+| `FactoryBlockPattern.start().aisle(...).where(...).buildTemplate()` | `StructureDefinition.builder()` or `DeclarativePatternBuilder` |
+| `TraceabilityPredicate` custom matcher | `IStructureElement.check(StructureEvaluationContext)` |
+| `TraceabilityPredicate.addTooltips(...)` | `IStructureElement.addPreviewTooltip(...)` |
+| predicate candidates / `setPreviewCount(...)` / channel metadata | `IStructureElement.getPreview()` returning `StructureElementPreview` |
+| legacy hint-only rendering | `spawnHint(World, BlockPos, ItemStack)` or `spawnHint(StructureEvaluationContext)` |
+
+Custom direct elements no longer need to implement `toPredicate()` for runtime
+matching, preview, or build candidate selection. If old tooling still needs a
+predicate-shaped view, `toPredicate()` can return one, but it is now a
+compatibility view rather than the execution model.
+
+```java
+private static final class MyTieredElement implements IStructureElement<Object> {
+    private final BlockInfo[] candidates;
+    private final StructureElementPreview preview;
+
+    private MyTieredElement(BlockInfo... candidates) {
+        this.candidates = candidates;
+        this.preview = StructureElementPreview.builder()
+                .common(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                        .channel("my_tier")
+                        .build())
+                .build();
+    }
+
+    @Override
+    public boolean check(StructureEvaluationContext<Object> context) {
+        for (BlockInfo candidate : candidates) {
+            if (context.getBlockState() == candidate.getBlockState()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public BlockInfo[] getCandidates() {
+        return candidates;
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
+    }
+
+    @Override
+    public void addPreviewTooltip(List<String> tooltip) {
+        tooltip.add("myaddon.multiblock.preview.my_tier");
+    }
+}
+```
+
+For count-limited elements, expose the same limits through both the direct
+runtime hooks and the preview metadata:
+
+```java
+@Override
+public int getMinGlobalCount() {
+    return 4;
+}
+
+@Override
+public StructureElementPreview getPreview() {
+    return StructureElementPreview.builder()
+            .limited(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                    .global(4, -1)
+                    .previewCount(4)
+                    .build())
+            .build();
+}
+```
+
+Legacy declarations are adapted into the same metadata shape internally, so old
+addons keep working. The important migration rule is one-way compatibility:
+legacy declarations may enter V3 through adapters, but new direct elements
+should not depend on `TraceabilityPredicate` for matching, preview, build, or
+hint behavior.
+
+---
+
 ## Optional: DeclarativePatternBuilder
 
 For new multiblocks, consider using `DeclarativePatternBuilder` instead of raw

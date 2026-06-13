@@ -98,6 +98,18 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         return context.probeValue(source::getCandidates);
     }
 
+    @NotNull
+    @Override
+    public StructureElementPreview getPreview() {
+        return source.getPreview();
+    }
+
+    @NotNull
+    @Override
+    public StructureElementPreview getPreview(@NotNull StructureEvaluationContext<T> context) {
+        return context.probeValue(source::getPreview);
+    }
+
     @Nullable
     @Override
     public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
@@ -191,6 +203,11 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public void addTooltip(List<String> tooltip) {
         source.addTooltip(tooltip);
+    }
+
+    @Override
+    public void addPreviewTooltip(@NotNull List<String> tooltip) {
+        source.addPreviewTooltip(tooltip);
     }
 
     @Nullable

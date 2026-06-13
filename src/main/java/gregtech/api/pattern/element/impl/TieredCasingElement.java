@@ -11,6 +11,7 @@ import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -40,6 +41,7 @@ public final class TieredCasingElement implements IStructureElement<Object> {
     private final int maxGlobalCount;
     private final TraceabilityPredicate legacyPredicate;
     private final TraceabilityPredicate.SimplePredicate countPredicate;
+    private final StructureElementPreview preview;
 
     public TieredCasingElement(@NotNull ICasingGroup group, @NotNull String channelName) {
         this(group, channelName, 0, -1);
@@ -69,6 +71,12 @@ public final class TieredCasingElement implements IStructureElement<Object> {
         predicate.limited.forEach(simple -> simple.channelName = channelName);
         this.legacyPredicate = predicate;
         this.countPredicate = findCountPredicate(predicate);
+        this.preview = StructureElementPreview.builder()
+                .limited(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                        .global(this.minGlobalCount, this.maxGlobalCount)
+                        .channel(channelName)
+                        .build())
+                .build();
     }
 
     @Override
@@ -113,6 +121,11 @@ public final class TieredCasingElement implements IStructureElement<Object> {
         return casings.keySet().stream()
                 .map(state -> new BlockInfo(state, null))
                 .toArray(BlockInfo[]::new);
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
     }
 
     @Override

@@ -67,6 +67,8 @@ import java.util.Set;
 @ZenRegister
 public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase implements IWorkable {
 
+    private static final String DYNAMIC_PIECE_NAME = "charcoal_pile_dynamic";
+
     private static final int MIN_RADIUS = 1;
     private static final int MIN_DEPTH = 2;
     private static final int MAX_REPEAT = 4;
@@ -281,23 +283,29 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     @Override
     public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
         BlockPattern pattern = buildStructurePatternForChannelValues(channelValues);
+        StructureOperationRequest previewRequest = StructureOperationRequest.preview(
+                getFixedRepetitions(pattern), channelValues);
         return Collections.singletonList(new MultiblockShapeInfo(
-                pattern.getPreview(getFixedRepetitions(pattern), Collections.emptyMap())));
+                previewDynamicStructure(previewRequest, DYNAMIC_PIECE_NAME, pattern.getTemplate())));
     }
 
     @Override
     public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
         BlockPattern pattern = buildStructurePatternForChannelValues(request.getChannelValues());
-        return autoBuildDynamicStructure(request.withChannelValues(Collections.emptyMap()),
-                "charcoal_pile_dynamic", pattern.getTemplate());
+        return autoBuildDynamicStructure(request, DYNAMIC_PIECE_NAME, pattern.getTemplate());
     }
 
     @Override
     @NotNull
     public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
         BlockPattern pattern = buildStructurePatternForChannelValues(request.getChannelValues());
-        return hintDynamicStructure(request.withChannelValues(Collections.emptyMap()),
-                "charcoal_pile_dynamic", pattern.getTemplate());
+        return hintDynamicStructure(request, DYNAMIC_PIECE_NAME, pattern.getTemplate());
+    }
+
+    @Override
+    public void checkStructurePattern() {
+        reinitializeStructurePattern();
+        super.checkStructurePattern();
     }
 
     @Override

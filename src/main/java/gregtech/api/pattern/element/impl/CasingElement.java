@@ -9,6 +9,7 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -30,6 +31,7 @@ public final class CasingElement implements IStructureElement<Object> {
     private final int minGlobalCount;
     private final TraceabilityPredicate legacyPredicate;
     private final TraceabilityPredicate.SimplePredicate countPredicate;
+    private final StructureElementPreview preview;
 
     public CasingElement(@NotNull ICasing casing, int minGlobalCount) {
         this.blockState = casing.getBlockState();
@@ -39,6 +41,9 @@ public final class CasingElement implements IStructureElement<Object> {
                 this::getCandidates)
                 .setMinGlobalLimited(this.minGlobalCount);
         this.countPredicate = legacyPredicate.limited.get(0);
+        this.preview = StructureElementPreview.builder()
+                .limited(this::getCandidates, this.minGlobalCount, -1, -1, -1, -1)
+                .build();
     }
 
     @Override
@@ -69,6 +74,11 @@ public final class CasingElement implements IStructureElement<Object> {
     @Override
     public BlockInfo[] getCandidates() {
         return new BlockInfo[]{new BlockInfo(blockState, null)};
+    }
+
+    @Override
+    public StructureElementPreview getPreview() {
+        return preview;
     }
 
     @Override

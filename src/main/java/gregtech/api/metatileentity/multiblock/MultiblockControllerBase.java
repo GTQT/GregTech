@@ -15,6 +15,7 @@ import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
@@ -594,19 +595,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void checkStructurePattern() {
-        if (structureRuntime == null) {
-            reinitializeStructurePattern();
-        }
-        StructureTrace.debug(this, "check-start", structureRuntime.describeShape());
-        StructureCheckResult result = structureRuntime.check(
-                StructureOperationRequest.check(
-                        getWorld(),
-                        getPos(),
-                        StructureOrientation.fromController(this),
-                        isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample,
-                        null,
-                        this));
-        MultiblockStructureCommitter.applyCheckResult(this, result);
+        MultiblockStructureOperations.checkStructurePattern(this);
     }
 
     /**
@@ -636,8 +625,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * becomes invalid, the entire structure is invalidated.
      */
     protected void checkMultiPieceStructure() {
-        checkStructurePattern();
-        MultiblockStructureRegistration.refreshMultiPieceRegistration(this, multiPiecePattern, pieceRuntimes);
+        MultiblockStructureOperations.checkDirtyPieces(this);
     }
 
     /**
@@ -795,7 +783,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * to build a disposable definition from the requested channel values.
      */
     public void spawnStructureHints(@NotNull StructureOperationRequest request) {
-        hintStructure(request);
+        MultiblockStructureOperations.spawnStructureHints(this, request);
     }
 
     /**
@@ -803,12 +791,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
-        request.requireKind(StructureOperationRequest.Kind.HINT);
-        StructureRuntime runtime = getOrCreateStructureRuntime();
-        if (runtime.getState() != null) {
-            return runtime.hintSingle(request);
-        }
-        return runtime.hintAllPieces(request);
+        return MultiblockStructureOperations.hintStructure(this, request);
     }
 
     /**
@@ -818,7 +801,35 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     protected StructureRuntime createDynamicStructureRuntime(@NotNull StructureDefinition<?> definition) {
-        return StructureRuntime.fromDefinition(definition);
+        return MultiblockStructureOperations.createDynamicStructureRuntime(definition);
+    }
+
+    /**
+     * Creates a disposable runtime for a dynamic single-template operation.
+     *
+     * <p>The runtime is intentionally not published as this controller's canonical
+     * runtime. Dynamic templates derived from channels or transient controller
+     * state must stay scoped to one operation request so they cannot leak formed
+     * metadata or per-piece caches across sizes.
+     */
+    @NotNull
+    protected StructureRuntime createDynamicStructureRuntime(@NotNull String pieceName,
+                                                             @NotNull BlockPatternTemplate template) {
+        return MultiblockStructureOperations.createDynamicStructureRuntime(pieceName, template);
+    }
+
+    @NotNull
+    protected StructureCheckResult checkDynamicStructure(@NotNull StructureOperationRequest request,
+                                                        @NotNull String pieceName,
+                                                        @NotNull BlockPatternTemplate template) {
+        return MultiblockStructureOperations.checkDynamicStructure(this, request, pieceName, template);
+    }
+
+    @NotNull
+    protected BlockInfo[][][] previewDynamicStructure(@NotNull StructureOperationRequest request,
+                                                      @NotNull String pieceName,
+                                                      @NotNull BlockPatternTemplate template) {
+        return MultiblockStructureOperations.previewDynamicStructure(this, request, pieceName, template);
     }
 
     /**
@@ -827,14 +838,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected boolean autoBuildDynamicStructure(@NotNull StructureOperationRequest request,
                                                 @NotNull String pieceName,
                                                 @NotNull BlockPatternTemplate template) {
-        request.requireBuildKind();
-        StructureRuntime dynamicRuntime = createDynamicStructureRuntime(
-                StructureDefinition.fromTemplate(pieceName, template));
-        StructureTrace.debug(this, "dynamic-build",
-                "path=dynamic-runtime, operation=" + request.getEvaluationOperation()
-                        + ", piece=" + pieceName + ", " + dynamicRuntime.describeShape());
-        dynamicRuntime.buildSingle(request);
-        return true;
+        return MultiblockStructureOperations.autoBuildDynamicStructure(this, request, pieceName, template);
     }
 
     /**
@@ -843,7 +847,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void spawnDynamicStructureHints(@NotNull StructureOperationRequest request,
                                               @NotNull String pieceName,
                                               @NotNull BlockPatternTemplate template) {
-        hintDynamicStructure(request, pieceName, template);
+        MultiblockStructureOperations.spawnDynamicStructureHints(this, request, pieceName, template);
     }
 
     /**
@@ -853,13 +857,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected StructureHintResult hintDynamicStructure(@NotNull StructureOperationRequest request,
                                                        @NotNull String pieceName,
                                                        @NotNull BlockPatternTemplate template) {
-        request.requireKind(StructureOperationRequest.Kind.HINT);
-        StructureRuntime dynamicRuntime = createDynamicStructureRuntime(
-                StructureDefinition.fromTemplate(pieceName, template));
-        StructureTrace.debug(this, "dynamic-hint",
-                "path=dynamic-runtime, operation=" + request.getEvaluationOperation()
-                        + ", piece=" + pieceName + ", " + dynamicRuntime.describeShape());
-        return dynamicRuntime.hintSingle(request);
+        return MultiblockStructureOperations.hintDynamicStructure(this, request, pieceName, template);
     }
 
     /**
@@ -1121,13 +1119,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public List<StructureChannel> getSupportedChannels() {
-        if (patternTemplate == null) {
-            reinitializeStructurePattern();
-            if (patternTemplate == null) {
-                return MultiblockStructureChannels.collectChannelsFromMultiPiece(multiPiecePattern);
-            }
-        }
-        return collectChannelsFromTemplate(patternTemplate);
+        return MultiblockStructureOperations.getSupportedChannels(this);
     }
 
     /**
@@ -1139,41 +1131,15 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public int[] getChannelRange(@NotNull StructureChannel channel) {
-        if (patternTemplate == null) {
-            reinitializeStructurePattern();
-            if (patternTemplate == null) {
-                return MultiblockStructureChannels.getChannelRangeFromMultiPiece(multiPiecePattern, channel);
-            }
-        }
-        String channelName = channel.getName();
-        return MultiblockStructureChannels.getTemplateChannelRange(patternTemplate, channelName);
+        return MultiblockStructureOperations.getChannelRange(this, channel);
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes() {
-        if (this.patternTemplate == null) {
-            this.reinitializeStructurePattern();
-            if (this.patternTemplate == null) {
-                return MultiblockStructurePreviews.buildMultiPieceShapes(this, multiPiecePattern,
-                        pieceRuntimes, structureRuntime, null);
-            }
-        }
-        return MultiblockStructurePreviews.getMatchingShapes(this, this.patternTemplate,
-                this.multiblockState, this.structureRuntime, null);
+        return MultiblockStructureOperations.getMatchingShapes(this);
     }
 
     public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
-        if (channelValues == null || channelValues.isEmpty()) {
-            return getMatchingShapes();
-        }
-        if (this.patternTemplate == null) {
-            this.reinitializeStructurePattern();
-            if (this.patternTemplate == null) {
-                return MultiblockStructurePreviews.buildMultiPieceShapes(this, multiPiecePattern,
-                        pieceRuntimes, structureRuntime, channelValues);
-            }
-        }
-        return MultiblockStructurePreviews.getMatchingShapes(this, this.patternTemplate,
-                this.multiblockState, this.structureRuntime, channelValues);
+        return MultiblockStructureOperations.getMatchingShapes(this, channelValues);
     }
 
     /**
@@ -1187,8 +1153,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * So merging along the aisle direction offsets worldY (the second array dimension).
      */
     List<MultiblockShapeInfo> buildMultiPieceShapes(@Nullable Map<String, Integer> channelValues) {
-        return MultiblockStructurePreviews.buildMultiPieceShapes(this, multiPiecePattern,
-                pieceRuntimes, structureRuntime, channelValues);
+        return MultiblockStructureOperations.buildMultiPieceShapes(this, channelValues);
     }
 
     /**
@@ -1204,8 +1169,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
-        return MultiblockStructurePreviews.buildMultiPiecePredicateMap(this, multiPiecePattern,
-                pieceRuntimes, structureRuntime);
+        return MultiblockStructureOperations.buildMultiPiecePredicateMap(this);
     }
 
     /**
@@ -1219,15 +1183,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @Nullable
     public MultiblockShapeInfo getMatchingShapeForPiece(int pieceIndex,
                                                          @Nullable Map<String, Integer> channelValues) {
-        return MultiblockStructurePreviews.getMatchingShapeForPiece(this, multiPiecePattern,
-                pieceRuntimes, structureRuntime, pieceIndex, channelValues);
+        return MultiblockStructureOperations.getMatchingShapeForPiece(this, pieceIndex, channelValues);
     }
 
     @Nullable
     public MultiPiecePreviewAssembler.PieceResult getMatchingPreviewPiece(
             int pieceIndex, @Nullable Map<String, Integer> channelValues) {
-        return MultiblockStructurePreviews.getMatchingPreviewPiece(this, multiPiecePattern,
-                pieceRuntimes, structureRuntime, pieceIndex, channelValues);
+        return MultiblockStructureOperations.getMatchingPreviewPiece(this, pieceIndex, channelValues);
     }
 
     @SideOnly(Side.CLIENT)

@@ -217,7 +217,15 @@ public final class PieceTemplateCompiler {
     public PieceTemplateCompiler whereElement(char symbol, @NotNull IStructureElement<?> element) {
         CompiledStructureElement<?> compiled = element.compile();
         this.elementMap.put(symbol, compiled);
-        this.symbolMap.put(symbol, compiled.toPredicate());
+        TraceabilityPredicate predicate = compiled.toPredicate();
+        if (predicate == null) {
+            predicate = new TraceabilityPredicate(state -> true, compiled::getCandidates);
+            if (compiled.isCenter()) {
+                predicate.setCenter();
+            }
+            predicate.sort();
+        }
+        this.symbolMap.put(symbol, predicate);
         return this;
     }
 

@@ -120,6 +120,11 @@ public final class StructureRuntime {
     }
 
     @NotNull
+    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
+        return evaluator.checkDirtyPieces(request);
+    }
+
+    @NotNull
     public StructureBuildResult buildSingle(@NotNull StructureOperationRequest request) {
         return evaluator.buildSingle(request);
     }
