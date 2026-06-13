@@ -66,7 +66,7 @@ public final class MultiPiecePreviewAssembler {
                 continue;
             }
             BlockPos pieceCenter = piece.getCenterPos(
-                    BlockPos.ORIGIN, CANONICAL_FRONT, CANONICAL_UPWARDS, false, prior);
+                    BlockPos.ORIGIN, CANONICAL_PREVIEW_ORIENTATION, prior);
             PieceTemplate template = piece.getPieceTemplate();
             int[] internalRepetitions = resolveInternalRepetitions(template, channelValues);
             int[] externalRepetitions = resolveExternalRepetitions(piece, channelValues);
@@ -154,7 +154,7 @@ public final class MultiPiecePreviewAssembler {
             @NotNull EnumFacing upwards,
             boolean flipped) {
         return resolveWorldPieceCenter(pattern, oneBasedIndex, previewPrior, controllerPos,
-                front, upwards, flipped, null);
+                StructureOrientation.of(front, front, upwards, flipped, false), null);
     }
 
     @NotNull
@@ -166,6 +166,18 @@ public final class MultiPiecePreviewAssembler {
             @NotNull EnumFacing front,
             @NotNull EnumFacing upwards,
             boolean flipped,
+            @Nullable MultiblockControllerBase controller) {
+        return resolveWorldPieceCenter(pattern, oneBasedIndex, previewPrior, controllerPos,
+                StructureOrientation.of(front, front, upwards, flipped, false), controller);
+    }
+
+    @NotNull
+    public static BlockPos resolveWorldPieceCenter(
+            @NotNull MultiPiecePattern pattern,
+            int oneBasedIndex,
+            @NotNull FormedStructureMetadata previewPrior,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
             @Nullable MultiblockControllerBase controller) {
         Map<String, int[]> repeats = new HashMap<>();
         Map<String, BlockPos> centers = new HashMap<>();
@@ -179,8 +191,7 @@ public final class MultiPiecePreviewAssembler {
                     new StructureActivationContext<>(controller, controller == null ? null : controller.getWorld(),
                             controllerPos, actualPrior, null);
             if (!piece.isActive(activation)) continue;
-            BlockPos center = piece.getCenterPos(
-                    controllerPos, front, upwards, flipped, actualPrior);
+            BlockPos center = piece.getCenterPos(controllerPos, orientation, actualPrior);
             if (i == oneBasedIndex - 1) {
                 return center;
             }

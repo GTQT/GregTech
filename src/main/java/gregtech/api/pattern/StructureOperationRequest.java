@@ -279,7 +279,7 @@ public final class StructureOperationRequest {
     }
 
     public boolean isBuildKind() {
-        return kind == Kind.CREATIVE_BUILD || kind == Kind.SURVIVAL_BUILD;
+        return kind.getEvaluationOperation().isBuild();
     }
 
     public void requireBuildKind() {

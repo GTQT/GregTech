@@ -36,16 +36,14 @@ public final class DynamicRepeatGroupPiece extends RepeatGroupPiece {
     @NotNull
     @Override
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
-                                 @NotNull EnumFacing frontFacing,
-                                 @NotNull EnumFacing upFacing,
-                                 boolean flipped,
+                                 @NotNull StructureOrientation orientation,
                                  @Nullable FormedStructureMetadata prior) {
         if (prior == null) {
-            return super.getCenterPos(controllerPos, frontFacing, upFacing, flipped);
+            return super.getCenterPos(controllerPos, orientation);
         }
         BlockPos anchorCenter = prior.getPieceCenter(anchorPieceName);
         if (anchorCenter == null) {
-            return super.getCenterPos(controllerPos, frontFacing, upFacing, flipped);
+            return super.getCenterPos(controllerPos, orientation);
         }
         int[] anchorReps = prior.getPieceRepeats(anchorPieceName);
         int count = anchorReps.length == 0 ? 1 : anchorReps[0];
@@ -55,6 +53,17 @@ public final class DynamicRepeatGroupPiece extends RepeatGroupPiece {
                 offset.getY() + anchorStep[1] * count,
                 offset.getZ() + anchorStep[2] * count
         };
-        return getOffsetMode().apply(anchorCenter, dynamic, frontFacing, upFacing, flipped);
+        return getOffsetMode().apply(anchorCenter, dynamic, orientation);
+    }
+
+    @NotNull
+    @Override
+    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
+                                 @NotNull EnumFacing frontFacing,
+                                 @NotNull EnumFacing upFacing,
+                                 boolean flipped,
+                                 @Nullable FormedStructureMetadata prior) {
+        return getCenterPos(controllerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upFacing, flipped, false), prior);
     }
 }

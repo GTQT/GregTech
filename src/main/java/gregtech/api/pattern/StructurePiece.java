@@ -269,11 +269,8 @@ public class StructurePiece {
     @NotNull
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull StructureOrientation orientation) {
-        return getCenterPos(
-                controllerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped());
+        int[] off = { offset.getX(), offset.getY(), offset.getZ() };
+        return offsetMode.apply(controllerPos, off, orientation);
     }
 
     /**
@@ -312,12 +309,7 @@ public class StructurePiece {
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull StructureOrientation orientation,
                                  @Nullable FormedStructureMetadata prior) {
-        return getCenterPos(
-                controllerPos,
-                orientation.getStructureFront(),
-                orientation.getUp(),
-                orientation.isFlipped(),
-                prior);
+        return getCenterPos(controllerPos, orientation);
     }
 
     /**

@@ -83,20 +83,18 @@ public final class DynamicOffsetPiece extends StructurePiece {
     @NotNull
     @Override
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
-                                 @NotNull EnumFacing frontFacing,
-                                 @NotNull EnumFacing upFacing,
-                                 boolean flipped,
+                                 @NotNull StructureOrientation orientation,
                                  @Nullable FormedStructureMetadata prior) {
-        // No prior metadata → fall back to static position. This handles single
+        // No prior metadata -> fall back to static position. This handles single
         // piece structures and the (legal) case where this piece is checked
-        // before the anchor — both of which we treat as "anchor not present".
+        // before the anchor.
         if (prior == null) {
-            return super.getCenterPos(controllerPos, frontFacing, upFacing, flipped);
+            return super.getCenterPos(controllerPos, orientation);
         }
 
         BlockPos anchorCenter = prior.getPieceCenter(anchorPieceName);
         if (anchorCenter == null) {
-            return super.getCenterPos(controllerPos, frontFacing, upFacing, flipped);
+            return super.getCenterPos(controllerPos, orientation);
         }
 
         int[] anchorReps = prior.getPieceRepeats(anchorPieceName);
@@ -108,6 +106,17 @@ public final class DynamicOffsetPiece extends StructurePiece {
                 baseOffset.getY() + anchorStep[1] * count,
                 baseOffset.getZ() + anchorStep[2] * count
         };
-        return super.getOffsetMode().apply(anchorCenter, dynamic, frontFacing, upFacing, flipped);
+        return super.getOffsetMode().apply(anchorCenter, dynamic, orientation);
+    }
+
+    @NotNull
+    @Override
+    public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
+                                 @NotNull EnumFacing frontFacing,
+                                 @NotNull EnumFacing upFacing,
+                                 boolean flipped,
+                                 @Nullable FormedStructureMetadata prior) {
+        return getCenterPos(controllerPos,
+                StructureOrientation.of(frontFacing, frontFacing, upFacing, flipped, false), prior);
     }
 }

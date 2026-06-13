@@ -33,16 +33,30 @@ public final class StructureMatchCollector {
     @Nullable
     private final StructureOperationState operationState;
     private final PatternMatchContext context;
+    private final boolean collectsFormationState;
 
     public StructureMatchCollector(@NotNull PatternMatchContext context) {
+        this(context, true);
+    }
+
+    StructureMatchCollector(@NotNull PatternMatchContext context,
+                            boolean collectsFormationState) {
         this.operationState = null;
         this.context = context;
+        this.collectsFormationState = collectsFormationState;
     }
 
     StructureMatchCollector(@NotNull StructureOperationState operationState,
                             @NotNull PatternMatchContext context) {
+        this(operationState, context, true);
+    }
+
+    StructureMatchCollector(@NotNull StructureOperationState operationState,
+                            @NotNull PatternMatchContext context,
+                            boolean collectsFormationState) {
         this.operationState = operationState;
         this.context = context;
+        this.collectsFormationState = collectsFormationState;
     }
 
     public void declareAbility(@NotNull Object key, @NotNull MultiblockAbility<?> ability, int min, int max) {
@@ -66,6 +80,8 @@ public final class StructureMatchCollector {
     }
 
     public boolean canRecordCount(@NotNull Object key) {
+        if (!collectsFormationState) return true;
+
         CountRequirement requirement = requirements().get(key);
         if (requirement == null || requirement.max < 0) {
             return true;
@@ -74,6 +90,8 @@ public final class StructureMatchCollector {
     }
 
     public boolean recordAbility(@NotNull Object key, @NotNull IMultiblockPart part) {
+        if (!collectsFormationState) return true;
+
         boolean recorded = recordCount(key);
         if (recorded && operationState != null) {
             addPart(part);
@@ -91,6 +109,8 @@ public final class StructureMatchCollector {
     }
 
     public boolean recordCount(@NotNull Object key) {
+        if (!collectsFormationState) return true;
+
         if (operationState != null) {
             CountRequirement requirement = operationState.requirements.get(key);
             int count = operationState.counts.getOrDefault(key, 0) + 1;
@@ -113,6 +133,8 @@ public final class StructureMatchCollector {
     }
 
     public void addPart(@NotNull IMultiblockPart part) {
+        if (!collectsFormationState) return;
+
         if (operationState != null) {
             operationState.parts.add(part);
             return;
@@ -135,6 +157,8 @@ public final class StructureMatchCollector {
     }
 
     public void recordVariantActiveBlock(@NotNull BlockPos pos) {
+        if (!collectsFormationState) return;
+
         if (operationState != null) {
             operationState.variantActiveBlocks.add(pos);
             return;
@@ -147,6 +171,8 @@ public final class StructureMatchCollector {
     public boolean recordChannelValue(@NotNull String channelName,
                                       @NotNull Object value,
                                       boolean requiresUniformValue) {
+        if (!collectsFormationState) return true;
+
         Object existing = context.get(channelName);
         if (existing == null) {
             context.set(channelName, value);
@@ -156,6 +182,8 @@ public final class StructureMatchCollector {
     }
 
     public void setValue(@NotNull String key, @NotNull Object value) {
+        if (!collectsFormationState) return;
+
         context.set(key, value);
     }
 
@@ -259,6 +287,8 @@ public final class StructureMatchCollector {
                               @Nullable MultiblockAbility<?> ability,
                               @Nullable Supplier<PatternError> minErrorFactory,
                               @Nullable Supplier<PatternError> maxErrorFactory) {
+        if (!collectsFormationState) return;
+
         CountRequirement requirement =
                 new CountRequirement(ability, min, max, minErrorFactory, maxErrorFactory);
         if (operationState != null) {

@@ -77,7 +77,9 @@ local.properties
 /classes/
 /out/
 /build/
-/src/test/
+/src/test/*
+!/src/test/java/
+!/src/test/java/**/*.java
 .run/
 
 # Linux

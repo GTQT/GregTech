@@ -23,13 +23,71 @@ import java.util.function.Supplier;
 public final class StructureEvaluationContext<T> {
 
     public enum Operation {
-        MATCH_WORLD,
-        MATCH_SNAPSHOT,
-        PREVIEW,
-        HINT,
-        CREATIVE_BUILD,
-        SURVIVAL_BUILD,
-        ITERATE
+        MATCH_WORLD(true, false, false, false, true),
+        MATCH_SNAPSHOT(true, true, false, false, true),
+        PREVIEW(false, false, false, false, false),
+        HINT(true, false, false, true, false),
+        CREATIVE_BUILD(true, false, true, false, false),
+        SURVIVAL_BUILD(true, false, true, false, false),
+        ITERATE(true, false, false, false, false);
+
+        private final boolean readsWorld;
+        private final boolean readsSnapshot;
+        private final boolean mutatesWorld;
+        private final boolean emitsHints;
+        private final boolean collectsFormationState;
+
+        Operation(boolean readsWorld,
+                  boolean readsSnapshot,
+                  boolean mutatesWorld,
+                  boolean emitsHints,
+                  boolean collectsFormationState) {
+            this.readsWorld = readsWorld;
+            this.readsSnapshot = readsSnapshot;
+            this.mutatesWorld = mutatesWorld;
+            this.emitsHints = emitsHints;
+            this.collectsFormationState = collectsFormationState;
+        }
+
+        public boolean readsWorld() {
+            return readsWorld;
+        }
+
+        public boolean readsSnapshot() {
+            return readsSnapshot;
+        }
+
+        public boolean mutatesWorld() {
+            return mutatesWorld;
+        }
+
+        public boolean emitsHints() {
+            return emitsHints;
+        }
+
+        public boolean collectsFormationState() {
+            return collectsFormationState;
+        }
+
+        public boolean isMatch() {
+            return this == MATCH_WORLD || this == MATCH_SNAPSHOT;
+        }
+
+        public boolean isBuild() {
+            return this == CREATIVE_BUILD || this == SURVIVAL_BUILD;
+        }
+
+        public boolean isCreativeBuild() {
+            return this == CREATIVE_BUILD;
+        }
+
+        public boolean isSurvivalBuild() {
+            return this == SURVIVAL_BUILD;
+        }
+
+        public boolean isNonFormationProbe() {
+            return !collectsFormationState;
+        }
     }
 
     @Nullable
@@ -69,9 +127,10 @@ public final class StructureEvaluationContext<T> {
 
     @NotNull
     public StructureMatchCollector getCollector() {
+        boolean collectFormationState = operation.collectsFormationState();
         return session == null
-                ? new StructureMatchCollector(getLegacyContext())
-                : new StructureMatchCollector(session.getOperationState(), getLegacyContext());
+                ? new StructureMatchCollector(getLegacyContext(), collectFormationState)
+                : new StructureMatchCollector(session.getOperationState(), getLegacyContext(), collectFormationState);
     }
 
     @NotNull
@@ -80,7 +139,15 @@ public final class StructureEvaluationContext<T> {
     }
 
     public boolean isSnapshot() {
-        return operation == Operation.MATCH_SNAPSHOT;
+        return operation.readsSnapshot();
+    }
+
+    public boolean collectsFormationState() {
+        return operation.collectsFormationState();
+    }
+
+    public boolean mutatesWorld() {
+        return operation.mutatesWorld();
     }
 
     @Nullable

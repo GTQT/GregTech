@@ -108,6 +108,22 @@ public final class PieceRuntime {
         this.dirty = false;
     }
 
+    @NotNull
+    Checkpoint checkpoint() {
+        return new Checkpoint(this);
+    }
+
+    void restoreTo(@NotNull Checkpoint checkpoint) {
+        state.restoreTo(checkpoint.stateCheckpoint);
+        positions = new LongOpenHashSet(checkpoint.positions);
+        validated = checkpoint.validated;
+        dirty = checkpoint.dirty;
+        lastFormedReps = checkpoint.lastFormedReps == null ? null : checkpoint.lastFormedReps.clone();
+        lastAggregatedContext = checkpoint.lastAggregatedContext == null
+                ? null
+                : checkpoint.lastAggregatedContext.copy();
+    }
+
     // --- Repeat group search cache (RepeatGroupPiece only) ---
 
     /** Cache the formed repeat counts for this piece. */
@@ -144,5 +160,30 @@ public final class PieceRuntime {
         this.state.clearCache();
         this.lastAggregatedContext = null;
         this.lastFormedReps = null;
+    }
+
+    static final class Checkpoint {
+
+        @NotNull
+        private final MultiblockState.Checkpoint stateCheckpoint;
+        @NotNull
+        private final LongSet positions;
+        private final boolean validated;
+        private final boolean dirty;
+        @Nullable
+        private final int[] lastFormedReps;
+        @Nullable
+        private final PatternMatchContext lastAggregatedContext;
+
+        private Checkpoint(@NotNull PieceRuntime runtime) {
+            this.stateCheckpoint = runtime.state.checkpoint();
+            this.positions = new LongOpenHashSet(runtime.positions);
+            this.validated = runtime.validated;
+            this.dirty = runtime.dirty;
+            this.lastFormedReps = runtime.lastFormedReps == null ? null : runtime.lastFormedReps.clone();
+            this.lastAggregatedContext = runtime.lastAggregatedContext == null
+                    ? null
+                    : runtime.lastAggregatedContext.copy();
+        }
     }
 }

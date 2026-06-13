@@ -5,8 +5,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Per-controller aggregate of {@link PieceRuntime} instances, one per piece of a
@@ -86,6 +88,34 @@ public final class PieceRuntimes {
     public void reset() {
         for (PieceRuntime runtime : runtimeList) {
             runtime.reset();
+        }
+    }
+
+    @NotNull
+    Checkpoint checkpoint() {
+        return new Checkpoint(this);
+    }
+
+    void restoreTo(@NotNull Checkpoint checkpoint) {
+        for (PieceRuntime runtime : runtimeList) {
+            PieceRuntime.Checkpoint runtimeCheckpoint = checkpoint.runtimeCheckpoints.get(runtime);
+            if (runtimeCheckpoint != null) {
+                runtime.restoreTo(runtimeCheckpoint);
+            }
+        }
+    }
+
+    static final class Checkpoint {
+
+        @NotNull
+        private final Map<PieceRuntime, PieceRuntime.Checkpoint> runtimeCheckpoints;
+
+        private Checkpoint(@NotNull PieceRuntimes runtimes) {
+            Map<PieceRuntime, PieceRuntime.Checkpoint> checkpoints = new HashMap<>();
+            for (PieceRuntime runtime : runtimes.runtimeList) {
+                checkpoints.put(runtime, runtime.checkpoint());
+            }
+            this.runtimeCheckpoints = checkpoints;
         }
     }
 }

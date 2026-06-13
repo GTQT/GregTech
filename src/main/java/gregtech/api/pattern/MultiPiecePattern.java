@@ -286,6 +286,20 @@ public class MultiPiecePattern {
                                     @Nullable MultiblockControllerBase controller) {
         StructureMatchSession session = createMatchSession();
         session.setControllerContext(controller);
+        PieceRuntimes.Checkpoint runtimeCheckpoint = runtimes.checkpoint();
+        boolean matched = session.transaction(candidate ->
+                checkDirtyPiecesInSession(world, controllerPos, orientation, runtimes, controller, candidate));
+        if (!matched) {
+            runtimes.restoreTo(runtimeCheckpoint);
+        }
+        return matched;
+    }
+
+    private boolean checkDirtyPiecesInSession(World world, BlockPos controllerPos,
+                                             @NotNull StructureOrientation orientation,
+                                             @NotNull PieceRuntimes runtimes,
+                                             @Nullable MultiblockControllerBase controller,
+                                             @NotNull StructureMatchSession session) {
         Map<String, int[]> priorRepeats = new HashMap<>();
         Map<String, BlockPos> priorCenters = new HashMap<>();
 
@@ -304,9 +318,10 @@ public class MultiPiecePattern {
                 boolean ok = repeatPiece.checkSync(world, controllerPos, orientation, prior, runtime, session);
                 runtime.setValidated(ok);
             } else {
+                StructureCellTraversal traversal = StructureCellTraversal.at(pieceCenter, orientation);
                 boolean matched = session.tryFork(pieceSession ->
                         runtime.getState().checkPatternAtExact(
-                                world, pieceCenter, orientation, 0, 0, 0, pieceSession) != null);
+                                world, traversal, pieceSession) != null);
                 if (matched) {
                     runtime.setValidated(true);
                     LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
@@ -522,8 +537,9 @@ public class MultiPiecePattern {
             // prior metadata and can compute its dynamic position. Non-anchor
             // pieces ignore the prior and behave identically to the 3-arg form.
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
-            result.merge(runtime.getState().autoBuildAtWithResult(player, controller, pieceCenter, orientation,
-                    0, 0, 0, channelValues, skipHatches, abilityTracker, operation));
+            result.merge(runtime.getState().autoBuildAtWithResult(player, controller,
+                    StructureCellTraversal.at(pieceCenter, orientation),
+                    channelValues, skipHatches, abilityTracker, operation));
         }
         return result.build();
     }
@@ -573,7 +589,7 @@ public class MultiPiecePattern {
                 }
             } else {
                 result.merge(runtime.getState().spawnHintsAtWithResult(
-                        world, controller, pieceCenter, orientation,
+                        world, controller, StructureCellTraversal.at(pieceCenter, orientation),
                         channelValues, triggerStack));
                 int[] reps = runtime.getLastFormedReps();
                 if (reps != null && reps.length > 0) {

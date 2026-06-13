@@ -180,6 +180,60 @@ public class MultiblockState {
         cacheOffsetsRecorded = false;
     }
 
+    @NotNull
+    Checkpoint checkpoint() {
+        return new Checkpoint(this);
+    }
+
+    void restoreTo(@NotNull Checkpoint checkpoint) {
+        cache.clear();
+        cache.putAll(checkpoint.cache);
+        cachedXOffset = checkpoint.cachedXOffset;
+        cachedYOffset = checkpoint.cachedYOffset;
+        cachedZOffset = checkpoint.cachedZOffset;
+        cacheOffsetsRecorded = checkpoint.cacheOffsetsRecorded;
+        formedRepetitionCount = checkpoint.formedRepetitionCount.clone();
+        matchContext.replaceWith(checkpoint.matchContext);
+        globalCount.clear();
+        globalCount.putAll(checkpoint.globalCount);
+        layerCount.clear();
+        layerCount.putAll(checkpoint.layerCount);
+        missingAbilities = checkpoint.missingAbilities;
+    }
+
+    static final class Checkpoint {
+
+        @NotNull
+        private final Long2ObjectMap<BlockInfo> cache;
+        private final int cachedXOffset;
+        private final int cachedYOffset;
+        private final int cachedZOffset;
+        private final boolean cacheOffsetsRecorded;
+        @NotNull
+        private final int[] formedRepetitionCount;
+        @NotNull
+        private final PatternMatchContext matchContext;
+        @NotNull
+        private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
+        @NotNull
+        private final Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount;
+        @NotNull
+        private final Map<MultiblockAbility<?>, Integer> missingAbilities;
+
+        private Checkpoint(@NotNull MultiblockState state) {
+            this.cache = new Long2ObjectOpenHashMap<>(state.cache);
+            this.cachedXOffset = state.cachedXOffset;
+            this.cachedYOffset = state.cachedYOffset;
+            this.cachedZOffset = state.cachedZOffset;
+            this.cacheOffsetsRecorded = state.cacheOffsetsRecorded;
+            this.formedRepetitionCount = state.formedRepetitionCount.clone();
+            this.matchContext = state.matchContext.copy();
+            this.globalCount = new HashMap<>(state.globalCount);
+            this.layerCount = new HashMap<>(state.layerCount);
+            this.missingAbilities = state.missingAbilities;
+        }
+    }
+
     /**
      * Returns the current match context for this state. The context is refreshed
      * whenever a full pattern check succeeds.
@@ -346,117 +400,9 @@ public class MultiblockState {
                                                @NotNull StructureOrientation orientation,
                                                int xOffset, int yOffset, int zOffset,
                                                @Nullable StructureMatchSession session) {
-        IStructureElement<?>[][][] elements = template.getElements();
-        int[][] aisleRepetitions = template.getAisleRepetitions();
-        RelativeDirection[] structureDir = template.getStructureDir();
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
-        int fingerLength = template.getZLength();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
-
-        boolean findFirstAisle = false;
-        int minZ = -centerOffset.maxZ();
-
-        PatternMatchContext activeContext = session == null ? this.matchContext : session.getContext();
-        Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount =
-                session == null ? this.globalCount : session.getGlobalCount();
-        StructureMatchSession.Checkpoint initialCheckpoint = session == null ? null : session.checkpoint();
-        if (session == null) {
-            activeContext.reset();
-            activeGlobalCount.clear();
-        }
-        this.layerCount.clear();
-        this.missingAbilities = Collections.emptyMap();
-        cache.clear();
-        this.cachedXOffset = xOffset;
-        this.cachedYOffset = yOffset;
-        this.cachedZOffset = zOffset;
-        this.cacheOffsetsRecorded = true;
-
-        // Checking aisles
-        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
-            // Checking repeatable slices
-            int validRepetitions = 0;
-            loop:
-            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset.minZ()); r++) {
-                // Checking single slice
-                this.layerCount.clear();
-
-                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
-                        IStructureElement<?> element = elements[c][b][a];
-                        TraceabilityPredicate predicate = element.toPredicate();
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
-                                x + xOffset, y + yOffset, z + zOffset,
-                                orientation.getStructureFront(), orientation.getUp(),
-                                orientation.isFlipped(), structureDir)
-                                .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
-                        worldState.update(world, pos, activeContext, activeGlobalCount, layerCount, predicate);
-                        TileEntity tileEntity = worldState.getTileEntity();
-                        if (predicate != TraceabilityPredicate.ANY) {
-                            if (tileEntity instanceof IGregTechTileEntity) {
-                                if (((IGregTechTileEntity) tileEntity).isValid()) {
-                                    cache.put(pos.toLong(),
-                                            new BlockInfo(worldState.getBlockState(), tileEntity, predicate));
-                                } else {
-                                    cache.put(pos.toLong(),
-                                            new BlockInfo(worldState.getBlockState(), null, predicate));
-                                }
-                            } else {
-                                cache.put(pos.toLong(),
-                                        new BlockInfo(worldState.getBlockState(), tileEntity, predicate));
-                            }
-                        }
-                        if (!checkElement(element, session, StructureEvaluationContext.Operation.MATCH_WORLD)) {
-                            recordMissingFixedAbility(predicate);
-                            if (findFirstAisle) {
-                                if (r < aisleRepetitions[c][0]) {
-                                    r = c = 0;
-                                    z = minZ++;
-                                    if (session == null) {
-                                        activeContext.reset();
-                                        activeGlobalCount.clear();
-                                    } else {
-                                        session.restoreTo(initialCheckpoint);
-                                    }
-                                    findFirstAisle = false;
-                                }
-                            } else {
-                                z++;
-                            }
-                            continue loop;
-                        }
-                    }
-                }
-                findFirstAisle = true;
-                z++;
-
-                // Check layer-local matcher predicate
-                for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : layerCount.entrySet()) {
-                    if (entry.getValue() < entry.getKey().minLayerCount) {
-                        worldState.setError(new TraceabilityPredicate.SinglePredicateError(entry.getKey(), 3));
-                        return null;
-                    }
-                }
-                validRepetitions++;
-            }
-            // Repetitions out of range
-            if (validRepetitions < aisleRepetitions[c][0]) {
-                if (!worldState.hasError()) {
-                    worldState.setError(new PatternError());
-                }
-                return null;
-            }
-
-            // finished checking the aisle, so store the repetitions
-            formedRepetitionCount[c] = validRepetitions;
-        }
-
-        if (session == null && failForMissingGlobalPredicates(activeGlobalCount)) return null;
-
-        worldState.setError(null);
-        activeContext.setNeededFlip(orientation.isFlipped());
-        return activeContext;
+        return checkFixedStructureCells(world, null, centerPos, orientation,
+                xOffset, yOffset, zOffset, session,
+                StructureEvaluationContext.Operation.MATCH_WORLD, true);
     }
 
     private void recordMissingFixedAbility(@NotNull TraceabilityPredicate predicate) {
@@ -484,6 +430,13 @@ public class MultiblockState {
 
         void visit(@NotNull FixedStructureCell cell,
                    @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts);
+    }
+
+    @FunctionalInterface
+    private interface FixedStructureCellPredicate {
+
+        boolean visit(@NotNull FixedStructureCell cell,
+                      @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts);
     }
 
     private static final class FixedStructureCell {
@@ -521,34 +474,204 @@ public class MultiblockState {
                                           @NotNull StructureOrientation orientation,
                                           int xOffset, int yOffset, int zOffset,
                                           @NotNull FixedStructureCellVisitor visitor) {
-        IStructureElement<?>[][][] elements = template.getElements();
-        RelativeDirection[] structureDir = template.getStructureDir();
         BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int fingerLength = template.getZLength();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
 
         int z = -centerOffset.maxZ();
         for (int c = 0; c < fingerLength; c++) {
             int repetitionCount = c < repetitions.length ? repetitions[c] : 0;
             for (int r = 0; r < repetitionCount; r++) {
                 Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts = new HashMap<>();
-                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
-                        IStructureElement<?> element = elements[c][b][a];
-                        TraceabilityPredicate predicate = element.toPredicate();
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
-                                x + xOffset, y + yOffset, z + zOffset,
-                                orientation.getStructureFront(), orientation.getUp(),
-                                orientation.isFlipped(), structureDir)
-                                .add(centerPos);
-                        visitor.visit(new FixedStructureCell(
-                                c, r, x, y, z, pos, element, predicate), layerCounts);
-                    }
-                }
+                visitFixedStructureSlice(c, r, z, centerPos, orientation, xOffset, yOffset, zOffset,
+                        layerCounts, (cell, counts) -> {
+                            visitor.visit(cell, counts);
+                            return true;
+                        });
                 z++;
             }
         }
+    }
+
+    private boolean visitFixedStructureSlice(int aisleIndex,
+                                             int repetitionIndex,
+                                             int localZ,
+                                             @NotNull BlockPos centerPos,
+                                             @NotNull StructureOrientation orientation,
+                                             int xOffset, int yOffset, int zOffset,
+                                             @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts,
+                                             @NotNull FixedStructureCellPredicate visitor) {
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
+
+        for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+            for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
+                if (!visitor.visit(createFixedStructureCell(
+                        aisleIndex, repetitionIndex, a, b, x, y, localZ,
+                        centerPos, orientation, xOffset, yOffset, zOffset), layerCounts)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @NotNull
+    private FixedStructureCell createFixedStructureCell(int aisleIndex,
+                                                       int repetitionIndex,
+                                                       int elementXIndex,
+                                                       int elementYIndex,
+                                                       int localX, int localY, int localZ,
+                                                       @NotNull BlockPos centerPos,
+                                                       @NotNull StructureOrientation orientation,
+                                                       int xOffset, int yOffset, int zOffset) {
+        IStructureElement<?> element = template.getElements()[aisleIndex][elementYIndex][elementXIndex];
+        TraceabilityPredicate predicate = element.toPredicate();
+        BlockPos pos = RelativeDirection.setActualRelativeOffset(
+                localX + xOffset, localY + yOffset, localZ + zOffset,
+                orientation.getStructureFront(), orientation.getUp(),
+                orientation.isFlipped(), template.getStructureDir())
+                .add(centerPos);
+        return new FixedStructureCell(
+                aisleIndex, repetitionIndex, localX, localY, localZ, pos, element, predicate);
+    }
+
+    @Nullable
+    private PatternMatchContext checkFixedStructureCells(@Nullable World world,
+                                                         @Nullable net.minecraft.world.IBlockAccess blockAccess,
+                                                         @NotNull BlockPos centerPos,
+                                                         @NotNull StructureOrientation orientation,
+                                                         int xOffset, int yOffset, int zOffset,
+                                                         @Nullable StructureMatchSession session,
+                                                         @NotNull StructureEvaluationContext.Operation operation,
+                                                         boolean updateCache) {
+        int[][] aisleRepetitions = template.getAisleRepetitions();
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int fingerLength = template.getZLength();
+
+        boolean findFirstAisle = false;
+        int minZ = -centerOffset.maxZ();
+
+        PatternMatchContext activeContext = session == null ? this.matchContext : session.getContext();
+        Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount =
+                session == null ? this.globalCount : session.getGlobalCount();
+        StructureMatchSession.Checkpoint initialCheckpoint = session == null ? null : session.checkpoint();
+        if (session == null) {
+            activeContext.reset();
+            activeGlobalCount.clear();
+        }
+        this.layerCount.clear();
+        this.missingAbilities = Collections.emptyMap();
+        if (updateCache) {
+            cache.clear();
+            this.cachedXOffset = xOffset;
+            this.cachedYOffset = yOffset;
+            this.cachedZOffset = zOffset;
+            this.cacheOffsetsRecorded = true;
+        }
+
+        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
+            int validRepetitions = 0;
+            loop:
+            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset.minZ()); r++) {
+                this.layerCount.clear();
+
+                if (!visitFixedStructureSlice(c, r, z, centerPos, orientation, xOffset, yOffset, zOffset,
+                        this.layerCount, (cell, counts) -> checkFixedStructureCell(
+                                cell, world, blockAccess, activeContext, activeGlobalCount,
+                                counts, session, operation, updateCache))) {
+                    if (findFirstAisle) {
+                        if (r < aisleRepetitions[c][0]) {
+                            r = c = 0;
+                            z = minZ++;
+                            if (session == null) {
+                                activeContext.reset();
+                                activeGlobalCount.clear();
+                            } else {
+                                session.restoreTo(initialCheckpoint);
+                            }
+                            findFirstAisle = false;
+                        }
+                    } else {
+                        z++;
+                    }
+                    continue loop;
+                }
+                findFirstAisle = true;
+                z++;
+
+                if (!validateFixedStructureLayerCounts()) {
+                    return null;
+                }
+                validRepetitions++;
+            }
+            if (validRepetitions < aisleRepetitions[c][0]) {
+                if (!worldState.hasError()) {
+                    worldState.setError(new PatternError());
+                }
+                return null;
+            }
+
+            formedRepetitionCount[c] = validRepetitions;
+        }
+
+        if (session == null && failForMissingGlobalPredicates(activeGlobalCount)) return null;
+
+        worldState.setError(null);
+        activeContext.setNeededFlip(orientation.isFlipped());
+        return activeContext;
+    }
+
+    private boolean checkFixedStructureCell(@NotNull FixedStructureCell cell,
+                                            @Nullable World world,
+                                            @Nullable net.minecraft.world.IBlockAccess blockAccess,
+                                            @NotNull PatternMatchContext activeContext,
+                                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount,
+                                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts,
+                                            @Nullable StructureMatchSession session,
+                                            @NotNull StructureEvaluationContext.Operation operation,
+                                            boolean updateCache) {
+        if (operation.readsSnapshot()) {
+            if (blockAccess == null) {
+                throw new IllegalArgumentException("Snapshot fixed-structure check requires an IBlockAccess");
+            }
+            worldState.updateFromBlockAccess(blockAccess, cell.worldPos, activeContext, activeGlobalCount,
+                    layerCounts, cell.predicate);
+        } else {
+            if (world == null) {
+                throw new IllegalArgumentException("Live fixed-structure check requires a World");
+            }
+            worldState.update(world, cell.worldPos, activeContext, activeGlobalCount, layerCounts, cell.predicate);
+            if (updateCache) {
+                recordLiveCacheCell(cell);
+            }
+        }
+        if (!checkElement(cell.element, session, operation)) {
+            recordMissingFixedAbility(cell.predicate);
+            return false;
+        }
+        return true;
+    }
+
+    private void recordLiveCacheCell(@NotNull FixedStructureCell cell) {
+        if (cell.predicate == TraceabilityPredicate.ANY) return;
+
+        TileEntity tileEntity = worldState.getTileEntity();
+        if (tileEntity instanceof IGregTechTileEntity && !((IGregTechTileEntity) tileEntity).isValid()) {
+            cache.put(cell.worldPos.toLong(), new BlockInfo(worldState.getBlockState(), null, cell.predicate));
+            return;
+        }
+        cache.put(cell.worldPos.toLong(), new BlockInfo(worldState.getBlockState(), tileEntity, cell.predicate));
+    }
+
+    private boolean validateFixedStructureLayerCounts() {
+        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : layerCount.entrySet()) {
+            if (entry.getValue() < entry.getKey().minLayerCount) {
+                worldState.setError(new TraceabilityPredicate.SinglePredicateError(entry.getKey(), 3));
+                return false;
+            }
+        }
+        return true;
     }
 
     private void updateOperationCellContext(@NotNull StructureEvaluationContext<Object> evaluationContext,
@@ -1188,8 +1311,24 @@ public class MultiblockState {
                                                    @NotNull StructureOrientation orientation,
                                                    int xOffset, int yOffset, int zOffset,
                                                    @Nullable StructureMatchSession session) {
+        return checkPatternAtExact(
+                world,
+                StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
+                session);
+    }
+
+    @Nullable
+    public PatternMatchContext checkPatternAtExact(@NotNull World world,
+                                                   @NotNull StructureCellTraversal traversal,
+                                                   @Nullable StructureMatchSession session) {
         PatternMatchContext result = checkPatternAt(
-                world, centerPos, orientation, xOffset, yOffset, zOffset, session);
+                world,
+                traversal.getCenterPos(),
+                traversal.getOrientation(),
+                traversal.getXOffset(),
+                traversal.getYOffset(),
+                traversal.getZOffset(),
+                session);
         if (result == null) clearCache();
         return result;
     }
@@ -1388,13 +1527,27 @@ public class MultiblockState {
                                                       boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation) {
+        return autoBuildAtWithResult(player, controllerBase,
+                StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
+                channelValues, skipHatches, abilityTracker, operation);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtWithResult(EntityPlayer player,
+                                                      MultiblockControllerBase controllerBase,
+                                                      @NotNull StructureCellTraversal traversal,
+                                                      Map<String, Integer> channelValues,
+                                                      boolean skipHatches,
+                                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                                      @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
         BuildTraversalState buildState = new BuildTraversalState();
         buildState.result.recordAttemptedTraversal();
         buildState.blocks.put(controllerBase.getPos(), controllerBase);
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
 
-        visitFixedStructureCells(repetitions, centerPos, orientation, xOffset, yOffset, zOffset,
+        visitFixedStructureCells(repetitions, traversal.getCenterPos(), traversal.getOrientation(),
+                traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
                 (cell, layerCounts) -> autoBuildCell(
                         cell, layerCounts, player, controllerBase, channelValues,
                         skipHatches, abilityTracker, buildState, operation));
@@ -1482,10 +1635,27 @@ public class MultiblockState {
             int xOffset, int yOffset, int zOffset,
             @Nullable Map<String, Integer> channelValues,
             @NotNull ItemStack triggerStack) {
+        return spawnHintsAtWithResult(
+                world,
+                controllerBase,
+                StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
+                channelValues,
+                triggerStack);
+    }
+
+    @SuppressWarnings("unchecked")
+    @NotNull
+    public StructureHintResult spawnHintsAtWithResult(
+            @NotNull World world,
+            @NotNull MultiblockControllerBase controllerBase,
+            @NotNull StructureCellTraversal traversal,
+            @Nullable Map<String, Integer> channelValues,
+            @NotNull ItemStack triggerStack) {
         HintTraversalState hintState = new HintTraversalState();
         hintState.result.recordAttemptedTraversal();
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
-        visitFixedStructureCells(repetitions, centerPos, orientation, xOffset, yOffset, zOffset, (cell, layerCounts) -> {
+        visitFixedStructureCells(repetitions, traversal.getCenterPos(), traversal.getOrientation(),
+                traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(), (cell, layerCounts) -> {
             hintState.result.recordVisitedCell();
             updateOperationCellContext(hintState.evaluationContext, hintState.worldState,
                     world, cell.worldPos, cell.predicate, controllerBase,
@@ -2086,14 +2256,19 @@ public class MultiblockState {
                                                int axis,
                                                @NotNull StructureOrientation orientation,
                                                int xOffset, int yOffset, int zOffset) {
+        return checkAxisLineFastAtSnapshot(
+                snap,
+                axis,
+                StructureCellTraversal.at(pieceOrigin, orientation).withLocalOffset(xOffset, yOffset, zOffset));
+    }
+
+    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                               int axis,
+                                               @NotNull StructureCellTraversal traversal) {
         // For tensor product pieces, all cells are identical,
         // so we only need to check one "line" along the axis.
         // This is a simplified check that verifies the outermost slice.
-        IStructureElement<?>[][][] elements = template.getElements();
-        RelativeDirection[] structureDir = template.getStructureDir();
         BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
 
         // Check the first slice (z=0) as a representative sample
         // For tensor products, if one slice matches, all slices match
@@ -2103,22 +2278,13 @@ public class MultiblockState {
         this.missingAbilities = Collections.emptyMap();
 
         int z = -centerOffset.maxZ(); // Start at the first aisle
-        for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
-            for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
-                IStructureElement<?> element = elements[0][b][a];
-                TraceabilityPredicate predicate = element.toPredicate();
-                BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
-                        z + zOffset,
-                        orientation.getStructureFront(), orientation.getUp(),
-                        orientation.isFlipped(), structureDir)
-                        .add(pieceOrigin.getX(), pieceOrigin.getY(), pieceOrigin.getZ());
-                worldState.updateFromBlockAccess(snap, pos, matchContext, globalCount, layerCount, predicate);
-                if (!checkElement(element, null, StructureEvaluationContext.Operation.MATCH_SNAPSHOT)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return visitFixedStructureSlice(0, 0, z, traversal.getCenterPos(), traversal.getOrientation(),
+                traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
+                layerCount, (cell, layerCounts) -> {
+                    worldState.updateFromBlockAccess(snap, cell.worldPos, matchContext, globalCount,
+                            layerCounts, cell.predicate);
+                    return checkElement(cell.element, null, StructureEvaluationContext.Operation.MATCH_SNAPSHOT);
+                });
     }
 
     /**
@@ -2163,99 +2329,9 @@ public class MultiblockState {
                                                        @NotNull StructureOrientation orientation,
                                                        int xOffset, int yOffset, int zOffset,
                                                        @Nullable StructureMatchSession session) {
-        IStructureElement<?>[][][] elements = template.getElements();
-        int[][] aisleRepetitions = template.getAisleRepetitions();
-        RelativeDirection[] structureDir = template.getStructureDir();
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
-        int fingerLength = template.getZLength();
-        int thumbLength = template.getYLength();
-        int palmLength = template.getXLength();
-
-        boolean findFirstAisle = false;
-        int minZ = -centerOffset.maxZ();
-
-        PatternMatchContext activeContext = session == null ? this.matchContext : session.getContext();
-        Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount =
-                session == null ? this.globalCount : session.getGlobalCount();
-        StructureMatchSession.Checkpoint initialCheckpoint = session == null ? null : session.checkpoint();
-        if (session == null) {
-            activeContext.reset();
-            activeGlobalCount.clear();
-        }
-        this.layerCount.clear();
-        this.missingAbilities = Collections.emptyMap();
-
-        // Checking aisles
-        for (int c = 0, z = minZ++, r; c < fingerLength; c++) {
-            // Checking repeatable slices
-            int validRepetitions = 0;
-            loop:
-            for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset.minZ()); r++) {
-                // Checking single slice
-                this.layerCount.clear();
-
-                for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
-                    for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
-                        IStructureElement<?> element = elements[c][b][a];
-                        TraceabilityPredicate predicate = element.toPredicate();
-                        BlockPos pos = RelativeDirection.setActualRelativeOffset(x + xOffset, y + yOffset,
-                                z + zOffset,
-                                orientation.getStructureFront(), orientation.getUp(),
-                                orientation.isFlipped(), structureDir)
-                                .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
-
-                        // Use snapshot-aware update
-                        worldState.updateFromBlockAccess(blockAccess, pos, activeContext, activeGlobalCount, layerCount,
-                                predicate);
-
-                        if (!checkElement(element, session, StructureEvaluationContext.Operation.MATCH_SNAPSHOT)) {
-                            recordMissingFixedAbility(predicate);
-                            if (findFirstAisle) {
-                                if (r < aisleRepetitions[c][0]) {
-                                    r = c = 0;
-                                    z = minZ++;
-                                    if (session == null) {
-                                        activeContext.reset();
-                                        activeGlobalCount.clear();
-                                    } else {
-                                        session.restoreTo(initialCheckpoint);
-                                    }
-                                    findFirstAisle = false;
-                                }
-                            } else {
-                                z++;
-                            }
-                            continue loop;
-                        }
-                    }
-                }
-                findFirstAisle = true;
-                z++;
-
-                // Check layer-local matcher predicate
-                for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : layerCount.entrySet()) {
-                    if (entry.getValue() < entry.getKey().minLayerCount) {
-                        worldState.setError(new TraceabilityPredicate.SinglePredicateError(entry.getKey(), 3));
-                        return null;
-                    }
-                }
-                validRepetitions++;
-            }
-            // Repetitions out of range
-            if (validRepetitions < aisleRepetitions[c][0]) {
-                if (!worldState.hasError()) {
-                    worldState.setError(new PatternError());
-                }
-                return null;
-            }
-            formedRepetitionCount[c] = validRepetitions;
-        }
-
-        if (session == null && failForMissingGlobalPredicates(activeGlobalCount)) return null;
-
-        worldState.setError(null);
-        activeContext.setNeededFlip(orientation.isFlipped());
-        return activeContext;
+        return checkFixedStructureCells(null, blockAccess, centerPos, orientation,
+                xOffset, yOffset, zOffset, session,
+                StructureEvaluationContext.Operation.MATCH_SNAPSHOT, false);
     }
 
     /**
@@ -2309,8 +2385,19 @@ public class MultiblockState {
             @NotNull StructureOrientation orientation,
             int xOffset, int yOffset, int zOffset,
             @Nullable StructureMatchSession session) {
-        return checkPatternAtSnapshot(blockAccess, centerPos, orientation,
-                xOffset, yOffset, zOffset, session);
+        return checkPatternAtSnapshotExact(
+                blockAccess,
+                StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
+                session);
+    }
+
+    @Nullable
+    public PatternMatchContext checkPatternAtSnapshotExact(
+            @NotNull net.minecraft.world.IBlockAccess blockAccess,
+            @NotNull StructureCellTraversal traversal,
+            @Nullable StructureMatchSession session) {
+        return checkPatternAtSnapshot(blockAccess, traversal.getCenterPos(), traversal.getOrientation(),
+                traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(), session);
     }
 }
 

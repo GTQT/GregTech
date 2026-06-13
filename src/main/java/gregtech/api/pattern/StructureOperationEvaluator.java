@@ -144,7 +144,7 @@ public final class StructureOperationEvaluator {
     @NotNull
     public StructureBuildResult buildSingle(@NotNull StructureOperationRequest request) {
         request.requireBuildKind();
-        if (request.getKind() == StructureOperationRequest.Kind.CREATIVE_BUILD) {
+        if (request.getEvaluationOperation().isCreativeBuild()) {
             return creativeBuildSingle(request);
         }
         return survivalBuildSingle(request);
@@ -153,7 +153,7 @@ public final class StructureOperationEvaluator {
     @NotNull
     public StructureBuildResult buildAllPieces(@NotNull StructureOperationRequest request) {
         request.requireBuildKind();
-        return request.getKind() == StructureOperationRequest.Kind.CREATIVE_BUILD
+        return request.getEvaluationOperation().isCreativeBuild()
                 ? creativeBuildAllPieces(request)
                 : survivalBuildAllPieces(request);
     }
@@ -161,7 +161,7 @@ public final class StructureOperationEvaluator {
     @NotNull
     public StructureBuildResult buildPiece(@NotNull StructureOperationRequest request) {
         request.requireBuildKind();
-        return request.getKind() == StructureOperationRequest.Kind.CREATIVE_BUILD
+        return request.getEvaluationOperation().isCreativeBuild()
                 ? creativeBuildPiece(request)
                 : survivalBuildPiece(request);
     }

@@ -61,4 +61,15 @@ public enum OffsetMode {
     public abstract BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
                                    @NotNull EnumFacing frontFacing, @NotNull EnumFacing upwardsFacing,
                                    boolean flipped);
+
+    @NotNull
+    public BlockPos apply(@NotNull BlockPos controllerPos, int[] offset,
+                          @NotNull StructureOrientation orientation) {
+        return apply(
+                controllerPos,
+                offset,
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped());
+    }
 }
