@@ -52,11 +52,13 @@ public final class CasingElement implements IStructureElement<Object> {
             return false;
         }
 
-        StructureMatchCollector collector = context.getCollector();
-        if (blockState.getBlock() instanceof VariantActiveBlock) {
-            collector.recordVariantActiveBlock(context.getPos());
-        }
-        return collector.recordCount(this);
+        return context.transaction(transactionContext -> {
+            StructureMatchCollector collector = transactionContext.getCollector();
+            if (blockState.getBlock() instanceof VariantActiveBlock) {
+                collector.recordVariantActiveBlock(transactionContext.getPos());
+            }
+            return collector.recordCount(this);
+        });
     }
 
     @Override

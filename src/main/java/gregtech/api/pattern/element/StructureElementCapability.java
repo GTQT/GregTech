@@ -45,6 +45,18 @@ public enum StructureElementCapability {
     }
 
     @NotNull
+    public static Set<StructureElementCapability> withoutPlacement(
+            @NotNull Set<StructureElementCapability> capabilities) {
+        if (capabilities.isEmpty()) {
+            return Collections.emptySet();
+        }
+        EnumSet<StructureElementCapability> copy = EnumSet.copyOf(capabilities);
+        copy.remove(CREATIVE_PLACEMENT);
+        copy.remove(SURVIVAL_PLACEMENT);
+        return immutable(copy);
+    }
+
+    @NotNull
     private static Set<StructureElementCapability> immutable(
             @NotNull EnumSet<StructureElementCapability> capabilities) {
         return Collections.unmodifiableSet(capabilities);

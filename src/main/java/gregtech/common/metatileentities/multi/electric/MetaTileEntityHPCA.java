@@ -26,6 +26,7 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
@@ -97,6 +98,7 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
                         .aisle("AA", "CC", "CC", "CC", "AA")
                     .repeatablePiece("body", 3, 14)
                         .aisle("VA", "XV", "XV", "XV", "VA")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("bottom")
                         .aisle("SA", "CC", "CC", "CC", "AA")
                     .where('S', selfPredicate(MetaTileEntityHPCA.class))

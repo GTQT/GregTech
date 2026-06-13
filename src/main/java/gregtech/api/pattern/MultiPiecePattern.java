@@ -304,12 +304,10 @@ public class MultiPiecePattern {
                 boolean ok = repeatPiece.checkSync(world, controllerPos, orientation, prior, runtime, session);
                 runtime.setValidated(ok);
             } else {
-                StructureMatchSession pieceSession = session.fork();
-                PatternMatchContext result = runtime.getState().checkPatternAtExact(
-                        world, pieceCenter, orientation, 0, 0, 0, pieceSession);
-
-                if (result != null) {
-                    pieceSession.commit();
+                boolean matched = session.tryFork(pieceSession ->
+                        runtime.getState().checkPatternAtExact(
+                                world, pieceCenter, orientation, 0, 0, 0, pieceSession) != null);
+                if (matched) {
                     runtime.setValidated(true);
                     LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
                     runtime.swapPositions(newPositions);

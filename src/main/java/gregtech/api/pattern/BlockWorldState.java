@@ -10,7 +10,12 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class BlockWorldState {
 
@@ -79,6 +84,71 @@ public class BlockWorldState {
         return matchContext;
     }
 
+    public boolean transaction(Predicate<BlockWorldState> action) {
+        return transactionValue(action::test, Boolean.TRUE::equals);
+    }
+
+    public boolean transaction(Supplier<Boolean> action) {
+        return transactionValue(ignored -> action.get(), Boolean.TRUE::equals);
+    }
+
+    public void transactionAction(Consumer<BlockWorldState> action) {
+        transactionValue(state -> {
+            action.accept(state);
+            return Boolean.TRUE;
+        }, Boolean.TRUE::equals);
+    }
+
+    public <T> T transactionValue(Function<BlockWorldState, T> action, Predicate<T> commitPredicate) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            T result = action.apply(this);
+            if (!commitPredicate.test(result)) {
+                restoreTo(checkpoint);
+            }
+            return result;
+        } catch (RuntimeException | Error e) {
+            restoreTo(checkpoint);
+            throw e;
+        }
+    }
+
+    public boolean probe(Predicate<BlockWorldState> action) {
+        return probeValue(action::test);
+    }
+
+    public boolean probe(Supplier<Boolean> action) {
+        return probeValue(ignored -> action.get());
+    }
+
+    public void probeAction(Consumer<BlockWorldState> action) {
+        probeValue(state -> {
+            action.accept(state);
+            return null;
+        });
+    }
+
+    public <T> T probeValue(Function<BlockWorldState, T> action) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            return action.apply(this);
+        } finally {
+            restoreTo(checkpoint);
+        }
+    }
+
+    public Checkpoint checkpoint() {
+        return new Checkpoint(this);
+    }
+
+    public void restoreTo(Checkpoint checkpoint) {
+        matchContext.restore(checkpoint.context);
+        globalCount.clear();
+        globalCount.putAll(checkpoint.globalCount);
+        layerCount.clear();
+        layerCount.putAll(checkpoint.layerCount);
+    }
+
     public IBlockState getBlockState() {
         if (this.state == null) {
             this.state = this.blockAccess.getBlockState(this.pos);
@@ -124,5 +194,18 @@ public class BlockWorldState {
      */
     public IBlockAccess getBlockAccess() {
         return blockAccess;
+    }
+
+    public static final class Checkpoint {
+
+        private final PatternMatchContext.Checkpoint context;
+        private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
+        private final Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount;
+
+        private Checkpoint(BlockWorldState blockWorldState) {
+            this.context = blockWorldState.getMatchContext().checkpoint();
+            this.globalCount = new HashMap<>(blockWorldState.globalCount);
+            this.layerCount = new HashMap<>(blockWorldState.layerCount);
+        }
     }
 }

@@ -3,6 +3,8 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.util.GTLog;
+import gregtech.common.ConfigHolder;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,10 +12,14 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -66,6 +72,69 @@ public final class StructureMatchSession {
         return new StructureMatchSession(this);
     }
 
+    public boolean tryFork(@NotNull Predicate<StructureMatchSession> action) {
+        StructureMatchSession candidate = fork();
+        boolean matched = action.test(candidate);
+        if (matched) {
+            candidate.commit();
+        }
+        return matched;
+    }
+
+    public boolean transaction(@NotNull Supplier<Boolean> action) {
+        return transactionValue(ignored -> action.get(), Boolean.TRUE::equals);
+    }
+
+    public boolean transaction(@NotNull Predicate<StructureMatchSession> action) {
+        return transactionValue(action::test, Boolean.TRUE::equals);
+    }
+
+    public void transactionAction(@NotNull Consumer<StructureMatchSession> action) {
+        transactionValue(session -> {
+            action.accept(session);
+            return Boolean.TRUE;
+        }, Boolean.TRUE::equals);
+    }
+
+    public <T> T transactionValue(@NotNull Function<StructureMatchSession, T> action,
+                                  @NotNull Predicate<T> commitPredicate) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            T result = action.apply(this);
+            if (!commitPredicate.test(result)) {
+                restoreTo(checkpoint);
+            }
+            return result;
+        } catch (RuntimeException | Error e) {
+            restoreTo(checkpoint);
+            throw e;
+        }
+    }
+
+    public boolean probe(@NotNull Supplier<Boolean> action) {
+        return probeValue(ignored -> action.get());
+    }
+
+    public boolean probe(@NotNull Predicate<StructureMatchSession> action) {
+        return probeValue(action::test);
+    }
+
+    public void probeAction(@NotNull Consumer<StructureMatchSession> action) {
+        probeValue(session -> {
+            action.accept(session);
+            return null;
+        });
+    }
+
+    public <T> T probeValue(@NotNull Function<StructureMatchSession, T> action) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            return action.apply(this);
+        } finally {
+            restoreTo(checkpoint);
+        }
+    }
+
     public void commit() {
         if (parent == null) {
             throw new IllegalStateException("Root structure match session cannot be committed");
@@ -85,13 +154,17 @@ public final class StructureMatchSession {
                 new HashMap<>(globalCount), copyTypedData(typedData));
     }
 
-    public void restore(@NotNull Checkpoint checkpoint) {
+    private void restore(@NotNull Checkpoint checkpoint) {
         context.replaceWith(checkpoint.context);
         operationState.replaceWith(checkpoint.operationState);
         globalCount.clear();
         globalCount.putAll(checkpoint.globalCount);
         typedData.clear();
         typedData.putAll(copyTypedData(checkpoint.typedData));
+    }
+
+    public void restoreTo(@NotNull Checkpoint checkpoint) {
+        restore(checkpoint);
     }
 
     @NotNull
@@ -191,38 +264,37 @@ public final class StructureMatchSession {
 
         if (includeAbilityLimits) {
             Set<IMultiblockPart> parts = copyOperationState().getParts();
+            Map<MultiblockAbility<?>, Integer> explicitAbilityCounts = operationState.getAbilityCounts();
+            Map<MultiblockAbility<?>, Integer> collectedAbilities = ConfigHolder.machines.debugStructureCheck
+                    ? new LinkedHashMap<>() : null;
             for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {
-                int count = 0;
-                for (IMultiblockPart part : parts) {
-                    if (part instanceof IMultiblockAbilityPart<?> abilityPart
-                            && abilityPart.getAbilities().contains(entry.getKey())) {
-                        count++;
-                    }
+                int explicitCount = explicitAbilityCounts.getOrDefault(entry.getKey(), 0);
+                int count = explicitCount + countAbilityParts(
+                        parts, entry.getKey(), operationState.getExplicitAbilityParts(entry.getKey()));
+                if (collectedAbilities != null) {
+                    collectedAbilities.put(entry.getKey(), count);
                 }
                 int[] range = entry.getValue();
                 if (count < range[0]) {
                     missingAbilities.merge(entry.getKey(), range[0] - count, Math::max);
                 } else if (range[1] >= 0 && count > range[1]) {
+                    debugAbilityValidation(parts.size(), collectedAbilities, missingAbilities);
                     return Validation.failure("Ability '" + entry.getKey() + "' count " + count
                             + " is outside [" + range[0] + ", " + range[1] + "]");
                 }
             }
             for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
-                int count = 0;
-                for (IMultiblockPart part : parts) {
-                    if (part instanceof IMultiblockAbilityPart<?> abilityPart
-                            && groupLimit.matchesAny(abilityPart.getAbilities())) {
-                        count++;
-                    }
-                }
+                int count = countAbilityGroup(parts, operationState, groupLimit);
                 if (count < groupLimit.getMin()) {
                     missingAbilities.merge(
                             groupLimit.getDisplayAbility(), groupLimit.getMin() - count, Math::max);
                 } else if (groupLimit.getMax() >= 0 && count > groupLimit.getMax()) {
+                    debugAbilityValidation(parts.size(), collectedAbilities, missingAbilities);
                     return Validation.failure("Ability group '" + groupLimit.getDisplayAbility() + "' count "
                             + count + " is outside [" + groupLimit.getMin() + ", " + groupLimit.getMax() + "]");
                 }
             }
+            debugAbilityValidation(parts.size(), collectedAbilities, missingAbilities);
         }
 
         if (!missingAbilities.isEmpty()) {
@@ -269,6 +341,63 @@ public final class StructureMatchSession {
             copied.put(entry.getKey(), copyTypedValue(entry.getKey(), entry.getValue()));
         }
         return copied;
+    }
+
+    private static void debugAbilityValidation(int partCount,
+                                               @Nullable Map<MultiblockAbility<?>, Integer> collectedAbilities,
+                                               @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (!ConfigHolder.machines.debugStructureCheck || collectedAbilities == null) {
+            return;
+        }
+        GTLog.logger.debug("[StructureDefinition] ability validation parts={} collected={} missing={}",
+                partCount, collectedAbilities, missingAbilities);
+    }
+
+    private static int countAbilityParts(@NotNull Set<IMultiblockPart> parts,
+                                         @NotNull MultiblockAbility<?> ability,
+                                         @NotNull Set<IMultiblockPart> ignoredParts) {
+        int count = 0;
+        for (IMultiblockPart part : parts) {
+            if (ignoredParts.contains(part)) {
+                continue;
+            }
+            if (part instanceof IMultiblockAbilityPart<?> abilityPart
+                    && abilityPart.getAbilities().contains(ability)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int countAbilityGroup(
+            @NotNull Set<IMultiblockPart> parts,
+            @NotNull StructureOperationState operationState,
+            @NotNull AbilityGroupLimit groupLimit) {
+        Map<MultiblockAbility<?>, Integer> explicitAbilityCounts = operationState.getAbilityCounts();
+        Set<IMultiblockPart> explicitParts = new HashSet<>();
+        boolean hasExplicitCount = false;
+        int count = 0;
+        for (MultiblockAbility<?> ability : groupLimit.getAbilities()) {
+            Integer abilityCount = explicitAbilityCounts.get(ability);
+            if (abilityCount != null) {
+                hasExplicitCount = true;
+                count += abilityCount;
+                explicitParts.addAll(operationState.getExplicitAbilityParts(ability));
+            }
+        }
+
+        for (IMultiblockPart part : parts) {
+            if (!(part instanceof IMultiblockAbilityPart<?> abilityPart)) {
+                continue;
+            }
+            if (hasExplicitCount && explicitParts.contains(part)) {
+                continue;
+            }
+            if (groupLimit.matchesAny(abilityPart.getAbilities())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static <T> T copyTypedValue(@NotNull StructureSessionKey<T> key,

@@ -2,7 +2,6 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
@@ -53,18 +52,18 @@ public class ChainElement implements IStructureElement<Object> {
     @Override
     public boolean check(@NotNull StructureEvaluationContext<Object> context) {
         for (IStructureElement e : elements) {
-            StructureMatchSession session = context.getSession();
-            StructureMatchSession.Checkpoint sessionCheckpoint =
-                    session == null ? null : session.checkpoint();
-            PatternMatchContext.Checkpoint contextCheckpoint =
-                    session == null ? context.getLegacyContext().checkpoint() : null;
-            if (e.check(context)) {
+            if (context.transaction(e::check)) {
                 return true;
             }
-            if (session != null) {
-                session.restore(sessionCheckpoint);
-            } else {
-                context.getLegacyContext().restore(contextCheckpoint);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean match(@NotNull StructureEvaluationContext<Object> context) {
+        for (IStructureElement e : elements) {
+            if (context.transaction(e::match)) {
+                return true;
             }
         }
         return false;
@@ -73,7 +72,7 @@ public class ChainElement implements IStructureElement<Object> {
     @Override
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
         for (IStructureElement e : elements) {
-            if (e.check(world, pos, context)) {
+            if (context.transaction(legacyContext -> e.check(world, pos, legacyContext))) {
                 return true;
             }
         }
@@ -84,7 +83,7 @@ public class ChainElement implements IStructureElement<Object> {
     public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
                                 @NotNull ItemStack trigger) {
         for (IStructureElement e : elements) {
-            if (e.couldBeValid(world, pos, context, trigger)) {
+            if (context.probe(legacyContext -> e.couldBeValid(world, pos, legacyContext, trigger))) {
                 return true;
             }
         }
@@ -107,7 +106,8 @@ public class ChainElement implements IStructureElement<Object> {
     public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
                               EntityPlayer player, boolean skipHatches) {
         for (IStructureElement e : elements) {
-            if (e.placeBlock(world, pos, context, player, skipHatches)) {
+            if (context.transaction(legacyContext ->
+                    e.placeBlock(world, pos, legacyContext, player, skipHatches))) {
                 return true;
             }
         }
@@ -122,7 +122,9 @@ public class ChainElement implements IStructureElement<Object> {
                                           boolean skipHatches) {
         boolean allContinue = true;
         for (IStructureElement e : elements) {
-            PlaceResult result = e.survivalPlaceBlock(world, pos, context, trigger, env, skipHatches);
+            PlaceResult result = context.transactionValue(
+                    legacyContext -> e.survivalPlaceBlock(world, pos, legacyContext, trigger, env, skipHatches),
+                    ChainElement::isCommittedSurvivalResult);
             switch (result) {
                 case REJECT_CONTINUE:
                     break;
@@ -139,6 +141,10 @@ public class ChainElement implements IStructureElement<Object> {
             }
         }
         return allContinue ? PlaceResult.REJECT_CONTINUE : PlaceResult.REJECT;
+    }
+
+    private static boolean isCommittedSurvivalResult(@NotNull PlaceResult result) {
+        return result != PlaceResult.REJECT_CONTINUE && result != PlaceResult.REJECT;
     }
 
     @Override

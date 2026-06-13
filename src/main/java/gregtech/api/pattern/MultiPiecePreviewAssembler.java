@@ -1,6 +1,8 @@
 package gregtech.api.pattern;
 
 import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
@@ -120,6 +122,8 @@ public final class MultiPiecePreviewAssembler {
             pieceCenters.put(piece.getName(), pieceCenter);
         }
 
+        orientPreviewMetaTileEntities(allBlocks);
+
         NormalizedShape combined = normalize(allBlocks);
         Map<BlockPos, TraceabilityPredicate> normalizedPredicates = new HashMap<>();
         for (Map.Entry<BlockPos, TraceabilityPredicate> entry : allPredicates.entrySet()) {
@@ -205,6 +209,30 @@ public final class MultiPiecePreviewAssembler {
                             value, aisle.minRepeat(), aisle.maxRepeat());
         }
         return repetitions;
+    }
+
+    private static void orientPreviewMetaTileEntities(@NotNull Map<BlockPos, BlockInfo> blocks) {
+        blocks.forEach((pos, info) -> {
+            if (!(info.getTileEntity() instanceof MetaTileEntityHolder holder)) {
+                return;
+            }
+            MetaTileEntity metaTileEntity = holder.getMetaTileEntity();
+            if (metaTileEntity == null) {
+                return;
+            }
+            for (EnumFacing facing : RelativeDirection.ALL_FACINGS) {
+                if (metaTileEntity.isValidFrontFacing(facing) && !isOccupied(blocks.get(pos.offset(facing)))) {
+                    metaTileEntity.setFrontFacing(facing);
+                    break;
+                }
+            }
+        });
+    }
+
+    private static boolean isOccupied(@Nullable BlockInfo info) {
+        return info != null
+                && info.getBlockState() != null
+                && info.getBlockState().getBlock() != Blocks.AIR;
     }
 
     private static int[] resolveExternalRepetitions(@NotNull StructurePiece piece,

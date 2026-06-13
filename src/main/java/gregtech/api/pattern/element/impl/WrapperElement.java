@@ -91,7 +91,7 @@ public class WrapperElement implements IStructureElement<Object> {
     public boolean check(World world, BlockPos pos, PatternMatchContext context) {
         boolean result = getDelegate().check(world, pos, context);
         if (result && callback != null) {
-            callback.accept(context);
+            runCallback(context);
         }
         return result;
     }
@@ -100,7 +100,16 @@ public class WrapperElement implements IStructureElement<Object> {
     public boolean check(@NotNull StructureEvaluationContext<Object> context) {
         boolean result = getDelegate().check(context);
         if (result && callback != null) {
-            callback.accept(context.getLegacyContext());
+            runCallback(context);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean match(@NotNull StructureEvaluationContext<Object> context) {
+        boolean result = getDelegate().match(context);
+        if (result && callback != null) {
+            runCallback(context);
         }
         return result;
     }
@@ -108,7 +117,8 @@ public class WrapperElement implements IStructureElement<Object> {
     @Override
     public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
                                 @NotNull ItemStack trigger) {
-        return getDelegate().couldBeValid(world, pos, context, trigger);
+        return context.probe(legacyContext ->
+                getDelegate().couldBeValid(world, pos, legacyContext, trigger));
     }
 
     @Override
@@ -118,7 +128,8 @@ public class WrapperElement implements IStructureElement<Object> {
 
     @Override
     public BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<Object> context) {
-        return getDelegate().getCandidates(context);
+        return context.probeValue(probeContext ->
+                getDelegate().getCandidates(probeContext));
     }
 
     @Nullable
@@ -126,7 +137,8 @@ public class WrapperElement implements IStructureElement<Object> {
     public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env) {
-        return getDelegate().getBlocksToPlace(world, pos, context, trigger, env);
+        return context.probeValue(legacyContext ->
+                getDelegate().getBlocksToPlace(world, pos, legacyContext, trigger, env));
     }
 
     @Nullable
@@ -134,7 +146,8 @@ public class WrapperElement implements IStructureElement<Object> {
     public BlocksToPlace getBlocksToPlace(@NotNull StructureEvaluationContext<Object> context,
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env) {
-        return getDelegate().getBlocksToPlace(context, trigger, env);
+        return context.probeValue(probeContext ->
+                getDelegate().getBlocksToPlace(probeContext, trigger, env));
     }
 
     @Override
@@ -146,7 +159,8 @@ public class WrapperElement implements IStructureElement<Object> {
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
                               @NotNull EntityPlayer player, boolean skipHatches) {
-        return getDelegate().placeBlock(context, player, skipHatches);
+        return context.probe(probeContext ->
+                getDelegate().placeBlock(probeContext, player, skipHatches));
     }
 
     @NotNull
@@ -164,7 +178,8 @@ public class WrapperElement implements IStructureElement<Object> {
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env,
                                           boolean skipHatches) {
-        return getDelegate().survivalPlaceBlock(context, trigger, env, skipHatches);
+        return context.probeValue(probeContext ->
+                getDelegate().survivalPlaceBlock(probeContext, trigger, env, skipHatches));
     }
 
     @Override
@@ -179,7 +194,7 @@ public class WrapperElement implements IStructureElement<Object> {
 
     @Override
     public void spawnHint(@NotNull StructureEvaluationContext<Object> context) {
-        getDelegate().spawnHint(context);
+        context.probeAction(probeContext -> getDelegate().spawnHint(probeContext));
     }
 
     @Override
@@ -273,7 +288,7 @@ public class WrapperElement implements IStructureElement<Object> {
                         bws -> {
                             boolean match = sp.test(bws);
                             if (match && callback != null) {
-                                callback.accept(bws.getMatchContext());
+                                runCallback(bws.getMatchContext());
                             }
                             return match;
                         },
@@ -288,5 +303,20 @@ public class WrapperElement implements IStructureElement<Object> {
         wrapped.ability = sp.ability;
         wrapped.defaultCandidate = sp.defaultCandidate;
         return wrapped;
+    }
+
+    private void runCallback(@NotNull PatternMatchContext context) {
+        if (callback == null) {
+            return;
+        }
+        context.transactionAction(callback);
+    }
+
+    private void runCallback(@NotNull StructureEvaluationContext<Object> context) {
+        if (callback == null) {
+            return;
+        }
+        context.transactionAction(transactionContext ->
+                callback.accept(transactionContext.getLegacyContext()));
     }
 }

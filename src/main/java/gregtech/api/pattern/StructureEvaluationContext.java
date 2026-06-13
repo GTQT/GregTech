@@ -9,6 +9,11 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+
 /**
  * Typed, per-cell execution context shared by matching, preview, hints and
  * building. Matching reuses one instance and updates it before each cell.
@@ -107,6 +112,78 @@ public final class StructureEvaluationContext<T> {
         requireWorldState().setError(error);
     }
 
+    @NotNull
+    public Checkpoint checkpoint() {
+        BlockWorldState state = requireWorldState();
+        return session == null
+                ? new Checkpoint(null, state.checkpoint())
+                : new Checkpoint(session.checkpoint(), state.checkpoint());
+    }
+
+    public void restore(@NotNull Checkpoint checkpoint) {
+        requireWorldState().restoreTo(checkpoint.worldStateCheckpoint);
+        if (checkpoint.sessionCheckpoint != null) {
+            if (session == null) {
+                throw new IllegalStateException("Cannot restore a session checkpoint without an active session");
+            }
+            session.restoreTo(checkpoint.sessionCheckpoint);
+        }
+    }
+
+    public boolean transaction(@NotNull Supplier<Boolean> action) {
+        return transactionValue(ignored -> action.get(), Boolean.TRUE::equals);
+    }
+
+    public boolean transaction(@NotNull Function<StructureEvaluationContext<T>, Boolean> action) {
+        return transactionValue(action, Boolean.TRUE::equals);
+    }
+
+    public void transactionAction(@NotNull Consumer<StructureEvaluationContext<T>> action) {
+        transactionValue(context -> {
+            action.accept(context);
+            return Boolean.TRUE;
+        }, Boolean.TRUE::equals);
+    }
+
+    public <R> R transactionValue(@NotNull Function<StructureEvaluationContext<T>, R> action,
+                                  @NotNull Predicate<R> commitPredicate) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            R result = action.apply(this);
+            if (!commitPredicate.test(result)) {
+                restore(checkpoint);
+            }
+            return result;
+        } catch (RuntimeException | Error e) {
+            restore(checkpoint);
+            throw e;
+        }
+    }
+
+    public boolean probe(@NotNull Supplier<Boolean> action) {
+        return probeValue(ignored -> action.get());
+    }
+
+    public boolean probe(@NotNull Function<StructureEvaluationContext<T>, Boolean> action) {
+        return probeValue(action);
+    }
+
+    public void probeAction(@NotNull Consumer<StructureEvaluationContext<T>> action) {
+        probeValue(context -> {
+            action.accept(context);
+            return null;
+        });
+    }
+
+    public <R> R probeValue(@NotNull Function<StructureEvaluationContext<T>, R> action) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            return action.apply(this);
+        } finally {
+            restore(checkpoint);
+        }
+    }
+
     /**
      * Compatibility boundary for predicates compiled by the legacy builder.
      */
@@ -120,5 +197,19 @@ public final class StructureEvaluationContext<T> {
             throw new IllegalStateException("Structure evaluation context has not been initialized");
         }
         return worldState;
+    }
+
+    public static final class Checkpoint {
+
+        @Nullable
+        private final StructureMatchSession.Checkpoint sessionCheckpoint;
+        @NotNull
+        private final BlockWorldState.Checkpoint worldStateCheckpoint;
+
+        private Checkpoint(@Nullable StructureMatchSession.Checkpoint sessionCheckpoint,
+                           @NotNull BlockWorldState.Checkpoint worldStateCheckpoint) {
+            this.sessionCheckpoint = sessionCheckpoint;
+            this.worldStateCheckpoint = worldStateCheckpoint;
+        }
     }
 }

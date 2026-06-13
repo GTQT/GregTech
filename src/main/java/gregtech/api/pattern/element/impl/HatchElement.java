@@ -89,12 +89,17 @@ public class HatchElement implements IStructureElement<Object> {
             return false;
         }
 
-        StructureMatchCollector collector = context.getCollector();
-        boolean recorded = collector.recordAbility(this, (IMultiblockPart) abilityPart);
-        if (!recorded) {
-            context.setError(new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 0));
-        }
-        return recorded;
+        return context.transaction(transactionContext -> {
+            if (!transactionContext.test(legacyPredicate)) {
+                return false;
+            }
+            StructureMatchCollector collector = transactionContext.getCollector();
+            boolean recorded = collector.recordAbility(this, (IMultiblockPart) abilityPart);
+            if (!recorded) {
+                transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 0));
+            }
+            return recorded;
+        });
     }
 
     @Override

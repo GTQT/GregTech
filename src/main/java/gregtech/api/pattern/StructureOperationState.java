@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 
 import net.minecraft.util.math.BlockPos;
 
@@ -29,6 +30,8 @@ public final class StructureOperationState {
 
     final Map<Object, StructureMatchCollector.CountRequirement> requirements = new HashMap<>();
     final Map<Object, Integer> counts = new HashMap<>();
+    final Map<MultiblockAbility<?>, Integer> abilityCounts = new HashMap<>();
+    final Map<MultiblockAbility<?>, Set<IMultiblockPart>> abilityParts = new HashMap<>();
     final Set<IMultiblockPart> parts = new HashSet<>();
     final List<BlockPos> variantActiveBlocks = new ArrayList<>();
 
@@ -48,6 +51,12 @@ public final class StructureOperationState {
         requirements.putAll(source.requirements);
         counts.clear();
         counts.putAll(source.counts);
+        abilityCounts.clear();
+        abilityCounts.putAll(source.abilityCounts);
+        abilityParts.clear();
+        for (Map.Entry<MultiblockAbility<?>, Set<IMultiblockPart>> entry : source.abilityParts.entrySet()) {
+            abilityParts.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
         parts.clear();
         parts.addAll(source.parts);
         variantActiveBlocks.clear();
@@ -89,6 +98,17 @@ public final class StructureOperationState {
     @NotNull
     public Set<IMultiblockPart> getParts() {
         return Collections.unmodifiableSet(parts);
+    }
+
+    @NotNull
+    Map<MultiblockAbility<?>, Integer> getAbilityCounts() {
+        return Collections.unmodifiableMap(abilityCounts);
+    }
+
+    @NotNull
+    Set<IMultiblockPart> getExplicitAbilityParts(@NotNull MultiblockAbility<?> ability) {
+        Set<IMultiblockPart> explicitParts = abilityParts.get(ability);
+        return explicitParts == null ? Collections.emptySet() : Collections.unmodifiableSet(explicitParts);
     }
 
     @NotNull

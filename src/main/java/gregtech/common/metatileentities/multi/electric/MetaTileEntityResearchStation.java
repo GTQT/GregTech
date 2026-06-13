@@ -148,9 +148,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
 
         @Override
         public boolean check(@NotNull StructureEvaluationContext<Object> context) {
-            context.getCollector().declareAbility(
-                    this, MultiblockAbility.OBJECT_HOLDER, 1, 1);
-
             MetaTileEntityResearchStation controller = context.getController() instanceof MetaTileEntityResearchStation ?
                     (MetaTileEntityResearchStation) context.getController() : null;
             if (controller == null) {
@@ -172,7 +169,8 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                 return false;
             }
 
-            return context.getCollector().recordAbility(this, (IMultiblockPart) metaTileEntity);
+            return context.transaction(transactionContext ->
+                    transactionContext.getCollector().recordAbility(this, (IMultiblockPart) metaTileEntity));
         }
 
         @Override

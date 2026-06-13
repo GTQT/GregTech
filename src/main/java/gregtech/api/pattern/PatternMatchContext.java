@@ -10,6 +10,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -82,6 +85,60 @@ public class PatternMatchContext {
 
     public void restore(@NotNull Checkpoint checkpoint) {
         replaceWith(checkpoint.context);
+    }
+
+    public boolean transaction(@NotNull Supplier<Boolean> action) {
+        return transactionValue(ignored -> action.get(), Boolean.TRUE::equals);
+    }
+
+    public boolean transaction(@NotNull Function<PatternMatchContext, Boolean> action) {
+        return transactionValue(action, Boolean.TRUE::equals);
+    }
+
+    public void transactionAction(@NotNull Consumer<PatternMatchContext> action) {
+        transactionValue(context -> {
+            action.accept(context);
+            return Boolean.TRUE;
+        }, Boolean.TRUE::equals);
+    }
+
+    public <T> T transactionValue(@NotNull Function<PatternMatchContext, T> action,
+                                  @NotNull Predicate<T> commitPredicate) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            T result = action.apply(this);
+            if (!commitPredicate.test(result)) {
+                restore(checkpoint);
+            }
+            return result;
+        } catch (RuntimeException | Error e) {
+            restore(checkpoint);
+            throw e;
+        }
+    }
+
+    public boolean probe(@NotNull Supplier<Boolean> action) {
+        return probeValue(ignored -> action.get());
+    }
+
+    public boolean probe(@NotNull Function<PatternMatchContext, Boolean> action) {
+        return probeValue(action);
+    }
+
+    public void probeAction(@NotNull Consumer<PatternMatchContext> action) {
+        probeValue(context -> {
+            action.accept(context);
+            return null;
+        });
+    }
+
+    public <T> T probeValue(@NotNull Function<PatternMatchContext, T> action) {
+        Checkpoint checkpoint = checkpoint();
+        try {
+            return action.apply(this);
+        } finally {
+            restore(checkpoint);
+        }
     }
 
     public boolean neededFlip() {

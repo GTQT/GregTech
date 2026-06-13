@@ -74,22 +74,42 @@ public final class StructureMatchCollector {
     }
 
     public boolean recordAbility(@NotNull Object key, @NotNull IMultiblockPart part) {
-        addPart(part);
-        return recordCount(key);
+        boolean recorded = recordCount(key);
+        if (recorded && operationState != null) {
+            addPart(part);
+            CountRequirement requirement = operationState.requirements.get(key);
+            if (requirement != null && requirement.ability != null) {
+                operationState.abilityCounts.merge(requirement.ability, 1, Integer::sum);
+                operationState.abilityParts
+                        .computeIfAbsent(requirement.ability, ignored -> new HashSet<>())
+                        .add(part);
+            }
+        } else if (recorded) {
+            addPart(part);
+        }
+        return recorded;
     }
 
     public boolean recordCount(@NotNull Object key) {
         if (operationState != null) {
-            int count = operationState.counts.merge(key, 1, Integer::sum);
             CountRequirement requirement = operationState.requirements.get(key);
-            return requirement == null || requirement.max < 0 || count <= requirement.max;
+            int count = operationState.counts.getOrDefault(key, 0) + 1;
+            if (requirement != null && requirement.max >= 0 && count > requirement.max) {
+                return false;
+            }
+            operationState.counts.put(key, count);
+            return true;
         }
 
         Map<Object, int[]> legacyCounts = legacyCounts(context);
         int[] count = legacyCounts.computeIfAbsent(key, ignored -> new int[]{0});
-        count[0]++;
         CountRequirement requirement = legacyRequirements(context).get(key);
-        return requirement == null || requirement.max < 0 || count[0] <= requirement.max;
+        int nextCount = count[0] + 1;
+        if (requirement != null && requirement.max >= 0 && nextCount > requirement.max) {
+            return false;
+        }
+        count[0] = nextCount;
+        return true;
     }
 
     public void addPart(@NotNull IMultiblockPart part) {

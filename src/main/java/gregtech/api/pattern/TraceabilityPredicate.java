@@ -274,7 +274,7 @@ public class TraceabilityPredicate {
                     blockWorldState.layerCount.getOrDefault(predicate, 0) < predicate.minLayerCount;
 
             if (needGlobal || needLayer) {
-                if (predicate.testLimited(blockWorldState)) {
+                if (testBranch(blockWorldState, predicate::testLimited)) {
                     return true;
                 }
             }
@@ -282,12 +282,17 @@ public class TraceabilityPredicate {
 
         boolean flag = false;
         for (SimplePredicate predicate : limited) {
-            if (predicate.testLimited(blockWorldState)) {
+            if (testBranch(blockWorldState, predicate::testLimited)) {
                 flag = true;
             }
         }
 
-        return flag || common.stream().anyMatch(predicate -> predicate.test(blockWorldState));
+        return flag || common.stream().anyMatch(predicate -> testBranch(blockWorldState, predicate::test));
+    }
+
+    private static boolean testBranch(BlockWorldState blockWorldState,
+                                      Predicate<BlockWorldState> predicate) {
+        return blockWorldState.transaction(predicate);
     }
 
     public TraceabilityPredicate or(TraceabilityPredicate other) {
@@ -520,4 +525,5 @@ public class TraceabilityPredicate {
             return I18n.format("gregtech.multiblock.pattern.error.limited." + type, number);
         }
     }
+
 }

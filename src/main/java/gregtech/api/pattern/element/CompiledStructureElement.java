@@ -65,6 +65,11 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         return source.check(context);
     }
 
+    @Override
+    public boolean match(@NotNull StructureEvaluationContext<T> context) {
+        return source.match(context);
+    }
+
     @NotNull
     @Override
     public Set<StructureElementCapability> getCapabilities() {
@@ -79,7 +84,8 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
                                 @NotNull ItemStack trigger) {
-        return source.couldBeValid(world, pos, context, trigger);
+        return context.probe(legacyContext ->
+                source.couldBeValid(world, pos, legacyContext, trigger));
     }
 
     @Override
@@ -89,7 +95,7 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Override
     public BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<T> context) {
-        return source.getCandidates(context);
+        return context.probeValue(source::getCandidates);
     }
 
     @Nullable
@@ -97,7 +103,8 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env) {
-        return source.getBlocksToPlace(world, pos, context, trigger, env);
+        return context.probeValue(legacyContext ->
+                source.getBlocksToPlace(world, pos, legacyContext, trigger, env));
     }
 
     @Nullable
@@ -105,7 +112,8 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     public BlocksToPlace getBlocksToPlace(@NotNull StructureEvaluationContext<T> context,
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env) {
-        return source.getBlocksToPlace(context, trigger, env);
+        return context.probeValue(probeContext ->
+                source.getBlocksToPlace(probeContext, trigger, env));
     }
 
     @Override
@@ -117,7 +125,8 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
                               @NotNull EntityPlayer player, boolean skipHatches) {
-        return source.placeBlock(context, player, skipHatches);
+        return context.probe(probeContext ->
+                source.placeBlock(probeContext, player, skipHatches));
     }
 
     @NotNull
@@ -135,7 +144,8 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env,
                                           boolean skipHatches) {
-        return source.survivalPlaceBlock(context, trigger, env, skipHatches);
+        return context.probeValue(probeContext ->
+                source.survivalPlaceBlock(probeContext, trigger, env, skipHatches));
     }
 
     @Override
@@ -150,7 +160,7 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Override
     public void spawnHint(@NotNull StructureEvaluationContext<T> context) {
-        source.spawnHint(context);
+        context.probeAction(source::spawnHint);
     }
 
     @Override

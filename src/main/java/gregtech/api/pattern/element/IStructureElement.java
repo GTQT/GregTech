@@ -54,8 +54,10 @@ public interface IStructureElement<T> {
     }
 
     /**
-     * Canonical runtime match entry. Compiled templates call this method for
-     * both live-world and snapshot checks.
+     * Low-level runtime check entry. Compiled templates call
+     * {@link #match(StructureEvaluationContext)} for normal formation matching;
+     * direct callers can use this method when they intentionally need a check
+     * without deferred requirement collection.
      */
     default boolean check(@NotNull StructureEvaluationContext<T> context) {
         World world = context.getWorld();
@@ -64,6 +66,17 @@ public interface IStructureElement<T> {
                     "Snapshot structure checks require a context-aware structure element");
         }
         return check(world, context.getPos(), context.getLegacyContext());
+    }
+
+    /**
+     * Canonical runtime match entry for one structure cell. The default
+     * preserves the existing contract by collecting requirements before the
+     * element check; composite elements may override this to make requirement
+     * collection branch-local.
+     */
+    default boolean match(@NotNull StructureEvaluationContext<T> context) {
+        collectRequirements(context);
+        return check(context);
     }
 
     /**
@@ -138,7 +151,8 @@ public interface IStructureElement<T> {
         if (world == null) {
             return null;
         }
-        return getBlocksToPlace(world, context.getPos(), context.getLegacyContext(), trigger, env);
+        return context.probeValue(probeContext ->
+                getBlocksToPlace(world, probeContext.getPos(), probeContext.getLegacyContext(), trigger, env));
     }
 
     /**
@@ -164,7 +178,8 @@ public interface IStructureElement<T> {
         if (world == null) {
             throw new IllegalStateException("Cannot place a structure element against a snapshot");
         }
-        return placeBlock(world, context.getPos(), context.getLegacyContext(), player, skipHatches);
+        return context.probe(probeContext ->
+                placeBlock(world, probeContext.getPos(), probeContext.getLegacyContext(), player, skipHatches));
     }
 
     /**
@@ -177,11 +192,12 @@ public interface IStructureElement<T> {
                                            @NotNull ItemStack trigger,
                                            @NotNull AutoPlaceEnvironment env,
                                            boolean skipHatches) {
-        BlocksToPlace blocksToPlace = getBlocksToPlace(world, pos, context, trigger, env);
+        BlocksToPlace blocksToPlace =
+                context.probeValue(legacyContext -> getBlocksToPlace(world, pos, legacyContext, trigger, env));
         if (blocksToPlace == null) {
             return PlaceResult.REJECT_CONTINUE;
         }
-        if (check(world, pos, context)) {
+        if (context.probe(() -> check(world, pos, context))) {
             return PlaceResult.SKIP;
         }
 
@@ -226,7 +242,9 @@ public interface IStructureElement<T> {
         if (world == null) {
             return PlaceResult.REJECT;
         }
-        return survivalPlaceBlock(world, context.getPos(), context.getLegacyContext(), trigger, env, skipHatches);
+        return context.probeValue(probeContext ->
+                survivalPlaceBlock(world, probeContext.getPos(), probeContext.getLegacyContext(),
+                        trigger, env, skipHatches));
     }
 
     /**
@@ -354,6 +372,11 @@ public interface IStructureElement<T> {
             }
 
             @Override
+            public boolean match(@NotNull StructureEvaluationContext<T> context) {
+                return IStructureElement.this.match(context);
+            }
+
+            @Override
             public boolean check(World world, BlockPos pos, PatternMatchContext context) {
                 return IStructureElement.this.check(world, pos, context);
             }
@@ -361,7 +384,8 @@ public interface IStructureElement<T> {
             @Override
             public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
                                         @NotNull ItemStack trigger) {
-                return IStructureElement.this.couldBeValid(world, pos, context, trigger);
+                return context.probe(legacyContext ->
+                        IStructureElement.this.couldBeValid(world, pos, legacyContext, trigger));
             }
 
             @Override
@@ -371,7 +395,8 @@ public interface IStructureElement<T> {
 
             @Override
             public BlockInfo[] getCandidates(@NotNull StructureEvaluationContext<T> context) {
-                return IStructureElement.this.getCandidates(context);
+                return context.probeValue(probeContext ->
+                        IStructureElement.this.getCandidates(probeContext));
             }
 
             @Override
@@ -382,6 +407,11 @@ public interface IStructureElement<T> {
             @Override
             public void spawnHint(World world, BlockPos pos) {
                 IStructureElement.this.spawnHint(world, pos);
+            }
+
+            @Override
+            public void spawnHint(@NotNull StructureEvaluationContext<T> context) {
+                context.probeAction(IStructureElement.this::spawnHint);
             }
 
             @Nullable
@@ -398,16 +428,8 @@ public interface IStructureElement<T> {
             @NotNull
             @Override
             public Set<StructureElementCapability> getCapabilities() {
-                Set<StructureElementCapability> capabilities =
-                        IStructureElement.this.getCapabilities();
-                if (capabilities.isEmpty()) {
-                    return capabilities;
-                }
-                java.util.EnumSet<StructureElementCapability> copy =
-                        java.util.EnumSet.copyOf(capabilities);
-                copy.remove(StructureElementCapability.CREATIVE_PLACEMENT);
-                copy.remove(StructureElementCapability.SURVIVAL_PLACEMENT);
-                return java.util.Collections.unmodifiableSet(copy);
+                return StructureElementCapability.withoutPlacement(
+                        IStructureElement.this.getCapabilities());
             }
 
             @Override

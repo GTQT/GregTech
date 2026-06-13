@@ -83,22 +83,24 @@ public final class TieredCasingElement implements IStructureElement<Object> {
             return false;
         }
 
-        StructureMatchCollector collector = context.getCollector();
-        if (context.getBlockState().getBlock() instanceof VariantActiveBlock) {
-            collector.recordVariantActiveBlock(context.getPos());
-        }
-        if (!collector.recordChannelValue(channelName, matched, requiresUniformTier)) {
-            context.setError(new PatternStringError(TIER_MISMATCH_ERROR));
-            return false;
-        }
-        if (matched.isTiered()) {
-            collector.setValue(channelName + ".tier", matched.getTier());
-        }
-        if (!collector.recordCount(this)) {
-            context.setError(new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
-            return false;
-        }
-        return true;
+        return context.transaction(transactionContext -> {
+            StructureMatchCollector collector = transactionContext.getCollector();
+            if (transactionContext.getBlockState().getBlock() instanceof VariantActiveBlock) {
+                collector.recordVariantActiveBlock(transactionContext.getPos());
+            }
+            if (!collector.recordChannelValue(channelName, matched, requiresUniformTier)) {
+                transactionContext.setError(new PatternStringError(TIER_MISMATCH_ERROR));
+                return false;
+            }
+            if (matched.isTiered()) {
+                collector.setValue(channelName + ".tier", matched.getTier());
+            }
+            if (!collector.recordCount(this)) {
+                transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                return false;
+            }
+            return true;
+        });
     }
 
     @Override

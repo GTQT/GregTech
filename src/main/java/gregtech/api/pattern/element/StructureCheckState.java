@@ -274,16 +274,14 @@ public final class StructureCheckState {
                 // Fixed piece: standard single-template check
                 // Use the 4-arg getCenterPos so dynamic-anchor pieces can compute
                 // their position from the prior pieces' repeat counts.
-                StructureMatchSession pieceSession = session.fork();
-                PatternMatchContext pieceContext = runtime.getState().checkPatternAtExact(
-                        world, centerPos, orientation, 0, 0, 0, pieceSession);
-
-                if (pieceContext == null) {
+                boolean pieceMatched = session.tryFork(pieceSession ->
+                        runtime.getState().checkPatternAtExact(
+                                world, centerPos, orientation, 0, 0, 0, pieceSession) != null);
+                if (!pieceMatched) {
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
                     return Result.failure(centerPos, lastErrorMessage, runtime.getState().getError());
                 }
-                pieceSession.commit();
 
                 // Extract repeat counts from the piece's MultiblockState
                 int[] formedReps = runtime.getState().formedRepetitionCount;

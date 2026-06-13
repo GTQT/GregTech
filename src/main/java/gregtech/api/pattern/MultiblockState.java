@@ -387,7 +387,7 @@ public class MultiblockState {
                         IStructureElement<?> element = elements[c][b][a];
                         TraceabilityPredicate predicate = element.toPredicate();
                         BlockPos pos = RelativeDirection.setActualRelativeOffset(
-                                x, y, z,
+                                x + xOffset, y + yOffset, z + zOffset,
                                 orientation.getStructureFront(), orientation.getUp(),
                                 orientation.isFlipped(), structureDir)
                                 .add(centerPos.getX(), centerPos.getY(), centerPos.getZ());
@@ -417,7 +417,7 @@ public class MultiblockState {
                                         activeContext.reset();
                                         activeGlobalCount.clear();
                                     } else {
-                                        session.restore(initialCheckpoint);
+                                        session.restoreTo(initialCheckpoint);
                                     }
                                     findFirstAisle = false;
                                 }
@@ -441,7 +441,7 @@ public class MultiblockState {
                 validRepetitions++;
             }
             // Repetitions out of range
-            if (r < aisleRepetitions[c][0]) {
+            if (validRepetitions < aisleRepetitions[c][0]) {
                 if (!worldState.hasError()) {
                     worldState.setError(new PatternError());
                 }
@@ -476,8 +476,7 @@ public class MultiblockState {
         Object controller = session == null ? null : session.getControllerContext();
         evaluationContext.update(controller, session, worldState, operation);
         IStructureElement<Object> typedElement = (IStructureElement<Object>) element;
-        typedElement.collectRequirements(evaluationContext);
-        return typedElement.check(evaluationContext);
+        return evaluationContext.transaction(typedElement::match);
     }
 
     @FunctionalInterface
@@ -2219,7 +2218,7 @@ public class MultiblockState {
                                         activeContext.reset();
                                         activeGlobalCount.clear();
                                     } else {
-                                        session.restore(initialCheckpoint);
+                                        session.restoreTo(initialCheckpoint);
                                     }
                                     findFirstAisle = false;
                                 }
@@ -2243,7 +2242,7 @@ public class MultiblockState {
                 validRepetitions++;
             }
             // Repetitions out of range
-            if (r < aisleRepetitions[c][0]) {
+            if (validRepetitions < aisleRepetitions[c][0]) {
                 if (!worldState.hasError()) {
                     worldState.setError(new PatternError());
                 }

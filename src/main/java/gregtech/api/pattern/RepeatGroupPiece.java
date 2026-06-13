@@ -300,16 +300,11 @@ public class RepeatGroupPiece extends StructurePiece {
                                             int[] reps,
                                             @NotNull PieceRuntime runtime,
                                             @NotNull StructureMatchSession session) {
-        StructureMatchSession candidate = session.fork();
-        boolean matched = repeatAxes.length == 1
+        return session.tryFork(candidate -> repeatAxes.length == 1
                 ? tryCheckAllSlicesWorld(
                         world, origin, orientation, reps, runtime, candidate)
                 : tryCheckAllMultiAxisSlicesWorld(
-                        world, origin, orientation, reps, runtime, candidate);
-        if (matched) {
-            candidate.commit();
-        }
-        return matched;
+                        world, origin, orientation, reps, runtime, candidate));
     }
 
     /**
@@ -547,15 +542,10 @@ public class RepeatGroupPiece extends StructurePiece {
                                       int[] reps,
                                       @NotNull PieceRuntime runtime,
                                       @NotNull StructureMatchSession session) {
-        StructureMatchSession candidate = session.fork();
-        boolean matched = repeatAxes.length == 1
+        return session.tryFork(candidate -> repeatAxes.length == 1
                 ? tryCheckAllSlices(snap, origin, orientation, reps, runtime, candidate)
                 : tryCheckAllMultiAxisSlices(
-                        snap, origin, orientation, reps, runtime, candidate);
-        if (matched) {
-            candidate.commit();
-        }
-        return matched;
+                        snap, origin, orientation, reps, runtime, candidate));
     }
 
     /**
