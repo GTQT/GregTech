@@ -80,6 +80,16 @@ public final class DynamicOffsetPiece extends StructurePiece {
     }
 
     @NotNull
+    public String getAnchorPieceName() {
+        return anchorPieceName;
+    }
+
+    @NotNull
+    public int[] getAnchorStep() {
+        return anchorStep.clone();
+    }
+
+    @NotNull
     @Override
     public BlockPos getCenterPos(@NotNull BlockPos controllerPos,
                                  @NotNull StructureOrientation orientation,

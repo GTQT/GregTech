@@ -6,6 +6,8 @@ import net.minecraft.util.EnumFacing;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 /**
  * Complete orientation state used by structure operations.
  *
@@ -112,6 +114,27 @@ public final class StructureOrientation {
     public boolean matchesControllerExactly(@NotNull MultiblockControllerBase controller) {
         return matchesControllerForCheck(controller)
                 && flipped == controller.isFlipped();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof StructureOrientation)) {
+            return false;
+        }
+        StructureOrientation other = (StructureOrientation) obj;
+        return front == other.front
+                && structureFront == other.structureFront
+                && up == other.up
+                && flipped == other.flipped
+                && allowsFlip == other.allowsFlip;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(front, structureFront, up, flipped, allowsFlip);
     }
 
     @Override

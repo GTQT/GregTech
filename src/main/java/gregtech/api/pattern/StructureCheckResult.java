@@ -75,6 +75,12 @@ public final class StructureCheckResult {
     private final StructureResultTable resultTable;
     @Nullable
     private final StructureAggregateFolder.Result contributionAggregate;
+    @Nullable
+    private final StructureEligibilityPlan eligibilityPlan;
+    @Nullable
+    private final CommittedStructureGraph graphPublication;
+    @Nullable
+    private final StructureIncrementalCheckResult incrementalCheckResult;
 
     private StructureCheckResult(@NotNull Source source,
                                  boolean matched,
@@ -93,7 +99,10 @@ public final class StructureCheckResult {
                                   boolean flipped,
                                   @Nullable PieceRuntimes.Publication runtimePublication,
                                   @Nullable StructureResultTable resultTable,
-                                  @Nullable StructureAggregateFolder.Result contributionAggregate) {
+                                  @Nullable StructureAggregateFolder.Result contributionAggregate,
+                                  @Nullable StructureEligibilityPlan eligibilityPlan,
+                                  @Nullable CommittedStructureGraph graphPublication,
+                                  @Nullable StructureIncrementalCheckResult incrementalCheckResult) {
         this.source = source;
         this.matched = matched;
         this.context = context == null ? null : context.copy();
@@ -112,6 +121,9 @@ public final class StructureCheckResult {
         this.runtimePublication = runtimePublication;
         this.resultTable = resultTable;
         this.contributionAggregate = contributionAggregate;
+        this.eligibilityPlan = eligibilityPlan;
+        this.graphPublication = graphPublication;
+        this.incrementalCheckResult = incrementalCheckResult;
     }
 
     @NotNull
@@ -135,7 +147,10 @@ public final class StructureCheckResult {
                 result.flipped,
                 result.runtimePublication,
                 result.resultTable,
-                result.contributionAggregate);
+                result.contributionAggregate,
+                null,
+                null,
+                null);
     }
 
     @NotNull
@@ -169,7 +184,48 @@ public final class StructureCheckResult {
                 flipped,
                 runtimePublication,
                 resultTable,
-                contributionAggregate);
+                contributionAggregate,
+                null,
+                null,
+                null);
+    }
+
+    @NotNull
+    static StructureCheckResult fromIncrementalDefinition(
+            boolean matched,
+            @Nullable PatternMatchContext context,
+            @Nullable StructureOperationState operationState,
+            @Nullable FormedStructureMetadata metadata,
+            @Nullable StructureFailureTrace failureTrace,
+            @Nullable String errorMessage,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            boolean flipped,
+            @Nullable PieceRuntimes.Publication runtimePublication,
+            @Nullable StructureResultTable resultTable,
+            @Nullable StructureAggregateFolder.Result contributionAggregate) {
+        return new StructureCheckResult(
+                Source.DEFINITION,
+                matched,
+                context,
+                operationState == null ? new StructureOperationState() : operationState,
+                metadata,
+                failureTrace == null ? null : failureTrace.getError(),
+                failureTrace == null ? null : failureTrace.getErrorPos(),
+                errorMessage,
+                failureTrace,
+                "incremental",
+                null,
+                missingAbilities,
+                abilityCounts,
+                context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate,
+                null,
+                null,
+                null);
     }
 
     @NotNull
@@ -195,6 +251,9 @@ public final class StructureCheckResult {
                 Collections.emptyMap(),
                 matched ? StructureChannelValues.fromContext(context) : new StructureChannelValues(),
                 matched && context.neededFlip(),
+                null,
+                null,
+                null,
                 null,
                 null,
                 null);
@@ -231,7 +290,90 @@ public final class StructureCheckResult {
                 flipped,
                 runtimePublication,
                 resultTable,
-                contributionAggregate);
+                contributionAggregate,
+                eligibilityPlan,
+                graphPublication,
+                incrementalCheckResult);
+    }
+
+    @NotNull
+    public StructureCheckResult withGraphPublication(
+            @Nullable CommittedStructureGraph graphPublication) {
+        return new StructureCheckResult(
+                source,
+                matched,
+                context,
+                operationState,
+                metadata,
+                error,
+                errorPos,
+                errorMessage,
+                failureTrace,
+                tracePathOverride,
+                traceActualDetail,
+                missingAbilities,
+                abilityCounts,
+                channelValues,
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate,
+                eligibilityPlan,
+                graphPublication,
+                incrementalCheckResult);
+    }
+
+    @NotNull
+    public StructureCheckResult withIncrementalCheckResult(
+            @Nullable StructureIncrementalCheckResult incrementalCheckResult) {
+        return new StructureCheckResult(
+                source,
+                matched,
+                context,
+                operationState,
+                metadata,
+                error,
+                errorPos,
+                errorMessage,
+                failureTrace,
+                tracePathOverride,
+                traceActualDetail,
+                missingAbilities,
+                abilityCounts,
+                channelValues,
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate,
+                eligibilityPlan,
+                graphPublication,
+                incrementalCheckResult);
+    }
+
+    @NotNull
+    public StructureCheckResult withEligibilityPlan(@Nullable StructureEligibilityPlan eligibilityPlan) {
+        return new StructureCheckResult(
+                source,
+                matched,
+                context,
+                operationState,
+                metadata,
+                error,
+                errorPos,
+                errorMessage,
+                failureTrace,
+                tracePathOverride,
+                traceActualDetail,
+                missingAbilities,
+                abilityCounts,
+                channelValues,
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate,
+                eligibilityPlan,
+                graphPublication,
+                incrementalCheckResult);
     }
 
     public boolean isMatched() {
@@ -287,6 +429,36 @@ public final class StructureCheckResult {
         return contributionAggregate;
     }
 
+    @Nullable
+    public StructureEligibilityPlan getEligibilityPlan() {
+        return eligibilityPlan;
+    }
+
+    @Nullable
+    public PieceRuntimes.Publication getRuntimePublication() {
+        return effectiveRuntimePublication();
+    }
+
+    @Nullable
+    public CommittedStructureGraph getGraphPublication() {
+        return graphPublication;
+    }
+
+    @Nullable
+    public StructureIncrementalCheckResult getIncrementalCheckResult() {
+        return incrementalCheckResult;
+    }
+
+    public boolean usedActiveGraphFallback() {
+        return eligibilityPlan != null
+                && !eligibilityPlan.isEligible()
+                && "active-graph-fallback".equals(getTracePath());
+    }
+
+    public boolean usedIncrementalEvaluator() {
+        return incrementalCheckResult != null && "incremental".equals(getTracePath());
+    }
+
     /**
      * Publish operation-local piece runtimes after controller-side assembly
      * validation succeeds.
@@ -294,10 +466,11 @@ public final class StructureCheckResult {
      * @return true when this result carried a publication payload
      */
     public boolean publishPieceRuntimes(@NotNull PieceRuntimes target) {
-        if (runtimePublication == null) {
+        PieceRuntimes.Publication publication = effectiveRuntimePublication();
+        if (publication == null) {
             return false;
         }
-        target.publish(runtimePublication);
+        target.publish(publication);
         return true;
     }
 
@@ -305,9 +478,18 @@ public final class StructureCheckResult {
      * Validate the runtime publication before controller commit side effects.
      */
     public void validatePieceRuntimePublication(@NotNull PieceRuntimes target) {
-        if (runtimePublication != null) {
-            target.validatePublication(runtimePublication);
+        PieceRuntimes.Publication publication = effectiveRuntimePublication();
+        if (publication != null) {
+            target.validatePublication(publication);
         }
+    }
+
+    @Nullable
+    private PieceRuntimes.Publication effectiveRuntimePublication() {
+        if (runtimePublication != null) {
+            return runtimePublication;
+        }
+        return graphPublication == null ? null : graphPublication.getRuntimePublication();
     }
 
     @NotNull

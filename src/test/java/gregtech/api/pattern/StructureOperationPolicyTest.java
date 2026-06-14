@@ -104,8 +104,12 @@ class StructureOperationPolicyTest {
         collector.addPart(new TestPart());
 
         assertEquals(1, collector.getCount("count"));
-        assertEquals(Integer.valueOf(1), legacyContext.get("channel"));
-        assertEquals(Integer.valueOf(4), legacyContext.get("tier"));
+        assertNull(legacyContext.get("channel"));
+        assertNull(legacyContext.get("tier"));
+        PatternMatchContext projected =
+                session.getContributionBuilder().build().projectCompatibilityContext(legacyContext);
+        assertEquals(Integer.valueOf(1), projected.get("channel"));
+        assertEquals(Integer.valueOf(4), projected.get("tier"));
         assertEquals(1, session.getOperationState().getVariantActiveBlocks().size());
         assertEquals(1, session.getOperationState().getParts().size());
     }

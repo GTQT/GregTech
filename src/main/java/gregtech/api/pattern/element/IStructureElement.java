@@ -3,6 +3,8 @@ package gregtech.api.pattern.element;
 import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureHintRenderResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
@@ -52,6 +54,17 @@ public interface IStructureElement<T> {
 
     default boolean supports(@NotNull StructureElementCapability capability) {
         return getCapabilities().contains(capability);
+    }
+
+    /**
+     * Whether this element can participate in the contribution-eligible
+     * evaluator path. New direct elements are typed by default; migration
+     * wrappers and legacy predicate adapters override this when they hide
+     * side effects from the dependency compiler.
+     */
+    @NotNull
+    default StructureIncrementalSupport getIncrementalSupport() {
+        return StructureIncrementalSupport.TYPED_CONTRIBUTION;
     }
 
     /**
@@ -282,19 +295,40 @@ public interface IStructureElement<T> {
      * Trigger-aware hint entry. Returns whether this element handled the hint.
      */
     default boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
+        return spawnHintWithResult(world, pos, trigger).rendered();
+    }
+
+    /**
+     * Trigger-aware hint entry with an explicit rendering outcome.
+     */
+    @NotNull
+    default StructureHintRenderResult spawnHintWithResult(World world, BlockPos pos, @NotNull ItemStack trigger) {
         spawnHint(world, pos);
-        return true;
+        return StructureHintRenderResult.rendered(StructureHintRenderResult.Source.TRIGGER);
     }
 
     /**
      * Canonical hint entry.
      */
     default void spawnHint(@NotNull StructureEvaluationContext<T> context) {
+        spawnHintWithResult(context);
+    }
+
+    /**
+     * Canonical hint entry with an explicit rendering outcome.
+     *
+     * <p>The default preserves the legacy {@link #spawnHint(World, BlockPos)}
+     * behavior and reports that a hint was rendered. Elements that can decide
+     * not to render should override this method.
+     */
+    @NotNull
+    default StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<T> context) {
         World world = context.getWorld();
         if (world == null) {
             throw new IllegalStateException("Cannot spawn a structure hint against a snapshot");
         }
         spawnHint(world, context.getPos());
+        return StructureHintRenderResult.rendered(StructureHintRenderResult.Source.CONTEXT);
     }
 
     /**
@@ -453,6 +487,13 @@ public interface IStructureElement<T> {
                 return IStructureElement.this.spawnHint(world, pos, trigger);
             }
 
+            @NotNull
+            @Override
+            public StructureHintRenderResult spawnHintWithResult(
+                    World world, BlockPos pos, @NotNull ItemStack trigger) {
+                return IStructureElement.this.spawnHintWithResult(world, pos, trigger);
+            }
+
             @Override
             public void spawnHint(World world, BlockPos pos) {
                 IStructureElement.this.spawnHint(world, pos);
@@ -460,7 +501,13 @@ public interface IStructureElement<T> {
 
             @Override
             public void spawnHint(@NotNull StructureEvaluationContext<T> context) {
-                context.probeAction(IStructureElement.this::spawnHint);
+                spawnHintWithResult(context);
+            }
+
+            @NotNull
+            @Override
+            public StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<T> context) {
+                return context.probeValue(IStructureElement.this::spawnHintWithResult);
             }
 
             @Nullable
@@ -495,6 +542,12 @@ public interface IStructureElement<T> {
             @Override
             public TraceabilityPredicate toPredicate() {
                 return IStructureElement.this.toPredicate();
+            }
+
+            @NotNull
+            @Override
+            public StructureIncrementalSupport getIncrementalSupport() {
+                return IStructureElement.this.getIncrementalSupport();
             }
         };
     }

@@ -9,6 +9,7 @@ import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
@@ -124,6 +125,63 @@ class StructureTraversalBoundaryTest {
     }
 
     @Test
+    void fullContributionEvaluatorUsesIndependentPieceSessions() {
+        RecordingElement firstElement = new RecordingElement(true);
+        RecordingElement secondElement = new RecordingElement(true);
+        StructurePiece first = new StructurePiece(
+                "first", singleCellTemplate(firstElement), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructurePiece second = new StructurePiece(
+                "second", singleCellTemplate(secondElement), new Vec3i(0, 0, 1), OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(asList(first, second));
+        PieceRuntimes controllerRuntimes = new PieceRuntimes(pattern);
+        StructureRuntime runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, controllerRuntimes);
+
+        StructureCheckResult result = runtime.check(checkRequest());
+
+        assertTrue(result.isMatched());
+        assertNotNull(firstElement.lastSession());
+        assertNotNull(secondElement.lastSession());
+        assertFalse(firstElement.lastSession() == secondElement.lastSession());
+        assertEquals(2, result.getResultTable().size());
+        assertEquals(2, result.copyOperationState().getParts().size());
+        assertEquals(1, result.copyContext().getInt("channel"));
+
+        assertTrue(result.publishPieceRuntimes(controllerRuntimes));
+        assertNull(controllerRuntimes.get(first).getLastAggregatedContext());
+        assertNull(controllerRuntimes.get(second).getLastAggregatedContext());
+    }
+
+    @Test
+    void fullContributionEvaluatorKeepsInitialCompatibilityContextOnlyAtResultBoundary() {
+        ContextScratchElement firstElement = new ContextScratchElement("scratch", "first");
+        ContextScratchElement secondElement = new ContextScratchElement("scratch", "second");
+        StructurePiece first = new StructurePiece(
+                "first", singleCellTemplate(firstElement), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructurePiece second = new StructurePiece(
+                "second", singleCellTemplate(secondElement), new Vec3i(0, 0, 1), OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(asList(first, second));
+        StructureRuntime runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+        PatternMatchContext initialContext = new PatternMatchContext();
+        initialContext.set("external", "kept");
+        initialContext.set("scratch", "seed");
+
+        StructureCheckResult result = runtime.check(StructureOperationRequest.check(
+                WORLD, BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                false, initialContext, null));
+
+        assertTrue(result.isMatched());
+        assertEquals("kept", result.copyContext().get("external"));
+        assertEquals("seed", firstElement.seenBeforeWrite);
+        assertEquals("seed", secondElement.seenBeforeWrite);
+        assertEquals("seed", result.copyContext().get("scratch"));
+    }
+
+    @Test
     void failedFormationTransactionRollsBackCollectorAndContextMutations() {
         StructureMatchSession session = new StructureMatchSession();
         PatternMatchContext legacyContext = session.getContext();
@@ -197,8 +255,8 @@ class StructureTraversalBoundaryTest {
         assertTrue(result.publishPieceRuntimes(controllerRuntimes));
         assertTrue(controllerRuntimes.get(piece).isValidated());
         assertFalse(controllerRuntimes.get(piece).isDirty());
-        assertNotNull(controllerRuntimes.get(piece).getLastAggregatedContext());
-        assertEquals(1, controllerRuntimes.get(piece).getLastAggregatedContext().getInt("channel"));
+        assertNull(controllerRuntimes.get(piece).getLastAggregatedContext());
+        assertEquals(1, result.copyContext().getInt("channel"));
     }
 
     @Test
@@ -349,6 +407,61 @@ class StructureTraversalBoundaryTest {
     }
 
     @Test
+    void fullContributionEvaluatorValidatesGlobalMaxAfterFold() {
+        MaximumCountElement element = new MaximumCountElement(1);
+        PieceTemplate pieceTemplate = singleCellTemplate(element);
+        StructurePiece first = new StructurePiece(
+                "first", pieceTemplate, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructurePiece second = new StructurePiece(
+                "second", pieceTemplate, new Vec3i(0, 0, 2), OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(asList(first, second));
+        StructureRuntime runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+
+        StructureCheckResult result = runtime.check(checkRequest());
+
+        assertFalse(result.isMatched());
+        assertNotNull(result.getResultTable());
+        assertEquals(2, result.getResultTable().size());
+        assertNotNull(result.getContributionAggregate());
+        assertFalse(result.getContributionAggregate().isMatched());
+        assertEquals(StructureFailureTrace.Kind.COUNT_LIMIT,
+                result.createFailureTrace(testController()).getKind());
+    }
+
+    @Test
+    void defaultFormationCallbackReceivesProjectedLegacyContext() {
+        TestController controller = testController();
+        PatternMatchContext legacy = new PatternMatchContext();
+        legacy.set("channel", 3);
+        FormedStructureView view = FormedStructureView.legacy(
+                null, new StructureChannelValues(), new StructureOperationState(), legacy, false);
+
+        controller.invokeFormStructure(view);
+        legacy.set("channel", 9);
+
+        assertNotNull(controller.legacyCallbackContext);
+        assertEquals(3, controller.legacyCallbackContext.getInt("channel"));
+    }
+
+    @Test
+    void typedFormationCallbackDoesNotInvokeLegacyCallback() {
+        TypedCallbackController controller = typedCallbackController();
+        PatternMatchContext legacy = new PatternMatchContext();
+        legacy.set("channel", 5);
+        FormedStructureView view = FormedStructureView.legacy(
+                null, new StructureChannelValues(), new StructureOperationState(), legacy, true);
+
+        controller.invokeFormStructure(view);
+
+        assertNotNull(controller.typedCallbackView);
+        assertEquals(5, controller.typedCallbackView.copyLegacyCallbackContext().getInt("channel"));
+        assertTrue(controller.typedCallbackView.isFlipped());
+        assertNull(controller.legacyCallbackContext);
+    }
+
+    @Test
     void snapshotRequestUsesDefinitionRuntimeTraversal() {
         RecordingElement element = new RecordingElement(true);
         StructureDefinition<?> definition = StructureDefinition.fromTemplate(
@@ -389,7 +502,7 @@ class StructureTraversalBoundaryTest {
                 StructureCompiler.SearchStrategy.NESTED_BACKTRACKING);
     }
 
-    private static PieceTemplate template(RecordingElement element) {
+    private static PieceTemplate template(IStructureElement<?> element) {
         TraceabilityPredicate center = TraceabilityPredicate.ANY;
         TraceabilityPredicate other = TraceabilityPredicate.ANY;
         TraceabilityPredicate[][][] predicates = new TraceabilityPredicate[][][] {
@@ -400,8 +513,8 @@ class StructureTraversalBoundaryTest {
         };
         IStructureElement<?>[][][] elements = new IStructureElement<?>[][][] {
                 {
-                        { element.withPredicate(center) },
-                        { element.withPredicate(other) }
+                        { element },
+                        { element }
                 }
         };
         return new PieceTemplate(
@@ -420,24 +533,19 @@ class StructureTraversalBoundaryTest {
                 null);
     }
 
-    private static PieceTemplate template(MinimumCountElement element) {
-        TraceabilityPredicate center = TraceabilityPredicate.ANY;
-        TraceabilityPredicate other = TraceabilityPredicate.ANY;
-        TraceabilityPredicate[][][] predicates = new TraceabilityPredicate[][][] {
-                {
-                        { center },
-                        { other }
-                }
-        };
-        IStructureElement<?>[][][] elements = new IStructureElement<?>[][][] {
-                {
-                        { element.withPredicate(center) },
-                        { element.withPredicate(other) }
-                }
-        };
+    private static PieceTemplate singleCellTemplate(IStructureElement<?> element) {
+        TraceabilityPredicate predicate = TraceabilityPredicate.ANY;
         return new PieceTemplate(
-                predicates,
-                elements,
+                new TraceabilityPredicate[][][] {
+                        {
+                                { predicate }
+                        }
+                },
+                new IStructureElement<?>[][][] {
+                        {
+                                { element }
+                        }
+                },
                 new RelativeDirection[] {
                         RelativeDirection.RIGHT,
                         RelativeDirection.UP,
@@ -480,6 +588,15 @@ class StructureTraversalBoundaryTest {
             return controller;
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Unable to allocate test controller", e);
+        }
+    }
+
+    @NotNull
+    private static TypedCallbackController typedCallbackController() {
+        try {
+            return (TypedCallbackController) unsafe().allocateInstance(TypedCallbackController.class);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate typed callback controller", e);
         }
     }
 
@@ -654,6 +771,80 @@ class StructureTraversalBoundaryTest {
         }
     }
 
+    private static final class ContextScratchElement implements IStructureElement<Object> {
+
+        private final String key;
+        private final String value;
+        private Object seenBeforeWrite;
+
+        private ContextScratchElement(@NotNull String key,
+                                      @NotNull String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            seenBeforeWrite = context.getLegacyContext().get(key);
+            context.getLegacyContext().set(key, value);
+            return true;
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            throw new AssertionError("context-aware check should be used");
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+    }
+
+    private static final class MaximumCountElement implements IStructureElement<Object> {
+
+        private final int maximum;
+
+        private MaximumCountElement(int maximum) {
+            this.maximum = maximum;
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            StructureMatchCollector collector = context.getCollector();
+            collector.declareCount(MaximumCountElement.class, 0, maximum, null, null);
+            return collector.recordCount(MaximumCountElement.class);
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            throw new AssertionError("context-aware check should be used");
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+    }
+
     private static final class TestPart implements IMultiblockPart {
 
         @Override
@@ -672,6 +863,7 @@ class StructureTraversalBoundaryTest {
 
         private World world;
         private BlockPos pos;
+        private PatternMatchContext legacyCallbackContext;
 
         private TestController() {
             super(new ResourceLocation("gregtech", "dirty_piece_test_controller"));
@@ -708,6 +900,52 @@ class StructureTraversalBoundaryTest {
         @Override
         public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
             return null;
+        }
+
+        void invokeFormStructure(@NotNull FormedStructureView view) {
+            formStructure(view);
+        }
+
+        @Override
+        protected void formStructure(PatternMatchContext context) {
+            legacyCallbackContext = context.copy();
+        }
+    }
+
+    private static final class TypedCallbackController extends MultiblockControllerBase {
+
+        private FormedStructureView typedCallbackView;
+        private PatternMatchContext legacyCallbackContext;
+
+        private TypedCallbackController() {
+            super(new ResourceLocation("gregtech", "typed_callback_test_controller"));
+        }
+
+        @Override
+        public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+            return this;
+        }
+
+        @Override
+        protected void updateFormedValid() {}
+
+        @Override
+        public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+            return null;
+        }
+
+        void invokeFormStructure(@NotNull FormedStructureView view) {
+            formStructure(view);
+        }
+
+        @Override
+        protected void formStructure(@NotNull FormedStructureView formed) {
+            typedCallbackView = formed;
+        }
+
+        @Override
+        protected void formStructure(PatternMatchContext context) {
+            legacyCallbackContext = context.copy();
         }
     }
 

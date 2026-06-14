@@ -1,9 +1,13 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
 import gregtech.api.capability.DualHandler;
+import gregtech.api.capability.IMultipleNotifiableHandler;
+import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
+import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -35,6 +39,7 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -77,10 +82,12 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import appeng.api.networking.crafting.IMultiplePatternPushable;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
+import gtqt.api.capability.IPatternBufferIsolatedHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -96,7 +103,7 @@ import static gtqt.api.util.AE2PatternCompat.getFluidStack;
  *   <li>24 个共享缓冲区（PatternBuffer），每个缓冲区有独立的物品槽、流体槽和虚拟电路槽</li>
  *   <li>AE 推送样板材料时，相同物品组合进入同一个缓冲区，不同组合才分配新缓冲区</li>
  *   <li>所有缓冲区满时 isBusy() 返回 true，AE 暂停推送（阻挡模式）</li>
- *   <li>多方块配方系统通过 registerAbilities 获取所有非空缓冲区的 DualHandler 进行独立匹配</li>
+ *   <li>多方块配方系统通过 registerAbilities 获取 24 个隔离缓冲区入口进行独立匹配</li>
  *   <li>可编程电路适配：推送的物品中如果有可编程电路，自动解包并设置到缓冲区的虚拟电路槽</li>
  * </ul>
  */
@@ -118,19 +125,16 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     private final List<MetaTileEntityAEPatternRegistrar> orePrefixRegistrars = new ArrayList<>();
 
     // ==================== 固定参数 ====================
-    private static final int PATTERN_SLOTS = 36;
-    private static final int TANK_COUNT = 6;
-    private static final int TANK_CAPACITY = Integer.MAX_VALUE;
+    // AE2 样板卡槽是 6x6 网格；这不是缓存区材料槽数量。
+    private static final int AE_PATTERN_SLOT_COUNT = 36;
+    private static final int AE_PATTERN_GRID_ROW_SIZE = 6;
+    private static final int MATERIAL_SLOT_CAPACITY = Integer.MAX_VALUE;
     // 缓冲区配方消耗后延迟释放的 tick 数（防止不同配方抢占同一缓冲区）
     private static final int DEFAULT_UNLOCK_DELAY = 10;
-    // 缓冲区物品槽堆叠上限
-    private static final int ITEM_STACK_LIMIT = Integer.MAX_VALUE;
-    // 缓冲区额外电路槽数量（移植自 PH-Mod 的 v=4）
-    private static final int CIRCUIT_SLOT_COUNT = 4;
 
     public MetaTileEntityMEPatternProvider(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 5, false);
-        patternDetails = new ArrayList<>(Collections.nCopies(PATTERN_SLOTS, null));
+        patternDetails = new ArrayList<>(Collections.nCopies(AE_PATTERN_SLOT_COUNT, null));
         initializeInventory();
     }
 
@@ -142,7 +146,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     @Override
     protected void initializeInventory() {
         super.initializeInventory();
-        this.patternSlot = new ItemStackHandler(PATTERN_SLOTS) {
+        this.patternSlot = new ItemStackHandler(AE_PATTERN_SLOT_COUNT) {
 
             @Override
             public int getSlotLimit(int slot) {
@@ -182,7 +186,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     private void initBufferPool() {
         bufferPool = new ArrayList<>();
         for (int i = 0; i < BUFFER_COUNT; i++) {
-            bufferPool.add(new PatternBuffer(this, PATTERN_SLOTS, TANK_COUNT, TANK_CAPACITY));
+            bufferPool.add(new PatternBuffer(this));
         }
     }
 
@@ -198,43 +202,27 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         return dualHandler;
     }
 
-    protected IFluidTank[] createTanks() {
-        IFluidTank[] tanks = new IFluidTank[TANK_COUNT];
-        for (int index = 0; index < tanks.length; index++) {
-            tanks[index] = new NotifiableFluidTank(TANK_CAPACITY, null, isExportHatch);
-        }
-        return tanks;
-    }
-
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
-        return new NotifiableItemStackHandler(this, PATTERN_SLOTS, null, false);
+        return new NotifiableItemStackHandler(this, 0, null, false);
     }
 
     @Override
     protected FluidTankList createImportFluidHandler() {
-        return new FluidTankList(false, createTanks());
+        return new FluidTankList(false);
     }
 
     // ==================== 缓冲区能力注册 ====================
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        // 收集所有非空缓冲区，并按最近匹配时间降序排列（最近使用的在前）
+        // 收集缓冲区，并按最近匹配时间降序排列（最近使用的在前）。
+        // 24 个缓存区是固定能力入口；每个入口内部的有效材料槽按样板签名动态重建。
         // 移植自 PH-Mod 的 PiorityBuffer 排序机制，优化配方缓存命中率
-        List<PatternBuffer> activeBuffers = new ArrayList<>();
-        for (PatternBuffer buffer : bufferPool) {
-            if (!buffer.isEmpty()) {
-                activeBuffers.add(buffer);
-            }
-        }
-        activeBuffers.sort((a, b) -> Long.compare(b.getLastMatchTick(), a.getLastMatchTick()));
-        for (PatternBuffer buffer : activeBuffers) {
+        List<PatternBuffer> orderedBuffers = new ArrayList<>(bufferPool);
+        orderedBuffers.sort((a, b) -> Long.compare(b.getLastMatchTick(), a.getLastMatchTick()));
+        for (PatternBuffer buffer : orderedBuffers) {
             abilityInstances.add(buffer.getDualHandler());
-        }
-        // 如果所有缓冲区都空，注册一个空的 DualHandler 以保持兼容
-        if (activeBuffers.isEmpty()) {
-            abilityInstances.add(dualHandler);
         }
     }
 
@@ -263,7 +251,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     /**
      * 从 InventoryCrafting 中提取物品和流体的签名（用于缓冲区匹配）。
-     * 签名是物品类型列表（忽略数量）和流体类型列表（忽略数量）。
+     * 签名按材料种类聚合，并保留单份样板的数量用于容量计算。
      */
     private BufferSignature extractSignature(net.minecraft.inventory.InventoryCrafting inventoryCrafting) {
         List<ItemStack> itemTypes = new ArrayList<>();
@@ -278,9 +266,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             if (isFluidDrop(stack)) {
                 FluidStack fluid = getFluidStack(stack);
                 if (fluid != null) {
-                    FluidStack type = fluid.copy();
-                    type.amount = 0;
-                    fluidTypes.add(type);
+                    addFluidRequirement(fluidTypes, fluid);
                     continue;
                 }
             }
@@ -293,13 +279,50 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 continue;
             }
 
-            // 普通物品：记录类型（数量设为1）
-            ItemStack type = stack.copy();
-            type.setCount(1);
-            itemTypes.add(type);
+            // 普通物品：按类型聚合，并保留单份样板数量
+            addItemRequirement(itemTypes, stack);
         }
 
         return new BufferSignature(itemTypes, fluidTypes, circuitStacks);
+    }
+
+    private static void addItemRequirement(List<ItemStack> itemTypes, ItemStack stack) {
+        if (stack.isEmpty() || stack.getCount() <= 0) return;
+        for (ItemStack existing : itemTypes) {
+            if (sameItemType(existing, stack)) {
+                existing.setCount(clampToInt((long) existing.getCount() + stack.getCount()));
+                return;
+            }
+        }
+        ItemStack type = stack.copy();
+        type.setCount(stack.getCount());
+        itemTypes.add(type);
+    }
+
+    private static boolean sameItemType(ItemStack first, ItemStack second) {
+        return ItemStack.areItemsEqual(first, second) &&
+                ItemStack.areItemStackTagsEqual(first, second);
+    }
+
+    private static void addFluidRequirement(List<FluidStack> fluidTypes, FluidStack fluid) {
+        if (fluid == null || fluid.amount <= 0) return;
+        for (FluidStack existing : fluidTypes) {
+            if (existing.isFluidEqual(fluid)) {
+                existing.amount = clampToInt((long) existing.amount + fluid.amount);
+                return;
+            }
+        }
+        fluidTypes.add(fluid.copy());
+    }
+
+    private static int multiplyClamped(int amount, int multiplier) {
+        if (amount <= 0 || multiplier <= 0) return 0;
+        return clampToInt((long) amount * multiplier);
+    }
+
+    private static int clampToInt(long value) {
+        if (value <= 0) return 0;
+        return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 
     /**
@@ -423,7 +446,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             // 空缓冲区：设置签名后再计算
             buffer.setSignature(signature);
             registerBufferInSignatureMap(buffer);
-            effectiveMax = maxTodo;
+            effectiveMax = Math.min(maxTodo, buffer.space());
         } else {
             effectiveMax = Math.min(maxTodo, buffer.space());
         }
@@ -441,7 +464,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 FluidStack fluid = getFluidStack(ingredient);
                 if (fluid != null) {
                     FluidStack toFill = fluid.copy();
-                    toFill.amount *= effectiveMax;
+                    toFill.amount = multiplyClamped(fluid.amount, effectiveMax);
                     buffer.getFluidHandler().fill(toFill, true);
                 }
                 continue;
@@ -461,7 +484,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
             // 普通物品 — 按倍数插入
             ItemStack toInsert = ingredient.copy();
-            toInsert.setCount(ingredient.getCount() * effectiveMax);
+            toInsert.setCount(multiplyClamped(ingredient.getCount(), effectiveMax));
             for (int slot = 0; slot < buffer.getItemHandler().getSlots(); slot++) {
                 toInsert = buffer.getItemHandler().insertItem(slot, toInsert, false);
                 if (toInsert.isEmpty()) break;
@@ -612,7 +635,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     @Override
     protected int getPatternSlotCount() {
-        return PATTERN_SLOTS;
+        return AE_PATTERN_SLOT_COUNT;
     }
 
     // ==================== Signature map maintenance ====================
@@ -868,7 +891,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = TANK_COUNT;
+        int rowSize = AE_PATTERN_GRID_ROW_SIZE;
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
@@ -1263,7 +1286,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.refund"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.lock"));
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", PATTERN_SLOTS));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", AE_PATTERN_SLOT_COUNT));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
@@ -1271,8 +1294,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     // ==================== 内部类：缓冲区签名 ====================
 
     /**
-     * 缓冲区签名 — 用于判断物品组合是否应该进入同一个缓冲区。
-     * 比较的是物品/流体的类型（忽略数量）。
+     * 缓冲区签名 — 用于判断材料是否应该进入同一个缓冲区。
+     * 比较物品/流体的类型和单份样板数量，避免材料种类相同但配方不同的样板串到同一缓冲区。
      */
     public static class BufferSignature {
         private final List<ItemStack> itemTypes;
@@ -1298,22 +1321,24 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         }
 
         /**
-         * 比较两个签名是否匹配（物品类型和流体类型完全相同）。
+         * 比较两个签名是否匹配（材料类型和单份样板数量完全相同）。
          */
         public boolean matches(BufferSignature other) {
             if (this.itemTypes.size() != other.itemTypes.size()) return false;
             if (this.fluidTypes.size() != other.fluidTypes.size()) return false;
             if (this.circuitStacks.size() != other.circuitStacks.size()) return false;
 
-            // 比较物品类型（忽略数量）
+            // 比较物品类型和单份数量
             for (int i = 0; i < this.itemTypes.size(); i++) {
                 if (!ItemStack.areItemsEqual(this.itemTypes.get(i), other.itemTypes.get(i))) return false;
                 if (!ItemStack.areItemStackTagsEqual(this.itemTypes.get(i), other.itemTypes.get(i))) return false;
+                if (this.itemTypes.get(i).getCount() != other.itemTypes.get(i).getCount()) return false;
             }
 
-            // 比较流体类型（忽略数量）
+            // 比较流体类型和单份数量
             for (int i = 0; i < this.fluidTypes.size(); i++) {
                 if (!this.fluidTypes.get(i).isFluidEqual(other.fluidTypes.get(i))) return false;
+                if (this.fluidTypes.get(i).amount != other.fluidTypes.get(i).amount) return false;
             }
 
             // 比较电路
@@ -1333,9 +1358,14 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             for (ItemStack stack : itemTypes) {
                 hash = 31 * hash + Item.getIdFromItem(stack.getItem());
                 hash = 31 * hash + stack.getMetadata();
+                hash = 31 * hash + stack.getCount();
+                if (stack.getTagCompound() != null) {
+                    hash = 31 * hash + stack.getTagCompound().hashCode();
+                }
             }
             for (FluidStack fluid : fluidTypes) {
                 hash = 31 * hash + FluidRegistry.getFluidName(fluid.getFluid()).hashCode();
+                hash = 31 * hash + fluid.amount;
             }
             for (ItemStack circuitStack : circuitStacks) {
                 if (circuitStack.isEmpty()) continue;
@@ -1413,7 +1443,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
      * 单个缓冲区 — 持有独立的物品、流体和虚拟电路槽。
      * 类似 Programmable-Hatches-Mod 的 DualInvBuffer。
      * <p>
-     * 每个缓冲区包装为一个 DualHandler，供多方块配方系统独立匹配。
+     * 每个缓冲区暴露一个稳定的隔离能力入口，供多方块配方系统独立匹配。
      * <p>
      * 锁定机制（移植自 PH-Mod）：
      * <ul>
@@ -1423,16 +1453,11 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
      * </ul>
      */
     public static class PatternBuffer {
-        private final NotifiableItemStackHandler itemHandler;
-        private final FluidTankList fluidHandler;
-        /**
-         * 缓冲区电路槽 — 用简单的 ItemStackHandler 代替 GhostCircuitItemStackHandler，
-         * 避免传入 null MetaTileEntity 导致的潜在 NPE。
-         * 支持多个电路槽（移植自 PH-Mod 的 v=4），可同时绑定多种编程电路。
-         */
-        private final ItemStackHandler circuitSlot;
-        private final IItemHandlerModifiable combinedItemHandler;
-        private final DualHandler dualHandler;
+        private final MetaTileEntity owner;
+        private LargeSlotItemStackHandler itemHandler;
+        private FluidTankList fluidHandler;
+        private CircuitSlotItemStackHandler circuitSlot;
+        private final IsolatedPatternBufferHandler isolatedHandler;
         private BufferSignature signature;
 
         // ==================== 缓冲区锁定字段 ====================
@@ -1449,26 +1474,61 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         /** 配方身份标识 ID，用于缓冲区排序和配方缓存优化 */
         private int recipeId;
 
-        public PatternBuffer(MetaTileEntity owner, int itemSlots, int fluidSlots, int tankCapacity) {
-            this.itemHandler = new NotifiableItemStackHandler(owner, itemSlots, null, false) {
-
-                @Override
-                public int getSlotLimit(int slot) {
-                    return ITEM_STACK_LIMIT;
-                }
-            };
-            IFluidTank[] tanks = new IFluidTank[fluidSlots];
-            for (int i = 0; i < fluidSlots; i++) {
-                tanks[i] = new NotifiableFluidTank(tankCapacity, null, false);
-            }
-            this.fluidHandler = new FluidTankList(false, tanks);
-            this.circuitSlot = new ItemStackHandler(CIRCUIT_SLOT_COUNT);
-            this.combinedItemHandler = new ItemHandlerList(
-                    java.util.Arrays.asList(this.itemHandler, this.circuitSlot));
-            this.dualHandler = new DualHandler(this.combinedItemHandler, this.fluidHandler, false);
+        public PatternBuffer(MetaTileEntity owner) {
+            this.owner = owner;
+            this.isolatedHandler = new IsolatedPatternBufferHandler(this);
+            rebuildHandlers(0, 0, 0);
         }
 
-        public NotifiableItemStackHandler getItemHandler() {
+        private void rebuildHandlers(int itemSlots, int fluidSlots, int circuitSlots) {
+            this.itemHandler = new LargeSlotItemStackHandler(owner, itemSlots, null, false,
+                    () -> MATERIAL_SLOT_CAPACITY) {
+
+                @Override
+                public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+                    ItemStack expected = getExpectedItem(slot);
+                    return expected.isEmpty() || sameItemType(expected, stack);
+                }
+            };
+
+            IFluidTank[] tanks = new IFluidTank[fluidSlots];
+            for (int i = 0; i < fluidSlots; i++) {
+                final int tankIndex = i;
+                tanks[i] = new NotifiableFluidTank(MATERIAL_SLOT_CAPACITY, null, false) {
+
+                    @Override
+                    public boolean canFillFluidType(FluidStack fluid) {
+                        FluidStack expected = getExpectedFluid(tankIndex);
+                        return expected == null || expected.isFluidEqual(fluid);
+                    }
+                };
+            }
+            this.fluidHandler = new FluidTankList(false, tanks);
+            this.circuitSlot = new CircuitSlotItemStackHandler(circuitSlots);
+            this.isolatedHandler.applyNotifiersToBackingHandlers();
+        }
+
+        private ItemStack getExpectedItem(int slot) {
+            if (signature == null || slot < 0 || slot >= signature.getItemTypes().size()) {
+                return ItemStack.EMPTY;
+            }
+            return signature.getItemTypes().get(slot);
+        }
+
+        @Nullable
+        private FluidStack getExpectedFluid(int tank) {
+            if (signature == null || tank < 0 || tank >= signature.getFluidTypes().size()) {
+                return null;
+            }
+            return signature.getFluidTypes().get(tank);
+        }
+
+        private int getCircuitSlotCount(BufferSignature signature) {
+            if (signature == null) return 0;
+            return signature.getCircuitStacks().size();
+        }
+
+        public LargeSlotItemStackHandler getItemHandler() {
             return itemHandler;
         }
 
@@ -1514,10 +1574,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
          */
         public void setCircuitValue(int config) {
             if (config >= IntCircuitIngredient.CIRCUIT_MIN && config <= IntCircuitIngredient.CIRCUIT_MAX) {
+                if (circuitSlot.getSlots() == 0) return;
                 circuitSlot.setStackInSlot(0, IntCircuitIngredient.getIntegratedCircuit(config));
             } else {
+                if (circuitSlot.getSlots() == 0) return;
                 circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
             }
+            isolatedHandler.onContentsChanged();
         }
 
         /**
@@ -1527,6 +1590,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
          */
         public void setCustomCircuit(@NotNull ItemStack stack) {
             if (stack.isEmpty()) return;
+            if (circuitSlot.getSlots() == 0) return;
 
             ItemStack copy = stack.copy();
             copy.setCount(1);
@@ -1543,6 +1607,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             for (int i = 0; i < circuitSlot.getSlots(); i++) {
                 if (circuitSlot.getStackInSlot(i).isEmpty()) {
                     circuitSlot.setStackInSlot(i, copy);
+                    isolatedHandler.onContentsChanged();
                     return;
                 }
             }
@@ -1553,13 +1618,20 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
          * 用于空白可编程电路重置虚拟电路槽。
          */
         public void clearCircuit() {
+            boolean changed = false;
             for (int i = 0; i < circuitSlot.getSlots(); i++) {
+                if (!circuitSlot.getStackInSlot(i).isEmpty()) {
+                    changed = true;
+                }
                 circuitSlot.setStackInSlot(i, ItemStack.EMPTY);
+            }
+            if (changed) {
+                isolatedHandler.onContentsChanged();
             }
         }
 
-        public DualHandler getDualHandler() {
-            return dualHandler;
+        public IItemHandlerModifiable getDualHandler() {
+            return isolatedHandler;
         }
 
         public BufferSignature getSignature() {
@@ -1568,6 +1640,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
         public void setSignature(BufferSignature signature) {
             this.signature = signature;
+            int itemSlots = signature == null ? 0 : signature.getItemTypes().size();
+            int fluidSlots = signature == null ? 0 : signature.getFluidTypes().size();
+            int circuitSlots = signature == null ? 0 : getCircuitSlotCount(signature);
+            rebuildHandlers(itemSlots, fluidSlots, circuitSlots);
         }
 
         public boolean isRecipeLocked() {
@@ -1614,13 +1690,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         public boolean full() {
             for (int i = 0; i < itemHandler.getSlots(); i++) {
                 ItemStack stack = itemHandler.getStackInSlot(i);
-                if (!stack.isEmpty() && stack.getCount() >= ITEM_STACK_LIMIT) {
+                if (!stack.isEmpty() && stack.getCount() >= MATERIAL_SLOT_CAPACITY) {
                     return true;
                 }
             }
             for (int i = 0; i < fluidHandler.getTanks(); i++) {
                 IFluidTank tank = fluidHandler.getTankAt(i);
-                if (tank.getFluid() != null && tank.getFluidAmount() >= TANK_CAPACITY) {
+                if (tank.getFluid() != null && tank.getFluidAmount() >= MATERIAL_SLOT_CAPACITY) {
                     return true;
                 }
             }
@@ -1648,13 +1724,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 long currentAmount = 0;
                 for (int s = 0; s < itemHandler.getSlots(); s++) {
                     ItemStack slot = itemHandler.getStackInSlot(s);
-                    if (!slot.isEmpty() && slot.getItem() == singleStack.getItem()
-                            && slot.getMetadata() == singleStack.getMetadata()) {
+                    if (!slot.isEmpty() && sameItemType(slot, singleStack)) {
                         currentAmount += slot.getCount();
                     }
                 }
 
-                long canFit = ((long) ITEM_STACK_LIMIT - currentAmount) / singleStack.getCount();
+                long canFit = ((long) MATERIAL_SLOT_CAPACITY - currentAmount) / singleStack.getCount();
                 if (canFit < ret) {
                     ret = canFit;
                     found = true;
@@ -1670,12 +1745,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 for (int t = 0; t < fluidHandler.getTanks(); t++) {
                     IFluidTank tank = fluidHandler.getTankAt(t);
                     if (tank.getFluid() != null
-                            && tank.getFluid().getFluid() == singleFluid.getFluid()) {
+                            && tank.getFluid().isFluidEqual(singleFluid)) {
                         currentAmount += tank.getFluidAmount();
                     }
                 }
 
-                long canFit = ((long) TANK_CAPACITY - currentAmount) / singleFluid.amount;
+                long canFit = ((long) MATERIAL_SLOT_CAPACITY - currentAmount) / singleFluid.amount;
                 if (canFit < ret) {
                     ret = canFit;
                     found = true;
@@ -1788,6 +1863,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             this.recipeLocked = false;
             this.unlockDelay = 0;
             this.recipeId = 0;
+            rebuildHandlers(0, 0, 0);
         }
 
         /**
@@ -1795,6 +1871,12 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
          */
         public NBTTagCompound writeToNBT() {
             NBTTagCompound tag = new NBTTagCompound();
+
+            // 序列化签名，读取时先用它重建动态槽位
+            if (signature != null) {
+                tag.setTag("Signature", signature.writeToNBT());
+            }
+
             tag.setTag("Items", itemHandler.serializeNBT());
 
             // 序列化流体
@@ -1818,11 +1900,6 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             }
             tag.setTag("CircuitSlots", circuitList);
 
-            // 序列化签名
-            if (signature != null) {
-                tag.setTag("Signature", signature.writeToNBT());
-            }
-
             // 序列化锁定状态
             tag.setBoolean("recipeLocked", recipeLocked);
             tag.setBoolean("lock", lock);
@@ -1839,10 +1916,19 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
          * 从 NBT 反序列化缓冲区。
          */
         public void readFromNBT(NBTTagCompound tag) {
-            itemHandler.deserializeNBT(tag.getCompoundTag("Items"));
+            boolean hasSignature = tag.hasKey("Signature", Constants.NBT.TAG_COMPOUND);
+            if (hasSignature) {
+                setSignature(BufferSignature.readFromNBT(tag.getCompoundTag("Signature")));
+            } else {
+                setSignature(null);
+            }
+
+            if (hasSignature && tag.hasKey("Items", Constants.NBT.TAG_COMPOUND)) {
+                readItemsFromNBT(tag.getCompoundTag("Items"));
+            }
 
             // 反序列化流体
-            if (tag.hasKey("Fluids", Constants.NBT.TAG_LIST)) {
+            if (hasSignature && tag.hasKey("Fluids", Constants.NBT.TAG_LIST)) {
                 NBTTagList fluidList = tag.getTagList("Fluids", Constants.NBT.TAG_COMPOUND);
                 for (int i = 0; i < Math.min(fluidList.tagCount(), fluidHandler.getTanks()); i++) {
                     IFluidTank tank = fluidHandler.getTankAt(i);
@@ -1854,22 +1940,13 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
                 }
             }
 
-            // 反序列化电路（多电路槽，兼容旧格式）
-            if (tag.hasKey("CircuitSlots", Constants.NBT.TAG_LIST)) {
+            // 反序列化电路（多电路槽）
+            if (hasSignature && tag.hasKey("CircuitSlots", Constants.NBT.TAG_LIST)) {
                 NBTTagList circuitList = tag.getTagList("CircuitSlots", Constants.NBT.TAG_COMPOUND);
                 for (int i = 0; i < Math.min(circuitList.tagCount(), circuitSlot.getSlots()); i++) {
                     ItemStack circuit = new ItemStack(circuitList.getCompoundTagAt(i));
                     circuitSlot.setStackInSlot(i, circuit);
                 }
-            } else if (tag.hasKey("CircuitItem", Constants.NBT.TAG_COMPOUND)) {
-                // 兼容旧版单电路槽格式
-                ItemStack circuit = new ItemStack(tag.getCompoundTag("CircuitItem"));
-                circuitSlot.setStackInSlot(0, circuit);
-            }
-
-            // 反序列化签名
-            if (tag.hasKey("Signature", Constants.NBT.TAG_COMPOUND)) {
-                this.signature = BufferSignature.readFromNBT(tag.getCompoundTag("Signature"));
             }
 
             // 反序列化锁定状态
@@ -1880,6 +1957,265 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
             // 反序列化配方跟踪字段
             this.lastMatchTick = tag.getLong("lastMatchTick");
             this.recipeId = tag.getInteger("recipeId");
+        }
+
+        private void readItemsFromNBT(NBTTagCompound tagCompound) {
+            for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
+                itemHandler.setStackInSlot(slot, ItemStack.EMPTY);
+            }
+
+            NBTTagCompound bigStackSizes = tagCompound.getCompoundTag("BigStackSize");
+            NBTTagList itemList = tagCompound.getTagList("Items", Constants.NBT.TAG_COMPOUND);
+            for (int i = 0; i < itemList.tagCount(); i++) {
+                NBTTagCompound itemTag = itemList.getCompoundTagAt(i);
+                int slot = itemTag.getInteger("Slot");
+                if (slot < 0 || slot >= itemHandler.getSlots()) continue;
+
+                ItemStack stack = new ItemStack(itemTag);
+                String slotKey = String.valueOf(slot);
+                if (bigStackSizes.hasKey(slotKey, Constants.NBT.TAG_INT)) {
+                    stack.setCount(bigStackSizes.getInteger(slotKey));
+                }
+                itemHandler.setStackInSlot(slot, stack);
+            }
+        }
+
+        private static class CircuitSlotItemStackHandler extends ItemStackHandler {
+
+            private CircuitSlotItemStackHandler(int slots) {
+                super(slots);
+            }
+
+            @Override
+            public int getSlotLimit(int slot) {
+                return 1;
+            }
+
+            @Override
+            protected int getStackLimit(int slot, @NotNull ItemStack stack) {
+                return 1;
+            }
+
+            @Override
+            public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+                ItemStack stored = stack.copy();
+                if (!stored.isEmpty()) {
+                    stored.setCount(1);
+                }
+                super.setStackInSlot(slot, stored);
+            }
+        }
+
+        private static class IsolatedPatternBufferHandler implements IItemHandlerModifiable, IMultipleTankHandler,
+                                                                    INotifiableHandler, IMultipleNotifiableHandler,
+                                                                    IPatternBufferIsolatedHandler {
+
+            private final PatternBuffer buffer;
+            private final List<MetaTileEntity> notifiableEntities = new ArrayList<>();
+
+            private IsolatedPatternBufferHandler(PatternBuffer buffer) {
+                this.buffer = buffer;
+            }
+
+            @Override
+            public int getSlots() {
+                return buffer.itemHandler.getSlots() + buffer.circuitSlot.getSlots();
+            }
+
+            @Override
+            public @NotNull ItemStack getStackInSlot(int slot) {
+                if (slot < 0) return ItemStack.EMPTY;
+                int itemSlots = buffer.itemHandler.getSlots();
+                if (slot < itemSlots) {
+                    return buffer.itemHandler.getStackInSlot(slot);
+                }
+                int circuitSlot = slot - itemSlots;
+                if (circuitSlot < buffer.circuitSlot.getSlots()) {
+                    return buffer.circuitSlot.getStackInSlot(circuitSlot);
+                }
+                return ItemStack.EMPTY;
+            }
+
+            @Override
+            public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+                if (slot < 0) return stack;
+                int itemSlots = buffer.itemHandler.getSlots();
+                if (slot < itemSlots) {
+                    return buffer.itemHandler.insertItem(slot, stack, simulate);
+                }
+                int circuitSlot = slot - itemSlots;
+                if (circuitSlot < buffer.circuitSlot.getSlots()) {
+                    ItemStack remainder = buffer.circuitSlot.insertItem(circuitSlot, stack, simulate);
+                    if (!simulate && !ItemStack.areItemStacksEqual(remainder, stack)) {
+                        onContentsChanged();
+                    }
+                    return remainder;
+                }
+                return stack;
+            }
+
+            @Override
+            public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+                if (slot < 0) return ItemStack.EMPTY;
+                int itemSlots = buffer.itemHandler.getSlots();
+                if (slot < itemSlots) {
+                    return buffer.itemHandler.extractItem(slot, amount, simulate);
+                }
+                int circuitSlot = slot - itemSlots;
+                if (circuitSlot < buffer.circuitSlot.getSlots()) {
+                    ItemStack extracted = buffer.circuitSlot.extractItem(circuitSlot, amount, simulate);
+                    if (!simulate && !extracted.isEmpty()) {
+                        onContentsChanged();
+                    }
+                    return extracted;
+                }
+                return ItemStack.EMPTY;
+            }
+
+            @Override
+            public int getSlotLimit(int slot) {
+                if (slot < 0) return 0;
+                int itemSlots = buffer.itemHandler.getSlots();
+                if (slot < itemSlots) {
+                    return buffer.itemHandler.getSlotLimit(slot);
+                }
+                int circuitSlot = slot - itemSlots;
+                if (circuitSlot < buffer.circuitSlot.getSlots()) {
+                    return buffer.circuitSlot.getSlotLimit(circuitSlot);
+                }
+                return 0;
+            }
+
+            @Override
+            public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+                if (slot < 0) return;
+                int itemSlots = buffer.itemHandler.getSlots();
+                if (slot < itemSlots) {
+                    buffer.itemHandler.setStackInSlot(slot, stack);
+                    return;
+                }
+                int circuitSlot = slot - itemSlots;
+                if (circuitSlot < buffer.circuitSlot.getSlots()) {
+                    ItemStack oldStack = buffer.circuitSlot.getStackInSlot(circuitSlot);
+                    buffer.circuitSlot.setStackInSlot(circuitSlot, stack);
+                    if (!ItemStack.areItemStacksEqual(oldStack, stack)) {
+                        onContentsChanged();
+                    }
+                }
+            }
+
+            @Override
+            public IFluidTankProperties[] getTankProperties() {
+                return buffer.fluidHandler.getTankProperties();
+            }
+
+            @Override
+            public int fill(FluidStack resource, boolean doFill) {
+                int filled = buffer.fluidHandler.fill(resource, doFill);
+                if (doFill && filled > 0) {
+                    onContentsChanged();
+                }
+                return filled;
+            }
+
+            @Nullable
+            @Override
+            public FluidStack drain(FluidStack resource, boolean doDrain) {
+                FluidStack drained = buffer.fluidHandler.drain(resource, doDrain);
+                if (doDrain && drained != null) {
+                    onContentsChanged();
+                }
+                return drained;
+            }
+
+            @Nullable
+            @Override
+            public FluidStack drain(int maxDrain, boolean doDrain) {
+                FluidStack drained = buffer.fluidHandler.drain(maxDrain, doDrain);
+                if (doDrain && drained != null) {
+                    onContentsChanged();
+                }
+                return drained;
+            }
+
+            @Override
+            public @NotNull List<ITankEntry> getFluidTanks() {
+                return buffer.fluidHandler.getFluidTanks();
+            }
+
+            @Override
+            public int getTanks() {
+                return buffer.fluidHandler.getTanks();
+            }
+
+            @Override
+            public @NotNull ITankEntry getTankAt(int index) {
+                return buffer.fluidHandler.getTankAt(index);
+            }
+
+            @Override
+            public boolean allowSameFluidFill() {
+                return buffer.fluidHandler.allowSameFluidFill();
+            }
+
+            @Override
+            public void addNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+                if (metaTileEntity == null || notifiableEntities.contains(metaTileEntity)) return;
+                notifiableEntities.add(metaTileEntity);
+                addNotifierToBackingHandlers(metaTileEntity);
+            }
+
+            @Override
+            public void removeNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+                notifiableEntities.remove(metaTileEntity);
+                removeNotifierFromBackingHandlers(metaTileEntity);
+            }
+
+            @Override
+            public @NotNull Collection<INotifiableHandler> getBackingNotifiers() {
+                List<INotifiableHandler> notifiers = new ArrayList<>();
+                notifiers.add(this);
+                notifiers.add(buffer.itemHandler);
+                for (ITankEntry tank : buffer.fluidHandler.getFluidTanks()) {
+                    IFluidTank delegate = tank.getDelegate();
+                    if (delegate instanceof INotifiableHandler notifiableHandler) {
+                        notifiers.add(notifiableHandler);
+                    }
+                }
+                return notifiers;
+            }
+
+            private void applyNotifiersToBackingHandlers() {
+                for (MetaTileEntity metaTileEntity : notifiableEntities) {
+                    addNotifierToBackingHandlers(metaTileEntity);
+                }
+            }
+
+            private void addNotifierToBackingHandlers(MetaTileEntity metaTileEntity) {
+                buffer.itemHandler.addNotifiableMetaTileEntity(metaTileEntity);
+                for (ITankEntry tank : buffer.fluidHandler.getFluidTanks()) {
+                    IFluidTank delegate = tank.getDelegate();
+                    if (delegate instanceof INotifiableHandler notifiableHandler) {
+                        notifiableHandler.addNotifiableMetaTileEntity(metaTileEntity);
+                    }
+                }
+            }
+
+            private void removeNotifierFromBackingHandlers(MetaTileEntity metaTileEntity) {
+                buffer.itemHandler.removeNotifiableMetaTileEntity(metaTileEntity);
+                for (ITankEntry tank : buffer.fluidHandler.getFluidTanks()) {
+                    IFluidTank delegate = tank.getDelegate();
+                    if (delegate instanceof INotifiableHandler notifiableHandler) {
+                        notifiableHandler.removeNotifiableMetaTileEntity(metaTileEntity);
+                    }
+                }
+            }
+
+            private void onContentsChanged() {
+                for (MetaTileEntity metaTileEntity : notifiableEntities) {
+                    addToNotifiedList(metaTileEntity, this, false);
+                }
+            }
         }
     }
 }

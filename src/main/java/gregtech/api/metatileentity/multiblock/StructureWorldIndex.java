@@ -2,6 +2,9 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructurePositionIndex;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureIncrementalFallbackReason;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -9,6 +12,7 @@ import net.minecraft.util.math.ChunkPos;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +43,10 @@ final class StructureWorldIndex {
 
     /** Controller -> Set of block positions (as longs) belonging to this controller's structure. */
     private final Map<MultiblockControllerBase, LongSet> controllerPositions = new ConcurrentHashMap<>();
+
+    /** Controller -> immutable owner index for watched positions. */
+    private final Map<MultiblockControllerBase, StructurePositionIndex> controllerPositionIndexes =
+            new ConcurrentHashMap<>();
 
     /** Controller -> MultiPiecePattern for piece-level dirty marking. */
     private final Map<MultiblockControllerBase, MultiPiecePattern> controllerPiecePatterns =
@@ -79,6 +87,14 @@ final class StructureWorldIndex {
         controllerPiecePatterns.put(controller, piecePattern);
     }
 
+    void registerMultiblock(@NotNull MultiblockControllerBase controller,
+                            @NotNull StructurePositionIndex positionIndex,
+                            @NotNull MultiPiecePattern piecePattern) {
+        controllerPositionIndexes.put(controller, positionIndex);
+        registerMultiblock(controller, positionIndex.getAllWatchedPositions());
+        controllerPiecePatterns.put(controller, piecePattern);
+    }
+
     void unregisterMultiblock(@NotNull MultiblockControllerBase controller) {
         LongSet positions = controllerPositions.remove(controller);
         if (positions != null) {
@@ -95,6 +111,7 @@ final class StructureWorldIndex {
         }
 
         controllerPiecePatterns.remove(controller);
+        controllerPositionIndexes.remove(controller);
         pendingRecheck.remove(controller);
         lastChangedTick.remove(controller);
         suppressedControllers.remove(controller);
@@ -127,11 +144,19 @@ final class StructureWorldIndex {
                 continue;
             }
 
-            MultiPiecePattern piecePattern = controllerPiecePatterns.get(controller);
-            if (piecePattern != null) {
-                PieceRuntimes runtimes = controller.getPieceRuntimes();
-                if (runtimes != null) {
-                    piecePattern.markDirtyByPosition(posLong, runtimes, controller);
+            StructurePositionIndex positionIndex = controllerPositionIndexes.get(controller);
+            if (positionIndex != null) {
+                StructureRuntime runtime = controller.getStructureRuntime();
+                if (runtime != null) {
+                    runtime.addDirtyRoots(positionIndex.getOwners(posLong));
+                }
+            } else {
+                MultiPiecePattern piecePattern = controllerPiecePatterns.get(controller);
+                if (piecePattern != null) {
+                    PieceRuntimes runtimes = controller.getPieceRuntimes();
+                    if (runtimes != null) {
+                        piecePattern.markDirtyByPosition(posLong, runtimes, controller);
+                    }
                 }
             }
 
@@ -139,6 +164,24 @@ final class StructureWorldIndex {
             pendingRecheck.add(controller);
         }
         return affected;
+    }
+
+    boolean enqueueDirtyRoots(@NotNull MultiblockControllerBase controller,
+                              @NotNull Iterable<String> roots,
+                              long gameTick) {
+        if (!controllerPositions.containsKey(controller)) {
+            return false;
+        }
+        if (suppressedControllers.contains(controller)) {
+            return false;
+        }
+        StructureRuntime runtime = controller.getStructureRuntime();
+        if (runtime == null || !runtime.addDirtyRoots(roots)) {
+            return false;
+        }
+        lastChangedTick.put(controller, gameTick);
+        pendingRecheck.add(controller);
+        return true;
     }
 
     @NotNull
@@ -186,6 +229,16 @@ final class StructureWorldIndex {
         pendingRecheck.remove(controller);
         lastChangedTick.remove(controller);
 
+        StructureRuntime runtime = controller.getStructureRuntime();
+        if (runtime != null && runtime.hasPendingDirtyRoots(controller)) {
+            StructureIncrementalFallbackReason reason =
+                    runtime.getIncrementalFallbackReason(
+                            gregtech.api.pattern.StructureOrientation.fromController(controller));
+            return reason == null
+                    ? DirtyCheckDecision.incremental()
+                    : DirtyCheckDecision.full(reason);
+        }
+
         MultiPiecePattern pattern = controllerPiecePatterns.get(controller);
         PieceRuntimes runtimes = controller.getPieceRuntimes();
         if (pattern != null && runtimes != null && pattern.hasDirtyPieces(runtimes, controller)) {
@@ -200,6 +253,10 @@ final class StructureWorldIndex {
 
     @NotNull
     LongSet getPositions(@NotNull MultiblockControllerBase controller) {
+        StructurePositionIndex positionIndex = controllerPositionIndexes.get(controller);
+        if (positionIndex != null) {
+            return positionIndex.getAllFormedPositions();
+        }
         LongSet positions = controllerPositions.get(controller);
         return positions != null ? positions : new LongOpenHashSet();
     }
@@ -217,6 +274,7 @@ final class StructureWorldIndex {
     void clear() {
         chunkIndex.clear();
         controllerPositions.clear();
+        controllerPositionIndexes.clear();
         controllerPiecePatterns.clear();
         pendingRecheck.clear();
         lastChangedTick.clear();
@@ -241,41 +299,56 @@ final class StructureWorldIndex {
             CLEAN,
             DEFERRED,
             ACTIVE_GRAPH,
+            INCREMENTAL,
             FULL
         }
 
         @NotNull
         private final Action action;
         private final long lastChangedTick;
+        @Nullable
+        private final StructureIncrementalFallbackReason fallbackReason;
 
-        private DirtyCheckDecision(@NotNull Action action, long lastChangedTick) {
+        private DirtyCheckDecision(@NotNull Action action, long lastChangedTick,
+                                   @Nullable StructureIncrementalFallbackReason fallbackReason) {
             this.action = action;
             this.lastChangedTick = lastChangedTick;
+            this.fallbackReason = fallbackReason;
         }
 
         @NotNull
         static DirtyCheckDecision unregistered() {
-            return new DirtyCheckDecision(Action.UNREGISTERED, -1);
+            return new DirtyCheckDecision(Action.UNREGISTERED, -1, null);
         }
 
         @NotNull
         static DirtyCheckDecision clean() {
-            return new DirtyCheckDecision(Action.CLEAN, -1);
+            return new DirtyCheckDecision(Action.CLEAN, -1, null);
         }
 
         @NotNull
         static DirtyCheckDecision deferred(long lastChangedTick) {
-            return new DirtyCheckDecision(Action.DEFERRED, lastChangedTick);
+            return new DirtyCheckDecision(Action.DEFERRED, lastChangedTick, null);
         }
 
         @NotNull
         static DirtyCheckDecision activeGraph() {
-            return new DirtyCheckDecision(Action.ACTIVE_GRAPH, -1);
+            return new DirtyCheckDecision(Action.ACTIVE_GRAPH, -1, null);
+        }
+
+        @NotNull
+        static DirtyCheckDecision incremental() {
+            return new DirtyCheckDecision(Action.INCREMENTAL, -1, null);
         }
 
         @NotNull
         static DirtyCheckDecision full() {
-            return new DirtyCheckDecision(Action.FULL, -1);
+            return new DirtyCheckDecision(Action.FULL, -1, null);
+        }
+
+        @NotNull
+        static DirtyCheckDecision full(@NotNull StructureIncrementalFallbackReason fallbackReason) {
+            return new DirtyCheckDecision(Action.FULL, -1, fallbackReason);
         }
 
         boolean isRegistered() {
@@ -283,11 +356,15 @@ final class StructureWorldIndex {
         }
 
         boolean shouldCheck() {
-            return action == Action.ACTIVE_GRAPH || action == Action.FULL;
+            return action == Action.ACTIVE_GRAPH || action == Action.FULL || action == Action.INCREMENTAL;
         }
 
         boolean shouldCheckActiveGraph() {
             return action == Action.ACTIVE_GRAPH;
+        }
+
+        boolean shouldCheckIncremental() {
+            return action == Action.INCREMENTAL;
         }
 
         @NotNull
@@ -297,6 +374,11 @@ final class StructureWorldIndex {
 
         long getLastChangedTick() {
             return lastChangedTick;
+        }
+
+        @Nullable
+        StructureIncrementalFallbackReason getFallbackReason() {
+            return fallbackReason;
         }
     }
 }

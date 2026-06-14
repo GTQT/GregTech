@@ -4,6 +4,8 @@ import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.RelativeDirection;
 
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 
 import org.junit.jupiter.api.Test;
 
@@ -74,6 +76,24 @@ class RepeatGroupPieceTest {
         RepeatGroupPiece piece = repeatPiece(new int[] {0}, new int[] {1});
 
         assertTrue(piece.visitRepeatOffsets(new int[] {2}, local -> true));
+    }
+
+    @Test
+    void typedIterationReturnsTraversalsAndOutcome() {
+        RepeatGroupPiece piece = repeatPiece(new int[] {0, 1}, new int[] {2, 3});
+        RepeatIterationResult result = piece.iterate(RepeatIterationRequest.of(
+                BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                null,
+                null), new int[] {2, 2});
+
+        assertEquals(RepeatIterationResult.Outcome.COMPLETED, result.getOutcome());
+        assertEquals(4, result.getVisitedSlices());
+        assertEquals(Arrays.asList(
+                new BlockPos(0, 0, 0),
+                new BlockPos(2, 0, 0),
+                new BlockPos(0, 3, 0),
+                new BlockPos(2, 3, 0)), result.getLocalOffsets());
     }
 
     private static List<List<Integer>> collectOffsets(RepeatGroupPiece piece, int[] reps) {

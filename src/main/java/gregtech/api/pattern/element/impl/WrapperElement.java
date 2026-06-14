@@ -2,6 +2,8 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureHintRenderResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
@@ -209,9 +211,22 @@ public class WrapperElement implements IStructureElement<Object> {
         return getDelegate().spawnHint(world, pos, trigger);
     }
 
+    @NotNull
+    @Override
+    public StructureHintRenderResult spawnHintWithResult(
+            World world, BlockPos pos, @NotNull ItemStack trigger) {
+        return getDelegate().spawnHintWithResult(world, pos, trigger);
+    }
+
     @Override
     public void spawnHint(@NotNull StructureEvaluationContext<Object> context) {
-        context.probeAction(probeContext -> getDelegate().spawnHint(probeContext));
+        spawnHintWithResult(context);
+    }
+
+    @NotNull
+    @Override
+    public StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<Object> context) {
+        return context.probeValue(probeContext -> getDelegate().spawnHintWithResult(probeContext));
     }
 
     @Override
@@ -263,6 +278,15 @@ public class WrapperElement implements IStructureElement<Object> {
     @Override
     public boolean usesLegacyPredicateRuntime() {
         return false;
+    }
+
+    @NotNull
+    @Override
+    public StructureIncrementalSupport getIncrementalSupport() {
+        if (callback != null || lazySupplier != null) {
+            return StructureIncrementalSupport.OPAQUE;
+        }
+        return getDelegate().getIncrementalSupport();
     }
 
     @Nullable

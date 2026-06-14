@@ -17,6 +17,8 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
@@ -665,10 +667,6 @@ public class RepeatGroupPiece extends StructurePiece {
                                                               @NotNull ItemStack triggerStack) {
         int[] reps = resolveRepetitions(channelValues);
         MultiblockState state = runtime.getState();
-        // Use the world-space piece center (OffsetMode applied) and fold only the per-slice
-        // step into the cell loop as a template-local offset. setActualRelativeOffset
-        // therefore runs exactly once per cell.
-        BlockPos pieceCenter = getCenterPos(controllerOrigin, orientation, prior);
         // Cache the actual repeat counts on the runtime so subsequent pieces
         // (notably DynamicOffsetPieces anchored to this one) can read them via
         // FormedStructureMetadata. Without this, the auto-build path cannot
@@ -676,13 +674,14 @@ public class RepeatGroupPiece extends StructurePiece {
         // back to its static baseOffset.
         runtime.cacheFormedReps(reps);
         StructureBuildResult.Builder result = StructureBuildResult.builder();
+        RepeatIterationResult iteration = iterate(
+                RepeatIterationRequest.of(controllerOrigin, orientation, prior, channelValues), reps);
 
-        visitRepeatOffsets(reps, local -> {
+        for (StructureCellTraversal traversal : iteration.getTraversals()) {
             result.merge(state.autoBuildAtWithResult(player, controller,
-                    traversal(pieceCenter, orientation, local),
+                    traversal,
                     channelValues, skipHatches, abilityTracker, operation, triggerStack));
-            return true;
-        });
+        }
         return result.build();
     }
 
@@ -711,16 +710,16 @@ public class RepeatGroupPiece extends StructurePiece {
             @NotNull ItemStack triggerStack) {
         int[] reps = resolveRepetitions(channelValues);
         MultiblockState state = runtime.getState();
-        BlockPos pieceCenter = getCenterPos(controllerOrigin, orientation, prior);
         runtime.cacheFormedReps(reps);
         StructureHintResult.Builder result = StructureHintResult.builder();
+        RepeatIterationResult iteration = iterate(
+                RepeatIterationRequest.of(controllerOrigin, orientation, prior, channelValues), reps);
 
-        visitRepeatOffsets(reps, local -> {
+        for (StructureCellTraversal traversal : iteration.getTraversals()) {
             result.merge(state.spawnHintsAtWithResult(
-                    world, controller, traversal(pieceCenter, orientation, local),
+                    world, controller, traversal,
                     channelValues, triggerStack));
-            return true;
-        });
+        }
         return result.build();
     }
 
@@ -730,6 +729,26 @@ public class RepeatGroupPiece extends StructurePiece {
                                                     @NotNull int[] localOffset) {
         return StructureCellTraversal.at(pieceCenter, orientation)
                 .withLocalOffset(localOffset[0], localOffset[1], localOffset[2]);
+    }
+
+    @NotNull
+    public RepeatIterationResult iterate(@NotNull RepeatIterationRequest request) {
+        return iterate(request, resolveRepetitions(request.getChannelValues()));
+    }
+
+    @NotNull
+    public RepeatIterationResult iterate(@NotNull RepeatIterationRequest request,
+                                         @NotNull int[] repetitions) {
+        BlockPos pieceCenter = getCenterPos(
+                request.getControllerOrigin(), request.getOrientation(), request.getPrior());
+        List<StructureCellTraversal> traversals = new ArrayList<>();
+        boolean completed = visitRepeatOffsets(repetitions, local -> {
+            traversals.add(traversal(pieceCenter, request.getOrientation(), local));
+            return true;
+        });
+        return completed
+                ? RepeatIterationResult.completed(repetitions, traversals)
+                : RepeatIterationResult.stopped(repetitions, traversals);
     }
 
     boolean visitRepeatOffsets(@NotNull int[] reps,

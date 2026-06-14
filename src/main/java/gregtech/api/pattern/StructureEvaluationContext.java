@@ -122,17 +122,19 @@ public final class StructureEvaluationContext<T> {
 
     @NotNull
     public PatternMatchContext getLegacyContext() {
-        return requireWorldState().getMatchContext();
+        PatternMatchContext context = requireWorldState().getMatchContext();
+        return session == null ? context : context.copy();
     }
 
     @NotNull
     public StructureMatchCollector getCollector() {
         boolean collectFormationState = operation.collectsFormationState();
+        PatternMatchContext context = requireWorldState().getMatchContext();
         return session == null
-                ? new StructureMatchCollector(getLegacyContext(), collectFormationState)
+                ? new StructureMatchCollector(context, collectFormationState)
                 : new StructureMatchCollector(
                         session.getOperationState(), session.getContributionBuilder(),
-                        getLegacyContext(), collectFormationState);
+                        context, collectFormationState);
     }
 
     @NotNull

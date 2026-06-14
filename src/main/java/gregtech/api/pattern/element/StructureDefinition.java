@@ -11,6 +11,8 @@ import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureCondition;
+import gregtech.api.pattern.StructureDependencyCompiler;
+import gregtech.api.pattern.StructureEligibilityPlan;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureSizeDescriptor;
 import gregtech.api.pattern.StructureSizeDescriptor.PieceSize;
@@ -75,6 +77,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     // just to register a redundant TemplatePool entry.
     private MultiPiecePattern compiledPattern;
     private StructureSizeDescriptor sizeDescriptor;
+    private StructureEligibilityPlan eligibilityPlan;
     @Nullable
     private volatile Set<StructureElementCapability> supportedElementCapabilities;
     private final boolean supportsSingleTemplatePath;
@@ -141,6 +144,24 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             // computed values will simply be discarded.
             local = StructureCompiler.compile(this);
             compiledPattern = local;
+        }
+        return local;
+    }
+
+    /**
+     * Dependency graph and eligibility diagnostics for the contribution
+     * evaluator path. The plan is computed from the compiled pattern so legacy
+     * adapters and prebuilt multi-piece patterns receive the same diagnostics.
+     */
+    @NotNull
+    public StructureEligibilityPlan getEligibilityPlan() {
+        if (delegate != null) {
+            return delegate.get().getEligibilityPlan();
+        }
+        StructureEligibilityPlan local = eligibilityPlan;
+        if (local == null) {
+            local = StructureDependencyCompiler.compile(getCompiledPattern());
+            eligibilityPlan = local;
         }
         return local;
     }

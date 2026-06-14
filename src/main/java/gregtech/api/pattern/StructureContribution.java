@@ -196,6 +196,27 @@ public final class StructureContribution {
     }
 
     @NotNull
+    public PatternMatchContext projectCompatibilityContext(@Nullable PatternMatchContext initialContext) {
+        PatternMatchContext context = initialContext == null
+                ? new PatternMatchContext()
+                : initialContext.copy();
+        for (Map.Entry<StructureContributionKey<?, ?>, List<?>> entry : typedEmissions.entrySet()) {
+            ProjectedAccumulator accumulator = new ProjectedAccumulator(entry.getKey());
+            try {
+                for (Object emission : entry.getValue()) {
+                    accumulator.reduce(emission);
+                }
+            } catch (StructureContributionKey.ReductionException ignored) {
+                continue;
+            }
+            if (accumulator.validate().isSuccess()) {
+                accumulator.project(context);
+            }
+        }
+        return context;
+    }
+
+    @NotNull
     @SuppressWarnings("unchecked")
     public <E> List<E> getEmissions(@NotNull StructureContributionKey<E, ?> key) {
         List<?> values = typedEmissions.get(key);
@@ -209,6 +230,35 @@ public final class StructureContribution {
                 && abilityCounts.isEmpty()
                 && variantActiveBlocks.isEmpty()
                 && typedEmissions.isEmpty();
+    }
+
+    private static final class ProjectedAccumulator {
+
+        @NotNull
+        private final StructureContributionKey key;
+        @Nullable
+        private Object value;
+
+        private ProjectedAccumulator(@NotNull StructureContributionKey<?, ?> key) {
+            this.key = key;
+            this.value = key.identity();
+        }
+
+        @SuppressWarnings("unchecked")
+        private void reduce(@Nullable Object emission) {
+            value = key.reduce(value, emission);
+        }
+
+        @NotNull
+        @SuppressWarnings("unchecked")
+        private StructureContributionKey.Validation validate() {
+            return key.validate(value);
+        }
+
+        @SuppressWarnings("unchecked")
+        private void project(@NotNull PatternMatchContext context) {
+            key.project(context, value);
+        }
     }
 
     public static final class Builder {

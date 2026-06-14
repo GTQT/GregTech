@@ -67,6 +67,20 @@ final class MultiblockStructureOperations {
                 controller, controller.multiPiecePattern, controller.pieceRuntimes);
     }
 
+    static void checkIncrementalGraph(@NotNull MultiblockControllerBase controller) {
+        StructureRuntime runtime = controller.getOrCreateStructureRuntime();
+        StructureTrace.debug(controller, "incremental-check-start", runtime.describeShape());
+        StructureCheckResult result = runtime.checkIncremental(
+                StructureOperationRequest.check(
+                        controller.getWorld(),
+                        controller.getPos(),
+                        StructureOrientation.fromController(controller),
+                        false,
+                        null,
+                        controller));
+        MultiblockStructureCommitter.applyCheckResult(controller, result);
+    }
+
     @NotNull
     static List<StructureChannel> getSupportedChannels(@NotNull MultiblockControllerBase controller) {
         if (controller.patternTemplate == null) {

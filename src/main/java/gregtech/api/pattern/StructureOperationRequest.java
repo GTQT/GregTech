@@ -275,8 +275,16 @@ public final class StructureOperationRequest {
     public static StructureOperationRequest iterate(@NotNull World world,
                                                     @NotNull BlockPos controllerPos,
                                                     @NotNull StructureOrientation orientation) {
+        return iterate(world, controllerPos, orientation, null);
+    }
+
+    @NotNull
+    public static StructureOperationRequest iterate(@NotNull World world,
+                                                    @NotNull BlockPos controllerPos,
+                                                    @NotNull StructureOrientation orientation,
+                                                    @Nullable MultiblockControllerBase controller) {
         return new StructureOperationRequest(
-                Kind.ITERATE, world, null, controllerPos, orientation, null, null,
+                Kind.ITERATE, world, null, controllerPos, orientation, null, controller,
                 null, null, null, null, ItemStack.EMPTY, false, false, 0);
     }
 

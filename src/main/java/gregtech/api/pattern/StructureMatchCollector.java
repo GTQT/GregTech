@@ -223,6 +223,9 @@ public final class StructureMatchCollector {
                         java.util.function.UnaryOperator.identity(),
                         java.util.function.UnaryOperator.identity());
         emit(key, value);
+        if (contributionBuilder != null) {
+            return true;
+        }
         Object existing = context.get(channelName);
         if (existing == null) {
             context.set(channelName, value);
@@ -240,9 +243,12 @@ public final class StructureMatchCollector {
                 () -> null,
                 (current, emitted) -> emitted == null ? current : emitted,
                 ignored -> StructureContributionKey.Validation.success(),
-                (legacyContext, aggregate) -> legacyContext.set(key, aggregate),
-                java.util.function.UnaryOperator.identity(),
-                java.util.function.UnaryOperator.identity()), value);
+                        (legacyContext, aggregate) -> legacyContext.set(key, aggregate),
+                        java.util.function.UnaryOperator.identity(),
+                        java.util.function.UnaryOperator.identity()), value);
+        if (contributionBuilder != null) {
+            return;
+        }
         context.set(key, value);
     }
 

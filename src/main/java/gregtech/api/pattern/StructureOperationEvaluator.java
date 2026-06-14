@@ -1,20 +1,30 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCheckState;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
+import gregtech.common.ConfigHolder;
+import gregtech.api.util.GTLog;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Thin operation boundary over the current structure implementations.
@@ -62,9 +72,17 @@ public final class StructureOperationEvaluator {
     public StructureCheckResult check(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.CHECK);
         if (definition != null) {
-            return StructureCheckResult.fromDefinition(checkDefinition(
+            StructureEligibilityPlan plan = definition.getEligibilityPlan();
+            if (!plan.isEligible()) {
+                return checkActiveGraph(request)
+                        .withEligibilityPlan(plan)
+                        .withTraceContext("active-graph-fallback", plan.describeFallback());
+            }
+            StructureCheckResult result = StructureCheckResult.fromDefinition(checkDefinition(
                     request.requireWorld(), request.requireControllerPos(), request.requireOrientation(),
-                    request.getMatchContext(), request.getController()));
+                    request.getMatchContext(), request.getController()))
+                    .withEligibilityPlan(plan);
+            return attachGraphPublication(result, request, plan);
         }
         PatternMatchContext legacyContext = checkSingle(
                 request.requireWorld(),
@@ -101,6 +119,35 @@ public final class StructureOperationEvaluator {
                 result.getResultTable(), result.getContributionAggregate());
     }
 
+    @NotNull
+    public StructureCheckResult checkIncremental(
+            @NotNull StructureOperationRequest request,
+            @NotNull CommittedStructureGraph baseline,
+            @NotNull Set<String> dirtyRoots,
+            @NotNull StructureEligibilityPlan plan) {
+        request.requireKind(StructureOperationRequest.Kind.CHECK);
+        if (definition == null) {
+            return checkActiveGraph(request)
+                    .withTraceContext("active-graph-fallback", "fallback=legacy-definition");
+        }
+        if (!plan.isEligible()) {
+            return checkActiveGraph(request)
+                    .withEligibilityPlan(plan)
+                    .withTraceContext("active-graph-fallback", plan.describeFallback());
+        }
+        boolean snapshotPrecheckAttempted = false;
+        boolean snapshotPrecheckFailed = false;
+        if (definition.supportsElementCapability(StructureElementCapability.SNAPSHOT_MATCH)) {
+            snapshotPrecheckAttempted = true;
+            snapshotPrecheckFailed = !precheckDirtyPiecesOnSnapshot(
+                    request.requireWorld(), baseline, baseline.getOrientation(), dirtyRoots);
+        }
+        return checkIncrementalOrientation(
+                request, baseline, plan, baseline.getOrientation(), dirtyRoots,
+                snapshotPrecheckAttempted, snapshotPrecheckFailed)
+                .withEligibilityPlan(plan);
+    }
+
     /**
      * @deprecated The operation checks the complete active graph, not only dirty pieces.
      */
@@ -122,6 +169,466 @@ public final class StructureOperationEvaluator {
         }
         return definition.createState().check(
                 world, controllerPos, orientation, context, controller);
+    }
+
+    @NotNull
+    private StructureCheckResult checkIncrementalOrientation(
+            @NotNull StructureOperationRequest request,
+            @NotNull CommittedStructureGraph baseline,
+            @NotNull StructureEligibilityPlan plan,
+            @NotNull StructureOrientation orientation,
+            @NotNull Set<String> dirtyRoots,
+            boolean snapshotPrecheckAttempted,
+            boolean snapshotPrecheckFailed) {
+        MultiPiecePattern pattern = requireMultiPiecePattern();
+        Set<String> staticClosure = plan.getGraph().dependentClosure(dirtyRoots);
+        LinkedHashSet<String> recheckPieces = new LinkedHashSet<>(dirtyRoots);
+        LinkedHashSet<String> prunedPieces = new LinkedHashSet<>();
+
+        PieceRuntimes candidateRuntimes = new PieceRuntimes(pattern);
+        candidateRuntimes.publish(baseline.getRuntimePublication());
+        StructureResultTable.Builder resultTable = StructureResultTable.builder(pattern);
+        Map<String, int[]> pieceRepeats = new HashMap<>();
+        Map<String, Integer> channelValues = new HashMap<>();
+        Map<String, BlockPos> pieceCenters = new HashMap<>();
+        String lastActivePieceName = null;
+        BlockPos lastActivePieceCenter = null;
+
+        for (StructurePiece piece : pattern.getPieceList()) {
+            PieceEvaluationResult baselineResult = baseline.getResultTable().get(piece);
+            if (baselineResult == null) {
+                StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
+                        dirtyRoots, staticClosure, prunedPieces, recheckPieces,
+                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                return incrementalFailure(
+                        request, orientation, null,
+                        "Committed result table is missing piece '" + piece.getName() + "'",
+                        Collections.emptyMap(), Collections.emptyMap(), null, null, diagnostic);
+            }
+
+            if (!recheckPieces.contains(piece.getName())) {
+                resultTable.add(baselineResult);
+                accumulatePriorFromResult(baselineResult, pieceRepeats, channelValues, pieceCenters);
+                if (baselineResult.isActive()) {
+                    lastActivePieceName = piece.getName();
+                    lastActivePieceCenter = baselineResult.getResolvedCenter();
+                }
+                continue;
+            }
+
+            PieceRuntime runtime = candidateRuntimes.get(piece);
+            if (runtime == null) {
+                StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
+                        dirtyRoots, staticClosure, prunedPieces, recheckPieces,
+                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                return incrementalFailure(
+                        request, orientation, null,
+                        "Candidate runtimes are missing piece '" + piece.getName() + "'",
+                        Collections.emptyMap(), Collections.emptyMap(), null, null, diagnostic);
+            }
+
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(pieceRepeats), new HashMap<>(channelValues),
+                    new HashMap<>(pieceCenters));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(
+                            request.getController(), request.requireWorld(),
+                            request.requireControllerPos(), prior, null);
+            if (!piece.isActive(activation)) {
+                runtime.publishInactive();
+                PieceEvaluationResult inactive = PieceEvaluationResult.inactive(piece);
+                resultTable.add(inactive);
+                propagateChangedAspects(plan.getGraph(), baselineResult, inactive,
+                        recheckPieces, prunedPieces);
+                continue;
+            }
+
+            BlockPos centerPos = piece.getCenterPos(
+                    request.requireControllerPos(), orientation, prior);
+            StructureMatchSession pieceSession = pattern.createMatchSession(request.getMatchContext());
+            pieceSession.setControllerContext(request.getController());
+            pieceSession.beginPieceContribution(piece);
+            lastActivePieceName = piece.getName();
+            lastActivePieceCenter = centerPos;
+            if (ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug(
+                        "[StructureIncremental] checking piece={} center={} front={} up={} flipped={}",
+                        piece.getName(), centerPos, orientation.getStructureFront(),
+                        orientation.getUp(), orientation.isFlipped());
+            }
+
+            boolean matched;
+            if (piece instanceof RepeatGroupPiece repeatPiece) {
+                matched = repeatPiece.checkSync(
+                        request.requireWorld(), request.requireControllerPos(),
+                        orientation, prior, runtime, pieceSession);
+                if (matched) {
+                    runtime.setValidated(true);
+                    runtime.clearDirty();
+                    int[] formedReps = runtime.getLastFormedReps();
+                    if (formedReps != null && formedReps.length > 0) {
+                        pieceRepeats.put(piece.getName(), formedReps.clone());
+                    }
+                    runtime.setLastAggregatedContext(null);
+                }
+            } else {
+                matched = pieceSession.tryFork(candidate ->
+                        runtime.getState().checkPatternAtExact(
+                                request.requireWorld(), centerPos, orientation, 0, 0, 0, candidate) != null);
+                if (matched) {
+                    runtime.setValidated(true);
+                    runtime.clearDirty();
+                    runtime.swapPositions(new LongOpenHashSet(runtime.getState().cache.keySet()));
+                    int[] formedReps = runtime.getState().formedRepetitionCount;
+                    if (formedReps != null && formedReps.length > 0) {
+                        pieceRepeats.put(piece.getName(), formedReps.clone());
+                        runtime.cacheFormedReps(formedReps);
+                    }
+                }
+            }
+
+            if (!matched) {
+                pieceSession.discardPieceContribution(piece);
+                StructureFailureTrace failure = incrementalPieceFailureTrace(
+                        request.getController(), request.requireControllerPos(), orientation,
+                        piece.getName(), runtime.getState().getError(),
+                        runtime.getState().getMissingAbilities(),
+                        pieceSession.copyOperationState().getAbilityCounts(),
+                        activePieceDepth(pattern, piece));
+                StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
+                        dirtyRoots, staticClosure, prunedPieces, recheckPieces,
+                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                return incrementalFailure(
+                        request, orientation, failure,
+                        "Incremental piece '" + piece.getName() + "' failed pattern check",
+                        runtime.getState().getMissingAbilities(),
+                        pieceSession.copyOperationState().getAbilityCounts(),
+                        null, null, diagnostic);
+            }
+
+            pieceCenters.put(piece.getName(), centerPos);
+            int[] resultRepetitions = piece instanceof RepeatGroupPiece
+                    ? runtime.getLastFormedReps()
+                    : runtime.getState().formedRepetitionCount;
+            StructureContribution contribution = pieceSession.finishPieceContribution(piece);
+            PatternMatchContext compatibilityContext =
+                    contribution.projectCompatibilityContext(pieceSession.getContext());
+            extractChannelValues(compatibilityContext, channelValues);
+            PieceEvaluationResult newResult = PieceEvaluationResult.activeMatchedWithRuntime(
+                    piece, centerPos, resultRepetitions,
+                    runtime.getPositions(), runtime.getPositions(), runtime,
+                    contribution, compatibilityContext);
+            resultTable.add(newResult);
+            propagateChangedAspects(plan.getGraph(), baselineResult, newResult,
+                    recheckPieces, prunedPieces);
+        }
+
+        StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
+                dirtyRoots, staticClosure, prunedPieces, recheckPieces,
+                pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+
+        StructureResultTable completedTable = resultTable.build();
+        StructureAggregateFolder.Result aggregate =
+                StructureAggregateFolder.fold(pattern, completedTable, request.getMatchContext(),
+                        request.getMatchContext() == null ? baseline : null);
+        if (!aggregate.isMatched()) {
+            StructureFailureTrace.Kind kind = aggregate.getMissingAbilities().isEmpty()
+                    ? StructureFailureTrace.Kind.COUNT_LIMIT
+                    : StructureFailureTrace.Kind.MISSING_ABILITY;
+            String message = aggregate.getErrorMessage() == null
+                    ? "Incremental structure-wide validation failed"
+                    : aggregate.getErrorMessage();
+            StructureFailureTrace failure = incrementalAggregateFailureTrace(
+                    request.getController(), request.requireControllerPos(), orientation,
+                    message, kind, aggregate.getMissingAbilities(),
+                    aggregate.getAbilityCounts(), lastActivePieceName, lastActivePieceCenter);
+            return incrementalFailure(
+                    request, orientation, failure, message,
+                    aggregate.getMissingAbilities(), aggregate.getAbilityCounts(),
+                    completedTable, aggregate, diagnostic);
+        }
+
+        PieceRuntimes.Publication publication = candidateRuntimes.capturePublication();
+        StructureCheckResult result = StructureCheckResult.fromIncrementalDefinition(
+                true, aggregate.copyCompatibilityContext(), aggregate.copyOperationState(),
+                aggregate.getMetadata(), null, null, Collections.emptyMap(),
+                aggregate.getAbilityCounts(), orientation.isFlipped(), publication,
+                completedTable, aggregate)
+                .withEligibilityPlan(plan)
+                .withIncrementalCheckResult(diagnostic);
+        return attachGraphPublication(result, request, plan, orientation);
+    }
+
+    @NotNull
+    private static StructureIncrementalCheckResult incrementalDiagnostic(
+            @NotNull Set<String> dirtyRoots,
+            @NotNull Set<String> staticClosure,
+            @NotNull Set<String> prunedPieces,
+            @NotNull Set<String> recheckPieces,
+            @NotNull MultiPiecePattern pattern,
+            boolean snapshotPrecheckAttempted,
+            boolean snapshotPrecheckFailed) {
+        return new StructureIncrementalCheckResult(
+                dirtyRoots, staticClosure, prunedPieces,
+                recheckPieces.size(), pattern.getPieceCount() - recheckPieces.size(),
+                snapshotPrecheckAttempted, snapshotPrecheckFailed);
+    }
+
+    private static void propagateChangedAspects(
+            @NotNull PieceDependencyGraph graph,
+            @NotNull PieceEvaluationResult oldSource,
+            @NotNull PieceEvaluationResult newSource,
+            @NotNull Set<String> recheckPieces,
+            @NotNull Set<String> prunedPieces) {
+        for (PieceDependencyGraph.Edge edge : graph.getOutgoingEdges(newSource.getPiece().getName())) {
+            if (recheckPieces.contains(edge.getTargetPiece())) {
+                continue;
+            }
+            if (edgeChanged(oldSource, newSource, edge)) {
+                recheckPieces.add(edge.getTargetPiece());
+                prunedPieces.remove(edge.getTargetPiece());
+            } else {
+                prunedPieces.add(edge.getTargetPiece());
+            }
+        }
+    }
+
+    private static boolean edgeChanged(@NotNull PieceEvaluationResult oldSource,
+                                       @NotNull PieceEvaluationResult newSource,
+                                       @NotNull PieceDependencyGraph.Edge edge) {
+        for (PieceDependencyAspect aspect : edge.getAspects()) {
+            if (oldSource.getAspectFingerprint(aspect) != newSource.getAspectFingerprint(aspect)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean precheckDirtyPiecesOnSnapshot(
+            @NotNull IBlockAccess snapshot,
+            @NotNull CommittedStructureGraph baseline,
+            @NotNull StructureOrientation orientation,
+            @NotNull Set<String> dirtyRoots) {
+        for (String root : dirtyRoots) {
+            PieceEvaluationResult result = baseline.getResultTable().get(root);
+            if (result == null || !result.isActive()) {
+                continue;
+            }
+            if (!precheckPiecePositions(snapshot, result, baseline.getRuntimePublication(), orientation)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean precheckPiecePositions(
+            @NotNull IBlockAccess snapshot,
+            @NotNull PieceEvaluationResult result,
+            @NotNull PieceRuntimes.Publication runtimePublication,
+            @NotNull StructureOrientation orientation) {
+        PieceRuntime.Publication piecePublication = runtimePublication.get(result.getPiece());
+        if (piecePublication == null) {
+            return false;
+        }
+        Map<Long, BlockInfo> cachedBlocks = piecePublication.copyCachedBlocks();
+        for (long posLong : result.getWatchedPositions()) {
+            BlockInfo expected = cachedBlocks.get(posLong);
+            if (expected == null || expected.getBlockState() == null) {
+                continue;
+            }
+            if (!expected.getBlockState().equals(snapshot.getBlockState(BlockPos.fromLong(posLong)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @NotNull
+    private StructureCheckResult incrementalFailure(
+            @NotNull StructureOperationRequest request,
+            @NotNull StructureOrientation orientation,
+            @Nullable StructureFailureTrace failure,
+            @NotNull String message,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            @Nullable StructureResultTable resultTable,
+            @Nullable StructureAggregateFolder.Result aggregate,
+            @NotNull StructureIncrementalCheckResult diagnostic) {
+        return StructureCheckResult.fromIncrementalDefinition(
+                false, null, null, null, failure, message,
+                missingAbilities, abilityCounts, orientation.isFlipped(),
+                null, resultTable, aggregate)
+                .withIncrementalCheckResult(diagnostic);
+    }
+
+    @NotNull
+    private StructureCheckResult attachGraphPublication(
+            @NotNull StructureCheckResult result,
+            @NotNull StructureOperationRequest request,
+            @NotNull StructureEligibilityPlan plan) {
+        return attachGraphPublication(
+                result, request, plan,
+                request.requireOrientation().withFlipped(result.isFlipped()));
+    }
+
+    @NotNull
+    private StructureCheckResult attachGraphPublication(
+            @NotNull StructureCheckResult result,
+            @NotNull StructureOperationRequest request,
+            @NotNull StructureEligibilityPlan plan,
+            @NotNull StructureOrientation orientation) {
+        if (!result.isMatched()
+                || result.getResultTable() == null
+                || result.getContributionAggregate() == null
+                || result.getRuntimePublication() == null) {
+            return result;
+        }
+        MultiPiecePattern pattern = requireMultiPiecePattern();
+        CommittedStructureGraph graph = CommittedStructureGraph.create(
+                result.getResultTable(),
+                result.getContributionAggregate(),
+                StructurePositionIndex.fromResultTable(pattern, result.getResultTable()),
+                result.getRuntimePublication(),
+                orientation,
+                plan.snapshotExternalDependencies(request.getController()));
+        return result.withGraphPublication(graph);
+    }
+
+    private static void accumulatePriorFromResult(
+            @NotNull PieceEvaluationResult result,
+            @NotNull Map<String, int[]> pieceRepeats,
+            @NotNull Map<String, Integer> channelValues,
+            @NotNull Map<String, BlockPos> pieceCenters) {
+        if (!result.isActive()) {
+            return;
+        }
+        int[] repetitions = result.getRepetitions();
+        if (repetitions.length > 0) {
+            pieceRepeats.put(result.getPiece().getName(), repetitions);
+        }
+        BlockPos center = result.getResolvedCenter();
+        if (center != null) {
+            pieceCenters.put(result.getPiece().getName(), center);
+        }
+        extractChannelValues(result.copyCompatibilityContext(), channelValues);
+    }
+
+    private static void extractChannelValues(@NotNull PatternMatchContext context,
+                                             @NotNull Map<String, Integer> channelValues) {
+        for (Map.Entry<String, Object> entry : context.entrySet()) {
+            if (entry.getValue() instanceof Integer) {
+                channelValues.putIfAbsent(entry.getKey(), (Integer) entry.getValue());
+            }
+        }
+    }
+
+    @NotNull
+    private static StructureFailureTrace incrementalPieceFailureTrace(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull String pieceName,
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            int progressDepth) {
+        StructureFailureTrace.Builder builder = traceBuilder(controller, controllerPos, orientation)
+                .path("incremental")
+                .operation("CHECK")
+                .result(classifyError(error, missingAbilities).getTraceName())
+                .kind(classifyError(error, missingAbilities))
+                .piece(pieceName)
+                .cell(describeCell(error))
+                .progressDepth(progressDepth)
+                .missingAbilities(missingAbilities)
+                .abilityCounts(abilityCounts);
+        if (error != null) {
+            builder.error(error);
+        } else {
+            builder.errorPosition(controllerPos)
+                    .expected("piece pattern matched")
+                    .actual("Incremental piece '" + pieceName + "' failed pattern check");
+        }
+        return builder.build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace incrementalAggregateFailureTrace(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull String message,
+            @NotNull StructureFailureTrace.Kind kind,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+            @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+            @Nullable String pieceName,
+            @Nullable BlockPos errorPos) {
+        return traceBuilder(controller, controllerPos, orientation)
+                .path("incremental")
+                .operation("CHECK")
+                .result(kind.getTraceName())
+                .kind(kind)
+                .piece(pieceName == null ? "deferred" : pieceName)
+                .cell("requirements")
+                .errorPosition(errorPos)
+                .progressDepth(0)
+                .expected(kind == StructureFailureTrace.Kind.MISSING_ABILITY
+                        ? "required abilities present"
+                        : "requirements within declared limits")
+                .actual(message)
+                .missingAbilities(missingAbilities)
+                .abilityCounts(abilityCounts)
+                .build();
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Builder traceBuilder(
+            @Nullable MultiblockControllerBase controller,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation) {
+        StructureFailureTrace.Builder builder = new StructureFailureTrace.Builder(
+                controller == null ? "unknown" : controller.getMetaName(), controllerPos)
+                .orientation(orientation);
+        if (controller != null) {
+            builder.formed(controller.isStructureFormed());
+        }
+        return builder;
+    }
+
+    @NotNull
+    private static StructureFailureTrace.Kind classifyError(
+            @Nullable PatternError error,
+            @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
+        if (!missingAbilities.isEmpty()) {
+            return StructureFailureTrace.Kind.MISSING_ABILITY;
+        }
+        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
+            TraceabilityPredicate.SinglePredicateError single =
+                    (TraceabilityPredicate.SinglePredicateError) error;
+            if (single.type == 0 || single.type == 2) {
+                return StructureFailureTrace.Kind.COUNT_LIMIT;
+            }
+        }
+        return StructureFailureTrace.Kind.BLOCK_MISMATCH;
+    }
+
+    @Nullable
+    private static String describeCell(@Nullable PatternError error) {
+        if (error == null) {
+            return null;
+        }
+        try {
+            BlockPos pos = error.getPos();
+            return pos == null ? null : pos.toString();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static int activePieceDepth(@NotNull MultiPiecePattern pattern,
+                                        @NotNull StructurePiece piece) {
+        int index = pattern.getPieceList().indexOf(piece);
+        return index < 0 ? 0 : index + 1;
     }
 
     @Nullable
@@ -413,8 +920,14 @@ public final class StructureOperationEvaluator {
 
     @NotNull
     public BlockInfo[][][] previewSingle(@NotNull StructureOperationRequest request) {
+        return previewSingleResult(request).toBlockArray();
+    }
+
+    @NotNull
+    public StructurePreviewResult previewSingleResult(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.PREVIEW);
-        return requireState().getPreview(request.requireRepetitions(), request.getChannelValues());
+        return StructurePreviewResult.single(requireState().createPreviewCells(
+                request.requireRepetitions(), request.getChannelValues()));
     }
 
     @NotNull
@@ -426,10 +939,20 @@ public final class StructureOperationEvaluator {
 
     @NotNull
     public MultiPiecePreviewAssembler.Result previewMultiPiece(@NotNull StructureOperationRequest request) {
+        StructurePreviewResult result = previewMultiPieceResult(request);
+        MultiPiecePreviewAssembler.Result multiPieceResult = result.getMultiPieceResult();
+        if (multiPieceResult == null) {
+            throw new IllegalStateException("Multi-piece preview did not produce a multi-piece result");
+        }
+        return multiPieceResult;
+    }
+
+    @NotNull
+    public StructurePreviewResult previewMultiPieceResult(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.PREVIEW);
-        return MultiPiecePreviewAssembler.assemble(
+        return StructurePreviewResult.multi(MultiPiecePreviewAssembler.assemble(
                 requireMultiPiecePattern(), requirePieceRuntimes(),
-                request.getChannelValues(), request.getController());
+                request.getChannelValues(), request.getController()));
     }
 
     @NotNull
@@ -441,10 +964,31 @@ public final class StructureOperationEvaluator {
     }
 
     @NotNull
+    public StructureIterateResult iterateMultiPiece(
+            @NotNull World world,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @Nullable MultiblockControllerBase controller) {
+        return iterateMultiPiece(StructureOperationRequest.iterate(
+                world, controllerPos, orientation, controller));
+    }
+
+    @NotNull
     public Map<BlockPos, BlockInfo> iterateSingle(@NotNull StructureOperationRequest request) {
+        return iterateSingleResult(request).getBlocks();
+    }
+
+    @NotNull
+    public StructureIterateResult iterateSingleResult(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.ITERATE);
-        return requireState().getAllStructureBlocks(
-                request.requireWorld(), request.requireControllerPos(), request.requireOrientation());
+        return StructureIterateResult.single(requireState().getAllStructureBlocks(
+                request.requireWorld(), request.requireControllerPos(), request.requireOrientation()));
+    }
+
+    @NotNull
+    public StructureIterateResult iterateMultiPiece(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.ITERATE);
+        return requireMultiPiecePattern().iteratePositions(requirePieceRuntimes(), request.getController());
     }
 
     @NotNull

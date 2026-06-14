@@ -28,6 +28,26 @@ public final class StructureAggregateFolder {
     @NotNull
     public static Result fold(@NotNull MultiPiecePattern pattern,
                               @NotNull StructureResultTable table) {
+        return fold(pattern, table, null);
+    }
+
+    @NotNull
+    public static Result fold(@NotNull MultiPiecePattern pattern,
+                              @NotNull StructureResultTable table,
+                              @Nullable PatternMatchContext initialCompatibilityContext) {
+        return fold(pattern, table, initialCompatibilityContext, null);
+    }
+
+    @NotNull
+    public static Result fold(@NotNull MultiPiecePattern pattern,
+                              @NotNull StructureResultTable table,
+                              @Nullable PatternMatchContext initialCompatibilityContext,
+                              @Nullable CommittedStructureGraph foldCache) {
+        if (foldCache != null
+                && initialCompatibilityContext == null
+                && foldCache.getResultTableFingerprint() == table.getSemanticFingerprint()) {
+            return foldCache.getAggregate();
+        }
         if (table.size() != pattern.getPieceCount()) {
             return Result.failure("Result table does not match the compiled piece count");
         }
@@ -126,7 +146,9 @@ public final class StructureAggregateFolder {
             operationState.abilityCounts.put(entry.getKey(), entry.getValue().size());
         }
         operationState.variantActiveBlocks.addAll(variantActiveBlocks);
-        PatternMatchContext compatibilityContext = new PatternMatchContext();
+        PatternMatchContext compatibilityContext = initialCompatibilityContext == null
+                ? new PatternMatchContext()
+                : initialCompatibilityContext.copy();
         Map<String, Object> aggregateValues = new LinkedHashMap<>();
         for (KeyAccumulator accumulator : accumulators.values()) {
             StructureContributionKey.Validation validation = accumulator.validate();

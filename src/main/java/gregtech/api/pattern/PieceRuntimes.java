@@ -174,5 +174,10 @@ public final class PieceRuntimes {
                 @NotNull IdentityHashMap<StructurePiece, PieceRuntime.Publication> states) {
             this.states = new IdentityHashMap<>(states);
         }
+
+        @Nullable
+        PieceRuntime.Publication get(@NotNull StructurePiece piece) {
+            return states.get(piece);
+        }
     }
 }

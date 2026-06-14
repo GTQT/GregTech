@@ -2,6 +2,7 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
@@ -92,6 +93,11 @@ public class LegacyElement implements IStructureElement<Object> {
     @Override
     public boolean usesLegacyPredicateRuntime() {
         return true;
+    }
+
+    @Override
+    public StructureIncrementalSupport getIncrementalSupport() {
+        return StructureIncrementalSupport.OPAQUE;
     }
 
     @Override

@@ -13,7 +13,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -52,6 +54,10 @@ public final class StructureRuntime {
     private String lastFailureLogSummary;
     @NotNull
     private Map<String, Integer> missingAbilities = Collections.emptyMap();
+    @NotNull
+    private final StructureDirtyState dirtyState = new StructureDirtyState();
+    @Nullable
+    private volatile CommittedStructureGraph committedGraph;
 
     public StructureRuntime(@Nullable StructureDefinition<?> definition,
                             @Nullable BlockPatternTemplate template,
@@ -127,6 +133,21 @@ public final class StructureRuntime {
     @NotNull
     public StructureCheckResult checkActiveGraph(@NotNull StructureOperationRequest request) {
         return evaluator.checkActiveGraph(request);
+    }
+
+    @NotNull
+    public StructureCheckResult checkIncremental(@NotNull StructureOperationRequest request) {
+        StructureOrientation orientation = request.requireOrientation();
+        StructureIncrementalFallbackReason fallbackReason = getIncrementalFallbackReason(orientation);
+        if (fallbackReason != null) {
+            return fallbackFromIncremental(request, fallbackReason);
+        }
+        Set<String> dirtyRoots = consumeDirtyRoots(request.getController());
+        if (dirtyRoots.isEmpty()) {
+            return fallbackFromIncremental(request, StructureIncrementalFallbackReason.NO_BASELINE);
+        }
+        return evaluator.checkIncremental(
+                request, committedGraph, dirtyRoots, definition.getEligibilityPlan());
     }
 
     /**
@@ -207,13 +228,33 @@ public final class StructureRuntime {
     }
 
     @NotNull
+    public StructurePreviewResult previewSingleResult(@NotNull StructureOperationRequest request) {
+        return evaluator.previewSingleResult(request);
+    }
+
+    @NotNull
     public MultiPiecePreviewAssembler.Result previewMultiPiece(@NotNull StructureOperationRequest request) {
         return evaluator.previewMultiPiece(request);
     }
 
     @NotNull
+    public StructurePreviewResult previewMultiPieceResult(@NotNull StructureOperationRequest request) {
+        return evaluator.previewMultiPieceResult(request);
+    }
+
+    @NotNull
     public Map<BlockPos, BlockInfo> iterateSingle(@NotNull StructureOperationRequest request) {
         return evaluator.iterateSingle(request);
+    }
+
+    @NotNull
+    public StructureIterateResult iterateSingleResult(@NotNull StructureOperationRequest request) {
+        return evaluator.iterateSingleResult(request);
+    }
+
+    @NotNull
+    public StructureIterateResult iterateMultiPiece(@NotNull StructureOperationRequest request) {
+        return evaluator.iterateMultiPiece(request);
     }
 
     @NotNull
@@ -254,6 +295,82 @@ public final class StructureRuntime {
 
     public void setMissingAbilities(@NotNull Map<String, Integer> missingAbilities) {
         this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
+    }
+
+    @Nullable
+    public CommittedStructureGraph getCommittedGraph() {
+        return committedGraph;
+    }
+
+    public void publishCommittedGraph(@Nullable CommittedStructureGraph graph) {
+        this.committedGraph = graph;
+        dirtyState.clear();
+    }
+
+    public void clearCommittedGraph() {
+        this.committedGraph = null;
+        dirtyState.clear();
+    }
+
+    public boolean addDirtyRoots(@NotNull Iterable<String> pieceNames) {
+        return dirtyState.addRoots(pieceNames);
+    }
+
+    public boolean addDirtyRoot(@NotNull String pieceName) {
+        return dirtyState.addRoot(pieceName);
+    }
+
+    public boolean markDirtyByPosition(long position) {
+        CommittedStructureGraph graph = committedGraph;
+        if (graph == null) {
+            return false;
+        }
+        return dirtyState.addRoots(graph.getPositionIndex().getOwners(position));
+    }
+
+    public boolean hasPendingDirtyRoots(@Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        if (!dirtyState.isEmpty()) {
+            return true;
+        }
+        return !rootsForChangedExternalDependencies(controller).isEmpty();
+    }
+
+    @NotNull
+    public Set<String> rootsForChangedExternalDependencies(
+            @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        CommittedStructureGraph graph = committedGraph;
+        if (definition == null || graph == null) {
+            return Collections.emptySet();
+        }
+        StructureEligibilityPlan plan = definition.getEligibilityPlan();
+        if (!plan.isEligible()) {
+            return Collections.emptySet();
+        }
+        StructureExternalDependencySnapshot current = plan.snapshotExternalDependencies(controller);
+        return plan.rootsForExternalDependencyChanges(
+                current.changedKeys(graph.getExternalDependencySnapshot()));
+    }
+
+    @Nullable
+    public StructureIncrementalFallbackReason getIncrementalFallbackReason(
+            @NotNull StructureOrientation orientation) {
+        if (definition == null) {
+            return StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE;
+        }
+        StructureEligibilityPlan plan = definition.getEligibilityPlan();
+        if (!plan.isEligible()) {
+            return plan.getFallbackReason() == null
+                    ? StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE
+                    : plan.getFallbackReason();
+        }
+        CommittedStructureGraph graph = committedGraph;
+        if (graph == null) {
+            return StructureIncrementalFallbackReason.NO_BASELINE;
+        }
+        if (!graph.getOrientation().equals(orientation)) {
+            return StructureIncrementalFallbackReason.ORIENTATION_CHANGED;
+        }
+        return null;
     }
 
     /**
@@ -329,6 +446,7 @@ public final class StructureRuntime {
     public void clearFormedState() {
         this.channelValues = new StructureChannelValues();
         this.formedMetadata = null;
+        clearCommittedGraph();
     }
 
     public String describeShape() {
@@ -341,5 +459,33 @@ public final class StructureRuntime {
     @NotNull
     private static StructureChannelValues copyChannelValues(@NotNull StructureChannelValues source) {
         return source.copy();
+    }
+
+    @NotNull
+    private Set<String> consumeDirtyRoots(
+            @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        LinkedHashSet<String> roots = new LinkedHashSet<>(dirtyState.consume());
+        CommittedStructureGraph graph = committedGraph;
+        if (definition != null && graph != null) {
+            StructureEligibilityPlan plan = definition.getEligibilityPlan();
+            if (plan.isEligible()) {
+                StructureExternalDependencySnapshot current =
+                        plan.snapshotExternalDependencies(controller);
+                roots.addAll(plan.rootsForExternalDependencyChanges(
+                        current.changedKeys(graph.getExternalDependencySnapshot())));
+            }
+        }
+        return Collections.unmodifiableSet(roots);
+    }
+
+    @NotNull
+    private StructureCheckResult fallbackFromIncremental(
+            @NotNull StructureOperationRequest request,
+            @NotNull StructureIncrementalFallbackReason reason) {
+        if (definition != null && definition.getEligibilityPlan().isEligible()) {
+            return check(request).withTraceContext("definition-fallback", "fallback=" + reason);
+        }
+        return checkActiveGraph(request)
+                .withTraceContext("active-graph-fallback", "fallback=" + reason);
     }
 }

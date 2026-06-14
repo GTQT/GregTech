@@ -973,13 +973,13 @@ StructureRuntime
 | `StructureContribution` | 一次 piece 成功检查 | 否 | 该 piece 对结构级 formation state 的独立贡献。 |
 | `StructureResultTable` | controller generation 级 | 否 | piece identity 到成功 result 的不可变映射。 |
 | `AggregatedStructureResult` | controller generation 级 | 否 | fold 后的 parts、ability、channel、metadata 和 validation 输入。 |
-| `CommittedStructureGraph` | controller 级 | 是，引用替换 | 当前已发布 table、aggregate、position index 和 generation。 |
+| `CommittedStructureGraph` | controller 级 | 是，引用替换 | 当前已发布 table、aggregate、position index、runtime publication、orientation、external snapshot 和 generation。 |
 
 `PieceRuntimes` 的近期演进策略：
 
 1. 先保留现有 matcher cache 和 legacy accessor。
-2. 让 publication 同时携带 `StructureResultTable`。
-3. controller commit 一次性发布 table、piece runtime view 和 aggregate。
+2. 让 publication 同时携带 `StructureResultTable`（已完成，见 `CommittedStructureGraph`）。
+3. controller commit 一次性发布 table、piece runtime view 和 aggregate（已完成）。
 4. 最终让 `PieceRuntime` 成为 `PieceEvaluationResult` 的 runtime view，删除
    `lastAggregatedContext` 之类的累计 session 状态。
 
@@ -1266,6 +1266,18 @@ protected void formStructure(@NotNull FormedStructureView formed);
 任意 legacy context 写入都使 definition 增量资格降为 `ACTIVE_GRAPH_REQUIRED`，除非该 adapter
 明确把写入转换成有 reducer 的 typed contribution。
 
+当前实现状态：
+
+- session-backed direct element 调用 `getLegacyContext()` 时只得到隔离 compatibility view；内部写入不会进入
+  eligible result、piece publication 或 callback payload。
+- `StructureMatchCollector.recordChannelValue/setValue` 在 direct/session path 只写 typed
+  `StructureContributionKey` emission；无 session legacy traversal 仍保留旧 `PatternMatchContext` 写入。
+- piece/result table 的 compatibility context 由 contribution projection 生成；full、incremental 和
+  active-graph fallback 的成功结果都使用 fold 后 compatibility projector。
+- `MultiblockControllerBase` 新增 `formStructure(FormedStructureView)`；默认实现把 projector 生成的
+  `PatternMatchContext` 副本传给旧 `formStructure(PatternMatchContext)`，新 controller 覆盖 typed callback
+  后不会自动触发 legacy callback。
+
 ### 22.9 Piece dependency graph
 
 dependency graph 是 definition 编译产物，节点是 piece ordinal，边表示：
@@ -1299,28 +1311,32 @@ public enum PieceDependencyAspect {
 建议 declaration API：
 
 ```java
-condition.dependsOnPiece("core", PieceDependencyAspect.CONTRIBUTION_VALUE);
-condition.dependsOnController(CONTROLLER_MODE);
-piece.dependsOn("body", PieceDependencyAspect.REPETITIONS);
+StructureCondition.withDependencies(
+    condition,
+    StructureDependency.piece("core", PieceDependencyAspect.CONTRIBUTION_VALUE),
+    StructureDependency.external(CONTROLLER_MODE, PieceDependencyAspect.CONTROLLER_STATE)
+);
 ```
 
-`StructureCondition` 需要从单一函数升级为：
+`StructureCondition` 保留 `BooleanSupplier` 兼容桥，但增加 typed dependency declaration：
 
 ```java
-public interface StructureCondition<T> {
-    boolean test(StructureActivationView<T> view);
-    Set<StructureDependency> dependencies();
+public interface StructureCondition<T> extends BooleanSupplier {
+    boolean test(StructureActivationContext<T> context);
+    default Set<StructureDependency> dependencies();
 }
 ```
 
-旧 `BooleanSupplier` 和没有 dependencies 的 contextual condition 都是 opaque。
+旧 `BooleanSupplier` 和没有 dependencies 的 contextual condition 都是 opaque。`StructureDependencyCompiler`
+从 compiled `MultiPiecePattern` 生成 `StructureEligibilityPlan`，因此 direct definition、legacy
+`fromMultiPiecePattern(...)` adapter 和 prebuilt dynamic piece 都走同一套诊断。
 
 图约束：
 
 - 新 definition 只允许依赖声明顺序之前的 piece；
-- 编译时检测缺失 producer、自依赖和 cycle；
-- direct V3 definition 遇到 cycle 默认构建失败；
-- legacy adapter 遇到未知/cycle dependency 标记 active-graph fallback；
+- 编译时检测缺失 producer、自依赖和 cycle，并给出稳定 fallback reason；
+- 当前落地实现中 direct V3 definition 与 legacy adapter 均不抛构建异常，而是生成
+  `StructureEligibilityPlan.fallback(...)`，由 runtime 自动进入 active-graph fallback；
 - graph 保存每条边的 reason，供 trace 和调试输出。
 
 ### 22.10 外部依赖
@@ -1337,6 +1353,10 @@ public final class StructureExternalDependencyKey<T> {
     private final BiPredicate<T, T> equivalent;
 }
 ```
+
+`StructureExternalDependencySnapshot` 记录 key -> value，并用 key 自带的 equivalent predicate 比较
+变化。`StructureEligibilityPlan` 同时保存 external key -> affected root pieces；变化 key 可以直接转为
+dependency graph roots，再交给 closure 算法处理。
 
 `CommittedStructureGraph` 保存上次依赖 snapshot。controller 状态变更时优先显式调用：
 
@@ -1714,7 +1734,7 @@ element 不能取得 mutable aggregate。
 
 ### 22.21 迁移阶段
 
-#### Phase A：Contribution 基础，不改变扫描范围
+#### Phase A：Contribution 基础，不改变扫描范围（已完成）
 
 1. 新增 immutable `StructureContribution` 和 builder。
 2. 新增 typed contribution key/reducer。
@@ -1728,7 +1748,20 @@ element 不能取得 mutable aggregate。
 - formation callback compatibility context 一致；
 - 没有增量调度行为变化。
 
-#### Phase B：独立 piece evaluator
+实现状态：
+
+- 已新增 immutable `StructureContribution`、builder 和 per-piece contribution capture。
+- 已新增 `StructureContributionKey` typed reducer，覆盖 `SUM`、`MIN`、`MAX`、`UNIFORM`、
+  `SET_UNION`、`ORDERED_LIST`、`FIRST_NON_NULL`、`LAST_NON_NULL` 等基础 reducer。
+- `StructureMatchCollector` 已把 count、part、ability、variant active block、channel/value 写入收口到
+  typed contribution；built-in hatch/casing/tier/channel 元素通过 collector 产出 contribution。
+- full check 和 active-graph check 都会生成 `PieceEvaluationResult` / `StructureResultTable`，
+  aggregate 由 `StructureAggregateFolder.fold(...)` 统一生成。
+- differential tests 已覆盖 typed aggregate 与 active-graph oracle 的结果表、compatibility context、
+  operation state 和 validation failure。
+- Phase A 不改变扫描范围或调度策略：增量 dependency graph 和 dirty-piece 调度仍属于 Phase C/D。
+
+#### Phase B：独立 piece evaluator（已完成）
 
 1. 每个 piece 使用独立 local session。
 2. global validation 移到 fold 后。
@@ -1739,6 +1772,18 @@ element 不能取得 mutable aggregate。
 
 - full contribution evaluator 成为 eligible definition 的默认路径；
 - active-graph legacy evaluator 仍可 fallback。
+
+实现状态：
+
+- `StructureRuntime.check(...)` 在存在 `StructureDefinition` 时默认进入 full contribution evaluator。
+- full evaluator 为每个 active piece 创建独立 `StructureMatchSession`，piece 成功后只发布
+  `PieceEvaluationResult` 中的 contribution、positions、repeat 和 matcher publication。
+- `StructureAggregateFolder.fold(...)` 从完整 `StructureResultTable` 生成 metadata、operation state 和
+  compatibility context；结构级 count、ability、uniform channel 等 validation 只在 fold 后执行。
+- full publication 不依赖 `PieceRuntime.lastAggregatedContext`。该字段仍作为 legacy runtime accessor/cache
+  留存，active-graph fallback 可以继续使用旧共享 session 语义。
+- 显式 `StructureRuntime.checkActiveGraph(...)` / controller active-graph check 仍保留，作为 legacy/fallback
+  oracle 与事件图重查路径。
 
 #### Phase C：Dependency compiler
 
@@ -1752,7 +1797,40 @@ element 不能取得 mutable aggregate。
 - graph 可诊断；
 - cycle、unknown dependency 和 opaque condition 都有确定行为。
 
-#### Phase D：Event-driven incremental
+实现状态：已完成。
+
+- 新增 `StructureDependencyCompiler`，对 compiled `MultiPiecePattern` 生成
+  `StructureEligibilityPlan`。
+- 新增 `PieceDependencyGraph`，节点为 declaration order piece name/ordinal，edge 保存 source、
+  target、`PieceDependencyAspect` 和 reason；提供 outgoing/incoming 查询、dirty root closure 和
+  `describe()` 诊断输出。
+- `DynamicOffsetPiece` / `DynamicRepeatGroupPiece` 暴露 anchor metadata，compiler 自动加入
+  `anchor -> dependent` edge，aspect 为 `CENTER | REPETITIONS`，reason 为 `dynamic-anchor`。
+- `StructureCondition` 增加 `dependencies()` 与 `withDependencies(...)` helper；typed piece
+  dependency 编译为 condition edge，typed external dependency 收集为 snapshot key 和 affected root。
+- 新增 `StructureExternalDependencyKey` 与 `StructureExternalDependencySnapshot`；snapshot diff
+  使用 key 自带 equivalent predicate，changed key 可映射为 root piece set。
+- `IStructureElement.getIncrementalSupport()` 默认 `TYPED_CONTRIBUTION`；`LegacyElement` 和带 callback /
+  lazy supplier 的 `WrapperElement` 返回 `OPAQUE`。
+- `StructureDefinition.getEligibilityPlan()` 懒加载并缓存 plan。
+- `StructureOperationEvaluator.check(...)` 只在 plan eligible 时进入 full contribution evaluator；
+  不 eligible 时自动运行 active-graph fallback，并把 `StructureCheckResult` trace path 标为
+  `active-graph-fallback`，同时挂载 fallback reason。
+
+确定行为：
+
+| case | behavior |
+|---|---|
+| opaque legacy `BooleanSupplier` condition | `fallback=OPAQUE_CONDITION` |
+| contextual `StructureCondition` 未声明 dependencies | `fallback=OPAQUE_CONDITION` |
+| unknown piece dependency | `fallback=UNKNOWN_DEPENDENCY` |
+| self/future dependency 或 graph cycle | `fallback=DEPENDENCY_CYCLE` |
+| null/unknown external dependency declaration | `fallback=UNKNOWN_EXTERNAL_DEPENDENCY` |
+| legacy predicate element / opaque wrapper | `fallback=OPAQUE_ELEMENT` |
+| eligible definition | `StructureRuntime.check(...)` 默认 full contribution evaluator |
+| ineligible definition | `StructureRuntime.check(...)` 自动 active-graph fallback |
+
+#### Phase D：Event-driven incremental（已完成）
 
 1. world index 保存 position owner bitset。
 2. pending dirty state 保存 piece root set。
@@ -1760,19 +1838,83 @@ element 不能取得 mutable aggregate。
 4. 成功 publication 原子替换 table/index。
 5. failure 走现有 invalidation。
 
-#### Phase E：PatternMatchContext 降级
+完成条件：
+
+- world change 能通过 watched position owner index 定位 dirty root piece；
+- pending dirty state 只保存 piece root set，实际重算范围由 dependency closure 决定；
+- incremental evaluator 复用未受影响的 committed `PieceEvaluationResult`，只重读 closure 内 piece；
+- 成功 publication 一次性替换 `CommittedStructureGraph`、`StructureResultTable`、
+  `StructurePositionIndex` 和 legacy `PieceRuntimes` projection；
+- failure 不发布 candidate graph，继续走现有 formed controller invalidation。
+
+实现状态：
+
+- 新增 `StructurePositionIndex`，从 `StructureResultTable` 编译 watched position -> owner bitset；
+  `StructureWorldIndex` 注册 graph index 时用 watched positions 建 chunk index，兼容查询仍返回 formed positions。
+- 新增 `StructureDirtyState`，`StructureRuntime` 保存 pending dirty root set；world block change 只把 affected
+  owner roots 写入 runtime，不在事件回调中执行结构检查。
+- 新增 `CommittedStructureGraph`，controller 成功 check 后保存 generation、result table、aggregate、
+  position index、runtime publication、orientation 和 external dependency snapshot。
+- full contribution check 成功时生成 graph publication；event-driven scheduler 在 eligible baseline 存在且
+  orientation 未变化时调用 `StructureRuntime.checkIncremental(...)`。
+- incremental evaluator 使用 `StructureEligibilityPlan.getGraph().dependentClosure(roots)` 计算重算范围：
+  closure 内 piece 使用独立 local session 重新 match，closure 外 piece 从 committed table 复用；fold 后统一
+  global validation。
+- external dependency snapshot diff 会映射到 root set 并参与同一条 incremental path；非 block event 的
+  controller/external 状态变化可通过 `MultiblockWorldData.enqueueDirtyRoots(...)` 显式唤醒 scheduler。
+- 成功 commit 通过 `MultiblockStructureCommitter` 发布 graph publication，再刷新 world index；
+  不成功结果没有 graph publication，formed controller 沿现有 `invalidateStructure()` 失效并注销 index。
+- `StructureCheckResult` 暴露 `getGraphPublication()`、`getIncrementalCheckResult()` 和
+  `usedIncrementalEvaluator()`，用于诊断 result table/publication 与增量路径。
+- fallback 行为确定：无 baseline、definition 不 eligible、orientation 变化、opaque/unknown/cycle 等 plan
+  fallback reason 都回到 full contribution 或 active-graph legacy fallback。
+
+新增测试覆盖：
+
+- full check 生成 graph publication；
+- dirty root 只重算 dependency closure，独立 piece 复用；
+- dynamic anchor dirty root 会重算 dependent piece；
+- incremental failure 不发布 successor graph，baseline generation 保持；
+- watched position 重叠时 owner bitset 返回多个 owner。
+
+#### Phase E：PatternMatchContext 降级（已完成）
 
 1. direct element 禁止内部 legacy context 写入。
 2. channel/tier 全部 typed。
 3. 新 controller 使用 `FormedStructureView` callback。
 4. legacy callback 只由 compatibility projector 服务。
 
-#### Phase F：可选优化
+实现摘要：
+
+- direct/session evaluation 的 legacy context 被降级为隔离 view；legacy predicate boundary 仍可服务
+  opaque fallback 和旧 traversal。
+- channel/tier 通过 typed contribution emission/fold/projector 输出，`PatternMatchContext` 不再是
+  eligible path 的 canonical storage。
+- commit 边界构造 `FormedStructureView` 并调用 typed callback；默认 typed callback 才桥接到旧
+  `formStructure(PatternMatchContext)`。
+- 新增测试覆盖 direct 写入隔离、typed projection、active-graph fallback compatibility context 以及
+  typed/legacy formation callback 分流。
+
+#### Phase F：可选优化（已完成）
 
 1. dependency aspect fingerprint pruning。
 2. immutable collection 结构共享。
 3. contribution fold cache。
 4. 安全的 dirty piece snapshot precheck。
+
+实现状态：已完成。
+
+- `PieceEvaluationResult` 生成 per-aspect fingerprint；incremental evaluator 对 direct dirty root
+  始终重算，只在 source 重算后根据 edge aspect fingerprint 决定是否继续传播到 downstream piece。
+- `StructureIncrementalCheckResult` 输出 `prunedPieces`、snapshot precheck attempted/failed 等诊断，
+  因而 graph 的实际重算路径可解释。
+- `StructureResultTable` 和 piece result 的空/单元素 collection 使用不可变共享结构；多元素仍防御复制。
+- `StructureAggregateFolder` 支持 baseline fold cache。仅当没有 initial compatibility context，且新 table
+  semantic fingerprint 与 baseline 一致时复用已发布 aggregate。
+- dirty piece snapshot precheck 只作为安全诊断边界：它比较 baseline watched positions 的 cached block
+  state，不直接发布 snapshot 结果，也不跳过后续 live incremental check。
+- 新增/更新测试覆盖 dynamic anchor unchanged pruning、contribution aspect changed propagation、fold cache
+  aggregate reuse，以及 snapshot precheck diagnostic。
 
 ### 22.22 验证策略
 

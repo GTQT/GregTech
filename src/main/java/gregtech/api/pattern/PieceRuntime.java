@@ -1,9 +1,15 @@
 package gregtech.api.pattern;
 
+import gregtech.api.util.BlockInfo;
+
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Per-controller mutable state for a single {@link StructurePiece}.
@@ -174,6 +180,20 @@ public final class PieceRuntime {
         this.lastFormedReps = null;
     }
 
+    /**
+     * Publish a clean inactive piece state into an operation-local candidate.
+     */
+    void publishInactive() {
+        this.validated = true;
+        this.dirty = false;
+        this.positions = new LongOpenHashSet();
+        this.state.clearCache();
+        this.state.formedRepetitionCount =
+                new int[this.state.getPieceTemplate().getAisles().length];
+        this.lastAggregatedContext = null;
+        this.lastFormedReps = null;
+    }
+
     static final class Checkpoint {
 
         @NotNull
@@ -210,6 +230,16 @@ public final class PieceRuntime {
                             @NotNull Checkpoint checkpoint) {
             this.piece = piece;
             this.checkpoint = checkpoint;
+        }
+
+        @NotNull
+        Map<Long, BlockInfo> copyCachedBlocks() {
+            Map<Long, BlockInfo> result = new LinkedHashMap<>();
+            for (Long2ObjectMap.Entry<BlockInfo> entry :
+                    checkpoint.stateCheckpoint.copyCache().long2ObjectEntrySet()) {
+                result.put(entry.getLongKey(), entry.getValue());
+            }
+            return result;
         }
     }
 }

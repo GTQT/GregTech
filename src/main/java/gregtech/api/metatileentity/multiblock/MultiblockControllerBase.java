@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -619,6 +620,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return true;
     }
 
+    /**
+     * Typed formation callback for new controllers. The default implementation
+     * invokes the legacy callback with the compatibility projection so existing
+     * subclasses keep their behavior while new code can override this method
+     * and consume {@link FormedStructureView} directly.
+     */
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructure(formed.copyLegacyCallbackContext());
+    }
+
     protected void formStructure(PatternMatchContext context) {}
 
     /**
@@ -626,6 +637,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     protected void checkActiveStructureGraph() {
         checkMultiPieceStructure();
+    }
+
+    /**
+     * Re-validates the dependency closure affected by event-driven dirty roots.
+     */
+    protected void checkIncrementalStructureGraph() {
+        MultiblockStructureOperations.checkIncrementalGraph(this);
     }
 
     /**

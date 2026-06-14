@@ -367,6 +367,23 @@ public final class MultiPiecePreviewAssembler {
             return shape;
         }
 
+        public boolean isEmpty() {
+            BlockInfo[][][] blocks = shape.getBlocks();
+            for (BlockInfo[][] plane : blocks) {
+                for (BlockInfo[] row : plane) {
+                    for (BlockInfo info : row) {
+                        if (info != null
+                                && info != BlockInfo.EMPTY
+                                && info.getBlockState() != null
+                                && info.getBlockState().getBlock() != Blocks.AIR) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
         @NotNull
         public Map<BlockPos, TraceabilityPredicate> getPredicates() {
             return predicates;

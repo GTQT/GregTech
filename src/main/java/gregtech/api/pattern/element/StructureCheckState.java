@@ -16,6 +16,7 @@ import gregtech.api.pattern.StructureResultTable;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructureFailureSelection;
 import gregtech.api.pattern.StructureFailureTrace;
+import gregtech.api.pattern.StructureContribution;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureSnapshotResult;
@@ -284,8 +285,6 @@ public final class StructureCheckState {
         // must not mutate the controller's owned PieceRuntimes, which may be
         // concurrently read by the async structure checker.
         PieceRuntimes transientRuntimes = new PieceRuntimes(pattern);
-        StructureMatchSession session = pattern.createMatchSession(context);
-        session.setControllerContext(controller);
         StructureResultTable.Builder resultTable = StructureResultTable.builder(pattern);
 
         // Collect piece repeat counts and channel values
@@ -309,13 +308,15 @@ public final class StructureCheckState {
                     new HashMap<>(pieceRepeats), new HashMap<>(channelValues),
                     new HashMap<>(pieceCenters));
             StructureActivationContext<MultiblockControllerBase> activation =
-                    new StructureActivationContext<>(controller, world, controllerPos, prior, session);
+                    new StructureActivationContext<>(controller, world, controllerPos, prior, null);
             if (!piece.isActive(activation)) {
                 resultTable.add(PieceEvaluationResult.inactive(piece));
                 continue;
             }
             BlockPos centerPos = piece.getCenterPos(controllerPos, orientation, prior);
-            session.beginPieceContribution(piece);
+            StructureMatchSession pieceSession = pattern.createMatchSession(context);
+            pieceSession.setControllerContext(controller);
+            pieceSession.beginPieceContribution(piece);
             lastActivePieceName = piece.getName();
             lastActivePieceCenter = centerPos;
             if (ConfigHolder.machines.debugStructureCheck) {
@@ -329,21 +330,21 @@ public final class StructureCheckState {
                 // Repeatable piece: use synchronous World-based check
                 // (uses checkPatternFastAt for cache-accelerated checks)
                 boolean ok = repeatPiece.checkSync(
-                        world, controllerPos, orientation, prior, runtime, session);
+                        world, controllerPos, orientation, prior, runtime, pieceSession);
                 if (!ok) {
-                    session.discardPieceContribution(piece);
+                    pieceSession.discardPieceContribution(piece);
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
                     StructureFailureTrace failure = createFailureTrace(
                             controller, controllerPos, orientation, piece.getName(), null,
                             activePieceDepth(pattern, piece), lastErrorMessage,
                             runtime.getState().getError(), runtime.getState().getMissingAbilities(),
-                            session.copyOperationState().getAbilityCounts(),
+                            pieceSession.copyOperationState().getAbilityCounts(),
                             classifyError(runtime.getState().getError(),
                                     runtime.getState().getMissingAbilities()));
                     return Result.failure(lastErrorMessage, failure,
                             runtime.getState().getMissingAbilities(),
-                            session.copyOperationState().getAbilityCounts(), orientation.isFlipped());
+                            pieceSession.copyOperationState().getAbilityCounts(), orientation.isFlipped());
                 }
                 runtime.setValidated(true);
                 runtime.clearDirty();
@@ -354,16 +355,16 @@ public final class StructureCheckState {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
                 }
 
-                extractChannelValues(session.getContext(), channelValues);
+                runtime.setLastAggregatedContext(null);
             } else {
                 // Fixed piece: standard single-template check
                 // Use the 4-arg getCenterPos so dynamic-anchor pieces can compute
                 // their position from the prior pieces' repeat counts.
-                boolean pieceMatched = session.tryFork(pieceSession ->
+                boolean pieceMatched = pieceSession.tryFork(candidate ->
                         runtime.getState().checkPatternAtExact(
-                                world, centerPos, orientation, 0, 0, 0, pieceSession) != null);
+                                world, centerPos, orientation, 0, 0, 0, candidate) != null);
                 if (!pieceMatched) {
-                    session.discardPieceContribution(piece);
+                    pieceSession.discardPieceContribution(piece);
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
                     StructureFailureTrace failure = createFailureTrace(
@@ -371,17 +372,16 @@ public final class StructureCheckState {
                             describeCell(runtime.getState().getError()),
                             activePieceDepth(pattern, piece), lastErrorMessage,
                             runtime.getState().getError(), runtime.getState().getMissingAbilities(),
-                            session.copyOperationState().getAbilityCounts(),
+                            pieceSession.copyOperationState().getAbilityCounts(),
                             classifyError(runtime.getState().getError(),
                                     runtime.getState().getMissingAbilities()));
                     return Result.failure(lastErrorMessage, failure,
                             runtime.getState().getMissingAbilities(),
-                            session.copyOperationState().getAbilityCounts(), orientation.isFlipped());
+                            pieceSession.copyOperationState().getAbilityCounts(), orientation.isFlipped());
                 }
                 runtime.setValidated(true);
                 runtime.clearDirty();
                 runtime.swapPositions(new LongOpenHashSet(runtime.getState().cache.keySet()));
-                runtime.setLastAggregatedContext(session.getContext().copy());
 
                 // Extract repeat counts from the piece's MultiblockState
                 int[] formedReps = runtime.getState().formedRepetitionCount;
@@ -390,17 +390,19 @@ public final class StructureCheckState {
                     runtime.cacheFormedReps(formedReps);
                 }
 
-                // Extract channel values from the match context
-                extractChannelValues(session.getContext(), channelValues);
             }
             pieceCenters.put(piece.getName(), centerPos);
             int[] resultRepetitions = piece instanceof RepeatGroupPiece
                     ? runtime.getLastFormedReps()
                     : runtime.getState().formedRepetitionCount;
-            resultTable.add(PieceEvaluationResult.activeMatched(
+            StructureContribution contribution = pieceSession.finishPieceContribution(piece);
+            PatternMatchContext compatibilityContext =
+                    contribution.projectCompatibilityContext(pieceSession.getContext());
+            extractChannelValues(compatibilityContext, channelValues);
+            resultTable.add(PieceEvaluationResult.activeMatchedWithRuntime(
                     piece, centerPos, resultRepetitions,
                     runtime.getPositions(), runtime.getPositions(),
-                    session.finishPieceContribution(piece)));
+                    runtime, contribution, compatibilityContext));
             if (ConfigHolder.machines.debugStructureCheck) {
                 int[] formedReps = pieceRepeats.get(piece.getName());
                 GTLog.logger.debug("[StructureDefinition] matched piece={} center={} repetitions={}",
@@ -411,35 +413,36 @@ public final class StructureCheckState {
 
         StructureResultTable completedTable = resultTable.build();
         StructureAggregateFolder.Result contributionAggregate =
-                StructureAggregateFolder.fold(pattern, completedTable);
-        StructureMatchSession.Validation validation = session.validate(true);
-        if (!validation.success) {
-            if (!validation.missingAbilities.isEmpty()) {
+                StructureAggregateFolder.fold(pattern, completedTable, context);
+        if (!contributionAggregate.isMatched()) {
+            if (!contributionAggregate.getMissingAbilities().isEmpty()) {
                 StructureFailureTrace failure = createDeferredFailureTrace(
                         controller, controllerPos, orientation, "Missing required multiblock abilities",
                         StructureFailureTrace.Kind.MISSING_ABILITY,
-                        pattern.getPieceList().size(), validation.missingAbilities, validation.abilityCounts,
+                        pattern.getPieceList().size(), contributionAggregate.getMissingAbilities(),
+                        contributionAggregate.getAbilityCounts(),
                         lastActivePieceName, lastActivePieceCenter);
-                return Result.missingAbilities(validation.missingAbilities, validation.abilityCounts,
+                return Result.missingAbilities(
+                        contributionAggregate.getMissingAbilities(), contributionAggregate.getAbilityCounts(),
                         failure, orientation.isFlipped(), completedTable, contributionAggregate);
             }
-            String message = validation.errorMessage == null
+            String message = contributionAggregate.getErrorMessage() == null
                     ? "Structure-wide validation failed"
-                    : validation.errorMessage;
+                    : contributionAggregate.getErrorMessage();
             StructureFailureTrace failure = createDeferredFailureTrace(
                     controller, controllerPos, orientation, message,
                     StructureFailureTrace.Kind.COUNT_LIMIT,
-                    pattern.getPieceList().size(), validation.missingAbilities, validation.abilityCounts,
+                    pattern.getPieceList().size(), contributionAggregate.getMissingAbilities(),
+                    contributionAggregate.getAbilityCounts(),
                     lastActivePieceName, lastActivePieceCenter);
-            return Result.failure(message, failure, validation.missingAbilities,
-                    validation.abilityCounts, orientation.isFlipped(),
+            return Result.failure(message, failure, contributionAggregate.getMissingAbilities(),
+                    contributionAggregate.getAbilityCounts(), orientation.isFlipped(),
                     completedTable, contributionAggregate);
         }
 
-        FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
-                pieceRepeats, channelValues, pieceCenters);
         return Result.success(
-                metadata, session.getContext().copy(), session.copyOperationState(),
+                contributionAggregate.getMetadata(), contributionAggregate.copyCompatibilityContext(),
+                contributionAggregate.copyOperationState(),
                 orientation.isFlipped(), transientRuntimes.capturePublication(),
                 completedTable, contributionAggregate);
     }

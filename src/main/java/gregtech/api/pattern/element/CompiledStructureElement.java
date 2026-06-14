@@ -2,6 +2,8 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureHintRenderResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
@@ -68,6 +70,12 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public boolean match(@NotNull StructureEvaluationContext<T> context) {
         return source.match(context);
+    }
+
+    @NotNull
+    @Override
+    public StructureIncrementalSupport getIncrementalSupport() {
+        return source.getIncrementalSupport();
     }
 
     @NotNull
@@ -170,9 +178,22 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         return source.spawnHint(world, pos, trigger);
     }
 
+    @NotNull
+    @Override
+    public StructureHintRenderResult spawnHintWithResult(
+            World world, BlockPos pos, @NotNull ItemStack trigger) {
+        return source.spawnHintWithResult(world, pos, trigger);
+    }
+
     @Override
     public void spawnHint(@NotNull StructureEvaluationContext<T> context) {
-        context.probeAction(source::spawnHint);
+        spawnHintWithResult(context);
+    }
+
+    @NotNull
+    @Override
+    public StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<T> context) {
+        return context.probeValue(source::spawnHintWithResult);
     }
 
     @Override

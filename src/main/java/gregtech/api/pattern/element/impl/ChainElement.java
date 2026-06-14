@@ -2,6 +2,7 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
@@ -166,21 +167,24 @@ public class ChainElement implements IStructureElement<Object> {
 
     @Override
     public void spawnHint(World world, BlockPos pos) {
-        for (IStructureElement e : elements) {
-            if (e.spawnHint(world, pos, ItemStack.EMPTY)) {
-                return;
-            }
-        }
+        spawnHintWithResult(world, pos, ItemStack.EMPTY);
     }
 
     @Override
     public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
+        return spawnHintWithResult(world, pos, trigger).rendered();
+    }
+
+    @NotNull
+    @Override
+    public StructureHintRenderResult spawnHintWithResult(World world, BlockPos pos, @NotNull ItemStack trigger) {
         for (IStructureElement e : elements) {
-            if (e.spawnHint(world, pos, trigger)) {
-                return true;
+            StructureHintRenderResult result = e.spawnHintWithResult(world, pos, trigger);
+            if (result.rendered() || result.failed()) {
+                return result;
             }
         }
-        return false;
+        return StructureHintRenderResult.skipped(StructureHintRenderResult.Source.TRIGGER);
     }
 
     @Override

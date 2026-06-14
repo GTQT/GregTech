@@ -254,6 +254,40 @@ class StructureBuildAccountingTest {
     }
 
     @Test
+    void typedPreviewResultWrapsSinglePieceCells() {
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new DirectChannelElement(stoneInfo, dirtInfo, "tier")));
+        StructureOperationEvaluator evaluator =
+                new StructureOperationEvaluator(null, state, null, null);
+
+        StructurePreviewResult result = evaluator.previewSingleResult(
+                StructureOperationRequest.preview(new int[] {1}, null));
+
+        assertEquals(StructurePreviewResult.Outcome.GENERATED, result.getOutcome());
+        assertNotNull(result.getSinglePieceCells());
+        assertEquals(Blocks.STONE.getDefaultState(),
+                result.getSinglePieceCells().getBlocks().get(BlockPos.ORIGIN).getBlockState());
+    }
+
+    @Test
+    void hintResultRecordsActualRenderingOutcome() {
+        MultiblockState state = new MultiblockState(singleCellTemplate(new ContextHintElement()));
+        TestController controller = controller(world);
+
+        StructureHintResult result = state.spawnHintsAtWithResult(
+                world, controller, BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                null, ItemStack.EMPTY);
+
+        assertEquals(1, result.getVisitedCells());
+        assertEquals(0, result.getTriggerHandledCells());
+        assertEquals(1, result.getContextFallbackCells());
+        assertEquals(1, result.getRenderedCells());
+        assertEquals(0, result.getSkippedRenderCells());
+        assertEquals(0, result.getFailedRenderCells());
+    }
+
+    @Test
     void consumeFailureAfterPlacementRollsBackWorldAndSummary() {
         MutableWorld mutableWorld = mutableWorld();
         TestPlayer player = player(false, mutableWorld);
@@ -498,6 +532,47 @@ class StructureBuildAccountingTest {
 
         @Override
         public void spawnHint(World world, BlockPos pos) {}
+    }
+
+    private static final class ContextHintElement implements IStructureElement<Object> {
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            return true;
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return true;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] { stoneInfo };
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @NotNull
+        @Override
+        public StructureHintRenderResult spawnHintWithResult(
+                World world, BlockPos pos, @NotNull ItemStack trigger) {
+            return StructureHintRenderResult.skipped(StructureHintRenderResult.Source.TRIGGER);
+        }
+
+        @NotNull
+        @Override
+        public StructureHintRenderResult spawnHintWithResult(
+                @NotNull StructureEvaluationContext<Object> context) {
+            return StructureHintRenderResult.rendered(StructureHintRenderResult.Source.CONTEXT);
+        }
     }
 
     private static final class TestPart implements IMultiblockPart {

@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * Immutable successful result for one compiled structure piece.
@@ -36,7 +38,11 @@ public final class PieceEvaluationResult {
     private final PieceRuntime.Publication matcherPublication;
     @NotNull
     private final StructureContribution contribution;
+    @NotNull
+    private final PatternMatchContext compatibilityContext;
     private final long semanticFingerprint;
+    @NotNull
+    private final Map<PieceDependencyAspect, Long> aspectFingerprints;
 
     private PieceEvaluationResult(@NotNull StructurePiece piece,
                                   @NotNull Status status,
@@ -45,16 +51,21 @@ public final class PieceEvaluationResult {
                                   @NotNull LongSet formedPositions,
                                   @NotNull LongSet watchedPositions,
                                   @Nullable PieceRuntime.Publication matcherPublication,
-                                  @NotNull StructureContribution contribution) {
+                                  @NotNull StructureContribution contribution,
+                                  @Nullable PatternMatchContext compatibilityContext) {
         this.piece = piece;
         this.status = status;
         this.resolvedCenter = resolvedCenter == null ? null : resolvedCenter.toImmutable();
         this.repetitions = repetitions.clone();
-        this.formedPositions = LongSets.unmodifiable(new LongOpenHashSet(formedPositions));
-        this.watchedPositions = LongSets.unmodifiable(new LongOpenHashSet(watchedPositions));
+        this.formedPositions = immutableLongSet(formedPositions);
+        this.watchedPositions = immutableLongSet(watchedPositions);
         this.matcherPublication = matcherPublication;
         this.contribution = contribution;
-        this.semanticFingerprint = computeFingerprint();
+        this.compatibilityContext = compatibilityContext == null
+                ? new PatternMatchContext()
+                : compatibilityContext.copy();
+        this.aspectFingerprints = computeAspectFingerprints();
+        this.semanticFingerprint = aspectFingerprints.get(PieceDependencyAspect.ANY_RESULT);
     }
 
     @NotNull
@@ -66,7 +77,37 @@ public final class PieceEvaluationResult {
             @NotNull LongSet watchedPositions,
             @NotNull StructureContribution contribution) {
         return activeMatched(
-                piece, resolvedCenter, repetitions, formedPositions, watchedPositions, null, contribution);
+                piece, resolvedCenter, repetitions, formedPositions, watchedPositions,
+                (PieceRuntime.Publication) null, contribution);
+    }
+
+    @NotNull
+    public static PieceEvaluationResult activeMatchedWithRuntime(
+            @NotNull StructurePiece piece,
+            @NotNull BlockPos resolvedCenter,
+            @Nullable int[] repetitions,
+            @NotNull LongSet formedPositions,
+            @NotNull LongSet watchedPositions,
+            @NotNull PieceRuntime runtime,
+            @NotNull StructureContribution contribution) {
+        return activeMatchedWithRuntime(
+                piece, resolvedCenter, repetitions, formedPositions, watchedPositions,
+                runtime, contribution, new PatternMatchContext());
+    }
+
+    @NotNull
+    public static PieceEvaluationResult activeMatchedWithRuntime(
+            @NotNull StructurePiece piece,
+            @NotNull BlockPos resolvedCenter,
+            @Nullable int[] repetitions,
+            @NotNull LongSet formedPositions,
+            @NotNull LongSet watchedPositions,
+            @NotNull PieceRuntime runtime,
+            @NotNull StructureContribution contribution,
+            @NotNull PatternMatchContext compatibilityContext) {
+        return activeMatched(
+                piece, resolvedCenter, repetitions, formedPositions, watchedPositions,
+                runtime.capturePublication(), contribution, compatibilityContext);
     }
 
     @NotNull
@@ -81,14 +122,31 @@ public final class PieceEvaluationResult {
         return new PieceEvaluationResult(
                 piece, Status.ACTIVE_MATCHED, resolvedCenter,
                 repetitions == null ? new int[0] : repetitions,
-                formedPositions, watchedPositions, matcherPublication, contribution);
+                formedPositions, watchedPositions, matcherPublication, contribution, null);
+    }
+
+    @NotNull
+    static PieceEvaluationResult activeMatched(
+            @NotNull StructurePiece piece,
+            @NotNull BlockPos resolvedCenter,
+            @Nullable int[] repetitions,
+            @NotNull LongSet formedPositions,
+            @NotNull LongSet watchedPositions,
+            @Nullable PieceRuntime.Publication matcherPublication,
+            @NotNull StructureContribution contribution,
+            @NotNull PatternMatchContext compatibilityContext) {
+        return new PieceEvaluationResult(
+                piece, Status.ACTIVE_MATCHED, resolvedCenter,
+                repetitions == null ? new int[0] : repetitions,
+                formedPositions, watchedPositions, matcherPublication, contribution,
+                compatibilityContext);
     }
 
     @NotNull
     public static PieceEvaluationResult inactive(@NotNull StructurePiece piece) {
         return new PieceEvaluationResult(
                 piece, Status.INACTIVE, null, new int[0],
-                LongSets.EMPTY_SET, LongSets.EMPTY_SET, null, StructureContribution.empty());
+                LongSets.EMPTY_SET, LongSets.EMPTY_SET, null, StructureContribution.empty(), null);
     }
 
     @NotNull
@@ -130,17 +188,61 @@ public final class PieceEvaluationResult {
         return contribution;
     }
 
+    @NotNull
+    public PatternMatchContext copyCompatibilityContext() {
+        return compatibilityContext.copy();
+    }
+
     public long getSemanticFingerprint() {
         return semanticFingerprint;
     }
 
-    private long computeFingerprint() {
-        long result = status.hashCode();
-        result = 31L * result + (resolvedCenter == null ? 0 : resolvedCenter.hashCode());
-        result = 31L * result + Arrays.hashCode(repetitions);
-        result = 31L * result + formedPositions.hashCode();
-        result = 31L * result + contribution.getCounts().hashCode();
-        result = 31L * result + contribution.getTypedEmissions().hashCode();
+    public long getAspectFingerprint(@NotNull PieceDependencyAspect aspect) {
+        Long value = aspectFingerprints.get(aspect);
+        return value == null ? semanticFingerprint : value;
+    }
+
+    private Map<PieceDependencyAspect, Long> computeAspectFingerprints() {
+        EnumMap<PieceDependencyAspect, Long> result = new EnumMap<>(PieceDependencyAspect.class);
+        long activation = fingerprint(status);
+        long center = fingerprint(status, resolvedCenter);
+        long repetitionsFingerprint = fingerprint(status, Arrays.hashCode(repetitions));
+        long contributionFingerprint = fingerprint(
+                status,
+                contribution.getRequirements().hashCode(),
+                contribution.getCounts().hashCode(),
+                contribution.getParts().hashCode(),
+                contribution.getAbilityCounts().hashCode(),
+                contribution.getAbilityParts().hashCode(),
+                contribution.getCountedAbilityParts().hashCode(),
+                contribution.getVariantActiveBlocks().hashCode(),
+                contribution.getTypedEmissions().hashCode(),
+                compatibilityContext.entrySet().hashCode());
+        long any = fingerprint(
+                activation, center, repetitionsFingerprint,
+                formedPositions.hashCode(), watchedPositions.hashCode(), contributionFingerprint);
+        result.put(PieceDependencyAspect.ACTIVATION, activation);
+        result.put(PieceDependencyAspect.CENTER, center);
+        result.put(PieceDependencyAspect.REPETITIONS, repetitionsFingerprint);
+        result.put(PieceDependencyAspect.CONTRIBUTION_VALUE, contributionFingerprint);
+        result.put(PieceDependencyAspect.CONTROLLER_STATE, contributionFingerprint);
+        result.put(PieceDependencyAspect.ANY_RESULT, any);
         return result;
+    }
+
+    private static long fingerprint(@Nullable Object... values) {
+        long result = 1125899906842597L;
+        for (Object value : values) {
+            result = 31L * result + (value == null ? 0 : value.hashCode());
+        }
+        return result;
+    }
+
+    @NotNull
+    private static LongSet immutableLongSet(@NotNull LongSet source) {
+        if (source.isEmpty()) {
+            return LongSets.EMPTY_SET;
+        }
+        return LongSets.unmodifiable(new LongOpenHashSet(source));
     }
 }

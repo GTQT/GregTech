@@ -221,6 +221,11 @@ public class MultiblockState {
             this.layerCount = new HashMap<>(state.layerCount);
             this.missingAbilities = state.missingAbilities;
         }
+
+        @NotNull
+        Long2ObjectMap<BlockInfo> copyCache() {
+            return new Long2ObjectOpenHashMap<>(cache);
+        }
     }
 
     /**
@@ -832,6 +837,18 @@ public class MultiblockState {
         @NotNull
         public Map<BlockPos, TraceabilityPredicate> getPredicates() {
             return predicates;
+        }
+
+        public boolean isEmpty() {
+            for (BlockInfo info : blocks.values()) {
+                if (info != null
+                        && info != BlockInfo.EMPTY
+                        && info.getBlockState() != null
+                        && info.getBlockState().getBlock() != Blocks.AIR) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /**
@@ -1576,12 +1593,16 @@ public class MultiblockState {
                     world, cell.worldPos, cell.predicate, controllerBase,
                     StructureEvaluationContext.Operation.HINT);
             IStructureElement<Object> typedElement = (IStructureElement<Object>) cell.element;
-            if (typedElement.spawnHint(world, cell.worldPos, triggerStack)) {
+            StructureHintRenderResult triggerResult =
+                    typedElement.spawnHintWithResult(world, cell.worldPos, triggerStack);
+            if (!triggerResult.skipped()) {
                 hintState.result.recordTriggerHandledCell();
+                hintState.result.recordRenderOutcome(triggerResult);
                 return;
             }
             hintState.result.recordContextFallbackCell();
-            typedElement.spawnHint(hintState.evaluationContext);
+            hintState.result.recordRenderOutcome(
+                    typedElement.spawnHintWithResult(hintState.evaluationContext));
         });
         return hintState.result.build();
     }

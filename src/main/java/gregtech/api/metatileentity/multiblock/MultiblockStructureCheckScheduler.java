@@ -61,9 +61,15 @@ final class MultiblockStructureCheckScheduler {
                 GTLog.logger.debug("[StructureCheck] Event-driven {} recheck triggered for {}",
                         decision.describeAction(), controller.getMetaName());
             }
-            if (decision.shouldCheckActiveGraph()) {
+            if (decision.shouldCheckIncremental()) {
+                controller.checkIncrementalStructureGraph();
+            } else if (decision.shouldCheckActiveGraph()) {
                 controller.checkActiveStructureGraph();
             } else {
+                if (ConfigHolder.machines.debugStructureCheck && decision.getFallbackReason() != null) {
+                    GTLog.logger.debug("[StructureCheck] Event-driven full recheck fallback={} for {}",
+                            decision.getFallbackReason(), controller.getMetaName());
+                }
                 controller.checkStructurePattern();
             }
         }

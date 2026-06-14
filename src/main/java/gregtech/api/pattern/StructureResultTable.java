@@ -21,11 +21,13 @@ public final class StructureResultTable {
     private final IdentityHashMap<StructurePiece, PieceEvaluationResult> byPiece;
     @NotNull
     private final Map<String, PieceEvaluationResult> byName;
+    private final long semanticFingerprint;
 
     private StructureResultTable(@NotNull Builder builder) {
-        this.results = Collections.unmodifiableList(new ArrayList<>(builder.results));
+        this.results = immutableList(builder.results);
         this.byPiece = new IdentityHashMap<>(builder.byPiece);
-        this.byName = Collections.unmodifiableMap(new LinkedHashMap<>(builder.byName));
+        this.byName = immutableMap(builder.byName);
+        this.semanticFingerprint = computeFingerprint(this.results);
     }
 
     @NotNull
@@ -50,6 +52,43 @@ public final class StructureResultTable {
     @Nullable
     public PieceEvaluationResult get(@NotNull String pieceName) {
         return byName.get(pieceName);
+    }
+
+    public long getSemanticFingerprint() {
+        return semanticFingerprint;
+    }
+
+    private static long computeFingerprint(@NotNull List<PieceEvaluationResult> results) {
+        long result = 1125899906842597L;
+        for (PieceEvaluationResult pieceResult : results) {
+            result = 31L * result + pieceResult.getSemanticFingerprint();
+        }
+        return result;
+    }
+
+    @NotNull
+    private static List<PieceEvaluationResult> immutableList(
+            @NotNull List<PieceEvaluationResult> source) {
+        if (source.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (source.size() == 1) {
+            return Collections.singletonList(source.get(0));
+        }
+        return Collections.unmodifiableList(new ArrayList<>(source));
+    }
+
+    @NotNull
+    private static Map<String, PieceEvaluationResult> immutableMap(
+            @NotNull Map<String, PieceEvaluationResult> source) {
+        if (source.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        if (source.size() == 1) {
+            Map.Entry<String, PieceEvaluationResult> entry = source.entrySet().iterator().next();
+            return Collections.singletonMap(entry.getKey(), entry.getValue());
+        }
+        return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 
     public static final class Builder {

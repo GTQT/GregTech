@@ -5,9 +5,9 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Lightweight summary for a structure hint operation.
  *
- * <p>The current hint implementations render their effects directly. This
- * result therefore reports traversal and dispatch decisions without claiming
- * that a client-visible particle was produced.
+ * <p>Hint implementations still render their effects directly, but each cell
+ * now reports whether the selected hint path actually rendered, skipped, or
+ * failed.
  */
 public final class StructureHintResult {
 
@@ -19,6 +19,9 @@ public final class StructureHintResult {
     private final int visitedCells;
     private final int triggerHandledCells;
     private final int contextFallbackCells;
+    private final int renderedCells;
+    private final int skippedRenderCells;
+    private final int failedRenderCells;
 
     private StructureHintResult(@NotNull Builder builder) {
         this.attemptedTraversals = builder.attemptedTraversals;
@@ -27,6 +30,9 @@ public final class StructureHintResult {
         this.visitedCells = builder.visitedCells;
         this.triggerHandledCells = builder.triggerHandledCells;
         this.contextFallbackCells = builder.contextFallbackCells;
+        this.renderedCells = builder.renderedCells;
+        this.skippedRenderCells = builder.skippedRenderCells;
+        this.failedRenderCells = builder.failedRenderCells;
     }
 
     @NotNull
@@ -63,6 +69,18 @@ public final class StructureHintResult {
         return contextFallbackCells;
     }
 
+    public int getRenderedCells() {
+        return renderedCells;
+    }
+
+    public int getSkippedRenderCells() {
+        return skippedRenderCells;
+    }
+
+    public int getFailedRenderCells() {
+        return failedRenderCells;
+    }
+
     public boolean isAttempted() {
         return attemptedTraversals > 0 || visitedCells > 0;
     }
@@ -74,7 +92,10 @@ public final class StructureHintResult {
                 ", inactivePieces=" + inactivePieces +
                 ", visitedCells=" + visitedCells +
                 ", triggerHandledCells=" + triggerHandledCells +
-                ", contextFallbackCells=" + contextFallbackCells;
+                ", contextFallbackCells=" + contextFallbackCells +
+                ", renderedCells=" + renderedCells +
+                ", skippedRenderCells=" + skippedRenderCells +
+                ", failedRenderCells=" + failedRenderCells;
     }
 
     @Override
@@ -90,6 +111,9 @@ public final class StructureHintResult {
         private int visitedCells;
         private int triggerHandledCells;
         private int contextFallbackCells;
+        private int renderedCells;
+        private int skippedRenderCells;
+        private int failedRenderCells;
 
         private Builder() {}
 
@@ -130,6 +154,24 @@ public final class StructureHintResult {
         }
 
         @NotNull
+        public Builder recordRenderOutcome(@NotNull StructureHintRenderResult outcome) {
+            switch (outcome.getOutcome()) {
+                case RENDERED:
+                    renderedCells++;
+                    break;
+                case SKIPPED:
+                    skippedRenderCells++;
+                    break;
+                case FAILED:
+                    failedRenderCells++;
+                    break;
+                default:
+                    break;
+            }
+            return this;
+        }
+
+        @NotNull
         public Builder merge(@NotNull StructureHintResult result) {
             attemptedTraversals += result.attemptedTraversals;
             activePieces += result.activePieces;
@@ -137,6 +179,9 @@ public final class StructureHintResult {
             visitedCells += result.visitedCells;
             triggerHandledCells += result.triggerHandledCells;
             contextFallbackCells += result.contextFallbackCells;
+            renderedCells += result.renderedCells;
+            skippedRenderCells += result.skippedRenderCells;
+            failedRenderCells += result.failedRenderCells;
             return this;
         }
 

@@ -175,18 +175,30 @@ public class MultiPiecePattern {
 
     public LongSet getAllPositions(@NotNull PieceRuntimes runtimes,
                                    @Nullable MultiblockControllerBase controller) {
+        return iteratePositions(runtimes, controller).getPositions();
+    }
+
+    @NotNull
+    public StructureIterateResult iteratePositions(@NotNull PieceRuntimes runtimes,
+                                                   @Nullable MultiblockControllerBase controller) {
         LongSet all = new LongOpenHashSet();
+        int activePieces = 0;
+        int inactivePieces = 0;
         StructureActivationContext<MultiblockControllerBase> activation = activationContext(
                 controller, null, null);
         for (StructurePiece piece : pieceList) {
-            if (!piece.isActive(activation)) continue;
+            if (!piece.isActive(activation)) {
+                inactivePieces++;
+                continue;
+            }
+            activePieces++;
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime == null) continue;
             if (runtime.isValidated()) {
                 all.addAll(runtime.getPositions());
             }
         }
-        return all;
+        return StructureIterateResult.multi(all, activePieces, inactivePieces);
     }
 
     /**
@@ -365,14 +377,18 @@ public class MultiPiecePattern {
                 }
             }
             priorCenters.put(piece.getName(), pieceCenter);
-            extractChannelValues(session.getContext(), channelValues);
             int[] resultRepetitions = piece instanceof RepeatGroupPiece
                     ? runtime.getLastFormedReps()
                     : runtime.getState().formedRepetitionCount;
+            StructureContribution contribution = session.finishPieceContribution(piece);
+            PatternMatchContext compatibilityContext =
+                    contribution.projectCompatibilityContext(session.getContext());
+            extractChannelValues(compatibilityContext, channelValues);
             resultTable.add(PieceEvaluationResult.activeMatched(
                     piece, pieceCenter, resultRepetitions,
                     runtime.getPositions(), runtime.getPositions(),
-                    runtime.capturePublication(), session.finishPieceContribution(piece)));
+                    runtime.capturePublication(), contribution,
+                    compatibilityContext));
         }
 
         StructureResultTable completedTable = resultTable.build();
@@ -398,7 +414,8 @@ public class MultiPiecePattern {
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 priorRepeats, channelValues, priorCenters);
         return ActiveGraphCheckResult.success(
-                metadata, session.getContext().copy(), session.copyOperationState(), orientation.isFlipped(),
+                metadata, contributionAggregate.copyCompatibilityContext(),
+                contributionAggregate.copyOperationState(), orientation.isFlipped(),
                 completedTable, contributionAggregate);
     }
 
@@ -750,6 +767,41 @@ public class MultiPiecePattern {
                 session);
     }
 
+    @FunctionalInterface
+    private interface RepeatPieceOperation<R> {
+
+        @NotNull
+        R apply(@NotNull RepeatGroupPiece piece,
+                @NotNull PieceRuntime runtime,
+                @NotNull FormedStructureMetadata prior);
+    }
+
+    @FunctionalInterface
+    private interface FixedPieceOperation<R> {
+
+        @NotNull
+        R apply(@NotNull StructurePiece piece,
+                @NotNull PieceRuntime runtime,
+                @NotNull FormedStructureMetadata prior,
+                @NotNull StructureCellTraversal traversal);
+    }
+
+    @NotNull
+    private <R> R dispatchPieceTraversal(@NotNull StructurePiece piece,
+                                         @NotNull PieceRuntime runtime,
+                                         @NotNull MultiblockControllerBase controller,
+                                         @NotNull StructureOrientation orientation,
+                                         @NotNull FormedStructureMetadata prior,
+                                         @NotNull RepeatPieceOperation<R> repeatOperation,
+                                         @NotNull FixedPieceOperation<R> fixedOperation) {
+        if (piece instanceof RepeatGroupPiece repeatPiece) {
+            return repeatOperation.apply(repeatPiece, runtime, prior);
+        }
+        BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
+        return fixedOperation.apply(
+                piece, runtime, prior, StructureCellTraversal.at(pieceCenter, orientation));
+    }
+
     /**
      * Auto-build a specific piece by its 1-based index.
      * Computes the piece's center position from the controller and delegates to the
@@ -850,18 +902,17 @@ public class MultiPiecePattern {
         if (!piece.isActive(activationContext(controller, prior, null))) {
             return result.recordInactivePiece().build();
         }
-        if (piece instanceof RepeatGroupPiece repeatPiece) {
-            result.merge(repeatPiece.autoBuildAtRepeatedWithResult(player, controller, controller.getPos(),
-                    orientation, prior, channelValues, skipHatches, runtime, abilityTracker, operation, triggerStack));
-        } else {
-            // Use the 4-arg getCenterPos so a DynamicOffsetPiece receives the
-            // prior metadata and can compute its dynamic position. Non-anchor
-            // pieces ignore the prior and behave identically to the 3-arg form.
-            BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
-            result.merge(runtime.getState().autoBuildAtWithResult(player, controller,
-                    StructureCellTraversal.at(pieceCenter, orientation),
-                    channelValues, skipHatches, abilityTracker, operation, triggerStack));
-        }
+        result.merge(dispatchPieceTraversal(
+                piece, runtime, controller, orientation, prior,
+                (repeatPiece, pieceRuntime, piecePrior) ->
+                        repeatPiece.autoBuildAtRepeatedWithResult(
+                                player, controller, controller.getPos(), orientation, piecePrior,
+                                channelValues, skipHatches, pieceRuntime, abilityTracker,
+                                operation, triggerStack),
+                (fixedPiece, pieceRuntime, piecePrior, traversal) ->
+                        pieceRuntime.getState().autoBuildAtWithResult(
+                                player, controller, traversal, channelValues, skipHatches,
+                                abilityTracker, operation, triggerStack)));
         return result.build();
     }
 
@@ -900,22 +951,18 @@ public class MultiPiecePattern {
 
             result.recordActivePiece();
             BlockPos pieceCenter = piece.getCenterPos(controller.getPos(), orientation, prior);
-            if (piece instanceof RepeatGroupPiece repeatPiece) {
-                result.merge(repeatPiece.spawnHintsAtRepeatedWithResult(
-                        world, controller, controller.getPos(),
-                        orientation, prior, channelValues, runtime, triggerStack));
-                int[] reps = runtime.getLastFormedReps();
-                if (reps != null && reps.length > 0) {
-                    priorRepeats.put(piece.getName(), reps);
-                }
-            } else {
-                result.merge(runtime.getState().spawnHintsAtWithResult(
-                        world, controller, StructureCellTraversal.at(pieceCenter, orientation),
-                        channelValues, triggerStack));
-                int[] reps = runtime.getLastFormedReps();
-                if (reps != null && reps.length > 0) {
-                    priorRepeats.put(piece.getName(), reps);
-                }
+            result.merge(dispatchPieceTraversal(
+                    piece, runtime, controller, orientation, prior,
+                    (repeatPiece, pieceRuntime, piecePrior) ->
+                            repeatPiece.spawnHintsAtRepeatedWithResult(
+                                    world, controller, controller.getPos(),
+                                    orientation, piecePrior, channelValues, pieceRuntime, triggerStack),
+                    (fixedPiece, pieceRuntime, piecePrior, traversal) ->
+                            pieceRuntime.getState().spawnHintsAtWithResult(
+                                    world, controller, traversal, channelValues, triggerStack)));
+            int[] reps = runtime.getLastFormedReps();
+            if (reps != null && reps.length > 0) {
+                priorRepeats.put(piece.getName(), reps);
             }
             priorCenters.put(piece.getName(), pieceCenter);
         }

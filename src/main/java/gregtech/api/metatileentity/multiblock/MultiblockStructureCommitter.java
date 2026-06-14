@@ -1,5 +1,7 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.pattern.CommittedStructureGraph;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureFailureTrace;
@@ -53,7 +55,8 @@ final class MultiblockStructureCommitter {
             return;
         }
 
-        commit(controller, runtime, context, prepared, result.getMetadata(),
+        FormedStructureView formed = FormedStructureView.fromCheckResult(result, context);
+        commit(controller, runtime, context, formed, prepared, result.getMetadata(),
                 result.copyChannelValues(), result.isFlipped(), result.getTracePath(), result);
         if (prepared.initial) {
             registerInitialCommit(controller, result.getSource());
@@ -65,6 +68,9 @@ final class MultiblockStructureCommitter {
         if (result.getSource() == StructureCheckResult.Source.LEGACY_TEMPLATE) {
             MultiblockStructureRegistration.reregisterLegacyCache(
                     controller, controller.multiblockState);
+        } else if (result.getGraphPublication() != null) {
+            MultiblockStructureRegistration.refreshMultiPieceRegistrationFromRuntime(
+                    controller, controller.multiPiecePattern, controller.pieceRuntimes);
         }
     }
 
@@ -80,7 +86,10 @@ final class MultiblockStructureCommitter {
             return false;
         }
 
-        return commit(controller, requireRuntime(controller), context, prepared,
+        FormedStructureView formed = FormedStructureView.legacy(
+                controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
+                operationState, context, context.neededFlip());
+        return commit(controller, requireRuntime(controller), context, formed, prepared,
                 controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
                 context.neededFlip(), "runtime", null);
     }
@@ -89,6 +98,7 @@ final class MultiblockStructureCommitter {
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureRuntime runtime,
             @NotNull PatternMatchContext context,
+            @NotNull FormedStructureView formed,
             @NotNull MultiblockStructureAssembler.PreparedCommit prepared,
             @Nullable FormedStructureMetadata metadata,
             @NotNull StructureChannelValues channelValues,
@@ -117,11 +127,19 @@ final class MultiblockStructureCommitter {
             result.publishPieceRuntimes(controller.pieceRuntimes);
         }
         runtime.commitSuccessfulCheck(metadata, channelValues);
+        if (result != null) {
+            CommittedStructureGraph graphPublication = result.getGraphPublication();
+            if (graphPublication == null) {
+                runtime.clearCommittedGraph();
+            } else {
+                runtime.publishCommittedGraph(graphPublication);
+            }
+        }
         if (prepared.initial) {
             controller.publishStructureFormed();
         }
         if (prepared.changed) {
-            controller.formStructure(context);
+            controller.formStructure(formed);
             StructureTrace.debug(controller, prepared.initial ? "formed" : "reassembled",
                     "path=" + path + ", metadata=" + metadata + ", channels=" + channelValues);
         }

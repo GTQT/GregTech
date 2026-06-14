@@ -1,12 +1,15 @@
 package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.StructureIncrementalFallbackReason;
+import gregtech.api.pattern.StructurePositionIndex;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Map;
@@ -60,6 +63,17 @@ public class MultiblockWorldData {
     }
 
     /**
+     * Register a formed multiblock with a position owner index. Watched
+     * positions drive event dirty roots; formed positions remain available for
+     * compatibility queries.
+     */
+    public void registerMultiblock(MultiblockControllerBase controller,
+                                   StructurePositionIndex positionIndex,
+                                   MultiPiecePattern piecePattern) {
+        structureIndex.registerMultiblock(controller, positionIndex, piecePattern);
+    }
+
+    /**
      * Unregister a multiblock when it invalidates.
      * Called when a multiblock structure breaks.
      *
@@ -83,6 +97,16 @@ public class MultiblockWorldData {
      */
     public boolean onBlockChanged(BlockPos pos, long gameTick) {
         return structureIndex.markBlockChanged(pos, gameTick);
+    }
+
+    /**
+     * Enqueue explicit dirty roots for controller/external state changes that
+     * are not tied to a block position.
+     */
+    public boolean enqueueDirtyRoots(MultiblockControllerBase controller,
+                                     Iterable<String> roots,
+                                     long gameTick) {
+        return structureIndex.enqueueDirtyRoots(controller, roots, gameTick);
     }
 
     /**
@@ -169,6 +193,10 @@ public class MultiblockWorldData {
             return delegate.shouldCheckActiveGraph();
         }
 
+        boolean shouldCheckIncremental() {
+            return delegate.shouldCheckIncremental();
+        }
+
         @NotNull
         String describeAction() {
             return delegate.getAction().name();
@@ -176,6 +204,11 @@ public class MultiblockWorldData {
 
         long getLastChangedTick() {
             return delegate.getLastChangedTick();
+        }
+
+        @Nullable
+        StructureIncrementalFallbackReason getFallbackReason() {
+            return delegate.getFallbackReason();
         }
     }
 

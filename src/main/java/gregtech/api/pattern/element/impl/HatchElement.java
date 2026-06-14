@@ -93,9 +93,6 @@ public class HatchElement implements IStructureElement<Object> {
         }
 
         return context.transaction(transactionContext -> {
-            if (!transactionContext.test(legacyPredicate)) {
-                return false;
-            }
             StructureMatchCollector collector = transactionContext.getCollector();
             boolean recorded = collector.recordAbility(this, (IMultiblockPart) abilityPart);
             if (!recorded) {
