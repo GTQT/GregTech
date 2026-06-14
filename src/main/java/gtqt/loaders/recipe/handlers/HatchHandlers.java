@@ -5,15 +5,11 @@ import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.MarkerMaterial;
 import gregtech.api.util.Mods;
 
-import gregtech.common.items.MetaItems;
-
 import net.minecraft.item.ItemStack;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
 import static gregtech.api.unification.ore.OrePrefix.circuit;
-import static gregtech.common.items.MetaItems.COVER_ENDER_FLUID_LINK;
-import static gregtech.common.items.MetaItems.COVER_ENDER_ITEM_LINK;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 import static gtqt.api.util.MaterialHelper.Plastic;
 import static gtqt.common.metatileentities.GTQTMetaTileEntities.*;
@@ -128,37 +124,5 @@ public class HatchHandlers {
                 .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 4)
                 .output(ME_DUAL_EXPORT_HATCH)
                 .duration(100).EUt(VA[IV]).buildAndRegister();
-
-        // 样板总成配方
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(DUAL_IMPORT_HATCH[LuV])
-                .inputs(normalInterface)
-                .inputs(fluidInterface)
-                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 8)
-                .fluidInputs(Plastic.get(LuV - 1).getFluid(L * 4))
-                .output(ME_PATTERN_PROVIDER)
-                .duration(200).EUt(VA[LuV]).buildAndRegister();
-
-        // 样板总成镜像配方
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(DUAL_IMPORT_HATCH[LuV])
-                .input(COVER_ENDER_ITEM_LINK)
-                .input(COVER_ENDER_FLUID_LINK)
-                .input(MetaItems.EMITTER_LuV,4)
-                .input(MetaItems.SENSOR_LuV,4)
-                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 8)
-                .output(ME_PATTERN_PROVIDER_PROXY)
-                .duration(200).EUt(VA[LuV]).buildAndRegister();
-
-        // 巨型样板映射区配方
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(DUAL_IMPORT_HATCH[UHV])
-                .input(COVER_ENDER_ITEM_LINK)
-                .input(COVER_ENDER_FLUID_LINK)
-                .input(MetaItems.EMITTER_UHV,4)
-                .input(MetaItems.SENSOR_UHV,4)
-                .input(circuit, MarkerMaterial.create(GTValues.VN[UHV].toLowerCase()), 8)
-                .output(HUGE_PATTERN_MAPPING_SLAVE)
-                .duration(200).EUt(VA[UHV]).buildAndRegister();
     }
 }

@@ -7,11 +7,11 @@ import gregtech.api.unification.ore.OrePrefix;
 import gtqt.common.metatileentities.GTQTMetaTileEntities;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.GTValues.VA;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
-import static gregtech.common.items.MetaItems.*;
 import static gregtech.api.unification.ore.OrePrefix.plate;
-import static gtqt.common.items.GTQTMetaItems.*;
+import static gregtech.common.items.MetaItems.*;
+import static gtqt.common.items.GTQTMetaItems.COVER_PROGRAMMABLE_CIRCUIT;
+import static gtqt.common.items.GTQTMetaItems.PROGRAMMING_TOOLKIT;
 
 /**
  * 可编程电路及工具箱的配方注册。
@@ -51,18 +51,6 @@ public class ProgrammableCircuit {
                 .fluidInputs(Materials.Tin.getFluid(L * 2))
                 .outputs(GTQTMetaTileEntities.PROGRAMMING_PROVIDER.getStackForm())
                 .EUt(VA[HV]).duration(400)
-                .buildAndRegister();
-
-        // 样板映射区配方
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(ROBOT_ARM_IV)
-                .input(CONVEYOR_MODULE_IV, 2)
-                .input(OrePrefix.circuit, MarkerMaterials.Tier.IV, 2)
-                .input(plate, Materials.TungstenSteel, 4)
-                .circuitMeta(10)
-                .fluidInputs(Materials.SolderingAlloy.getFluid(L * 4))
-                .outputs(GTQTMetaTileEntities.PATTERN_MAPPING_SLAVE.getStackForm())
-                .EUt(VA[IV]).duration(600)
                 .buildAndRegister();
     }
 }

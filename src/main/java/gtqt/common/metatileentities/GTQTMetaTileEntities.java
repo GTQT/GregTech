@@ -24,7 +24,6 @@ import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityMoldItemB
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityThreadHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 import gtqt.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
-import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugePatternProviderMappingSlave;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
 import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEGasHatch;
@@ -55,7 +54,18 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.V.length - 2];
     public static final MetaTileEntityHugeComplexDualHatch[] HUGE_COMPLEX_DUAL_HATCH = new MetaTileEntityHugeComplexDualHatch[GTValues.V.length - 2];
 
-    public static MetaTileEntityMEPatternProvider ME_PATTERN_PROVIDER;
+    public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
+    public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
+    public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
+    public static MetaTileEntityMEPatternManager ME_PATTERN_MANAGER;
+
+    // ME样板总成（主控）
+    public static MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 1];
+    // 样板映射区 从属样板槽位扩展
+    public static MetaTileEntityPatternProviderMappingSlave[] PATTERN_MAPPING_SLAVE = new MetaTileEntityPatternProviderMappingSlave[GTValues.V.length - 1];
+    // ME样板提供器代理 可以同时为多个多方块结构提供材料输入能力
+    public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
+    // 矿石前缀样板提供器
     public static MetaTileEntityMEOrePrefixPatternProvider ME_ORE_PREFIX_PATTERN_PROVIDER;
 
 
@@ -68,13 +78,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[10];
     public static MetaTileEntityHeatSensor HEAT_SENSOR;
 
-    public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
-    public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
-    public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
-    public static MetaTileEntityPatternProviderMappingSlave PATTERN_MAPPING_SLAVE;
-    public static MetaTileEntityHugePatternProviderMappingSlave HUGE_PATTERN_MAPPING_SLAVE;
-    public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
-    public static MetaTileEntityMEPatternManager ME_PATTERN_MANAGER;
+
     public static final MetaTileEntityGasHatch[] GAS_HATCH = new MetaTileEntityGasHatch[GTValues.UHV + 1]; // LV-UHV
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
     public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1]; // All tiers but MAX
@@ -126,7 +130,8 @@ public class GTQTMetaTileEntities {
         // Multi Super / Quantum Tanks, IDs 2400 - 2410
         for (int i = 0; i < 5; i++) {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
-            MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_super_tank." + voltageName), i + 1,
+            MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_super_tank." + voltageName),
+                    i + 1,
                     4000000 * (int) Math.pow(2, i));
             registerMetaTileEntity(2400 + i, MULTI_QUANTUM_TANK[i]);
         }
@@ -134,24 +139,30 @@ public class GTQTMetaTileEntities {
         for (int i = 5; i < MULTI_QUANTUM_TANK.length; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
             int capacity = i == GTValues.UHV ? Integer.MAX_VALUE : 4000000 * (int) Math.pow(2, i);
-            MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_quantum_tank." + voltageName), i, capacity);
+            MULTI_QUANTUM_TANK[i] = new MetaTileEntityQuantumMultiTank(gregtechId("multi_quantum_tank." + voltageName),
+                    i, capacity);
             registerMetaTileEntity(2400 + i, MULTI_QUANTUM_TANK[i]);
         }
 
         // # 仓口
 
         // 总成类, IDs 2500-
-        for(int i=0;i<DUAL_IMPORT_HATCH.length;i++)
-        {
-            String voltageName = GTValues.VN[i+1].toLowerCase();
-            DUAL_IMPORT_HATCH[i] = new MetaTileEntityDualHatch(gregtechId("dual_hatch.import." + voltageName), i+1, false);
-            DUAL_EXPORT_HATCH[i] = new MetaTileEntityDualHatch(gregtechId("dual_hatch.export." + voltageName), i+1, true);
+        for (int i = 0; i < DUAL_IMPORT_HATCH.length; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            DUAL_IMPORT_HATCH[i] = new MetaTileEntityDualHatch(gregtechId("dual_hatch.import." + voltageName), i + 1,
+                    false);
+            DUAL_EXPORT_HATCH[i] = new MetaTileEntityDualHatch(gregtechId("dual_hatch.export." + voltageName), i + 1,
+                    true);
 
-            HUGE_DUAL_IMPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(gregtechId("huge_dual_hatch.import." + voltageName), i+1, false);
-            HUGE_DUAL_EXPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(gregtechId("huge_dual_hatch.export." + voltageName), i+1, true);
+            HUGE_DUAL_IMPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(
+                    gregtechId("huge_dual_hatch.import." + voltageName), i + 1, false);
+            HUGE_DUAL_EXPORT_HATCH[i] = new MetaTileEntityHugeDualHatch(
+                    gregtechId("huge_dual_hatch.export." + voltageName), i + 1, true);
 
-            COMPLEX_DUAL_HATCH[i]=new MetaTileEntityComplexDualHatch(gregtechId("complex_dual_hatch." + voltageName), i+1);
-            HUGE_COMPLEX_DUAL_HATCH[i] = new MetaTileEntityHugeComplexDualHatch(gregtechId("huge_complex_dual_hatch." + voltageName), i+1);
+            COMPLEX_DUAL_HATCH[i] = new MetaTileEntityComplexDualHatch(gregtechId("complex_dual_hatch." + voltageName),
+                    i + 1);
+            HUGE_COMPLEX_DUAL_HATCH[i] = new MetaTileEntityHugeComplexDualHatch(
+                    gregtechId("huge_complex_dual_hatch." + voltageName), i + 1);
 
             registerMetaTileEntity(2500 + i, DUAL_IMPORT_HATCH[i]);
             registerMetaTileEntity(2515 + i, DUAL_EXPORT_HATCH[i]);
@@ -164,41 +175,46 @@ public class GTQTMetaTileEntities {
 
         ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualInputHatch(gregtechId("me_dual_hatch.import"));
         ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
-        ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider(gregtechId("me_pattern_provider"));
-        ME_ORE_PREFIX_PATTERN_PROVIDER = new MetaTileEntityMEOrePrefixPatternProvider(
-                gregtechId("me_ore_prefix_pattern_provider"), GTValues.IV);
-        ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"));
-        PATTERN_MAPPING_SLAVE = new MetaTileEntityPatternProviderMappingSlave(gregtechId("pattern_mapping_slave"), GTValues.IV);
-        HUGE_PATTERN_MAPPING_SLAVE = new MetaTileEntityHugePatternProviderMappingSlave(gregtechId("huge_pattern_mapping_slave"), GTValues.IV);
+        ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"), GTValues.IV);
 
-        ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"),GTValues.IV);
-        ME_PATTERN_MANAGER = new MetaTileEntityMEPatternManager(gregtechId("me_pattern_manager"),6,false);
+        ME_PATTERN_MANAGER = new MetaTileEntityMEPatternManager(gregtechId("me_pattern_manager"), GTValues.UV, false);
+        ME_ORE_PREFIX_PATTERN_PROVIDER = new MetaTileEntityMEOrePrefixPatternProvider(gregtechId("me_ore_prefix_pattern_provider"), GTValues.UHV);
+        ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"), GTValues.UHV);
 
         // ME设备, IDs 2700-
         registerMetaTileEntity(2700, ME_DUAL_IMPORT_HATCH);
         registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
-        registerMetaTileEntity(2702, ME_PATTERN_PROVIDER_PROXY);
-        registerMetaTileEntity(2703, HUGE_PATTERN_MAPPING_SLAVE);
-        registerMetaTileEntity(2706, PATTERN_MAPPING_SLAVE);
-        registerMetaTileEntity(2707, ME_PATTERN_PROVIDER);
-        registerMetaTileEntity(2545, ME_ORE_PREFIX_PATTERN_PROVIDER);
+        registerMetaTileEntity(2702, ME_ORE_DICT_BUS);
+        registerMetaTileEntity(2703, ME_PATTERN_MANAGER);
+        registerMetaTileEntity(2704, ME_PATTERN_PROVIDER_PROXY);
+        registerMetaTileEntity(2705, ME_ORE_PREFIX_PATTERN_PROVIDER);
 
-        registerMetaTileEntity(2710, ME_ORE_DICT_BUS);
-        registerMetaTileEntity(2711, ME_PATTERN_MANAGER);
+        for (int i = 0; i < ME_PATTERN_PROVIDER.length; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            ME_PATTERN_PROVIDER[i] = new MetaTileEntityMEPatternProvider(
+                    gregtechId("me_pattern_provider." + voltageName), i + 1);
+            registerMetaTileEntity(2710 + i, ME_PATTERN_PROVIDER[i]);
+        }
+        for (int i = 0; i < PATTERN_MAPPING_SLAVE.length; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            PATTERN_MAPPING_SLAVE[i] = new MetaTileEntityPatternProviderMappingSlave(
+                    gregtechId("pattern_mapping_slave." + voltageName), i + 1);
+            registerMetaTileEntity(2730 + i, PATTERN_MAPPING_SLAVE[i]);
+        }
 
-        // Gas Hatches, IDs 2720-2735
+        // Gas Hatches, IDs 2760-2775
         for (int i = 0; i < GAS_HATCH.length - 1; i++) {
             int tier = i+1;
             String voltageName = GTValues.VN[tier].toLowerCase();
             GAS_HATCH[i] = new MetaTileEntityGasHatch(gregtechId("gas_hatch." + voltageName), tier);
-            registerMetaTileEntity(2720 + i, GAS_HATCH[i]);
+            registerMetaTileEntity(2760 + i, GAS_HATCH[i]);
         }
 
-        // Dust Collector, IDs 2735-2750
+        // Dust Collector, IDs 2780-2795
         for (int i = 0; i < DUST_COLLECTOR.length; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
             DUST_COLLECTOR[i] = new MetaTileEntityDustCollector(gregtechId("dust_collector." + voltageName), i);
-            registerMetaTileEntity(2735 + i, DUST_COLLECTOR[i]);
+            registerMetaTileEntity(2780 + i, DUST_COLLECTOR[i]);
         }
 
         //巨型总线

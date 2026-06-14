@@ -281,10 +281,6 @@ gregtech.machine.huge_dual_hatch.export.uxv.name=§eUXV§r巨型输出总成
 gregtech.machine.huge_dual_hatch.export.opv.name=§9OpV§r巨型输出总成
 gregtech.machine.huge_dual_hatch.export.max.name=§c§lMAX§r巨型输出总成
 
-gregtech.machine.me_pattern_provider.name=样板总成
-
-gregtech.machine.me_ore_prefix_pattern_provider.name=矿辞前缀样板映射区
-
 gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r回环总成
 gregtech.machine.complex_dual_hatch.lv.name=§7LV§r回环总成
 gregtech.machine.complex_dual_hatch.mv.name=§bMV§r回环总成
@@ -437,14 +433,40 @@ gregtech.universal.tooltip.max_temperature=§e最大热容：§f%,d K
 
 gregtech.machine.me_dual_hatch.import.name=ME输入总成
 gregtech.machine.me_dual_hatch.export.name=ME输出总成
-gregtech.machine.me_pattern_provider_proxy.name=样板总成镜像
-gregtech.machine.huge_me_pattern_provider_proxy.name=巨型样板映射区
-gregtech.machine.huge_pattern_mapping_slave.name=巨型样板映射区
-gregtech.machine.huge_pattern_mapping_slave.tooltip.1=巨型样板映射区：拥有 144 个独立样板槽位和 AE 网络连接
-gregtech.machine.pattern_mapping_slave.name=样板映射区
-
 gregtech.machine.me_ore_dict_bus.name=ME矿辞输入总线
 gregtech.machine.me_pattern_manager.name=ME样板管理器
+gregtech.machine.me_ore_prefix_pattern_provider.name=矿辞前缀样板映射区
+gregtech.machine.me_pattern_provider_proxy.name=镜像样板总成
+
+gregtech.machine.me_pattern_provider.lv.name=样板总成（§7LV§r）
+gregtech.machine.me_pattern_provider.mv.name=样板总成（§bMV§r）
+gregtech.machine.me_pattern_provider.hv.name=样板总成（§6HV§r）
+gregtech.machine.me_pattern_provider.ev.name=样板总成（§5EV§r）
+gregtech.machine.me_pattern_provider.iv.name=样板总成（§1IV§r）
+gregtech.machine.me_pattern_provider.luv.name=样板总成（§dLuV§r）
+gregtech.machine.me_pattern_provider.zpm.name=样板总成（§cZPM§r）
+gregtech.machine.me_pattern_provider.uv.name=样板总成（§3UV§r）
+gregtech.machine.me_pattern_provider.uhv.name=样板总成（§4UHV§r）
+gregtech.machine.me_pattern_provider.uev.name=样板总成（§aUEV§r）
+gregtech.machine.me_pattern_provider.uiv.name=样板总成（§2UIV§r）
+gregtech.machine.me_pattern_provider.uxv.name=样板总成（§eUXV§r）
+gregtech.machine.me_pattern_provider.opv.name=样板总成（§9OpV§r）
+gregtech.machine.me_pattern_provider.max.name=样板总成（§c§lMAX§r）
+
+gregtech.machine.pattern_mapping_slave.lv.name=样板映射区（§7LV§r）
+gregtech.machine.pattern_mapping_slave.mv.name=样板映射区（§bMV§r）
+gregtech.machine.pattern_mapping_slave.hv.name=样板映射区（§6HV§r）
+gregtech.machine.pattern_mapping_slave.ev.name=样板映射区（§5EV§r）
+gregtech.machine.pattern_mapping_slave.iv.name=样板映射区（§1IV§r）
+gregtech.machine.pattern_mapping_slave.luv.name=样板映射区（§dLuV§r）
+gregtech.machine.pattern_mapping_slave.zpm.name=样板映射区（§cZPM§r）
+gregtech.machine.pattern_mapping_slave.uv.name=样板映射区（§3UV§r）
+gregtech.machine.pattern_mapping_slave.uhv.name=样板映射区（§4UHV§r）
+gregtech.machine.pattern_mapping_slave.uev.name=样板映射区（§aUEV§r）
+gregtech.machine.pattern_mapping_slave.uiv.name=样板映射区（§2UIV§r）
+gregtech.machine.pattern_mapping_slave.uxv.name=样板映射区（§eUXV§r）
+gregtech.machine.pattern_mapping_slave.opv.name=样板映射区（§9OpV§r）
+gregtech.machine.pattern_mapping_slave.max.name=样板映射区（§c§lMAX§r）
 
 # BeeAccractor
 gregtech.machine.bee_attractor.ulv.name=原始引蜂器
@@ -997,6 +1019,7 @@ gregtech.machine.me_pattern.tooltip.1=内置样板供应器，使用样板标记
 gregtech.machine.me_pattern.tooltip.2=阻挡模式：只允许与总成缓存的相同配方物品流进入总成，其他配方的物品流将被阻挡
 gregtech.machine.me_pattern.tooltip.3=缓冲区容量已提升至最大值，支持累积推送
 gregtech.machine.me_pattern.tooltip.buffer=缓冲区池：拥有 %d 个独立缓冲区，相同物品组合共享缓冲区，支持可编程电路自动解包
+gregtech.machine.me_pattern.tooltip.buffer_size=每个缓冲池由无上限的 %s 种物品，%s 种流体，%s 种可编程槽组成
 gregtech.machine.me_pattern.tooltip.refund=退还机制：拆除时自动将缓冲区中的物品和流体退还到AE网络，退还失败的掉落到地面
 gregtech.machine.me_pattern.tooltip.lock=缓冲区锁定：配方消耗完毕后延迟释放缓冲区，防止不同配方抢占
 
@@ -1044,7 +1067,7 @@ gtqt.machine.me_pattern_proxy.tooltip.usage=使用闪存右键点击主仓进行
 gtqt.machine.me_pattern_proxy.tooltip.requirements=只可绑定处于同一维度的仓口，请保证对应区块的加载！
 
 gregtech.machine.pattern_mapping_slave.data_stick_use=已链接到样板总成 [%s, %s, %s]
-gregtech.machine.pattern_mapping_slave.tooltip.1=样板映射区：拥有 36 个独立样板槽位和 AE 网络连接
+gregtech.machine.pattern_mapping_slave.tooltip.1=样板映射区：拥有 %s 个独立样板槽位和 AE 网络连接功能
 gregtech.machine.pattern_mapping_slave.tooltip.2=通过数据棒链接到样板总成（master），AE 推送的材料转发到 master 的缓冲区池
 gregtech.machine.pattern_mapping_slave.tooltip.3=使用闪存右键点击样板总成写入坐标，再右键点击此方块进行链接
 gregtech.machine.pattern_mapping_slave.ui.tab.patterns=样板
