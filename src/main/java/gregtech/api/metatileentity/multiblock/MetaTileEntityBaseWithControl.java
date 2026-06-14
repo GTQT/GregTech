@@ -87,7 +87,11 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
 
     @Override
     public void setWorkingEnabled(boolean b) {
+        boolean changed = this.isWorkingEnabled != b;
         this.isWorkingEnabled = b;
+        if (changed) {
+            notifyStructureControllerModeChanged();
+        }
         markDirty();
         World world = getWorld();
         if (world != null && !world.isRemote) {

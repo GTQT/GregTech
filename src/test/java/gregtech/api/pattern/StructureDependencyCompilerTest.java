@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.LegacyElement;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
@@ -17,8 +18,12 @@ import org.junit.jupiter.api.Test;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StructureDependencyCompilerTest {
@@ -70,6 +76,80 @@ class StructureDependencyCompilerTest {
         assertEquals("conditional", edge.getTargetPiece());
         assertTrue(edge.getAspects().contains(PieceDependencyAspect.CONTRIBUTION_VALUE));
         assertTrue(edge.getReason().contains("condition"));
+    }
+
+    @Test
+    void directElementDependenciesCompileEdgesAndExternalRoots() {
+        StructureExternalDependencyKey<Integer> external = StructureExternalDependencyKey.create(
+                "gregtech:test_direct_external", controller -> 1, Objects::equals);
+        StructurePiece source = piece("source");
+        StructurePiece target = new StructurePiece(
+                "target",
+                template(new DependentElement(
+                        StructureDependency.piece("source", PieceDependencyAspect.CONTRIBUTION_VALUE),
+                        StructureDependency.external(external, PieceDependencyAspect.CONTROLLER_STATE))),
+                Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE,
+                null);
+
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Arrays.asList(source, target)));
+
+        assertTrue(plan.isEligible(), plan.describe());
+        assertEquals(1, plan.getGraph().getEdges().size());
+        PieceDependencyGraph.Edge edge = plan.getGraph().getEdges().get(0);
+        assertEquals("source", edge.getSourcePiece());
+        assertEquals("target", edge.getTargetPiece());
+        assertTrue(edge.getAspects().contains(PieceDependencyAspect.CONTRIBUTION_VALUE));
+        assertTrue(edge.getReason().contains("element:"));
+        assertTrue(plan.getExternalDependencies().contains(external));
+        assertEquals(Collections.singleton("target"), plan.getExternalDependencyRoots(external));
+    }
+
+    @Test
+    void chainElementDependenciesCompileEdgesAndExternalRoots() {
+        StructureExternalDependencyKey<Integer> external = StructureExternalDependencyKey.create(
+                "gregtech:test_chain_external", controller -> 1, Objects::equals);
+        StructurePiece source = piece("source");
+        StructurePiece target = new StructurePiece(
+                "target",
+                template(new ChainElement(
+                        new MatchingElement(),
+                        new DependentElement(
+                                StructureDependency.piece("source", PieceDependencyAspect.CONTRIBUTION_VALUE),
+                                StructureDependency.external(external, PieceDependencyAspect.CONTROLLER_STATE)))),
+                Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE,
+                null);
+
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Arrays.asList(source, target)));
+
+        assertTrue(plan.isEligible(), plan.describe());
+        assertEquals(1, plan.getGraph().getEdges().size());
+        PieceDependencyGraph.Edge edge = plan.getGraph().getEdges().get(0);
+        assertEquals("source", edge.getSourcePiece());
+        assertEquals("target", edge.getTargetPiece());
+        assertTrue(edge.getAspects().contains(PieceDependencyAspect.CONTRIBUTION_VALUE));
+        assertTrue(plan.getExternalDependencies().contains(external));
+        assertEquals(Collections.singleton("target"), plan.getExternalDependencyRoots(external));
+    }
+
+    @Test
+    void chainContainingLegacyElementFallsBackAsOpaque() {
+        StructurePiece legacyChain = new StructurePiece(
+                "legacy_chain",
+                template(new ChainElement(new MatchingElement(), new LegacyElement(new TraceabilityPredicate()))),
+                Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE,
+                null);
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(legacyChain)));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("opaque element"));
     }
 
     @Test
@@ -182,6 +262,26 @@ class StructureDependencyCompilerTest {
     }
 
     @Test
+    void versionedSnapshotFreezesNestedMutableValues() {
+        List<String> list = new ArrayList<>(Collections.singletonList("before"));
+        int[] array = new int[] {1};
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("list", list);
+        value.put("array", array);
+
+        StructureExternalDependencies.VersionedSnapshot first =
+                StructureExternalDependencies.VersionedSnapshot.of(0, value);
+
+        list.add("after");
+        array[0] = 2;
+
+        StructureExternalDependencies.VersionedSnapshot second =
+                StructureExternalDependencies.VersionedSnapshot.of(0, value);
+
+        assertNotEquals(first, second);
+    }
+
+    @Test
     void ineligibleDefinitionCheckFallsBackToActiveGraph() {
         StructurePiece piece = new StructurePiece(
                 "conditional", template(new MatchingElement()), Vec3i.NULL_VECTOR,
@@ -270,7 +370,7 @@ class StructureDependencyCompilerTest {
         }
     }
 
-    private static final class MatchingElement implements IStructureElement<Object> {
+    private static class MatchingElement implements IStructureElement<Object> {
 
         @Override
         public boolean check(@NotNull StructureEvaluationContext<Object> context) {
@@ -295,6 +395,22 @@ class StructureDependencyCompilerTest {
 
         @Override
         public void spawnHint(World world, BlockPos pos) {}
+    }
+
+    private static final class DependentElement extends MatchingElement {
+
+        @NotNull
+        private final Set<StructureDependency> dependencies;
+
+        private DependentElement(@NotNull StructureDependency... dependencies) {
+            this.dependencies = new java.util.LinkedHashSet<>(Arrays.asList(dependencies));
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.unmodifiableSet(dependencies);
+        }
     }
 
     private static final class BareWorld extends World {

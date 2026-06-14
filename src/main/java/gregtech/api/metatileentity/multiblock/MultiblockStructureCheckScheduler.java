@@ -15,6 +15,10 @@ final class MultiblockStructureCheckScheduler {
             return;
         }
 
+        if (policy.allowsEventDriven(controller)) {
+            controller.enqueueChangedStructureExternalDependencies();
+        }
+
         if (tryEventDrivenRecheck(controller, policy)) {
             return;
         }

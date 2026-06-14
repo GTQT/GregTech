@@ -20,7 +20,9 @@ import gregtech.api.gui.widgets.IndicatorImageWidget;
 import gregtech.api.gui.widgets.ProgressWidget;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureOperationState;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
@@ -56,6 +58,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -206,6 +209,15 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
+        formStructureWithDisplay(new LinkedList<>(context.getOrDefault("VABlock", Collections.emptyList())));
+    }
+
+    protected final void formStructureWithDisplay(@NotNull FormedStructureView formed) {
+        StructureOperationState operationState = formed.copyOperationState();
+        formStructureWithDisplay(new LinkedList<>(operationState.getVariantActiveBlocks()));
+    }
+
+    private void formStructureWithDisplay(@NotNull List<BlockPos> variantActiveBlocks) {
         if (this.hasMaintenanceMechanics() && ConfigHolder.machines.enableMaintenance) { // nothing extra if no
             // maintenance
             if (getAbilities(MultiblockAbility.MAINTENANCE_HATCH).isEmpty())
@@ -222,7 +234,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
                 storeTaped(false);
             }
         }
-        this.variantActiveBlocks = context.getOrDefault("VABlock", new LinkedList<>());
+        this.variantActiveBlocks = variantActiveBlocks;
         replaceVariantBlocksActive(false);
     }
 
@@ -391,6 +403,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     public final void setVoidingMode(int mode) {
+        int previousMode = getVoidingMode();
         this.voidingMode = VoidingMode.VALUES[mode];
 
         this.voidingFluids = mode >= 2;
@@ -406,6 +419,21 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
                 .addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
 
         markDirty();
+        if (previousMode != mode) {
+            notifyStructureConfigChanged();
+        }
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("voidingMode", getVoidingMode());
+        values.put("voidingItems", voidingItems);
+        values.put("voidingFluids", voidingFluids);
+        return values;
     }
 
     public static @NotNull String getVoidingModeTooltip(int mode) {

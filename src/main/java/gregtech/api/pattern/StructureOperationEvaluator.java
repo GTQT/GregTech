@@ -356,7 +356,9 @@ public final class StructureOperationEvaluator {
                 completedTable, aggregate)
                 .withEligibilityPlan(plan)
                 .withIncrementalCheckResult(diagnostic);
-        return attachGraphPublication(result, request, plan, orientation);
+        result = attachGraphPublication(result, request, plan, orientation);
+        StructureShadowValidator.maybeValidateIncremental(this, request, result);
+        return result;
     }
 
     @NotNull

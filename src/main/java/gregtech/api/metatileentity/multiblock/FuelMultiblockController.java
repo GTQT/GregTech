@@ -34,7 +34,9 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class FuelMultiblockController extends RecipeMapMultiblockController implements IGenerator,
                                                                                                 ITieredMetaTileEntity {
@@ -257,7 +259,22 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
 
     @Override
     public void setEnergyOverFlowMode(boolean enable) {
+        boolean changed = recipeMapWorkable.isOverflowMode() != enable;
         recipeMapWorkable.setOverflowMode(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("energyOverflowMode", recipeMapWorkable != null && recipeMapWorkable.isOverflowMode());
+        values.put("tier", tier);
+        return values;
     }
 
 

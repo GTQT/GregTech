@@ -41,7 +41,8 @@ public final class StructureDependencyCompiler {
             compileDynamicAnchor(piece, graph, fallback, diagnostics);
             compileCondition(piece, graph, externalDependencies, externalDependencyRoots,
                     fallback, diagnostics);
-            compileElements(piece, fallback, diagnostics);
+            compileElements(piece, graph, externalDependencies, externalDependencyRoots,
+                    fallback, diagnostics);
         }
 
         PieceDependencyGraph completedGraph = graph.build();
@@ -114,36 +115,52 @@ public final class StructureDependencyCompiler {
             return;
         }
 
+        compileDependencies(piece.getName(), dependencies, graph, externalDependencies,
+                externalDependencyRoots, fallback, diagnostics, "condition");
+    }
+
+    private static void compileDependencies(
+            @NotNull String targetPiece,
+            @NotNull Set<StructureDependency> dependencies,
+            @NotNull PieceDependencyGraph.Builder graph,
+            @NotNull Set<StructureExternalDependencyKey<?>> externalDependencies,
+            @NotNull Map<StructureExternalDependencyKey<?>, Set<String>> externalDependencyRoots,
+            @NotNull MutableFallback fallback,
+            @NotNull List<String> diagnostics,
+            @NotNull String source) {
         for (StructureDependency dependency : dependencies) {
             if (dependency.getKind() == StructureDependency.Kind.PIECE) {
                 String sourcePiece = dependency.getPieceName();
                 if (sourcePiece == null) {
                     fail(fallback, diagnostics, StructureIncrementalFallbackReason.UNKNOWN_DEPENDENCY,
-                            "Piece '" + piece.getName() + "' declares a null piece dependency");
+                            "Piece '" + targetPiece + "' declares a null piece dependency");
                     continue;
                 }
-                addPieceEdge(graph, fallback, diagnostics, sourcePiece, piece.getName(),
-                        dependency.getAspects(), "condition:" + dependency.getReason());
+                addPieceEdge(graph, fallback, diagnostics, sourcePiece, targetPiece,
+                        dependency.getAspects(), source + ":" + dependency.getReason());
             } else if (dependency.getKind() == StructureDependency.Kind.EXTERNAL) {
                 StructureExternalDependencyKey<?> key = dependency.getExternalKey();
                 if (key == null) {
                     fail(fallback, diagnostics,
                             StructureIncrementalFallbackReason.UNKNOWN_EXTERNAL_DEPENDENCY,
-                            "Piece '" + piece.getName() + "' declares a null external dependency");
+                            "Piece '" + targetPiece + "' declares a null external dependency");
                     continue;
                 }
                 externalDependencies.add(key);
                 externalDependencyRoots
                         .computeIfAbsent(key, ignored -> new LinkedHashSet<>())
-                        .add(piece.getName());
+                        .add(targetPiece);
                 diagnostics.add("external dependency '" + key.getId()
-                        + "' affects piece '" + piece.getName() + "'");
+                        + "' affects piece '" + targetPiece + "' via " + source);
             }
         }
     }
 
     private static void compileElements(
             @NotNull StructurePiece piece,
+            @NotNull PieceDependencyGraph.Builder graph,
+            @NotNull Set<StructureExternalDependencyKey<?>> externalDependencies,
+            @NotNull Map<StructureExternalDependencyKey<?>, Set<String>> externalDependencyRoots,
             @NotNull MutableFallback fallback,
             @NotNull List<String> diagnostics) {
         IStructureElement<?>[][][] elements = piece.getPieceTemplate().getElements();
@@ -164,6 +181,25 @@ public final class StructureDependencyCompiler {
                                 "Piece '" + piece.getName() + "' has opaque element "
                                         + element.getClass().getName()
                                         + " at " + x + "," + y + "," + z);
+                        continue;
+                    }
+                    Set<StructureDependency> dependencies;
+                    try {
+                        dependencies = element.getDependencies();
+                    } catch (RuntimeException e) {
+                        fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                                "Piece '" + piece.getName() + "' element "
+                                        + element.getClass().getName()
+                                        + " threw while declaring dependencies at "
+                                        + x + "," + y + "," + z + ": "
+                                        + e.getClass().getSimpleName());
+                        continue;
+                    }
+                    if (!dependencies.isEmpty()) {
+                        compileDependencies(piece.getName(), dependencies, graph,
+                                externalDependencies, externalDependencyRoots, fallback, diagnostics,
+                                "element:" + element.getClass().getName()
+                                        + "@" + x + "," + y + "," + z);
                     }
                 }
             }

@@ -2,6 +2,7 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.GregtechCapabilities;
+import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -26,6 +27,7 @@ import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.StructureLifecycleState;
+import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
@@ -126,6 +128,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     private StructureRuntime structureRuntime;
     /** Invalidates detached async work whenever compiled runtime objects are rebuilt. */
     private volatile long structureRuntimeGeneration;
+    private volatile long structureControllerModeGeneration;
+    private volatile long structureChannelDependencyGeneration;
+    private volatile long structureConfigDependencyGeneration;
+    private volatile long structureUpgradeDependencyGeneration;
     protected EnumFacing upwardsFacing = EnumFacing.NORTH;
     protected boolean isFlipped;
     /**
@@ -541,7 +547,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void setDelayCheck(boolean delay) {
-        delayCheck = delay;
+        if (delayCheck != delay) {
+            delayCheck = delay;
+            notifyStructureConfigChanged();
+        }
     }
 
     /**
@@ -603,7 +612,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void setDelayStructureCheckStandby(int delay) {
-        delayStructureCheckStandby = Math.max(Math.min(1200, delay), 20);
+        int clamped = Math.max(Math.min(1200, delay), 20);
+        if (delayStructureCheckStandby != clamped) {
+            delayStructureCheckStandby = clamped;
+            notifyStructureConfigChanged();
+        }
     }
 
     public int getDelayStructureCheckWork() {
@@ -611,7 +624,114 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void setDelayStructureCheckWork(int delay) {
-        delayStructureCheckWork = Math.max(Math.min(1200, delay), 20);
+        int clamped = Math.max(Math.min(1200, delay), 20);
+        if (delayStructureCheckWork != clamped) {
+            delayStructureCheckWork = clamped;
+            notifyStructureConfigChanged();
+        }
+    }
+
+    /**
+     * Snapshot for controller mode dependencies. Subclasses with additional
+     * mode switches can override {@link #getStructureControllerModeValue()} and
+     * call {@link #notifyStructureControllerModeChanged()} when the value changes.
+     */
+    @NotNull
+    public StructureExternalDependencies.ControllerModeSnapshot getStructureControllerModeSnapshot() {
+        IControllable controllable = this instanceof IControllable ? (IControllable) this : null;
+        return new StructureExternalDependencies.ControllerModeSnapshot(
+                getStructureControllerModeValue(),
+                controllable != null,
+                controllable != null && controllable.isWorkingEnabled(),
+                structureControllerModeGeneration);
+    }
+
+    @Nullable
+    protected Object getStructureControllerModeValue() {
+        return null;
+    }
+
+    @NotNull
+    public StructureExternalDependencies.VersionedSnapshot getStructureChannelDependencySnapshot() {
+        return StructureExternalDependencies.VersionedSnapshot.of(
+                structureChannelDependencyGeneration,
+                getStructureChannelDependencyValue());
+    }
+
+    @Nullable
+    protected Object getStructureChannelDependencyValue() {
+        return null;
+    }
+
+    @NotNull
+    public StructureExternalDependencies.VersionedSnapshot getStructureConfigDependencySnapshot() {
+        return StructureExternalDependencies.VersionedSnapshot.of(
+                structureConfigDependencyGeneration,
+                getStructureConfigDependencyValue());
+    }
+
+    @Nullable
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new HashMap<>();
+        values.put("delayCheck", delayCheck);
+        values.put("standbyInterval", getDelayStructureCheckStandby());
+        values.put("workInterval", getDelayStructureCheckWork());
+        return values;
+    }
+
+    @NotNull
+    public StructureExternalDependencies.VersionedSnapshot getStructureUpgradeDependencySnapshot() {
+        return StructureExternalDependencies.VersionedSnapshot.of(
+                structureUpgradeDependencyGeneration,
+                getStructureUpgradeDependencyValue());
+    }
+
+    @Nullable
+    protected Object getStructureUpgradeDependencyValue() {
+        return null;
+    }
+
+    protected final void notifyStructureControllerModeChanged() {
+        structureControllerModeGeneration++;
+        enqueueChangedStructureExternalDependency();
+    }
+
+    protected final void notifyStructureChannelsChanged() {
+        structureChannelDependencyGeneration++;
+        enqueueChangedStructureExternalDependency();
+    }
+
+    protected final void notifyStructureConfigChanged() {
+        structureConfigDependencyGeneration++;
+        enqueueChangedStructureExternalDependency();
+    }
+
+    protected final void notifyStructureUpgradesChanged() {
+        structureUpgradeDependencyGeneration++;
+        enqueueChangedStructureExternalDependency();
+    }
+
+    boolean enqueueChangedStructureExternalDependencies() {
+        World world = getWorld();
+        StructureRuntime runtime = structureRuntime;
+        if (world == null || world.isRemote || runtime == null || !isStructureFormed()) {
+            return false;
+        }
+        Set<String> roots = runtime.rootsForChangedExternalDependencies(this);
+        if (roots.isEmpty()) {
+            return false;
+        }
+        boolean enqueued = MultiblockWorldData.get(world)
+                .enqueueDirtyRoots(this, roots, world.getTotalWorldTime());
+        if (enqueued && ConfigHolder.machines.debugStructureCheck) {
+            GTLog.logger.debug("[StructureCheck] External dependency changed for {} roots={}",
+                    getMetaName(), roots);
+        }
+        return enqueued;
+    }
+
+    private void enqueueChangedStructureExternalDependency() {
+        enqueueChangedStructureExternalDependencies();
     }
 
     public void checkStructurePattern() {

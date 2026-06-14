@@ -14,6 +14,7 @@ import gregtech.api.metatileentity.interfaces.IRefreshBeforeConsumption;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
@@ -46,7 +47,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class RecipeMapMultiblockController extends MultiblockWithDisplayBase implements IDataInfoProvider,
                                                                                                  ICleanroomReceiver,
@@ -170,6 +173,11 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
+        initializeAbilities();
+    }
+
+    protected final void formRecipeMapStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         initializeAbilities();
     }
 
@@ -355,6 +363,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     public void setDistinct(boolean isDistinct) {
+        boolean changed = this.isDistinct != isDistinct;
         this.isDistinct = isDistinct;
         recipeMapWorkable.onDistinctChanged();
         getMultiblockParts().forEach(part -> part.onDistinctChange(isDistinct));
@@ -364,6 +373,9 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                     .addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
         } else {
             this.notifiedItemInputList.add(this.inputInventory);
+        }
+        if (changed) {
+            notifyStructureConfigChanged();
         }
     }
 
@@ -464,7 +476,11 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
+        boolean changed = recipeMapWorkable.isWorkingEnabled() != isWorkingAllowed;
         recipeMapWorkable.setWorkingEnabled(isWorkingAllowed);
+        if (changed) {
+            notifyStructureControllerModeChanged();
+        }
     }
 
     @Override
@@ -479,7 +495,11 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     public void setBatchEnable(boolean enable) {
+        boolean changed = recipeMapWorkable.isBatchEnable() != enable;
         recipeMapWorkable.setBatchEnable(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
     }
 
     @Override
@@ -494,7 +514,11 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     public void setRecipeLocked(boolean enable) {
+        boolean changed = recipeMapWorkable.isRecipeLockEnable() != enable;
         recipeMapWorkable.setRecipeLockEnable(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
     }
 
     @Override
@@ -504,7 +528,26 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     public void setEnergyLackWarningEnabled(boolean enable) {
+        boolean changed = recipeMapWorkable.isEnergyLackWarningEnable() != enable;
         recipeMapWorkable.setEnergyLackWarningEnable(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("distinct", isDistinct);
+        if (recipeMapWorkable != null) {
+            values.put("batchEnable", recipeMapWorkable.isBatchEnable());
+            values.put("recipeLocked", recipeMapWorkable.isRecipeLockEnable());
+            values.put("energyLackWarning", recipeMapWorkable.isEnergyLackWarningEnable());
+        }
+        return values;
     }
 
     @Override

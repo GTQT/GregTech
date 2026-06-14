@@ -10,12 +10,15 @@ import gregtech.api.metatileentity.multiblock.MultiblockWorldData;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureCondition;
+import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TemplatePool;
@@ -73,7 +76,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static gregtech.api.util.RelativeDirection.*;
 
@@ -127,6 +132,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+        this.data.setStructureStateChangeListener(this::notifyGodforgeStructureStateChanged);
     }
 
     @Override
@@ -186,17 +192,28 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                         getRingTemplate(2, renderedRingMask, SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
                         SECOND_RING_OFFSET,
                         OffsetMode.RELATIVE,
-                        (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
+                        StructureCondition.withDependencies(
+                                (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
                                 context.getController() != null
-                                && context.getController().getStructureRingTargetAmount() >= 2)
+                                && context.getController().getStructureRingTargetAmount() >= 2,
+                                StructureExternalDependencies.upgrades(),
+                                StructureExternalDependencies.configuration()))
                 .conditionalPieceContextual("third_ring",
                         getRingTemplate(3, renderedRingMask, THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
                         THIRD_RING_OFFSET,
                         OffsetMode.RELATIVE,
-                        (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
+                        StructureCondition.withDependencies(
+                                (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
                                 context.getController() != null
-                                && context.getController().getStructureRingTargetAmount() >= 3)
+                                && context.getController().getStructureRingTargetAmount() >= 3,
+                                StructureExternalDependencies.upgrades(),
+                                StructureExternalDependencies.configuration()))
                 .build();
+    }
+
+    private void notifyGodforgeStructureStateChanged() {
+        notifyStructureUpgradesChanged();
+        notifyStructureConfigChanged();
     }
 
     private BlockPatternTemplate getRingTemplate(int ringIndex, int renderedRingMask, SoftTemplate normalTemplate,
@@ -289,6 +306,31 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     private void setFormedRingAmount(int formedRingAmount) {
         data.setFormedRingAmount(formedRingAmount);
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("godforgeRenderActive", data.isRenderActive());
+        values.put("godforgeRendererDisabled", data.isRendererDisabled());
+        values.put("godforgeClearedRings", data.getClearedRingAmount());
+        values.put("godforgeRenderedRingMask", getRenderedRingTemplateMask());
+        values.put("godforgeRecoveringRenderedStructure", recoveringRenderedStructure);
+        values.put("godforgeStructureRingTarget", getStructureRingTargetAmount());
+        return values;
+    }
+
+    @NotNull
+    @Override
+    protected Object getStructureUpgradeDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("activeUpgrades", data.getStructureUpgradeSnapshotValue());
+        values.put("desiredRings", getDesiredRingAmount());
+        values.put("formedRings", getFormedRingAmount());
+        return values;
     }
 
     private void logRingState(String phase, boolean force) {
@@ -644,6 +686,16 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
+        formGodforgeStructure();
+    }
+
+    @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
+        formGodforgeStructure();
+    }
+
+    private void formGodforgeStructure() {
         logRingState("form-before-ring-commit", true);
         commitFormedRingAmountFromStructure();
         logRingState("form-after-ring-commit", true);

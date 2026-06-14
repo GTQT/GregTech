@@ -2,6 +2,7 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
@@ -23,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -65,6 +67,20 @@ public interface IStructureElement<T> {
     @NotNull
     default StructureIncrementalSupport getIncrementalSupport() {
         return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+    }
+
+    /**
+     * Typed inputs that can affect this element's match or contribution result.
+     *
+     * <p>Direct elements that read previously formed piece metadata, controller
+     * mode, configured channels, upgrades, or other non-block state should
+     * declare those inputs here. The incremental eligibility compiler consumes
+     * this metadata directly; callers should not route new runtime logic through
+     * {@link PatternMatchContext} just to make dependencies visible.
+     */
+    @NotNull
+    default Set<StructureDependency> getDependencies() {
+        return Collections.emptySet();
     }
 
     /**
@@ -548,6 +564,16 @@ public interface IStructureElement<T> {
             @Override
             public StructureIncrementalSupport getIncrementalSupport() {
                 return IStructureElement.this.getIncrementalSupport();
+            }
+
+            @NotNull
+            @Override
+            public Set<StructureDependency> getDependencies() {
+                Set<StructureDependency> dependencies = IStructureElement.this.getDependencies();
+                if (dependencies.isEmpty()) {
+                    return Collections.emptySet();
+                }
+                return Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
             }
         };
     }

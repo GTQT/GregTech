@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
@@ -81,6 +82,12 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public StructureIncrementalSupport getIncrementalSupport() {
         return source.getIncrementalSupport();
+    }
+
+    @NotNull
+    @Override
+    public Set<StructureDependency> getDependencies() {
+        return source.getDependencies();
     }
 
     @NotNull

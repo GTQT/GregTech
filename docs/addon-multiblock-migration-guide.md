@@ -239,6 +239,127 @@ build, hint, preview placement, iteration, AABB, and piece-center calculations.
 
 ---
 
+## Optional: Lifecycle State and Scheduling Policy
+
+Formation lifecycle state is now owned by the controller's `StructureRuntime`.
+On the server side, `isStructureFormed()` reads the runtime lifecycle snapshot
+when one is available. The controller fields for formed state, part lists, and
+ability instances remain for networking, legacy accessors, and old callbacks,
+but they are projections of the committed runtime state rather than independent
+state owners.
+
+Addon controllers should not directly mutate `structureFormed`,
+`multiblockParts`, or `multiblockAbilities`. Let the normal structure check and
+server-thread committer publish state, then read parts through
+`getMultiblockParts()`, abilities through `getAbilities(...)`, and typed formed
+data from `formStructure(FormedStructureView)`.
+
+`formStructure(PatternMatchContext)` is still supported through the compatibility
+bridge. New controllers can override `formStructure(FormedStructureView)` when
+they need typed operation state, formed metadata, or channel values without
+depending on mutable legacy context.
+
+Controllers can also override `getStructureSchedulerPolicy()` to choose how the
+structure is checked. The default policy preserves previous behavior: first-tick
+live check, event-driven checks for formed structures when enabled, async
+precheck for unformed structures when supported, and polling fallback. Custom
+policies can disable event-driven checks for polling-only machines, opt out of
+async precheck, or make a controller event-driven-only without changing world
+dirty-index storage.
+
+### Declaring Incremental Dependencies
+
+Incremental rechecks are only used when the compiled structure definition is
+eligible. New direct elements should declare the non-local inputs that can change
+their match or contribution result:
+
+```java
+@NotNull
+@Override
+public Set<StructureDependency> getDependencies() {
+    return Collections.singleton(
+            StructureDependency.piece("coil", PieceDependencyAspect.CONTRIBUTION_VALUE));
+}
+```
+
+Use a piece dependency when the element reads a previous piece's typed
+contribution, repeat count, center, or activation result. Use a standard
+external dependency when the element reads controller state that is not tied to a
+world block change:
+
+```java
+@NotNull
+@Override
+public Set<StructureDependency> getDependencies() {
+    return Collections.singleton(StructureExternalDependencies.controllerMode());
+}
+```
+
+The built-in external dependency helpers are:
+
+- `StructureExternalDependencies.controllerMode()`
+- `StructureExternalDependencies.channelValues()`
+- `StructureExternalDependencies.configuration()`
+- `StructureExternalDependencies.upgrades()`
+
+Elements that depend on callbacks, lazy suppliers, or old predicate-shaped
+side effects should remain opaque through `getIncrementalSupport()`. An opaque
+element keeps the structure on the conservative active/full fallback path rather
+than allowing incorrect reuse of a clean piece.
+
+New direct elements should be explicit even when the dependency set is empty:
+declare `StructureIncrementalSupport`, return `Collections.emptySet()` from
+`getDependencies()`, and expose diagnostic/build candidates through
+`getPreview()`. `PatternMatchContext` should only appear in compatibility
+methods such as old callbacks, old placement/tooling APIs, or an optional
+`toPredicate()` view.
+
+Composite direct elements must aggregate child dependencies and child
+`StructureIncrementalSupport`. For example, a chain/alternative element that
+contains one opaque child must report opaque support for the whole composite,
+and must expose every child `getDependencies()` entry.
+
+### Notifying External State Changes
+
+Controllers that expose structure-affecting modes, config switches, channels, or
+upgrades should connect those values to the runtime snapshot hooks:
+
+```java
+@Override
+protected Object getStructureControllerModeValue() {
+    return mode;
+}
+
+public void setMode(MyMode mode) {
+    if (this.mode != mode) {
+        this.mode = mode;
+        notifyStructureControllerModeChanged();
+    }
+}
+```
+
+Use the matching notify method for the dependency kind:
+
+- `notifyStructureControllerModeChanged()`
+- `notifyStructureChannelsChanged()`
+- `notifyStructureConfigChanged()`
+- `notifyStructureUpgradesChanged()`
+
+The controller base already snapshots common scheduling configuration and the
+core working-enabled mode. Core controllers also snapshot common config such as
+voiding mode, distinct/batch/recipe-lock/energy-warning toggles, generator
+overflow mode, advanced thread count, MultiMap recipe-map selection, Large
+Boiler throttle/type, and Godforge upgrade/ring/renderer state.
+Addon-specific modes and upgrade/config state should override the corresponding
+value hook in the owning controller or owning abstract machine family and call
+the notify method when the value changes. Do not move machine-private fields
+into a shared base snapshot unless every subclass genuinely owns that state.
+The scheduler also compares snapshots before consuming an event-driven dirty
+lease, but explicit notification wakes the scheduler immediately through
+`enqueueDirtyRoots(...)`.
+
+---
+
 ## Optional: Structure Failure Diagnostics
 
 Multiblock controllers now keep the latest structured formation failure on their
@@ -583,7 +704,10 @@ import gregtech.api.pattern.BlockPattern;
 // Add (new)
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiblockState;
+import gregtech.api.pattern.PieceDependencyAspect;              // optional incremental dependencies
 import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.StructureDependency;                // optional incremental dependencies
+import gregtech.api.pattern.StructureExternalDependencies;      // optional external state dependencies
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;  // optional
 import gregtech.api.pattern.casing.CasingDefinition;           // optional
@@ -603,6 +727,8 @@ import gregtech.api.pattern.casing.StructureChannel;            // optional
 - [ ] Remove `import gregtech.api.pattern.BlockPattern` when no longer needed
 - [ ] (Optional) Migrate to `DeclarativePatternBuilder` for new multiblocks
 - [ ] (Optional) Define custom `ICasingGroup` and `StructureChannel` for tiered structures
+- [ ] (Optional) Add `IStructureElement.getDependencies()` for direct elements that read prior piece or controller state
+- [ ] (Optional) Override structure external state snapshot hooks and call the matching `notifyStructure...Changed()` method
 
 ---
 ---

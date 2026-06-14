@@ -1,13 +1,20 @@
 package gregtech.api.pattern;
 
+import gregtech.api.capability.IControllable;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
+import gregtech.client.renderer.ICubeRenderer;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
@@ -20,6 +27,10 @@ import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -136,6 +147,163 @@ class StructureIncrementalEvaluatorTest {
     }
 
     @Test
+    void externalDependencyChangeRechecksDeclaredRoot() {
+        AtomicInteger externalState = new AtomicInteger(1);
+        StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
+                "gregtech:test_incremental_external",
+                controller -> externalState.get(),
+                java.util.Objects::equals);
+        CountingElement independent = new CountingElement(true);
+        DependentElement dependent = new DependentElement(
+                true, StructureDependency.external(key, PieceDependencyAspect.CONTROLLER_STATE));
+        StructureRuntime runtime = runtime(pattern(
+                piece("independent", independent),
+                piece("dependent", dependent)));
+        StructureCheckResult full = runtime.check(checkRequest());
+        runtime.publishCommittedGraph(full.getGraphPublication());
+
+        externalState.set(2);
+        StructureCheckResult incremental = runtime.checkIncremental(checkRequest());
+
+        assertTrue(incremental.isMatched());
+        assertTrue(incremental.usedIncrementalEvaluator());
+        assertEquals(1, incremental.getIncrementalCheckResult().getRecheckedPieces());
+        assertEquals(1, independent.calls());
+        assertEquals(2, dependent.calls());
+    }
+
+    @Test
+    void multipleDirtyRootsReuseCleanPieces() {
+        CountingElement first = new CountingElement(true);
+        CountingElement second = new CountingElement(true);
+        CountingElement third = new CountingElement(true);
+        CountingElement fourth = new CountingElement(true);
+        StructureRuntime runtime = runtime(pattern(
+                piece("first", first),
+                piece("second", second),
+                piece("third", third),
+                piece("fourth", fourth)));
+        StructureCheckResult full = runtime.check(checkRequest());
+        runtime.publishCommittedGraph(full.getGraphPublication());
+        assertTrue(runtime.addDirtyRoots(Arrays.asList("first", "third")));
+
+        StructureCheckResult incremental = runtime.checkIncremental(checkRequest());
+
+        assertTrue(incremental.isMatched());
+        assertEquals(2, incremental.getIncrementalCheckResult().getRecheckedPieces());
+        assertEquals(2, first.calls());
+        assertEquals(1, second.calls());
+        assertEquals(2, third.calls());
+        assertEquals(1, fourth.calls());
+    }
+
+    @Test
+    void repeatGroupDirtyRootReusesIndependentCleanPiece() {
+        CountingElement repeatElement = new CountingElement(true);
+        CountingElement cleanElement = new CountingElement(true);
+        RepeatGroupPiece repeat = repeatPiece("repeat", repeatElement);
+        StructurePiece clean = piece("clean", cleanElement);
+        StructureRuntime runtime = runtime(pattern(repeat, clean));
+        StructureCheckResult full = runtime.check(checkRequest());
+        runtime.publishCommittedGraph(full.getGraphPublication());
+        assertTrue(runtime.addDirtyRoot("repeat"));
+
+        StructureCheckResult incremental = runtime.checkIncremental(checkRequest());
+
+        assertTrue(incremental.isMatched());
+        assertEquals(1, incremental.getIncrementalCheckResult().getRecheckedPieces());
+        assertEquals(2, repeatElement.calls());
+        assertEquals(1, cleanElement.calls());
+    }
+
+    @Test
+    void realMachineStyleMatrixDoesNotReadIndependentCleanPiece() {
+        AtomicInteger externalState = new AtomicInteger(1);
+        StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
+                "gregtech:test_matrix_external",
+                controller -> externalState.get(),
+                java.util.Objects::equals);
+        WorldReadingElement fixed = new WorldReadingElement(true);
+        WorldReadingElement repeat = new WorldReadingElement(true);
+        WorldReadingElement dynamic = new WorldReadingElement(true);
+        WorldReadingDependentElement external = new WorldReadingDependentElement(
+                true, StructureDependency.external(key, PieceDependencyAspect.CONTROLLER_STATE));
+        WorldReadingElement clean = new WorldReadingElement(true);
+        RepeatGroupPiece repeatPiece = repeatPiece("repeat", repeat);
+        DynamicOffsetPiece dynamicPiece = new DynamicOffsetPiece(
+                "dynamic", template(dynamic), Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE, null, "repeat", new int[] {0, 0, 1});
+        StructureRuntime runtime = runtime(pattern(
+                piece("fixed", fixed),
+                repeatPiece,
+                dynamicPiece,
+                piece("external", external),
+                piece("clean", clean)));
+        StructureCheckResult full = runtime.check(checkRequest());
+        runtime.publishCommittedGraph(full.getGraphPublication());
+
+        externalState.set(2);
+        assertTrue(runtime.addDirtyRoots(Arrays.asList("fixed", "repeat")));
+        StructureCheckResult incremental = runtime.checkIncremental(checkRequest());
+
+        assertTrue(incremental.isMatched());
+        assertTrue(incremental.usedIncrementalEvaluator());
+        assertEquals(2, fixed.worldReads());
+        assertEquals(2, repeat.worldReads());
+        assertEquals(2, external.worldReads());
+        assertEquals(1, clean.worldReads());
+        assertTrue(dynamic.worldReads() <= 2);
+    }
+
+    @Test
+    void realMachineExternalStateMatrixRechecksOnlyDeclaredRoots() {
+        MachineStateController controller = machineStateController();
+        WorldReadingDependentElement modeElement = new WorldReadingDependentElement(
+                true, StructureExternalDependencies.controllerMode());
+        WorldReadingDependentElement configElement = new WorldReadingDependentElement(
+                true, StructureExternalDependencies.configuration());
+        WorldReadingDependentElement upgradeElement = new WorldReadingDependentElement(
+                true, StructureExternalDependencies.upgrades());
+        WorldReadingElement cleanElement = new WorldReadingElement(true);
+        StructureRuntime runtime = runtime(pattern(
+                piece("mode", modeElement),
+                piece("config", configElement),
+                piece("upgrade", upgradeElement),
+                piece("clean", cleanElement)));
+        StructureOperationRequest request = checkRequest(controller);
+        StructureCheckResult full = runtime.check(request);
+        runtime.publishCommittedGraph(full.getGraphPublication());
+
+        controller.workingEnabled = false;
+        controller.configRecipeMap = "distillery";
+        controller.configThrottle = 60;
+        controller.upgradeTier = 2;
+        StructureCheckResult incremental = runtime.checkIncremental(request);
+
+        assertTrue(incremental.isMatched());
+        assertTrue(incremental.usedIncrementalEvaluator());
+        assertEquals(3, incremental.getIncrementalCheckResult().getRecheckedPieces());
+        assertEquals(2, modeElement.worldReads());
+        assertEquals(2, configElement.worldReads());
+        assertEquals(2, upgradeElement.worldReads());
+        assertEquals(1, cleanElement.worldReads());
+    }
+
+    @Test
+    void shadowComparatorDetectsTypedResultDifference() {
+        AtomicInteger value = new AtomicInteger(1);
+        StructureRuntime firstRuntime = runtime(pattern(
+                piece("piece", new ChannelEmittingElement(true, value))));
+        StructureCheckResult first = firstRuntime.check(checkRequest());
+        value.set(2);
+        StructureRuntime secondRuntime = runtime(pattern(
+                piece("piece", new ChannelEmittingElement(true, value))));
+        StructureCheckResult second = secondRuntime.check(checkRequest());
+
+        assertNotNull(StructureShadowValidator.compare(first, second));
+    }
+
+    @Test
     void incrementalFailureDoesNotPublishSuccessorGraph() {
         CountingElement firstElement = new CountingElement(true);
         CountingElement secondElement = new CountingElement(true);
@@ -247,6 +415,12 @@ class StructureIncrementalEvaluatorTest {
     }
 
     @NotNull
+    private static StructureOperationRequest checkRequest(@NotNull MultiblockControllerBase controller) {
+        return StructureOperationRequest.check(
+                WORLD, BlockPos.ORIGIN, ORIENTATION, false, null, controller);
+    }
+
+    @NotNull
     private static World bareWorld() {
         try {
             return (World) unsafe().allocateInstance(BareWorld.class);
@@ -327,6 +501,151 @@ class StructureIncrementalEvaluatorTest {
         @Override
         protected void afterCall(@NotNull StructureEvaluationContext<Object> context) {
             context.getCollector().emit(TEST_VALUE, value.get());
+        }
+    }
+
+    private static final class ChannelEmittingElement extends CountingElement {
+
+        @NotNull
+        private final AtomicInteger value;
+
+        private ChannelEmittingElement(boolean matches, @NotNull AtomicInteger value) {
+            super(matches);
+            this.value = value;
+        }
+
+        @Override
+        protected void afterCall(@NotNull StructureEvaluationContext<Object> context) {
+            int current = value.get();
+            context.getCollector().emit(TEST_VALUE, current);
+            context.getCollector().recordChannelValue("channel", current, true);
+        }
+    }
+
+    private static final class DependentElement extends CountingElement {
+
+        @NotNull
+        private final Set<StructureDependency> dependencies;
+
+        private DependentElement(boolean matches, @NotNull StructureDependency... dependencies) {
+            super(matches);
+            this.dependencies = Collections.unmodifiableSet(
+                    new LinkedHashSet<>(Arrays.asList(dependencies)));
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return dependencies;
+        }
+    }
+
+    private static class WorldReadingElement extends CountingElement {
+
+        private final AtomicInteger worldReads = new AtomicInteger();
+
+        private WorldReadingElement(boolean matches) {
+            super(matches);
+        }
+
+        @Override
+        protected void afterCall(@NotNull StructureEvaluationContext<Object> context) {
+            worldReads.incrementAndGet();
+            context.getBlockAccess();
+        }
+
+        int worldReads() {
+            return worldReads.get();
+        }
+    }
+
+    private static final class WorldReadingDependentElement extends WorldReadingElement {
+
+        @NotNull
+        private final Set<StructureDependency> dependencies;
+
+        private WorldReadingDependentElement(boolean matches, @NotNull StructureDependency... dependencies) {
+            super(matches);
+            this.dependencies = Collections.unmodifiableSet(
+                    new LinkedHashSet<>(Arrays.asList(dependencies)));
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return dependencies;
+        }
+    }
+
+    private static final class MachineStateController extends MultiblockControllerBase implements IControllable {
+
+        private boolean workingEnabled = true;
+        private String mode = "normal";
+        private String configRecipeMap = "assembler";
+        private int configThrottle = 100;
+        private int upgradeTier = 1;
+
+        private MachineStateController() {
+            super(new ResourceLocation("gregtech", "machine_state_matrix_test"));
+        }
+
+        @Override
+        public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+            return this;
+        }
+
+        @Override
+        public boolean isWorkingEnabled() {
+            return workingEnabled;
+        }
+
+        @Override
+        public void setWorkingEnabled(boolean isWorkingAllowed) {
+            workingEnabled = isWorkingAllowed;
+        }
+
+        @Override
+        protected Object getStructureControllerModeValue() {
+            return mode;
+        }
+
+        @Override
+        protected Object getStructureConfigDependencyValue() {
+            Map<String, Object> values = new LinkedHashMap<>();
+            values.put("recipeMap", configRecipeMap);
+            values.put("throttle", configThrottle);
+            return values;
+        }
+
+        @Override
+        protected Object getStructureUpgradeDependencyValue() {
+            Map<String, Object> values = new LinkedHashMap<>();
+            values.put("tier", upgradeTier);
+            return values;
+        }
+
+        @Override
+        protected void updateFormedValid() {}
+
+        @Override
+        public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+            return null;
+        }
+    }
+
+    @NotNull
+    private static MachineStateController machineStateController() {
+        try {
+            MachineStateController controller = (MachineStateController) unsafe()
+                    .allocateInstance(MachineStateController.class);
+            controller.workingEnabled = true;
+            controller.mode = "normal";
+            controller.configRecipeMap = "assembler";
+            controller.configThrottle = 100;
+            controller.upgradeTier = 1;
+            return controller;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate machine state controller", e);
         }
     }
 

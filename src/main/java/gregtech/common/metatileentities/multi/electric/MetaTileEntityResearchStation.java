@@ -18,12 +18,16 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureDependency;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.BlockInfo;
@@ -60,6 +64,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         implements IOpticalComputationReceiver {
@@ -179,6 +184,26 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     this, MultiblockAbility.OBJECT_HOLDER, 1, 1);
         }
 
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return StructureElementPreview.builder()
+                    .limited(MetaTileEntityResearchStation::getObjectHolderCandidates, 1, 1, -1, -1, 1)
+                    .build();
+        }
+
         @Override
         public boolean check(World world, BlockPos pos, PatternMatchContext context) {
             return isObjectHolder(world.getTileEntity(pos));
@@ -212,6 +237,16 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
+        formResearchStationStructure();
+    }
+
+    @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        formResearchStationStructure();
+    }
+
+    private void formResearchStationStructure() {
         List<IOpticalComputationHatch> providers = getAbilities(MultiblockAbility.COMPUTATION_DATA_RECEPTION);
         if (providers != null && providers.size() >= 1) {
             computationProvider = providers.get(0);

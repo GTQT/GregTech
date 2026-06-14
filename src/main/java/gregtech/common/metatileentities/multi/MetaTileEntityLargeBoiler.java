@@ -21,6 +21,7 @@ import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
@@ -72,6 +73,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -102,6 +104,12 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
+        initializeAbilities();
+    }
+
+    @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         initializeAbilities();
     }
 
@@ -236,7 +244,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                     str = str.substring(0, str.length() - 1);
                 }
 
-                this.throttlePercentage = Integer.parseInt(str);
+                setThrottlePercentage(Integer.parseInt(str));
             } catch (NumberFormatException ignored) {
 
             }
@@ -294,7 +302,11 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     }
 
     private void setThrottlePercentage(int amount) {
-        this.throttlePercentage = Math.max(20, Math.min(amount, 100));
+        int clamped = Math.max(20, Math.min(amount, 100));
+        if (this.throttlePercentage != clamped) {
+            this.throttlePercentage = clamped;
+            notifyStructureConfigChanged();
+        }
     }
 
     private int getThrottlePercentage() {
@@ -447,6 +459,17 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         return throttlePercentage;
     }
 
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("boilerType", boilerType == null ? null : boilerType.getName());
+        values.put("throttlePercentage", throttlePercentage);
+        return values;
+    }
+
     @Override
     public IItemHandlerModifiable getImportItems() {
         return itemImportInventory;
@@ -541,6 +564,10 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
+        boolean changed = recipeLogic.isWorkingEnabled() != isWorkingAllowed;
         recipeLogic.setWorkingEnabled(isWorkingAllowed);
+        if (changed) {
+            notifyStructureControllerModeChanged();
+        }
     }
 }

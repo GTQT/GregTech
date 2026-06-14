@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
@@ -287,6 +288,15 @@ public class WrapperElement implements IStructureElement<Object> {
             return StructureIncrementalSupport.OPAQUE;
         }
         return getDelegate().getIncrementalSupport();
+    }
+
+    @NotNull
+    @Override
+    public Set<StructureDependency> getDependencies() {
+        if (callback != null || lazySupplier != null) {
+            return Collections.emptySet();
+        }
+        return getDelegate().getDependencies();
     }
 
     @Nullable

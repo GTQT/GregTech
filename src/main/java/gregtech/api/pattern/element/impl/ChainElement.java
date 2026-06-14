@@ -1,8 +1,10 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
@@ -49,6 +51,32 @@ public class ChainElement implements IStructureElement<Object> {
             capabilities.retainAll(element.getCapabilities());
         }
         return Collections.unmodifiableSet(capabilities);
+    }
+
+    @NotNull
+    @Override
+    public StructureIncrementalSupport getIncrementalSupport() {
+        StructureIncrementalSupport support = StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        for (IStructureElement element : elements) {
+            StructureIncrementalSupport childSupport = element.getIncrementalSupport();
+            if (childSupport == StructureIncrementalSupport.OPAQUE) {
+                return StructureIncrementalSupport.OPAQUE;
+            }
+            if (childSupport == StructureIncrementalSupport.MATCH_ONLY) {
+                support = StructureIncrementalSupport.MATCH_ONLY;
+            }
+        }
+        return support;
+    }
+
+    @NotNull
+    @Override
+    public Set<StructureDependency> getDependencies() {
+        Set<StructureDependency> dependencies = new LinkedHashSet<>();
+        for (IStructureElement element : elements) {
+            dependencies.addAll(element.getDependencies());
+        }
+        return Collections.unmodifiableSet(dependencies);
     }
 
     @Override
