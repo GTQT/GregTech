@@ -134,7 +134,7 @@ public class MaterialInfoLoader {
                 new MaterialStack(Materials.Titanium, M * 8), // plate
                 new MaterialStack(Materials.Aluminium, M * 2), // single cable
                 new MaterialStack(Materials.Rubber, M * 4), // plate
-                new MaterialStack(Materials.TungstenSteel, M * 2), // fine wire
+                new MaterialStack(Materials.Platinum, M * 2), // fine wire
                 new MaterialStack(Materials.NeodymiumMagnetic, M / 2) // rod
         ));
 
