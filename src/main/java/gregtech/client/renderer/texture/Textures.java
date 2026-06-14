@@ -352,6 +352,8 @@ public class Textures {
     public static final SimpleOverlayRenderer DETECTOR_MAINTENANCE = new SimpleOverlayRenderer(
             "cover/overlay_maintenance_detector");
     public static final SimpleOverlayRenderer SOLAR_PANEL = new SimpleOverlayRenderer("cover/overlay_solar_panel");
+    public static final SimpleOverlayRenderer WIRELESS_ENERGY = new SimpleOverlayRenderer(
+            "cover/overlay_wireless_energy");
     public static final SimpleOverlayRenderer INFINITE_WATER = new SimpleOverlayRenderer(
             "cover/overlay_infinite_water");
     public static final SimpleOverlayRenderer FLUID_VOIDING = new SimpleOverlayRenderer("cover/overlay_fluid_voiding");

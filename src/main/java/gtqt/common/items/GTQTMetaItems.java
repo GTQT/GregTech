@@ -61,6 +61,38 @@ public class GTQTMetaItems {
     public static MetaItem<?>.MetaValueItem DISPOSABLE_ROLLING_PIN;
     public static MetaItem<?>.MetaValueItem VEIN_SCANNER;
 
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_ULV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_LV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_MV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_HV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_EV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_IV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_LUV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_ZPM;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_UV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_UHV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_UEV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_UIV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_UXV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_OPV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_INPUT_MAX;
+
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_ULV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_LV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_MV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_HV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_EV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_IV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_LUV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_ZPM;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_UV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_UHV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_UEV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_UIV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_UXV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_OPV;
+    public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_MAX;
+
     public static GTQTMetaItem1 GTQT_META_ITEM;
 
     public static void initialization() {

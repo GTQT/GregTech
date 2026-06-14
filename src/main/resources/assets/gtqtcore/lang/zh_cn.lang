@@ -28,6 +28,42 @@ gregtech.machine.programming_provider.tooltip.2=§7放入任意物品可追加�
 gregtech.machine.programming_provider.tooltip.3=§7连接 AE 存储总线可向 ME 网络无限供应
 gregtech.machine.programming_provider.tooltip.4=§7输入的可编程电路会被自动销毁
 
+# 无线能源覆盖版
+metaitem.wireless_energy_cover_input.ulv.name=无线能源覆盖版 (§8ULV§r)
+metaitem.wireless_energy_cover_input.lv.name=无线能源覆盖版 (§7LV§r)
+metaitem.wireless_energy_cover_input.mv.name=无线能源覆盖版 (§bMV§r)
+metaitem.wireless_energy_cover_input.hv.name=无线能源覆盖版 (§6HV§r)
+metaitem.wireless_energy_cover_input.ev.name=无线能源覆盖版 (§5EV§r)
+metaitem.wireless_energy_cover_input.iv.name=无线能源覆盖版 (§1IV§r)
+metaitem.wireless_energy_cover_input.luv.name=无线能源覆盖版 (§dLuV§r)
+metaitem.wireless_energy_cover_input.zpm.name=无线能源覆盖版 (§cZPM§r)
+metaitem.wireless_energy_cover_input.uv.name=无线能源覆盖版 (§3UV§r)
+metaitem.wireless_energy_cover_input.uhv.name=无线能源覆盖版 (§4UHV§r)
+metaitem.wireless_energy_cover_input.uev.name=无线能源覆盖版 (§aUEV§r)
+metaitem.wireless_energy_cover_input.uiv.name=无线能源覆盖版 (§2UIV§r)
+metaitem.wireless_energy_cover_input.uxv.name=无线能源覆盖版 (§eUXV§r)
+metaitem.wireless_energy_cover_input.opv.name=无线能源覆盖版 (§9OpV§r)
+metaitem.wireless_energy_cover_input.max.name=无线能源覆盖版 (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_input.tooltip=从无线网络中获取能量输入机器
+
+metaitem.wireless_energy_cover_output.ulv.name=无线动力覆盖版 (§8ULV§r)
+metaitem.wireless_energy_cover_output.lv.name=无线动力覆盖版 (§7LV§r)
+metaitem.wireless_energy_cover_output.mv.name=无线动力覆盖版 (§bMV§r)
+metaitem.wireless_energy_cover_output.hv.name=无线动力覆盖版 (§6HV§r)
+metaitem.wireless_energy_cover_output.ev.name=无线动力覆盖版 (§5EV§r)
+metaitem.wireless_energy_cover_output.iv.name=无线动力覆盖版 (§1IV§r)
+metaitem.wireless_energy_cover_output.luv.name=无线动力覆盖版 (§dLuV§r)
+metaitem.wireless_energy_cover_output.zpm.name=无线动力覆盖版 (§cZPM§r)
+metaitem.wireless_energy_cover_output.uv.name=无线动力覆盖版 (§3UV§r)
+metaitem.wireless_energy_cover_output.uhv.name=无线动力覆盖版 (§4UHV§r)
+metaitem.wireless_energy_cover_output.uev.name=无线动力覆盖版 (§aUEV§r)
+metaitem.wireless_energy_cover_output.uiv.name=无线动力覆盖版 (§2UIV§r)
+metaitem.wireless_energy_cover_output.uxv.name=无线动力覆盖版 (§eUXV§r)
+metaitem.wireless_energy_cover_output.opv.name=无线动力覆盖版 (§9OpV§r)
+metaitem.wireless_energy_cover_output.max.name=无线动力覆盖版 (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_output.tooltip=从机器中获取能量输入能量网络
 #  通用电路板s
 metaitem.general_circuit.ulv.name=通用电路板 (§8ULV§r)
 metaitem.general_circuit.lv.name=通用电路板 (§7LV§r)

@@ -28,6 +28,39 @@ gregtech.machine.programming_provider.tooltip.2=§7Insert any item to add its co
 gregtech.machine.programming_provider.tooltip.3=§7Connect AE Storage Bus for infinite ME network supply
 gregtech.machine.programming_provider.tooltip.4=§7Incoming programmable circuits will be destroyed
 
+# 无线能源覆盖版
+metaitem.wireless_energy_cover_input.ulv.name=Wireless Energy Input Cover (§8ULV§r)
+metaitem.wireless_energy_cover_input.lv.name=Wireless Energy Input Cover (§7LV§r)
+metaitem.wireless_energy_cover_input.mv.name=Wireless Energy Input Cover (§bMV§r)
+metaitem.wireless_energy_cover_input.hv.name=Wireless Energy Input Cover (§6HV§r)
+metaitem.wireless_energy_cover_input.ev.name=Wireless Energy Input Cover (§5EV§r)
+metaitem.wireless_energy_cover_input.iv.name=Wireless Energy Input Cover (§1IV§r)
+metaitem.wireless_energy_cover_input.luv.name=Wireless Energy Input Cover (§dLuV§r)
+metaitem.wireless_energy_cover_input.zpm.name=Wireless Energy Input Cover (§cZPM§r)
+metaitem.wireless_energy_cover_input.uv.name=Wireless Energy Input Cover (§3UV§r)
+metaitem.wireless_energy_cover_input.uhv.name=Wireless Energy Input Cover (§4UHV§r)
+metaitem.wireless_energy_cover_input.uev.name=Wireless Energy Input Cover (§aUEV§r)
+metaitem.wireless_energy_cover_input.uiv.name=Wireless Energy Input Cover (§2UIV§r)
+metaitem.wireless_energy_cover_input.uxv.name=Wireless Energy Input Cover (§eUXV§r)
+metaitem.wireless_energy_cover_input.opv.name=Wireless Energy Input Cover (§9OpV§r)
+metaitem.wireless_energy_cover_input.max.name=Wireless Energy Input Cover (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_output.ulv.name=Wireless Energy Output Cover (§8ULV§r)
+metaitem.wireless_energy_cover_output.lv.name=Wireless Energy Output Cover (§7LV§r)
+metaitem.wireless_energy_cover_output.mv.name=Wireless Energy Output Cover (§bMV§r)
+metaitem.wireless_energy_cover_output.hv.name=Wireless Energy Output Cover (§6HV§r)
+metaitem.wireless_energy_cover_output.ev.name=Wireless Energy Output Cover (§5EV§r)
+metaitem.wireless_energy_cover_output.iv.name=Wireless Energy Output Cover (§1IV§r)
+metaitem.wireless_energy_cover_output.luv.name=Wireless Energy Output Cover (§dLuV§r)
+metaitem.wireless_energy_cover_output.zpm.name=Wireless Energy Output Cover (§cZPM§r)
+metaitem.wireless_energy_cover_output.uv.name=Wireless Energy Output Cover (§3UV§r)
+metaitem.wireless_energy_cover_output.uhv.name=Wireless Energy Output Cover (§4UHV§r)
+metaitem.wireless_energy_cover_output.uev.name=Wireless Energy Output Cover (§aUEV§r)
+metaitem.wireless_energy_cover_output.uiv.name=Wireless Energy Output Cover (§2UIV§r)
+metaitem.wireless_energy_cover_output.uxv.name=Wireless Energy Output Cover (§eUXV§r)
+metaitem.wireless_energy_cover_output.opv.name=Wireless Energy Output Cover (§9OpV§r)
+metaitem.wireless_energy_cover_output.max.name=Wireless Energy Output Cover (§c§lMAX§r)
+
 #  Universal Circuit Boards
 metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
 metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)

@@ -203,7 +203,7 @@ public class HigherDegreeMaterials {
 
         // Dimensionally Transcendent Residue (DTR) - primary godforge fuel
         // GT5: ARGB=0x01000000 (near-transparent black), SET_FLUID, animated texture (frametime=4)
-        DimensionallyTranscendentResidue = Material.builder(2530, gregtechId("dimensionally_transcendent_residue"))
+        DimensionallyTranscendentResidue = Material.builder(10000, gregtechId("dimensionally_transcendent_residue"))
                 .liquid(new FluidBuilder().customStill())
                 .color(0x050005).iconSet(FLUID)
                 .flags(DISABLE_DECOMPOSITION)
@@ -211,7 +211,7 @@ public class HigherDegreeMaterials {
 
         // Raw Star Matter (Condensed Raw Stellar Plasma Mixture) - secondary godforge fuel
         // GT5: ARGB=0xff6401ff (purple), SET_FLUID, animated texture (frametime=2)
-        RawStarMatter = Material.builder(2531, gregtechId("raw_star_matter"))
+        RawStarMatter = Material.builder(10001, gregtechId("raw_star_matter"))
                 .liquid(new FluidBuilder().customStill())
                 .color(0x6401FF).iconSet(FLUID)
                 .flags(DISABLE_DECOMPOSITION)
@@ -219,7 +219,7 @@ public class HigherDegreeMaterials {
 
         // Magneto-Hydrodynamically Constrained Star Matter (MHDCSM) - tertiary godforge fuel (molten)
         // GT5: ARGB=0x00ffffff (white), SET_MHDCSM, animated texture (frametime=2), with dust/metal/toolhead/gear/frame
-        MagnetoHydrodynamicallyConstrainedStarMatter = Material.builder(2532,
+        MagnetoHydrodynamicallyConstrainedStarMatter = Material.builder(10002,
                         gregtechId("magneto_hydrodynamically_constrained_star_matter"))
                 .ingot().liquid(new FluidBuilder().customStill())
                 .color(0xF0F0FF).iconSet(METALLIC)
@@ -229,21 +229,21 @@ public class HigherDegreeMaterials {
                 .build();
 
         // Graviton Shard - godforge upgrade currency
-        GravitonShard = Material.builder(2533, gregtechId("graviton_shard"))
+        GravitonShard = Material.builder(10003, gregtechId("graviton_shard"))
                 .gem(1)
                 .color(0x9933FF).iconSet(DIAMOND)
                 .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
                 .build();
 
         // Quark-Gluon Plasma - exotic module output
-        QuarkGluonPlasma = Material.builder(2534, gregtechId("quark_gluon_plasma"))
+        QuarkGluonPlasma = Material.builder(10004, gregtechId("quark_gluon_plasma"))
                 .plasma()
                 .color(0x00FFCC).iconSet(SHINY)
                 .flags(DISABLE_DECOMPOSITION)
                 .build();
 
         // Mag Matter (Magmatter) - exotic module advanced output
-        MagMatter = Material.builder(2535, gregtechId("mag_matter"))
+        MagMatter = Material.builder(10005, gregtechId("mag_matter"))
                 .ingot().fluid()
                 .color(0x1A001A).iconSet(METALLIC)
                 .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
