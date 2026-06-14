@@ -3,6 +3,7 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.StructureCheckState;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -74,15 +75,39 @@ public final class StructureOperationEvaluator {
     }
 
     @NotNull
-    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
+    public StructureSnapshotResult checkSnapshot(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.SNAPSHOT_CHECK);
+        if (definition == null
+                || !definition.supportsElementCapability(StructureElementCapability.SNAPSHOT_MATCH)) {
+            return StructureSnapshotResult.capabilityUnsupported();
+        }
+        return definition.createState().checkSnapshot(
+                request.requireSnapshot(), request.requireControllerPos(),
+                request.requireOrientation(), request.getController());
+    }
+
+    @NotNull
+    public StructureCheckResult checkActiveGraph(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.CHECK);
-        MultiPiecePattern.DirtyCheckResult result = requireMultiPiecePattern().checkDirtyPiecesWithResult(
+        MultiPiecePattern pattern = requireMultiPiecePattern();
+        PieceRuntimes candidates = new PieceRuntimes(pattern);
+        MultiPiecePattern.ActiveGraphCheckResult result = pattern.checkActiveGraphWithResult(
                 request.requireWorld(), request.requireControllerPos(), request.requireOrientation(),
-                requirePieceRuntimes(), request.getController());
-        return StructureCheckResult.fromDirtyPieceDefinition(
+                candidates, request.getController());
+        return StructureCheckResult.fromActiveGraphDefinition(
                 result.isMatched(), result.copyContext(), result.copyOperationState(), result.getMetadata(),
                 result.getFailureTrace(), result.getMissingAbilities(), result.getAbilityCounts(),
-                result.isFlipped());
+                result.isFlipped(), result.isMatched() ? candidates.capturePublication() : null,
+                result.getResultTable(), result.getContributionAggregate());
+    }
+
+    /**
+     * @deprecated The operation checks the complete active graph, not only dirty pieces.
+     */
+    @Deprecated
+    @NotNull
+    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
+        return checkActiveGraph(request);
     }
 
     @NotNull

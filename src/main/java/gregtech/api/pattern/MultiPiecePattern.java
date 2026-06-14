@@ -29,9 +29,10 @@ import java.util.function.BooleanSupplier;
  * each with its own template and offset. The pattern itself is pure shared data;
  * per-controller state lives in {@link PieceRuntimes}.
  *
- * <p>When a block changes, only the piece(s) containing that position are marked dirty
- * and re-validated, rather than re-checking the entire structure. The dirty/validated
- * flags and the formed-position set live on the per-controller {@link PieceRuntime}
+ * <p>When a block changes, the piece(s) containing that position are marked dirty.
+ * The next event-driven check re-validates the complete active graph because shared
+ * counts, context, activation, and dynamic offsets cross piece boundaries. The
+ * dirty/validated flags and the formed-position set live on the per-controller {@link PieceRuntime}
  * (indexed by piece identity), so the compiled pattern itself is stateless and
  * safe to share across controllers of the same multiblock type.
  *
@@ -50,7 +51,7 @@ import java.util.function.BooleanSupplier;
  *     .build();
  *
  * PieceRuntimes runtimes = new PieceRuntimes(pattern);
-     * pattern.checkDirtyPieces(world, controllerPos, orientation, runtimes);
+ * pattern.checkActiveGraph(world, controllerPos, orientation, runtimes);
  * }</pre>
  *
  * @see StructurePiece for individual piece definition
@@ -251,30 +252,33 @@ public class MultiPiecePattern {
      * @param runtimes       per-controller state for each piece
      * @return true if all active pieces are valid
      */
-    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
+    public boolean checkActiveGraph(World world, BlockPos controllerPos,
                                     @NotNull StructureOrientation orientation,
                                     @NotNull PieceRuntimes runtimes) {
-        return checkDirtyPieces(world, controllerPos, orientation, runtimes, null);
+        return checkActiveGraph(world, controllerPos, orientation, runtimes, null);
     }
 
-    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
+    public boolean checkActiveGraph(World world, BlockPos controllerPos,
                                     @NotNull StructureOrientation orientation,
                                     @NotNull PieceRuntimes runtimes,
                                     @Nullable MultiblockControllerBase controller) {
-        return checkDirtyPiecesWithResult(world, controllerPos, orientation, runtimes, controller).isMatched();
+        return checkActiveGraphWithResult(
+                world, controllerPos, orientation, runtimes, controller).isMatched();
     }
 
     @NotNull
-    public DirtyCheckResult checkDirtyPiecesWithResult(World world, BlockPos controllerPos,
-                                                       @NotNull StructureOrientation orientation,
-                                                       @NotNull PieceRuntimes runtimes,
-                                                       @Nullable MultiblockControllerBase controller) {
+    public ActiveGraphCheckResult checkActiveGraphWithResult(
+            World world, BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull PieceRuntimes runtimes,
+            @Nullable MultiblockControllerBase controller) {
         StructureMatchSession session = createMatchSession();
         session.setControllerContext(controller);
         PieceRuntimes.Checkpoint runtimeCheckpoint = runtimes.checkpoint();
-        DirtyCheckResult result = session.transactionValue(candidate ->
-                checkDirtyPiecesInSession(world, controllerPos, orientation, runtimes, controller, candidate),
-                DirtyCheckResult::isMatched);
+        ActiveGraphCheckResult result = session.transactionValue(candidate ->
+                checkActiveGraphInSession(
+                        world, controllerPos, orientation, runtimes, controller, candidate),
+                ActiveGraphCheckResult::isMatched);
         if (!result.isMatched()) {
             runtimes.restoreTo(runtimeCheckpoint);
         }
@@ -282,14 +286,16 @@ public class MultiPiecePattern {
     }
 
     @NotNull
-    private DirtyCheckResult checkDirtyPiecesInSession(World world, BlockPos controllerPos,
-                                                      @NotNull StructureOrientation orientation,
-                                                      @NotNull PieceRuntimes runtimes,
-                                                      @Nullable MultiblockControllerBase controller,
-                                                      @NotNull StructureMatchSession session) {
+    private ActiveGraphCheckResult checkActiveGraphInSession(
+            World world, BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull PieceRuntimes runtimes,
+            @Nullable MultiblockControllerBase controller,
+            @NotNull StructureMatchSession session) {
         Map<String, int[]> priorRepeats = new HashMap<>();
         Map<String, BlockPos> priorCenters = new HashMap<>();
         Map<String, Integer> channelValues = new HashMap<>();
+        StructureResultTable.Builder resultTable = StructureResultTable.builder(this);
         String lastActivePieceName = null;
         BlockPos lastActivePieceCenter = null;
 
@@ -301,8 +307,12 @@ public class MultiPiecePattern {
                     new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
-            if (!piece.isActive(activation)) continue;
+            if (!piece.isActive(activation)) {
+                resultTable.add(PieceEvaluationResult.inactive(piece));
+                continue;
+            }
             BlockPos pieceCenter = piece.getCenterPos(controllerPos, orientation, prior);
+            session.beginPieceContribution(piece);
             lastActivePieceName = piece.getName();
             lastActivePieceCenter = pieceCenter;
 
@@ -318,6 +328,7 @@ public class MultiPiecePattern {
                     runtime.setValidated(true);
                     LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
                     runtime.swapPositions(newPositions);
+                    runtime.setLastAggregatedContext(session.getContext().copy());
                 } else {
                     runtime.setValidated(false);
                 }
@@ -325,14 +336,15 @@ public class MultiPiecePattern {
             runtime.clearDirty();
 
             if (!runtime.isValidated()) {
-                StructureFailureTrace failure = createDirtyFailureTrace(
+                session.discardPieceContribution(piece);
+                StructureFailureTrace failure = createActiveGraphFailureTrace(
                         controller, controllerPos, orientation, piece.getName(),
                         describeCell(runtime.getState().getError()), activePieceDepth(piece),
-                        "Dirty piece '" + piece.getName() + "' failed pattern check",
+                        "Active piece '" + piece.getName() + "' failed pattern check",
                         runtime.getState().getError(), runtime.getState().getMissingAbilities(),
                         session.copyOperationState().getAbilityCounts(),
                         classifyError(runtime.getState().getError(), runtime.getState().getMissingAbilities()));
-                return DirtyCheckResult.failure(failure,
+                return ActiveGraphCheckResult.failure(failure,
                         runtime.getState().getMissingAbilities(),
                         session.copyOperationState().getAbilityCounts(),
                         orientation.isFlipped());
@@ -349,30 +361,45 @@ public class MultiPiecePattern {
                 int[] reps = runtime.getState().formedRepetitionCount;
                 if (reps != null && reps.length > 0) {
                     priorRepeats.put(piece.getName(), reps.clone());
+                    runtime.cacheFormedReps(reps);
                 }
             }
             priorCenters.put(piece.getName(), pieceCenter);
             extractChannelValues(session.getContext(), channelValues);
+            int[] resultRepetitions = piece instanceof RepeatGroupPiece
+                    ? runtime.getLastFormedReps()
+                    : runtime.getState().formedRepetitionCount;
+            resultTable.add(PieceEvaluationResult.activeMatched(
+                    piece, pieceCenter, resultRepetitions,
+                    runtime.getPositions(), runtime.getPositions(),
+                    runtime.capturePublication(), session.finishPieceContribution(piece)));
         }
 
+        StructureResultTable completedTable = resultTable.build();
+        StructureAggregateFolder.Result contributionAggregate =
+                StructureAggregateFolder.fold(this, completedTable);
         StructureMatchSession.Validation validation = session.validate(true);
         if (!validation.success) {
             StructureFailureTrace.Kind kind = validation.missingAbilities.isEmpty()
                     ? StructureFailureTrace.Kind.COUNT_LIMIT
                     : StructureFailureTrace.Kind.MISSING_ABILITY;
-            StructureFailureTrace failure = createDirtyValidationFailureTrace(
+            StructureFailureTrace failure = createActiveGraphValidationFailureTrace(
                     controller, controllerPos, orientation,
-                    validation.errorMessage == null ? "Dirty-piece validation failed" : validation.errorMessage,
+                    validation.errorMessage == null
+                            ? "Active-graph validation failed"
+                            : validation.errorMessage,
                     kind, validation.missingAbilities, validation.abilityCounts,
                     lastActivePieceName, lastActivePieceCenter);
-            return DirtyCheckResult.failure(
-                    failure, validation.missingAbilities, validation.abilityCounts, orientation.isFlipped());
+            return ActiveGraphCheckResult.failure(
+                    failure, validation.missingAbilities, validation.abilityCounts,
+                    orientation.isFlipped(), completedTable, contributionAggregate);
         }
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 priorRepeats, channelValues, priorCenters);
-        return DirtyCheckResult.success(
-                metadata, session.getContext().copy(), session.copyOperationState(), orientation.isFlipped());
+        return ActiveGraphCheckResult.success(
+                metadata, session.getContext().copy(), session.copyOperationState(), orientation.isFlipped(),
+                completedTable, contributionAggregate);
     }
 
     private static void extractChannelValues(@NotNull PatternMatchContext context,
@@ -385,7 +412,7 @@ public class MultiPiecePattern {
     }
 
     @NotNull
-    private StructureFailureTrace createDirtyValidationFailureTrace(
+    private StructureFailureTrace createActiveGraphValidationFailureTrace(
             @Nullable MultiblockControllerBase controller,
             @NotNull BlockPos controllerPos,
             @NotNull StructureOrientation orientation,
@@ -396,7 +423,7 @@ public class MultiPiecePattern {
             @Nullable String pieceName,
             @Nullable BlockPos errorPos) {
         return traceBuilder(controller, controllerPos, orientation)
-                .path("dirty-piece")
+                .path("active-graph")
                 .operation("CHECK")
                 .result(kind.getTraceName())
                 .kind(kind)
@@ -414,7 +441,7 @@ public class MultiPiecePattern {
     }
 
     @NotNull
-    private StructureFailureTrace createDirtyFailureTrace(
+    private StructureFailureTrace createActiveGraphFailureTrace(
             @Nullable MultiblockControllerBase controller,
             @NotNull BlockPos controllerPos,
             @NotNull StructureOrientation orientation,
@@ -427,7 +454,7 @@ public class MultiPiecePattern {
             @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
             @NotNull StructureFailureTrace.Kind kind) {
         StructureFailureTrace.Builder builder = traceBuilder(controller, controllerPos, orientation)
-                .path("dirty-piece")
+                .path("active-graph")
                 .operation("CHECK")
                 .result(kind.getTraceName())
                 .kind(kind)
@@ -440,7 +467,7 @@ public class MultiPiecePattern {
             builder.error(error);
         } else {
             builder.errorPosition(controllerPos)
-                    .expected("dirty piece matched")
+                    .expected("active piece matched")
                     .actual(message);
         }
         return builder.build();
@@ -495,7 +522,7 @@ public class MultiPiecePattern {
         return index < 0 ? 0 : index + 1;
     }
 
-    public static final class DirtyCheckResult {
+    public static final class ActiveGraphCheckResult {
 
         private final boolean matched;
         @Nullable
@@ -511,15 +538,21 @@ public class MultiPiecePattern {
         @NotNull
         private final Map<MultiblockAbility<?>, Integer> abilityCounts;
         private final boolean flipped;
+        @Nullable
+        private final StructureResultTable resultTable;
+        @Nullable
+        private final StructureAggregateFolder.Result contributionAggregate;
 
-        private DirtyCheckResult(boolean matched,
-                                 @Nullable FormedStructureMetadata metadata,
-                                 @Nullable PatternMatchContext context,
-                                 @Nullable StructureOperationState operationState,
-                                 @Nullable StructureFailureTrace failureTrace,
-                                 @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
-                                 @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
-                                 boolean flipped) {
+        private ActiveGraphCheckResult(boolean matched,
+                                       @Nullable FormedStructureMetadata metadata,
+                                       @Nullable PatternMatchContext context,
+                                       @Nullable StructureOperationState operationState,
+                                       @Nullable StructureFailureTrace failureTrace,
+                                       @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                       @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                       boolean flipped,
+                                       @Nullable StructureResultTable resultTable,
+                                       @Nullable StructureAggregateFolder.Result contributionAggregate) {
             this.matched = matched;
             this.metadata = metadata;
             this.context = context == null ? null : context.copy();
@@ -528,24 +561,41 @@ public class MultiPiecePattern {
             this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
             this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
             this.flipped = flipped;
+            this.resultTable = resultTable;
+            this.contributionAggregate = contributionAggregate;
         }
 
         @NotNull
-        static DirtyCheckResult success(@NotNull FormedStructureMetadata metadata,
-                                        @NotNull PatternMatchContext context,
-                                        @NotNull StructureOperationState operationState,
-                                        boolean flipped) {
-            return new DirtyCheckResult(true, metadata, context, operationState, null,
-                    Collections.emptyMap(), Collections.emptyMap(), flipped);
+        static ActiveGraphCheckResult success(@NotNull FormedStructureMetadata metadata,
+                                              @NotNull PatternMatchContext context,
+                                              @NotNull StructureOperationState operationState,
+                                              boolean flipped,
+                                              @NotNull StructureResultTable resultTable,
+                                              @NotNull StructureAggregateFolder.Result contributionAggregate) {
+            return new ActiveGraphCheckResult(true, metadata, context, operationState, null,
+                    Collections.emptyMap(), Collections.emptyMap(), flipped,
+                    resultTable, contributionAggregate);
         }
 
         @NotNull
-        static DirtyCheckResult failure(@NotNull StructureFailureTrace failureTrace,
-                                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
-                                        @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
-                                        boolean flipped) {
-            return new DirtyCheckResult(false, null, null, null, failureTrace,
-                    missingAbilities, abilityCounts, flipped);
+        static ActiveGraphCheckResult failure(@NotNull StructureFailureTrace failureTrace,
+                                              @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                              @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                              boolean flipped) {
+            return failure(
+                    failureTrace, missingAbilities, abilityCounts, flipped, null, null);
+        }
+
+        @NotNull
+        static ActiveGraphCheckResult failure(
+                @NotNull StructureFailureTrace failureTrace,
+                @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                boolean flipped,
+                @Nullable StructureResultTable resultTable,
+                @Nullable StructureAggregateFolder.Result contributionAggregate) {
+            return new ActiveGraphCheckResult(false, null, null, null, failureTrace,
+                    missingAbilities, abilityCounts, flipped, resultTable, contributionAggregate);
         }
 
         public boolean isMatched() {
@@ -585,6 +635,51 @@ public class MultiPiecePattern {
         public boolean isFlipped() {
             return flipped;
         }
+
+        @Nullable
+        public StructureResultTable getResultTable() {
+            return resultTable;
+        }
+
+        @Nullable
+        public StructureAggregateFolder.Result getContributionAggregate() {
+            return contributionAggregate;
+        }
+    }
+
+    /**
+     * @deprecated The operation checks the complete active graph, not only dirty pieces.
+     */
+    @Deprecated
+    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
+                                    @NotNull StructureOrientation orientation,
+                                    @NotNull PieceRuntimes runtimes) {
+        return checkActiveGraph(world, controllerPos, orientation, runtimes);
+    }
+
+    /**
+     * @deprecated The operation checks the complete active graph, not only dirty pieces.
+     */
+    @Deprecated
+    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
+                                    @NotNull StructureOrientation orientation,
+                                    @NotNull PieceRuntimes runtimes,
+                                    @Nullable MultiblockControllerBase controller) {
+        return checkActiveGraph(world, controllerPos, orientation, runtimes, controller);
+    }
+
+    /**
+     * @deprecated The operation checks the complete active graph, not only dirty pieces.
+     */
+    @Deprecated
+    @NotNull
+    public ActiveGraphCheckResult checkDirtyPiecesWithResult(
+            World world, BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @NotNull PieceRuntimes runtimes,
+            @Nullable MultiblockControllerBase controller) {
+        return checkActiveGraphWithResult(
+                world, controllerPos, orientation, runtimes, controller);
     }
 
     /**
@@ -611,7 +706,7 @@ public class MultiPiecePattern {
                 runtime.markDirty();
             }
         }
-        return checkDirtyPieces(world, controllerPos, orientation, runtimes, controller);
+        return checkActiveGraph(world, controllerPos, orientation, runtimes, controller);
     }
 
     /**
@@ -831,12 +926,12 @@ public class MultiPiecePattern {
      * Build a {@link FormedStructureMetadata} snapshot from the per-piece runtimes
      * of all pieces preceding {@code upToIndex} (1-based, exclusive). Repeat
      * counts are read from each runtime's {@code lastFormedReps} field, which is
-     * populated by the check path ({@code checkDirtyPieces}) and by
+     * populated by the check path ({@code checkActiveGraph}) and by
      * {@code RepeatGroupPiece.autoBuildAtRepeated}.
      *
      * <p>This is the auto-build equivalent of the incremental
      * {@code priorRepeats} accumulation done in
-     * {@link #checkDirtyPieces(World, BlockPos, StructureOrientation, PieceRuntimes)}.
+     * {@link #checkActiveGraph(World, BlockPos, StructureOrientation, PieceRuntimes)}.
      */
     @NotNull
     private FormedStructureMetadata buildPriorMetadata(int upToIndex, @NotNull PieceRuntimes runtimes,

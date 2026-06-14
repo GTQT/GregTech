@@ -106,7 +106,7 @@ public class MultiblockWorldData {
 
     /**
      * @deprecated Use {@link #consumeDirtyCheck(MultiblockControllerBase, long)}
-     *             so the scheduler can choose between piece and full checks.
+     *             so the scheduler can choose between active-graph and full checks.
      */
     @Deprecated
     public boolean hasPendingRecheck(MultiblockControllerBase controller, long currentTick) {
@@ -165,8 +165,8 @@ public class MultiblockWorldData {
             return delegate.shouldCheck();
         }
 
-        boolean shouldCheckPiece() {
-            return delegate.shouldCheckPiece();
+        boolean shouldCheckActiveGraph() {
+            return delegate.shouldCheckActiveGraph();
         }
 
         @NotNull

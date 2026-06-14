@@ -8,20 +8,26 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.RepeatGroupPiece;
+import gregtech.api.pattern.PieceEvaluationResult;
+import gregtech.api.pattern.StructureAggregateFolder;
 import gregtech.api.pattern.StructureMatchSession;
 import gregtech.api.pattern.StructureOperationState;
+import gregtech.api.pattern.StructureResultTable;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructureFailureSelection;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureSnapshotResult;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,6 +101,15 @@ public final class StructureCheckState {
 
         public final boolean flipped;
 
+        @Nullable
+        public final PieceRuntimes.Publication runtimePublication;
+
+        @Nullable
+        public final StructureResultTable resultTable;
+
+        @Nullable
+        public final StructureAggregateFolder.Result contributionAggregate;
+
         private Result(boolean success, @Nullable FormedStructureMetadata metadata,
                        @Nullable PatternMatchContext context,
                        @Nullable StructureOperationState operationState,
@@ -103,7 +118,10 @@ public final class StructureCheckState {
                        @Nullable StructureFailureTrace failureTrace,
                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
                        @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
-                       boolean flipped) {
+                       boolean flipped,
+                       @Nullable PieceRuntimes.Publication runtimePublication,
+                       @Nullable StructureResultTable resultTable,
+                       @Nullable StructureAggregateFolder.Result contributionAggregate) {
             this.success = success;
             this.metadata = metadata;
             this.context = context;
@@ -115,6 +133,9 @@ public final class StructureCheckState {
             this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
             this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
             this.flipped = flipped;
+            this.runtimePublication = runtimePublication;
+            this.resultTable = resultTable;
+            this.contributionAggregate = contributionAggregate;
         }
 
         /** Create a success result with formed metadata and aggregated context */
@@ -122,10 +143,14 @@ public final class StructureCheckState {
         public static Result success(@NotNull FormedStructureMetadata metadata,
                                      @NotNull PatternMatchContext context,
                                      @NotNull StructureOperationState operationState,
-                                     boolean flipped) {
+                                     boolean flipped,
+                                     @NotNull PieceRuntimes.Publication runtimePublication,
+                                     @NotNull StructureResultTable resultTable,
+                                     @NotNull StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
                     true, metadata, context, operationState,
-                    null, null, null, null, Collections.emptyMap(), Collections.emptyMap(), flipped);
+                    null, null, null, null, Collections.emptyMap(), Collections.emptyMap(),
+                    flipped, runtimePublication, resultTable, contributionAggregate);
         }
 
         /** Create a failure result with error info */
@@ -139,7 +164,8 @@ public final class StructureCheckState {
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg, @Nullable PatternError error) {
             return new Result(
                     false, null, null, null,
-                    pos, msg, error, null, Collections.emptyMap(), Collections.emptyMap(), false);
+                    pos, msg, error, null, Collections.emptyMap(), Collections.emptyMap(),
+                    false, null, null, null);
         }
 
         /** Create a failure result without specific position */
@@ -153,7 +179,8 @@ public final class StructureCheckState {
         public static Result failure(@NotNull String msg, @Nullable PatternError error) {
             return new Result(
                     false, null, null, null,
-                    null, msg, error, null, Collections.emptyMap(), Collections.emptyMap(), false);
+                    null, msg, error, null, Collections.emptyMap(), Collections.emptyMap(),
+                    false, null, null, null);
         }
 
         @NotNull
@@ -162,11 +189,24 @@ public final class StructureCheckState {
                                      @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
                                      @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
                                      boolean flipped) {
+            return failure(
+                    msg, failureTrace, missingAbilities, abilityCounts, flipped, null, null);
+        }
+
+        @NotNull
+        public static Result failure(@NotNull String msg,
+                                     @Nullable StructureFailureTrace failureTrace,
+                                     @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                                     @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                                     boolean flipped,
+                                     @Nullable StructureResultTable resultTable,
+                                     @Nullable StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
                     false, null, null, null,
                     failureTrace == null ? null : failureTrace.getErrorPos(), msg,
                     failureTrace == null ? null : failureTrace.getError(),
-                    failureTrace, missingAbilities, abilityCounts, flipped);
+                    failureTrace, missingAbilities, abilityCounts, flipped, null,
+                    resultTable, contributionAggregate);
         }
 
         @NotNull
@@ -174,11 +214,24 @@ public final class StructureCheckState {
                                               @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
                                               @Nullable StructureFailureTrace failureTrace,
                                               boolean flipped) {
+            return missingAbilities(
+                    missingAbilities, abilityCounts, failureTrace, flipped, null, null);
+        }
+
+        @NotNull
+        public static Result missingAbilities(
+                @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
+                @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
+                @Nullable StructureFailureTrace failureTrace,
+                boolean flipped,
+                @Nullable StructureResultTable resultTable,
+                @Nullable StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
                     false, null, null, null,
                     null, "Missing required multiblock abilities",
                     failureTrace == null ? null : failureTrace.getError(),
-                    failureTrace, missingAbilities, abilityCounts, flipped);
+                    failureTrace, missingAbilities, abilityCounts, flipped, null,
+                    resultTable, contributionAggregate);
         }
     }
 
@@ -233,6 +286,7 @@ public final class StructureCheckState {
         PieceRuntimes transientRuntimes = new PieceRuntimes(pattern);
         StructureMatchSession session = pattern.createMatchSession(context);
         session.setControllerContext(controller);
+        StructureResultTable.Builder resultTable = StructureResultTable.builder(pattern);
 
         // Collect piece repeat counts and channel values
         Map<String, int[]> pieceRepeats = new HashMap<>();
@@ -256,8 +310,12 @@ public final class StructureCheckState {
                     new HashMap<>(pieceCenters));
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
-            if (!piece.isActive(activation)) continue;
+            if (!piece.isActive(activation)) {
+                resultTable.add(PieceEvaluationResult.inactive(piece));
+                continue;
+            }
             BlockPos centerPos = piece.getCenterPos(controllerPos, orientation, prior);
+            session.beginPieceContribution(piece);
             lastActivePieceName = piece.getName();
             lastActivePieceCenter = centerPos;
             if (ConfigHolder.machines.debugStructureCheck) {
@@ -273,6 +331,7 @@ public final class StructureCheckState {
                 boolean ok = repeatPiece.checkSync(
                         world, controllerPos, orientation, prior, runtime, session);
                 if (!ok) {
+                    session.discardPieceContribution(piece);
                     lastErrorPos = controllerPos;
                     lastErrorMessage = "Repeatable piece '" + piece.getName() + "' failed pattern check";
                     StructureFailureTrace failure = createFailureTrace(
@@ -286,6 +345,8 @@ public final class StructureCheckState {
                             runtime.getState().getMissingAbilities(),
                             session.copyOperationState().getAbilityCounts(), orientation.isFlipped());
                 }
+                runtime.setValidated(true);
+                runtime.clearDirty();
 
                 // Extract repeat counts from the runtime's cached reps
                 int[] formedReps = runtime.getLastFormedReps();
@@ -302,6 +363,7 @@ public final class StructureCheckState {
                         runtime.getState().checkPatternAtExact(
                                 world, centerPos, orientation, 0, 0, 0, pieceSession) != null);
                 if (!pieceMatched) {
+                    session.discardPieceContribution(piece);
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
                     StructureFailureTrace failure = createFailureTrace(
@@ -316,17 +378,29 @@ public final class StructureCheckState {
                             runtime.getState().getMissingAbilities(),
                             session.copyOperationState().getAbilityCounts(), orientation.isFlipped());
                 }
+                runtime.setValidated(true);
+                runtime.clearDirty();
+                runtime.swapPositions(new LongOpenHashSet(runtime.getState().cache.keySet()));
+                runtime.setLastAggregatedContext(session.getContext().copy());
 
                 // Extract repeat counts from the piece's MultiblockState
                 int[] formedReps = runtime.getState().formedRepetitionCount;
                 if (formedReps != null && formedReps.length > 0) {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
+                    runtime.cacheFormedReps(formedReps);
                 }
 
                 // Extract channel values from the match context
                 extractChannelValues(session.getContext(), channelValues);
             }
             pieceCenters.put(piece.getName(), centerPos);
+            int[] resultRepetitions = piece instanceof RepeatGroupPiece
+                    ? runtime.getLastFormedReps()
+                    : runtime.getState().formedRepetitionCount;
+            resultTable.add(PieceEvaluationResult.activeMatched(
+                    piece, centerPos, resultRepetitions,
+                    runtime.getPositions(), runtime.getPositions(),
+                    session.finishPieceContribution(piece)));
             if (ConfigHolder.machines.debugStructureCheck) {
                 int[] formedReps = pieceRepeats.get(piece.getName());
                 GTLog.logger.debug("[StructureDefinition] matched piece={} center={} repetitions={}",
@@ -335,6 +409,9 @@ public final class StructureCheckState {
             }
         }
 
+        StructureResultTable completedTable = resultTable.build();
+        StructureAggregateFolder.Result contributionAggregate =
+                StructureAggregateFolder.fold(pattern, completedTable);
         StructureMatchSession.Validation validation = session.validate(true);
         if (!validation.success) {
             if (!validation.missingAbilities.isEmpty()) {
@@ -344,7 +421,7 @@ public final class StructureCheckState {
                         pattern.getPieceList().size(), validation.missingAbilities, validation.abilityCounts,
                         lastActivePieceName, lastActivePieceCenter);
                 return Result.missingAbilities(validation.missingAbilities, validation.abilityCounts,
-                        failure, orientation.isFlipped());
+                        failure, orientation.isFlipped(), completedTable, contributionAggregate);
             }
             String message = validation.errorMessage == null
                     ? "Structure-wide validation failed"
@@ -355,13 +432,87 @@ public final class StructureCheckState {
                     pattern.getPieceList().size(), validation.missingAbilities, validation.abilityCounts,
                     lastActivePieceName, lastActivePieceCenter);
             return Result.failure(message, failure, validation.missingAbilities,
-                    validation.abilityCounts, orientation.isFlipped());
+                    validation.abilityCounts, orientation.isFlipped(),
+                    completedTable, contributionAggregate);
         }
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 pieceRepeats, channelValues, pieceCenters);
         return Result.success(
-                metadata, session.getContext().copy(), session.copyOperationState(), orientation.isFlipped());
+                metadata, session.getContext().copy(), session.copyOperationState(),
+                orientation.isFlipped(), transientRuntimes.capturePublication(),
+                completedTable, contributionAggregate);
+    }
+
+    @NotNull
+    public StructureSnapshotResult checkSnapshot(
+            @NotNull IBlockAccess snapshot,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @Nullable MultiblockControllerBase controller) {
+        StructureSnapshotResult result = checkSnapshotOrientation(
+                snapshot, controllerPos, orientation.withFlipped(false), controller);
+        if (!result.isMatched() && orientation.allowsFlip()) {
+            StructureSnapshotResult flipped = checkSnapshotOrientation(
+                    snapshot, controllerPos, orientation.withFlipped(true), controller);
+            return StructureSnapshotResult.selectFailure(result, flipped);
+        }
+        return result;
+    }
+
+    @NotNull
+    private StructureSnapshotResult checkSnapshotOrientation(
+            @NotNull IBlockAccess snapshot,
+            @NotNull BlockPos controllerPos,
+            @NotNull StructureOrientation orientation,
+            @Nullable MultiblockControllerBase controller) {
+        MultiPiecePattern pattern = definition.getCompiledPattern();
+        PieceRuntimes transientRuntimes = new PieceRuntimes(pattern);
+        StructureMatchSession session = pattern.createMatchSession();
+        session.setControllerContext(controller);
+        Map<String, int[]> pieceRepeats = new HashMap<>();
+        Map<String, BlockPos> pieceCenters = new HashMap<>();
+        int progressDepth = 0;
+
+        for (StructurePiece piece : pattern.getPieceList()) {
+            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                    new HashMap<>(pieceRepeats), Collections.emptyMap(),
+                    new HashMap<>(pieceCenters));
+            StructureActivationContext<MultiblockControllerBase> activation =
+                    new StructureActivationContext<>(
+                            controller, null, controllerPos, prior, session);
+            if (!piece.isActive(activation)) {
+                continue;
+            }
+
+            PieceRuntime runtime = transientRuntimes.get(piece);
+            BlockPos pieceCenter = piece.getCenterPos(controllerPos, orientation, prior);
+            BlockPos checkOrigin = piece instanceof RepeatGroupPiece
+                    ? controllerPos
+                    : pieceCenter;
+            boolean matched = session.tryFork(pieceSession ->
+                    piece.checkOnSnapshot(
+                            snapshot, checkOrigin, orientation, prior, runtime, pieceSession));
+            if (!matched) {
+                return StructureSnapshotResult.mismatch(
+                        orientation.isFlipped(), piece.getName(), progressDepth);
+            }
+
+            int[] repetitions = piece instanceof RepeatGroupPiece
+                    ? runtime.getLastFormedReps()
+                    : runtime.getState().formedRepetitionCount;
+            if (repetitions != null && repetitions.length > 0) {
+                pieceRepeats.put(piece.getName(), repetitions.clone());
+            }
+            pieceCenters.put(piece.getName(), pieceCenter);
+            progressDepth++;
+        }
+
+        if (!session.validate(false).success) {
+            return StructureSnapshotResult.mismatch(
+                    orientation.isFlipped(), "requirements", progressDepth);
+        }
+        return StructureSnapshotResult.matched(orientation.isFlipped(), progressDepth);
     }
 
     /**

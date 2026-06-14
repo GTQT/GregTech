@@ -32,6 +32,8 @@ public final class StructureMatchCollector {
 
     @Nullable
     private final StructureOperationState operationState;
+    @Nullable
+    private final StructureContribution.Builder contributionBuilder;
     private final PatternMatchContext context;
     private final boolean collectsFormationState;
 
@@ -42,19 +44,28 @@ public final class StructureMatchCollector {
     StructureMatchCollector(@NotNull PatternMatchContext context,
                             boolean collectsFormationState) {
         this.operationState = null;
+        this.contributionBuilder = null;
         this.context = context;
         this.collectsFormationState = collectsFormationState;
     }
 
     StructureMatchCollector(@NotNull StructureOperationState operationState,
                             @NotNull PatternMatchContext context) {
-        this(operationState, context, true);
+        this(operationState, null, context, true);
     }
 
     StructureMatchCollector(@NotNull StructureOperationState operationState,
                             @NotNull PatternMatchContext context,
                             boolean collectsFormationState) {
+        this(operationState, null, context, collectsFormationState);
+    }
+
+    StructureMatchCollector(@NotNull StructureOperationState operationState,
+                            @Nullable StructureContribution.Builder contributionBuilder,
+                            @NotNull PatternMatchContext context,
+                            boolean collectsFormationState) {
         this.operationState = operationState;
+        this.contributionBuilder = contributionBuilder;
         this.context = context;
         this.collectsFormationState = collectsFormationState;
     }
@@ -92,15 +103,29 @@ public final class StructureMatchCollector {
     public boolean recordAbility(@NotNull Object key, @NotNull IMultiblockPart part) {
         if (!collectsFormationState) return true;
 
+        CountRequirement requirement = operationState == null
+                ? requirements().get(key)
+                : operationState.requirements.get(key);
+        if (operationState != null && requirement != null && requirement.ability != null) {
+            Set<IMultiblockPart> countedParts = operationState.countedAbilityParts
+                    .computeIfAbsent(key, ignored -> new HashSet<>());
+            if (countedParts.contains(part)) {
+                addPart(part);
+                return true;
+            }
+        }
         boolean recorded = recordCount(key);
         if (recorded && operationState != null) {
             addPart(part);
-            CountRequirement requirement = operationState.requirements.get(key);
             if (requirement != null && requirement.ability != null) {
-                operationState.abilityCounts.merge(requirement.ability, 1, Integer::sum);
-                operationState.abilityParts
-                        .computeIfAbsent(requirement.ability, ignored -> new HashSet<>())
-                        .add(part);
+                operationState.countedAbilityParts.get(key).add(part);
+                Set<IMultiblockPart> abilityParts = operationState.abilityParts
+                        .computeIfAbsent(requirement.ability, ignored -> new HashSet<>());
+                abilityParts.add(part);
+                operationState.abilityCounts.put(requirement.ability, abilityParts.size());
+                if (contributionBuilder != null) {
+                    contributionBuilder.addAbility(key, requirement.ability, part);
+                }
             }
         } else if (recorded) {
             addPart(part);
@@ -118,6 +143,9 @@ public final class StructureMatchCollector {
                 return false;
             }
             operationState.counts.put(key, count);
+            if (contributionBuilder != null) {
+                contributionBuilder.increment(key);
+            }
             return true;
         }
 
@@ -137,6 +165,9 @@ public final class StructureMatchCollector {
 
         if (operationState != null) {
             operationState.parts.add(part);
+            if (contributionBuilder != null) {
+                contributionBuilder.addPart(part);
+            }
             return;
         }
         Set<IMultiblockPart> parts =
@@ -160,7 +191,12 @@ public final class StructureMatchCollector {
         if (!collectsFormationState) return;
 
         if (operationState != null) {
-            operationState.variantActiveBlocks.add(pos);
+            if (!operationState.variantActiveBlocks.contains(pos)) {
+                operationState.variantActiveBlocks.add(pos);
+            }
+            if (contributionBuilder != null) {
+                contributionBuilder.addVariantActiveBlock(pos);
+            }
             return;
         }
         List<BlockPos> positions =
@@ -173,6 +209,20 @@ public final class StructureMatchCollector {
                                       boolean requiresUniformValue) {
         if (!collectsFormationState) return true;
 
+        StructureContributionKey<Object, Object> key = requiresUniformValue
+                ? StructureContributionKey.uniform(
+                        contributionId("channel", channelName),
+                        (legacyContext, aggregate) -> legacyContext.set(channelName, aggregate))
+                : StructureContributionKey.create(
+                        contributionId("channel", channelName),
+                        "first-non-null",
+                        () -> null,
+                        (current, emitted) -> current == null ? emitted : current,
+                        ignored -> StructureContributionKey.Validation.success(),
+                        (legacyContext, aggregate) -> legacyContext.set(channelName, aggregate),
+                        java.util.function.UnaryOperator.identity(),
+                        java.util.function.UnaryOperator.identity());
+        emit(key, value);
         Object existing = context.get(channelName);
         if (existing == null) {
             context.set(channelName, value);
@@ -184,7 +234,24 @@ public final class StructureMatchCollector {
     public void setValue(@NotNull String key, @NotNull Object value) {
         if (!collectsFormationState) return;
 
+        emit(StructureContributionKey.create(
+                contributionId("value", key),
+                "last-non-null",
+                () -> null,
+                (current, emitted) -> emitted == null ? current : emitted,
+                ignored -> StructureContributionKey.Validation.success(),
+                (legacyContext, aggregate) -> legacyContext.set(key, aggregate),
+                java.util.function.UnaryOperator.identity(),
+                java.util.function.UnaryOperator.identity()), value);
         context.set(key, value);
+    }
+
+    public <E, A> void emit(@NotNull StructureContributionKey<E, A> key,
+                            @Nullable E value) {
+        if (!collectsFormationState || contributionBuilder == null) {
+            return;
+        }
+        contributionBuilder.emit(key, value);
     }
 
     @NotNull
@@ -293,6 +360,9 @@ public final class StructureMatchCollector {
                 new CountRequirement(ability, min, max, minErrorFactory, maxErrorFactory);
         if (operationState != null) {
             operationState.requirements.putIfAbsent(key, requirement);
+            if (contributionBuilder != null) {
+                contributionBuilder.declare(key, requirement);
+            }
         } else {
             legacyRequirements(context).putIfAbsent(key, requirement);
         }
@@ -309,9 +379,9 @@ public final class StructureMatchCollector {
         @Nullable
         private final Supplier<PatternError> maxErrorFactory;
 
-        private CountRequirement(@Nullable MultiblockAbility<?> ability, int min, int max,
-                                 @Nullable Supplier<PatternError> minErrorFactory,
-                                 @Nullable Supplier<PatternError> maxErrorFactory) {
+        CountRequirement(@Nullable MultiblockAbility<?> ability, int min, int max,
+                         @Nullable Supplier<PatternError> minErrorFactory,
+                         @Nullable Supplier<PatternError> maxErrorFactory) {
             this.ability = ability;
             this.min = Math.max(0, min);
             this.max = max;
@@ -333,6 +403,33 @@ public final class StructureMatchCollector {
         MultiblockAbility<?> getAbility() {
             return ability;
         }
+
+        int getMin() {
+            return min;
+        }
+
+        int getMax() {
+            return max;
+        }
+
+        @Nullable
+        Supplier<PatternError> getMinErrorFactory() {
+            return minErrorFactory;
+        }
+
+        @Nullable
+        Supplier<PatternError> getMaxErrorFactory() {
+            return maxErrorFactory;
+        }
+
+        boolean isCompatibleWith(@NotNull CountRequirement other) {
+            return ability == other.ability && min == other.min && max == other.max;
+        }
+    }
+
+    @NotNull
+    private static String contributionId(@NotNull String kind, @NotNull String legacyKey) {
+        return "gregtech:legacy/" + kind + "/" + legacyKey;
     }
 
     public static final class Validation {

@@ -353,7 +353,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * Override this method to provide a multi-piece pattern for super-large structures. When this returns non-null, the
-     * structure is checked piece-by-piece: only dirty pieces are re-validated when a block change occurs.
+     * structure changes are localized to a piece for invalidation, then the active
+     * graph is re-validated to preserve cross-piece context and count semantics.
      *
      * <p>Standard multiblocks should NOT override this method. It is only useful for
      * structures with thousands of blocks that benefit from partial re-checking.
@@ -621,11 +622,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void formStructure(PatternMatchContext context) {}
 
     /**
-     * Multi-piece structure check (P3). Only re-validates dirty pieces instead of the entire pattern. If any piece
-     * becomes invalid, the entire structure is invalidated.
+     * Re-validates the complete active piece graph after an indexed block change.
      */
+    protected void checkActiveStructureGraph() {
+        checkMultiPieceStructure();
+    }
+
+    /**
+     * @deprecated Override {@link #checkActiveStructureGraph()} for new code.
+     *             The operation checks the complete active graph.
+     */
+    @Deprecated
     protected void checkMultiPieceStructure() {
-        MultiblockStructureOperations.checkDirtyPieces(this);
+        MultiblockStructureOperations.checkActiveGraph(this);
     }
 
     /**

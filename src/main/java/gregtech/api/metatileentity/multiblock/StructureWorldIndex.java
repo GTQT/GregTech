@@ -189,7 +189,7 @@ final class StructureWorldIndex {
         MultiPiecePattern pattern = controllerPiecePatterns.get(controller);
         PieceRuntimes runtimes = controller.getPieceRuntimes();
         if (pattern != null && runtimes != null && pattern.hasDirtyPieces(runtimes, controller)) {
-            return DirtyCheckDecision.piece();
+            return DirtyCheckDecision.activeGraph();
         }
         return DirtyCheckDecision.full();
     }
@@ -240,7 +240,7 @@ final class StructureWorldIndex {
             UNREGISTERED,
             CLEAN,
             DEFERRED,
-            PIECE,
+            ACTIVE_GRAPH,
             FULL
         }
 
@@ -269,8 +269,8 @@ final class StructureWorldIndex {
         }
 
         @NotNull
-        static DirtyCheckDecision piece() {
-            return new DirtyCheckDecision(Action.PIECE, -1);
+        static DirtyCheckDecision activeGraph() {
+            return new DirtyCheckDecision(Action.ACTIVE_GRAPH, -1);
         }
 
         @NotNull
@@ -283,11 +283,11 @@ final class StructureWorldIndex {
         }
 
         boolean shouldCheck() {
-            return action == Action.PIECE || action == Action.FULL;
+            return action == Action.ACTIVE_GRAPH || action == Action.FULL;
         }
 
-        boolean shouldCheckPiece() {
-            return action == Action.PIECE;
+        boolean shouldCheckActiveGraph() {
+            return action == Action.ACTIVE_GRAPH;
         }
 
         @NotNull

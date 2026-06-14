@@ -36,6 +36,9 @@ public final class StructureMatchSession {
     private final StructureOperationState operationState;
     private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
     private final Map<StructureSessionKey<?>, Object> typedData;
+    private final StructureContribution.Builder contributionBuilder;
+    @Nullable
+    private StructurePiece contributionPiece;
     @Nullable
     private Object controllerContext;
 
@@ -53,6 +56,8 @@ public final class StructureMatchSession {
         this.operationState = new StructureOperationState();
         this.globalCount = new HashMap<>();
         this.typedData = new HashMap<>();
+        this.contributionBuilder = StructureContribution.builder();
+        this.contributionPiece = null;
         this.controllerContext = null;
     }
 
@@ -64,6 +69,8 @@ public final class StructureMatchSession {
         this.operationState = parent.operationState.copy();
         this.globalCount = new HashMap<>(parent.globalCount);
         this.typedData = copyTypedData(parent.typedData);
+        this.contributionBuilder = parent.contributionBuilder.copy();
+        this.contributionPiece = parent.contributionPiece;
         this.controllerContext = parent.controllerContext;
     }
 
@@ -145,13 +152,16 @@ public final class StructureMatchSession {
         parent.globalCount.putAll(globalCount);
         parent.typedData.clear();
         parent.typedData.putAll(copyTypedData(typedData));
+        parent.contributionBuilder.replaceWith(contributionBuilder);
+        parent.contributionPiece = contributionPiece;
     }
 
     @NotNull
     public Checkpoint checkpoint() {
         return new Checkpoint(
                 context.copy(), operationState.copy(),
-                new HashMap<>(globalCount), copyTypedData(typedData));
+                new HashMap<>(globalCount), copyTypedData(typedData),
+                contributionBuilder.copy(), contributionPiece);
     }
 
     private void restore(@NotNull Checkpoint checkpoint) {
@@ -161,6 +171,8 @@ public final class StructureMatchSession {
         globalCount.putAll(checkpoint.globalCount);
         typedData.clear();
         typedData.putAll(copyTypedData(checkpoint.typedData));
+        contributionBuilder.replaceWith(checkpoint.contributionBuilder);
+        contributionPiece = checkpoint.contributionPiece;
     }
 
     public void restoreTo(@NotNull Checkpoint checkpoint) {
@@ -175,6 +187,39 @@ public final class StructureMatchSession {
     @NotNull
     StructureOperationState getOperationState() {
         return operationState;
+    }
+
+    @NotNull
+    StructureContribution.Builder getContributionBuilder() {
+        return contributionBuilder;
+    }
+
+    public void beginPieceContribution(@NotNull StructurePiece piece) {
+        if (contributionPiece != null) {
+            throw new IllegalStateException(
+                    "Contribution capture is already active for piece " + contributionPiece.getName());
+        }
+        contributionBuilder.replaceWith(StructureContribution.builder());
+        contributionPiece = piece;
+    }
+
+    @NotNull
+    public StructureContribution finishPieceContribution(@NotNull StructurePiece piece) {
+        if (contributionPiece != piece) {
+            throw new IllegalStateException(
+                    "Contribution capture does not belong to piece " + piece.getName());
+        }
+        StructureContribution result = contributionBuilder.build();
+        contributionBuilder.replaceWith(StructureContribution.builder());
+        contributionPiece = null;
+        return result;
+    }
+
+    public void discardPieceContribution(@NotNull StructurePiece piece) {
+        if (contributionPiece == piece) {
+            contributionBuilder.replaceWith(StructureContribution.builder());
+            contributionPiece = null;
+        }
     }
 
     /**
@@ -429,15 +474,22 @@ public final class StructureMatchSession {
         private final StructureOperationState operationState;
         private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
         private final Map<StructureSessionKey<?>, Object> typedData;
+        private final StructureContribution.Builder contributionBuilder;
+        @Nullable
+        private final StructurePiece contributionPiece;
 
         private Checkpoint(@NotNull PatternMatchContext context,
                            @NotNull StructureOperationState operationState,
                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
-                           @NotNull Map<StructureSessionKey<?>, Object> typedData) {
+                           @NotNull Map<StructureSessionKey<?>, Object> typedData,
+                           @NotNull StructureContribution.Builder contributionBuilder,
+                           @Nullable StructurePiece contributionPiece) {
             this.context = context;
             this.operationState = operationState;
             this.globalCount = globalCount;
             this.typedData = typedData;
+            this.contributionBuilder = contributionBuilder;
+            this.contributionPiece = contributionPiece;
         }
     }
 

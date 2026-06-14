@@ -91,6 +91,52 @@ public final class PieceRuntimes {
         }
     }
 
+    /**
+     * Capture an immutable publication payload from operation-local runtimes.
+     *
+     * <p>The payload includes every piece's matcher cache, formed positions,
+     * validation/dirty flags, repeat counts, and aggregated context. It can be
+     * published only into another {@code PieceRuntimes} built from the same
+     * compiled piece identities.
+     */
+    @NotNull
+    public Publication capturePublication() {
+        IdentityHashMap<StructurePiece, PieceRuntime.Publication> states =
+                new IdentityHashMap<>(runtimeList.size());
+        for (PieceRuntime runtime : runtimeList) {
+            states.put(runtime.getPiece(), runtime.capturePublication());
+        }
+        return new Publication(states);
+    }
+
+    /**
+     * Publish a successful operation-local runtime snapshot.
+     *
+     * <p>All piece identities are validated before any target state is changed,
+     * so a payload from another compiled pattern cannot be partially applied.
+     */
+    public void publish(@NotNull Publication publication) {
+        validatePublication(publication);
+        for (Map.Entry<StructurePiece, PieceRuntime> entry : runtimeMap.entrySet()) {
+            entry.getValue().publish(publication.states.get(entry.getKey()));
+        }
+    }
+
+    /**
+     * Validate a publication before the controller commit starts mutating state.
+     */
+    public void validatePublication(@NotNull Publication publication) {
+        if (publication.states.size() != runtimeMap.size()) {
+            throw new IllegalArgumentException("Piece runtime publication has a different piece count");
+        }
+        for (StructurePiece piece : runtimeMap.keySet()) {
+            if (!publication.states.containsKey(piece)) {
+                throw new IllegalArgumentException(
+                        "Piece runtime publication does not match the target compiled pattern");
+            }
+        }
+    }
+
     @NotNull
     Checkpoint checkpoint() {
         return new Checkpoint(this);
@@ -116,6 +162,17 @@ public final class PieceRuntimes {
                 checkpoints.put(runtime, runtime.checkpoint());
             }
             this.runtimeCheckpoints = checkpoints;
+        }
+    }
+
+    public static final class Publication {
+
+        @NotNull
+        private final IdentityHashMap<StructurePiece, PieceRuntime.Publication> states;
+
+        private Publication(
+                @NotNull IdentityHashMap<StructurePiece, PieceRuntime.Publication> states) {
+            this.states = new IdentityHashMap<>(states);
         }
     }
 }

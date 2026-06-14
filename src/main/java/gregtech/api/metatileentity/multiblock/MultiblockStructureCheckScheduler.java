@@ -61,8 +61,8 @@ final class MultiblockStructureCheckScheduler {
                 GTLog.logger.debug("[StructureCheck] Event-driven {} recheck triggered for {}",
                         decision.describeAction(), controller.getMetaName());
             }
-            if (decision.shouldCheckPiece()) {
-                controller.checkMultiPieceStructure();
+            if (decision.shouldCheckActiveGraph()) {
+                controller.checkActiveStructureGraph();
             } else {
                 controller.checkStructurePattern();
             }

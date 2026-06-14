@@ -51,10 +51,10 @@ final class MultiblockStructureOperations {
         MultiblockStructureCommitter.applyCheckResult(controller, result);
     }
 
-    static void checkDirtyPieces(@NotNull MultiblockControllerBase controller) {
+    static void checkActiveGraph(@NotNull MultiblockControllerBase controller) {
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
-        StructureTrace.debug(controller, "dirty-piece-check-start", runtime.describeShape());
-        StructureCheckResult result = runtime.checkDirtyPieces(
+        StructureTrace.debug(controller, "active-graph-check-start", runtime.describeShape());
+        StructureCheckResult result = runtime.checkActiveGraph(
                 StructureOperationRequest.check(
                         controller.getWorld(),
                         controller.getPos(),

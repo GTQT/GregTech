@@ -7,6 +7,8 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureCompiler;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -151,53 +154,219 @@ class StructureTraversalBoundaryTest {
     }
 
     @Test
-    void dirtyPieceRuntimeCheckReturnsCommitReadyResult() {
+    void failedFormationTransactionRollsBackPieceContributionEmissions() {
+        StructurePiece piece = new StructurePiece(
+                "piece", template(new RecordingElement(true)),
+                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructureMatchSession session = new StructureMatchSession();
+        PatternMatchContext legacyContext = session.getContext();
+        StructureEvaluationContext<Object> context = new StructureEvaluationContext<>();
+        BlockWorldState worldState = new BlockWorldState();
+        worldState.update(WORLD, BlockPos.ORIGIN, legacyContext,
+                session.getGlobalCount(), new HashMap<>(), TraceabilityPredicate.ANY);
+        context.update(null, session, worldState, StructureEvaluationContext.Operation.MATCH_WORLD);
+        session.beginPieceContribution(piece);
+
+        assertFalse(context.transaction(evaluation -> {
+            evaluation.getCollector().recordCount("count");
+            evaluation.getCollector().recordChannelValue("channel", 1, true);
+            return false;
+        }));
+
+        assertTrue(session.finishPieceContribution(piece).isEmpty());
+    }
+
+    @Test
+    void fullDefinitionCheckPublishesRuntimeOnlyAfterExplicitCommit() {
         RecordingElement element = new RecordingElement(true);
         StructurePiece piece = new StructurePiece(
-                "dirty", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+                "full", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
+        PieceRuntimes controllerRuntimes = new PieceRuntimes(pattern);
+        StructureDefinition<?> definition = StructureDefinition.fromMultiPiecePattern(pattern);
+        StructureRuntime runtime = new StructureRuntime(
+                definition, null, null, pattern, controllerRuntimes);
+
+        StructureCheckResult result = runtime.check(checkRequest());
+
+        assertTrue(result.isMatched());
+        assertFalse(controllerRuntimes.get(piece).isValidated());
+        assertTrue(controllerRuntimes.get(piece).isDirty());
+        assertTrue(controllerRuntimes.get(piece).getPositions().isEmpty());
+
+        assertTrue(result.publishPieceRuntimes(controllerRuntimes));
+        assertTrue(controllerRuntimes.get(piece).isValidated());
+        assertFalse(controllerRuntimes.get(piece).isDirty());
+        assertNotNull(controllerRuntimes.get(piece).getLastAggregatedContext());
+        assertEquals(1, controllerRuntimes.get(piece).getLastAggregatedContext().getInt("channel"));
+    }
+
+    @Test
+    void activeGraphRuntimeCheckReturnsCommitReadyResult() {
+        RecordingElement element = new RecordingElement(true);
+        StructurePiece piece = new StructurePiece(
+                "active", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
         MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
         PieceRuntimes runtimes = new PieceRuntimes(pattern);
         StructureRuntime runtime = new StructureRuntime(null, null, null, pattern, runtimes);
 
-        StructureCheckResult result = runtime.checkDirtyPieces(checkRequest());
+        StructureCheckResult result = runtime.checkActiveGraph(checkRequest());
 
         assertTrue(result.isMatched());
-        assertEquals("dirty-piece", result.getTracePath());
+        assertEquals("active-graph", result.getTracePath());
         assertNotNull(result.getMetadata());
-        assertEquals(BlockPos.ORIGIN, result.getMetadata().getPieceCenter("dirty"));
+        assertEquals(BlockPos.ORIGIN, result.getMetadata().getPieceCenter("active"));
         assertEquals(1, result.getMetadata().getChannelValue("channel"));
         assertEquals(2, result.copyOperationState().getParts().size());
         assertEquals(1, result.copyContext().getInt("channel"));
+        assertFalse(runtimes.get(piece).isValidated());
+        assertTrue(runtimes.get(piece).isDirty());
+
+        assertTrue(result.publishPieceRuntimes(runtimes));
         assertTrue(runtimes.get(piece).isValidated());
         assertFalse(runtimes.get(piece).isDirty());
     }
 
     @Test
-    void dirtyPieceFailureRollsBackRuntimeAndReportsTrace() {
+    void activeGraphFailurePreservesPublishedRuntimeAndReportsTrace() {
         RecordingElement element = new RecordingElement(true);
         StructurePiece piece = new StructurePiece(
-                "dirty", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+                "active", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
         MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
         PieceRuntimes runtimes = new PieceRuntimes(pattern);
         StructureRuntime runtime = new StructureRuntime(null, null, null, pattern, runtimes);
 
-        assertTrue(runtime.checkDirtyPieces(checkRequest()).isMatched());
+        StructureCheckResult initial = runtime.checkActiveGraph(checkRequest());
+        assertTrue(initial.isMatched());
+        assertTrue(initial.publishPieceRuntimes(runtimes));
         PieceRuntime pieceRuntime = runtimes.get(piece);
         LongSet formedPositions = new LongOpenHashSet(pieceRuntime.getPositions());
 
         pieceRuntime.markDirty();
         element.setMatches(false);
-        StructureCheckResult failed = runtime.checkDirtyPieces(checkRequest());
+        StructureCheckResult failed = runtime.checkActiveGraph(checkRequest());
 
         assertFalse(failed.isMatched());
-        assertEquals("dirty-piece", failed.getTracePath());
+        assertEquals("active-graph", failed.getTracePath());
         StructureFailureTrace failureTrace = failed.createFailureTrace(testController());
         assertEquals(StructureFailureTrace.Kind.BLOCK_MISMATCH,
                 failureTrace.getKind());
-        assertEquals("dirty-piece", failureTrace.getPath());
+        assertEquals("active-graph", failureTrace.getPath());
         assertTrue(pieceRuntime.isValidated());
         assertTrue(pieceRuntime.isDirty());
         assertEquals(formedPositions, pieceRuntime.getPositions());
+    }
+
+    @Test
+    void fullContributionFoldMatchesActiveGraphOracle() {
+        RecordingElement firstElement = new RecordingElement(true);
+        RecordingElement secondElement = new RecordingElement(true);
+        StructurePiece first = new StructurePiece(
+                "first", template(firstElement), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructurePiece inactive = new StructurePiece(
+                "inactive", template(new RecordingElement(true)),
+                new Vec3i(0, 0, 1), OffsetMode.RELATIVE, () -> false);
+        StructurePiece second = new StructurePiece(
+                "second", template(secondElement),
+                new Vec3i(0, 0, 2), OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(asList(first, inactive, second));
+        StructureDefinition<?> definition = StructureDefinition.fromMultiPiecePattern(pattern);
+        StructureRuntime fullRuntime = new StructureRuntime(
+                definition, null, null, pattern, new PieceRuntimes(pattern));
+        StructureRuntime activeRuntime = new StructureRuntime(
+                null, null, null, pattern, new PieceRuntimes(pattern));
+
+        StructureCheckResult full = fullRuntime.check(checkRequest());
+        StructureCheckResult active = activeRuntime.checkActiveGraph(checkRequest());
+
+        assertTrue(full.isMatched());
+        assertTrue(active.isMatched());
+        assertContributionResultMatchesOracle(full);
+        assertContributionResultMatchesOracle(active);
+
+        StructureResultTable fullTable = full.getResultTable();
+        StructureResultTable activeTable = active.getResultTable();
+        assertNotNull(fullTable);
+        assertNotNull(activeTable);
+        assertEquals(3, fullTable.size());
+        assertEquals(PieceEvaluationResult.Status.INACTIVE,
+                fullTable.get("inactive").getStatus());
+        for (int i = 0; i < fullTable.size(); i++) {
+            PieceEvaluationResult fullPiece = fullTable.getResults().get(i);
+            PieceEvaluationResult activePiece = activeTable.getResults().get(i);
+            assertEquals(fullPiece.getPiece().getName(), activePiece.getPiece().getName());
+            assertEquals(fullPiece.getStatus(), activePiece.getStatus());
+            assertEquals(fullPiece.getResolvedCenter(), activePiece.getResolvedCenter());
+            assertEquals(fullPiece.getFormedPositions(), activePiece.getFormedPositions());
+            assertEquals(fullPiece.getContribution().getCounts(),
+                    activePiece.getContribution().getCounts());
+            assertEquals(fullPiece.getContribution().getVariantActiveBlocks(),
+                    activePiece.getContribution().getVariantActiveBlocks());
+        }
+
+        assertEquals(full.getMetadata().getPieceCenter("first"),
+                active.getMetadata().getPieceCenter("first"));
+        assertEquals(full.getMetadata().getPieceCenter("second"),
+                active.getMetadata().getPieceCenter("second"));
+        assertEquals(full.copyContext().getInt("channel"),
+                active.copyContext().getInt("channel"));
+        assertEquals(full.copyOperationState().getParts().size(),
+                active.copyOperationState().getParts().size());
+    }
+
+    @Test
+    void fullContributionFoldMatchesAggregateValidationFailure() {
+        MinimumCountElement element = new MinimumCountElement(5);
+        PieceTemplate pieceTemplate = template(element);
+        StructurePiece first = new StructurePiece(
+                "first", pieceTemplate, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructurePiece second = new StructurePiece(
+                "second", pieceTemplate, new Vec3i(0, 0, 2), OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(asList(first, second));
+        StructureDefinition<?> definition = StructureDefinition.fromMultiPiecePattern(pattern);
+        StructureRuntime fullRuntime = new StructureRuntime(
+                definition, null, null, pattern, new PieceRuntimes(pattern));
+        StructureRuntime activeRuntime = new StructureRuntime(
+                null, null, null, pattern, new PieceRuntimes(pattern));
+
+        StructureCheckResult full = fullRuntime.check(checkRequest());
+        StructureCheckResult active = activeRuntime.checkActiveGraph(checkRequest());
+
+        assertFalse(full.isMatched());
+        assertFalse(active.isMatched());
+        assertNotNull(full.getResultTable());
+        assertNotNull(active.getResultTable());
+        assertEquals(2, full.getResultTable().size());
+        assertEquals(2, active.getResultTable().size());
+        assertNotNull(full.getContributionAggregate());
+        assertNotNull(active.getContributionAggregate());
+        assertFalse(full.getContributionAggregate().isMatched());
+        assertFalse(active.getContributionAggregate().isMatched());
+        assertEquals(StructureFailureTrace.Kind.COUNT_LIMIT,
+                full.createFailureTrace(testController()).getKind());
+        assertEquals(StructureFailureTrace.Kind.COUNT_LIMIT,
+                active.createFailureTrace(testController()).getKind());
+    }
+
+    @Test
+    void snapshotRequestUsesDefinitionRuntimeTraversal() {
+        RecordingElement element = new RecordingElement(true);
+        StructureDefinition<?> definition = StructureDefinition.fromTemplate(
+                "snapshot", new BlockPatternTemplate(template(element)));
+        StructureRuntime runtime = StructureRuntime.fromDefinition(definition);
+        StructureOperationRequest request = StructureOperationRequest.snapshotCheck(
+                WORLD,
+                BlockPos.ORIGIN,
+                StructureOrientation.of(
+                        EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                null);
+
+        StructureSnapshotResult result = runtime.checkSnapshot(request);
+
+        assertEquals(StructureOperationRequest.Kind.SNAPSHOT_CHECK, request.getKind());
+        assertTrue(result.isSupported());
+        assertTrue(result.isMatched());
+        assertEquals(1, result.getProgressDepth());
     }
 
     private static RepeatGroupPiece repeatPiece(PieceTemplate template, int[] axes, int[] steps) {
@@ -221,6 +390,37 @@ class StructureTraversalBoundaryTest {
     }
 
     private static PieceTemplate template(RecordingElement element) {
+        TraceabilityPredicate center = TraceabilityPredicate.ANY;
+        TraceabilityPredicate other = TraceabilityPredicate.ANY;
+        TraceabilityPredicate[][][] predicates = new TraceabilityPredicate[][][] {
+                {
+                        { center },
+                        { other }
+                }
+        };
+        IStructureElement<?>[][][] elements = new IStructureElement<?>[][][] {
+                {
+                        { element.withPredicate(center) },
+                        { element.withPredicate(other) }
+                }
+        };
+        return new PieceTemplate(
+                predicates,
+                elements,
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 1, 1 }
+                },
+                null,
+                new int[] {0, 0, 0, 0, 0},
+                null);
+    }
+
+    private static PieceTemplate template(MinimumCountElement element) {
         TraceabilityPredicate center = TraceabilityPredicate.ANY;
         TraceabilityPredicate other = TraceabilityPredicate.ANY;
         TraceabilityPredicate[][][] predicates = new TraceabilityPredicate[][][] {
@@ -294,6 +494,23 @@ class StructureTraversalBoundaryTest {
         }
     }
 
+    private static void assertContributionResultMatchesOracle(
+            StructureCheckResult oracle) {
+        StructureAggregateFolder.Result aggregate = oracle.getContributionAggregate();
+        assertNotNull(aggregate);
+        assertTrue(aggregate.isMatched(), aggregate.getErrorMessage());
+        assertEquals(oracle.copyContext().getInt("channel"),
+                aggregate.copyCompatibilityContext().getInt("channel"));
+        assertEquals(oracle.copyOperationState().getParts().size(),
+                aggregate.copyOperationState().getParts().size());
+        assertEquals(oracle.copyOperationState().getVariantActiveBlocks(),
+                aggregate.copyOperationState().getVariantActiveBlocks());
+        assertEquals(oracle.getMetadata().getPieceCenter("first"),
+                aggregate.getMetadata().getPieceCenter("first"));
+        assertEquals(oracle.getMetadata().getPieceCenter("second"),
+                aggregate.getMetadata().getPieceCenter("second"));
+    }
+
     @SafeVarargs
     private static <T> List<T> asList(T... values) {
         List<T> result = new ArrayList<>();
@@ -339,6 +556,12 @@ class StructureTraversalBoundaryTest {
             return state.matches;
         }
 
+        @NotNull
+        @Override
+        public Set<StructureElementCapability> getCapabilities() {
+            return StructureElementCapability.snapshotSafe();
+        }
+
         @Override
         public boolean check(World world, BlockPos pos, PatternMatchContext context) {
             throw new AssertionError("context-aware check should be used");
@@ -377,6 +600,57 @@ class StructureTraversalBoundaryTest {
 
         private State(boolean matches) {
             this.matches = matches;
+        }
+    }
+
+    private static final class MinimumCountElement implements IStructureElement<Object> {
+
+        private final int minimum;
+        private final TraceabilityPredicate predicate;
+
+        private MinimumCountElement(int minimum) {
+            this(minimum, new TraceabilityPredicate());
+        }
+
+        private MinimumCountElement(int minimum,
+                                    TraceabilityPredicate predicate) {
+            this.minimum = minimum;
+            this.predicate = predicate;
+        }
+
+        private MinimumCountElement withPredicate(TraceabilityPredicate predicate) {
+            return new MinimumCountElement(minimum, predicate);
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            StructureMatchCollector collector = context.getCollector();
+            collector.declareCount(this, minimum, -1, null, null);
+            return collector.recordCount(this);
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            throw new AssertionError("context-aware check should be used");
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @Override
+        public TraceabilityPredicate toPredicate() {
+            return predicate;
         }
     }
 

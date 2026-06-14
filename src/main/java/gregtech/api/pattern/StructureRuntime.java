@@ -120,8 +120,22 @@ public final class StructureRuntime {
     }
 
     @NotNull
+    public StructureSnapshotResult checkSnapshot(@NotNull StructureOperationRequest request) {
+        return evaluator.checkSnapshot(request);
+    }
+
+    @NotNull
+    public StructureCheckResult checkActiveGraph(@NotNull StructureOperationRequest request) {
+        return evaluator.checkActiveGraph(request);
+    }
+
+    /**
+     * @deprecated The operation checks the complete active graph, not only dirty pieces.
+     */
+    @Deprecated
+    @NotNull
     public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
-        return evaluator.checkDirtyPieces(request);
+        return checkActiveGraph(request);
     }
 
     @NotNull

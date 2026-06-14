@@ -130,7 +130,9 @@ public final class StructureEvaluationContext<T> {
         boolean collectFormationState = operation.collectsFormationState();
         return session == null
                 ? new StructureMatchCollector(getLegacyContext(), collectFormationState)
-                : new StructureMatchCollector(session.getOperationState(), getLegacyContext(), collectFormationState);
+                : new StructureMatchCollector(
+                        session.getOperationState(), session.getContributionBuilder(),
+                        getLegacyContext(), collectFormationState);
     }
 
     @NotNull

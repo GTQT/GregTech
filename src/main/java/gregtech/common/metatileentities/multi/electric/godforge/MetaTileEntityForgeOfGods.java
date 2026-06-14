@@ -12,12 +12,9 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
-import gregtech.api.pattern.PieceRuntime;
-import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
@@ -510,34 +507,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         // any block in the registered structure changes. We delegate to super which handles
         // event-driven, async, and fallback polling modes automatically.
         super.doStructureCheck();
-    }
-
-    @Override
-    protected void checkMultiPieceStructure() {
-        if (multiPiecePattern == null) return;
-
-        StructurePiece beamShaft = multiPiecePattern.getPiece("beam_shaft");
-        PieceRuntimes runtimes = getPieceRuntimes();
-        PieceRuntime beamShaftRuntime = (beamShaft != null) ? runtimes.get(beamShaft) : null;
-        boolean beamShaftDirty = beamShaftRuntime != null
-                && beamShaft.isActive()
-                && beamShaftRuntime.isDirty();
-
-        boolean allValid = multiPiecePattern.checkDirtyPieces(
-                getWorld(), getPos(), StructureOrientation.fromController(this), runtimes, this);
-
-        if (!allValid && isStructureFormed()) {
-            invalidateStructure();
-            return;
-        }
-
-        if (beamShaftDirty && beamShaftRuntime != null && beamShaftRuntime.isValidated()) {
-            boolean reassembled = reassembleStructure(beamShaftRuntime.getState().getMatchContext());
-            if (reassembled && getWorld() != null && !getWorld().isRemote) {
-                MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
-                registerMultiPiecePattern();
-            }
-        }
     }
 
     private void logStructureFailure() {

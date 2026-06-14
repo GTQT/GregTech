@@ -69,6 +69,12 @@ public final class StructureCheckResult {
     @NotNull
     private final StructureChannelValues channelValues;
     private final boolean flipped;
+    @Nullable
+    private final PieceRuntimes.Publication runtimePublication;
+    @Nullable
+    private final StructureResultTable resultTable;
+    @Nullable
+    private final StructureAggregateFolder.Result contributionAggregate;
 
     private StructureCheckResult(@NotNull Source source,
                                  boolean matched,
@@ -84,7 +90,10 @@ public final class StructureCheckResult {
                                   @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
                                   @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
                                   @NotNull StructureChannelValues channelValues,
-                                 boolean flipped) {
+                                  boolean flipped,
+                                  @Nullable PieceRuntimes.Publication runtimePublication,
+                                  @Nullable StructureResultTable resultTable,
+                                  @Nullable StructureAggregateFolder.Result contributionAggregate) {
         this.source = source;
         this.matched = matched;
         this.context = context == null ? null : context.copy();
@@ -100,6 +109,9 @@ public final class StructureCheckResult {
         this.abilityCounts = Collections.unmodifiableMap(new LinkedHashMap<>(abilityCounts));
         this.channelValues = channelValues.copy();
         this.flipped = flipped;
+        this.runtimePublication = runtimePublication;
+        this.resultTable = resultTable;
+        this.contributionAggregate = contributionAggregate;
     }
 
     @NotNull
@@ -120,11 +132,14 @@ public final class StructureCheckResult {
                 result.missingAbilities,
                 result.abilityCounts,
                 context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
-                result.flipped);
+                result.flipped,
+                result.runtimePublication,
+                result.resultTable,
+                result.contributionAggregate);
     }
 
     @NotNull
-    public static StructureCheckResult fromDirtyPieceDefinition(
+    public static StructureCheckResult fromActiveGraphDefinition(
             boolean matched,
             @Nullable PatternMatchContext context,
             @Nullable StructureOperationState operationState,
@@ -132,7 +147,10 @@ public final class StructureCheckResult {
             @Nullable StructureFailureTrace failureTrace,
             @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
             @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts,
-            boolean flipped) {
+            boolean flipped,
+            @Nullable PieceRuntimes.Publication runtimePublication,
+            @Nullable StructureResultTable resultTable,
+            @Nullable StructureAggregateFolder.Result contributionAggregate) {
         return new StructureCheckResult(
                 Source.DEFINITION,
                 matched,
@@ -141,14 +159,17 @@ public final class StructureCheckResult {
                 metadata,
                 failureTrace == null ? null : failureTrace.getError(),
                 failureTrace == null ? null : failureTrace.getErrorPos(),
-                matched ? null : "Dirty-piece structure check failed",
+                matched ? null : "Active-graph structure check failed",
                 failureTrace,
-                "dirty-piece",
+                "active-graph",
                 null,
                 missingAbilities,
                 abilityCounts,
                 context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
-                flipped);
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate);
     }
 
     @NotNull
@@ -173,7 +194,10 @@ public final class StructureCheckResult {
                 matched ? Collections.emptyMap() : state.getMissingAbilities(),
                 Collections.emptyMap(),
                 matched ? StructureChannelValues.fromContext(context) : new StructureChannelValues(),
-                matched && context.neededFlip());
+                matched && context.neededFlip(),
+                null,
+                null,
+                null);
     }
 
     @NotNull
@@ -204,7 +228,10 @@ public final class StructureCheckResult {
                 missingAbilities,
                 abilityCounts,
                 channelValues,
-                flipped);
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate);
     }
 
     public boolean isMatched() {
@@ -248,6 +275,39 @@ public final class StructureCheckResult {
 
     public boolean isFlipped() {
         return flipped;
+    }
+
+    @Nullable
+    public StructureResultTable getResultTable() {
+        return resultTable;
+    }
+
+    @Nullable
+    public StructureAggregateFolder.Result getContributionAggregate() {
+        return contributionAggregate;
+    }
+
+    /**
+     * Publish operation-local piece runtimes after controller-side assembly
+     * validation succeeds.
+     *
+     * @return true when this result carried a publication payload
+     */
+    public boolean publishPieceRuntimes(@NotNull PieceRuntimes target) {
+        if (runtimePublication == null) {
+            return false;
+        }
+        target.publish(runtimePublication);
+        return true;
+    }
+
+    /**
+     * Validate the runtime publication before controller commit side effects.
+     */
+    public void validatePieceRuntimePublication(@NotNull PieceRuntimes target) {
+        if (runtimePublication != null) {
+            target.validatePublication(runtimePublication);
+        }
     }
 
     @NotNull

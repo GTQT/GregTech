@@ -3,7 +3,6 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceRuntimes;
-import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.util.world.DummyWorld;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -21,7 +20,6 @@ final class MultiblockStructureRegistration {
         if (controller.getWorld() instanceof DummyWorld || multiPiecePattern == null) {
             return;
         }
-        checkAllPieces(controller, multiPiecePattern, pieceRuntimes);
         registerMultiPiecePattern(controller, multiPiecePattern, pieceRuntimes);
     }
 
@@ -33,7 +31,6 @@ final class MultiblockStructureRegistration {
             return;
         }
         if (multiPiecePattern != null) {
-            checkAllPieces(controller, multiPiecePattern, pieceRuntimes);
             registerMultiPiecePattern(controller, multiPiecePattern, pieceRuntimes);
         } else if (multiblockState != null && !multiblockState.cache.isEmpty()) {
             LongSet positions = new LongOpenHashSet(multiblockState.cache.keySet());
@@ -62,7 +59,6 @@ final class MultiblockStructureRegistration {
             return;
         }
 
-        checkAllPieces(controller, multiPiecePattern, pieceRuntimes);
         MultiblockWorldData worldData = MultiblockWorldData.get(controller.getWorld());
         worldData.unregisterMultiblock(controller);
         registerMultiPiecePattern(controller, multiPiecePattern, pieceRuntimes);
@@ -95,10 +91,4 @@ final class MultiblockStructureRegistration {
         }
     }
 
-    private static void checkAllPieces(@NotNull MultiblockControllerBase controller,
-                                       @NotNull MultiPiecePattern multiPiecePattern,
-                                       @Nullable PieceRuntimes pieceRuntimes) {
-        multiPiecePattern.checkAllPieces(controller.getWorld(), controller.getPos(),
-                StructureOrientation.fromController(controller), pieceRuntimes, controller);
-    }
 }

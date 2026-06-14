@@ -54,7 +54,7 @@ final class MultiblockStructureCommitter {
         }
 
         commit(controller, runtime, context, prepared, result.getMetadata(),
-                result.copyChannelValues(), result.isFlipped(), result.getTracePath());
+                result.copyChannelValues(), result.isFlipped(), result.getTracePath(), result);
         if (prepared.initial) {
             registerInitialCommit(controller, result.getSource());
             return;
@@ -82,7 +82,7 @@ final class MultiblockStructureCommitter {
 
         return commit(controller, requireRuntime(controller), context, prepared,
                 controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
-                context.neededFlip(), "runtime");
+                context.neededFlip(), "runtime", null);
     }
 
     private static boolean commit(
@@ -93,7 +93,11 @@ final class MultiblockStructureCommitter {
             @Nullable FormedStructureMetadata metadata,
             @NotNull StructureChannelValues channelValues,
             boolean flipped,
-            @NotNull String path) {
+            @NotNull String path,
+            @Nullable StructureCheckResult result) {
+        if (result != null && controller.pieceRuntimes != null) {
+            result.validatePieceRuntimePublication(controller.pieceRuntimes);
+        }
         controller.setFlipped(flipped);
 
         if (prepared.changed) {
@@ -109,6 +113,9 @@ final class MultiblockStructureCommitter {
             }
         }
 
+        if (result != null && controller.pieceRuntimes != null) {
+            result.publishPieceRuntimes(controller.pieceRuntimes);
+        }
         runtime.commitSuccessfulCheck(metadata, channelValues);
         if (prepared.initial) {
             controller.publishStructureFormed();

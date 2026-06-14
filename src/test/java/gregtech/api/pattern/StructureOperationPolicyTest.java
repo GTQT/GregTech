@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 
 import net.minecraft.util.math.BlockPos;
@@ -73,6 +74,7 @@ class StructureOperationPolicyTest {
     @Test
     void requestKindsMapToOperationPolicy() {
         assertSame(MATCH_WORLD, StructureOperationRequest.Kind.CHECK.getEvaluationOperation());
+        assertSame(MATCH_SNAPSHOT, StructureOperationRequest.Kind.SNAPSHOT_CHECK.getEvaluationOperation());
         assertSame(PREVIEW, StructureOperationRequest.Kind.PREVIEW.getEvaluationOperation());
         assertSame(HINT, StructureOperationRequest.Kind.HINT.getEvaluationOperation());
         assertSame(CREATIVE_BUILD, StructureOperationRequest.Kind.CREATIVE_BUILD.getEvaluationOperation());
@@ -130,6 +132,26 @@ class StructureOperationPolicyTest {
         assertNull(legacyContext.get("tier"));
         assertTrue(session.getOperationState().getVariantActiveBlocks().isEmpty());
         assertTrue(session.getOperationState().getParts().isEmpty());
+    }
+
+    @Test
+    void abilityContributorIsCountedOncePerPartIdentity() {
+        MultiblockAbility<Object> ability =
+                new MultiblockAbility<>("test_contribution_ability", Object.class);
+        StructureMatchSession session = new StructureMatchSession();
+        PatternMatchContext legacyContext = new PatternMatchContext();
+        StructureEvaluationContext<Object> context = new StructureEvaluationContext<>();
+        context.update(null, session, newWorldState(legacyContext), MATCH_WORLD);
+        StructureMatchCollector collector = context.getCollector();
+        TestPart part = new TestPart();
+        collector.declareAbility("ability", ability, 0, 1);
+
+        assertTrue(collector.recordAbility("ability", part));
+        assertTrue(collector.recordAbility("ability", part));
+
+        assertEquals(1, collector.getAbilityCount("ability"));
+        assertEquals(1, session.getOperationState().getAbilityCounts().get(ability));
+        assertEquals(1, session.getOperationState().getParts().size());
     }
 
     private static BlockWorldState newWorldState(PatternMatchContext legacyContext) {

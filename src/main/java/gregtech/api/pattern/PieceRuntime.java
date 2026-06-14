@@ -124,6 +124,18 @@ public final class PieceRuntime {
                 : checkpoint.lastAggregatedContext.copy();
     }
 
+    @NotNull
+    Publication capturePublication() {
+        return new Publication(piece, new Checkpoint(this));
+    }
+
+    void publish(@NotNull Publication publication) {
+        if (publication.piece != piece) {
+            throw new IllegalArgumentException("Piece runtime publication belongs to a different piece");
+        }
+        restoreTo(publication.checkpoint);
+    }
+
     // --- Repeat group search cache (RepeatGroupPiece only) ---
 
     /** Cache the formed repeat counts for this piece. */
@@ -184,6 +196,20 @@ public final class PieceRuntime {
             this.lastAggregatedContext = runtime.lastAggregatedContext == null
                     ? null
                     : runtime.lastAggregatedContext.copy();
+        }
+    }
+
+    static final class Publication {
+
+        @NotNull
+        private final StructurePiece piece;
+        @NotNull
+        private final Checkpoint checkpoint;
+
+        private Publication(@NotNull StructurePiece piece,
+                            @NotNull Checkpoint checkpoint) {
+            this.piece = piece;
+            this.checkpoint = checkpoint;
         }
     }
 }

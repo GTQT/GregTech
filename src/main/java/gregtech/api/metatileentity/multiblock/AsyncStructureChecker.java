@@ -1,14 +1,10 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.MultiPiecePattern;
-import gregtech.api.pattern.PieceRuntime;
-import gregtech.api.pattern.PieceRuntimes;
-import gregtech.api.pattern.StructureMatchSession;
-import gregtech.api.pattern.StructureActivationContext;
+import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
-import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureSnapshotResult;
 import gregtech.api.pattern.StructureTrace;
-import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTLog;
 
@@ -20,7 +16,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
@@ -431,59 +426,18 @@ public class AsyncStructureChecker {
 
     /**
      * Perform pattern matching against a snapshot (runs on async thread).
-     * Uses a temporary {@link PieceRuntimes} to avoid data race with the main thread.
      * Only returns whether the pattern matched; the main thread will do a confirmatory check.
      *
      * <p>All controllers expose a {@link StructureDefinition}; legacy templates
      * are adapted before this checker sees them.
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
-        StructureDefinition<?> definition = task.token.definition;
-        return performDefinitionCheck(task, definition, false)
-                || task.token.orientation.allowsFlip() && performDefinitionCheck(task, definition, true);
-    }
-
-    private boolean performDefinitionCheck(@NotNull SnapshotTask task,
-                                           @NotNull StructureDefinition<?> definition,
-                                           boolean flipped) {
-        MultiPiecePattern multiPiece = definition.getCompiledPattern();
-        PieceRuntimes asyncRuntimes = new PieceRuntimes(multiPiece);
-        StructureMatchSession session = multiPiece.createMatchSession();
-        session.setControllerContext(task.token.controller);
-        StructureOrientation orientation = task.token.orientation.withFlipped(flipped);
-        Map<String, int[]> pieceRepeats = new HashMap<>();
-        Map<String, BlockPos> pieceCenters = new HashMap<>();
-
-        for (StructurePiece piece : multiPiece.getPieceList()) {
-            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
-                    new HashMap<>(pieceRepeats), new HashMap<>(), new HashMap<>(pieceCenters));
-            StructureActivationContext<MultiblockControllerBase> activation =
-                    new StructureActivationContext<>(
-                            task.token.controller, null, task.token.centerPos, prior, session);
-            if (!piece.isActive(activation)) continue;
-            PieceRuntime runtime = asyncRuntimes.get(piece);
-            BlockPos checkOrigin;
-            if (piece instanceof gregtech.api.pattern.RepeatGroupPiece) {
-                checkOrigin = task.token.centerPos;
-            } else {
-                checkOrigin = piece.getCenterPos(task.token.centerPos, orientation, prior);
-            }
-
-            StructureMatchSession pieceSession = session.fork();
-            if (!piece.checkOnSnapshot(task.snapshot, checkOrigin, orientation, prior, runtime, pieceSession)) {
-                return false;
-            }
-            pieceSession.commit();
-
-            int[] reps = piece instanceof gregtech.api.pattern.RepeatGroupPiece
-                    ? runtime.getLastFormedReps()
-                    : runtime.getState().formedRepetitionCount;
-            if (reps != null && reps.length > 0) {
-                pieceRepeats.put(piece.getName(), reps.clone());
-            }
-            pieceCenters.put(piece.getName(), piece.getCenterPos(task.token.centerPos, orientation, prior));
-        }
-        return session.validate(false).success;
+        StructureRuntime runtime = StructureRuntime.fromDefinition(task.token.definition);
+        StructureSnapshotResult result = runtime.checkSnapshot(
+                StructureOperationRequest.snapshotCheck(
+                        task.snapshot, task.token.centerPos, task.token.orientation,
+                        task.token.controller));
+        return result.isMatched();
     }
 
     private static BlockPos[] unionAABB(@NotNull BlockPos[] first, @NotNull BlockPos[] second) {

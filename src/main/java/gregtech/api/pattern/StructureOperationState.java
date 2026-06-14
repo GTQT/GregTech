@@ -32,6 +32,7 @@ public final class StructureOperationState {
     final Map<Object, Integer> counts = new HashMap<>();
     final Map<MultiblockAbility<?>, Integer> abilityCounts = new HashMap<>();
     final Map<MultiblockAbility<?>, Set<IMultiblockPart>> abilityParts = new HashMap<>();
+    final Map<Object, Set<IMultiblockPart>> countedAbilityParts = new HashMap<>();
     final Set<IMultiblockPart> parts = new HashSet<>();
     final List<BlockPos> variantActiveBlocks = new ArrayList<>();
 
@@ -56,6 +57,10 @@ public final class StructureOperationState {
         abilityParts.clear();
         for (Map.Entry<MultiblockAbility<?>, Set<IMultiblockPart>> entry : source.abilityParts.entrySet()) {
             abilityParts.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+        countedAbilityParts.clear();
+        for (Map.Entry<Object, Set<IMultiblockPart>> entry : source.countedAbilityParts.entrySet()) {
+            countedAbilityParts.put(entry.getKey(), new HashSet<>(entry.getValue()));
         }
         parts.clear();
         parts.addAll(source.parts);
