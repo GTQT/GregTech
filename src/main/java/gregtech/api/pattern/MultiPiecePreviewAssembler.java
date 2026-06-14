@@ -51,6 +51,7 @@ public final class MultiPiecePreviewAssembler {
                                   @Nullable MultiblockControllerBase controller) {
         Map<BlockPos, BlockInfo> allBlocks = new HashMap<>();
         Map<BlockPos, TraceabilityPredicate> allPredicates = new HashMap<>();
+        Map<BlockPos, StructureElementPreviewEntry> allPreviewEntries = new HashMap<>();
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
         List<PieceResult> pieceResults = new ArrayList<>();
@@ -93,9 +94,10 @@ public final class MultiPiecePreviewAssembler {
                     if (info == null || info.getBlockState() == null) continue;
                     BlockPos baseRelative = entry.getKey().subtract(preview.getCenter());
                     TraceabilityPredicate predicate = preview.getPredicates().get(entry.getKey());
+                    StructureElementPreviewEntry previewEntry = preview.getPreviewEntries().get(entry.getKey());
                     BlockInfo selected = info;
                     if (!abilityTracker.canPlace(selected)) {
-                        selected = findFallback(predicate, abilityTracker);
+                        selected = findFallback(previewEntry, predicate, abilityTracker);
                     }
                     abilityTracker.record(selected);
 
@@ -108,6 +110,11 @@ public final class MultiPiecePreviewAssembler {
                 for (Map.Entry<BlockPos, TraceabilityPredicate> entry : preview.getPredicates().entrySet()) {
                     BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
                     allPredicates.put(pieceCenter.add(relative), entry.getValue());
+                }
+
+                for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : preview.getPreviewEntries().entrySet()) {
+                    BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
+                    allPreviewEntries.put(pieceCenter.add(relative), entry.getValue());
                 }
             });
 
@@ -135,11 +142,18 @@ public final class MultiPiecePreviewAssembler {
                     entry.getKey().getY() - combined.minY,
                     entry.getKey().getZ() - combined.minZ), entry.getValue());
         }
+        Map<BlockPos, StructureElementPreviewEntry> normalizedPreviewEntries = new HashMap<>();
+        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : allPreviewEntries.entrySet()) {
+            normalizedPreviewEntries.put(new BlockPos(
+                    entry.getKey().getX() - combined.minX,
+                    entry.getKey().getY() - combined.minY,
+                    entry.getKey().getZ() - combined.minZ), entry.getValue());
+        }
 
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 pieceRepeats, channelValues == null ? Collections.emptyMap() : channelValues,
                 pieceCenters);
-        return new Result(combined.shape, normalizedPredicates, pieceResults, metadata);
+        return new Result(combined.shape, normalizedPredicates, normalizedPreviewEntries, pieceResults, metadata);
     }
 
     /**
@@ -276,8 +290,13 @@ public final class MultiPiecePreviewAssembler {
     }
 
     @NotNull
-    private static BlockInfo findFallback(@Nullable TraceabilityPredicate predicate,
+    private static BlockInfo findFallback(@Nullable StructureElementPreviewEntry previewEntry,
+                                          @Nullable TraceabilityPredicate predicate,
                                           @NotNull AbilityPlacementTracker abilityTracker) {
+        BlockInfo typed = findFallback(previewEntry, abilityTracker);
+        if (typed != null) {
+            return typed;
+        }
         if (predicate == null) return BlockInfo.EMPTY;
 
         BlockInfo allowedHatch = null;
@@ -294,6 +313,44 @@ public final class MultiPiecePreviewAssembler {
             if (allowedHatch == null) allowedHatch = fallback;
         }
         return allowedHatch == null ? BlockInfo.EMPTY : allowedHatch;
+    }
+
+    @Nullable
+    private static BlockInfo findFallback(@Nullable StructureElementPreviewEntry previewEntry,
+                                          @NotNull AbilityPlacementTracker abilityTracker) {
+        if (previewEntry == null || previewEntry.getPreview().isEmpty()) {
+            return null;
+        }
+        BlockInfo allowedHatch = null;
+        for (gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group :
+                previewEntry.getPreview().getLimited()) {
+            BlockInfo fallback = findFallback(group, abilityTracker);
+            if (fallback == null) continue;
+            if (fallback.getTileEntity() == null) return fallback;
+            if (allowedHatch == null) allowedHatch = fallback;
+        }
+        for (gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group :
+                previewEntry.getPreview().getCommon()) {
+            BlockInfo fallback = findFallback(group, abilityTracker);
+            if (fallback == null) continue;
+            if (fallback.getTileEntity() == null) return fallback;
+            if (allowedHatch == null) allowedHatch = fallback;
+        }
+        return allowedHatch;
+    }
+
+    @Nullable
+    private static BlockInfo findFallback(
+            @NotNull gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group,
+            @NotNull AbilityPlacementTracker abilityTracker) {
+        for (BlockInfo candidate : group.getCandidates()) {
+            if (candidate != null
+                    && candidate.getBlockState().getBlock() != Blocks.AIR
+                    && abilityTracker.canPlace(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     @Nullable
@@ -349,15 +406,18 @@ public final class MultiPiecePreviewAssembler {
 
         private final MultiblockShapeInfo shape;
         private final Map<BlockPos, TraceabilityPredicate> predicates;
+        private final Map<BlockPos, StructureElementPreviewEntry> previewEntries;
         private final List<PieceResult> pieces;
         private final FormedStructureMetadata metadata;
 
         private Result(@NotNull MultiblockShapeInfo shape,
                        @NotNull Map<BlockPos, TraceabilityPredicate> predicates,
+                       @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries,
                        @NotNull List<PieceResult> pieces,
                        @NotNull FormedStructureMetadata metadata) {
             this.shape = shape;
             this.predicates = predicates;
+            this.previewEntries = previewEntries;
             this.pieces = pieces;
             this.metadata = metadata;
         }
@@ -387,6 +447,11 @@ public final class MultiPiecePreviewAssembler {
         @NotNull
         public Map<BlockPos, TraceabilityPredicate> getPredicates() {
             return predicates;
+        }
+
+        @NotNull
+        public Map<BlockPos, StructureElementPreviewEntry> getPreviewEntries() {
+            return previewEntries;
         }
 
         @NotNull

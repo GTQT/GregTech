@@ -5,6 +5,7 @@ import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
+import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureOperationRequest;
@@ -39,6 +40,7 @@ final class MultiblockStructureOperations {
 
     static void checkStructurePattern(@NotNull MultiblockControllerBase controller) {
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
+        StructureCommitToken token = StructureCommitToken.captureForCheck(controller);
         StructureTrace.debug(controller, "check-start", runtime.describeShape());
         StructureCheckResult result = runtime.check(
                 StructureOperationRequest.check(
@@ -48,11 +50,12 @@ final class MultiblockStructureOperations {
                         controller.isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample,
                         null,
                         controller));
-        MultiblockStructureCommitter.applyCheckResult(controller, result);
+        MultiblockStructureCommitter.applyCheckResult(controller, result, token);
     }
 
     static void checkActiveGraph(@NotNull MultiblockControllerBase controller) {
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
+        StructureCommitToken token = StructureCommitToken.captureForCheck(controller);
         StructureTrace.debug(controller, "active-graph-check-start", runtime.describeShape());
         StructureCheckResult result = runtime.checkActiveGraph(
                 StructureOperationRequest.check(
@@ -62,13 +65,14 @@ final class MultiblockStructureOperations {
                         false,
                         null,
                         controller));
-        MultiblockStructureCommitter.applyCheckResult(controller, result);
+        MultiblockStructureCommitter.applyCheckResult(controller, result, token);
         MultiblockStructureRegistration.refreshMultiPieceRegistrationFromRuntime(
                 controller, controller.multiPiecePattern, controller.pieceRuntimes);
     }
 
     static void checkIncrementalGraph(@NotNull MultiblockControllerBase controller) {
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
+        StructureCommitToken token = StructureCommitToken.captureForCheck(controller);
         StructureTrace.debug(controller, "incremental-check-start", runtime.describeShape());
         StructureCheckResult result = runtime.checkIncremental(
                 StructureOperationRequest.check(
@@ -78,7 +82,7 @@ final class MultiblockStructureOperations {
                         false,
                         null,
                         controller));
-        MultiblockStructureCommitter.applyCheckResult(controller, result);
+        MultiblockStructureCommitter.applyCheckResult(controller, result, token);
     }
 
     @NotNull
@@ -151,6 +155,15 @@ final class MultiblockStructureOperations {
         return MultiblockStructurePreviews.buildMultiPiecePredicateMap(
                 controller, controller.multiPiecePattern, controller.pieceRuntimes,
                 controller.getStructureRuntime());
+    }
+
+    @NotNull
+    static Map<BlockPos, StructureElementPreviewEntry> buildMultiPiecePreviewEntries(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructurePreviews.buildMultiPiecePreviewEntries(
+                controller, controller.multiPiecePattern, controller.pieceRuntimes,
+                controller.getStructureRuntime(), channelValues);
     }
 
     @Nullable

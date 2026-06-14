@@ -1,39 +1,29 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.StructureFailureTrace;
-import gregtech.api.pattern.StructureRuntime;
-import gregtech.api.pattern.StructureTrace;
-import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.GTLog;
-import gregtech.api.util.world.DummyWorld;
 import gregtech.common.ConfigHolder;
 
 final class MultiblockStructureCheckScheduler {
 
-    /** Interval (in ticks) before falling back to a main-thread check when async check has not formed. */
-    private static final int ASYNC_FALLBACK_INTERVAL = 100;
-
     private int asyncCheckFallbackTicks;
 
     void doStructureCheck(MultiblockControllerBase controller) {
+        StructureSchedulerPolicy policy = controller.getStructureSchedulerPolicy();
         // First tick always performs a full structure check on main thread.
-        if (controller.isFirstTick()) {
+        if (policy.shouldRunFirstTickCheck(controller)) {
             controller.checkStructurePattern();
             return;
         }
 
-        if (tryEventDrivenRecheck(controller)) {
+        if (tryEventDrivenRecheck(controller, policy)) {
             return;
         }
 
-        if (tryAsyncCheck(controller)) {
+        if (tryAsyncCheck(controller, policy)) {
             return;
         }
 
-        int interval = controller.isWorkingForStructureCheck()
-                ? controller.getStructureCheckIntervalWorking()
-                : controller.getStructureCheckIntervalStandby();
-        if (controller.getOffsetTimer() % interval == 0) {
+        if (policy.shouldPollingCheck(controller)) {
             controller.checkStructurePattern();
         }
     }
@@ -42,15 +32,13 @@ final class MultiblockStructureCheckScheduler {
         asyncCheckFallbackTicks = 0;
     }
 
-    private boolean tryEventDrivenRecheck(MultiblockControllerBase controller) {
-        if (!ConfigHolder.machines.enableEventDrivenStructureCheck
-                || !controller.isStructureFormed()
-                || controller.getWorld() == null
-                || controller.getWorld() instanceof DummyWorld) {
+    private boolean tryEventDrivenRecheck(MultiblockControllerBase controller,
+                                          StructureSchedulerPolicy policy) {
+        if (!policy.allowsEventDriven(controller)) {
             return false;
         }
 
-        MultiblockWorldData.DirtyCheckDecision decision = MultiblockWorldData.get(controller.getWorld())
+        MultiblockWorldData.DirtyCheckLease decision = MultiblockWorldData.get(controller.getWorld())
                 .consumeDirtyCheck(controller, controller.getWorld().getTotalWorldTime());
         if (!decision.isRegistered()) {
             return false;
@@ -76,28 +64,16 @@ final class MultiblockStructureCheckScheduler {
         return true;
     }
 
-    private boolean tryAsyncCheck(MultiblockControllerBase controller) {
+    private boolean tryAsyncCheck(MultiblockControllerBase controller,
+                                  StructureSchedulerPolicy policy) {
         AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
-        if (!ConfigHolder.machines.enableAsyncStructureCheck
-                || !controller.allowsAsyncStructureCheck()
-                || controller.isStructureFormed()
-                || controller.getWorld() == null
-                || controller.getWorld().isRemote
-                || controller.getWorld() instanceof DummyWorld
-                || !checker.isRunning()) {
-            checker.unregister(controller);
-            return false;
-        }
-        if (!controller.getStructureDefinition().supportsElementCapability(
-                StructureElementCapability.SNAPSHOT_MATCH)) {
-            recordCapabilityUnsupported(controller, StructureElementCapability.SNAPSHOT_MATCH);
-            checker.unregister(controller);
+        if (!policy.allowsAsync(controller, checker)) {
             return false;
         }
 
         checker.registerForAsyncCheck(controller);
         asyncCheckFallbackTicks++;
-        if (asyncCheckFallbackTicks >= ASYNC_FALLBACK_INTERVAL) {
+        if (asyncCheckFallbackTicks >= StructureSchedulerPolicy.ASYNC_FALLBACK_INTERVAL) {
             asyncCheckFallbackTicks = 0;
             if (ConfigHolder.machines.debugStructureCheck) {
                 GTLog.logger.debug("[StructureCheck] Async fallback triggered for {}", controller.getMetaName());
@@ -108,20 +84,5 @@ final class MultiblockStructureCheckScheduler {
             }
         }
         return true;
-    }
-
-    private static void recordCapabilityUnsupported(
-            MultiblockControllerBase controller,
-            StructureElementCapability capability) {
-        StructureRuntime runtime = controller.getStructureRuntime();
-        if (runtime == null) {
-            return;
-        }
-        runtime.recordLifecycleFailure(StructureTrace.lifecycleFailure(
-                controller,
-                "definition",
-                "ASYNC",
-                StructureFailureTrace.Kind.CAPABILITY_UNSUPPORTED,
-                "Structure definition does not support " + capability));
     }
 }

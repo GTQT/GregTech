@@ -12,10 +12,12 @@ import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.RepeatGroupPiece;
-import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementPreview;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
@@ -41,6 +43,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.client.util.ITooltipFlag.TooltipFlags;
 import net.minecraft.item.EnumRarity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -70,6 +73,7 @@ import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeWrapper;
 import mezz.jei.gui.recipes.RecipeLayout;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
@@ -112,7 +116,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final Map<GuiButton, Runnable> buttons = new HashMap<>();
     private final List<ItemStack> allItemStackInputs = new ArrayList<>();
     private final GuiButton nextLayerButton;
-    private final List<TraceabilityPredicate.SimplePredicate> predicates;
+    private final List<PreviewCandidate> previewCandidates;
     private final Map<String, Integer> channelValues = new HashMap<>();
     private final List<StructureChannel> supportedChannels;
     private final int[][] channelRanges; // [channelIdx][0=min, 1=max]
@@ -128,9 +132,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private IDrawable slot;
     private IDrawable infoIcon;
     private boolean drawInfoIcon;
-    private List<String> predicateTips;
+    private List<String> previewTips;
     private BlockPos selected;
-    private TraceabilityPredicate father;
     // Candidate cycling state for 3D in-place rendering
     private int candidateCycleIndex = 0;
     private long lastCandidateCycleTime = 0L;
@@ -155,7 +158,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 ICON_SIZE, "");
 
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
-        this.predicates = new ArrayList<>();
+        this.previewCandidates = new ArrayList<>();
         GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
     }
 
@@ -258,15 +261,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             candidateCycleIndex++;
         }
 
-        // Collect all candidate BlockInfo from all predicates
+        // Collect all candidate BlockInfo from typed preview groups.
         List<BlockInfo> allCandidateBlocks = new ArrayList<>();
-        for (TraceabilityPredicate.SimplePredicate predicate : predicates) {
-            if (predicate.candidates != null) {
-                BlockInfo[] infos = predicate.candidates.get();
-                for (BlockInfo info : infos) {
-                    if (info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
-                        allCandidateBlocks.add(info);
-                    }
+        for (PreviewCandidate candidate : previewCandidates) {
+            for (BlockInfo info : candidate.getBlockCandidates()) {
+                if (info != null && info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
+                    allCandidateBlocks.add(info);
                 }
             }
         }
@@ -356,8 +356,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         preparePlaceForParts(border.getHeight());
         if (Mouse.getEventDWheel() == 0 || lastWrapper != this) {
             selected = null;
-            this.predicates.clear();
-            this.father = null;
+            this.previewCandidates.clear();
             lastWrapper = this;
             this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
             this.nextLayerButton.y = LAYER_BUTTON_Y;
@@ -370,7 +369,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         } else {
             zoom = (float) MathHelper.clamp(zoom + (Mouse.getEventDWheel() < 0 ? 0.5 : -0.5), 3, 999);
             setNextLayer(getLayerIndex());
-            if (predicates != null && predicates.size() > 0) {
+            if (!previewCandidates.isEmpty()) {
                 setItemStackGroup();
             }
         }
@@ -479,11 +478,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 Math.toRadians(rotationYaw));
         if (this.selected != null) {
             this.selected = null;
-            for (int i = 0; i < predicates.size(); i++) {
+            for (int i = 0; i < previewCandidates.size(); i++) {
                 recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
             }
-            predicates.clear();
-            this.father = null;
+            previewCandidates.clear();
         }
     }
 
@@ -554,7 +552,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
 
         // Draw right-side candidate slots (overlaid on 3D scene, no overlap with left panel)
-        for (int i = 0; i < predicates.size() && i < MAX_CANDIDATES; i++) {
+        for (int i = 0; i < previewCandidates.size() && i < MAX_CANDIDATES; i++) {
             int col = i / CANDIDATES_PER_COL;
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
@@ -638,7 +636,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         // 悬停检测（仅当未拖拽时）
         tooltipBlockStack = null;
-        this.predicateTips = null;
+        this.previewTips = null;
         RayTraceResult rayTraceResult = renderer.getLastTraceResult();
 
         if (!(leftClickHeld || rightClickHeld) && insideView && rayTraceResult != null &&
@@ -650,30 +648,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     rayTraceResult.getBlockPos(), minecraft.player
             );
 
-            TraceabilityPredicate predicates = patterns[0].getPredicateMap()
-                    .get(rayTraceResult.getBlockPos());
-            if (predicates != null) {
-                BlockWorldState worldState = new BlockWorldState();
-                worldState.update(renderer.world, rayTraceResult.getBlockPos(), new PatternMatchContext(),
-                        new HashMap<>(), new HashMap<>(), predicates);
-
-                // 优先匹配common predicates
-                for (TraceabilityPredicate.SimplePredicate common : predicates.common) {
-                    if (common.test(worldState)) {
-                        predicateTips = common.getToolTips(predicates);
-                        break;
-                    }
-                }
-                // 未匹配则尝试limited predicates
-                if (predicateTips == null) {
-                    for (TraceabilityPredicate.SimplePredicate limit : predicates.limited) {
-                        if (limit.test(worldState)) {
-                            predicateTips = limit.getToolTips(predicates);
-                            break;
-                        }
-                    }
-                }
-            }
+            this.previewTips = previewTooltipFor(renderer.world, rayTraceResult.getBlockPos());
             if (!itemStack.isEmpty()) {
                 tooltipBlockStack = itemStack;
             }
@@ -818,8 +793,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     this.selected = null;
                     // Clear predicates without directly accessing item stacks
                     // JEI will handle clearing the slots when they are re-initialized
-                    predicates.clear();
-                    this.father = null;
+                    previewCandidates.clear();
                     this.candidateCycleIndex = 0;
                     this.lastCandidateCycleTime = 0L;
                     return true;
@@ -830,22 +804,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (!Objects.equals(this.selected, selected)) {
                 // Clear old predicates without accessing item stacks directly
                 // The item stacks will be properly cleared in setItemStackGroup when new slots are initialized
-                predicates.clear();
-                this.father = null;
+                previewCandidates.clear();
                 this.selected = selected;
                 // Reset candidate cycling state for 3D in-place preview
                 this.candidateCycleIndex = 0;
                 this.lastCandidateCycleTime = 0L;
-                TraceabilityPredicate predicate = patterns[0].getPredicateMap().get(this.selected);
-                if (predicate != null) {
-                    predicates.addAll(predicate.common);
-                    predicates.addAll(predicate.limited);
-                    predicates.removeIf(p -> p.candidates == null);
-                    this.father = predicate;
-                    // Only call setItemStackGroup if we have valid predicates
-                    if (!predicates.isEmpty()) {
-                        setItemStackGroup();
-                    }
+                previewCandidates.addAll(loadPreviewCandidates(this.selected));
+                // Only call setItemStackGroup if we have valid candidates
+                if (!previewCandidates.isEmpty()) {
+                    setItemStackGroup();
                 }
                 // Mark FBO dirty so scene re-renders with candidate block cycling
                 if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
@@ -858,7 +825,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void setItemStackGroup() {
-        if (predicates.isEmpty())
+        if (previewCandidates.isEmpty())
             return;
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         IDrawable border = recipeLayout.getRecipeCategory().getBackground();
@@ -874,17 +841,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         
         // Place candidate slots on the right side (no overlap with left parts panel)
-        int count = Math.min(predicates.size(), MAX_CANDIDATES);
+        int count = Math.min(previewCandidates.size(), MAX_CANDIDATES);
         for (int i = 0; i < count; i++) {
             int col = i / CANDIDATES_PER_COL;
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
             int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
             itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
-            // Safety check: ensure predicate has candidates before setting
-            TraceabilityPredicate.SimplePredicate pred = predicates.get(i);
-            if (pred != null && pred.getCandidates() != null) {
-                itemStackGroup.set(i + MAX_PARTS, pred.getCandidates());
+            PreviewCandidate candidate = previewCandidates.get(i);
+            if (candidate != null && !candidate.getItemCandidates().isEmpty()) {
+                itemStackGroup.set(i + MAX_PARTS, candidate.getItemCandidates());
             } else {
                 itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
             }
@@ -892,19 +858,107 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         // Add tooltip callback with safety checks
         itemStackGroup.addTooltipCallback((slotIndex, input, itemStack, tooltip) -> {
-            if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + predicates.size()) {
+            if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + previewCandidates.size()) {
                 int predIndex = slotIndex - MAX_PARTS;
-                if (predIndex >= 0 && predIndex < predicates.size()) {
-                    TraceabilityPredicate.SimplePredicate pred = predicates.get(predIndex);
-                    if (pred != null && father != null) {
-                        List<String> tips = pred.getToolTips(father);
-                        if (tips != null) {
-                            tooltip.addAll(tips);
-                        }
-                    }
+                if (predIndex >= 0 && predIndex < previewCandidates.size()) {
+                    tooltip.addAll(previewCandidates.get(predIndex).getTooltip());
                 }
             }
         });
+    }
+
+    @NotNull
+    private List<String> previewTooltipFor(@NotNull World world, @NotNull BlockPos pos) {
+        StructureElementPreviewEntry entry = patterns[0].getPreviewEntry(pos);
+        if (entry != null && !entry.getTooltip().isEmpty()) {
+            return entry.getTooltip();
+        }
+
+        TraceabilityPredicate predicate = patterns[0].getLegacyPredicateFallback(pos);
+        if (predicate == null) {
+            return Collections.emptyList();
+        }
+        List<String> legacyTips = matchLegacyTooltip(world, pos, StructureElementPreview.fromPredicate(predicate),
+                predicate);
+        return legacyTips == null ? Collections.emptyList() : legacyTips;
+    }
+
+    @Nullable
+    private static List<String> matchLegacyTooltip(@NotNull World world,
+                                                   @NotNull BlockPos pos,
+                                                   @NotNull StructureElementPreview preview,
+                                                   @NotNull TraceabilityPredicate predicate) {
+        BlockWorldState worldState = new BlockWorldState();
+        worldState.update(world, pos, new PatternMatchContext(), new HashMap<>(), new HashMap<>(), predicate);
+
+        for (StructureElementPreview.CandidateGroup common : preview.getCommon()) {
+            TraceabilityPredicate.SimplePredicate legacy = common.getLegacyPredicate();
+            if (legacy != null && legacy.test(worldState)) {
+                return common.getTooltip();
+            }
+        }
+        for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
+            TraceabilityPredicate.SimplePredicate legacy = limit.getLegacyPredicate();
+            if (legacy != null && legacy.test(worldState)) {
+                return limit.getTooltip();
+            }
+        }
+        return null;
+    }
+
+    @NotNull
+    private List<PreviewCandidate> loadPreviewCandidates(@NotNull BlockPos pos) {
+        StructureElementPreviewEntry entry = patterns[0].getPreviewEntry(pos);
+        if (entry != null && !entry.getPreview().isEmpty()) {
+            List<PreviewCandidate> candidates = previewCandidatesFromEntry(entry);
+            if (!candidates.isEmpty()) {
+                return candidates;
+            }
+        }
+        TraceabilityPredicate fallback = patterns[0].getLegacyPredicateFallback(pos);
+        return fallback == null
+                ? Collections.emptyList()
+                : previewCandidatesFromEntry(StructureElementPreviewEntry.fromPredicate(fallback));
+    }
+
+    @NotNull
+    private static List<PreviewCandidate> previewCandidatesFromEntry(@NotNull StructureElementPreviewEntry entry) {
+        List<PreviewCandidate> candidates = new ArrayList<>();
+        StructureElementPreview preview = entry.getPreview();
+        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+            PreviewCandidate candidate = PreviewCandidate.fromGroup(entry, group);
+            if (candidate.hasCandidates()) {
+                candidates.add(candidate);
+            }
+        }
+        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+            PreviewCandidate candidate = PreviewCandidate.fromGroup(entry, group);
+            if (candidate.hasCandidates()) {
+                candidates.add(candidate);
+            }
+        }
+        return candidates;
+    }
+
+    @NotNull
+    private static List<ItemStack> itemCandidatesFrom(@NotNull BlockInfo[] infos) {
+        List<ItemStack> result = new ArrayList<>();
+        for (BlockInfo info : infos) {
+            if (info == null || info.getBlockState().getBlock() == net.minecraft.init.Blocks.AIR) {
+                continue;
+            }
+            IBlockState blockState = info.getBlockState();
+            MetaTileEntity metaTileEntity = info.getTileEntity() instanceof IGregTechTileEntity
+                    ? ((IGregTechTileEntity) info.getTileEntity()).getMetaTileEntity()
+                    : null;
+            if (metaTileEntity != null) {
+                result.add(metaTileEntity.getStackForm());
+            } else {
+                result.add(new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
+                        blockState.getBlock().damageDropped(blockState)));
+            }
+        }
+        return result;
     }
 
     @NotNull
@@ -966,8 +1020,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     tooltip.set(k, TextFormatting.GRAY + tooltip.get(k));
                 }
             }
-            if (predicateTips != null) {
-                tooltip.addAll(predicateTips);
+            if (previewTips != null) {
+                tooltip.addAll(previewTips);
             }
             return tooltip;
         }
@@ -1072,7 +1126,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 renderBlockOverLay(selected, 255, 0, 0);
             }
             // Render candidate block cycling at the selected position (GT5 style in-place preview)
-            if (selected != null && !predicates.isEmpty()) {
+            if (selected != null && !previewCandidates.isEmpty()) {
                 renderCandidateBlockAtPosition(world, selected);
             }
         });
@@ -1080,6 +1134,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
 
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
+        Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
         if (controllerBase != null) {
             MultiblockState state = controllerBase.getMultiblockState();
             if (state == null) {
@@ -1087,68 +1142,76 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 state = controllerBase.getMultiblockState();
             }
             if (state != null) {
-                state.cache.forEach((pos, blockInfo) -> predicateMap
-                        .put(BlockPos.fromLong(pos), (TraceabilityPredicate) blockInfo.getInfo()));
+                state.cache.forEach((pos, blockInfo) -> {
+                    Object info = blockInfo.getInfo();
+                    if (info instanceof TraceabilityPredicate) {
+                        predicateMap.put(BlockPos.fromLong(pos), (TraceabilityPredicate) info);
+                    }
+                });
             }
         }
 
-        // Fallback: build predicateMap directly from the pattern template(s).
-        // The cache-based approach only works when the multiblock is currently formed in-world.
-        // For JEI preview, the controller is typically NOT formed, so the cache is empty.
-        // This fallback ensures right-click cycling works for all structure positions.
-        if (predicateMap.isEmpty() && controllerBase != null) {
+        StructureDefinition<?> definition = controllerBase == null ? null : controllerBase.getStructureDefinition();
+        boolean useSingleTemplatePath = definition != null && definition.supportsSingleTemplatePath();
+        BlockPatternTemplate singleTemplate = useSingleTemplatePath ? definition.getPrimaryTemplate() : null;
+        BlockPos singleTemplateOffset = singleTemplate == null ? null :
+                singleTemplateOffset(singleTemplate, controllerBlockPos);
+        if (singleTemplate != null && singleTemplateOffset != null) {
+            previewEntries.putAll(buildSingleTemplatePreviewEntries(singleTemplate, singleTemplateOffset, blockMap));
+        } else if (!useSingleTemplatePath && controllerBase != null && controllerBlockPos != null) {
+            previewEntries.putAll(controllerBase.buildMultiPiecePreviewEntries(channelValues));
+        }
+
+        // Fallback: build predicateMap directly from the pattern template(s) only
+        // for positions not already covered by typed preview entries or formed cache.
+        // JEI candidate cycling and tooltips are typed-first; the predicate map is
+        // now just the legacy compatibility gap filler.
+        if (controllerBase != null && needsLegacyPredicateFallback(predicateMap, previewEntries, blockMap)) {
             // Route through StructureDefinition: 1-piece (whether SD-backed or legacy) walks the
             // single template with cPos-based offset; multi-piece uses the controller's existing
             // buildMultiPiecePredicateMap helper (its coordinates are in structure-local space,
             // which is the established behavior for the multi-piece JEI preview).
-            StructureDefinition<?> definition = controllerBase.getStructureDefinition();
-            boolean useSingleTemplatePath = definition.supportsSingleTemplatePath();
-            if (useSingleTemplatePath) {
-                BlockPatternTemplate tmpl = definition.getPrimaryTemplate();
-                if (tmpl != null) {
-                    RelativeDirection[] sDir = tmpl.getStructureDir();
-                    BlockPatternTemplate.CenterOffset centerOff = tmpl.getCenterOffset();
-
-                    BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
-                    BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
-                            centerOff.x(), centerOff.y(), centerOff.minZ(),
-                            EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                    BlockPos offset = cPos.subtract(controllerPreviewPos);
-
-                    // Walk the (l, r, y, z) cell space the same way MultiblockState#getPreview
-                    // does so that predicates are registered for every repeated aisle as well.
-                    // The previous forEachPredicate-only path dropped predicates for all but
-                    // the first slice, which broke right-click cycling for hatches in those
-                    // repeated slices of single-template (legacy aisleRepeatable) structures.
-                    int[][] aisleReps = tmpl.getAisleRepetitions();
-                    int fingerLen = tmpl.getZLength();
-                    int yLen = tmpl.getYLength();
-                    int xLen = tmpl.getXLength();
-                    TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
-                    for (int l = 0, x = 0; l < fingerLen; l++) {
-                        int aisleRepeat = aisleReps[l][0];
-                        for (int r = 0; r < aisleRepeat; r++) {
-                            for (int y = 0; y < yLen; y++) {
-                                for (int z = 0; z < xLen; z++) {
-                                    TraceabilityPredicate pred = blockMatches[l][y][z];
-                                    if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-                                    BlockPos localPos = RelativeDirection.setActualRelativeOffset(
-                                            z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                                    BlockPos blockMapPos = localPos.add(offset);
-                                    if (blockMap.containsKey(blockMapPos)) {
-                                        predicateMap.put(blockMapPos, pred);
-                                    }
+            if (singleTemplate != null && singleTemplateOffset != null) {
+                // Walk the (l, r, y, z) cell space the same way MultiblockState#getPreview
+                // does so that predicates are registered for every repeated aisle as well.
+                // The previous forEachPredicate-only path dropped predicates for all but
+                // the first slice, which broke right-click cycling for hatches in those
+                // repeated slices of single-template (legacy aisleRepeatable) structures.
+                RelativeDirection[] sDir = singleTemplate.getStructureDir();
+                int[][] aisleReps = singleTemplate.getAisleRepetitions();
+                int fingerLen = singleTemplate.getZLength();
+                int yLen = singleTemplate.getYLength();
+                int xLen = singleTemplate.getXLength();
+                IStructureElement<?>[][][] elements = singleTemplate.getDelegate().getElements();
+                for (int l = 0, x = 0; l < fingerLen; l++) {
+                    int aisleRepeat = aisleReps[l][0];
+                    for (int r = 0; r < aisleRepeat; r++) {
+                        for (int y = 0; y < yLen; y++) {
+                            for (int z = 0; z < xLen; z++) {
+                                IStructureElement<?> element = elements[l][y][z];
+                                TraceabilityPredicate pred = element == null ? null : element.toPredicate();
+                                if (pred == null || pred == TraceabilityPredicate.ANY) continue;
+                                BlockPos localPos = RelativeDirection.setActualRelativeOffset(
+                                        z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+                                BlockPos blockMapPos = localPos.add(singleTemplateOffset);
+                                if (blockMap.containsKey(blockMapPos)
+                                        && shouldAddLegacyPredicate(blockMapPos, predicateMap, previewEntries)) {
+                                    predicateMap.put(blockMapPos, pred);
                                 }
                             }
-                            x++;
                         }
+                        x++;
                     }
                 }
             } else if (controllerBlockPos != null) {
                 // Multi-piece path: helper handles the structure-local coordinate system
                 // and now expands repeated slices so right-click cycling works on every block
                 // of a RepeatGroupPiece, not just the first slice.
-                predicateMap.putAll(controllerBase.buildMultiPiecePredicateMap());
+                controllerBase.buildMultiPiecePredicateMap().forEach((pos, predicate) -> {
+                    if (shouldAddLegacyPredicate(pos, predicateMap, previewEntries)) {
+                        predicateMap.put(pos, predicate);
+                    }
+                });
             }
         }
 
@@ -1162,7 +1225,124 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     return two.amount - one.amount;
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
-        return new MBPattern(worldSceneRenderer, sortedParts, predicateMap);
+        return new MBPattern(worldSceneRenderer, sortedParts, predicateMap, previewEntries);
+    }
+
+    private static boolean needsLegacyPredicateFallback(
+            @NotNull Map<BlockPos, TraceabilityPredicate> predicateMap,
+            @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries,
+            @NotNull Map<BlockPos, BlockInfo> blockMap) {
+        for (BlockPos pos : blockMap.keySet()) {
+            if (shouldAddLegacyPredicate(pos, predicateMap, previewEntries)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean shouldAddLegacyPredicate(
+            @NotNull BlockPos pos,
+            @NotNull Map<BlockPos, TraceabilityPredicate> predicateMap,
+            @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries) {
+        return !predicateMap.containsKey(pos) && !hasTypedPreviewEntry(previewEntries.get(pos));
+    }
+
+    private static boolean hasTypedPreviewEntry(@Nullable StructureElementPreviewEntry entry) {
+        return entry != null
+                && (!entry.getPreview().isEmpty()
+                || !entry.getTooltip().isEmpty());
+    }
+
+    @Nullable
+    private BlockPos singleTemplateOffset(@NotNull BlockPatternTemplate template,
+                                          @Nullable BlockPos controllerBlockPos) {
+        RelativeDirection[] sDir = template.getStructureDir();
+        BlockPatternTemplate.CenterOffset centerOff = template.getCenterOffset();
+        BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
+        BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
+                centerOff.x(), centerOff.y(), centerOff.minZ(),
+                EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
+        return cPos.subtract(controllerPreviewPos);
+    }
+
+    @NotNull
+    private Map<BlockPos, StructureElementPreviewEntry> buildSingleTemplatePreviewEntries(
+            @NotNull BlockPatternTemplate template,
+            @NotNull BlockPos offset,
+            @NotNull Map<BlockPos, BlockInfo> blockMap) {
+        int[] repetitions = resolvePreviewRepetitions(template);
+        MultiblockState.PreviewCells preview = template.createState().createPreviewCells(
+                repetitions,
+                channelValues,
+                StructureOrientation.of(EnumFacing.SOUTH, EnumFacing.SOUTH, EnumFacing.UP, false, false));
+        Map<BlockPos, StructureElementPreviewEntry> entries = new HashMap<>();
+        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : preview.getPreviewEntries().entrySet()) {
+            BlockPos blockMapPos = entry.getKey().add(offset);
+            if (blockMap.containsKey(blockMapPos)) {
+                entries.put(blockMapPos, entry.getValue());
+            }
+        }
+        return entries;
+    }
+
+    @NotNull
+    private int[] resolvePreviewRepetitions(@NotNull BlockPatternTemplate template) {
+        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        int[] repetitions = new int[aisles.length];
+        for (int i = 0; i < aisles.length; i++) {
+            BlockPatternTemplate.AisleDef aisle = aisles[i];
+            Integer value = aisle.channelName() == null ? null : channelValues.get(aisle.channelName());
+            repetitions[i] = value == null
+                    ? aisle.minRepeat()
+                    : MultiblockState.resolveRepetitionValue(value, aisle.minRepeat(), aisle.maxRepeat());
+        }
+        return repetitions;
+    }
+
+    private static final class PreviewCandidate {
+
+        @NotNull
+        private final BlockInfo[] blockCandidates;
+        @NotNull
+        private final List<ItemStack> itemCandidates;
+        @NotNull
+        private final List<String> tooltip;
+
+        private PreviewCandidate(@NotNull BlockInfo[] blockCandidates,
+                                 @NotNull List<ItemStack> itemCandidates,
+                                 @NotNull List<String> tooltip) {
+            this.blockCandidates = blockCandidates;
+            this.itemCandidates = itemCandidates;
+            this.tooltip = tooltip;
+        }
+
+        @NotNull
+        private static PreviewCandidate fromGroup(@NotNull StructureElementPreviewEntry entry,
+                                                  @NotNull StructureElementPreview.CandidateGroup group) {
+            BlockInfo[] infos = group.getCandidates();
+            List<String> tooltip = new ArrayList<>(entry.getTooltip());
+            tooltip.addAll(group.getTooltip());
+            return new PreviewCandidate(infos, itemCandidatesFrom(infos), tooltip);
+        }
+
+        private boolean hasCandidates() {
+            return !itemCandidates.isEmpty();
+        }
+
+        @NotNull
+        private BlockInfo[] getBlockCandidates() {
+            return blockCandidates;
+        }
+
+        @NotNull
+        private List<ItemStack> getItemCandidates() {
+            return itemCandidates;
+        }
+
+        @NotNull
+        private List<String> getTooltip() {
+            return tooltip;
+        }
     }
 
     private static class PartInfo {

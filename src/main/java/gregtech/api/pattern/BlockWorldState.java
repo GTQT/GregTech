@@ -8,6 +8,7 @@ import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -28,13 +29,15 @@ public class BlockWorldState {
     protected PatternMatchContext matchContext;
     protected Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
     protected Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount;
+    @Nullable
     protected TraceabilityPredicate predicate;
+    protected StructureElementPreviewEntry previewEntry;
     protected PatternError error;
 
     public void update(World worldIn, BlockPos posIn, PatternMatchContext matchContext,
                        Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
                        Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
-                       TraceabilityPredicate predicate) {
+                       @Nullable TraceabilityPredicate predicate) {
         this.world = worldIn;
         this.blockAccess = worldIn;
         this.pos = posIn;
@@ -45,7 +48,17 @@ public class BlockWorldState {
         this.globalCount = globalCount;
         this.layerCount = layerCount;
         this.predicate = predicate;
+        this.previewEntry = null;
         this.error = null;
+    }
+
+    public void update(World worldIn, BlockPos posIn, PatternMatchContext matchContext,
+                       Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
+                       Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
+                       @Nullable TraceabilityPredicate predicate,
+                       @NotNull StructureElementPreviewEntry previewEntry) {
+        update(worldIn, posIn, matchContext, globalCount, layerCount, predicate);
+        this.previewEntry = previewEntry;
     }
 
     /**
@@ -55,7 +68,7 @@ public class BlockWorldState {
     public void updateFromBlockAccess(IBlockAccess blockAccessIn, BlockPos posIn, PatternMatchContext matchContext,
                                       Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
                                       Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
-                                      TraceabilityPredicate predicate) {
+                                      @Nullable TraceabilityPredicate predicate) {
         this.world = null;
         this.blockAccess = blockAccessIn;
         this.pos = posIn;
@@ -66,7 +79,17 @@ public class BlockWorldState {
         this.globalCount = globalCount;
         this.layerCount = layerCount;
         this.predicate = predicate;
+        this.previewEntry = null;
         this.error = null;
+    }
+
+    public void updateFromBlockAccess(IBlockAccess blockAccessIn, BlockPos posIn, PatternMatchContext matchContext,
+                                      Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
+                                      Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
+                                      @Nullable TraceabilityPredicate predicate,
+                                      @NotNull StructureElementPreviewEntry previewEntry) {
+        updateFromBlockAccess(blockAccessIn, posIn, matchContext, globalCount, layerCount, predicate);
+        this.previewEntry = previewEntry;
     }
 
     public boolean hasError() {
@@ -82,6 +105,11 @@ public class BlockWorldState {
 
     public PatternMatchContext getMatchContext() {
         return matchContext;
+    }
+
+    @Nullable
+    public StructureElementPreviewEntry getPreviewEntry() {
+        return previewEntry;
     }
 
     public boolean transaction(Predicate<BlockWorldState> action) {
@@ -155,6 +183,11 @@ public class BlockWorldState {
         }
 
         return this.state;
+    }
+
+    @Nullable
+    public IBlockState getCachedBlockState() {
+        return state;
     }
 
     @Nullable

@@ -4,7 +4,6 @@ import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureSnapshotResult;
-import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTLog;
 
@@ -16,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -195,17 +193,16 @@ public class AsyncStructureChecker {
             BlockPos pos = controller.getPos();
             if (pos == null) continue;
             StructureDefinition<?> definition = controller.getStructureDefinition();
-            long runtimeGeneration = controller.getStructureRuntimeGeneration();
             StructureOrientation orientation = StructureOrientation.fromController(controller);
 
             // Compute precise snapshot region from template AABB
             SnapshotCapture capture = captureSnapshotForController(
                     world, controller, definition, pos,
                     orientation);
+            StructureCommitToken commitToken =
+                    StructureCommitToken.captureForAsyncPrecheck(controller, capture.changeSnapshot);
             AsyncCheckToken token = new AsyncCheckToken(
-                    controller, registrationGeneration, runtimeGeneration,
-                    world, pos.toImmutable(), orientation, definition,
-                    capture.changeSnapshot);
+                    controller, registrationGeneration, commitToken, definition);
 
             if (capture.oversized) {
                 // Structure AABB exceeds volume cap — route to oversized queue for main-thread fallback
@@ -300,37 +297,14 @@ public class AsyncStructureChecker {
         if (!pendingControllers.contains(token.controller)) {
             return "not-pending";
         }
-        if (token.controller.getWorld() != token.world) {
-            return "world";
-        }
-        if (token.controller.isStructureFormed()) {
-            return "already-formed";
-        }
-        if (!Objects.equals(token.controller.getPos(), token.centerPos)) {
-            return "controller-position";
-        }
-        if (token.controller.getStructureRuntimeGeneration() != token.runtimeGeneration) {
-            return "runtime-generation";
-        }
-        if (!token.orientation.matchesControllerForCheck(token.controller)) {
-            return "orientation";
-        }
-        if (token.changeSnapshot != null
-                && !MultiblockWorldData.get(token.world)
-                        .isChangeSnapshotCurrent(token.changeSnapshot)) {
-            return "snapshot-version";
-        }
-        return null;
+        return token.commitToken.staleReason();
     }
 
     private static void traceStale(@NotNull AsyncCheckToken token,
                                    @NotNull String reason) {
-        StructureTrace.debug(
-                token.controller,
-                "async-stale-rejected",
-                "reason=" + reason
-                        + ", registrationGeneration=" + token.registrationGeneration
-                        + ", runtimeGeneration=" + token.runtimeGeneration);
+        token.commitToken.traceStale(
+                "async",
+                reason + ", registrationGeneration=" + token.registrationGeneration);
     }
 
     /**
@@ -435,7 +409,8 @@ public class AsyncStructureChecker {
         StructureRuntime runtime = StructureRuntime.fromDefinition(task.token.definition);
         StructureSnapshotResult result = runtime.checkSnapshot(
                 StructureOperationRequest.snapshotCheck(
-                        task.snapshot, task.token.centerPos, task.token.orientation,
+                        task.snapshot, task.token.commitToken.requireCenterPos(),
+                        task.token.commitToken.getOrientation(),
                         task.token.controller));
         return result.isMatched();
     }
@@ -461,9 +436,9 @@ public class AsyncStructureChecker {
         pendingControllers.removeIf(c -> c.getWorld() == world);
         inFlight.keySet().removeIf(c -> c.getWorld() == world);
         registrationGenerations.keySet().removeIf(c -> c.getWorld() == world);
-        snapshotQueue.removeIf(task -> task.token.world == world);
-        resultQueue.removeIf(result -> result.token.world == world);
-        oversizedQueue.removeIf(token -> token.world == world);
+        snapshotQueue.removeIf(task -> task.token.commitToken.getWorld() == world);
+        resultQueue.removeIf(result -> result.token.commitToken.getWorld() == world);
+        oversizedQueue.removeIf(token -> token.commitToken.getWorld() == world);
     }
 
     /**
@@ -486,30 +461,17 @@ public class AsyncStructureChecker {
 
         final MultiblockControllerBase controller;
         final long registrationGeneration;
-        final long runtimeGeneration;
-        final World world;
-        final BlockPos centerPos;
-        final StructureOrientation orientation;
+        final StructureCommitToken commitToken;
         final StructureDefinition<?> definition;
-        @Nullable
-        final MultiblockWorldData.ChangeSnapshot changeSnapshot;
 
         AsyncCheckToken(MultiblockControllerBase controller,
                         long registrationGeneration,
-                        long runtimeGeneration,
-                        World world,
-                        BlockPos centerPos,
-                        StructureOrientation orientation,
-                        StructureDefinition<?> definition,
-                        @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot) {
+                        StructureCommitToken commitToken,
+                        StructureDefinition<?> definition) {
             this.controller = controller;
             this.registrationGeneration = registrationGeneration;
-            this.runtimeGeneration = runtimeGeneration;
-            this.world = world;
-            this.centerPos = centerPos;
-            this.orientation = orientation;
+            this.commitToken = commitToken;
             this.definition = definition;
-            this.changeSnapshot = changeSnapshot;
         }
     }
 

@@ -28,13 +28,17 @@ import java.util.Set;
 public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     private final IStructureElement<T> source;
-    private final TraceabilityPredicate predicateView;
+    @Nullable
+    private TraceabilityPredicate predicateView;
+    private boolean predicateViewResolved;
     private final Set<StructureElementCapability> capabilities;
 
     private CompiledStructureElement(@NotNull IStructureElement<T> source,
-                                     @NotNull TraceabilityPredicate predicateView) {
+                                     @Nullable TraceabilityPredicate predicateView,
+                                     boolean predicateViewResolved) {
         this.source = source;
         this.predicateView = predicateView;
+        this.predicateViewResolved = predicateViewResolved;
         this.capabilities = StructureElementCapability.copyOf(source.getCapabilities());
     }
 
@@ -51,7 +55,7 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
             }
             return (CompiledStructureElement<T>) legacy(predicate);
         }
-        return new CompiledStructureElement<>(source, createPredicateView(source));
+        return new CompiledStructureElement<>(source, null, false);
     }
 
     @NotNull
@@ -59,7 +63,8 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         TraceabilityPredicate sorted = new TraceabilityPredicate(predicate).sort();
         return new CompiledStructureElement<>(
                 new gregtech.api.pattern.element.impl.LegacyElement(sorted),
-                sorted);
+                sorted,
+                true);
     }
 
     @Override
@@ -218,7 +223,7 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Override
     public boolean isCenter() {
-        return source.isCenter() || predicateView.isCenter();
+        return source.isCenter();
     }
 
     @Override
@@ -248,17 +253,29 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     }
 
     @Override
+    public boolean usesLegacyPredicateRuntime() {
+        return source.usesLegacyPredicateRuntime();
+    }
+
+    @Nullable
+    @Override
     public TraceabilityPredicate toPredicate() {
+        if (!predicateViewResolved) {
+            TraceabilityPredicate predicate = source.toPredicate();
+            predicateView = predicate == null ? null : copyPredicateView(predicate, source.isCenter());
+            predicateViewResolved = true;
+        }
         return predicateView;
     }
 
     @NotNull
-    private static TraceabilityPredicate createPredicateView(@NotNull IStructureElement<?> source) {
-        TraceabilityPredicate predicate = source.toPredicate();
-        TraceabilityPredicate result = predicate == null
-                ? new TraceabilityPredicate(state -> true, source::getCandidates)
-                : new TraceabilityPredicate(predicate);
-        if (source.isCenter()) {
+    private static TraceabilityPredicate copyPredicateView(@NotNull TraceabilityPredicate predicate,
+                                                           boolean center) {
+        if (predicate == TraceabilityPredicate.ANY && !center) {
+            return TraceabilityPredicate.ANY;
+        }
+        TraceabilityPredicate result = new TraceabilityPredicate(predicate);
+        if (center) {
             result.setCenter();
         }
         return result.sort();

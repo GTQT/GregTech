@@ -1,5 +1,7 @@
 package gregtech.api.pattern;
 
+import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -14,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -56,6 +59,9 @@ public final class StructureRuntime {
     private Map<String, Integer> missingAbilities = Collections.emptyMap();
     @NotNull
     private final StructureDirtyState dirtyState = new StructureDirtyState();
+    @NotNull
+    private volatile StructureLifecycleState lifecycleState = StructureLifecycleState.empty();
+    private volatile long lifecycleGeneration;
     @Nullable
     private volatile CommittedStructureGraph committedGraph;
 
@@ -147,7 +153,7 @@ public final class StructureRuntime {
             return fallbackFromIncremental(request, StructureIncrementalFallbackReason.NO_BASELINE);
         }
         return evaluator.checkIncremental(
-                request, committedGraph, dirtyRoots, definition.getEligibilityPlan());
+                request, getCommittedGraph(), dirtyRoots, definition.getEligibilityPlan());
     }
 
     /**
@@ -259,20 +265,24 @@ public final class StructureRuntime {
 
     @NotNull
     public StructureChannelValues getChannelValues() {
-        return channelValues;
+        return lifecycleState.getChannelValues();
     }
 
     public void setChannelValues(@NotNull StructureChannelValues channelValues) {
         this.channelValues = copyChannelValues(channelValues);
+        this.lifecycleState = this.lifecycleState.withChannelValues(channelValues);
+        this.lifecycleGeneration++;
     }
 
     @Nullable
     public FormedStructureMetadata getFormedMetadata() {
-        return formedMetadata;
+        return lifecycleState.getFormedMetadata();
     }
 
     public void setFormedMetadata(@Nullable FormedStructureMetadata formedMetadata) {
         this.formedMetadata = formedMetadata;
+        this.lifecycleState = this.lifecycleState.withFormedMetadata(formedMetadata);
+        this.lifecycleGeneration++;
     }
 
     @Nullable
@@ -299,16 +309,20 @@ public final class StructureRuntime {
 
     @Nullable
     public CommittedStructureGraph getCommittedGraph() {
-        return committedGraph;
+        return lifecycleState.getCommittedGraph();
     }
 
     public void publishCommittedGraph(@Nullable CommittedStructureGraph graph) {
         this.committedGraph = graph;
+        this.lifecycleState = this.lifecycleState.withCommittedGraph(graph);
+        this.lifecycleGeneration++;
         dirtyState.clear();
     }
 
     public void clearCommittedGraph() {
         this.committedGraph = null;
+        this.lifecycleState = this.lifecycleState.withCommittedGraph(null);
+        this.lifecycleGeneration++;
         dirtyState.clear();
     }
 
@@ -321,7 +335,7 @@ public final class StructureRuntime {
     }
 
     public boolean markDirtyByPosition(long position) {
-        CommittedStructureGraph graph = committedGraph;
+        CommittedStructureGraph graph = getCommittedGraph();
         if (graph == null) {
             return false;
         }
@@ -338,7 +352,7 @@ public final class StructureRuntime {
     @NotNull
     public Set<String> rootsForChangedExternalDependencies(
             @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
-        CommittedStructureGraph graph = committedGraph;
+        CommittedStructureGraph graph = getCommittedGraph();
         if (definition == null || graph == null) {
             return Collections.emptySet();
         }
@@ -363,7 +377,7 @@ public final class StructureRuntime {
                     ? StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE
                     : plan.getFallbackReason();
         }
-        CommittedStructureGraph graph = committedGraph;
+        CommittedStructureGraph graph = getCommittedGraph();
         if (graph == null) {
             return StructureIncrementalFallbackReason.NO_BASELINE;
         }
@@ -381,8 +395,43 @@ public final class StructureRuntime {
                                       @NotNull StructureChannelValues channelValues) {
         this.formedMetadata = formedMetadata;
         this.channelValues = copyChannelValues(channelValues);
+        this.lifecycleState = this.lifecycleState
+                .withFormedMetadata(formedMetadata)
+                .withChannelValues(channelValues);
+        this.lifecycleGeneration++;
         this.missingAbilities = Collections.emptyMap();
         this.lastFailure = null;
+    }
+
+    /**
+     * Publish the canonical formed lifecycle snapshot. Controller fields are a
+     * legacy projection of this state and must be updated by the server-thread
+     * committer in the same commit section.
+     */
+    public void publishLifecycleState(
+            @NotNull List<IMultiblockPart> parts,
+            @NotNull Map<MultiblockAbility<Object>, AbilityInstances> abilities,
+            @Nullable FormedStructureMetadata formedMetadata,
+            @NotNull StructureChannelValues channelValues,
+            @Nullable CommittedStructureGraph graph) {
+        this.formedMetadata = formedMetadata;
+        this.channelValues = copyChannelValues(channelValues);
+        this.committedGraph = graph;
+        this.lifecycleState = StructureLifecycleState.formed(
+                parts, abilities, formedMetadata, channelValues, graph);
+        this.lifecycleGeneration++;
+        this.missingAbilities = Collections.emptyMap();
+        this.lastFailure = null;
+        dirtyState.clear();
+    }
+
+    @NotNull
+    public StructureLifecycleState getLifecycleState() {
+        return lifecycleState;
+    }
+
+    public long getLifecycleGeneration() {
+        return lifecycleGeneration;
     }
 
     /**
@@ -439,14 +488,20 @@ public final class StructureRuntime {
         if (previous == null) {
             return;
         }
-        this.formedMetadata = previous.formedMetadata;
-        this.channelValues = copyChannelValues(previous.channelValues);
+        this.lifecycleState = previous.getLifecycleState().withCommittedGraph(null);
+        this.formedMetadata = lifecycleState.getFormedMetadata();
+        this.channelValues = lifecycleState.getChannelValues();
+        this.committedGraph = null;
+        this.lifecycleGeneration++;
     }
 
     public void clearFormedState() {
         this.channelValues = new StructureChannelValues();
         this.formedMetadata = null;
-        clearCommittedGraph();
+        this.committedGraph = null;
+        this.lifecycleState = StructureLifecycleState.empty();
+        this.lifecycleGeneration++;
+        dirtyState.clear();
     }
 
     public String describeShape() {
@@ -465,7 +520,7 @@ public final class StructureRuntime {
     private Set<String> consumeDirtyRoots(
             @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
         LinkedHashSet<String> roots = new LinkedHashSet<>(dirtyState.consume());
-        CommittedStructureGraph graph = committedGraph;
+        CommittedStructureGraph graph = getCommittedGraph();
         if (definition != null && graph != null) {
             StructureEligibilityPlan plan = definition.getEligibilityPlan();
             if (plan.isEligible()) {

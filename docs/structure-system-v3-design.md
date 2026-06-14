@@ -24,7 +24,10 @@ Structure System V3 已经成为控制器侧的统一声明和同步检查入口
   成功结果携带 `PieceRuntimes.Publication`，只在 controller commit 通过后发布。
 - direct element、legacy predicate、结构级计数、ability、channel 和 part 收集可以在同一
   `StructureMatchSession` 中事务化。
-- preview、hint、creative build、survival build 和 iteration 已经有 request/runtime 入口。
+- preview、hint、creative build、survival build 和 iteration 已经有 request/runtime 入口；
+  check、snapshot check、build、hint、preview 和 iterate 都有 typed result/outcome 形状。
+- `PieceTemplate` 的 canonical cell storage 已经是 compiled element；legacy predicate map 由
+  `PieceTemplateLegacyView` 按需投影。
 - 世界方块变化只写 dirty index；真正的检查由控制器 tick 中的 scheduler 发起。
 - 异步检查只做快照预检，命中后仍在主线程重新执行完整同步检查。
 
@@ -38,8 +41,8 @@ Structure System V3 已经成为控制器侧的统一声明和同步检查入口
 - full check 使用每次检查新建的临时 `PieceRuntimes`；控制器持有的 `PieceRuntimes`
   只接收成功 commit 发布的完整状态，并服务 formed position、dirty 标记、重复信息和事件驱动重检。
 - `PatternMatchContext`、`TraceabilityPredicate`、`BlockPatternTemplate` 和
-  `MultiblockState` 仍在核心实现中承担兼容职责。
-- hint result 只统计调度情况，不能证明客户端实际显示了提示。
+  `MultiblockState` 仍承担旧 addon 与旧工具兼容职责，但 predicate map 已经收进显式 adapter。
+- hint rendering outcome 是 per-cell 汇总结果，不是可逐粒子追踪的客户端回执。
 
 因此，V3 当前应定义为：
 
@@ -121,10 +124,10 @@ validated、formed positions 或匹配缓存。
 | 控制器运行时 | `StructureRuntime`、`MultiblockState`、`PieceRuntimes` | 保存控制器私有缓存、piece 状态、已提交 metadata/channel 和最近失败。 |
 | 操作入口 | `StructureOperationRequest`、`StructureOperationEvaluator` | 校验请求类型并分派到现有 check/build/hint/preview/iterate 实现。 |
 | 操作事务 | `StructureMatchSession`、`StructureEvaluationContext`、`BlockWorldState` | 保存本次匹配状态并提供 fork、transaction、probe 和 checkpoint。 |
-| 操作结果 | `StructureCheckResult`、`StructureSnapshotResult`、`StructureBuildResult`、`StructureHintResult` | 在执行层和控制器生命周期之间传递不可变结果。 |
+| 操作结果 | `StructureCheckResult`、`StructureSnapshotResult`、`StructureBuildResult`、`StructureHintResult`、`StructurePreviewResult`、`StructureIterateResult` | 在执行层和控制器生命周期之间传递不可变结果。 |
 | 生命周期 | `MultiblockStructureOperations`、`Assembler`、`Committer` | 固定 check、assemble、commit、registration 的调用顺序。 |
 | 调度层 | `MultiblockStructureCheckScheduler`、`StructureWorldIndex`、`AsyncStructureChecker` | polling、dirty event、snapshot precheck 和主线程 fallback。 |
-| 兼容层 | `BlockPattern`、`BlockPatternTemplate`、`TraceabilityPredicate`、`PatternMatchContext` | 保留旧 addon 和旧控制器 API，并桥接到 canonical definition。 |
+| 兼容层 | `BlockPattern`、`BlockPatternTemplate`、`PieceTemplateLegacyView`、`TraceabilityPredicate`、`PatternMatchContext` | 保留旧 addon 和旧控制器 API，并桥接到 canonical definition。 |
 
 ## 4. Canonical 声明与编译
 
@@ -181,10 +184,16 @@ StructureDefinition
        -> StructurePiece / RepeatGroupPiece / DynamicOffsetPiece
             -> PieceTemplate
                  -> CompiledStructureElement[][][]
-                 -> TraceabilityPredicate[][][] compatibility view
+                 -> PieceTemplateLegacyView
+                      -> TraceabilityPredicate[][][] compatibility view
 ```
 
 `PieceTemplate` 是 canonical piece IR。`BlockPatternTemplate` 是它的兼容 facade。
+中心点发现、dimension 和 traversal core 使用 compiled element；`getBlockMatches()`、旧
+predicate map 和 addon 兼容视图通过 `PieceTemplateLegacyView` 按需 materialize。
+JEI/projector 的 preview、tooltip、diagnostic 和 channel 工具面优先消费
+`StructureElementPreviewEntry` / direct preview metadata，只在旧位置缺 typed entry 时读取
+legacy predicate fallback。
 
 ### 4.4 Single-template 资格
 
@@ -394,6 +403,17 @@ scheduler 也会每 100 tick 触发一次主线程 fallback。
 `SNAPSHOT_CHECK` 携带 `IBlockAccess` snapshot、controller position、orientation 和可选 controller。
 它返回独立的 `StructureSnapshotResult`，不能提交给普通 structure committer。
 
+当前 typed operation result：
+
+| Operation | Typed result | 说明 |
+|---|---|---|
+| live check | `StructureCheckResult` | formation/active-graph/incremental check 的统一结果，可能携带 publication。 |
+| snapshot check | `StructureSnapshotResult` | 只做 precheck 信号，不可提交。 |
+| creative/survival build | `StructureBuildResult` | placement、blocked cell 和 survival item accounting。 |
+| hint | `StructureHintResult` | traversal/piece 计数和实际 hint rendering outcome 汇总。 |
+| preview | `StructurePreviewResult` | single 和 multi-piece preview 的 typed wrapper，旧数组/result 入口保留。 |
+| iterate | `StructureIterateResult` | single 返回 block map；multi-piece 返回 formed position set 和 active/inactive piece 计数。 |
+
 ### 9.2 Request 的职责
 
 request 是不可变输入，按 operation 携带：
@@ -422,6 +442,7 @@ request 通过 `requireKind(...)`、`requireBuildKind()` 和 `requireXxx()` 在�
 - single build/hint/preview/iterate -> `MultiblockState`
 - multi-piece build/hint -> `MultiPiecePattern`
 - multi-piece preview -> `MultiPiecePreviewAssembler`
+- multi-piece iterate -> `MultiPiecePattern.iteratePositions(...)`
 
 这解释了为什么 V3 已统一调用边界，但尚未统一底层执行实现。
 
@@ -437,7 +458,7 @@ request 通过 `requireKind(...)`、`requireBuildKind()` 和 `requireXxx()` 在�
 - `collectRequirements(...)`：声明 deferred requirement；
 - `getCandidates(...)`：候选；
 - `getPreview(...)`：preview/build metadata；
-- `spawnHint(...)`：提示；
+- `spawnHint(...)` / `spawnHintWithResult(...)`：提示和 typed rendering outcome；
 - `placeBlock(...)`：creative placement；
 - `survivalPlaceBlock(...)`：survival placement；
 - `getCapabilities()`：安全能力声明。
@@ -449,13 +470,20 @@ requirement，防止失败 alternative 泄漏状态。
 
 `CompiledStructureElement` 包装 direct element，并缓存 capability。
 
-direct runtime 调用 source element，不要求 `toPredicate()`。但 compiled element 仍会保留一个
-predicate-shaped compatibility view，供旧算法、preview map 和 addon 工具使用。
+direct runtime 调用 source element，不要求 `toPredicate()`。compiled element 只为
+`usesLegacyPredicateRuntime()` 的旧元素固定保存 predicate；普通 direct element 不会在编译期或核心执行期
+提前生成 predicate。旧算法、旧 predicate map 和 addon 兼容工具需要 predicate-shaped view 时，由
+`PieceTemplateLegacyView` 从 element 的 candidates/center 信息按需投影。
+固定结构 traversal、preview entry、diagnostic candidate 和 channel UI 不会为了 direct element
+强制调用 `PieceTemplateLegacyView`；它们只读取 element 自身的 direct metadata，必要时才读取该
+element 显式提供的 `toPredicate()`。
 
 因此正确表述是：
 
 - direct matching 不依赖 predicate conversion；
-- 整个编译产物仍没有完全移除 predicate view；
+- compiled template 的 canonical storage 是 element array；
+- predicate view 是 compatibility artifact，不是 canonical execution model；
+- `BlockPatternTemplate.getBlockMatches()` 保持兼容，但新内部代码应经由 `getLegacyView()` 表明边界；
 - 只有 `usesLegacyPredicateRuntime()` 返回 true 时，formation matching 才通过 `LegacyElement` 执行。
 
 ### 10.3 Capability
@@ -484,10 +512,33 @@ capability 缺失是调度不支持，不是普通 block mismatch。
 - default candidate；
 - global/layer min/max；
 - preview count；
-- legacy predicate reference。
+- per-candidate tooltip supplier；
+- legacy predicate adaptation marker。
 
 新 direct element 不应为了 channel、tooltip 或候选选择而把信息塞回
 `TraceabilityPredicate.SimplePredicate`。
+JEI/projector channel discovery 与 range 计算会先扫描
+`StructureElementPreview.CandidateGroup.channel(...)`；只有 direct preview group 没有对应
+channel metadata 或候选时，才读取该 element 自己暴露的 legacy predicate view。它不再为了
+channel UI materialize 整张 `PieceTemplateLegacyView`。
+
+`StructureElementPreview.fromPredicate(...)` 会把 legacy `SimplePredicate` 的 candidates、count
+limits、channel、preview count、default candidate 和 per-candidate tooltip 投影成
+`CandidateGroup`。因此 legacy tooltip/candidate 行为可以被 JEI 直接从 preview group 消费，
+不需要重新扫描 predicate map。
+
+### 10.5 Hint rendering outcome
+
+`spawnHint(World, BlockPos, ItemStack)` 仍保留 boolean 兼容入口。新代码优先调用
+`spawnHintWithResult(...)`：
+
+- `RENDERED`：该 element 认为已经产生 hint rendering 副作用；
+- `SKIPPED`：该入口没有处理，调用方可以尝试 context fallback 或其他 element；
+- `FAILED`：入口处理失败，调用方记录失败 outcome，不再把它当作普通 skip。
+
+`StructureHintRenderResult.Source` 区分 trigger-aware path 和 context-aware path。默认实现调用旧
+`spawnHint(World, BlockPos)` 并报告 `RENDERED`，所以旧 element 不需要立即迁移；能明确判断“不渲染”的
+element 应覆盖 typed 方法并返回 `SKIPPED`。
 
 ## 11. Session、事务与 Probe
 
@@ -618,29 +669,54 @@ already-valid cell 不消耗 placement budget。`requiresResume()` 表示同一�
 
 ### 13.2 Hint
 
-`StructureHintResult` 只记录：
+`StructureHintResult` 记录：
 
 - attempted traversals；
 - active/inactive pieces；
 - visited cells；
 - trigger handled；
-- context fallback。
+- context fallback；
+- rendered cells；
+- skipped render cells；
+- failed render cells。
 
-它不记录每个 element 是否真的产生了客户端可见效果。
+hint traversal 先调用 trigger-aware `spawnHintWithResult(world, pos, triggerStack)`。如果返回
+`SKIPPED`，再调用 context-aware `spawnHintWithResult(StructureEvaluationContext)`。result 记录最终
+rendering outcome，而不只记录“走了 trigger path 还是 context path”。
+
+需要注意：`RENDERED` 表示 element 认为已经执行了提示渲染副作用；它不是客户端粒子或 ghost block
+实际显示成功的网络回执。
 
 ### 13.3 Preview
 
-single preview 返回 `BlockInfo[][][]`。multi-piece preview 由
-`MultiPiecePreviewAssembler` 合并 positioned piece result。
+preview 的 typed 入口返回 `StructurePreviewResult`：
+
+- single preview 包装 `MultiblockState.PreviewCells`；
+- multi-piece preview 包装 `MultiPiecePreviewAssembler.Result`；
+- outcome 为 `GENERATED`、`EMPTY` 或 `UNSUPPORTED`。
+
+旧 API 仍可以取得 `BlockInfo[][][]` 或 `MultiPiecePreviewAssembler.Result`，它们现在是 typed result 的
+兼容投影。`PreviewCells.isEmpty()` 和 multi-piece result 的 empty 判断按非 AIR block 判定。
 
 preview 和 build 优先读取 `StructureElementPreview`。legacy predicate metadata 会被适配到相同选择模型。
 
 ### 13.4 Iterate
 
-`ITERATE` 当前只支持 single-template runtime，并通过 `MultiblockState.getAllStructureBlocks(...)`
-返回 world position -> `BlockInfo`。
+`ITERATE` 的 typed 入口返回 `StructureIterateResult`：
 
-多 piece 的位置集合由 `PieceRuntime.positions` 和 registration API 管理，不通过 request-based iterate 返回。
+- single-template runtime 通过 `MultiblockState.getAllStructureBlocks(...)` 返回
+  world position -> `BlockInfo`；
+- multi-piece runtime 通过 `MultiPiecePattern.iteratePositions(...)` 返回 formed position set，并记录
+  active/inactive piece 数量。
+
+旧 `iterateSingle(...)` 返回 `Map<BlockPos, BlockInfo>` 的入口保留，作为 `StructureIterateResult` 的兼容投影。
+
+repeat group 另有 slice-level typed traversal：
+
+- `RepeatIterationRequest` 描述 controller origin、orientation、prior metadata 和 channel values；
+- `RepeatIterationResult` 保存 resolved repetitions、slice `StructureCellTraversal` 列表和
+  `COMPLETED` / `STOPPED` / `EMPTY` outcome；
+- repeated build/hint 复用该 result，避免各自维护一份 repeat offset loop。
 
 ## 14. Formed Metadata、Channel 与 Compatibility Context
 
@@ -666,6 +742,9 @@ preview 和 build 优先读取 `StructureElementPreview`。legacy predicate meta
 
 为了兼容现有 `formStructure(PatternMatchContext)`，`StructureCheckResult.copyContext()` 会把 typed
 parts 和 active blocks 映射回 legacy keys。其他 addon 自己写入的 context key 保留。
+session-backed direct element 的 requirement、ability、part、channel 收集优先进入
+`StructureOperationState` / contribution projector；`PatternMatchContext` 只作为 legacy predicate
+边界和 callback projection 使用。
 
 这意味着 `PatternMatchContext` 仍是 controller callback 的正式兼容面，尚不能删除。
 
@@ -766,19 +845,55 @@ dynamic check 失败会把带 `dynamic-runtime` path 的 failure 写入 canonica
 
 具体类型、算法、fallback 和迁移顺序见第 22 章。
 
-### P1：统一结果和 traversal
+### P1：统一结果和 traversal，已完成
 
-1. 让 check、build、hint、preview、iterate 使用更一致的 typed outcome。
-2. 为 multi-piece iterate 提供 request/result。
-3. 收敛 `MultiblockState` 和 `MultiPiecePattern` 中重复的 build/hint dispatch。
-4. 让 hint result 记录实际 rendering outcome，而不只记录调用路径。
+1. check、snapshot check、build、hint、preview、iterate 都有 typed result/outcome 类型。
+2. `StructurePreviewResult` 包装 single 和 multi-piece preview；旧返回类型保留为投影。
+3. `StructureIterateResult` 支持 single block map 和 multi-piece formed position set。
+4. `RepeatIterationRequest` / `RepeatIterationResult` 描述 repeat group slice traversal，并被 repeated
+   build/hint 复用。
+5. `MultiPiecePattern` 使用共享 helper 收敛 fixed/repeat piece 的 build/hint dispatch。
+6. `StructureHintResult` 记录 `StructureHintRenderResult` 汇总，区分 rendered/skipped/failed。
 
-### P1：缩小 legacy 核心影响
+### P1：缩小 legacy 核心影响，进行中
 
-1. 逐步让 `PieceTemplate` 的核心算法只依赖 compiled elements。
-2. 把 predicate map、旧 tooltip 和旧 preview 所需 view 放到明确 adapter。
-3. 降低 `PatternMatchContext` 在内部 requirement/channel 收集中的职责。
-4. 保持 `formStructure(PatternMatchContext)` 兼容，直到 addon 迁移窗口结束。
+已完成：
+
+1. `PieceTemplate` 不再保存 canonical `TraceabilityPredicate[][][]`；核心 dimension、center
+   discovery 和 fixed traversal 从 compiled element array 出发。
+2. 新增 `PieceTemplateLegacyView`，集中 materialize `TraceabilityPredicate[][][]`、旧 predicate map
+   和 addon 兼容 view；`BlockPatternTemplate.getBlockMatches()` 变成兼容投影。正常
+   preview/tooltip/diagnostic 工具面已改为 typed-first，只在旧位置缺 direct metadata 时消费 fallback。
+3. `PieceTemplateCompiler` 的 canonical build 不再先构造 predicate array；`whereElement(...)` 仅为
+   `FactoryBlockPattern#getSymbolMap()` 维护旧符号投影。
+4. session-backed direct element 的 requirement/channel/part 收集仍走 typed collector/state，并在
+   result/commit 边界投影为 `PatternMatchContext`。
+5. JEI 的 tooltip 与右键 candidate cycling 先读 `StructureElementPreview` 和
+   `IStructureElement.addPreviewTooltip(...)` 生成的 `StructureElementPreviewEntry`；legacy
+   per-candidate tooltip 会在 fallback 边界适配成 `CandidateGroup` metadata，只有缺 typed entry 的旧位置才补
+   predicate map。
+6. 无 session 的 legacy fixed traversal 现在内部创建 `StructureMatchSession` 执行；成功后把 typed
+   operation state 投影回旧 `PatternMatchContext`，并保留旧 public 返回值和 cache 行为。
+7. projector/UI diagnostic surface 通过 `PatternError#getCandidates()` 先读取当前 cell 的
+   `StructureElementPreviewEntry`，只有没有 typed preview candidate 时才回退到 legacy predicate
+   candidates。
+8. channel discovery/range 对 direct preview group typed-first：内部工具先读取
+   `StructureElementPreview.CandidateGroup.channel(...)` 与候选数量。已有 typed channel metadata 的
+   element 不会被要求生成 legacy predicate view；旧元素只通过自身 `toPredicate()` 补缺口。
+9. JEI predicate-map fallback 改为按位置补缺口；已有 `StructureElementPreviewEntry` 的位置不再强制
+   materialize legacy predicate map。
+10. `MBPattern` 成为 JEI/registry 的 typed-first preview adapter；JEI hover/candidate lookup 通过
+    `getPreviewEntry(...)` 和 `getLegacyPredicateFallback(...)`，旧 map getter 只保留给兼容工具。
+11. fixed traversal 的 direct cell 不再为了 preview/diagnostic/cache 强制 materialize
+    `PieceTemplateLegacyView`；没有 `toPredicate()` 的 direct element 可以正常形成、preview 和诊断。
+
+迁移窗口保留边界：
+
+1. build/projector 的 legacy predicate fallback 仍作为旧结构和 addon 兼容路径保留；新增内部工具不应再直接消费
+   predicate map / predicate candidates。
+2. addon 迁移窗口结束后，可以删除只为 old preview/tooltip/diagnostic fallback 存在的 predicate-shaped
+   view；迁移窗口内仍保留 `PieceTemplateLegacyView` 和 `BlockPatternTemplate.getBlockMatches()`。
+3. 在 addon 迁移窗口结束前继续保留 `formStructure(PatternMatchContext)` 默认桥接。
 
 ### P2：生命周期状态收口
 
@@ -1271,7 +1386,8 @@ protected void formStructure(@NotNull FormedStructureView formed);
 - session-backed direct element 调用 `getLegacyContext()` 时只得到隔离 compatibility view；内部写入不会进入
   eligible result、piece publication 或 callback payload。
 - `StructureMatchCollector.recordChannelValue/setValue` 在 direct/session path 只写 typed
-  `StructureContributionKey` emission；无 session legacy traversal 仍保留旧 `PatternMatchContext` 写入。
+  `StructureContributionKey` emission；无 session legacy fixed traversal 内部也通过
+  `StructureMatchSession` 执行，再在成功边界投影旧 `PatternMatchContext`。
 - piece/result table 的 compatibility context 由 contribution projection 生成；full、incremental 和
   active-graph fallback 的成功结果都使用 fold 后 compatibility projector。
 - `MultiblockControllerBase` 新增 `formStructure(FormedStructureView)`；默认实现把 projector 生成的
@@ -1890,6 +2006,19 @@ element 不能取得 mutable aggregate。
   opaque fallback 和旧 traversal。
 - channel/tier 通过 typed contribution emission/fold/projector 输出，`PatternMatchContext` 不再是
   eligible path 的 canonical storage。
+- fixed-template public legacy check 入口在无显式 session 时会创建 internal `StructureMatchSession`
+  执行，成功后再生成兼容 `PatternMatchContext`。
+- JEI preview metadata 通过 `StructureElementPreviewEntry` 传递 direct candidate groups 和 element
+  tooltip；legacy predicate tooltip 在 fallback 边界被适配为 `CandidateGroup` metadata，predicate-map
+  cycling 只作为缺 typed entry 的 fallback。
+- projector/UI diagnostic candidates 同样通过当前 cell 的 `StructureElementPreviewEntry` 优先展示 direct
+  candidates；`PatternError` 中的 legacy predicate candidates 只作为 fallback。
+- channel discovery/range 先读 `StructureElementPreview.CandidateGroup.channel(...)`；已有 typed channel
+  metadata 的 element 不再请求 legacy predicate view，legacy candidate count 只补旧结构缺口。
+- JEI 只为 typed preview entry 缺失的位置补 legacy predicate map。
+- JEI 消费侧通过 `MBPattern` 的 typed-first accessors 读取 preview/legacy fallback，不再直接消费
+  predicate map。
+- direct fixed cell 不再为了 preview/diagnostic/cache 强制 materialize `PieceTemplateLegacyView`。
 - commit 边界构造 `FormedStructureView` 并调用 typed callback；默认 typed callback 才桥接到旧
   `formStructure(PatternMatchContext)`。
 - 新增测试覆盖 direct 写入隔离、typed projection、active-graph fallback compatibility context 以及

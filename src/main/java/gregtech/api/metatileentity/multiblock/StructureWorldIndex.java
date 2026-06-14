@@ -212,18 +212,18 @@ final class StructureWorldIndex {
     }
 
     @NotNull
-    DirtyCheckDecision consumeDirtyCheck(@NotNull MultiblockControllerBase controller,
+    DirtyCheckLease consumeDirtyCheck(@NotNull MultiblockControllerBase controller,
                                          long currentTick) {
         if (!controllerPositions.containsKey(controller)) {
-            return DirtyCheckDecision.unregistered();
+            return DirtyCheckLease.unregistered();
         }
         if (!pendingRecheck.contains(controller)) {
-            return DirtyCheckDecision.clean();
+            return DirtyCheckLease.clean();
         }
 
         Long changed = lastChangedTick.get(controller);
         if (changed != null && currentTick - changed < RECHECK_COOLDOWN_TICKS) {
-            return DirtyCheckDecision.deferred(changed);
+            return DirtyCheckLease.deferred(changed);
         }
 
         pendingRecheck.remove(controller);
@@ -235,16 +235,16 @@ final class StructureWorldIndex {
                     runtime.getIncrementalFallbackReason(
                             gregtech.api.pattern.StructureOrientation.fromController(controller));
             return reason == null
-                    ? DirtyCheckDecision.incremental()
-                    : DirtyCheckDecision.full(reason);
+                    ? DirtyCheckLease.incremental()
+                    : DirtyCheckLease.full(reason);
         }
 
         MultiPiecePattern pattern = controllerPiecePatterns.get(controller);
         PieceRuntimes runtimes = controller.getPieceRuntimes();
         if (pattern != null && runtimes != null && pattern.hasDirtyPieces(runtimes, controller)) {
-            return DirtyCheckDecision.activeGraph();
+            return DirtyCheckLease.activeGraph();
         }
-        return DirtyCheckDecision.full();
+        return DirtyCheckLease.full();
     }
 
     boolean isRegistered(@NotNull MultiblockControllerBase controller) {
@@ -292,7 +292,7 @@ final class StructureWorldIndex {
         }
     }
 
-    static final class DirtyCheckDecision {
+    static final class DirtyCheckLease {
 
         enum Action {
             UNREGISTERED,
@@ -309,7 +309,7 @@ final class StructureWorldIndex {
         @Nullable
         private final StructureIncrementalFallbackReason fallbackReason;
 
-        private DirtyCheckDecision(@NotNull Action action, long lastChangedTick,
+        private DirtyCheckLease(@NotNull Action action, long lastChangedTick,
                                    @Nullable StructureIncrementalFallbackReason fallbackReason) {
             this.action = action;
             this.lastChangedTick = lastChangedTick;
@@ -317,38 +317,38 @@ final class StructureWorldIndex {
         }
 
         @NotNull
-        static DirtyCheckDecision unregistered() {
-            return new DirtyCheckDecision(Action.UNREGISTERED, -1, null);
+        static DirtyCheckLease unregistered() {
+            return new DirtyCheckLease(Action.UNREGISTERED, -1, null);
         }
 
         @NotNull
-        static DirtyCheckDecision clean() {
-            return new DirtyCheckDecision(Action.CLEAN, -1, null);
+        static DirtyCheckLease clean() {
+            return new DirtyCheckLease(Action.CLEAN, -1, null);
         }
 
         @NotNull
-        static DirtyCheckDecision deferred(long lastChangedTick) {
-            return new DirtyCheckDecision(Action.DEFERRED, lastChangedTick, null);
+        static DirtyCheckLease deferred(long lastChangedTick) {
+            return new DirtyCheckLease(Action.DEFERRED, lastChangedTick, null);
         }
 
         @NotNull
-        static DirtyCheckDecision activeGraph() {
-            return new DirtyCheckDecision(Action.ACTIVE_GRAPH, -1, null);
+        static DirtyCheckLease activeGraph() {
+            return new DirtyCheckLease(Action.ACTIVE_GRAPH, -1, null);
         }
 
         @NotNull
-        static DirtyCheckDecision incremental() {
-            return new DirtyCheckDecision(Action.INCREMENTAL, -1, null);
+        static DirtyCheckLease incremental() {
+            return new DirtyCheckLease(Action.INCREMENTAL, -1, null);
         }
 
         @NotNull
-        static DirtyCheckDecision full() {
-            return new DirtyCheckDecision(Action.FULL, -1, null);
+        static DirtyCheckLease full() {
+            return new DirtyCheckLease(Action.FULL, -1, null);
         }
 
         @NotNull
-        static DirtyCheckDecision full(@NotNull StructureIncrementalFallbackReason fallbackReason) {
-            return new DirtyCheckDecision(Action.FULL, -1, fallbackReason);
+        static DirtyCheckLease full(@NotNull StructureIncrementalFallbackReason fallbackReason) {
+            return new DirtyCheckLease(Action.FULL, -1, fallbackReason);
         }
 
         boolean isRegistered() {

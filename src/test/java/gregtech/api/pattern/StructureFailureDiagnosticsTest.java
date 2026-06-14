@@ -153,7 +153,7 @@ class StructureFailureDiagnosticsTest {
                         { 1, 1 }
                 },
                 null,
-                null,
+                new int[] {0, 0, 0, 0, 0},
                 null);
     }
 

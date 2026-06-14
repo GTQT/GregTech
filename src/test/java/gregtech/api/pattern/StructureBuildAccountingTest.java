@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
+import gregtech.api.pattern.element.impl.AnyElement;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
@@ -33,6 +34,7 @@ import java.util.Map;
 
 import static gregtech.api.pattern.StructureEvaluationContext.Operation.CREATIVE_BUILD;
 import static gregtech.api.pattern.StructureEvaluationContext.Operation.SURVIVAL_BUILD;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -254,6 +256,135 @@ class StructureBuildAccountingTest {
     }
 
     @Test
+    void previewCellsExposeDirectElementTooltipAndCandidates() {
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new PreviewTooltipElement(dirtInfo, "direct.preview.tooltip")));
+
+        MultiblockState.PreviewCells preview = state.createPreviewCells(new int[] {1}, null);
+        StructureElementPreviewEntry entry = preview.getPreviewEntries().get(BlockPos.ORIGIN);
+
+        assertNotNull(entry);
+        assertEquals("direct.preview.tooltip", entry.getTooltip().get(0));
+        assertArrayEquals(new BlockInfo[] {dirtInfo},
+                entry.getPreview().getCommon().get(0).getCandidates());
+    }
+
+    @Test
+    void patternErrorCandidatesPreferDirectPreviewEntry() {
+        MutableWorld mutableWorld = mutableWorld();
+        MultiblockState state = new MultiblockState(singleCellTemplateWithoutLegacyCandidates(
+                new DirectCandidateElement(dirtInfo)));
+
+        PatternMatchContext result = state.checkPatternAtSnapshotExact(
+                mutableWorld, BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0);
+
+        assertNull(result);
+        PatternError error = state.getError();
+        assertNotNull(error);
+        assertTrue(error.getWorldState().getPreviewEntry() != null);
+        assertEquals(dirtItem.getItem(), error.getCandidates().get(0).get(0).getItem());
+    }
+
+    @Test
+    void previewAndDiagnosticsDoNotRequireDirectLegacyPredicateView() {
+        MutableWorld mutableWorld = mutableWorld();
+        MultiblockState state = new MultiblockState(singleCellTemplateWithoutLegacyCandidates(
+                new ThrowingLegacyPredicateDirectElement(dirtInfo)));
+
+        MultiblockState.PreviewCells preview = state.createPreviewCells(new int[] {1}, null);
+
+        assertEquals(Blocks.DIRT.getDefaultState(),
+                preview.getBlocks().get(BlockPos.ORIGIN).getBlockState());
+
+        PatternMatchContext result = state.checkPatternAtSnapshotExact(
+                mutableWorld, BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0);
+
+        assertNull(result);
+        PatternError error = state.getError();
+        assertNotNull(error);
+        assertEquals(dirtItem.getItem(), error.getCandidates().get(0).get(0).getItem());
+    }
+
+    @Test
+    void compiledOnlyTemplateDiscoversCenterFromElement() {
+        PieceTemplate template = new PieceTemplate(
+                new IStructureElement<?>[][][] {
+                        {
+                                { new RecordingElement(true), new CenterOnlyElement() }
+                        }
+                },
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 2, 4 }
+                },
+                null,
+                null,
+                null);
+
+        assertEquals(new BlockPatternTemplate.CenterOffset(1, 0, 0, 0, 0), template.getCenterOffset());
+    }
+
+    @Test
+    void legacyViewProjectsPredicateForDirectElementWithoutPredicate() {
+        DirectChannelElement element = new DirectChannelElement(stoneInfo, dirtInfo, "tier");
+        PieceTemplate template = new PieceTemplate(
+                new IStructureElement<?>[][][] {
+                        {
+                                { element }
+                        }
+                },
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 1, 1 }
+                },
+                null,
+                new int[] {0, 0, 0, 0, 0},
+                null);
+
+        TraceabilityPredicate predicate = template.getBlockMatches()[0][0][0];
+
+        assertNotNull(predicate);
+        assertFalse(predicate.isCenter());
+        assertEquals(1, predicate.common.size());
+        assertArrayEquals(element.getCandidates(), predicate.common.get(0).candidates.get());
+    }
+
+    @Test
+    void legacyViewKeepsAnyPredicateIdentityForCompiledWildcard() {
+        PieceTemplate template = new PieceTemplate(
+                new IStructureElement<?>[][][] {
+                        {
+                                { AnyElement.INSTANCE.compile() }
+                        }
+                },
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 1, 1 }
+                },
+                null,
+                new int[] {0, 0, 0, 0, 0},
+                null);
+
+        assertTrue(template.getBlockMatches()[0][0][0] == TraceabilityPredicate.ANY);
+    }
+
+    @Test
     void typedPreviewResultWrapsSinglePieceCells() {
         MultiblockState state = new MultiblockState(singleCellTemplate(
                 new DirectChannelElement(stoneInfo, dirtInfo, "tier")));
@@ -355,6 +486,36 @@ class StructureBuildAccountingTest {
             if (element.isCenter()) {
                 predicate.setCenter();
             }
+        }
+        return new PieceTemplate(
+                new TraceabilityPredicate[][][] {
+                        {
+                                { predicate }
+                        }
+                },
+                new IStructureElement<?>[][][] {
+                        {
+                                { element }
+                        }
+                },
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 1, 1 }
+                },
+                null,
+                new int[] {0, 0, 0, 0, 0},
+                null);
+    }
+
+    @NotNull
+    private static PieceTemplate singleCellTemplateWithoutLegacyCandidates(@NotNull IStructureElement<?> element) {
+        TraceabilityPredicate predicate = new TraceabilityPredicate(worldState -> false);
+        if (element.isCenter()) {
+            predicate.setCenter();
         }
         return new PieceTemplate(
                 new TraceabilityPredicate[][][] {
@@ -534,6 +695,45 @@ class StructureBuildAccountingTest {
         public void spawnHint(World world, BlockPos pos) {}
     }
 
+    private static final class ThrowingLegacyPredicateDirectElement implements IStructureElement<Object> {
+
+        @NotNull
+        private final BlockInfo candidate;
+
+        private ThrowingLegacyPredicateDirectElement(@NotNull BlockInfo candidate) {
+            this.candidate = candidate;
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            return context.getBlockState() == candidate.getBlockState();
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return world.getBlockState(pos) == candidate.getBlockState();
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] {candidate};
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @Override
+        public TraceabilityPredicate toPredicate() {
+            throw new AssertionError("typed preview/diagnostic path should not request legacy predicate view");
+        }
+    }
+
     private static final class ContextHintElement implements IStructureElement<Object> {
 
         @Override
@@ -572,6 +772,80 @@ class StructureBuildAccountingTest {
         public StructureHintRenderResult spawnHintWithResult(
                 @NotNull StructureEvaluationContext<Object> context) {
             return StructureHintRenderResult.rendered(StructureHintRenderResult.Source.CONTEXT);
+        }
+    }
+
+    private static final class PreviewTooltipElement implements IStructureElement<Object> {
+
+        @NotNull
+        private final BlockInfo candidate;
+        @NotNull
+        private final String tooltip;
+
+        private PreviewTooltipElement(@NotNull BlockInfo candidate, @NotNull String tooltip) {
+            this.candidate = candidate;
+            this.tooltip = tooltip;
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            return context.getBlockState() == candidate.getBlockState();
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return world.getBlockState(pos) == candidate.getBlockState();
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] {candidate};
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @Override
+        public void addPreviewTooltip(@NotNull java.util.List<String> tooltip) {
+            tooltip.add(this.tooltip);
+        }
+    }
+
+    private static final class CenterOnlyElement implements IStructureElement<Object> {
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            return true;
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            return true;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @Override
+        public boolean isCenter() {
+            return true;
         }
     }
 

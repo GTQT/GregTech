@@ -418,7 +418,8 @@ public class MultiblockState {
         return error == null ? StructureFailureTrace.Kind.LEGACY_PATTERN : StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }
 
-    private void recordMissingFixedAbility(@NotNull TraceabilityPredicate predicate) {
+    private void recordMissingFixedAbility(@Nullable TraceabilityPredicate predicate) {
+        if (predicate == null) return;
         if (!hasFixedAisleLayout()) return;
         MultiblockAbility<?> ability = predicate.getSingleAbility();
         if (ability == null) return;
@@ -463,14 +464,19 @@ public class MultiblockState {
         private final BlockPos worldPos;
         @NotNull
         private final IStructureElement<?> element;
+        @Nullable
+        private TraceabilityPredicate predicate;
+        private boolean predicateResolved;
         @NotNull
-        private final TraceabilityPredicate predicate;
+        private final StructureElementPreviewEntry previewEntry;
 
         private FixedStructureCell(int aisleIndex, int repetitionIndex,
                                    int localX, int localY, int localZ,
                                    @NotNull BlockPos worldPos,
                                    @NotNull IStructureElement<?> element,
-                                   @NotNull TraceabilityPredicate predicate) {
+                                   @Nullable TraceabilityPredicate predicate,
+                                   boolean predicateResolved,
+                                   @NotNull StructureElementPreviewEntry previewEntry) {
             this.aisleIndex = aisleIndex;
             this.repetitionIndex = repetitionIndex;
             this.localX = localX;
@@ -479,6 +485,22 @@ public class MultiblockState {
             this.worldPos = worldPos;
             this.element = element;
             this.predicate = predicate;
+            this.predicateResolved = predicateResolved;
+            this.previewEntry = previewEntry;
+        }
+
+        @Nullable
+        private TraceabilityPredicate legacyPredicate() {
+            if (!predicateResolved) {
+                predicate = element.toPredicate();
+                predicateResolved = true;
+            }
+            return predicate;
+        }
+
+        @Nullable
+        private TraceabilityPredicate runtimePredicate() {
+            return predicateResolved ? predicate : null;
         }
     }
 
@@ -540,14 +562,17 @@ public class MultiblockState {
                                                        @NotNull StructureOrientation orientation,
                                                        int xOffset, int yOffset, int zOffset) {
         IStructureElement<?> element = template.getElements()[aisleIndex][elementYIndex][elementXIndex];
-        TraceabilityPredicate predicate = template.getBlockMatches()[aisleIndex][elementYIndex][elementXIndex];
+        boolean legacyRuntime = element.usesLegacyPredicateRuntime();
+        TraceabilityPredicate predicate = legacyRuntime ? element.toPredicate() : null;
         BlockPos pos = RelativeDirection.setActualRelativeOffset(
                 localX + xOffset, localY + yOffset, localZ + zOffset,
                 orientation.getStructureFront(), orientation.getUp(),
                 orientation.isFlipped(), template.getStructureDir())
                 .add(centerPos);
         return new FixedStructureCell(
-                aisleIndex, repetitionIndex, localX, localY, localZ, pos, element, predicate);
+                aisleIndex, repetitionIndex, localX, localY, localZ, pos, element, predicate,
+                legacyRuntime,
+                StructureElementPreviewEntry.of(element.getPreview(), previewTooltip(element)));
     }
 
     @Nullable
@@ -559,6 +584,21 @@ public class MultiblockState {
                                                          @Nullable StructureMatchSession session,
                                                          @NotNull StructureEvaluationContext.Operation operation,
                                                          boolean updateCache) {
+        if (session == null) {
+            StructureMatchSession internalSession = new StructureMatchSession(
+                    Collections.emptyMap(), Collections.emptyList(), null);
+            PatternMatchContext result = checkFixedStructureCells(world, blockAccess, centerPos, orientation,
+                    xOffset, yOffset, zOffset, internalSession, operation, updateCache);
+            if (result == null) {
+                return null;
+            }
+            if (failForMissingInternalSessionRequirements(internalSession)) {
+                return null;
+            }
+            commitInternalSession(internalSession, orientation);
+            return matchContext;
+        }
+
         int[][] aisleRepetitions = template.getAisleRepetitions();
         BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int fingerLength = template.getZLength();
@@ -566,14 +606,9 @@ public class MultiblockState {
         boolean findFirstAisle = false;
         int minZ = -centerOffset.maxZ();
 
-        PatternMatchContext activeContext = session == null ? this.matchContext : session.getContext();
-        Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount =
-                session == null ? this.globalCount : session.getGlobalCount();
-        StructureMatchSession.Checkpoint initialCheckpoint = session == null ? null : session.checkpoint();
-        if (session == null) {
-            activeContext.reset();
-            activeGlobalCount.clear();
-        }
+        PatternMatchContext activeContext = session.getContext();
+        Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount = session.getGlobalCount();
+        StructureMatchSession.Checkpoint initialCheckpoint = session.checkpoint();
         this.layerCount.clear();
         this.missingAbilities = Collections.emptyMap();
         if (updateCache) {
@@ -598,12 +633,7 @@ public class MultiblockState {
                         if (r < aisleRepetitions[c][0]) {
                             r = c = 0;
                             z = minZ++;
-                            if (session == null) {
-                                activeContext.reset();
-                                activeGlobalCount.clear();
-                            } else {
-                                session.restoreTo(initialCheckpoint);
-                            }
+                            session.restoreTo(initialCheckpoint);
                             findFirstAisle = false;
                         }
                     } else {
@@ -629,11 +659,72 @@ public class MultiblockState {
             formedRepetitionCount[c] = validRepetitions;
         }
 
-        if (session == null && failForMissingGlobalPredicates(activeGlobalCount)) return null;
-
         worldState.setError(null);
         activeContext.setNeededFlip(orientation.isFlipped());
         return activeContext;
+    }
+
+    private boolean failForMissingInternalSessionRequirements(@NotNull StructureMatchSession session) {
+        TraceabilityPredicate.SimplePredicate firstMissing = null;
+        Map<MultiblockAbility<?>, Integer> abilities = new HashMap<>();
+
+        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : session.getGlobalCount().entrySet()) {
+            TraceabilityPredicate.SimplePredicate predicate = entry.getKey();
+            int deficit = predicate.minGlobalCount - entry.getValue();
+            if (deficit <= 0) continue;
+
+            if (firstMissing == null) {
+                firstMissing = predicate;
+            }
+            if (predicate.ability != null) {
+                abilities.merge(predicate.ability, deficit, Integer::sum);
+            }
+        }
+
+        StructureMatchCollector.Validation operationValidation =
+                StructureMatchCollector.validate(session.getOperationState());
+        StructureMatchCollector.Validation contextValidation =
+                StructureMatchCollector.validate(session.getContext());
+        if (!operationValidation.missingAbilities.isEmpty()) {
+            operationValidation.missingAbilities.forEach(
+                    (ability, deficit) -> abilities.merge(ability, deficit, Integer::sum));
+        }
+        if (!contextValidation.missingAbilities.isEmpty()) {
+            contextValidation.missingAbilities.forEach(
+                    (ability, deficit) -> abilities.merge(ability, deficit, Integer::sum));
+        }
+
+        boolean collectorSucceeded = operationValidation.success && contextValidation.success;
+        if (firstMissing == null && collectorSucceeded) {
+            missingAbilities = Collections.emptyMap();
+            return false;
+        }
+
+        missingAbilities = abilities.isEmpty()
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(abilities);
+        if (firstMissing != null) {
+            worldState.setError(new TraceabilityPredicate.SinglePredicateError(firstMissing, 1));
+        } else {
+            StructureMatchCollector.Validation failure =
+                    operationValidation.success ? contextValidation : operationValidation;
+            worldState.setError(failure.error == null
+                    ? new PatternStringError(failure.errorMessage == null
+                            ? "gregtech.multiblock.pattern.error.requirements"
+                            : failure.errorMessage)
+                    : failure.error);
+        }
+        return true;
+    }
+
+    private void commitInternalSession(@NotNull StructureMatchSession session,
+                                       @NotNull StructureOrientation orientation) {
+        matchContext.replaceWith(session.projectCompatibilityContext(session.getContext()));
+        session.copyOperationState().applyCompatibilityView(matchContext);
+        matchContext.setNeededFlip(orientation.isFlipped());
+        globalCount.clear();
+        globalCount.putAll(session.getGlobalCount());
+        missingAbilities = Collections.emptyMap();
     }
 
     private boolean checkFixedStructureCell(@NotNull FixedStructureCell cell,
@@ -649,33 +740,41 @@ public class MultiblockState {
             if (blockAccess == null) {
                 throw new IllegalArgumentException("Snapshot fixed-structure check requires an IBlockAccess");
             }
+            TraceabilityPredicate predicate = cell.runtimePredicate();
             worldState.updateFromBlockAccess(blockAccess, cell.worldPos, activeContext, activeGlobalCount,
-                    layerCounts, cell.predicate);
+                    layerCounts, predicate, cell.previewEntry);
         } else {
             if (world == null) {
                 throw new IllegalArgumentException("Live fixed-structure check requires a World");
             }
-            worldState.update(world, cell.worldPos, activeContext, activeGlobalCount, layerCounts, cell.predicate);
+            TraceabilityPredicate predicate = cell.runtimePredicate();
+            worldState.update(world, cell.worldPos, activeContext, activeGlobalCount,
+                    layerCounts, predicate, cell.previewEntry);
             if (updateCache) {
                 recordLiveCacheCell(cell);
             }
         }
         if (!checkElement(cell.element, session, operation)) {
-            recordMissingFixedAbility(cell.predicate);
+            recordMissingFixedAbility(cell.runtimePredicate());
             return false;
         }
         return true;
     }
 
     private void recordLiveCacheCell(@NotNull FixedStructureCell cell) {
-        if (cell.predicate == TraceabilityPredicate.ANY) return;
+        TraceabilityPredicate predicate = cell.runtimePredicate();
+        if (predicate == TraceabilityPredicate.ANY) return;
 
-        TileEntity tileEntity = worldState.getTileEntity();
+        IBlockState blockState = worldState.getCachedBlockState();
+        if (blockState == null) return;
+        TileEntity tileEntity = blockState.getBlock().hasTileEntity(blockState)
+                ? worldState.getTileEntity()
+                : null;
         if (tileEntity instanceof IGregTechTileEntity && !((IGregTechTileEntity) tileEntity).isValid()) {
-            cache.put(cell.worldPos.toLong(), new BlockInfo(worldState.getBlockState(), null, cell.predicate));
+            cache.put(cell.worldPos.toLong(), new BlockInfo(blockState, null, predicate));
             return;
         }
-        cache.put(cell.worldPos.toLong(), new BlockInfo(worldState.getBlockState(), tileEntity, cell.predicate));
+        cache.put(cell.worldPos.toLong(), new BlockInfo(blockState, tileEntity, predicate));
     }
 
     private boolean validateFixedStructureLayerCounts() {
@@ -692,7 +791,7 @@ public class MultiblockState {
                                             @NotNull BlockWorldState operationWorldState,
                                             @NotNull World world,
                                             @NotNull BlockPos pos,
-                                            @NotNull TraceabilityPredicate predicate,
+                                            @Nullable TraceabilityPredicate predicate,
                                             @NotNull MultiblockControllerBase controllerBase,
                                             @NotNull StructureEvaluationContext.Operation operation) {
         operationWorldState.update(world, pos, matchContext, globalCount, layerCount, predicate);
@@ -767,6 +866,8 @@ public class MultiblockState {
         private final Map<BlockPos, BlockInfo> blocks = new HashMap<>();
         @NotNull
         private final Map<BlockPos, TraceabilityPredicate> predicates = new HashMap<>();
+        @NotNull
+        private final Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
         private int minX = Integer.MAX_VALUE;
         private int minY = Integer.MAX_VALUE;
         private int minZ = Integer.MAX_VALUE;
@@ -775,10 +876,14 @@ public class MultiblockState {
         private int maxZ = Integer.MIN_VALUE;
 
         private void record(@NotNull BlockPos pos, @NotNull BlockInfo info,
-                            @NotNull TraceabilityPredicate predicate) {
+                            @Nullable TraceabilityPredicate predicate,
+                            @NotNull StructureElementPreviewEntry previewEntry) {
             blocks.put(pos, info);
-            if (predicate != TraceabilityPredicate.ANY) {
+            if (predicate != null && predicate != TraceabilityPredicate.ANY) {
                 predicates.put(pos, predicate);
+            }
+            if (!previewEntry.getPreview().isEmpty() || !previewEntry.getTooltip().isEmpty()) {
+                previewEntries.put(pos, previewEntry);
             }
             minX = Math.min(pos.getX(), minX);
             minY = Math.min(pos.getY(), minY);
@@ -791,10 +896,11 @@ public class MultiblockState {
         @NotNull
         private PreviewCells toCells(@NotNull BlockPos center) {
             if (blocks.isEmpty()) {
-                return new PreviewCells(Collections.emptyMap(), Collections.emptyMap(),
+                return new PreviewCells(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                         center, 0, 0, 0, 0, 0, 0);
             }
-            return new PreviewCells(blocks, predicates, center, minX, minY, minZ, maxX, maxY, maxZ);
+            return new PreviewCells(blocks, predicates, previewEntries, center,
+                    minX, minY, minZ, maxX, maxY, maxZ);
         }
     }
 
@@ -804,6 +910,8 @@ public class MultiblockState {
         private final Map<BlockPos, BlockInfo> blocks;
         @NotNull
         private final Map<BlockPos, TraceabilityPredicate> predicates;
+        @NotNull
+        private final Map<BlockPos, StructureElementPreviewEntry> previewEntries;
         @NotNull
         private final BlockPos center;
         private final int minX;
@@ -815,11 +923,13 @@ public class MultiblockState {
 
         private PreviewCells(@NotNull Map<BlockPos, BlockInfo> blocks,
                              @NotNull Map<BlockPos, TraceabilityPredicate> predicates,
+                             @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries,
                              @NotNull BlockPos center,
                              int minX, int minY, int minZ,
                              int maxX, int maxY, int maxZ) {
             this.blocks = Collections.unmodifiableMap(new HashMap<>(blocks));
             this.predicates = Collections.unmodifiableMap(new HashMap<>(predicates));
+            this.previewEntries = Collections.unmodifiableMap(new HashMap<>(previewEntries));
             this.center = center;
             this.minX = minX;
             this.minY = minY;
@@ -837,6 +947,11 @@ public class MultiblockState {
         @NotNull
         public Map<BlockPos, TraceabilityPredicate> getPredicates() {
             return predicates;
+        }
+
+        @NotNull
+        public Map<BlockPos, StructureElementPreviewEntry> getPreviewEntries() {
+            return previewEntries;
         }
 
         public boolean isEmpty() {
@@ -886,7 +1001,7 @@ public class MultiblockState {
                                 @NotNull BuildTraversalState buildState,
                                 @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
-        TraceabilityPredicate predicate = cell.predicate;
+        TraceabilityPredicate predicate = cell.runtimePredicate();
         BlockPos pos = cell.worldPos;
         buildState.result.recordVisitedCell();
 
@@ -898,8 +1013,10 @@ public class MultiblockState {
             if (abilityTracker != null) {
                 abilityTracker.recordWorldTile(pos, world.getTileEntity(pos));
             }
-            for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                limit.testLimited(buildState.worldState);
+            if (predicate != null) {
+                for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
+                    limit.testLimited(buildState.worldState);
+                }
             }
             return;
         }
@@ -1590,7 +1707,7 @@ public class MultiblockState {
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(), (cell, layerCounts) -> {
             hintState.result.recordVisitedCell();
             updateOperationCellContext(hintState.evaluationContext, hintState.worldState,
-                    world, cell.worldPos, cell.predicate, controllerBase,
+                    world, cell.worldPos, cell.runtimePredicate(), controllerBase,
                     StructureEvaluationContext.Operation.HINT);
             IStructureElement<Object> typedElement = (IStructureElement<Object>) cell.element;
             StructureHintRenderResult triggerResult =
@@ -1837,12 +1954,22 @@ public class MultiblockState {
                                            @NotNull StructureOrientation previewOrientation) {
         PreviewTraversalState previewState = new PreviewTraversalState();
         visitFixedStructureCells(repetition, BlockPos.ORIGIN, previewOrientation, 0, 0, 0, (cell, layerCounts) -> {
+            StructureElementPreview preview = cell.element.getPreview();
             BlockInfo info = selectPreviewBlockInfo(
-                    cell.element.getPreview(), layerCounts, previewState, channelValues);
-            previewState.record(cell.worldPos, info, cell.predicate);
+                    preview, layerCounts, previewState, channelValues);
+            TraceabilityPredicate predicate = cell.runtimePredicate();
+            previewState.record(cell.worldPos, info, predicate,
+                    StructureElementPreviewEntry.of(preview, previewTooltip(cell.element)));
         });
         orientPreviewControllers(previewState.blocks);
         return previewState.toCells(calculatePreviewCenter(repetition, previewOrientation));
+    }
+
+    @NotNull
+    private static List<String> previewTooltip(@NotNull IStructureElement<?> element) {
+        List<String> tooltip = new ArrayList<>();
+        element.addPreviewTooltip(tooltip);
+        return tooltip;
     }
 
     private static void orientPreviewControllers(@NotNull Map<BlockPos, BlockInfo> blocks) {
@@ -1992,21 +2119,30 @@ public class MultiblockState {
         // This is a simplified check that verifies the outermost slice.
         BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
 
-        // Check the first slice (z=0) as a representative sample
-        // For tensor products, if one slice matches, all slices match
-        this.matchContext.reset();
-        this.globalCount.clear();
+        // Check the first slice (z=0) as a representative sample.
+        // For tensor products, if one slice matches, all slices match. Use a
+        // session-backed execution context so direct element requirement/channel
+        // collection does not write into PatternMatchContext as internal storage.
+        StructureMatchSession session = new StructureMatchSession();
         this.layerCount.clear();
         this.missingAbilities = Collections.emptyMap();
 
         int z = -centerOffset.maxZ(); // Start at the first aisle
-        return visitFixedStructureSlice(0, 0, z, traversal.getCenterPos(), traversal.getOrientation(),
+        boolean matched = visitFixedStructureSlice(0, 0, z, traversal.getCenterPos(), traversal.getOrientation(),
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
                 layerCount, (cell, layerCounts) -> {
-                    worldState.updateFromBlockAccess(snap, cell.worldPos, matchContext, globalCount,
-                            layerCounts, cell.predicate);
-                    return checkElement(cell.element, null, StructureEvaluationContext.Operation.MATCH_SNAPSHOT);
+                    worldState.updateFromBlockAccess(snap, cell.worldPos, session.getContext(), session.getGlobalCount(),
+                            layerCounts, cell.runtimePredicate(), cell.previewEntry);
+                    return checkElement(cell.element, session, StructureEvaluationContext.Operation.MATCH_SNAPSHOT);
                 });
+        if (!matched) {
+            return false;
+        }
+        if (failForMissingInternalSessionRequirements(session)) {
+            return false;
+        }
+        commitInternalSession(session, traversal.getOrientation());
+        return true;
     }
 
     /**

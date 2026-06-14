@@ -211,21 +211,14 @@ public final class PieceTemplateCompiler {
 
     /**
      * Map a symbol to the canonical element contract. The element is compiled
-     * once and its predicate view is retained only for legacy algorithms.
+     * once and legacy predicate views are materialized only by explicit
+     * compatibility adapters.
      */
     @NotNull
     public PieceTemplateCompiler whereElement(char symbol, @NotNull IStructureElement<?> element) {
         CompiledStructureElement<?> compiled = element.compile();
         this.elementMap.put(symbol, compiled);
-        TraceabilityPredicate predicate = compiled.toPredicate();
-        if (predicate == null) {
-            predicate = new TraceabilityPredicate(state -> true, compiled::getCandidates);
-            if (compiled.isCenter()) {
-                predicate.setCenter();
-            }
-            predicate.sort();
-        }
-        this.symbolMap.put(symbol, predicate);
+        this.symbolMap.put(symbol, PieceTemplateLegacyView.previewPredicateViewFor(compiled));
         return this;
     }
 
@@ -278,7 +271,7 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplate buildPieceTemplate() {
-        return new PieceTemplate(makePredicateArray(), makeElementArray(), structureDir,
+        return new PieceTemplate(makeElementArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
                 null, null);
@@ -307,7 +300,7 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset) {
-        return new PieceTemplate(makePredicateArray(), makeElementArray(), structureDir,
+        return new PieceTemplate(makeElementArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
                 centerOffset, null);
@@ -337,7 +330,7 @@ public final class PieceTemplateCompiler {
     @NotNull
     public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset,
                                             @Nullable List<String> structureDescription) {
-        return new PieceTemplate(makePredicateArray(), makeElementArray(), structureDir,
+        return new PieceTemplate(makeElementArray(), structureDir,
                 aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
                 aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
                 centerOffset,

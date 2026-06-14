@@ -18,12 +18,14 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
+import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureTrace;
+import gregtech.api.pattern.StructureLifecycleState;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
@@ -240,6 +242,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     @Override
     public boolean isStructureFormed() {
+        if (getWorld() == null || !getWorld().isRemote) {
+            StructureRuntime runtime = structureRuntime;
+            if (runtime != null) {
+                return runtime.getLifecycleState().isFormed();
+            }
+        }
         return structureFormed;
     }
 
@@ -555,6 +563,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
+     * Structure validation scheduling policy for this controller.
+     * Override to force a structure onto polling-only, event-driven-only, or
+     * async-capable behavior without changing the world dirty index storage.
+     */
+    @NotNull
+    protected StructureSchedulerPolicy getStructureSchedulerPolicy() {
+        return StructureSchedulerPolicy.defaultPolicy();
+    }
+
+    /**
      * Returns the structure check polling interval (in ticks) when the multiblock is idle/standby. Used in fallback
      * polling mode when event-driven or async checking is unavailable.
      *
@@ -795,6 +813,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return structureRuntimeGeneration;
     }
 
+    long getStructureLifecycleGeneration() {
+        return structureRuntime == null ? 0 : structureRuntime.getLifecycleGeneration();
+    }
+
     /**
      * Hook for multiblocks whose preview/build dimensions are controlled by channels
      * outside the canonical runtime template. Returning {@code true} means the
@@ -917,9 +939,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
 
         this.multiblockParts.forEach(part -> part.removeFromMultiBlock(this));
-        this.multiblockAbilities.clear();
-        this.multiblockParts.clear();
-        this.structureFormed = false;
+        projectStructureLifecycle(StructureLifecycleState.empty());
         if (structureRuntime != null) {
             structureRuntime.clearFormedState();
         }
@@ -958,9 +978,15 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return multiblockAbilities;
     }
 
-    void publishStructureFormed() {
-        this.structureFormed = true;
-        writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(true));
+    void projectStructureLifecycle(@NotNull StructureLifecycleState lifecycleState) {
+        this.multiblockParts.clear();
+        this.multiblockParts.addAll(lifecycleState.getParts());
+        this.multiblockAbilities.clear();
+        this.multiblockAbilities.putAll(lifecycleState.getAbilities());
+        if (this.structureFormed != lifecycleState.isFormed()) {
+            this.structureFormed = lifecycleState.isFormed();
+            writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(lifecycleState.isFormed()));
+        }
     }
 
     @Override
@@ -1197,6 +1223,20 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
         return MultiblockStructureOperations.buildMultiPiecePredicateMap(this);
+    }
+
+    /**
+     * Build direct preview metadata for multi-piece structures.
+     *
+     * <p>Unlike {@link #buildMultiPiecePredicateMap()}, this is the typed JEI/tooling
+     * surface: it reads {@link gregtech.api.pattern.element.StructureElementPreview}
+     * and element preview tooltips first, carrying a legacy predicate only for
+     * fallback tooltip behavior during the addon migration window.
+     */
+    @NotNull
+    public Map<BlockPos, StructureElementPreviewEntry> buildMultiPiecePreviewEntries(
+            @Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructureOperations.buildMultiPiecePreviewEntries(this, channelValues);
     }
 
     /**

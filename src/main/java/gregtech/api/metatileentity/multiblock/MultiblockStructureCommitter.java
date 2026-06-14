@@ -27,7 +27,18 @@ final class MultiblockStructureCommitter {
 
     static void applyCheckResult(@NotNull MultiblockControllerBase controller,
                                  @NotNull StructureCheckResult result) {
+        applyCheckResult(controller, result, StructureCommitToken.captureForCheck(controller));
+    }
+
+    static void applyCheckResult(@NotNull MultiblockControllerBase controller,
+                                 @NotNull StructureCheckResult result,
+                                 @NotNull StructureCommitToken token) {
         StructureRuntime runtime = requireRuntime(controller);
+        String staleReason = token.staleReason();
+        if (staleReason != null) {
+            token.traceStale("commit", staleReason);
+            return;
+        }
         if (!result.isMatched()) {
             StructureFailureTrace failure = result.createFailureTrace(controller);
             runtime.recordCheckFailure(failure, result.getMissingAbilities());
@@ -108,14 +119,11 @@ final class MultiblockStructureCommitter {
         if (result != null && controller.pieceRuntimes != null) {
             result.validatePieceRuntimePublication(controller.pieceRuntimes);
         }
+        CommittedStructureGraph graphPublication = result == null ? null : result.getGraphPublication();
         controller.setFlipped(flipped);
 
         if (prepared.changed) {
             prepared.removedParts.forEach(part -> part.removeFromMultiBlock(controller));
-            controller.mutableMultiblockParts().clear();
-            controller.mutableMultiblockParts().addAll(prepared.parts);
-            controller.mutableMultiblockAbilities().clear();
-            controller.mutableMultiblockAbilities().putAll(prepared.abilities);
             if (prepared.initial) {
                 prepared.parts.forEach(part -> part.addToMultiBlock(controller));
             } else {
@@ -126,18 +134,13 @@ final class MultiblockStructureCommitter {
         if (result != null && controller.pieceRuntimes != null) {
             result.publishPieceRuntimes(controller.pieceRuntimes);
         }
-        runtime.commitSuccessfulCheck(metadata, channelValues);
-        if (result != null) {
-            CommittedStructureGraph graphPublication = result.getGraphPublication();
-            if (graphPublication == null) {
-                runtime.clearCommittedGraph();
-            } else {
-                runtime.publishCommittedGraph(graphPublication);
-            }
-        }
-        if (prepared.initial) {
-            controller.publishStructureFormed();
-        }
+        runtime.publishLifecycleState(
+                prepared.changed ? prepared.parts : controller.getMultiblockParts(),
+                prepared.changed ? prepared.abilities : controller.mutableMultiblockAbilities(),
+                metadata,
+                channelValues,
+                graphPublication);
+        controller.projectStructureLifecycle(runtime.getLifecycleState());
         if (prepared.changed) {
             controller.formStructure(formed);
             StructureTrace.debug(controller, prepared.initial ? "formed" : "reassembled",

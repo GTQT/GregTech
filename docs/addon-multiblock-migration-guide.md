@@ -185,6 +185,34 @@ if (result.requiresResume()) {
 }
 ```
 
+## Optional: Typed Hint, Preview, and Iterate Results
+
+The runtime also exposes typed results for non-build operations:
+
+- `StructureHintResult` now includes rendered/skipped/failed hint-render counts.
+- `StructurePreviewResult` wraps single-template and multi-piece previews behind one outcome type.
+- `StructureIterateResult` wraps read-only structure iteration; single-template iteration exposes
+  block info, while multi-piece iteration exposes the formed position set.
+
+For custom structure elements, prefer overriding `spawnHintWithResult(...)` when the element can
+decide that a trigger or context path did not actually render anything:
+
+```java
+@NotNull
+@Override
+public StructureHintRenderResult spawnHintWithResult(
+        World world, BlockPos pos, @NotNull ItemStack trigger) {
+    if (!canHandle(trigger)) {
+        return StructureHintRenderResult.skipped(StructureHintRenderResult.Source.TRIGGER);
+    }
+    renderHint(world, pos);
+    return StructureHintRenderResult.rendered(StructureHintRenderResult.Source.TRIGGER);
+}
+```
+
+The old `spawnHint(...)` methods are still supported. Their default typed result is `RENDERED`, so
+existing elements do not need an immediate migration.
+
 ### Orientation-Native Requests
 
 New runtime/evaluator APIs take `StructureOrientation` instead of separate
@@ -264,6 +292,39 @@ matching, preview, or build candidate selection. If old tooling still needs a
 predicate-shaped view, `toPredicate()` can return one, but it is now a
 compatibility view rather than the execution model.
 
+Internally, `PieceTemplate` stores compiled elements as the canonical cell data.
+Legacy predicate arrays exposed by `BlockPatternTemplate.getBlockMatches()` are
+projected through `PieceTemplateLegacyView`. Old addons can keep calling
+`getBlockMatches()` during the migration window, while new addons should put
+preview candidates, channel metadata, and tooltip text on direct element APIs
+(`getPreview()` and `addPreviewTooltip(...)`) instead of rebuilding that
+information through `TraceabilityPredicate`.
+
+JEI now follows the same rule. The multiblock page resolves candidates and
+tooltip text from `StructureElementPreview` / `addPreviewTooltip(...)` first.
+Its cached `MBPattern` exposes typed preview accessors and only builds legacy
+predicate-map entries for preview positions not already covered by direct
+preview entries. Legacy predicates adapted through
+`StructureElementPreview.fromPredicate(...)` carry their per-candidate tooltip
+text on the preview candidate group itself, so JEI does not need to materialize
+a predicate-shaped template view for normal tooltip/candidate display. This
+means new direct elements should treat `toPredicate()` as optional compatibility
+only, not as the path that makes JEI cycling or tooltips work.
+
+Channel discovery and channel ranges are also typed-first. Put selector metadata
+on `StructureElementPreview.CandidateGroup.channel(...)`; JEI/projector channel
+UI will use the preview group candidate count for `[0, maxCandidate]` ranges
+before falling back to an individual element's optional legacy predicate view.
+Direct elements with preview channel metadata are not asked for `toPredicate()`
+just to populate channel UI.
+
+Projector and structure-error diagnostics also prefer direct preview metadata.
+When a failed cell has a `StructureElementPreviewEntry`, `PatternError#getCandidates()`
+uses its `StructureElementPreview` candidates before falling back to legacy
+predicate candidates on old cells that have no typed preview entry. New direct
+elements should therefore expose diagnostic candidates through `getPreview()`
+even if they do not provide `toPredicate()`.
+
 ```java
 private static final class MyTieredElement implements IStructureElement<Object> {
     private final BlockInfo[] candidates;
@@ -330,6 +391,13 @@ addons keep working. The important migration rule is one-way compatibility:
 legacy declarations may enter V3 through adapters, but new direct elements
 should not depend on `TraceabilityPredicate` for matching, preview, build, or
 hint behavior.
+
+`formStructure(PatternMatchContext)` also remains supported. New controllers may
+override `formStructure(FormedStructureView)` to read typed operation state and
+channel values directly; the default typed callback still projects a legacy
+`PatternMatchContext` for existing overrides. Internally, no-session fixed
+template checks now execute through a `StructureMatchSession` and only produce
+that legacy context at the compatibility boundary.
 
 ---
 

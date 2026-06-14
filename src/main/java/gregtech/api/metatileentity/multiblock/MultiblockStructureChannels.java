@@ -7,6 +7,8 @@ import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelRegistry;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +18,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 final class MultiblockStructureChannels {
 
@@ -112,16 +115,21 @@ final class MultiblockStructureChannels {
     private static void collectChannelsFromTemplateInto(
             @NotNull BlockPatternTemplate template,
             @NotNull Set<String> out) {
-        TraceabilityPredicate[][][] matches = template.getBlockMatches();
-        for (TraceabilityPredicate[][] layer : matches) {
-            for (TraceabilityPredicate[] row : layer) {
-                for (TraceabilityPredicate predicate : row) {
-                    if (predicate == null) continue;
-                    collectChannelNames(predicate.common, out);
-                    collectChannelNames(predicate.limited, out);
-                }
+        forEachPreviewGroup(template, (element, group) -> {
+            String channelName = group.getChannelName();
+            if (channelName != null && !channelName.isEmpty()) {
+                out.add(channelName);
             }
-        }
+        });
+
+        forEachElementWithoutPreviewChannel(template, element -> {
+            TraceabilityPredicate predicate = element.toPredicate();
+            if (predicate != null) {
+                collectChannelNames(predicate.common, out);
+                collectChannelNames(predicate.limited, out);
+            }
+        });
+
         for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
             String name = aisle.channelName();
             if (name != null && !name.isEmpty()) {
@@ -166,18 +174,81 @@ final class MultiblockStructureChannels {
             @NotNull BlockPatternTemplate template,
             @NotNull String channelName) {
         int maxCandidates = 0;
-        TraceabilityPredicate[][][] matches = template.getBlockMatches();
-        for (TraceabilityPredicate[][] layer : matches) {
-            for (TraceabilityPredicate[] row : layer) {
-                for (TraceabilityPredicate predicate : row) {
-                    if (predicate == null) continue;
-                    maxCandidates = Math.max(maxCandidates,
-                            countChannelCandidates(predicate.common, channelName));
-                    maxCandidates = Math.max(maxCandidates,
-                            countChannelCandidates(predicate.limited, channelName));
+        final int[] typedMax = {0};
+        forEachPreviewGroup(template, (element, group) -> {
+            if (channelName.equals(group.getChannelName())) {
+                typedMax[0] = Math.max(typedMax[0], group.getCandidates().length);
+            }
+        });
+        if (typedMax[0] > 0) {
+            return typedMax[0];
+        }
+
+        final int[] legacyMax = {0};
+        forEachElementWithoutPreviewChannel(template, element -> {
+            TraceabilityPredicate predicate = element.toPredicate();
+            if (predicate != null) {
+                legacyMax[0] = Math.max(legacyMax[0],
+                        countChannelCandidates(predicate.common, channelName));
+                legacyMax[0] = Math.max(legacyMax[0],
+                        countChannelCandidates(predicate.limited, channelName));
+            }
+        });
+        maxCandidates = Math.max(maxCandidates, legacyMax[0]);
+        return maxCandidates;
+    }
+
+    private static void forEachPreviewGroup(
+            @NotNull BlockPatternTemplate template,
+            @NotNull PreviewGroupConsumer consumer) {
+        for (IStructureElement<?>[][] layer : template.getDelegate().getElements()) {
+            for (IStructureElement<?>[] row : layer) {
+                for (IStructureElement<?> element : row) {
+                    if (element == null) continue;
+                    StructureElementPreview preview = element.getPreview();
+                    for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+                        consumer.accept(element, group);
+                    }
+                    for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+                        consumer.accept(element, group);
+                    }
                 }
             }
         }
-        return maxCandidates;
+    }
+
+    private static void forEachElementWithoutPreviewChannel(
+            @NotNull BlockPatternTemplate template,
+            @NotNull Consumer<IStructureElement<?>> consumer) {
+        for (IStructureElement<?>[][] layer : template.getDelegate().getElements()) {
+            for (IStructureElement<?>[] row : layer) {
+                for (IStructureElement<?> element : row) {
+                    if (element != null && !hasPreviewChannel(element.getPreview())) {
+                        consumer.accept(element);
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean hasPreviewChannel(@NotNull StructureElementPreview preview) {
+        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+            if (group.getChannelName() != null && !group.getChannelName().isEmpty()) {
+                return true;
+            }
+        }
+        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+            if (group.getChannelName() != null && !group.getChannelName().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @FunctionalInterface
+    private interface PreviewGroupConsumer {
+
+        void accept(@NotNull IStructureElement<?> element,
+                    @NotNull StructureElementPreview.CandidateGroup group);
     }
 }

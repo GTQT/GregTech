@@ -33,8 +33,8 @@ import java.util.function.BiConsumer;
  */
 public final class PieceTemplate {
 
-    private final TraceabilityPredicate[][][] blockMatches; // [z][y][x]
     private final IStructureElement<?>[][][] elements; // [z][y][x]
+    private final PieceTemplateLegacyView legacyView;
     private final BlockPatternTemplate.AisleDef[] aisles;
     private final RelativeDirection[] structureDir;
     private final int xLength; // x size (char axis)
@@ -90,16 +90,39 @@ public final class PieceTemplate {
                          @Nullable String[] aisleChannelNames,
                          @Nullable int[] externalCenterOffset,
                          @Nullable List<String> structureDescription) {
-        this.blockMatches = predicatesIn;
+        this(elements, structureDir, aisleRepetitions, aisleChannelNames,
+                externalCenterOffset, structureDescription,
+                PieceTemplateLegacyView.fromLegacyPredicates(predicatesIn, elements, structureDir));
+    }
+
+    public PieceTemplate(@NotNull IStructureElement<?>[][][] elements,
+                         @NotNull RelativeDirection[] structureDir,
+                         @NotNull int[][] aisleRepetitions,
+                         @Nullable String[] aisleChannelNames,
+                         @Nullable int[] externalCenterOffset,
+                         @Nullable List<String> structureDescription) {
+        this(elements, structureDir, aisleRepetitions, aisleChannelNames,
+                externalCenterOffset, structureDescription,
+                PieceTemplateLegacyView.fromElements(elements, structureDir));
+    }
+
+    private PieceTemplate(@NotNull IStructureElement<?>[][][] elements,
+                          @NotNull RelativeDirection[] structureDir,
+                          @NotNull int[][] aisleRepetitions,
+                          @Nullable String[] aisleChannelNames,
+                          @Nullable int[] externalCenterOffset,
+                          @Nullable List<String> structureDescription,
+                          @NotNull PieceTemplateLegacyView legacyView) {
         this.elements = elements;
-        this.zLength = predicatesIn.length;
+        this.legacyView = legacyView;
+        this.zLength = elements.length;
         this.structureDir = structureDir;
         this.aisles = buildAisles(aisleRepetitions, aisleChannelNames);
 
         if (this.zLength > 0) {
-            this.yLength = predicatesIn[0].length;
+            this.yLength = elements[0].length;
             if (this.yLength > 0) {
-                this.xLength = predicatesIn[0][0].length;
+                this.xLength = elements[0][0].length;
             } else {
                 this.xLength = 0;
             }
@@ -141,8 +164,8 @@ public final class PieceTemplate {
             for (int y = 0; y < this.yLength; y++) {
                 for (int z = 0, minZ = 0, maxZ = 0; z <
                         this.zLength; minZ += aisles[z].minRepeat(), maxZ += aisles[z].maxRepeat(), z++) {
-                    TraceabilityPredicate predicate = this.blockMatches[z][y][x];
-                    if (predicate.isCenter) {
+                    IStructureElement<?> element = this.elements[z][y][x];
+                    if (element != null && element.isCenter()) {
                         return new BlockPatternTemplate.CenterOffset(x, y, z, minZ, maxZ);
                     }
                 }
@@ -152,7 +175,12 @@ public final class PieceTemplate {
     }
 
     public TraceabilityPredicate[][][] getBlockMatches() {
-        return blockMatches;
+        return legacyView.getBlockMatches();
+    }
+
+    @NotNull
+    public PieceTemplateLegacyView getLegacyView() {
+        return legacyView;
     }
 
     @NotNull
@@ -240,21 +268,7 @@ public final class PieceTemplate {
      */
     public void forEachPredicate(@NotNull StructureOrientation orientation,
                                  @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
-        for (int iz = 0; iz < zLength; iz++) {
-            TraceabilityPredicate[][] layer = blockMatches[iz];
-            for (int iy = 0; iy < yLength; iy++) {
-                TraceabilityPredicate[] row = layer[iy];
-                for (int ix = 0; ix < xLength; ix++) {
-                    TraceabilityPredicate pred = row[ix];
-                    if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-                    BlockPos localPos = RelativeDirection.setActualRelativeOffset(
-                            ix, iy, iz,
-                            orientation.getStructureFront(), orientation.getUp(),
-                            orientation.isFlipped(), structureDir);
-                    consumer.accept(localPos, pred);
-                }
-            }
-        }
+        legacyView.forEachPredicate(orientation, consumer);
     }
 
     /**

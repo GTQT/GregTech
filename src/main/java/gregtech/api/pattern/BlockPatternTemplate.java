@@ -152,6 +152,11 @@ public class BlockPatternTemplate {
     }
 
     @NotNull
+    public PieceTemplateLegacyView getLegacyView() {
+        return delegate.getLegacyView();
+    }
+
+    @NotNull
     public AisleDef[] getAisles() {
         return delegate.getAisles();
     }

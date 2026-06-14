@@ -102,6 +102,22 @@ class StructureTraversalBoundaryTest {
     }
 
     @Test
+    void legacyNoSessionCheckRunsThroughSessionBackedExecution() {
+        RecordingElement element = new RecordingElement(true);
+        MultiblockState state = new MultiblockState(singleCellTemplate(element));
+
+        PatternMatchContext context = state.checkPatternFastAt(
+                WORLD, BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                false);
+
+        assertNotNull(context);
+        assertNotNull(element.lastSession());
+        assertEquals(1, context.getInt("channel"));
+        assertEquals(1, StructureOperationState.fromLegacyContext(context).getParts().size());
+    }
+
+    @Test
     void failedMultiPieceCheckRollsBackFormationEffectsAndRuntimeState() {
         RecordingElement firstElement = new RecordingElement(true);
         RecordingElement failingElement = new RecordingElement(false);

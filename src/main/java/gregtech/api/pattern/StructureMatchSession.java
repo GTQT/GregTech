@@ -232,6 +232,11 @@ public final class StructureMatchSession {
     }
 
     @NotNull
+    PatternMatchContext projectCompatibilityContext(@Nullable PatternMatchContext initialContext) {
+        return contributionBuilder.build().projectCompatibilityContext(initialContext);
+    }
+
+    @NotNull
     Map<TraceabilityPredicate.SimplePredicate, Integer> getGlobalCount() {
         return globalCount;
     }

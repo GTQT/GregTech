@@ -121,11 +121,13 @@ public class MultiblockWorldData {
     }
 
     /**
-     * Consume pending dirty state for scheduler selection.
+     * Consume pending dirty state for scheduler selection. The world index only
+     * stores dirty status; the scheduler policy decides whether this lease is
+     * used before polling or async.
      */
     @NotNull
-    DirtyCheckDecision consumeDirtyCheck(MultiblockControllerBase controller, long currentTick) {
-        return new DirtyCheckDecision(structureIndex.consumeDirtyCheck(controller, currentTick));
+    DirtyCheckLease consumeDirtyCheck(MultiblockControllerBase controller, long currentTick) {
+        return new DirtyCheckLease(structureIndex.consumeDirtyCheck(controller, currentTick));
     }
 
     /**
@@ -173,11 +175,11 @@ public class MultiblockWorldData {
         }
     }
 
-    static final class DirtyCheckDecision {
+    static final class DirtyCheckLease {
 
-        private final StructureWorldIndex.DirtyCheckDecision delegate;
+        private final StructureWorldIndex.DirtyCheckLease delegate;
 
-        private DirtyCheckDecision(@NotNull StructureWorldIndex.DirtyCheckDecision delegate) {
+        private DirtyCheckLease(@NotNull StructureWorldIndex.DirtyCheckLease delegate) {
             this.delegate = delegate;
         }
 
