@@ -8,7 +8,9 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntimeState;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.StructureCheckResult;
+import gregtech.api.pattern.StructureContributionKey;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureExternalDependencies;
@@ -79,6 +81,52 @@ class StructureLifecycleSchedulingTest {
         assertFalse(runtime.getLifecycleState().isFormed());
         assertFalse(controller.isStructureFormed());
         assertTrue(controller.getMultiblockParts().isEmpty());
+    }
+
+    @Test
+    void typedFormationCallbackRefreshesWhenAggregateChangesWithoutPartChanges() {
+        TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
+        BareWorld world = bareWorld();
+        controller.world = world;
+        controller.pos = BlockPos.ORIGIN;
+        int[] emittedValue = { 1 };
+        StructureContributionKey<Integer, Integer> payload =
+                StructureContributionKey.uniform("gregtech:test/formation_payload");
+        StructureDefinition<TestController> definition =
+                StructureDefinition.<TestController>builder(
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK)
+                        .piece("runtime", "R")
+                        .where('R', new MatchingElement())
+                        .end()
+                        .runtimeDetector(context -> {
+                            context.includePosition(BlockPos.ORIGIN);
+                            context.emit(payload, emittedValue[0]);
+                            return true;
+                        })
+                        .build();
+        controller.runtime = StructureRuntime.fromDefinition(definition);
+        controller.multiPiecePattern = controller.runtime.getMultiPiecePattern();
+        controller.pieceRuntimes = controller.runtime.getPieceRuntimes();
+        controller.patternTemplate = controller.runtime.getTemplate();
+        controller.runtimeState = controller.runtime.getRuntimeState();
+        setField(MultiblockControllerBase.class, controller, "structureDefinition", definition);
+        setField(MultiblockControllerBase.class, controller, "structureRuntime", controller.runtime);
+
+        StructureOperationRequest request = StructureOperationRequest.check(
+                world, BlockPos.ORIGIN, StructureOrientation.fromController(controller),
+                false, null, controller);
+        MultiblockStructureCommitter.applyCheckResult(
+                controller, controller.runtime.check(request));
+        emittedValue[0] = 2;
+        MultiblockStructureCommitter.applyCheckResult(
+                controller, controller.runtime.check(request));
+
+        assertEquals(2, controller.formedCallbacks);
+        assertEquals(2, controller.lastFormationPayload);
+        MultiblockWorldData.get(world).clear();
+        MultiblockWorldData.remove(world);
     }
 
     @Test
@@ -601,6 +649,8 @@ class StructureLifecycleSchedulingTest {
         private String channelValue;
         private String configValue;
         private String upgradeValue;
+        private int formedCallbacks;
+        private int lastFormationPayload;
 
         private TestController(@NotNull StructureSchedulerPolicy policy) {
             super(new ResourceLocation("gregtech", "lifecycle_scheduling_test"));
@@ -697,6 +747,13 @@ class StructureLifecycleSchedulingTest {
 
         @Override
         protected void updateFormedValid() {}
+
+        @Override
+        protected void formStructure(@NotNull FormedStructureView formed) {
+            formedCallbacks++;
+            Integer payload = formed.getAggregate("gregtech:test/formation_payload");
+            lastFormationPayload = payload == null ? 0 : payload;
+        }
 
         @Override
         public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {

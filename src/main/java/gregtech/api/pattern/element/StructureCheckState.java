@@ -150,7 +150,8 @@ public final class StructureCheckState {
                                      @NotNull StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
                     true, metadata, context, operationState,
-                    null, null, null, null, Collections.emptyMap(), Collections.emptyMap(),
+                    null, null, null, null, Collections.emptyMap(),
+                    contributionAggregate.getAbilityCounts(),
                     flipped, runtimePublication, resultTable, contributionAggregate);
         }
 

@@ -118,6 +118,8 @@ final class MultiblockStructureCommitter {
             result.validatePieceRuntimePublication(controller.pieceRuntimes);
         }
         CommittedStructureGraph graphPublication = result == null ? null : result.getGraphPublication();
+        boolean formationPayloadChanged = prepared.changed
+                || hasFormationPayloadChanged(runtime.getCommittedGraph(), graphPublication);
         controller.setFlipped(flipped);
 
         if (prepared.changed) {
@@ -139,12 +141,25 @@ final class MultiblockStructureCommitter {
                 channelValues,
                 graphPublication);
         controller.projectStructureLifecycle(runtime.getLifecycleState());
-        if (prepared.changed) {
+        if (formationPayloadChanged) {
             controller.formStructure(formed);
-            StructureTrace.debug(controller, prepared.initial ? "formed" : "reassembled",
+            StructureTrace.debug(controller, prepared.initial ? "formed" :
+                            prepared.changed ? "reassembled" : "formation-payload-refreshed",
                     "path=" + path + ", metadata=" + metadata + ", channels=" + channelValues);
         }
-        return prepared.changed;
+        return formationPayloadChanged;
+    }
+
+    private static boolean hasFormationPayloadChanged(
+            @Nullable CommittedStructureGraph previous,
+            @Nullable CommittedStructureGraph next) {
+        if (previous == next) {
+            return false;
+        }
+        if (previous == null || next == null) {
+            return previous != next;
+        }
+        return previous.getResultTableFingerprint() != next.getResultTableFingerprint();
     }
 
     private static void registerInitialCommit(

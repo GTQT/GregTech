@@ -116,7 +116,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private long lastStructureFailureLogTime = -1;
     private long lastModuleConnectionLogTime = -1;
     private long lastRingStateLogTime = -1;
-    private int patternBuiltForRenderedRingMask = 0;
     private boolean pendingStructureRefresh = false;
     private boolean recoveringRenderedStructure = false;
 
@@ -173,51 +172,82 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             "gregtech:forge_of_gods/third_ring", MetaTileEntityForgeOfGods::buildThirdRingTemplate);
     private static final SoftTemplate THIRD_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
             "gregtech:forge_of_gods/third_ring_air", MetaTileEntityForgeOfGods::buildThirdRingAirTemplate);
+    private static final StructureDefinition<MetaTileEntityForgeOfGods>
+            STRUCTURE_DEFINITION = StructureDefinition.fromMultiPiecePattern(
+                    GODFORGE_STRUCTURE_DIRECTIONS,
+                    buildGodforgeMultiPiecePattern());
 
-    @Nullable
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return StructureDefinition.fromMultiPiecePattern(GODFORGE_STRUCTURE_DIRECTIONS, buildGodforgeMultiPiecePattern());
+        return STRUCTURE_DEFINITION;
     }
 
-    private MultiPiecePattern buildGodforgeMultiPiecePattern() {
-        int renderedRingMask = getRenderedRingTemplateMask();
-        patternBuiltForRenderedRingMask = renderedRingMask;
+    private static MultiPiecePattern buildGodforgeMultiPiecePattern() {
         return MultiPiecePattern.builder()
                 .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
-                .piece("first_ring", getRingTemplate(1, renderedRingMask, FIRST_RING_TEMPLATE, FIRST_RING_AIR_TEMPLATE),
-                        FIRST_RING_OFFSET, OffsetMode.RELATIVE)
-                .conditionalPieceContextual("second_ring",
-                        getRingTemplate(2, renderedRingMask, SECOND_RING_TEMPLATE, SECOND_RING_AIR_TEMPLATE),
+                .conditionalPieceContextual(
+                        "first_ring",
+                        FIRST_RING_TEMPLATE.get(),
+                        FIRST_RING_OFFSET,
+                        OffsetMode.RELATIVE,
+                        ringTemplateCondition(1, false))
+                .conditionalPieceContextual(
+                        "first_ring_air",
+                        FIRST_RING_AIR_TEMPLATE.get(),
+                        FIRST_RING_OFFSET,
+                        OffsetMode.RELATIVE,
+                        ringTemplateCondition(1, true))
+                .conditionalPieceContextual(
+                        "second_ring",
+                        SECOND_RING_TEMPLATE.get(),
                         SECOND_RING_OFFSET,
                         OffsetMode.RELATIVE,
-                        StructureCondition.withDependencies(
-                                (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
-                                context.getController() != null
-                                && context.getController().getStructureRingTargetAmount() >= 2,
-                                StructureExternalDependencies.upgrades(),
-                                StructureExternalDependencies.configuration()))
-                .conditionalPieceContextual("third_ring",
-                        getRingTemplate(3, renderedRingMask, THIRD_RING_TEMPLATE, THIRD_RING_AIR_TEMPLATE),
+                        ringTemplateCondition(2, false))
+                .conditionalPieceContextual(
+                        "second_ring_air",
+                        SECOND_RING_AIR_TEMPLATE.get(),
+                        SECOND_RING_OFFSET,
+                        OffsetMode.RELATIVE,
+                        ringTemplateCondition(2, true))
+                .conditionalPieceContextual(
+                        "third_ring",
+                        THIRD_RING_TEMPLATE.get(),
                         THIRD_RING_OFFSET,
                         OffsetMode.RELATIVE,
-                        StructureCondition.withDependencies(
-                                (StructureActivationContext<MetaTileEntityForgeOfGods> context) ->
-                                context.getController() != null
-                                && context.getController().getStructureRingTargetAmount() >= 3,
-                                StructureExternalDependencies.upgrades(),
-                                StructureExternalDependencies.configuration()))
+                        ringTemplateCondition(3, false))
+                .conditionalPieceContextual(
+                        "third_ring_air",
+                        THIRD_RING_AIR_TEMPLATE.get(),
+                        THIRD_RING_OFFSET,
+                        OffsetMode.RELATIVE,
+                        ringTemplateCondition(3, true))
                 .build();
+    }
+
+    @NotNull
+    private static StructureCondition<MetaTileEntityForgeOfGods>
+    ringTemplateCondition(int ringIndex, boolean rendererOwned) {
+        return StructureCondition.withDependencies(
+                context -> {
+                    MetaTileEntityForgeOfGods controller =
+                            context.getController();
+                    if (controller == null) {
+                        return ringIndex == 1 && !rendererOwned;
+                    }
+                    boolean active = ringIndex == 1
+                            || controller.getStructureRingTargetAmount()
+                            >= ringIndex;
+                    return active
+                            && controller.isRenderedRingOwnedByRenderer(
+                                    ringIndex) == rendererOwned;
+                },
+                StructureExternalDependencies.upgrades(),
+                StructureExternalDependencies.configuration());
     }
 
     private void notifyGodforgeStructureStateChanged() {
         notifyStructureUpgradesChanged();
         notifyStructureConfigChanged();
-    }
-
-    private BlockPatternTemplate getRingTemplate(int ringIndex, int renderedRingMask, SoftTemplate normalTemplate,
-                                                 SoftTemplate airTemplate) {
-        return isRenderedRingTemplateActive(ringIndex, renderedRingMask) ? airTemplate.get() : normalTemplate.get();
     }
 
     private int getRenderedRingTemplateMask() {
@@ -228,26 +258,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             }
         }
         return mask;
-    }
-
-    private boolean isRenderedRingTemplateActive(int ringIndex, int renderedRingMask) {
-        return (renderedRingMask & (1 << (ringIndex - 1))) != 0;
-    }
-
-    private void refreshRuntimeForRenderedRingState(@NotNull String reason) {
-        int currentMask = getRenderedRingTemplateMask();
-        if (currentMask == patternBuiltForRenderedRingMask) {
-            return;
-        }
-        StructureTrace.debug(this, "godforge-dynamic-definition-refresh",
-                "reason=" + reason + ", previousRenderedMask=" + patternBuiltForRenderedRingMask
-                        + ", currentRenderedMask=" + currentMask
-                        + ", desiredRings=" + getDesiredRingAmount()
-                        + ", clearedRings=" + data.getClearedRingAmount()
-                        + ", structureTarget=" + getStructureRingTargetAmount()
-                        + ", renderActive=" + data.isRenderActive()
-                        + ", recovering=" + recoveringRenderedStructure);
-        reinitializeStructurePattern();
     }
 
     private boolean isRenderedRingOwnedByRenderer(int ringIndex) {
@@ -485,24 +495,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     @Override
     public void checkStructurePattern() {
-        ensurePatternMatchesRenderState();
         super.checkStructurePattern();
         if (!isStructureFormed()) {
             tryRecoverRenderedStructure();
         }
         if (!isStructureFormed()) {
             logStructureFailure();
-        }
-    }
-
-    private void ensurePatternMatchesRenderState() {
-        int renderedRingMask = getRenderedRingTemplateMask();
-        if (patternBuiltForRenderedRingMask != renderedRingMask) {
-            GTLog.logger.info("[FOG] render ring template mask changed at {}: {} -> {}, renderActive={}, " +
-                            "clearedRings={}, ownedByThis={}, owner={}",
-                    getPos(), patternBuiltForRenderedRingMask, renderedRingMask, data.isRenderActive(),
-                    data.getClearedRingAmount(), isRendererOwnedByThisController(), describeRendererOwnershipForLog());
-            reinitializeStructurePattern();
         }
     }
 
@@ -514,14 +512,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         recoveringRenderedStructure = true;
         try {
-            reinitializeStructurePattern();
             super.checkStructurePattern();
         } finally {
             recoveringRenderedStructure = false;
         }
 
         if (!isStructureFormed()) {
-            reinitializeStructurePattern();
             GTLog.logger.info("[FOG] persisted rendered structure recovery failed at {}; clearedRings={}, " +
                             "battery={}, ownedByThis={}, owner={}",
                     getPos(), data.getClearedRingAmount(), data.getInternalBattery(),
@@ -534,7 +530,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 getPos(), data.getClearedRingAmount(), data.getInternalBattery(),
                 isRendererOwnedByThisController(), describeRendererOwnershipForLog());
         data.setRenderActive(true);
-        reinitializeStructurePattern();
         logRingState("recover-rendered-structure", true);
         ensureRendererState();
         markDirty();
@@ -950,7 +945,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             if (data.isRenderActive() && !data.isRendererDisabled()) {
                 updateRenderer();
             }
-            reinitializeStructurePattern();
+            notifyGodforgeStructureStateChanged();
         }
     }
 
@@ -1426,7 +1421,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     private void refreshStructureNow() {
         logRingState("refresh-now-before-check", true);
-        reinitializeStructurePattern();
         checkStructurePattern();
         logRingState("refresh-now-after-check", true);
         markDirty();
@@ -1555,7 +1549,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             data.setClearedRingAmount(task.ringAmount);
         }
         markDirty();
-        refreshRuntimeForRenderedRingState("ring-replacement-finished");
+        notifyGodforgeStructureStateChanged();
 
         if (task.restoreBlocks || task.changedBlocks > 0) {
             GTLog.logger.info(
@@ -1860,6 +1854,5 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         // Recalculate milestone percentages immediately after loading,
         // since they are not persisted in NBT but derived from totals.
         determineMilestoneProgress();
-        reinitializeStructurePattern();
     }
 }

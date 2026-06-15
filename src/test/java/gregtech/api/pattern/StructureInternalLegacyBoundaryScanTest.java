@@ -67,6 +67,11 @@ class StructureInternalLegacyBoundaryScanTest {
             Pattern.compile("\\bformStructure\\s*\\(\\s*PatternMatchContext\\b");
     private static final Pattern LEGACY_STRUCTURE_DECLARATION =
             Pattern.compile("\\bcreateStructurePattern\\s*\\(");
+    private static final Pattern STABLE_DEFINITION_RETURN =
+            Pattern.compile(
+                    "createStructureDefinition\\s*\\(\\s*\\)\\s*\\{\\s*"
+                            + "return\\s+STRUCTURE_DEFINITION\\s*;",
+                    Pattern.DOTALL);
 
     @Test
     void internalStructureMainPathsDoNotReintroduceLegacyTraversalOwners() throws IOException {
@@ -123,6 +128,68 @@ class StructureInternalLegacyBoundaryScanTest {
             fail("GregTech-owned controllers must use StructureDefinition and FormedStructureView:\n"
                     + String.join("\n", violations));
         }
+    }
+
+    @Test
+    void runtimeShapedControllersKeepStableDefinitions() throws IOException {
+        List<String> violations = new ArrayList<>();
+        List<String> detectorControllers = Arrays.asList(
+                "gregtech/common/metatileentities/multi/electric/MetaTileEntityCleanroom.java",
+                "gregtech/common/metatileentities/multi/electric/centralmonitor/"
+                        + "MetaTileEntityCentralMonitor.java",
+                "gregtech/common/metatileentities/primitive/"
+                        + "MetaTileEntityCharcoalPileIgniter.java");
+
+        for (String path : detectorControllers) {
+            String text = readSource(path);
+            if (!text.contains(".runtimeDetector(")) {
+                violations.add(path + ": missing stable runtime detector");
+            }
+            if (!STABLE_DEFINITION_RETURN.matcher(text).find()) {
+                violations.add(path + ": createStructureDefinition must return STRUCTURE_DEFINITION");
+            }
+            rejectDynamicDefinitionLifecycle(path, text, violations);
+        }
+
+        String godforgePath =
+                "gregtech/common/metatileentities/multi/electric/godforge/"
+                        + "MetaTileEntityForgeOfGods.java";
+        String godforge = readSource(godforgePath);
+        if (!godforge.contains(".conditionalPieceContextual(")) {
+            violations.add(godforgePath + ": missing stable contextual ring pieces");
+        }
+        if (!STABLE_DEFINITION_RETURN.matcher(godforge).find()) {
+            violations.add(godforgePath
+                    + ": createStructureDefinition must return STRUCTURE_DEFINITION");
+        }
+        rejectDynamicDefinitionLifecycle(godforgePath, godforge, violations);
+
+        if (!violations.isEmpty()) {
+            fail("Runtime-shaped controllers must keep stable StructureDefinitions:\n"
+                    + String.join("\n", violations));
+        }
+    }
+
+    private static void rejectDynamicDefinitionLifecycle(
+            @NotNull String path,
+            @NotNull String text,
+            @NotNull List<String> violations) {
+        if (text.contains("reinitializeStructurePattern(")) {
+            violations.add(path + ": runtime state must not rebuild the structure definition");
+        }
+        if (text.contains("System.identityHashCode(this)")) {
+            violations.add(path + ": instance-keyed structure definitions are forbidden");
+        }
+        if (text.contains("TemplatePool.getInstance().evict(")) {
+            violations.add(path + ": runtime structure checks must not evict templates");
+        }
+    }
+
+    @NotNull
+    private static String readSource(@NotNull String path) throws IOException {
+        return new String(
+                Files.readAllBytes(SOURCE_ROOT.resolve(path)),
+                StandardCharsets.UTF_8);
     }
 
     private static boolean isAllowedBridge(@NotNull String path, int lineNumber, @NotNull String line) {

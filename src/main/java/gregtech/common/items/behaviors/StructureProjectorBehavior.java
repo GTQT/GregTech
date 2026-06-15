@@ -13,10 +13,12 @@ import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import gregtech.client.renderer.handler.GhostBlockRenderer;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -324,11 +326,18 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                                             @NotNull EntityPlayer player,
                                             @NotNull ItemStack triggerStack,
                                             @NotNull Map<String, Integer> channelValues) {
+        long start = System.nanoTime();
         Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
         StructureOperationRequest request = StructureOperationRequest.hint(
                 player, multiblock, StructureOrientation.fromController(multiblock),
                 channels, triggerStack);
         multiblock.spawnStructureHints(request);
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+        if (ConfigHolder.machines.debugStructureTrace && elapsedMillis >= 25L) {
+            GTLog.logger.debug(
+                    "[StructureProjector] slow server hints controller={} channels={} totalMs={}",
+                    multiblock.getMetaName(), channelValues, elapsedMillis);
+        }
     }
 
     @Override

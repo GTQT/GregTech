@@ -169,10 +169,13 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         builder.setWorkingStatus(recipeLogic.isWorkingEnabled(), recipeLogic.isActive())
                 .addEnergyProductionLine(getMaxVoltage(), recipeLogic.getRecipeEUt())
                 .addCustom((keyList, syncer) -> {
-                    if (!isStructureFormed()) return;
+                    IRotorHolder rotorHolder = getRotorHolder();
+                    if (!syncer.syncBoolean(rotorHolder != null)) return;
 
-                    int rotorEfficiency = syncer.syncInt(() -> getRotorHolder().getRotorEfficiency());
-                    int totalEfficiency = syncer.syncInt(() -> getRotorHolder().getTotalEfficiency());
+                    int rotorEfficiency = syncer.syncInt(
+                            () -> rotorHolder == null ? 0 : rotorHolder.getRotorEfficiency());
+                    int totalEfficiency = syncer.syncInt(
+                            () -> rotorHolder == null ? 0 : rotorHolder.getTotalEfficiency());
 
                     if (rotorEfficiency > 0) {
                         IKey efficiencyInfo = KeyUtil.number(TextFormatting.AQUA,
@@ -189,11 +192,13 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @Override
     protected void configureWarningText(MultiblockUIBuilder builder) {
         builder.addCustom((keyList, syncer) -> {
-            if (!isStructureFormed() || syncer.syncBoolean(() -> getRotorHolder() == null))
-                return;
+            IRotorHolder rotorHolder = getRotorHolder();
+            if (!syncer.syncBoolean(rotorHolder != null)) return;
 
-            int rotorEfficiency = syncer.syncInt(() -> getRotorHolder().getRotorEfficiency());
-            int rotorDurability = syncer.syncInt(() -> getRotorHolder().getRotorDurabilityPercent());
+            int rotorEfficiency = syncer.syncInt(
+                    () -> rotorHolder == null ? 0 : rotorHolder.getRotorEfficiency());
+            int rotorDurability = syncer.syncInt(
+                    () -> rotorHolder == null ? 0 : rotorHolder.getRotorDurabilityPercent());
 
             if (rotorEfficiency > 0 && rotorDurability <= MIN_DURABILITY_TO_WARN) {
                 keyList.add(KeyUtil.lang(TextFormatting.YELLOW,
@@ -207,16 +212,17 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     protected void configureErrorText(MultiblockUIBuilder builder) {
         super.configureErrorText(builder);
         builder.addCustom((keyList, syncer) -> {
-            if (!isStructureFormed() || syncer.syncBoolean(() -> getRotorHolder() == null))
-                return;
+            IRotorHolder rotorHolder = getRotorHolder();
+            if (!syncer.syncBoolean(rotorHolder != null)) return;
 
-            if (syncer.syncBoolean(!isRotorFaceFree())) {
+            if (syncer.syncBoolean(() -> rotorHolder != null && !rotorHolder.isFrontFaceFree())) {
                 keyList.add(KeyUtil.lang(TextFormatting.RED,
                         "gregtech.multiblock.turbine.obstructed"));
                 keyList.add(KeyUtil.lang(TextFormatting.GRAY,
                         "gregtech.multiblock.turbine.obstructed.desc"));
             }
-            int rotorEfficiency = syncer.syncInt(() -> getRotorHolder().getRotorEfficiency());
+            int rotorEfficiency = syncer.syncInt(
+                    () -> rotorHolder == null ? 0 : rotorHolder.getRotorEfficiency());
 
             if (rotorEfficiency <= 0) {
                 keyList.add(KeyUtil.lang(TextFormatting.RED,

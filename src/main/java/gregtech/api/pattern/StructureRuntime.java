@@ -389,7 +389,8 @@ public final class StructureRuntime {
     public StructureDirtyPrecheck createDirtyPrecheck(
             @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
         CommittedStructureGraph graph = getCommittedGraph();
-        if (definition == null || graph == null || !definition.getEligibilityPlan().isEligible()) {
+        if (definition == null || definition.hasRuntimeDetector()
+                || graph == null || !definition.getEligibilityPlan().isEligible()) {
             return null;
         }
         Set<String> roots = snapshotDirtyRoots(controller);
@@ -463,6 +464,11 @@ public final class StructureRuntime {
         if (definition == null) {
             return IncrementalFallback.of(
                     StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE, null);
+        }
+        if (definition.hasRuntimeDetector()) {
+            return IncrementalFallback.of(
+                    StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE,
+                    "runtime detector requires a live full-box validation");
         }
         StructureEligibilityPlan plan = definition.getEligibilityPlan();
         if (!plan.isEligible()) {
@@ -601,7 +607,7 @@ public final class StructureRuntime {
 
     public String describeShape() {
         String path = definition != null
-                ? "definition"
+                ? definition.hasRuntimeDetector() ? "runtime-detector" : "definition"
                 : template != null ? "v3-typed-single" : "v3-typed-pattern";
         int pieces = multiPiecePattern == null ? 0 : multiPiecePattern.getPieceList().size();
         boolean singleTemplate = template != null;

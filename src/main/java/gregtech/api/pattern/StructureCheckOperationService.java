@@ -70,6 +70,13 @@ final class StructureCheckOperationService {
         StructureOperationRuntime runtime = operationRuntime();
         if (definition != null) {
             StructureEligibilityPlan plan = definition.getEligibilityPlan();
+            if (definition.hasRuntimeDetector()) {
+                StructureCheckResult result = StructureRuntimeDetectionEvaluator.check(
+                        definition, request)
+                        .withEligibilityPlan(plan)
+                        .withAdapterTrace(runtime.adapterTrace());
+                return attachGraphPublication(result, request, plan);
+            }
             if (!plan.isEligible()) {
                 return checkActiveGraph(request)
                         .withEligibilityPlan(plan)
@@ -93,6 +100,14 @@ final class StructureCheckOperationService {
     @NotNull
     public StructureCheckResult checkActiveGraph(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.CHECK);
+        if (definition != null && definition.hasRuntimeDetector()) {
+            StructureEligibilityPlan plan = definition.getEligibilityPlan();
+            StructureCheckResult result = StructureRuntimeDetectionEvaluator.check(
+                    definition, request)
+                    .withEligibilityPlan(plan)
+                    .withAdapterTrace(operationRuntime().adapterTrace());
+            return attachGraphPublication(result, request, plan);
+        }
         StructureOperationRuntime runtime = operationRuntime();
         MultiPiecePattern pattern = runtime.pattern;
         PieceRuntimes candidates = runtime.newCandidateRuntimes();

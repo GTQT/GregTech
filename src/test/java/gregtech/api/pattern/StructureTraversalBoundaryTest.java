@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -573,6 +574,163 @@ class StructureTraversalBoundaryTest {
         assertEquals("MATCH_SNAPSHOT", result.getDiagnostics().getOperation());
     }
 
+    @Test
+    void runtimeDetectorPublishesTypedAggregateAndDynamicPositionGraph() {
+        StructureContributionKey<Integer, Integer> detectorValue =
+                StructureContributionKey.uniform(
+                        "gregtech:test/runtime_detector_value",
+                        (context, value) -> context.set("detector_value", value));
+        RecordingElement identityElement = new RecordingElement(true);
+        RecordingElement runtimeElement = new RecordingElement(true);
+        StructureDefinition<TestController> definition =
+                StructureDefinition.<TestController>builder(
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK)
+                        .piece("runtime", "R")
+                        .where('R', identityElement)
+                        .end()
+                        .runtimeDetector(context -> {
+                            assertEquals(
+                                    new BlockPos(2, -1, 3),
+                                    context.localPos(
+                                            2, -1, 3,
+                                            RelativeDirection.RIGHT,
+                                            RelativeDirection.UP,
+                                            RelativeDirection.BACK));
+                            assertTrue(context.match(BlockPos.ORIGIN, runtimeElement));
+                            assertTrue(context.match(BlockPos.ORIGIN.east(), runtimeElement));
+                            context.emit(detectorValue, 7);
+                            return true;
+                        })
+                        .build();
+        StructureRuntime runtime = StructureRuntime.fromDefinition(definition);
+        TestController controller = testController();
+
+        StructureCheckResult result = runtime.check(StructureOperationRequest.check(
+                WORLD,
+                BlockPos.ORIGIN,
+                StructureOrientation.of(
+                        EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                false,
+                null,
+                controller));
+
+        assertTrue(result.isMatched());
+        assertEquals("runtime-detector", result.getTracePath());
+        assertEquals(7, result.copyContext().getInt("detector_value"));
+        assertEquals(7, result.getContributionAggregate().get(detectorValue));
+        assertNotNull(result.getGraphPublication());
+        assertEquals(2, result.getGraphPublication().getPositionIndex().watchedPositionCount());
+        assertTrue(result.getGraphPublication().getPositionIndex()
+                .getAllWatchedPositions().contains(BlockPos.ORIGIN.toLong()));
+        assertTrue(result.getGraphPublication().getPositionIndex()
+                .getAllWatchedPositions().contains(BlockPos.ORIGIN.east().toLong()));
+    }
+
+    @Test
+    void runtimeDetectorRejectsSnapshotChecksAndPreservesFailurePosition() {
+        BlockPos failurePos = BlockPos.ORIGIN.east(3);
+        StructureDefinition<TestController> definition =
+                StructureDefinition.<TestController>builder(
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK)
+                        .piece("runtime", "R")
+                        .where('R', new RecordingElement(true))
+                        .end()
+                        .runtimeDetector(context ->
+                                context.fail(failurePos, "runtime boundary", "air"))
+                        .build();
+        StructureRuntime runtime = StructureRuntime.fromDefinition(definition);
+        TestController controller = testController();
+        StructureOrientation orientation = StructureOrientation.of(
+                EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false);
+
+        StructureCheckResult failed = runtime.check(StructureOperationRequest.check(
+                WORLD, BlockPos.ORIGIN, orientation, false, null, controller));
+        StructureSnapshotResult snapshot = runtime.checkSnapshot(
+                StructureOperationRequest.snapshotCheck(
+                        WORLD, BlockPos.ORIGIN, orientation, controller));
+
+        assertFalse(failed.isMatched());
+        assertEquals("runtime-detector", failed.getTracePath());
+        assertEquals(failurePos, failed.createFailureTrace(controller).getErrorPos());
+        assertFalse(snapshot.isSupported());
+    }
+
+    @Test
+    void runtimeDetectorPreservesTypedElementPatternError() {
+        StructureDefinition<TestController> definition =
+                StructureDefinition.<TestController>builder(
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK)
+                        .piece("runtime", "R")
+                        .where('R', new RecordingElement(true))
+                        .end()
+                        .runtimeDetector(context ->
+                                context.match(
+                                        BlockPos.ORIGIN,
+                                        new ErrorElement()))
+                        .build();
+        TestController controller = testController();
+
+        StructureCheckResult result =
+                StructureRuntime.fromDefinition(definition).check(
+                        StructureOperationRequest.check(
+                                WORLD,
+                                BlockPos.ORIGIN,
+                                StructureOrientation.of(
+                                        EnumFacing.NORTH,
+                                        EnumFacing.NORTH,
+                                        EnumFacing.UP,
+                                        false,
+                                        false),
+                                false,
+                                null,
+                                controller));
+
+        assertFalse(result.isMatched());
+        assertTrue(result.createFailureTrace(controller).getError()
+                instanceof PatternStringError);
+    }
+
+    @Test
+    void runtimeDetectorAppliesStableGlobalAbilityLimits() {
+        StructureDefinition<TestController> definition =
+                StructureDefinition.<TestController>builder(
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK)
+                        .piece("runtime", "R")
+                        .where('R', new RecordingElement(true))
+                        .end()
+                        .globalAbilityLimit(MultiblockAbility.IMPORT_ITEMS, 1, 1)
+                        .runtimeDetector(context -> {
+                            context.includePosition(BlockPos.ORIGIN);
+                            return true;
+                        })
+                        .build();
+        StructureRuntime runtime = StructureRuntime.fromDefinition(definition);
+        TestController controller = testController();
+
+        StructureCheckResult result = runtime.check(StructureOperationRequest.check(
+                WORLD,
+                BlockPos.ORIGIN,
+                StructureOrientation.of(
+                        EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                false,
+                null,
+                controller));
+
+        assertFalse(result.isMatched());
+        assertEquals(1, result.getMissingAbilities().get(MultiblockAbility.IMPORT_ITEMS));
+        assertEquals(
+                StructureFailureTrace.Kind.MISSING_ABILITY,
+                result.createFailureTrace(controller).getKind());
+    }
+
     private static RepeatGroupPiece repeatPiece(PieceTemplate template, int[] axes, int[] steps) {
         int[][] ranges = new int[axes.length][2];
         for (int i = 0; i < axes.length; i++) {
@@ -797,6 +955,44 @@ class StructureTraversalBoundaryTest {
         private StructureMatchSession lastSession() {
             return state.lastSession;
         }
+    }
+
+    private static final class ErrorElement
+            implements ITypedStructureElement<Object> {
+
+        @Override
+        public boolean check(
+                @NotNull StructureEvaluationContext<Object> context) {
+            context.setError(new PatternStringError(
+                    "gregtech:test/runtime_detector_error"));
+            return false;
+        }
+
+        @Override
+        public boolean check(
+                World world,
+                BlockPos pos,
+                PatternMatchContext context) {
+            return false;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(
+                World world,
+                BlockPos pos,
+                PatternMatchContext context,
+                EntityPlayer player,
+                boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class State {

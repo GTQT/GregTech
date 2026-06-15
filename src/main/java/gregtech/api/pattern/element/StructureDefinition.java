@@ -14,6 +14,7 @@ import gregtech.api.pattern.StructureCondition;
 import gregtech.api.pattern.StructureDependencyCompiler;
 import gregtech.api.pattern.StructureEligibilityPlan;
 import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureRuntimeDetector;
 import gregtech.api.pattern.StructureSizeDescriptor;
 import gregtech.api.pattern.StructureSizeDescriptor.PieceSize;
 import gregtech.api.pattern.TemplatePool;
@@ -66,6 +67,8 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits;
     private final List<AbilityGroupLimit> abilityGroupLimits;
     @Nullable
+    private final StructureRuntimeDetector<T> runtimeDetector;
+    @Nullable
     private final SoftReferenceHolder<StructureDefinition<T>> delegate;
 
     // Compiled products: computed lazily on first access and cached for the
@@ -87,6 +90,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.pieceEntries = Collections.unmodifiableList(new ArrayList<>(b.pieceEntries));
         this.abilityLimits = Collections.unmodifiableMap(new HashMap<>(b.abilityLimits));
         this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(b.abilityGroupLimits));
+        this.runtimeDetector = b.runtimeDetector;
         this.delegate = null;
         this.compiledPattern = b.compiledPattern;
         if (b.compiledPattern != null) {
@@ -103,6 +107,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.pieceEntries = Collections.emptyList();
         this.abilityLimits = Collections.emptyMap();
         this.abilityGroupLimits = Collections.emptyList();
+        this.runtimeDetector = null;
         this.delegate = delegate;
         this.supportsSingleTemplatePath = false;
     }
@@ -175,6 +180,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             @NotNull StructureElementCapability capability) {
         if (delegate != null) {
             return delegate.get().supportsElementCapability(capability);
+        }
+        if (runtimeDetector != null && capability == StructureElementCapability.SNAPSHOT_MATCH) {
+            return false;
         }
         Set<StructureElementCapability> local = supportedElementCapabilities;
         if (local == null) {
@@ -376,6 +384,21 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
+     * Runtime geometry detector, if this definition declares one.
+     */
+    @Nullable
+    public StructureRuntimeDetector<T> getRuntimeDetector() {
+        if (delegate != null) {
+            return delegate.get().getRuntimeDetector();
+        }
+        return runtimeDetector;
+    }
+
+    public boolean hasRuntimeDetector() {
+        return getRuntimeDetector() != null;
+    }
+
+    /**
      * Get a {@link StructureSizeDescriptor} describing the pattern-local footprint of
      * this definition. For a single-piece definition the descriptor contains exactly
      * one entry and (typically) min == max on every axis. For a multi-piece definition
@@ -558,6 +581,8 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
         @Nullable
         private MultiPiecePattern compiledPattern;
+        @Nullable
+        private StructureRuntimeDetector<T> runtimeDetector;
 
         private Builder(RelativeDirection charDir, RelativeDirection stringDir,
                         RelativeDirection aisleDir) {
@@ -731,6 +756,19 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             return this;
         }
 
+        /**
+         * Declare a stable runtime detector for geometry discovered from world state.
+         *
+         * <p>Detector definitions use one fixed piece as their contribution and
+         * registration identity. Preview/build tooling may still use a separate
+         * channel-derived template.
+         */
+        @NotNull
+        public Builder<T> runtimeDetector(@NotNull StructureRuntimeDetector<T> runtimeDetector) {
+            this.runtimeDetector = runtimeDetector;
+            return this;
+        }
+
         @NotNull
         public StructureDefinition<T> build() {
             validate();
@@ -740,6 +778,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         private void validate() {
             if (pieceEntries.isEmpty()) {
                 throw new IllegalStateException("StructureDefinition must contain at least one piece");
+            }
+            if (runtimeDetector != null
+                    && (pieceEntries.size() != 1 || pieceEntries.get(0).piece.isRepeatable())) {
+                throw new IllegalStateException(
+                        "Runtime detector definitions require exactly one fixed identity piece");
             }
 
             Set<String> seenNames = new HashSet<>();

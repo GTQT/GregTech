@@ -5,9 +5,11 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTLog;
 import gregtech.client.renderer.godforge.util.FaceCulledRenderBlocks;
 import gregtech.client.renderer.godforge.util.FaceVisibility;
 import gregtech.client.utils.TrackedDummyWorld;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -236,6 +238,7 @@ public class GhostBlockRenderer {
 
     private static void rebuildGhostPreview(MultiblockControllerBase controller, long durTimeMillis,
                                             int requestedLayer) {
+        long previewStart = System.nanoTime();
         resetGhostRender();
         // Cancel any active controller preview
         MultiblockPreviewRenderer.resetMultiblockRender();
@@ -249,6 +252,7 @@ public class GhostBlockRenderer {
                 ? controller.getMatchingShapes(channelValues)
                 : controller.getMatchingShapes();
         if (shapes.isEmpty()) return;
+        long shapeEnd = System.nanoTime();
 
         MultiblockShapeInfo shapeInfo = shapes.get(0);
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
@@ -287,20 +291,24 @@ public class GhostBlockRenderer {
             BlockPos worldPos = worldControllerPos.add(transformed);
             ghostBlocks.add(new GhostBlock(localPos, worldPos));
         }
+        long setupEnd = System.nanoTime();
 
         // Compute comparison data
         if (compareMode) {
-            recomputeComparison(controller);
-        }
-    }
-
-    private static void recomputeComparison(MultiblockControllerBase controller) {
-        List<MultiblockShapeInfo> shapes = channelValues != null
-                ? controller.getMatchingShapes(channelValues)
-                : controller.getMatchingShapes();
-        if (!shapes.isEmpty()) {
             PreviewRenderUtils.computeComparisonFromController(
-                    controller, shapes.get(0), missingPositions, wrongPositions);
+                    controller, shapeInfo, missingPositions, wrongPositions);
+        }
+        long comparisonEnd = System.nanoTime();
+
+        long totalMillis = (comparisonEnd - previewStart) / 1_000_000L;
+        if (ConfigHolder.machines.debugStructureTrace && totalMillis >= 25L) {
+            GTLog.logger.debug(
+                    "[StructureProjector] slow preview controller={} blocks={} compare={} shapeMs={} setupMs={} comparisonMs={} totalMs={}",
+                    controller.getMetaName(), ghostBlocks.size(), compareMode,
+                    (shapeEnd - previewStart) / 1_000_000L,
+                    (setupEnd - shapeEnd) / 1_000_000L,
+                    (comparisonEnd - setupEnd) / 1_000_000L,
+                    totalMillis);
         }
     }
 

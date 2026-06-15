@@ -6,6 +6,7 @@ import gregtech.api.pattern.StructureDirtyPrecheck;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureSnapshotResult;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.GTLog;
 
 import net.minecraft.util.EnumFacing;
@@ -537,6 +538,10 @@ public class AsyncStructureChecker {
             StructureDefinition<?> definition,
             BlockPos pos,
             StructureOrientation orientation) {
+        if (!definition.supportsElementCapability(
+                StructureElementCapability.SNAPSHOT_MATCH)) {
+            return SnapshotCapture.oversized();
+        }
         BlockPos[] aabb = definition.computeWorldAABB(
                 pos,
                 orientation.withFlipped(false),

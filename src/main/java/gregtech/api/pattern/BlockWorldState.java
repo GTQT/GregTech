@@ -96,6 +96,11 @@ public class BlockWorldState {
         return error != null;
     }
 
+    @Nullable
+    public PatternError getError() {
+        return error;
+    }
+
     public void setError(PatternError error) {
         this.error = error;
         if (error != null) {

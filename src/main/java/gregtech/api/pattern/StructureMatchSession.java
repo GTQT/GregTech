@@ -6,6 +6,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
+import net.minecraft.util.math.BlockPos;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,6 +42,8 @@ public final class StructureMatchSession {
     @Nullable
     private StructurePiece contributionPiece;
     @Nullable
+    private StructureOperationState contributionBaseline;
+    @Nullable
     private Object controllerContext;
 
     public StructureMatchSession() {
@@ -58,6 +62,7 @@ public final class StructureMatchSession {
         this.typedData = new HashMap<>();
         this.contributionBuilder = StructureContribution.builder();
         this.contributionPiece = null;
+        this.contributionBaseline = null;
         this.controllerContext = null;
     }
 
@@ -71,6 +76,9 @@ public final class StructureMatchSession {
         this.typedData = copyTypedData(parent.typedData);
         this.contributionBuilder = parent.contributionBuilder.copy();
         this.contributionPiece = parent.contributionPiece;
+        this.contributionBaseline = parent.contributionBaseline == null
+                ? null
+                : parent.contributionBaseline.copy();
         this.controllerContext = parent.controllerContext;
     }
 
@@ -154,6 +162,9 @@ public final class StructureMatchSession {
         parent.typedData.putAll(copyTypedData(typedData));
         parent.contributionBuilder.replaceWith(contributionBuilder);
         parent.contributionPiece = contributionPiece;
+        parent.contributionBaseline = contributionBaseline == null
+                ? null
+                : contributionBaseline.copy();
     }
 
     @NotNull
@@ -161,7 +172,8 @@ public final class StructureMatchSession {
         return new Checkpoint(
                 context.copy(), operationState.copy(),
                 new HashMap<>(globalCount), copyTypedData(typedData),
-                contributionBuilder.copy(), contributionPiece);
+                contributionBuilder.copy(), contributionPiece,
+                contributionBaseline == null ? null : contributionBaseline.copy());
     }
 
     void restore(@NotNull Checkpoint checkpoint) {
@@ -173,6 +185,9 @@ public final class StructureMatchSession {
         typedData.putAll(copyTypedData(checkpoint.typedData));
         contributionBuilder.replaceWith(checkpoint.contributionBuilder);
         contributionPiece = checkpoint.contributionPiece;
+        contributionBaseline = checkpoint.contributionBaseline == null
+                ? null
+                : checkpoint.contributionBaseline.copy();
     }
 
     public void restoreTo(@NotNull Checkpoint checkpoint) {
@@ -201,6 +216,10 @@ public final class StructureMatchSession {
         }
         contributionBuilder.replaceWith(StructureContribution.builder());
         contributionPiece = piece;
+        contributionBaseline = operationState.copy();
+        // Rebuild collector-owned compatibility state so identity-stable parts are captured on incremental checks.
+        context.remove(StructureOperationState.MULTIBLOCK_PARTS_KEY);
+        context.remove(StructureOperationState.VARIANT_ACTIVE_BLOCKS_KEY);
     }
 
     @NotNull
@@ -209,9 +228,25 @@ public final class StructureMatchSession {
             throw new IllegalStateException(
                     "Contribution capture does not belong to piece " + piece.getName());
         }
+        StructureOperationState current = copyOperationState();
+        StructureOperationState baseline = contributionBaseline == null
+                ? new StructureOperationState()
+                : contributionBaseline;
+        for (IMultiblockPart part : current.getParts()) {
+            if (!baseline.getParts().contains(part)) {
+                contributionBuilder.addPart(part);
+            }
+        }
+        Set<BlockPos> baselineActiveBlocks = new HashSet<>(baseline.getVariantActiveBlocks());
+        for (BlockPos pos : current.getVariantActiveBlocks()) {
+            if (!baselineActiveBlocks.contains(pos)) {
+                contributionBuilder.addVariantActiveBlock(pos);
+            }
+        }
         StructureContribution result = contributionBuilder.build();
         contributionBuilder.replaceWith(StructureContribution.builder());
         contributionPiece = null;
+        contributionBaseline = null;
         return result;
     }
 
@@ -219,6 +254,7 @@ public final class StructureMatchSession {
         if (contributionPiece == piece) {
             contributionBuilder.replaceWith(StructureContribution.builder());
             contributionPiece = null;
+            contributionBaseline = null;
         }
     }
 
@@ -482,19 +518,23 @@ public final class StructureMatchSession {
         private final StructureContribution.Builder contributionBuilder;
         @Nullable
         private final StructurePiece contributionPiece;
+        @Nullable
+        private final StructureOperationState contributionBaseline;
 
         private Checkpoint(@NotNull PatternMatchContext context,
                            @NotNull StructureOperationState operationState,
                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
                            @NotNull Map<StructureSessionKey<?>, Object> typedData,
                            @NotNull StructureContribution.Builder contributionBuilder,
-                           @Nullable StructurePiece contributionPiece) {
+                           @Nullable StructurePiece contributionPiece,
+                           @Nullable StructureOperationState contributionBaseline) {
             this.context = context;
             this.operationState = operationState;
             this.globalCount = globalCount;
             this.typedData = typedData;
             this.contributionBuilder = contributionBuilder;
             this.contributionPiece = contributionPiece;
+            this.contributionBaseline = contributionBaseline;
         }
     }
 
