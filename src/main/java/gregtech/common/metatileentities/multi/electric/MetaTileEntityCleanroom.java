@@ -29,15 +29,21 @@ import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.StructureContributionKey;
+import gregtech.api.pattern.StructureDependency;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
@@ -98,10 +104,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         implements ICleanroomProvider, IWorkable, IDataInfoProvider {
@@ -113,6 +121,42 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     public static final int MIN_DEPTH = 4;
     private static final int MIN_STRUCTURE_SIZE = 5;
     private static final int MAX_STRUCTURE_SIZE = 15;
+    private static final String CLEANROOM_FILTER_LEGACY_KEY = "FilterType";
+    private static final String CLEANROOM_DOORS_LEGACY_KEY = "Doors";
+    private static final StructureContributionKey<ICleanroomFilter, CleanroomFilterAggregate> CLEANROOM_FILTER_KEY =
+            StructureContributionKey.create(
+                    "gregtech:cleanroom/filter",
+                    "cleanroom-filter",
+                    CleanroomFilterAggregate::new,
+                    (current, emitted) -> {
+                        current.add(emitted);
+                        return current;
+                    },
+                    CleanroomFilterAggregate::validate,
+                    (legacyContext, aggregate) -> {
+                        if (aggregate != null && aggregate.getFilter() != null) {
+                            legacyContext.set(CLEANROOM_FILTER_LEGACY_KEY, aggregate.getFilter());
+                        }
+                    },
+                    UnaryOperator.identity(),
+                    CleanroomFilterAggregate::copy);
+    private static final StructureContributionKey<BlockPos, Set<BlockPos>> CLEANROOM_DOORS_KEY =
+            StructureContributionKey.create(
+                    "gregtech:cleanroom/doors",
+                    "set-union",
+                    LinkedHashSet::new,
+                    (current, emitted) -> {
+                        Set<BlockPos> result = new LinkedHashSet<>(current);
+                        if (emitted != null) {
+                            result.add(emitted.toImmutable());
+                        }
+                        return result;
+                    },
+                    ignored -> StructureContributionKey.Validation.success(),
+                    (legacyContext, aggregate) -> legacyContext.set(CLEANROOM_DOORS_LEGACY_KEY,
+                            aggregate == null ? new ObjectOpenHashSet<>() : new ObjectOpenHashSet<>(aggregate)),
+                    BlockPos::toImmutable,
+                    value -> Collections.unmodifiableSet(new LinkedHashSet<>(value)));
 
     private int lDist = 0;
     private int rDist = 0;
@@ -154,8 +198,12 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     protected void formStructure(@NotNull FormedStructureView formed) {
         formStructureWithDisplay(formed);
         initializeAbilities();
-        PatternMatchContext context = formed.copyLegacyCallbackContext();
-        this.cleanroomFilter = context.get("FilterType");
+        CleanroomFilterAggregate filterAggregate = formed.getAggregate(CLEANROOM_FILTER_KEY);
+        this.cleanroomFilter = filterAggregate == null ? null : filterAggregate.getFilter();
+        if (cleanroomFilter == null) {
+            invalidateStructure();
+            return;
+        }
         this.cleanroomType = cleanroomFilter.getCleanroomType();
 
         // max progress is based on the dimensions of the structure: (x^3)-(x^2)
@@ -165,7 +213,8 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                 ((lDist + rDist + 1) * (bDist + fDist + 1) * hDist) - ((lDist + rDist + 1) * (bDist + fDist + 1))));
         this.cleanroomLogic.setMinEnergyTier(cleanroomFilter.getMinTier());
 
-        this.doors = context.get("Doors");
+        Set<BlockPos> matchedDoors = formed.getAggregate(CLEANROOM_DOORS_KEY);
+        this.doors = matchedDoors == null ? Collections.emptySet() : matchedDoors;
     }
 
     @Override
@@ -592,11 +641,14 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                 .where('S', selfPredicate())
                 .where('B', states(getCasingState()).or(basePredicate))
                 .where('X', wallPredicate.or(basePredicate)
-                        .or(improvedDoorPredicate().setMaxGlobalLimited(8))
                         .or(abilities(MultiblockAbility.PASSTHROUGH_HATCH).setMaxGlobalLimited(30)))
+                .whereElement('X', new gregtech.api.pattern.element.impl.ChainElement(
+                        gregtech.api.pattern.element.Elements.legacy(wallPredicate.or(basePredicate)
+                                .or(abilities(MultiblockAbility.PASSTHROUGH_HATCH).setMaxGlobalLimited(30))),
+                        new CleanroomDoorElement()))
                 .where('K', wallPredicate) // the block beneath the controller must only be a casing for structure
                 // dimension checks
-                .where('F', filterPredicate())
+                .whereElement('F', new CleanroomFilterElement())
                 .where(' ', innerPredicate());
     }
 
@@ -736,6 +788,225 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                 .map(entry -> new BlockInfo(entry.getKey(), null))
                 .toArray(BlockInfo[]::new))
                 .addTooltips("gregtech.multiblock.pattern.error.filters");
+    }
+
+    private static final class CleanroomFilterAggregate {
+
+        private ICleanroomFilter filter;
+        private boolean mismatched;
+
+        private void add(@Nullable ICleanroomFilter emitted) {
+            if (emitted == null) {
+                return;
+            }
+            if (filter == null) {
+                filter = emitted;
+                return;
+            }
+            if (!filter.getCleanroomType().equals(emitted.getCleanroomType())) {
+                mismatched = true;
+            }
+        }
+
+        @Nullable
+        private ICleanroomFilter getFilter() {
+            return filter;
+        }
+
+        @NotNull
+        private StructureContributionKey.Validation validate() {
+            if (filter == null) {
+                return StructureContributionKey.Validation.failure("Cleanroom filter was not matched");
+            }
+            if (mismatched) {
+                return StructureContributionKey.Validation.failure(
+                        "Cleanroom filters must share the same cleanroom type");
+            }
+            return StructureContributionKey.Validation.success();
+        }
+
+        @NotNull
+        private CleanroomFilterAggregate copy() {
+            CleanroomFilterAggregate copy = new CleanroomFilterAggregate();
+            copy.filter = filter;
+            copy.mismatched = mismatched;
+            return copy;
+        }
+    }
+
+    private static final class CleanroomDoorElement implements IStructureElement<Object> {
+
+        private final TraceabilityPredicate legacyPredicate = improvedDoorPredicate();
+
+        @NotNull
+        @Override
+        public Set<StructureElementCapability> getCapabilities() {
+            return StructureElementCapability.snapshotSafe();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            IBlockState state = context.getBlockState();
+            if (!(state.getBlock() instanceof BlockDoor)) {
+                return false;
+            }
+            if (state.getValue(BlockDoor.HALF) == BlockDoor.EnumDoorHalf.LOWER) {
+                context.getCollector().emit(CLEANROOM_DOORS_KEY, context.getPos());
+            }
+            return true;
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context) {
+            return legacyPredicate.test(newLegacyWorldState(world, pos, context, legacyPredicate));
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return StructureElementPreview.fromPredicate(legacyPredicate);
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public TraceabilityPredicate toPredicate() {
+            return legacyPredicate;
+        }
+    }
+
+    private static final class CleanroomFilterElement implements IStructureElement<Object> {
+
+        private final TraceabilityPredicate legacyPredicate = buildLegacyPredicate();
+        private final StructureElementPreview preview = StructureElementPreview.fromPredicate(legacyPredicate);
+
+        @NotNull
+        @Override
+        public Set<StructureElementCapability> getCapabilities() {
+            return StructureElementCapability.snapshotSafe();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            ICleanroomFilter filter = GregTechAPI.CLEANROOM_FILTERS.get(context.getBlockState());
+            if (filter == null || filter.getCleanroomType() == null) {
+                return false;
+            }
+            return context.transaction(transactionContext -> {
+                transactionContext.getCollector().emit(CLEANROOM_FILTER_KEY, filter);
+                transactionContext.getCollector().recordVariantActiveBlock(transactionContext.getPos());
+                return true;
+            });
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context) {
+            return legacyPredicate.test(newLegacyWorldState(world, pos, context, legacyPredicate));
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return GregTechAPI.CLEANROOM_FILTERS.entrySet().stream()
+                    .filter(entry -> entry.getValue().getCleanroomType() != null)
+                    .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
+                    .map(entry -> new BlockInfo(entry.getKey(), null))
+                    .toArray(BlockInfo[]::new);
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            BlockInfo[] candidates = getCandidates();
+            if (candidates.length == 0) {
+                return false;
+            }
+            world.setBlockState(pos, candidates[0].getBlockState());
+            return true;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public TraceabilityPredicate toPredicate() {
+            return legacyPredicate;
+        }
+
+        @NotNull
+        private TraceabilityPredicate buildLegacyPredicate() {
+            return new TraceabilityPredicate(blockWorldState -> {
+                IBlockState blockState = blockWorldState.getBlockState();
+                if (GregTechAPI.CLEANROOM_FILTERS.containsKey(blockState)) {
+                    ICleanroomFilter cleanroomFilter = GregTechAPI.CLEANROOM_FILTERS.get(blockState);
+                    if (cleanroomFilter.getCleanroomType() == null) return false;
+
+                    ICleanroomFilter currentFilter = blockWorldState.getMatchContext().getOrPut(
+                            CLEANROOM_FILTER_LEGACY_KEY, cleanroomFilter);
+                    if (!currentFilter.getCleanroomType().equals(cleanroomFilter.getCleanroomType())) {
+                        blockWorldState.setError(new PatternStringError(
+                                "gregtech.multiblock.pattern.error.filters"));
+                        return false;
+                    }
+                    blockWorldState.getMatchContext().getOrPut("VABlock", new LinkedList<BlockPos>())
+                            .add(blockWorldState.getPos());
+                    return true;
+                }
+                return false;
+            }, this::getCandidates).addTooltips("gregtech.multiblock.pattern.error.filters");
+        }
+    }
+
+    @NotNull
+    private static gregtech.api.pattern.BlockWorldState newLegacyWorldState(
+            @NotNull World world,
+            @NotNull BlockPos pos,
+            @NotNull gregtech.api.pattern.PatternMatchContext context,
+            @NotNull TraceabilityPredicate predicate) {
+        gregtech.api.pattern.BlockWorldState worldState = new gregtech.api.pattern.BlockWorldState();
+        worldState.update(world, pos, context, new java.util.HashMap<>(), new java.util.HashMap<>(), predicate);
+        return worldState;
     }
 
     @SideOnly(Side.CLIENT)

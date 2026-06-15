@@ -106,6 +106,18 @@ public final class FormedStructureView {
         return aggregateValues;
     }
 
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <A> A getAggregate(@NotNull StructureContributionKey<?, A> key) {
+        return (A) aggregateValues.get(key.getId());
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <A> A getAggregate(@NotNull String key) {
+        return (A) aggregateValues.get(key);
+    }
+
     public boolean isFlipped() {
         return flipped;
     }

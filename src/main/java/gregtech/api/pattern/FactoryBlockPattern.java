@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.util.RelativeDirection;
+import gregtech.api.pattern.element.IStructureElement;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -107,6 +108,16 @@ public class FactoryBlockPattern {
 
     public FactoryBlockPattern where(String symbol, TraceabilityPredicate blockMatcher) {
         compiler.where(symbol, blockMatcher);
+        return this;
+    }
+
+    public FactoryBlockPattern whereElement(char symbol, @NotNull IStructureElement<?> element) {
+        compiler.whereElement(symbol, element);
+        return this;
+    }
+
+    public FactoryBlockPattern whereElement(String symbol, @NotNull IStructureElement<?> element) {
+        compiler.whereElement(symbol, element);
         return this;
     }
 
