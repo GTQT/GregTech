@@ -17,7 +17,7 @@ import java.util.function.BooleanSupplier;
  * {@link BlockPatternTemplate}, an offset from the controller, an offset mode,
  * and an optional activation condition. It carries no per-instance state.
  *
- * <p>Per-instance mutable state (the {@link MultiblockState} / dirty flag /
+ * <p>Per-instance mutable state (the {@link PieceRuntimeState} / dirty flag /
  * validated flag / formed positions / repeat-search cache) lives on
  * {@link PieceRuntime}, which is created and owned by the
  * {@link gregtech.api.metatileentity.multiblock.MultiblockControllerBase} (one
@@ -30,7 +30,7 @@ import java.util.function.BooleanSupplier;
  * {@code volatile positions / validated / dirty} fields, initialized in the
  * constructor. Because {@link MultiPiecePattern} instances are cached in
  * the structure-definition pool, two independent controllers of the same
- * multiblock type ended up sharing the same {@link MultiblockState} and
+ * multiblock type ended up sharing the same deprecated state facade and
  * positions set — a silent cross-controller state leak. Moving the state
  * to {@link PieceRuntime} (owned by the controller) makes the bug
  * structurally impossible.
@@ -45,7 +45,7 @@ public class StructurePiece {
      * Bound at compile time by {@code StructureCompiler}.
      *
      * <p>The {@code runtime} parameter carries the per-controller
-     * {@link PieceRuntime}; it holds the {@link MultiblockState} and
+ * {@link PieceRuntime}; it holds the {@link PieceRuntimeState} and
      * dirty/validated flags that this checker needs. Passing the runtime
      * explicitly keeps the piece stateless and safe to share across
      * controllers that share the same compiled {@link MultiPiecePattern}.

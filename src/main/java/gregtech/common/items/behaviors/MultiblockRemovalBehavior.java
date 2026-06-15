@@ -4,7 +4,6 @@ import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
@@ -60,11 +59,7 @@ public class MultiblockRemovalBehavior implements IItemBehaviour {
         } else {
             // If not sneaking, try to show structure debug info (if any) in chat.
             if (!multiblock.isStructureFormed()) {
-                MultiblockState state = multiblock.getMultiblockState();
-                PatternError error = state != null ? state.getError() : null;
-                if (error == null) {
-                    error = multiblock.getLastStructureError();
-                }
+                PatternError error = multiblock.getLastStructureError();
                 if (error != null) {
 
                     player.sendMessage(new TextComponentString("============================"));

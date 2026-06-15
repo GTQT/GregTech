@@ -9,7 +9,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -116,15 +116,15 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         if (this.handler == null) return;
 
         // Determine layer count from the body piece repeat count. The structure
         // is always multi-piece (top / body / bottom), so the multiblockState
         // single-piece path has been removed — it was dead code after the
         // aisleRepeatable → repeatablePiece migration.
-        FormedStructureMetadata metadata = getFormedMetadata();
+        FormedStructureMetadata metadata = formed.getMetadata();
         if (metadata != null) {
             int bodyReps = metadata.getPieceRepeat(PIECE_BODY, 0);
             handler.determineLayerCountFromReps(bodyReps);

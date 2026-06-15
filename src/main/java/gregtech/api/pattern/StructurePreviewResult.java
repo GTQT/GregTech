@@ -26,35 +26,40 @@ public final class StructurePreviewResult {
     @NotNull
     private final Source source;
     @Nullable
-    private final MultiblockState.PreviewCells singlePieceCells;
+    private final PieceRuntimeState.PreviewCells singlePieceCells;
     @Nullable
     private final MultiPiecePreviewAssembler.Result multiPieceResult;
+    @NotNull
+    private final StructureOperationDiagnostics diagnostics;
 
     private StructurePreviewResult(@NotNull Outcome outcome,
                                    @NotNull Source source,
-                                   @Nullable MultiblockState.PreviewCells singlePieceCells,
-                                   @Nullable MultiPiecePreviewAssembler.Result multiPieceResult) {
+                                   @Nullable PieceRuntimeState.PreviewCells singlePieceCells,
+                                   @Nullable MultiPiecePreviewAssembler.Result multiPieceResult,
+                                   @NotNull StructureOperationDiagnostics diagnostics) {
         this.outcome = outcome;
         this.source = source;
         this.singlePieceCells = singlePieceCells;
         this.multiPieceResult = multiPieceResult;
+        this.diagnostics = diagnostics;
     }
 
     @NotNull
-    public static StructurePreviewResult single(@NotNull MultiblockState.PreviewCells cells) {
+    public static StructurePreviewResult single(@NotNull PieceRuntimeState.PreviewCells cells) {
         return new StructurePreviewResult(cells.isEmpty() ? Outcome.EMPTY : Outcome.GENERATED,
-                Source.SINGLE_PIECE, cells, null);
+                Source.SINGLE_PIECE, cells, null, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
     public static StructurePreviewResult multi(@NotNull MultiPiecePreviewAssembler.Result result) {
         return new StructurePreviewResult(result.isEmpty() ? Outcome.EMPTY : Outcome.GENERATED,
-                Source.MULTI_PIECE, null, result);
+                Source.MULTI_PIECE, null, result, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
     public static StructurePreviewResult unsupported(@NotNull Source source) {
-        return new StructurePreviewResult(Outcome.UNSUPPORTED, source, null, null);
+        return new StructurePreviewResult(
+                Outcome.UNSUPPORTED, source, null, null, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
@@ -71,8 +76,18 @@ public final class StructurePreviewResult {
         return outcome == Outcome.GENERATED;
     }
 
+    @NotNull
+    public StructureOperationDiagnostics getDiagnostics() {
+        return diagnostics;
+    }
+
+    @NotNull
+    public StructurePreviewResult withDiagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+        return new StructurePreviewResult(outcome, source, singlePieceCells, multiPieceResult, diagnostics);
+    }
+
     @Nullable
-    public MultiblockState.PreviewCells getSinglePieceCells() {
+    public PieceRuntimeState.PreviewCells getSinglePieceCells() {
         return singlePieceCells;
     }
 

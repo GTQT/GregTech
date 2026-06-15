@@ -11,6 +11,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.*;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
@@ -124,17 +125,22 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
         // calculate the duration upon formation
         updateMaxProgressTime();
     }
 
     @NotNull
     @Override
-    // Retained on FactoryBlockPattern: structure is dynamically generated from variable dimensions.
-    // Aisle strings are built at runtime based on detected pile boundaries.
-    protected BlockPattern createStructurePattern() {
+    protected StructureDefinition createStructureDefinition() {
+        return StructureDefinition.fromTemplate(
+                DYNAMIC_PIECE_NAME, createDynamicStructurePattern().getTemplate());
+    }
+
+    @NotNull
+    // Retained on FactoryBlockPattern internally: structure is dynamically generated
+    // from variable dimensions. The controller publishes it as StructureDefinition.
+    private BlockPattern createDynamicStructurePattern() {
         // update the structure's dimensions just before we create it
         // return the default structure, even if there is no valid size found
         // this means auto-build will still work, and prevents terminal crashes.

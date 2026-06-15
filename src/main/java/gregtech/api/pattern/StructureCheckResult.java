@@ -18,14 +18,20 @@ import java.util.Map;
 /**
  * Immutable operation-level result for a synchronous structure check.
  *
- * <p>This normalizes definition and legacy-template checks before controller
- * assembly begins. Mutable context/channel data is copied at the boundary so a
- * later traversal cannot change a result that is waiting to be committed.
+ * <p>This normalizes typed V3 checks before controller assembly begins.
+ * Mutable context/channel data is copied at the boundary so a later traversal
+ * cannot change a result that is waiting to be committed.
  */
 public final class StructureCheckResult {
 
     public enum Source {
         DEFINITION("definition"),
+        /**
+         * @deprecated Runtime checks now adapt legacy templates into typed
+         *             compiled patterns. Retained for external compatibility
+         *             with callers that still construct legacy results directly.
+         */
+        @Deprecated
         LEGACY_TEMPLATE("legacy-template");
 
         @NotNull
@@ -81,6 +87,8 @@ public final class StructureCheckResult {
     private final CommittedStructureGraph graphPublication;
     @Nullable
     private final StructureIncrementalCheckResult incrementalCheckResult;
+    @Nullable
+    private final String adapterTrace;
 
     private StructureCheckResult(@NotNull Source source,
                                  boolean matched,
@@ -102,7 +110,8 @@ public final class StructureCheckResult {
                                   @Nullable StructureAggregateFolder.Result contributionAggregate,
                                   @Nullable StructureEligibilityPlan eligibilityPlan,
                                   @Nullable CommittedStructureGraph graphPublication,
-                                  @Nullable StructureIncrementalCheckResult incrementalCheckResult) {
+                                  @Nullable StructureIncrementalCheckResult incrementalCheckResult,
+                                  @Nullable String adapterTrace) {
         this.source = source;
         this.matched = matched;
         this.context = context == null ? null : context.copy();
@@ -124,6 +133,7 @@ public final class StructureCheckResult {
         this.eligibilityPlan = eligibilityPlan;
         this.graphPublication = graphPublication;
         this.incrementalCheckResult = incrementalCheckResult;
+        this.adapterTrace = adapterTrace;
     }
 
     @NotNull
@@ -148,6 +158,7 @@ public final class StructureCheckResult {
                 result.runtimePublication,
                 result.resultTable,
                 result.contributionAggregate,
+                null,
                 null,
                 null,
                 null);
@@ -185,6 +196,7 @@ public final class StructureCheckResult {
                 runtimePublication,
                 resultTable,
                 contributionAggregate,
+                null,
                 null,
                 null,
                 null);
@@ -225,9 +237,16 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 null,
                 null,
+                null,
                 null);
     }
 
+    /**
+     * @deprecated Runtime operation paths adapt legacy templates into typed
+     *             compiled patterns and no longer create legacy check results.
+     *             Retained for external compatibility only.
+     */
+    @Deprecated
     @NotNull
     public static StructureCheckResult fromLegacy(@Nullable PatternMatchContext context,
                                                   @NotNull MultiblockState state) {
@@ -256,6 +275,7 @@ public final class StructureCheckResult {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 
@@ -267,6 +287,19 @@ public final class StructureCheckResult {
     @NotNull
     public String getTracePath() {
         return tracePathOverride == null ? source.getTracePath() : tracePathOverride;
+    }
+
+    @NotNull
+    public StructureOperationDiagnostics getDiagnostics() {
+        int pieceCount = resultTable == null ? 0 : resultTable.size();
+        boolean syntheticSinglePiece = "v3-typed-single".equals(getTracePath());
+        return StructureOperationDiagnostics.of(
+                getTracePath(),
+                StructureEvaluationContext.Operation.MATCH_WORLD.name(),
+                traceActualDetail,
+                pieceCount,
+                syntheticSinglePiece)
+                .withAdapterTrace(adapterTrace);
     }
 
     @NotNull
@@ -293,7 +326,8 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult);
+                incrementalCheckResult,
+                adapterTrace);
     }
 
     @NotNull
@@ -320,7 +354,8 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult);
+                incrementalCheckResult,
+                adapterTrace);
     }
 
     @NotNull
@@ -347,7 +382,8 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult);
+                incrementalCheckResult,
+                adapterTrace);
     }
 
     @NotNull
@@ -373,7 +409,38 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult);
+                incrementalCheckResult,
+                adapterTrace);
+    }
+
+    @NotNull
+    public StructureCheckResult withAdapterTrace(@Nullable String adapterTrace) {
+        if (adapterTrace == null || adapterTrace.isEmpty()) {
+            return this;
+        }
+        return new StructureCheckResult(
+                source,
+                matched,
+                context,
+                operationState,
+                metadata,
+                error,
+                errorPos,
+                errorMessage,
+                failureTrace,
+                tracePathOverride,
+                traceActualDetail,
+                missingAbilities,
+                abilityCounts,
+                channelValues,
+                flipped,
+                runtimePublication,
+                resultTable,
+                contributionAggregate,
+                eligibilityPlan,
+                graphPublication,
+                incrementalCheckResult,
+                adapterTrace);
     }
 
     public boolean isMatched() {

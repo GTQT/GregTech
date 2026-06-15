@@ -22,12 +22,12 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Thin per-controller structure runtime.
+ * Per-controller structure runtime.
  *
- * <p>The runtime owns a thin {@link StructureOperationEvaluator} that routes
- * check, build, preview, and iteration operations to the existing
- * implementations. The evaluator is deliberately delegating for now so the
- * migration does not change structure behavior.
+ * <p>The runtime owns the typed operation evaluator and the mutable lifecycle
+ * state published by successful structure checks. Single-template and
+ * multi-piece structures differ only in the compiled pattern/runtimes supplied
+ * here.
  */
 public final class StructureRuntime {
 
@@ -38,7 +38,7 @@ public final class StructureRuntime {
     @Nullable
     private final BlockPatternTemplate template;
     @Nullable
-    private final MultiblockState state;
+    private final PieceRuntimeState state;
     @Nullable
     private final MultiPiecePattern multiPiecePattern;
     @Nullable
@@ -64,10 +64,12 @@ public final class StructureRuntime {
     private volatile long lifecycleGeneration;
     @Nullable
     private volatile CommittedStructureGraph committedGraph;
+    @Nullable
+    private String adapterTrace;
 
     public StructureRuntime(@Nullable StructureDefinition<?> definition,
                             @Nullable BlockPatternTemplate template,
-                            @Nullable MultiblockState state,
+                            @Nullable PieceRuntimeState state,
                             @Nullable MultiPiecePattern multiPiecePattern,
                             @Nullable PieceRuntimes pieceRuntimes) {
         this.definition = definition;
@@ -85,9 +87,11 @@ public final class StructureRuntime {
         BlockPatternTemplate template = definition.supportsSingleTemplatePath()
                 ? multiPiecePattern.getPrimaryPiece().getTemplate()
                 : null;
-        MultiblockState state = template == null ? null : template.createState();
+        PieceRuntimeState state = template == null ? null : new PieceRuntimeState(template.getDelegate());
         return new StructureRuntime(definition, template, state, multiPiecePattern,
-                new PieceRuntimes(multiPiecePattern));
+                state == null
+                        ? new PieceRuntimes(multiPiecePattern)
+                        : PieceRuntimes.singleWithState(multiPiecePattern, state));
     }
 
     @Nullable
@@ -101,8 +105,19 @@ public final class StructureRuntime {
     }
 
     @Nullable
-    public MultiblockState getState() {
+    public PieceRuntimeState getRuntimeState() {
         return state;
+    }
+
+    /**
+     * @deprecated Compatibility accessor for legacy code that received a
+     *             {@link MultiblockState}. Runtime internals should use
+     *             {@link #getRuntimeState()}.
+     */
+    @Deprecated
+    @Nullable
+    public MultiblockState getState() {
+        return state == null ? null : state.createCompatibilityProjection();
     }
 
     @Nullable
@@ -151,9 +166,9 @@ public final class StructureRuntime {
             @NotNull StructureOperationRequest request,
             @Nullable StructureDirtyPrecheck.Result detachedPrecheck) {
         StructureOrientation orientation = request.requireOrientation();
-        StructureIncrementalFallbackReason fallbackReason = getIncrementalFallbackReason(orientation);
-        if (fallbackReason != null) {
-            return fallbackFromIncremental(request, fallbackReason);
+        IncrementalFallback fallback = getIncrementalFallback(orientation, request.getController());
+        if (fallback.getReason() != null) {
+            return fallbackFromIncremental(request, fallback.getReason(), fallback.getDetail());
         }
         Set<String> dirtyRoots = consumeDirtyRoots(request.getController());
         if (dirtyRoots.isEmpty()) {
@@ -306,6 +321,16 @@ public final class StructureRuntime {
         recordSelectedFailure(failure);
     }
 
+    public void recordAdapterTrace(@NotNull String source, int pieces) {
+        this.adapterTrace = "source=" + source + ", pieces=" + Math.max(0, pieces);
+        this.evaluator.setAdapterTrace(this.adapterTrace);
+    }
+
+    @Nullable
+    public String getAdapterTrace() {
+        return adapterTrace;
+    }
+
     @NotNull
     public Map<String, Integer> getMissingAbilities() {
         return missingAbilities;
@@ -386,30 +411,75 @@ public final class StructureRuntime {
             return Collections.emptySet();
         }
         StructureExternalDependencySnapshot current = plan.snapshotExternalDependencies(controller);
-        return plan.rootsForExternalDependencyChanges(
-                current.changedKeys(graph.getExternalDependencySnapshot()));
+        StructureExternalDependencySnapshot.ChangeSet changes =
+                current.changesFrom(graph.getExternalDependencySnapshot());
+        if (hasExternalDependencyFailures(graph.getExternalDependencySnapshot(), current, changes)) {
+            return allPieceRoots(plan);
+        }
+        return plan.rootsForExternalDependencyChanges(changes.getChangedKeys());
     }
 
     @Nullable
     public StructureIncrementalFallbackReason getIncrementalFallbackReason(
             @NotNull StructureOrientation orientation) {
+        return getIncrementalFallbackWithoutExternalState(orientation).getReason();
+    }
+
+    @Nullable
+    public StructureIncrementalFallbackReason getIncrementalFallbackReason(
+            @NotNull StructureOrientation orientation,
+            @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        return getIncrementalFallback(orientation, controller).getReason();
+    }
+
+    @NotNull
+    private IncrementalFallback getIncrementalFallback(
+            @NotNull StructureOrientation orientation,
+            @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        IncrementalFallback structuralFallback =
+                getIncrementalFallbackWithoutExternalState(orientation);
+        if (structuralFallback.getReason() != null) {
+            return structuralFallback;
+        }
+        StructureEligibilityPlan plan = definition.getEligibilityPlan();
+        CommittedStructureGraph graph = getCommittedGraph();
+        StructureExternalDependencySnapshot current =
+                plan.snapshotExternalDependencies(controller);
+        StructureExternalDependencySnapshot baseline =
+                graph.getExternalDependencySnapshot();
+        StructureExternalDependencySnapshot.ChangeSet changes =
+                current.changesFrom(baseline);
+        if (hasExternalDependencyFailures(baseline, current, changes)) {
+            return IncrementalFallback.of(
+                    StructureIncrementalFallbackReason.UNKNOWN_EXTERNAL_DEPENDENCY,
+                    describeExternalDependencyFailures(baseline, current, changes));
+        }
+        return IncrementalFallback.none();
+    }
+
+    @NotNull
+    private IncrementalFallback getIncrementalFallbackWithoutExternalState(
+            @NotNull StructureOrientation orientation) {
         if (definition == null) {
-            return StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE;
+            return IncrementalFallback.of(
+                    StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE, null);
         }
         StructureEligibilityPlan plan = definition.getEligibilityPlan();
         if (!plan.isEligible()) {
-            return plan.getFallbackReason() == null
+            StructureIncrementalFallbackReason reason = plan.getFallbackReason() == null
                     ? StructureIncrementalFallbackReason.DEFINITION_NOT_ELIGIBLE
                     : plan.getFallbackReason();
+            return IncrementalFallback.of(reason, null);
         }
         CommittedStructureGraph graph = getCommittedGraph();
         if (graph == null) {
-            return StructureIncrementalFallbackReason.NO_BASELINE;
+            return IncrementalFallback.of(StructureIncrementalFallbackReason.NO_BASELINE, null);
         }
         if (!graph.getOrientation().equals(orientation)) {
-            return StructureIncrementalFallbackReason.ORIENTATION_CHANGED;
+            return IncrementalFallback.of(
+                    StructureIncrementalFallbackReason.ORIENTATION_CHANGED, null);
         }
-        return null;
+        return IncrementalFallback.none();
     }
 
     /**
@@ -530,10 +600,13 @@ public final class StructureRuntime {
     }
 
     public String describeShape() {
-        String path = definition != null ? "definition" : "legacy-template";
+        String path = definition != null
+                ? "definition"
+                : template != null ? "v3-typed-single" : "v3-typed-pattern";
         int pieces = multiPiecePattern == null ? 0 : multiPiecePattern.getPieceList().size();
         boolean singleTemplate = template != null;
-        return "path=" + path + ", singleTemplate=" + singleTemplate + ", pieces=" + pieces;
+        return "path=" + path + ", singleTemplate=" + singleTemplate + ", pieces=" + pieces
+                + (adapterTrace == null ? "" : ", adapterTrace={" + adapterTrace + "}");
     }
 
     @NotNull
@@ -551,8 +624,15 @@ public final class StructureRuntime {
             if (plan.isEligible()) {
                 StructureExternalDependencySnapshot current =
                         plan.snapshotExternalDependencies(controller);
-                roots.addAll(plan.rootsForExternalDependencyChanges(
-                        current.changedKeys(graph.getExternalDependencySnapshot())));
+                StructureExternalDependencySnapshot.ChangeSet changes =
+                        current.changesFrom(graph.getExternalDependencySnapshot());
+                if (hasExternalDependencyFailures(
+                        graph.getExternalDependencySnapshot(), current, changes)) {
+                    roots.addAll(allPieceRoots(plan));
+                } else {
+                    roots.addAll(plan.rootsForExternalDependencyChanges(
+                            changes.getChangedKeys()));
+                }
             }
         }
         return Collections.unmodifiableSet(roots);
@@ -570,10 +650,96 @@ public final class StructureRuntime {
     private StructureCheckResult fallbackFromIncremental(
             @NotNull StructureOperationRequest request,
             @NotNull StructureIncrementalFallbackReason reason) {
-        if (definition != null && definition.getEligibilityPlan().isEligible()) {
-            return check(request).withTraceContext("definition-fallback", "fallback=" + reason);
+        return fallbackFromIncremental(request, reason, null);
+    }
+
+    @NotNull
+    private StructureCheckResult fallbackFromIncremental(
+            @NotNull StructureOperationRequest request,
+            @NotNull StructureIncrementalFallbackReason reason,
+            @Nullable String detail) {
+        String fallbackDetail = "fallback=" + reason
+                + (detail == null || detail.isEmpty() ? "" : ", detail=" + detail);
+        if (definition != null) {
+            StructureEligibilityPlan plan = definition.getEligibilityPlan();
+            if (plan.isEligible()) {
+                return check(request)
+                        .withEligibilityPlan(plan)
+                        .withTraceContext("definition-fallback", fallbackDetail);
+            }
+            return checkActiveGraph(request)
+                    .withEligibilityPlan(plan)
+                    .withTraceContext("active-graph-fallback",
+                            fallbackDetail + ", " + plan.describeFallback());
         }
         return checkActiveGraph(request)
-                .withTraceContext("active-graph-fallback", "fallback=" + reason);
+                .withTraceContext("active-graph-fallback", fallbackDetail);
+    }
+
+    @NotNull
+    private static Set<String> allPieceRoots(@NotNull StructureEligibilityPlan plan) {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(plan.getGraph().getPieceNames()));
+    }
+
+    private static boolean hasExternalDependencyFailures(
+            @NotNull StructureExternalDependencySnapshot baseline,
+            @NotNull StructureExternalDependencySnapshot current,
+            @NotNull StructureExternalDependencySnapshot.ChangeSet changes) {
+        return baseline.hasFailures() || current.hasFailures() || changes.hasFailures();
+    }
+
+    @NotNull
+    private static String describeExternalDependencyFailures(
+            @NotNull StructureExternalDependencySnapshot baseline,
+            @NotNull StructureExternalDependencySnapshot current,
+            @NotNull StructureExternalDependencySnapshot.ChangeSet changes) {
+        StringBuilder builder = new StringBuilder("external dependency diagnostics");
+        if (baseline.hasFailures()) {
+            builder.append("; committed=").append(baseline.describeFailures());
+        }
+        if (current.hasFailures()) {
+            builder.append("; current=").append(current.describeFailures());
+        }
+        if (changes.hasFailures()) {
+            builder.append("; comparison=").append(changes.describeFailures());
+        }
+        return builder.toString();
+    }
+
+    private static final class IncrementalFallback {
+
+        @Nullable
+        private final StructureIncrementalFallbackReason reason;
+        @Nullable
+        private final String detail;
+
+        @NotNull
+        private static IncrementalFallback none() {
+            return new IncrementalFallback(null, null);
+        }
+
+        @NotNull
+        private static IncrementalFallback of(
+                @NotNull StructureIncrementalFallbackReason reason,
+                @Nullable String detail) {
+            return new IncrementalFallback(reason, detail);
+        }
+
+        private IncrementalFallback(
+                @Nullable StructureIncrementalFallbackReason reason,
+                @Nullable String detail) {
+            this.reason = reason;
+            this.detail = detail;
+        }
+
+        @Nullable
+        private StructureIncrementalFallbackReason getReason() {
+            return reason;
+        }
+
+        @Nullable
+        private String getDetail() {
+            return detail;
+        }
     }
 }

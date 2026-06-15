@@ -6,9 +6,11 @@ import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.LegacyElement;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
+import gregtech.client.renderer.ICubeRenderer;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
@@ -184,6 +186,32 @@ class StructureDependencyCompilerTest {
     }
 
     @Test
+    void conditionReturningNullDependenciesFallsBack() {
+        StructureCondition<Object> condition = new StructureCondition<Object>() {
+
+            @Override
+            public boolean test(StructureActivationContext<Object> context) {
+                return true;
+            }
+
+            @Override
+            public Set<StructureDependency> dependencies() {
+                return null;
+            }
+        };
+        StructurePiece conditional = new StructurePiece(
+                "conditional", template(new MatchingElement()), Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE, condition);
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(conditional)));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_CONDITION,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("returned null dependencies"));
+    }
+
+    @Test
     void unknownPieceDependencyHasStableFallbackReason() {
         StructureCondition<Object> condition = StructureCondition.withDependencies(
                 context -> true,
@@ -253,6 +281,94 @@ class StructureDependencyCompilerTest {
     }
 
     @Test
+    void explicitContractThrowFallsBackAsOpaqueElement() {
+        IStructureElement<Object> element = new MatchingElement() {
+
+            @Override
+            public boolean hasExplicitIncrementalContract() {
+                throw new IllegalStateException("bad contract");
+            }
+        };
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(
+                        new StructurePiece("bad_contract", template(element),
+                                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null))));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("threw while declaring explicit incremental contract"));
+    }
+
+    @Test
+    void nullIncrementalSupportFallsBackAsOpaqueElement() {
+        IStructureElement<Object> element = new MatchingElement() {
+
+            @Override
+            public StructureIncrementalSupport getIncrementalSupport() {
+                return null;
+            }
+        };
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(
+                        new StructurePiece("null_support", template(element),
+                                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null))));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("returned null incremental support"));
+    }
+
+    @Test
+    void elementReturningNullDependenciesFallsBack() {
+        IStructureElement<Object> element = new MatchingElement() {
+
+            @Override
+            public Set<StructureDependency> getDependencies() {
+                return null;
+            }
+        };
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(
+                        new StructurePiece("null_deps", template(element),
+                                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null))));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("returned null dependencies"));
+    }
+
+    @Test
+    void nullDependencyEntryFallsBackWithDiagnostic() {
+        StructurePiece target = new StructurePiece(
+                "target", template(new DependentElement((StructureDependency) null)),
+                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(target)));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.UNKNOWN_DEPENDENCY,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("declares a null dependency"));
+    }
+
+    @Test
+    void nullExternalDependencyKeyFallsBackWithDiagnostic() {
+        StructurePiece target = new StructurePiece(
+                "target", template(new DependentElement(nullExternalDependency())),
+                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(target)));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.UNKNOWN_DEPENDENCY,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("declares a null external dependency"));
+    }
+
+    @Test
     void externalDependencySnapshotReportsChangedKeys() {
         AtomicInteger externalState = new AtomicInteger(1);
         StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
@@ -280,6 +396,48 @@ class StructureDependencyCompilerTest {
         assertEquals(Collections.singleton(key), second.changedKeys(first));
         assertEquals(Collections.singleton("conditional"),
                 plan.rootsForExternalDependencyChanges(second.changedKeys(first)));
+    }
+
+    @Test
+    void externalDependencySnapshotRetainsCaptureFailureDiagnostic() {
+        StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
+                "gregtech:test_external_snapshot_failure",
+                controller -> {
+                    throw new IllegalStateException("snapshot boom");
+                },
+                Objects::equals);
+
+        StructureExternalDependencySnapshot snapshot =
+                StructureExternalDependencySnapshot.capture(Collections.singleton(key), null);
+
+        assertTrue(snapshot.hasFailures());
+        assertTrue(snapshot.describeFailures().contains("gregtech:test_external_snapshot_failure"));
+        assertTrue(snapshot.describeFailures().contains("snapshot boom"));
+        assertEquals(Collections.singleton(key),
+                snapshot.changedKeys(StructureExternalDependencySnapshot.capture(
+                        Collections.emptySet(), null)));
+    }
+
+    @Test
+    void externalDependencyComparisonFailureMarksChangedKey() {
+        AtomicInteger externalState = new AtomicInteger(1);
+        StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
+                "gregtech:test_external_compare_failure",
+                controller -> externalState.get(),
+                (left, right) -> {
+                    throw new IllegalStateException("compare boom");
+                });
+
+        StructureExternalDependencySnapshot first =
+                StructureExternalDependencySnapshot.capture(Collections.singleton(key), null);
+        externalState.set(2);
+        StructureExternalDependencySnapshot second =
+                StructureExternalDependencySnapshot.capture(Collections.singleton(key), null);
+
+        StructureExternalDependencySnapshot.ChangeSet changes = second.changesFrom(first);
+        assertEquals(Collections.singleton(key), changes.getChangedKeys());
+        assertTrue(changes.hasFailures());
+        assertTrue(changes.describeFailures().contains("compare boom"));
     }
 
     @Test
@@ -323,6 +481,31 @@ class StructureDependencyCompilerTest {
         assertNotNull(result.getEligibilityPlan());
         assertEquals(StructureIncrementalFallbackReason.OPAQUE_CONDITION,
                 result.getEligibilityPlan().getFallbackReason());
+    }
+
+    @Test
+    void ineligibleIncrementalFallbackKeepsEligibilityDiagnostics() {
+        StructurePiece piece = new StructurePiece(
+                "conditional", template(new MatchingElement()), Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE, () -> true);
+        MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
+        StructureRuntime runtime = new StructureRuntime(
+                gregtech.api.pattern.element.StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+
+        StructureCheckResult result = runtime.checkIncremental(StructureOperationRequest.check(
+                WORLD, BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                false, null, null));
+
+        assertTrue(result.isMatched());
+        assertTrue(result.usedActiveGraphFallback());
+        assertNotNull(result.getEligibilityPlan());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_CONDITION,
+                result.getEligibilityPlan().getFallbackReason());
+        assertTrue(result.createFailureTrace(diagnosticsController())
+                .getActual()
+                .contains("OPAQUE_CONDITION"));
     }
 
     private static StructurePiece piece(@NotNull String name) {
@@ -448,6 +631,87 @@ class StructureDependencyCompilerTest {
         @Override
         protected boolean isChunkLoaded(int x, int z, boolean allowEmpty) {
             return false;
+        }
+    }
+
+    @NotNull
+    private static DiagnosticsController diagnosticsController() {
+        try {
+            DiagnosticsController controller =
+                    (DiagnosticsController) unsafe().allocateInstance(DiagnosticsController.class);
+            setField(gregtech.api.metatileentity.MetaTileEntity.class, controller,
+                    "metaTileEntityId", new ResourceLocation("gregtech", "diagnostics_controller"));
+            return controller;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate diagnostics controller", e);
+        }
+    }
+
+    private static final class DiagnosticsController
+            extends gregtech.api.metatileentity.multiblock.MultiblockControllerBase {
+
+        private DiagnosticsController() {
+            super(new ResourceLocation("gregtech", "diagnostics_controller"));
+        }
+
+        @Override
+        public gregtech.api.metatileentity.MetaTileEntity createMetaTileEntity(
+                gregtech.api.metatileentity.interfaces.IGregTechTileEntity tileEntity) {
+            return this;
+        }
+
+        @Override
+        public World getWorld() {
+            return WORLD;
+        }
+
+        @Override
+        public BlockPos getPos() {
+            return BlockPos.ORIGIN;
+        }
+
+        @Override
+        protected void updateFormedValid() {}
+
+        @Override
+        public ICubeRenderer getBaseTexture(
+                gregtech.api.metatileentity.multiblock.IMultiblockPart sourcePart) {
+            return null;
+        }
+    }
+
+    private static void setField(@NotNull Class<?> owner,
+                                 @NotNull Object target,
+                                 @NotNull String name,
+                                 @NotNull Object value) {
+        try {
+            Field field = owner.getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to set field " + name, e);
+        }
+    }
+
+    @NotNull
+    private static StructureDependency nullExternalDependency() {
+        try {
+            java.lang.reflect.Constructor<StructureDependency> constructor =
+                    StructureDependency.class.getDeclaredConstructor(
+                            StructureDependency.Kind.class,
+                            String.class,
+                            StructureExternalDependencyKey.class,
+                            Set.class,
+                            String.class);
+            constructor.setAccessible(true);
+            return constructor.newInstance(
+                    StructureDependency.Kind.EXTERNAL,
+                    null,
+                    null,
+                    Collections.singleton(PieceDependencyAspect.CONTROLLER_STATE),
+                    "bad-test-dependency");
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to create null external dependency", e);
         }
     }
 }

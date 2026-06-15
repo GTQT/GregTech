@@ -7,17 +7,12 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureElementPreviewEntry;
-import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementPreview;
-import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
@@ -1132,33 +1127,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         world.updateEntities();
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
 
-        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
+        Map<BlockPos, TraceabilityPredicate> predicateMap = Collections.emptyMap();
         Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
-        if (controllerBase != null) {
-            MultiblockState state = controllerBase.getMultiblockState();
-            if (state == null) {
-                controllerBase.reinitializeStructurePattern();
-                state = controllerBase.getMultiblockState();
-            }
-            if (state != null) {
-                state.cache.forEach((pos, blockInfo) -> {
-                    Object info = blockInfo.getInfo();
-                    if (info instanceof TraceabilityPredicate) {
-                        predicateMap.put(BlockPos.fromLong(pos), (TraceabilityPredicate) info);
-                    }
-                });
-            }
-        }
-
-        StructureDefinition<?> definition = controllerBase == null ? null : controllerBase.getStructureDefinition();
-        boolean useSingleTemplatePath = definition != null && definition.supportsSingleTemplatePath();
-        BlockPatternTemplate singleTemplate = useSingleTemplatePath ? definition.getPrimaryTemplate() : null;
-        BlockPos singleTemplateOffset = singleTemplate == null ? null :
-                singleTemplateOffset(singleTemplate, controllerBlockPos);
-        if (singleTemplate != null && singleTemplateOffset != null) {
-            previewEntries.putAll(buildSingleTemplatePreviewEntries(singleTemplate, singleTemplateOffset, blockMap));
-        } else if (!useSingleTemplatePath && controllerBase != null && controllerBlockPos != null) {
-            previewEntries.putAll(controllerBase.buildMultiPiecePreviewEntries(channelValues));
+        if (controllerBase != null && controllerBlockPos != null) {
+            controllerBase.buildStructurePreviewEntries(channelValues).forEach((previewPos, entry) -> {
+                if (blockMap.containsKey(previewPos)) {
+                    previewEntries.put(previewPos, entry);
+                }
+            });
         }
 
         List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap, parts).stream()
@@ -1172,52 +1148,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
         return new MBPattern(worldSceneRenderer, sortedParts, predicateMap, previewEntries);
-    }
-
-    @Nullable
-    private BlockPos singleTemplateOffset(@NotNull BlockPatternTemplate template,
-                                          @Nullable BlockPos controllerBlockPos) {
-        RelativeDirection[] sDir = template.getStructureDir();
-        BlockPatternTemplate.CenterOffset centerOff = template.getCenterOffset();
-        BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
-        BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
-                centerOff.x(), centerOff.y(), centerOff.minZ(),
-                EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-        return cPos.subtract(controllerPreviewPos);
-    }
-
-    @NotNull
-    private Map<BlockPos, StructureElementPreviewEntry> buildSingleTemplatePreviewEntries(
-            @NotNull BlockPatternTemplate template,
-            @NotNull BlockPos offset,
-            @NotNull Map<BlockPos, BlockInfo> blockMap) {
-        int[] repetitions = resolvePreviewRepetitions(template);
-        MultiblockState.PreviewCells preview = template.createState().createPreviewCells(
-                repetitions,
-                channelValues,
-                StructureOrientation.of(EnumFacing.SOUTH, EnumFacing.SOUTH, EnumFacing.UP, false, false));
-        Map<BlockPos, StructureElementPreviewEntry> entries = new HashMap<>();
-        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : preview.getPreviewEntries().entrySet()) {
-            BlockPos blockMapPos = entry.getKey().add(offset);
-            if (blockMap.containsKey(blockMapPos)) {
-                entries.put(blockMapPos, entry.getValue());
-            }
-        }
-        return entries;
-    }
-
-    @NotNull
-    private int[] resolvePreviewRepetitions(@NotNull BlockPatternTemplate template) {
-        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
-        int[] repetitions = new int[aisles.length];
-        for (int i = 0; i < aisles.length; i++) {
-            BlockPatternTemplate.AisleDef aisle = aisles[i];
-            Integer value = aisle.channelName() == null ? null : channelValues.get(aisle.channelName());
-            repetitions[i] = value == null
-                    ? aisle.minRepeat()
-                    : MultiblockState.resolveRepetitionValue(value, aisle.minRepeat(), aisle.maxRepeat());
-        }
-        return repetitions;
     }
 
     private static final class PreviewCandidate {

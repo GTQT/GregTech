@@ -1,541 +1,448 @@
-# Structure System V3 Current Design
+# Structure System V3 Design
 
-**Implementation snapshot:** 2026-06-14  
+**Implementation snapshot:** 2026-06-15
+
 **Scope:** `gregtech.api.pattern`、`gregtech.api.pattern.element`、
-`gregtech.api.metatileentity.multiblock` 以及当前控制器接入代码。
+`gregtech.api.metatileentity.multiblock`、JEI/preview/tooling 接入点，以及 GregTech 自带
+multiblock controller 的迁移边界。
 
-本文只描述当前代码已经实现的结构系统边界。历史迁移计划、阶段编号和未落地 API 草案不再保留；
-需要判断行为时，以代码和测试为准。
+**External compatibility sample:** 上级目录 `GTQTCore`。该项目当前大量使用旧结构 API，
+包括 `createStructureTemplate()`、`formStructure(PatternMatchContext)`、
+`FactoryBlockPattern`、`BlockPatternTemplate`、`TraceabilityPredicate` 和自定义
+predicate helper；未使用 `StructureDefinition` / `FormedStructureView` 作为主入口。
 
-## 1. 当前结论
+## 1. 核心结论
 
-Structure System V3 当前提供的是统一声明、运行时所有权、事务化匹配、typed operation result、
-controller commit 边界和调度边界。它已经覆盖 formation check、active-graph recheck、增量 recheck、
-snapshot precheck、build、hint、preview 和 iterate，但执行层仍保留若干兼容适配。
-
-已经成立的事实：
-
-- 每个控制器最终都会解析出一个 `StructureDefinition`。
-- `StructureDefinition` 编译为共享、无控制器状态的 `MultiPiecePattern` 和 `PieceTemplate`。
-- `PieceTemplate` 的 canonical cell storage 是 `CompiledStructureElement`；legacy predicate map 通过
-  `PieceTemplateLegacyView` 按需投影。
-- 每个控制器持有自己的 `StructureRuntime` 和 `PieceRuntimes`；single-template shape 额外持有
-  `MultiblockState` 兼容旧 API。
-- formation lifecycle 的 canonical 状态是 `StructureRuntime.getLifecycleState()` 返回的
-  `StructureLifecycleState`。
-- controller 上的 formed flag、part list 和 ability instances 是 legacy/network projection，不是独立真相。
-- 同步 check、active-graph、incremental 和 async precheck 共用 `StructureCommitToken` 做 stale 校验。
-- incremental eligibility 会消费 typed condition dependency 和 direct element `getDependencies()`，并把
-  external dependency snapshot 映射回 dirty roots。
-- standard external dependency 覆盖 controller mode、channel values、configuration 和 upgrades。
-- 世界 dirty index 只保存索引和 dirty lease；是否 polling、event-driven 或 async 由
-  `StructureSchedulerPolicy` 决定。
-- 异步检查只做 snapshot precheck，命中后仍在主线程执行 live check，异步结果不直接发布 formed state。
-- debug 模式下有低频 shadow validation，用 full check oracle 校验 incremental result。
-
-仍然是当前实现限制的事实：
-
-- `StructureOperationEvaluator` 是委托层，会路由到 `StructureCheckState`、`MultiPiecePattern`、
-  `MultiblockState` 和 preview/build helper；它不是唯一 traversal engine。
-- legacy `TraceabilityPredicate`、`PatternMatchContext`、`BlockPatternTemplate` 和 `BlockPattern`
-  仍是 addon 兼容 API。
-- event-driven active-graph recheck 会重扫完整 active graph；它不是“只检查变更 piece”。
-- incremental recheck 只在 definition eligibility、committed graph、orientation 和 dirty roots 满足条件时使用；
-  其它情况会 fallback 到 full 或 active-graph 路径。
-
-## 2. 核心不变量
-
-共享声明不可变：
-
-- `StructureDefinition`
-- `MultiPiecePattern`
-- `StructurePiece`
-- `RepeatGroupPiece`
-- `PieceTemplate`
-- `CompiledStructureElement`
-
-控制器可变状态只属于单个 controller：
-
-- `StructureRuntime`
-- `StructureLifecycleState`
-- `MultiblockState`
-- `PieceRuntimes`
-- `PieceRuntime`
-- `StructureDirtyState`
-
-单次操作状态只能存在于 operation 生命周期内：
-
-- `StructureMatchSession`
-- `StructureOperationState`
-- `PatternMatchContext`
-- `BlockWorldState`
-- `StructureEvaluationContext`
-- `PieceRuntimes` candidate publication
-
-匹配成功只表示得到一个可提交结果。形成状态只能由 `MultiblockStructureCommitter` 在服务端线程发布。
-任何检查、build、hint、preview、iterate 都不能直接修改 controller formed lifecycle。
-
-失败分支必须回滚以下内容：
-
-- part 和 ability 收集；
-- generic count、global count 和 ability count；
-- channel/tier 值；
-- active casing position；
-- deferred requirement；
-- legacy context key；
-- piece cache、formed positions、repeat counts；
-- contribution builder 状态。
-
-## 3. 架构分层
-
-| 层 | 主要类型 | 当前职责 |
-|---|---|---|
-| 声明层 | `StructureDefinition`、`IStructurePiece` | 定义 piece、条件、偏移、重复和 ability 限制。 |
-| 编译层 | `StructureCompiler`、`PieceTemplateCompiler` | 编译为 `MultiPiecePattern`、`StructurePiece`、`PieceTemplate` 和 compiled element。 |
-| 元素层 | `IStructureElement`、`CompiledStructureElement`、`StructureElementPreview`、`StructureDependency` | 单元格匹配、requirement、候选、preview、hint、placement 和 typed dependency 声明。 |
-| 运行时 | `StructureRuntime`、`StructureLifecycleState`、`PieceRuntimes`、`MultiblockState` | 保存 controller 私有状态、committed lifecycle、dirty roots 和 failure。 |
-| 操作入口 | `StructureOperationRequest`、`StructureOperationEvaluator` | 校验 request kind 并分派到当前实现。 |
-| 操作事务 | `StructureMatchSession`、`StructureEvaluationContext`、`BlockWorldState` | 提供 transaction、probe、fork、typed data 和 collector state。 |
-| 操作结果 | `StructureCheckResult`、`StructureSnapshotResult`、`StructureBuildResult`、`StructureHintResult`、`StructurePreviewResult`、`StructureIterateResult` | 在执行层和 controller lifecycle 之间传递不可变结果。 |
-| 提交流程 | `MultiblockStructureOperations`、`MultiblockStructureAssembler`、`MultiblockStructureCommitter`、`MultiblockStructureRegistration` | 固定 check、assemble、commit、registration 的顺序。 |
-| 调度层 | `MultiblockStructureCheckScheduler`、`StructureSchedulerPolicy`、`MultiblockWorldData`、`StructureWorldIndex`、`StructureExternalDependencies`、`AsyncStructureChecker` | first tick、polling、dirty event、external dependency wakeup、incremental/active/full lease、snapshot precheck。 |
-| 兼容层 | `BlockPattern`、`BlockPatternTemplate`、`PieceTemplateLegacyView`、`TraceabilityPredicate`、`PatternMatchContext` | 保留旧 addon 和旧工具入口，并桥接到当前 runtime。 |
-
-## 4. 声明与编译
-
-`MultiblockControllerBase.reinitializeStructurePattern()` 的解析顺序是：
-
-1. `createStructureDefinition()`
-2. `createMultiPiecePattern()`，再包装为 `StructureDefinition`
-3. `createStructureTemplate()`，再包装为 `StructureDefinition`
-4. 默认 `createStructureTemplate()` 仍可调用已废弃的 `createStructurePattern()`
-
-因此，controller runtime 初始化后总能取得 `StructureDefinition` 和 compiled `MultiPiecePattern`。
-新控制器应优先直接返回 `StructureDefinition`。
-
-`StructureDefinition` 当前支持：
-
-- fixed named piece；
-- conditional piece；
-- X/Y/Z 单轴 repeat；
-- multi-axis repeat group；
-- repeat channel；
-- `OffsetMode`；
-- 基于先前 piece 的 dynamic offset；
-- definition 级 ability min/max；
-- ability group min/max；
-- legacy `FactoryBlockPattern` / `BlockPatternTemplate` 导入。
-
-编译后的关系：
+Structure System V3 的 canonical path 是：
 
 ```text
 StructureDefinition
-  -> MultiPiecePattern
-       -> StructurePiece / RepeatGroupPiece / DynamicOffsetPiece
-            -> PieceTemplate
-                 -> CompiledStructureElement[][][]
-                 -> PieceTemplateLegacyView
-                      -> TraceabilityPredicate[][][] compatibility view
+  -> MultiPiecePattern / PieceTemplate / CompiledStructureElement
+  -> StructureRuntime operation
+  -> typed operation result
+  -> MultiblockStructureCommitter
+  -> StructureLifecycleState
+  -> optional deprecated projection
 ```
 
-`StructureDefinition.getCompiledPattern()` 懒编译并缓存结果。`StructureDefinition.getEligibilityPlan()`
-基于 compiled pattern 生成 dependency/eligibility 计划，供 incremental evaluator 和 fallback 诊断使用。
+旧 API 只允许出现在三个位置：
 
-single-template 资格只表示该 definition 可以投影为一个 `BlockPatternTemplate` 和 `MultiblockState`。
-它用于旧 API、single preview/hint/build/iterate 等兼容路径，不表示 formation check 会绕过
-`StructureDefinition`。
+- 外部 addon compatibility 入口，例如 `GTQTCore` 风格的 controller。
+- deprecated facade / detached projection，用于旧 getter、旧工具或 migration 文档。
+- compatibility adapter 和兼容测试，用来证明旧入口会被转换到 V3。
 
-## 5. Runtime 所有权
+除这三个位置以外，GregTech 内部必须直接使用新 API。旧 API 不再作为内部实现方式保留。
+其中 `PatternMatchContext` 的边界更严格：GregTech 内部实现不得把它作为参数、返回值、字段、
+collector 或 operation state 使用；只能由 legacy callback adapter 为外部 override 临时构造。
 
-| 对象 | 生命周期 | 说明 |
-|---|---|---|
-| `StructureRuntime` | controller 级 | operation facade，持有 lifecycle state、dirty roots、committed graph、metadata/channel、last failure。 |
-| `StructureLifecycleState` | controller commit 级 | canonical formed snapshot，包含 formed flag、parts、abilities、metadata、channels、committed graph。 |
-| `PieceRuntimes` | controller 或单次检查级 | controller 实例保存最近成功 commit 的 piece 状态；检查时使用 candidate runtimes。 |
-| `MultiblockState` | controller 级 single-template 兼容状态 | 保存旧单模板 cache、repeat、error 和 traversal scratch。 |
-| `CommittedStructureGraph` | controller commit 级 | 保存 result table、aggregate、position index、runtime publication、orientation、external dependency snapshot。 |
-
-server side `MultiblockControllerBase.isStructureFormed()` 优先读取 runtime lifecycle state。client side 和旧网络
-同步仍读取 controller 的 `structureFormed` projection。
-
-`MultiblockStructureCommitter` 成功提交时调用：
-
-1. `StructureCheckResult.validatePieceRuntimePublication(...)`
-2. part attach/detach；
-3. `StructureCheckResult.publishPieceRuntimes(...)`
-4. `StructureRuntime.publishLifecycleState(...)`
-5. `MultiblockControllerBase.projectStructureLifecycle(...)`
-6. `formStructure(FormedStructureView)` / legacy bridge；
-7. formed position registration。
-
-`invalidateStructure()` 会清空 runtime formed state、注销 world index、detach parts，并把空 lifecycle projection
-写回 controller 字段。
-
-新代码不应直接修改 `structureFormed`、`multiblockParts` 或 `multiblockAbilities`。这些字段只服务旧访问器、
-网络同步和旧 callback。
-
-## 6. Operation API
-
-`StructureOperationRequest.Kind` 当前包含：
-
-| Kind | Evaluation operation | 读世界 | 修改世界 | Formation state |
-|---|---|---:|---:|---|
-| `CHECK` | `MATCH_WORLD` | 是 | 否 | 可产生 commit result |
-| `SNAPSHOT_CHECK` | `MATCH_SNAPSHOT` | 读 snapshot | 否 | 只产生 precheck signal |
-| `PREVIEW` | `PREVIEW` | 否 | 否 | 否 |
-| `HINT` | `HINT` | 是 | 仅 hint side effect | 否 |
-| `CREATIVE_BUILD` | `CREATIVE_BUILD` | 是 | 是 | 否 |
-| `SURVIVAL_BUILD` | `SURVIVAL_BUILD` | 是 | 是 | 否 |
-| `ITERATE` | `ITERATE` | 是 | 否 | 否 |
-
-runtime entry points：
-
-- `StructureRuntime.check(...)`
-- `StructureRuntime.checkSnapshot(...)`
-- `StructureRuntime.checkActiveGraph(...)`
-- `StructureRuntime.checkIncremental(...)`
-- `StructureRuntime.buildSingle(...)` / `buildPiece(...)` / `buildAllPieces(...)`
-- `StructureRuntime.hintSingle(...)` / `hintAllPieces(...)`
-- `StructureRuntime.previewSingleResult(...)` / `previewMultiPieceResult(...)`
-- `StructureRuntime.iterateSingleResult(...)` / `iterateMultiPiece(...)`
-
-typed result：
-
-| Result | 用途 |
-|---|---|
-| `StructureCheckResult` | live full/active/incremental check 的 formation candidate 或 failure。 |
-| `StructureSnapshotResult` | async snapshot precheck outcome，不能提交。 |
-| `StructureBuildResult` | creative/survival build 的 placed/missing/consumed/resume 信息。 |
-| `StructureHintResult` | hint 渲染的 rendered/skipped/failed 汇总。 |
-| `StructurePreviewResult` | single-template 和 multi-piece preview 的统一结果。 |
-| `StructureIterateResult` | read-only iteration 的统一结果。 |
-
-`StructureOperationEvaluator` 会校验 request kind。错误 kind 会在入口处失败，而不是进入具体 evaluator 后才产生
-隐式行为。
-
-## 7. Check 与 Commit
-
-同步 formation check 的主路径：
+不允许出现反向关系：
 
 ```text
-MultiblockControllerBase.checkStructurePattern()
+BlockPattern / BlockPatternTemplate / TraceabilityPredicate[][][] / MultiblockState
+  -> decides canonical runtime lifecycle
+```
+
+## 2. 术语边界
+
+**新 API** 指 V3 canonical API：
+
+- 声明和编译：`StructureDefinition`、`IStructurePiece`、`StructureCompiler`、
+  `MultiPiecePattern`、`PieceTemplate`、`CompiledStructureElement`。
+- element 和依赖：`IStructureElement`、`StructureEvaluationContext`、
+  `StructureContribution`、`StructureDependency`。
+- runtime 和 lifecycle：`StructureRuntime`、`StructureLifecycleState`、
+  `PieceRuntimeState`、`PieceRuntimes`、`CommittedStructureGraph`。
+- operation result：`StructureCheckResult`、`StructureSnapshotResult`、
+  `StructureBuildResult`、`StructureHintResult`、`StructurePreviewResult`、
+  `StructureIterateResult`。
+- callback 和 tooling：`FormedStructureView`、typed preview metadata、typed candidates。
+
+**旧 API** 指 compatibility API：
+
+- controller override：`createStructurePattern()`、`createStructureTemplate()`、
+  `createMultiPiecePattern()`、`formStructure(PatternMatchContext)`。
+- builder 和模板：`FactoryBlockPattern`、`BlockPattern`、`BlockPatternTemplate`。
+- predicate 和 context：`TraceabilityPredicate`、`PatternMatchContext`、
+  `PieceTemplateLegacyView`。其中 `PatternMatchContext` 只能服务外部 legacy callback。
+- projection：`MultiblockState`、legacy predicate view、deprecated template getter。
+- controller helper 中返回 `TraceabilityPredicate` 的旧 helper，例如 `states()`、
+  `blocks()`、`frames()`、`abilities()`、`autoAbilities()`。
+
+**内部代码** 指 GregTech 仓库内 runtime、controller、scheduler、committer、tooling、
+preview、JEI、registry 和 tests 中的非 compatibility implementation。
+
+**外部 addon** 指 GregTech 仓库外部的依赖方。本文以 `GTQTCore` 作为必须保住的旧 API
+使用样本。
+
+## 3. 当前 V3 主体
+
+### 3.1 声明和编译
+
+每个 controller 初始化后都必须得到 `StructureDefinition`。当前解析顺序在
+`MultiblockControllerBase.resolveStructureDefinition()` 中：
+
+1. `createStructureDefinition()`
+2. `createMultiPiecePattern()` adapter
+3. `createStructureTemplate()` adapter
+4. deprecated `createStructurePattern()` adapter
+
+新 controller 必须优先覆盖 `createStructureDefinition()`。旧 override 的返回值只作为导入源，
+不得成为 runtime owner。
+
+编译结果是共享不可变对象：
+
+- `StructureDefinition` 描述 piece、repeat、condition、offset、ability limit 和 external dependency。
+- `StructureCompiler` 生成 `MultiPiecePattern`。
+- `PieceTemplateCompiler` 生成 `PieceTemplate` 和 `CompiledStructureElement`。
+- `PieceTemplateLegacyView` 只能按需导出 legacy predicate projection。
+
+### 3.2 Runtime 和 commit
+
+每个 controller 持有自己的 `StructureRuntime`。canonical formed state 是
+`StructureLifecycleState`。controller 上的 formed flag、part list、ability map、旧 template
+和旧 state 都是 projection，不是事实源。
+
+形成状态只能由 server-thread `MultiblockStructureCommitter` 发布：
+
+```text
+controller.checkStructurePattern()
   -> MultiblockStructureOperations.checkStructurePattern()
   -> StructureCommitToken.captureForCheck(controller)
-  -> StructureRuntime.check(CHECK request)
-  -> StructureOperationEvaluator.check()
-  -> StructureCheckState.check()
+  -> StructureRuntime.check(...)
   -> StructureCheckResult
-  -> MultiblockStructureCommitter.applyCheckResult(result, token)
-  -> MultiblockStructureAssembler.prepare()
-  -> runtime lifecycle publication
+  -> MultiblockStructureCommitter.applyCheckResult(...)
+  -> StructureRuntime.publishLifecycleState(...)
   -> controller projection
+  -> optional legacy callback bridge
   -> world index registration
 ```
 
-definition full check 使用 `StructureCheckState`：
-
-1. 创建 operation-owned `PieceRuntimes`。
-2. 创建跨 piece 的 `StructureMatchSession`。
-3. 按声明顺序解析 active piece。
-4. 根据 prior metadata 解析 dynamic offset。
-5. 对 fixed piece、repeat group 和 conditional piece 执行匹配。
-6. 收集 `StructureOperationState`、legacy context、metadata、ability counts、channel values。
-7. 成功时生成 runtime publication、result table 和 contribution aggregate。
-
-如果 definition 不满足 contribution eligibility，普通 `check(...)` 会进入 active-graph fallback，并在
-`StructureCheckResult` 上携带 eligibility/fallback trace context。
+失败、stale result 和 async precheck result 都不能直接发布 lifecycle。
+
+### 3.3 Incremental、dirty index 和 async
+
+V3 的增量判断基于 typed dependency：
+
+- `StructureDependencyCompiler` 收集 direct element dependency、condition dependency、
+  dynamic anchor、repeat group 和 external dependency。
+- `CommittedStructureGraph` 保存 result table、aggregate、position index、runtime publication、
+  orientation 和 external dependency snapshot。
+- `StructureDirtyState` 保存 pending dirty roots。
+- `StructureWorldIndex` 只保存索引、dirty lease、chunk revision、formed positions 和 optional
+  position index。
+
+incremental eligibility 必须保守。legacy predicate、opaque callback、未知 side effect、
+未声明 dependency 或 external dependency snapshot failure 必须 fallback，并保留 diagnostics。
+
+async worker 只处理 detached immutable data。它不能访问 live `World`、controller、tile entity，
+不能执行 live matcher，不能 fold aggregate，也不能发布 lifecycle。
+
+### 3.4 Tooling 和 preview
+
+tooling 主路径必须消费 typed result：
 
-commit token 会校验：
-
-- runtime generation；
-- lifecycle generation；
-- world；
-- controller position；
-- orientation；
-- async precheck 的 optional change snapshot；
-- async precheck 不允许 already-formed controller。
-
-stale result 会被 trace 并丢弃，不记录 last failure、不 invalidate、不发布 formed state。
-
-非 stale failure 会写入 `StructureRuntime.recordCheckFailure(...)`。如果 controller 原本已经 formed，
-failure 会触发 `invalidateStructure()`。
-
-## 8. Active-Graph 与 Incremental
-
-active-graph recheck 是完整 active graph 重新匹配，不是 per-piece 局部匹配。它使用新的 candidate
-`PieceRuntimes`，成功后才发布到 controller runtimes。
-
-incremental recheck 的入口是 `StructureRuntime.checkIncremental(...)`。它要求：
-
-- definition 存在；
-- `StructureEligibilityPlan` eligible；
-- runtime 有 `CommittedStructureGraph` baseline；
-- 当前 orientation 与 baseline orientation 一致；
-- runtime 有 pending dirty roots 或 external dependency changes。
-
-`StructureDependencyCompiler` 当前会从三类位置收集 incremental dependency：
-
-- dynamic offset / repeat group anchor，自动产生 center/repetition dependency；
-- `StructureCondition.dependencies()`，用于 typed condition；
-- direct `IStructureElement.getDependencies()`，用于元素自身读取 typed contribution、先前 piece metadata
-  或 external controller state 的场景。
-
-direct element 必须显式声明增量契约。内置 typed element 通过 `ITypedStructureElement` 声明
-`TYPED_CONTRIBUTION` 和 empty dependencies；自定义 `IStructureElement` 必须实际覆盖
-`getIncrementalSupport()` 与 `getDependencies()`。旧 addon 仍保持源码兼容，但未声明契约的 element
-会由 `StructureDependencyCompiler` 确定性降级为 `OPAQUE_ELEMENT`。
-`CompiledStructureElement` 会转发 source element 的 dependency 和契约状态；
-`WrapperElement` 只有在没有 callback/lazy supplier 时才透明转发，callback/lazy wrapper 仍视为 opaque。
-`ChainElement` 会合并 child dependencies，并按 child 中最保守的 `StructureIncrementalSupport` 上报；
-包含 legacy/opaque/未声明契约 child 的 chain 不会绕过 eligibility fallback。
-
-满足条件时，incremental evaluator 从 committed graph 复制 baseline result table/runtime publication，只重算
-dirty roots 及 dependency closure 中需要重算的 piece，再 fold 成新的 aggregate 和 graph publication。
-
-不满足条件时，incremental path 返回带 fallback reason 的 full/active fallback result。常见原因包括：
-
-- definition 不 eligible；
-- 没有 baseline；
-- orientation 变化；
-- 没有 dirty root；
-- baseline/result table 不完整。
-
-debug `debugStructureCheck` 打开时，`StructureShadowValidator` 会对成功的 incremental result 低频抽样执行
-一次 full check oracle。shadow validation 不发布 lifecycle、不替换结果；mismatch 输出 warn，成功样本输出 debug。
-比较内容包括 result table semantic fingerprint、aggregate values、parts、ability counts、ability parts、
-variant active blocks、formed metadata 和 channel values。两条路径同时记录实际 block-state/tile-entity read
-计数，日志可直接比较 incremental 与 full oracle 的 world-read 成本。
-
-当前 world event 对 committed graph 注册的结构会通过 `StructurePositionIndex` 把 changed position 映射为
-dirty root piece。旧注册路径仍会使用 piece runtime dirty 标记并走 active-graph。
-
-## 9. Dirty Index、Scheduler 与 Async
-
-`StructureWorldIndex` 按 world 保存：
-
-- chunk 到 controller 的索引；
-- controller formed positions；
-- optional `StructurePositionIndex`；
-- controller 到 `MultiPiecePattern`；
-- pending recheck；
-- chunk change revision；
-- event suppression controller；
-- last changed tick。
-
-block change callback 只做 storage 更新：
-
-1. 更新 changed chunk revision；
-2. 查找拥有该 position 的 formed controller；
-3. 对 committed graph 注册路径标记 runtime dirty roots；
-4. 对旧 piece runtime 注册路径标记 piece dirty；
-5. 把 controller 加入 pending recheck。
-
-非方块状态变化通过 external dependency snapshot 进入同一 dirty lease：
-
-- `StructureExternalDependencies.CONTROLLER_MODE`
-- `StructureExternalDependencies.CHANNEL_VALUES`
-- `StructureExternalDependencies.CONFIGURATION`
-- `StructureExternalDependencies.UPGRADES`
-
-这些 key 的 snapshot 保存在 `CommittedStructureGraph` 中。scheduler 在消费 event-driven lease 前会调用
-`MultiblockControllerBase.enqueueChangedStructureExternalDependencies()`，比较当前 snapshot 与 committed snapshot，
-并通过 `StructureRuntime.rootsForChangedExternalDependencies(...)` 找到受影响 root。若存在 root，
-`MultiblockWorldData.enqueueDirtyRoots(...)` 会把它们加入 runtime dirty state 并唤醒 scheduler。
-
-controller 基类提供 generation-backed snapshot hooks：
-
-- `getStructureControllerModeSnapshot()` / `getStructureControllerModeValue()`
-- `getStructureChannelDependencySnapshot()` / `getStructureChannelDependencyValue()`
-- `getStructureConfigDependencySnapshot()` / `getStructureConfigDependencyValue()`
-- `getStructureUpgradeDependencySnapshot()` / `getStructureUpgradeDependencyValue()`
-- `notifyStructureControllerModeChanged()`
-- `notifyStructureChannelsChanged()`
-- `notifyStructureConfigChanged()`
-- `notifyStructureUpgradesChanged()`
-
-标准 snapshots 会冻结嵌套 Map/List/Set/数组，避免 committed baseline 被可变对象引用污染。
-`setDelayCheck(...)`、`setDelayStructureCheckStandby(...)`、`setDelayStructureCheckWork(...)`、核心
-`setWorkingEnabled(...)`、voiding mode、distinct/batch/recipe-lock/energy-warning、generator overflow、
-advanced thread、MultiMap recipe-map index、Large Boiler throttle/type，以及 Godforge ring/renderer/upgrade
-状态会显式 bump 对应 generation 并尝试 enqueue。
-共享层只提供 controller mode、channel、configuration 和 upgrade snapshot 通道；机器私有字段停留在
-拥有者类或对应抽象族中，例如 MultiMap/AdvanceMultiMap 的 recipe-map 选择、Large Boiler 的 throttle/type，
-以及 Godforge 的 ring/renderer/upgrade state。
-尚未迁移的 controller/addon 仍可依靠 scheduler 的 snapshot 比较兜底，但新代码应在状态改变处显式调用 notify。
-
-`DirtyCheckLease` 是 storage lease，不是 scheduler policy。它可能返回：
-
-- `UNREGISTERED`
-- `CLEAN`
-- `DEFERRED`
-- `ACTIVE_GRAPH`
-- `INCREMENTAL`
-- `FULL`
-
-`MultiblockStructureCheckScheduler` 每 tick 按 controller 的 `StructureSchedulerPolicy` 处理：
-
-1. first tick live check；
-2. formed controller event-driven lease；
-3. eligible formed dirty controller 的 async state-only precheck；
-4. unformed controller async snapshot precheck；
-5. polling fallback。
-
-默认 policy 保留原行为：配置允许时 formed 结构消费 event-driven dirty，未 formed 结构在 definition 支持
-`SNAPSHOT_MATCH` 时进入 async；eligible formed dirty graph 可进入 detached dirty precheck，最后按
-working/standby interval polling。
-
-未形成结构的 async check 流程：
-
-1. scheduler 将未 formed controller 注册到 `AsyncStructureChecker`。
-2. 主线程根据 definition AABB 捕获 `BlockStateSnapshot` 和 chunk change snapshot。
-3. async thread 使用 disposable `StructureRuntime.fromDefinition(...)` 执行 `SNAPSHOT_CHECK`。
-4. 主线程处理 result 时重新验证 async registration generation 和 `StructureCommitToken`。
-5. snapshot matched 时调用 `controller.checkStructurePattern()` 做 live confirm。
-
-formed dirty async precheck 流程：
-
-1. scheduler 消费 `DirtyCheckLease.INCREMENTAL`，但 runtime dirty roots 保持未消费。
-2. 主线程从 committed graph 生成 `StructureDirtyPrecheck`，只复制 dirty roots 的 expected block states，
-   并捕获覆盖 chunk 的 change snapshot、graph generation 和 formed-only `StructureCommitToken`。
-3. async thread 只比较 detached block-state maps，不持有或访问 `World`、controller、tile entity。
-4. 主线程重新校验 registration、lifecycle、orientation、graph generation 和 chunk revision。
-5. token 有效时执行 live incremental confirm；live confirm 再次消费当前 dirty roots，因此会包含 async
-   期间新增的 roots。
-6. 只有 server-thread committer 可以发布 successor graph 和 formed lifecycle。stale token 或拒绝 commit
-   会重新唤醒 dirty scheduler，避免已消费 lease 丢失。
-
-async result 永远不直接 publish lifecycle 或 failure。超过 snapshot volume 上限的未形成结构进入主线程
-fallback queue；无法安全构造 detached dirty snapshot 时直接回退主线程 live incremental。
-
-## 10. Element、Session 与 Transaction
-
-`IStructureElement` 是 direct element 的单元格契约：
-
-- `match(StructureEvaluationContext)` 是 canonical formation match 入口；
-- `check(World, BlockPos, PatternMatchContext)` 是 legacy low-level check；
-- `getCapabilities()` 声明 snapshot 等 capability；
-- `getIncrementalSupport()` 声明 contribution eligibility；
-- `getDependencies()` 声明会影响本 element match/contribution 的 typed piece 或 external input；
-- `getPreview(...)` 提供 preview/build metadata；
-- `survivalPlaceBlock(...)` 提供 survival build result；
-- `spawnHintWithResult(...)` 提供 hint outcome。
-
-纯 typed direct element 应实现 `ITypedStructureElement`，或显式覆盖
-`getIncrementalSupport()` 与 `getDependencies()`。编译器不会再把继承 permissive 默认值视为可增量复用。
-direct element 如果读取先前 piece 的 contribution、repeat/center metadata、controller mode、channel/config/upgrade
-等非方块输入，必须通过 `StructureDependency` 显式声明。未声明依赖的 direct element 只会因自身 watched position
-dirty 而重算；读取 opaque legacy context 或 callback side effect 的 element 应保持 opaque support，避免错误复用。
-
-`CompiledStructureElement` 把 element 与 template position、symbol、candidate metadata 等编译信息绑定。
-`StructureEvaluationContext` 保存 operation、world/snapshot、position、legacy context、session、controller context
-和 auto-place 环境。
-
-`StructureMatchSession` 是跨 piece 的事务状态：
-
-- `fork()` / `tryFork(...)` 用于 alternative branch；
-- `transaction(...)` 用于失败回滚；
-- `probe(...)` 用于 advisory check，不提交副作用；
-- typed data 通过 `StructureSessionKey` 保存；
-- collector state 通过 `StructureOperationState` 保存；
-- contribution state 通过 `StructureContribution.Builder` 捕获。
-
-新增 direct element 应优先使用 context-aware API，不应把 `toPredicate()` 当作 runtime 执行入口。
-
-## 11. Build、Hint、Preview 与 Iterate
-
-build：
-
-- creative build 和 survival build 都通过 `StructureOperationRequest` 进入 runtime；
-- survival build 使用 `StructureBuildResult` 汇总 placement budget、consumed/missing items、partial/resume 状态；
-- 单模板路径可走 `MultiblockState`；
-- multi-piece 路径可按单 piece 或 all pieces 执行。
-
-hint：
-
-- 旧 `spawnHints...` 方法仍存在；
-- typed hint 返回 `StructureHintResult`，记录 rendered、skipped、failed；
-- hint 不写 formation state。
-
-preview：
-
-- single-template preview 返回 `BlockInfo[][][]` 或 `StructurePreviewResult`；
-- multi-piece preview 通过 `MultiPiecePreviewAssembler` 和 `StructurePreviewResult`；
-- direct preview metadata 优先于 legacy predicate candidates。
-
-iterate：
-
-- single-template iteration 返回 world position 到 `BlockInfo` 的映射或 typed result；
-- multi-piece iteration 返回 formed position set/result；
-- iterate 是 read-only operation。
-
-## 12. Metadata、Channel 与 Compatibility
-
-`FormedStructureMetadata` 保存 successful check 产生的 per-instance metadata，包括 repeat、channel 和 piece center
-相关信息。它会随 lifecycle state 一起保存在 `StructureRuntime`。
-
-`StructureChannelValues` 是 channel value 的 runtime snapshot。controller 获取 channel value 时应通过 runtime
-或 typed formed view，而不是直接读取 legacy context。
-
-`FormedStructureView` 是新 callback 的 typed formed view。旧
-`formStructure(PatternMatchContext)` 仍通过 bridge 支持。callback 接收到的 legacy context 是提交边界生成的
-compatibility view，不是共享 matcher 内部状态。
-共享 controller 族提供 typed formation helper，已迁移的具体机器在自己的
-`formStructure(FormedStructureView)` 中调用 helper，避免父类直接覆盖 typed callback 后跳过仍依赖
-legacy override 的子类。当前 Large Boiler、Research Station 和 Godforge 已走 typed formed view；
-未迁移子类继续通过 legacy bridge 保持行为。
-
-legacy 兼容边界：
-
-- `BlockPattern` 仍是 deprecated facade；
-- `BlockPatternTemplate.getBlockMatches()` 仍可 materialize legacy predicate array；
-- `TraceabilityPredicate` 仍可适配为 direct element；
-- typed preview traversal 为每个 cell 保留 entry，包括 empty entry；
-- JEI 不再通过全模板 predicate-shaped traversal 补扫 candidate map；legacy predicate candidates 只来自
-  已存在的公开兼容投影或 legacy-adapted typed preview；
-- projector/diagnostic 优先读取 typed preview metadata，旧 cell 才使用 legacy predicate candidates。
-
-## 13. Failure、Trace 与日志
-
-formation failure 使用 `StructureFailureTrace` 表示。它可以包含：
-
-- failure kind；
-- operation path；
-- orientation；
-- piece/cell/world position；
-- expected/actual detail；
-- missing abilities；
-- ability counts；
-- progress depth；
-- flipped state。
-
-`StructureRuntime` 保存 latest selected failure 和 missing ability summary。相同 failure summary 至少间隔 5 秒才会重复输出。
-
-日志原则：
-
-- 生命周期和 failure trace 使用 `debugStructureTrace`；
-- check/scheduler 细节使用 `debugStructureCheck`；
-- 不在单元格热路径加入无门控高频日志；
-- 不确定行为优先加低频、有开关的 trace，再决定是否改逻辑。
-
-## 14. 实现约束
-
-新增或修改结构系统代码时遵守：
-
-1. 新控制器优先返回 `StructureDefinition`。
-2. 新 element 优先实现 context-aware direct path。
-3. `toPredicate()` 只作为 legacy/tooling 兼容视图。
-4. formation state 只能在 server-thread committer 中发布。
-5. controller formed/parts/abilities 字段只作为 projection。
-6. check/active/incremental/async live confirm 必须携带 commit token。
-7. snapshot async 只能产生 precheck signal，不能直接形成。
-8. dirty index 只保存 storage/index/lease，不包含 policy。
-9. world mutation 和 item consumption 必须有明确 rollback 或 result accounting。
-10. 失败分支使用 transaction/probe/fork，不能泄漏 collector state。
-11. 不确定行为用低频 trace 观察，不加热路径日志。
-
-## 15. 测试导航
-
-当前结构系统相关测试：
+- preview 使用 `StructurePreviewResult` / typed candidates / typed metadata。
+- hint/build/iterate 使用对应 typed result。
+- JEI、preview renderer、registry 和 UI diagnostics 不应为了主路径显示主动执行 legacy predicate
+  traversal。
+
+legacy predicate map 只能作为 deprecated getter、外部 addon fallback 或 detached projection。
+
+## 4. GTQTCore 兼容契约
+
+`GTQTCore` 当前代表必须保留的外部旧 API 使用方式：
+
+- 大量 controller 覆盖 `createStructureTemplate()`。
+- 少量 controller 覆盖 `createStructurePattern()`。
+- 大量 controller 覆盖 `formStructure(PatternMatchContext)`。
+- 自定义 `TraceabilityPredicate` 子类，例如 tier/casing predicate。
+- 通过 `FactoryBlockPattern` / `BlockPatternTemplate` 构建结构。
+- 通过 controller helper 组合 `TraceabilityPredicate`，例如 ability、block、frame、state helper。
+
+这些旧入口必须继续让外部 addon 编译、加载和形成结构。兼容目标是外部行为可用，不是继续暴露内部旧
+traversal。
+
+必须保留给外部 addon 的 surface：
+
+- `FactoryBlockPattern.start()`、`FactoryBlockPattern.buildTemplate()`。
+- `BlockPattern`、`BlockPatternTemplate` public/protected 使用。
+- `TraceabilityPredicate` 构造、继承、组合、limit、candidate 和 preview 相关方法。
+- `PatternMatchContext` callback 中外部已使用的读取能力；该能力只对外部旧 override 保留。
+- `createStructurePattern()`、`createStructureTemplate()`、`createMultiPiecePattern()`、
+  `formStructure(PatternMatchContext)` override。
+- `getPatternTemplate()`、`getMultiblockState()`、legacy predicate projection 等 deprecated getter。
+- 旧 controller helper 中返回 `TraceabilityPredicate` 的方法。
+
+不承诺保留的行为：
+
+- 外部旧 projection mutation 影响 canonical lifecycle。
+- 外部代码依赖 GregTech 内部继续执行 `TraceabilityPredicate[][][]` traversal。
+- 外部代码依赖 `MultiblockState` 作为 live runtime owner。
+- 外部代码依赖 GregTech 内部保存、传播或复用 `PatternMatchContext`。
+- 外部代码依赖 `PatternMatchContext` 作为跨 operation 或跨 piece 共享状态。
+- 未声明 dependency 的 legacy predicate 参与 incremental fast path。
+
+## 5. Adapter-only 规则
+
+旧 API 进入 V3 的边界必须单向、立即、可观测：
+
+```text
+external legacy override / builder / predicate
+  -> compatibility adapter
+  -> StructureDefinition / typed element / typed result
+  -> V3 runtime
+```
+
+adapter 必须遵守：
+
+1. `createStructurePattern()`、`createStructureTemplate()`、`createMultiPiecePattern()` 的返回值只作为
+   import source，controller 初始化时立即转换为 `StructureDefinition`。
+2. `TraceabilityPredicate` 只能包装为 typed element，或导出为 detached projection；runtime matcher
+   不得直接以 legacy predicate array 作为 canonical traversal model。
+3. `PatternMatchContext` 只能在 legacy callback adapter 中为外部
+   `formStructure(PatternMatchContext)` override 临时构造。V3 matcher、scheduler、committer、
+   preview、async、controller 内部实现不得接收、保存、读取或写入它。
+4. `MultiblockState` 只作为 deprecated detached facade/projection；内部 matcher/cache backing 使用
+   `PieceRuntimeState`。
+5. external old API 缺少 dependency、side effect 或 comparator 信息时，必须 fallback 到 active/full
+   path，并保留 diagnostics。
+6. adapter 入口保留低频 trace，例如 `legacy-adapter`，遇到不确定行为时优先让使用者输出日志，再决定是否扩展 adapter。
+
+## 6. 内部新 API 规则
+
+GregTech 内部代码必须直接使用新 API：
+
+- 自带 controller 声明结构必须使用 `createStructureDefinition()`。
+- 自带 controller 形成回调必须使用 `formStructure(FormedStructureView)` 或 typed helper。
+- 自带 controller、base class 和 internal helper 不得新增或继续依赖
+  `PatternMatchContext` 参数；旧签名只能作为 addon override bridge。
+- 新 element 必须声明 typed contribution、preview、hint/placement 行为和 dependency。
+- 新 controller 私有状态如果影响匹配，必须接入 controller mode/channel/config/upgrade snapshot，
+  或声明明确的 typed external key。
+- runtime、scheduler、committer、async、dirty index 和 operation evaluator 只消费 `StructureRuntime`、
+  `StructureLifecycleState`、typed result、typed dependency 和 committed graph。
+- preview、JEI、registry、UI diagnostics 主路径只消费 typed preview/metadata。
+- 新 internal helper 不得返回 `TraceabilityPredicate` 作为主 API；应返回 typed element、typed candidate、
+  `StructureDefinition` builder 片段或 V3 metadata。
+
+内部代码允许引用旧类型的情况只有：
+
+- compatibility adapter implementation。
+- deprecated facade/projection implementation。
+- compatibility tests。
+- migration guide 或文档。
+
+`PatternMatchContext` 是这个例外列表里的特例：除 legacy callback adapter、deprecated public
+signature 和 compatibility test 外，GregTech 内部不应引用它。
+
+其它旧引用应清理。特别是，如果某个旧引用不是为了把外部旧入口转换到 V3，也不是为了导出 detached projection，
+就不应继续存在。
+
+## 7. 不再保留的内部兼容
+
+以下兼容直接清理，不再为内部代码保留：
+
+- GregTech 已迁移机器上的旧 `createStructurePattern()` / `createStructureTemplate()` 主实现。
+- GregTech 已迁移机器上的旧 `formStructure(PatternMatchContext)` 主回调。
+- GregTech 内部 controller/base/helper 使用 `PatternMatchContext` 传递形成结果、能力、metadata 或私有状态。
+- JEI/preview 内部主路径的 legacy predicate map 补扫。
+- `BlockPatternTemplate` supplier registry 作为内部 primary shape source。
+- `BlockPattern` / `BlockPatternTemplate` / `MultiblockState` 承载 runtime owner 语义。
+- `TraceabilityPredicate[][][]` 决定 scheduler、committer、incremental 或 preview 主路径。
+- legacy callback 写入的 `PatternMatchContext` 反向影响 V3 matcher，或被内部后续流程读取。
+- 未知 dependency、opaque side effect、未声明 comparator 继续尝试 incremental 的路径。
+- 仅为内部调用者保留的旧 traversal convenience method。
+
+外部仍需要的同名方法只能走 adapter 或 projection。
+
+## 8. 迁移和清理顺序
+
+### 8.1 当前结论
+
+截至当前代码，V3 主路径已经收敛到 typed runtime：controller check、scheduler、committer、
+async precheck、build/hint/preview/iterate operation service、registry preview metadata 和大部分
+JEI/工具入口都不再以 `TraceabilityPredicate[][][]`、`BlockPattern` 或 `MultiblockState`
+作为 lifecycle owner。
+
+内部旧 API 还没有清零，但剩余面已经比较明确：
+
+| 范围 | 当前数量 | 状态 |
+|------|----------|------|
+| GregTech common controller 覆盖 `createStructurePattern()` | 0 | 已清完，由扫描测试锁住。 |
+| GregTech common controller 覆盖 `formStructure(PatternMatchContext)` | 0 | 已清完，由扫描测试锁住。 |
+| common controller 通过 `copyLegacyCallbackContext()` 读旧 payload | 7 个文件 | 仍需转 typed contribution / metadata。 |
+| monitor plugin 通过 `getMultiblockState().checkPatternFastAt(...)` 重扫结构 | 2 个文件 | 仍是内部旧 traversal。 |
+| JEI tooltip/candidate fallback 触发 legacy predicate view | 1 个文件 | 仅 typed preview 缺失时 fallback，仍需补齐 typed preview。 |
+| 动态尺寸机器内部构造 `BlockPattern` 作为模板桥 | 2 个 controller | 已经从 `StructureDefinition` 进入 V3，但声明侧仍未完全 typed 化。 |
+| API compatibility bridge | 若干 API base class | 为外部 addon ABI 保留，不按内部主路径债务计算。 |
+
+因此，“内部旧 API 清理”按主路径算已基本完成；按仓库内引用算，剩余重点是
+context payload、client/monitor tooling fallback、JEI fallback 和动态声明桥接。`BlockPattern`、
+`BlockPatternTemplate`、`TraceabilityPredicate`、`PatternMatchContext`、`MultiblockState`、
+`PieceTemplateLegacyView` 这些类型本身仍会继续存在于 deprecated public surface、adapter、
+projection 和 compatibility tests 中，直到外部 API 移除窗口结束。
+
+### 8.2 已锁住的边界
+
+以下内容已经作为完成项看待，后续不应反复迁移：
+
+- `LegacyStructureAdapterBoundaryTest` 覆盖 `GTQTCore` 风格的旧 template、旧 pattern、
+  自定义 `TraceabilityPredicate` 子类和旧 `formStructure(PatternMatchContext)` callback。
+- `StructureInternalLegacyBoundaryScanTest` 锁住 runtime、scheduler、committer、async、preview、
+  JEI、registry、builder/removal/projector tooling 的旧 traversal 禁用清单。
+- `StructureInternalLegacyBoundaryScanTest.gregTechControllersUseTypedFormationCallbacksAndDefinitions`
+  锁住 common controller 树：不能重新覆盖 `createStructurePattern()` 或
+  `formStructure(PatternMatchContext)`。
+- deprecated getter/projection 测试证明 mutation 不影响 canonical lifecycle。
+- adapter trace 通过 `StructureRuntime.getAdapterTrace()`、`describeShape()` 和 typed result
+  diagnostics 可观察。遇到不确定旧入口时，优先加低频日志/trace 让调用方输出数据，再扩展 adapter。
+
+### 8.3 剩余项 1：清掉 common controller 的 legacy context payload
+
+当前 common controller 仍有 7 个文件通过
+`FormedStructureView.copyLegacyCallbackContext()` 读取旧 predicate 写入的数据：
+
+- `MetaTileEntityElectricBlastFurnace`
+- `MetaTileEntityMultiSmelter`
+- `MetaTileEntityMultiAlloyFurnace`
+- `MetaTileEntityCrackingUnit`
+- `MetaTileEntityPyrolyseOven`
+- `MetaTileEntityCleanroom`
+- `MetaTileEntityPowerSubstation`
+
+这些已经不是旧 `formStructure(PatternMatchContext)` override，而是 typed callback 内部临时读取
+legacy projection。清理顺序：
+
+1. heating coil 系列先做：把 matched `ICasing` / coil stats 从旧 channel context 迁移到 typed
+   contribution 或 `FormedStructureView` metadata helper。
+2. Cleanroom 再做：`FilterType` 和 `Doors` 由 typed element contribution 发布，形成回调只读 typed
+   view。
+3. Power Substation 最后做：`PMC_BATTERY_HEADER` / `BatteryMatchWrapper` 改成 typed battery
+   contribution，并保留 tier count 的形成结果。
+4. common controller 中 `copyLegacyCallbackContext()` 归零后，把扫描测试扩展为禁止
+   `gregtech/common/metatileentities` 引用该方法。
+
+验收标准：common controller 不再 import `PatternMatchContext`；旧 callback projection 只由 API
+base class 的外部 addon bridge 使用。
+
+### 8.4 剩余项 2：清掉 tooling / JEI 的旧 traversal fallback
+
+当前仍有 2 个 monitor plugin 直接从 deprecated state 重扫结构：
+
+- `FakeGuiPluginBehavior`：通过 `getMultiblockState().checkPatternFastAt(...)` 取
+  `MultiblockParts`。
+- `AdvancedMonitorPluginBehavior`：通过同一路径重扫，然后读取 `state.cache`。
+
+迁移目标是让它们读取 committed typed publication：
+
+- part 列表从 `StructureLifecycleState` / `FormedStructureView` / typed ability publication 获取。
+- valid positions 从 `CommittedStructureGraph` 的 position index 或 formed position set 获取。
+- 不再调用 `getMultiblockState()`、`checkPatternFastAt(...)` 或读取 `state.cache`。
+
+JEI 目前主路径已经使用 `StructureElementPreviewEntry`，但
+`MultiblockInfoRecipeWrapper` 仍在 typed entry 缺失时调用
+`getLegacyPredicateFallback(...)`，并用临时 `PatternMatchContext` 匹配 legacy tooltip。这个 fallback
+可以保留到 typed preview coverage 补齐；清理时先给缺失 entry 加 diagnostics/log，确认真实缺口，
+再删除 legacy tooltip 匹配。
+
+### 8.5 剩余项 3：清掉动态声明侧的 `BlockPattern` 桥
+
+`CharcoalPileIgniter` 和 `Cleanroom` 已经通过 `createStructureDefinition()` 进入 V3，但内部仍因
+动态尺寸、channel preview、auto-build/hint 复用而构造 `FactoryBlockPattern` / `BlockPattern`：
+
+- `CharcoalPileIgniter` 动态生成木堆尺寸，并把 `BlockPattern.getTemplate()` 包成
+  `StructureDefinition`。
+- `Cleanroom` 用 `FactoryBlockPattern` 生成动态尺寸结构，preview/build/hint 仍临时构造
+  `BlockPattern`。
+
+这类不再是 runtime owner 问题，但仍是内部旧声明 facade。清理顺序：
+
+1. 把动态尺寸 builder 输出改为 `PieceTemplate` / `StructureDefinition`，避免先 build
+   `BlockPattern` 再取 template。
+2. 把固定 repetition 读取从 `BlockPattern.getAisleRepetitions()` 改为 typed template metadata。
+3. 把 `MultiblockState.resolveRepetitionValue(...)` 移到非 deprecated helper，例如 channel/value
+   resolver。
+4. 动态 preview/build/hint 继续走 typed operation request，不回退到旧 state。
+
+另外，`FluidDrill`、`FusionReactor`、`LargeMiner`、`LargeTurbine`、`ForgeOfGods` 和
+`MTEBaseModule` 仍有 `BlockPatternTemplate` supplier 或 `FactoryBlockPattern` 声明 helper。它们目前
+主要是声明 facade，不是 lifecycle traversal；优先级低于 context payload 和 tooling fallback，但最终
+也应迁移到直接返回 `StructureDefinition` / typed template builder。
+
+### 8.6 Operation 服务状态
+
+`StructureOperationEvaluator` 当前只作为 public compatibility facade，主体已经拆成：
+
+- `StructureCheckOperationService`
+- `StructureSnapshotOperationService`
+- `StructureBuildOperationService`
+- `StructureHintOperationService`
+- `StructurePreviewOperationService`
+- `StructureIterateOperationService`
+
+拆分后的不变量：
+
+- request kind 在入口校验。
+- result diagnostics 不丢失。
+- commit path 只消费 `StructureCheckResult`。
+- build/hint/preview/iterate 不发布 lifecycle。
+- 旧 API 不能重新进入 operation 主路径。
+
+`StructureOperationRuntime` / `StructureOperationContext` 负责统一解析 compiled pattern、piece
+runtimes、synthetic single-piece runtime 和 operation diagnostics，避免每个 service 重新判断
+legacy shape。
+
+### 8.7 建议清理顺序
+
+后续按这个顺序收尾：
+
+1. 先清 7 个 common controller 的 `copyLegacyCallbackContext()`。
+2. 再清 2 个 monitor plugin 的 `getMultiblockState().checkPatternFastAt(...)`。
+3. 补齐 JEI typed preview entry，删除 legacy tooltip/candidate fallback。
+4. 清 `CharcoalPileIgniter` / `Cleanroom` 动态声明侧的 `BlockPattern` 桥。
+5. 清 template supplier registry 和 `FactoryBlockPattern` internal helper，转成 typed
+   `StructureDefinition` builder。
+6. 最后处理 public deprecated API 移除：`createStructurePattern()`、
+   `formStructure(PatternMatchContext)`、`getMultiblockState()`、`getPatternTemplate()`、
+   `getBlockMatches()` 等外部 surface 在 removal target 前只能继续 adapter/projection。
+
+每一步都先扩大扫描测试，再做代码迁移；如果某个旧 predicate 的 side effect 或 payload 语义不确定，
+先加 trace/log 让实际机器输出数据，再决定 typed contribution 的形状。
+
+## 9. 不变量
+
+实现和清理时必须保持：
+
+1. `StructureDefinition`、`MultiPiecePattern`、`PieceTemplate`、`CompiledStructureElement` 是共享不可变声明/编译结果。
+2. `StructureRuntime`、`StructureLifecycleState`、`PieceRuntimes`、`StructureDirtyState` 是 controller 私有运行时状态。
+3. 每次 operation 的事务状态只存在于 operation 生命周期内。
+4. 形成状态只能由 server-thread `MultiblockStructureCommitter` 发布。
+5. stale result 不发布、不 invalidate、不覆盖 last failure。
+6. failure 分支必须回滚 part、ability、channel、metadata、legacy projection 和 contribution builder 状态。
+7. incremental eligibility 保守判断；未知、opaque、legacy side effect 都 fallback，并保留 diagnostics。
+8. external dependency snapshot/comparator failure 保守转为 full/active fallback，并保留 diagnostics。
+9. async worker 只处理 detached immutable data。
+10. cache probe 只能在有 baseline result 可复用时跳过 element traversal；不能用 cached block match 构造空 contribution。
+11. 不确定行为优先加低频、有开关的 trace，再根据日志改逻辑。
+
+## 10. 验收矩阵
+
+完整 V3 清理完成前，至少需要覆盖：
+
+| 范围 | 必要验证 |
+|---|---|
+| GTQTCore compatibility | 旧 template、旧 pattern、旧 predicate 子类、旧 callback、旧 helper 组合可编译、加载、形成结构。 |
+| legacy adapter | 旧入口立即转换为 `StructureDefinition` / typed element；旧 projection mutation 不影响 lifecycle。 |
+| internal ban | runtime、scheduler、committer、async、preview、JEI、registry 主路径无 legacy traversal。 |
+| declaration | fixed piece、conditional piece、repeat、multi-axis repeat、dynamic offset、legacy import parity。 |
+| formation | full check、active graph fallback、failed check rollback、commit token stale rejection。 |
+| incremental | dirty root、dependency closure、external dependency、unknown dependency fallback、diagnostics retention。 |
+| async | unformed snapshot precheck、formed dirty state-only precheck、stale token、chunk revision mismatch、live confirm。 |
+| build/hint | creative build、survival accounting、partial/resume、hint side effect isolation。 |
+| preview/iterate | single-template parity、multi-piece parity、empty cell metadata、typed candidate map。 |
+| performance | clean piece 不重复读 world，dirty piece cache probe hit/miss，dirty piece read 限定，large-save profiling，shadow validation semantic parity。 |
+
+当前已有重点测试：
 
 - `StructureMatchSessionTest`
 - `StructureOperationPolicyTest`
@@ -549,140 +456,90 @@ formation failure 使用 `StructureFailureTrace` 表示。它可以包含：
 - `StructureLifecycleSchedulingTest`
 - `MultiblockStructureChannelsTest`
 - `MBPatternTest`
+- `LegacyStructureAdapterBoundaryTest`
+- `StructureInternalLegacyBoundaryScanTest`
 
-按影响范围选择测试：
+仍需补强：
 
-- 声明/坐标/重复：`RepeatGroupPieceTest`、`StructureTraversalBoundaryTest`
-- session/transaction：`StructureMatchSessionTest`
-- build accounting：`StructureBuildAccountingTest`
-- failure trace：`StructureFailureDiagnosticsTest`
-- contribution/dependency/incremental：`StructureContributionTest`、`StructureDependencyCompilerTest`、
-  `StructureIncrementalEvaluatorTest`
-- lifecycle/scheduler：`StructureLifecycleSchedulingTest`
-- channel/preview adapter：`MultiblockStructureChannelsTest`、`MBPatternTest`
+- controller 私有状态中仍通过 `FormedStructureView.copyLegacyCallbackContext()` 读取的 legacy
+  payload typed contribution 化。
+- 大规模存档级 world profiling。
 
-常用验证命令：
+## 11. 代码导航
 
-```text
-./gradlew --% compileJava --no-daemon -Dorg.gradle.workers.max=1 -Dorg.gradle.compiler.daemon=false
-./gradlew --% test --no-daemon -Dorg.gradle.workers.max=1 -Dorg.gradle.compiler.daemon=false
-./gradlew --% check --no-daemon -Dorg.gradle.workers.max=1 -Dorg.gradle.compiler.daemon=false
-```
+核心 controller 和 commit：
 
-## 16. 代码导航
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockControllerBase.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockStructureOperations.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockStructureAssembler.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockStructureCommitter.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockStructureRegistration.java`
 
-入口与 controller：
+V3 runtime 和 result：
 
-- `MultiblockControllerBase`
-- `MultiblockStructureOperations`
-- `MultiblockStructureAssembler`
-- `MultiblockStructureCommitter`
-- `MultiblockStructureRegistration`
+- `src/main/java/gregtech/api/pattern/StructureRuntime.java`
+- `src/main/java/gregtech/api/pattern/StructureLifecycleState.java`
+- `src/main/java/gregtech/api/pattern/StructureOperationRequest.java`
+- `src/main/java/gregtech/api/pattern/StructureOperationEvaluator.java`
+- `src/main/java/gregtech/api/pattern/StructureOperationContext.java`
+- `src/main/java/gregtech/api/pattern/StructureOperationRuntime.java`
+- `src/main/java/gregtech/api/pattern/StructureOperationDiagnostics.java`
+- `src/main/java/gregtech/api/pattern/StructureCheckOperationService.java`
+- `src/main/java/gregtech/api/pattern/StructureSnapshotOperationService.java`
+- `src/main/java/gregtech/api/pattern/StructureBuildOperationService.java`
+- `src/main/java/gregtech/api/pattern/StructureHintOperationService.java`
+- `src/main/java/gregtech/api/pattern/StructurePreviewOperationService.java`
+- `src/main/java/gregtech/api/pattern/StructureIterateOperationService.java`
+- `src/main/java/gregtech/api/pattern/StructureCheckResult.java`
+- `src/main/java/gregtech/api/pattern/CommittedStructureGraph.java`
+- `src/main/java/gregtech/api/pattern/StructureShadowValidator.java`
 
-runtime 与结果：
+声明、编译和 element：
 
-- `StructureRuntime`
-- `StructureLifecycleState`
-- `StructureOperationRequest`
-- `StructureOperationEvaluator`
-- `StructureCheckResult`
-- `CommittedStructureGraph`
-- `StructureShadowValidator`
+- `src/main/java/gregtech/api/pattern/element/StructureDefinition.java`
+- `src/main/java/gregtech/api/pattern/element/StructureCompiler.java`
+- `src/main/java/gregtech/api/pattern/MultiPiecePattern.java`
+- `src/main/java/gregtech/api/pattern/StructurePiece.java`
+- `src/main/java/gregtech/api/pattern/RepeatGroupPiece.java`
+- `src/main/java/gregtech/api/pattern/DynamicOffsetPiece.java`
+- `src/main/java/gregtech/api/pattern/PieceTemplate.java`
+- `src/main/java/gregtech/api/pattern/PieceTemplateCompiler.java`
+- `src/main/java/gregtech/api/pattern/element/CompiledStructureElement.java`
+- `src/main/java/gregtech/api/pattern/element/IStructureElement.java`
 
-声明与编译：
+增量和 dependency：
 
-- `StructureDefinition`
-- `StructureCompiler`
-- `MultiPiecePattern`
-- `StructurePiece`
-- `RepeatGroupPiece`
-- `DynamicOffsetPiece`
-- `PieceTemplate`
-- `PieceTemplateCompiler`
-- `PieceTemplateLegacyView`
+- `src/main/java/gregtech/api/pattern/StructureDependency.java`
+- `src/main/java/gregtech/api/pattern/StructureDependencyCompiler.java`
+- `src/main/java/gregtech/api/pattern/StructureEligibilityPlan.java`
+- `src/main/java/gregtech/api/pattern/StructureExternalDependencies.java`
+- `src/main/java/gregtech/api/pattern/StructureExternalDependencySnapshot.java`
+- `src/main/java/gregtech/api/pattern/StructureDirtyState.java`
+- `src/main/java/gregtech/api/pattern/StructurePositionIndex.java`
 
-element 与事务：
+调度和 async：
 
-- `IStructureElement`
-- `CompiledStructureElement`
-- `StructureEvaluationContext`
-- `StructureMatchSession`
-- `StructureOperationState`
-- `StructureContribution`
-- `StructureDependency`
-- `StructureExternalDependencyKey`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockStructureCheckScheduler.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/StructureSchedulerPolicy.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockWorldData.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/StructureWorldIndex.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/StructureCommitToken.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/AsyncStructureChecker.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/BlockStateSnapshot.java`
 
-调度与索引：
+legacy/compatibility：
 
-- `MultiblockStructureCheckScheduler`
-- `StructureSchedulerPolicy`
-- `MultiblockWorldData`
-- `StructureWorldIndex`
-- `StructureExternalDependencies`
-- `StructureCommitToken`
-- `AsyncStructureChecker`
-- `BlockStateSnapshot`
+- `src/main/java/gregtech/api/pattern/MultiblockState.java`
+- `src/main/java/gregtech/api/pattern/BlockPattern.java`
+- `src/main/java/gregtech/api/pattern/BlockPatternTemplate.java`
+- `src/main/java/gregtech/api/pattern/FactoryBlockPattern.java`
+- `src/main/java/gregtech/api/pattern/TraceabilityPredicate.java`
+- `src/main/java/gregtech/api/pattern/PatternMatchContext.java`
+- `src/main/java/gregtech/api/pattern/PieceTemplateLegacyView.java`
 
-compatibility：
+tooling/preview：
 
-- `BlockPattern`
-- `BlockPatternTemplate`
-- `FactoryBlockPattern`
-- `TraceabilityPredicate`
-- `PatternMatchContext`
-
-## 17. Per-Piece 增量后续步骤
-
-旧设计中的 per-piece 增量目标已经部分落地，但还不是完整最终形态。当前代码已经具备：
-
-- `CommittedStructureGraph`：保存已提交 result table、aggregate、position index、runtime publication、
-  orientation 和 external dependency snapshot。
-- `StructureResultTable`：按 piece 保存成功 result。
-- `StructureContribution`：记录 typed contribution 和 compatibility projection。
-- `StructureDependencyGraph` / `StructureDependencyCompiler`：从 typed condition、direct element dependency、
-  dynamic anchor 和 external dependency 推导 dirty closure。
-- `StructurePositionIndex`：把 formed/watched positions 映射回 owning pieces。
-- `StructureDirtyState`：在 runtime 中保存 pending dirty roots。
-- `StructureRuntime.checkIncremental(...)`：在 eligible definition、baseline、orientation 和 dirty roots
-  都满足条件时执行 incremental recheck。
-- scheduler 的 `DirtyCheckLease.INCREMENTAL`：允许 event-driven dirty lease 选择 incremental 路径。
-- `StructureExternalDependencies`：提供 controller mode、channel、configuration、upgrade snapshot key，并能通过
-  `enqueueDirtyRoots(...)` 唤醒 scheduler。
-- `StructureShadowValidator`：debug 下低频抽样 full oracle，对比 incremental result 的结构语义输出。
-- `StructureWorldReadTracker`：debug shadow 样本同时统计 incremental/full 的 block-state 与 tile-entity reads。
-- `StructureDirtyPrecheck`：formed dirty graph 的 detached state-only precheck；worker 只比较不可变快照，
-  主线程 live confirm 和 committer 保持唯一发布权。
-- `ITypedStructureElement` 和显式契约检查：未声明 support/dependencies 的 direct element 保守 fallback。
-- 单元测试覆盖 fixed piece、repeat group、dynamic offset、多 dirty roots、external dependency、chain direct
-  element dependency、opaque chain fallback，以及 clean piece 不重复读取 world/snapshot access 的核心场景。
-- 真实机器接入已覆盖 Godforge upgrade/config 条件：第二/第三 ring 条件声明 upgrades/config external
-  dependency，升级、ring 和 renderer 状态变化通过 snapshot/notify 唤醒 scheduler。
-- 真实机器配置迁移已覆盖 MultiMap/AdvanceMultiMap recipe-map index、Large Boiler throttle/type 和
-  working-enabled mode；Research Station 的 object-holder direct element 显式声明 typed contribution、
-  preview、empty dependencies 和 incremental support。
-- 性能验收除固定/repeat/dynamic/multi-root/external 单元场景外，还覆盖 controller-mode/channel/config/upgrade
-  组合的 real-machine-style matrix，验证 clean piece world-read 计数不重复增加。
-- typed preview 覆盖空 cell，JEI 已删除只用于旧 predicate-shaped traversal 的内部全模板 fallback。
-
-当前尚未完成的部分：
-
-- eligibility 仍是保守判断。legacy predicate、opaque side effect、未知 controller state 或未声明 dependency
-  的 element 会 fallback 到 active-graph/full。
-- `StructureOperationEvaluator` 仍是委托层，不是所有 operation 共用的单一 traversal engine。
-- `PatternMatchContext` 仍是 compatibility surface，legacy callback 和部分旧工具仍依赖它。
-- async dirty 当前只做 committed watched block states 的预检，不会在线程外执行 element matcher、
-  tile-entity access、aggregate fold 或 lifecycle publication。
-- non-eligible event-driven 路径仍可能重扫 active graph 或 full graph。
-- 当前性能验收覆盖单元矩阵、Godforge 接入点以及 controller-mode/channel/config/upgrade 组合矩阵；还没有
-  大规模存档级 world profiling。
-
-继续演进时只保留以下边界：
-
-1. 新 runtime 逻辑只消费 `StructureContribution`、`StructureOperationState` 和 typed preview；
-   `PatternMatchContext` 只在 callback/tooling/public compatibility 边界生成。
-2. 新 direct element 使用 `ITypedStructureElement` 或显式声明 support/dependencies；新 controller 私有状态
-   必须接入对应 snapshot/notify。
-3. async worker 只处理 detached immutable data；任何 live matcher、fold、failure/lifecycle publication
-   都留在主线程。
-4. public legacy facade 在 addon 迁移窗口内保留，但不得重新引入内部 predicate-shaped 全模板 traversal。
-5. 继续用 debug shadow mismatch、world-read metrics 和真实存档 profiling 验收增量收益。
+- `src/main/java/gregtech/api/metatileentity/multiblock/MultiblockStructurePreviews.java`
+- `src/main/java/gregtech/api/metatileentity/registry/MBPattern.java`
+- `src/main/java/gregtech/integration/jei/multiblock/MultiblockInfoRecipeWrapper.java`
+- `src/main/java/gregtech/api/metatileentity/multiblock/ui/MultiblockUIBuilder.java`

@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StructureBuildAccountingTest {
@@ -400,15 +401,85 @@ class StructureBuildAccountingTest {
         MultiblockState state = new MultiblockState(singleCellTemplate(
                 new DirectChannelElement(stoneInfo, dirtInfo, "tier")));
         StructureOperationEvaluator evaluator =
-                new StructureOperationEvaluator(null, state, null, null);
+                new StructureOperationEvaluator(null, state.getBackingState(), null, null);
 
         StructurePreviewResult result = evaluator.previewSingleResult(
                 StructureOperationRequest.preview(new int[] {1}, null));
 
         assertEquals(StructurePreviewResult.Outcome.GENERATED, result.getOutcome());
         assertNotNull(result.getSinglePieceCells());
+        assertEquals("v3-typed-single", result.getDiagnostics().getPath());
+        assertTrue(result.getDiagnostics().isSyntheticSinglePiece());
         assertEquals(Blocks.STONE.getDefaultState(),
                 result.getSinglePieceCells().getBlocks().get(BlockPos.ORIGIN).getBlockState());
+    }
+
+    @Test
+    void singleTemplateRuntimeOperationsReportTypedDiagnostics() {
+        MutableWorld mutableWorld = mutableWorld();
+        MultiblockState state = new MultiblockState(singleCellTemplate(new DirectCandidateElement(dirtInfo)));
+        StructureOperationEvaluator evaluator =
+                new StructureOperationEvaluator(null, state.getBackingState(), null, null);
+        TestController controller = controller(mutableWorld);
+        TestPlayer player = player(true, mutableWorld);
+        StructureOrientation orientation =
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false);
+
+        mutableWorld.setBlockState(BlockPos.ORIGIN, dirtInfo.getBlockState());
+        StructureCheckResult check = evaluator.check(StructureOperationRequest.check(
+                mutableWorld, BlockPos.ORIGIN, orientation, false, null, controller));
+        mutableWorld.setBlockState(BlockPos.ORIGIN, Blocks.AIR.getDefaultState());
+        StructureBuildResult build = evaluator.creativeBuildSingle(
+                StructureOperationRequest.creativeBuild(player, controller, orientation, null, false));
+        StructureHintResult hint = evaluator.hintSingle(
+                StructureOperationRequest.hint(player, controller, orientation, null, ItemStack.EMPTY));
+        StructureIterateResult iterate = evaluator.iterateSingleResult(
+                StructureOperationRequest.iterate(world, BlockPos.ORIGIN, orientation, controller));
+
+        assertEquals("v3-typed-single", check.getDiagnostics().getPath());
+        assertEquals("MATCH_WORLD", check.getDiagnostics().getOperation());
+        assertEquals(1, check.getDiagnostics().getPieceCount());
+        assertTrue(check.getDiagnostics().isSyntheticSinglePiece());
+        assertEquals("v3-typed-single", build.getDiagnostics().getPath());
+        assertEquals("CREATIVE_BUILD", build.getDiagnostics().getOperation());
+        assertEquals("v3-typed-single", hint.getDiagnostics().getPath());
+        assertEquals("HINT", hint.getDiagnostics().getOperation());
+        assertEquals("v3-typed-single", iterate.getDiagnostics().getPath());
+        assertEquals("ITERATE", iterate.getDiagnostics().getOperation());
+    }
+
+    @Test
+    void splitOperationServicesKeepRequestKindBoundaries() {
+        MutableWorld mutableWorld = mutableWorld();
+        MultiblockState state = new MultiblockState(singleCellTemplate(new DirectCandidateElement(dirtInfo)));
+        StructureOperationEvaluator evaluator =
+                new StructureOperationEvaluator(null, state.getBackingState(), null, null);
+        TestController controller = controller(mutableWorld);
+        TestPlayer player = player(true, mutableWorld);
+        StructureOrientation orientation =
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false);
+
+        StructureOperationRequest previewRequest =
+                StructureOperationRequest.preview(new int[] {1}, null);
+        StructureOperationRequest iterateRequest =
+                StructureOperationRequest.iterate(mutableWorld, BlockPos.ORIGIN, orientation, controller);
+        StructureOperationRequest buildRequest =
+                StructureOperationRequest.creativeBuild(player, controller, orientation, null, false);
+        StructureOperationRequest hintRequest =
+                StructureOperationRequest.hint(player, controller, orientation, null, ItemStack.EMPTY);
+        StructureOperationRequest snapshotRequest =
+                StructureOperationRequest.snapshotCheck(mutableWorld, BlockPos.ORIGIN, orientation, controller);
+
+        assertThrows(IllegalArgumentException.class, () -> evaluator.previewSingleResult(iterateRequest));
+        assertThrows(IllegalArgumentException.class, () -> evaluator.iterateSingleResult(previewRequest));
+        assertThrows(IllegalArgumentException.class, () -> evaluator.creativeBuildSingle(hintRequest));
+        assertThrows(IllegalArgumentException.class, () -> evaluator.hintSingle(buildRequest));
+        assertThrows(IllegalArgumentException.class, () -> evaluator.checkSnapshot(previewRequest));
+
+        assertEquals("v3-typed-single", evaluator.previewSingleResult(previewRequest).getDiagnostics().getPath());
+        assertEquals("v3-typed-single", evaluator.iterateSingleResult(iterateRequest).getDiagnostics().getPath());
+        assertEquals(StructureSnapshotResult.Outcome.CAPABILITY_UNSUPPORTED,
+                evaluator.checkSnapshot(snapshotRequest).getOutcome());
     }
 
     @Test

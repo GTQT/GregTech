@@ -207,6 +207,15 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        if (hasLegacyFormStructureOverrideBelow(MultiblockWithDisplayBase.class)) {
+            formStructure(formed.copyLegacyCallbackContext());
+            return;
+        }
+        formStructureWithDisplay(formed);
+    }
+
+    @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         formStructureWithDisplay(new LinkedList<>(context.getOrDefault("VABlock", Collections.emptyList())));

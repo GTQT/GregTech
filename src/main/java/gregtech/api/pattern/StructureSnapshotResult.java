@@ -24,20 +24,25 @@ public final class StructureSnapshotResult {
     @Nullable
     private final String failurePiece;
     private final int progressDepth;
+    @NotNull
+    private final StructureOperationDiagnostics diagnostics;
 
     private StructureSnapshotResult(@NotNull Outcome outcome,
                                     boolean flipped,
                                     @Nullable String failurePiece,
-                                    int progressDepth) {
+                                    int progressDepth,
+                                    @NotNull StructureOperationDiagnostics diagnostics) {
         this.outcome = outcome;
         this.flipped = flipped;
         this.failurePiece = failurePiece;
         this.progressDepth = Math.max(0, progressDepth);
+        this.diagnostics = diagnostics;
     }
 
     @NotNull
     public static StructureSnapshotResult matched(boolean flipped, int progressDepth) {
-        return new StructureSnapshotResult(Outcome.MATCHED, flipped, null, progressDepth);
+        return new StructureSnapshotResult(
+                Outcome.MATCHED, flipped, null, progressDepth, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
@@ -45,13 +50,13 @@ public final class StructureSnapshotResult {
                                                    @Nullable String failurePiece,
                                                    int progressDepth) {
         return new StructureSnapshotResult(
-                Outcome.MISMATCH, flipped, failurePiece, progressDepth);
+                Outcome.MISMATCH, flipped, failurePiece, progressDepth, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
     public static StructureSnapshotResult capabilityUnsupported() {
         return new StructureSnapshotResult(
-                Outcome.CAPABILITY_UNSUPPORTED, false, null, 0);
+                Outcome.CAPABILITY_UNSUPPORTED, false, null, 0, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
@@ -78,6 +83,16 @@ public final class StructureSnapshotResult {
 
     public int getProgressDepth() {
         return progressDepth;
+    }
+
+    @NotNull
+    public StructureOperationDiagnostics getDiagnostics() {
+        return diagnostics;
+    }
+
+    @NotNull
+    public StructureSnapshotResult withDiagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+        return new StructureSnapshotResult(outcome, flipped, failurePiece, progressDepth, diagnostics);
     }
 
     @NotNull

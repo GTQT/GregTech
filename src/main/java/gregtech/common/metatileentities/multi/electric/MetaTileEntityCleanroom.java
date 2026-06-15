@@ -26,6 +26,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternMatchContext;
@@ -150,9 +151,10 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         initializeAbilities();
+        PatternMatchContext context = formed.copyLegacyCallbackContext();
         this.cleanroomFilter = context.get("FilterType");
         this.cleanroomType = cleanroomFilter.getCleanroomType();
 

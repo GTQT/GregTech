@@ -41,6 +41,23 @@ public final class PieceRuntimes {
         this(pattern, pattern.getPieceList());
     }
 
+    @NotNull
+    public static PieceRuntimes singleWithState(@NotNull MultiPiecePattern pattern,
+                                                @NotNull PieceRuntimeState state) {
+        return new PieceRuntimes(pattern, state);
+    }
+
+    private PieceRuntimes(@NotNull MultiPiecePattern pattern,
+                          @NotNull PieceRuntimeState state) {
+        StructurePiece primary = pattern.getPrimaryPiece();
+        this.runtimeMap = new IdentityHashMap<>(1);
+        this.runtimeList = new ArrayList<>(1);
+        PieceRuntime runtime = new PieceRuntime(primary, state);
+        runtimeMap.put(primary, runtime);
+        runtimeList.add(runtime);
+        this.primaryRuntime = runtime;
+    }
+
     /**
      * Construct a {@code PieceRuntimes} over an explicit (possibly filtered) list
      * of pieces. The list order is the order passed in, not the pattern's

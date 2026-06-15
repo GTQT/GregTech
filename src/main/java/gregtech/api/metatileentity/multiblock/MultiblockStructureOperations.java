@@ -3,6 +3,7 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureDirtyPrecheck;
@@ -11,6 +12,7 @@ import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -25,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -145,7 +148,7 @@ final class MultiblockStructureOperations {
             }
         }
         return MultiblockStructurePreviews.getMatchingShapes(
-                controller, controller.patternTemplate, controller.multiblockState,
+                controller, controller.patternTemplate, controller.runtimeState,
                 controller.getStructureRuntime(), channelValues);
     }
 
@@ -158,7 +161,7 @@ final class MultiblockStructureOperations {
             }
         }
         return MultiblockStructurePreviews.getMatchingShapes(
-                controller, controller.patternTemplate, controller.multiblockState,
+                controller, controller.patternTemplate, controller.runtimeState,
                 controller.getStructureRuntime(), null);
     }
 
@@ -188,6 +191,83 @@ final class MultiblockStructureOperations {
                 controller.getStructureRuntime(), channelValues);
     }
 
+    @NotNull
+    static Map<BlockPos, StructureElementPreviewEntry> buildStructurePreviewEntries(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable Map<String, Integer> channelValues) {
+        StructureRuntime runtime = controller.getOrCreateStructureRuntime();
+        StructureDefinition<?> definition = controller.getStructureDefinition();
+        if (definition != null && definition.supportsSingleTemplatePath()) {
+            int[] repetitions = resolveSinglePreviewRepetitions(definition, channelValues);
+            StructurePreviewResult result = runtime.previewSingleResult(
+                    StructureOperationRequest.preview(repetitions, channelValues));
+            if (result.getSinglePieceCells() == null) {
+                return Collections.emptyMap();
+            }
+            return normalizeSinglePreviewEntries(result.getSinglePieceCells());
+        }
+
+        StructurePreviewResult result = runtime.previewMultiPieceResult(
+                StructureOperationRequest.previewMultiPiece(channelValues, controller));
+        MultiPiecePreviewAssembler.Result preview = result.getMultiPieceResult();
+        return preview == null ? Collections.emptyMap() : preview.getPreviewEntries();
+    }
+
+    @NotNull
+    private static Map<BlockPos, StructureElementPreviewEntry> normalizeSinglePreviewEntries(
+            @NotNull PieceRuntimeState.PreviewCells cells) {
+        if (cells.getPreviewEntries().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        int minX = 0;
+        int minY = 0;
+        int minZ = 0;
+        boolean initialized = false;
+        for (BlockPos pos : cells.getBlocks().keySet()) {
+            if (!initialized) {
+                minX = pos.getX();
+                minY = pos.getY();
+                minZ = pos.getZ();
+                initialized = true;
+            } else {
+                minX = Math.min(minX, pos.getX());
+                minY = Math.min(minY, pos.getY());
+                minZ = Math.min(minZ, pos.getZ());
+            }
+        }
+        if (!initialized) {
+            return Collections.emptyMap();
+        }
+        Map<BlockPos, StructureElementPreviewEntry> normalized = new HashMap<>();
+        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : cells.getPreviewEntries().entrySet()) {
+            normalized.put(new BlockPos(
+                    entry.getKey().getX() - minX,
+                    entry.getKey().getY() - minY,
+                    entry.getKey().getZ() - minZ), entry.getValue());
+        }
+        return normalized;
+    }
+
+    @NotNull
+    private static int[] resolveSinglePreviewRepetitions(
+            @NotNull StructureDefinition<?> definition,
+            @Nullable Map<String, Integer> channelValues) {
+        BlockPatternTemplate template = definition.getPrimaryTemplate();
+        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        int[] repetitions = new int[aisles.length];
+        for (int i = 0; i < aisles.length; i++) {
+            BlockPatternTemplate.AisleDef aisle = aisles[i];
+            Integer value = aisle.channelName() == null || channelValues == null
+                    ? null
+                    : channelValues.get(aisle.channelName());
+            repetitions[i] = value == null
+                    ? aisle.minRepeat()
+                    : PieceRuntimeState.resolveRepetitionValue(
+                            value, aisle.minRepeat(), aisle.maxRepeat());
+        }
+        return repetitions;
+    }
+
     @Nullable
     static MultiblockShapeInfo getMatchingShapeForPiece(
             @NotNull MultiblockControllerBase controller,
@@ -213,9 +293,6 @@ final class MultiblockStructureOperations {
                                              @NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.HINT);
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
-        if (runtime.getState() != null) {
-            return runtime.hintSingle(request);
-        }
         return runtime.hintAllPieces(request);
     }
 
@@ -280,7 +357,7 @@ final class MultiblockStructureOperations {
                 "path=dynamic-runtime, operation=" + request.getEvaluationOperation()
                         + ", piece=" + pieceName + ", channels=" + request.getChannelValues()
                         + ", " + dynamicRuntime.describeShape());
-        StructureBuildResult result = dynamicRuntime.buildSingle(request);
+        StructureBuildResult result = dynamicRuntime.buildAllPieces(request);
         if (result.hasBlockedCells()) {
             controller.getOrCreateStructureRuntime().recordLifecycleFailure(new StructureFailureTrace.Builder(
                     controller.getMetaName(), controller.getPos())
@@ -317,7 +394,7 @@ final class MultiblockStructureOperations {
                 "path=dynamic-runtime, operation=" + request.getEvaluationOperation()
                         + ", piece=" + pieceName + ", channels=" + request.getChannelValues()
                         + ", " + dynamicRuntime.describeShape());
-        return dynamicRuntime.hintSingle(request);
+        return dynamicRuntime.hintAllPieces(request);
     }
 
     @NotNull

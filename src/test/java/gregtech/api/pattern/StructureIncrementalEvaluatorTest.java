@@ -177,6 +177,75 @@ class StructureIncrementalEvaluatorTest {
     }
 
     @Test
+    void externalDependencySnapshotFailureFallsBackWithDiagnostics() {
+        AtomicInteger externalState = new AtomicInteger(1);
+        StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
+                "gregtech:test_runtime_snapshot_failure",
+                controller -> {
+                    int state = externalState.get();
+                    if (state < 0) {
+                        throw new IllegalStateException("snapshot boom");
+                    }
+                    return state;
+                },
+                java.util.Objects::equals);
+        CountingElement independent = new CountingElement(true);
+        DependentElement dependent = new DependentElement(
+                true, StructureDependency.external(key, PieceDependencyAspect.CONTROLLER_STATE));
+        StructureRuntime runtime = runtime(pattern(
+                piece("independent", independent),
+                piece("dependent", dependent)));
+        StructureCheckResult full = runtime.check(checkRequest());
+        runtime.publishCommittedGraph(full.getGraphPublication());
+
+        externalState.set(-1);
+        StructureCheckResult fallback = runtime.checkIncremental(checkRequest());
+
+        assertTrue(fallback.isMatched());
+        assertFalse(fallback.usedIncrementalEvaluator());
+        assertEquals("definition-fallback", fallback.getTracePath());
+        String actual = fallback.createFailureTrace(diagnosticsController()).getActual();
+        assertTrue(actual.contains("UNKNOWN_EXTERNAL_DEPENDENCY"));
+        assertTrue(actual.contains("snapshot boom"));
+        assertEquals(2, independent.calls());
+        assertEquals(2, dependent.calls());
+    }
+
+    @Test
+    void externalDependencyComparisonFailureFallsBackWithDiagnostics() {
+        AtomicInteger externalState = new AtomicInteger(1);
+        StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
+                "gregtech:test_runtime_compare_failure",
+                controller -> externalState.get(),
+                (left, right) -> {
+                    if (!java.util.Objects.equals(left, right)) {
+                        throw new IllegalStateException("compare boom");
+                    }
+                    return true;
+                });
+        CountingElement independent = new CountingElement(true);
+        DependentElement dependent = new DependentElement(
+                true, StructureDependency.external(key, PieceDependencyAspect.CONTROLLER_STATE));
+        StructureRuntime runtime = runtime(pattern(
+                piece("independent", independent),
+                piece("dependent", dependent)));
+        StructureCheckResult full = runtime.check(checkRequest());
+        runtime.publishCommittedGraph(full.getGraphPublication());
+
+        externalState.set(2);
+        StructureCheckResult fallback = runtime.checkIncremental(checkRequest());
+
+        assertTrue(fallback.isMatched());
+        assertFalse(fallback.usedIncrementalEvaluator());
+        assertEquals("definition-fallback", fallback.getTracePath());
+        String actual = fallback.createFailureTrace(diagnosticsController()).getActual();
+        assertTrue(actual.contains("UNKNOWN_EXTERNAL_DEPENDENCY"));
+        assertTrue(actual.contains("compare boom"));
+        assertEquals(2, independent.calls());
+        assertEquals(2, dependent.calls());
+    }
+
+    @Test
     void multipleDirtyRootsReuseCleanPieces() {
         CountingElement first = new CountingElement(true);
         CountingElement second = new CountingElement(true);
@@ -218,6 +287,59 @@ class StructureIncrementalEvaluatorTest {
         assertEquals(1, incremental.getIncrementalCheckResult().getRecheckedPieces());
         assertEquals(2, repeatElement.calls());
         assertEquals(1, cleanElement.calls());
+    }
+
+    @Test
+    void incrementalDirtyRootCacheProbeReusesBaselineContribution() {
+        net.minecraft.init.Bootstrap.register();
+        LoadedBareWorld world = loadedBareWorld(Blocks.STONE.getDefaultState());
+        CountingBlockElement element =
+                new CountingBlockElement(Blocks.STONE.getDefaultState(), 7);
+        StructureRuntime runtime = runtime(pattern(new StructurePiece(
+                "dirty", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null)));
+        StructureOperationRequest request = StructureOperationRequest.check(
+                world, BlockPos.ORIGIN, ORIENTATION, false, null, null);
+        StructureCheckResult full = runtime.check(request);
+        runtime.publishCommittedGraph(full.getGraphPublication());
+        assertTrue(runtime.addDirtyRoot("dirty"));
+
+        StructureCheckResult incremental = runtime.checkIncremental(request);
+
+        assertTrue(incremental.isMatched());
+        assertTrue(incremental.usedIncrementalEvaluator());
+        assertEquals(1, element.calls());
+        assertEquals(1, incremental.getIncrementalCheckResult().getRecheckedPieces());
+        assertEquals(1, incremental.getIncrementalCheckResult().getCacheProbeAttempts());
+        assertEquals(1, incremental.getIncrementalCheckResult().getCacheProbeHits());
+        assertEquals(0, incremental.getIncrementalCheckResult().getCacheProbeMisses());
+        assertEquals(7, incremental.copyContext().getInt("channel"));
+        assertSame(full.getGraphPublication().getAggregate(),
+                incremental.getContributionAggregate());
+    }
+
+    @Test
+    void incrementalDirtyRootCacheProbeMissFallsBackToFullPieceCheck() {
+        net.minecraft.init.Bootstrap.register();
+        LoadedBareWorld world = loadedBareWorld(Blocks.STONE.getDefaultState());
+        CountingBlockElement element =
+                new CountingBlockElement(Blocks.STONE.getDefaultState(), 7);
+        StructureRuntime runtime = runtime(pattern(new StructurePiece(
+                "dirty", template(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null)));
+        StructureOperationRequest request = StructureOperationRequest.check(
+                world, BlockPos.ORIGIN, ORIENTATION, false, null, null);
+        StructureCheckResult full = runtime.check(request);
+        runtime.publishCommittedGraph(full.getGraphPublication());
+        world.state = Blocks.AIR.getDefaultState();
+        assertTrue(runtime.addDirtyRoot("dirty"));
+
+        StructureCheckResult incremental = runtime.checkIncremental(request);
+
+        assertFalse(incremental.isMatched());
+        assertTrue(incremental.usedIncrementalEvaluator());
+        assertEquals(2, element.calls());
+        assertEquals(1, incremental.getIncrementalCheckResult().getCacheProbeAttempts());
+        assertEquals(0, incremental.getIncrementalCheckResult().getCacheProbeHits());
+        assertEquals(1, incremental.getIncrementalCheckResult().getCacheProbeMisses());
     }
 
     @Test
@@ -487,6 +609,19 @@ class StructureIncrementalEvaluatorTest {
     }
 
     @NotNull
+    private static DiagnosticsController diagnosticsController() {
+        try {
+            DiagnosticsController controller =
+                    (DiagnosticsController) unsafe().allocateInstance(DiagnosticsController.class);
+            setField(MetaTileEntity.class, controller,
+                    "metaTileEntityId", new ResourceLocation("gregtech", "diagnostics_controller"));
+            return controller;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate diagnostics controller", e);
+        }
+    }
+
+    @NotNull
     private static World bareWorld() {
         try {
             return (World) unsafe().allocateInstance(BareWorld.class);
@@ -503,6 +638,19 @@ class StructureIncrementalEvaluatorTest {
             return (Unsafe) field.get(null);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Unable to access Unsafe", e);
+        }
+    }
+
+    private static void setField(@NotNull Class<?> owner,
+                                 @NotNull Object target,
+                                 @NotNull String name,
+                                 @NotNull Object value) {
+        try {
+            Field field = owner.getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to set field " + name, e);
         }
     }
 
@@ -585,6 +733,32 @@ class StructureIncrementalEvaluatorTest {
             int current = value.get();
             context.getCollector().emit(TEST_VALUE, current);
             context.getCollector().recordChannelValue("channel", current, true);
+        }
+    }
+
+    private static final class CountingBlockElement extends BlockElement {
+
+        private final AtomicInteger calls = new AtomicInteger();
+        private final int channelValue;
+
+        private CountingBlockElement(@NotNull IBlockState state,
+                                     int channelValue) {
+            super(state);
+            this.channelValue = channelValue;
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            calls.incrementAndGet();
+            boolean matched = super.check(context);
+            if (matched) {
+                context.getCollector().recordChannelValue("channel", channelValue, true);
+            }
+            return matched;
+        }
+
+        int calls() {
+            return calls.get();
         }
     }
 
@@ -696,6 +870,36 @@ class StructureIncrementalEvaluatorTest {
             Map<String, Object> values = new LinkedHashMap<>();
             values.put("coil", channelTier);
             return values;
+        }
+
+        @Override
+        protected void updateFormedValid() {}
+
+        @Override
+        public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
+            return null;
+        }
+    }
+
+    private static final class DiagnosticsController extends MultiblockControllerBase {
+
+        private DiagnosticsController() {
+            super(new ResourceLocation("gregtech", "diagnostics_controller"));
+        }
+
+        @Override
+        public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+            return this;
+        }
+
+        @Override
+        public World getWorld() {
+            return WORLD;
+        }
+
+        @Override
+        public BlockPos getPos() {
+            return BlockPos.ORIGIN;
         }
 
         @Override

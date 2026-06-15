@@ -5,11 +5,15 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureExternalDependencies;
+import gregtech.api.pattern.StructureExternalDependencyKey;
+import gregtech.api.pattern.StructureIncrementalFallbackReason;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
@@ -42,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,6 +96,24 @@ class StructureLifecycleSchedulingTest {
         controller.projectStructureLifecycle(runtime.getLifecycleState());
 
         assertEquals("lifecycle-generation", token.staleReason());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void multiblockStateAccessorReturnsDetachedProjection() {
+        TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
+        PieceRuntimeState runtimeState = new PieceRuntimeState(template(new MatchingElement()));
+        runtimeState.cache.put(BlockPos.ORIGIN.toLong(), null);
+        setField(MultiblockControllerBase.class, controller, "runtimeState", runtimeState);
+
+        MultiblockState projection = controller.getMultiblockState();
+        assertNotNull(projection);
+        assertEquals(1, projection.cache.size());
+
+        projection.clearCache();
+
+        assertEquals(1, runtimeState.cache.size());
+        assertEquals(0, projection.cache.size());
     }
 
     @Test
@@ -307,6 +330,125 @@ class StructureLifecycleSchedulingTest {
     }
 
     @Test
+    void externalDependencySnapshotFailureFallsBackToFullDirtyLease() {
+        TestController controller = testController(new EventDrivenOnlyPolicy());
+        BareWorld world = bareWorld();
+        controller.world = world;
+        controller.pos = BlockPos.ORIGIN;
+        controller.firstTick = false;
+        controller.modeValue = "before";
+        StructureExternalDependencyKey<String> key = StructureExternalDependencyKey.create(
+                "gregtech:lifecycle_snapshot_failure",
+                source -> {
+                    String value = ((TestController) source).modeValue;
+                    if ("boom".equals(value)) {
+                        throw new IllegalStateException("snapshot boom");
+                    }
+                    return value;
+                },
+                Objects::equals);
+        StructurePiece root = new StructurePiece(
+                "root",
+                template(new DependentElement(
+                        StructureDependency.external(
+                                key, gregtech.api.pattern.PieceDependencyAspect.CONTROLLER_STATE))),
+                Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE,
+                null);
+        StructurePiece clean = new StructurePiece(
+                "clean", template(new MatchingElement()), new Vec3i(0, 0, 1),
+                OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(Arrays.asList(root, clean));
+        controller.runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+        setField(MultiblockControllerBase.class, controller, "structureRuntime", controller.runtime);
+
+        StructureCheckResult result = controller.runtime.check(StructureOperationRequest.check(
+                world, BlockPos.ORIGIN,
+                StructureOrientation.fromController(controller),
+                false, null, controller));
+        assertTrue(result.isMatched());
+        assertNotNull(result.getGraphPublication());
+        controller.runtime.publishLifecycleState(
+                Collections.emptyList(), Collections.emptyMap(), result.getMetadata(),
+                result.copyChannelValues(), result.getGraphPublication());
+        controller.projectStructureLifecycle(controller.runtime.getLifecycleState());
+        MultiblockWorldData.get(world).registerMultiblock(
+                controller, result.getGraphPublication().getPositionIndex(), pattern);
+
+        controller.modeValue = "boom";
+        assertTrue(controller.enqueueChangedStructureExternalDependencies());
+        MultiblockWorldData.DirtyCheckLease lease =
+                MultiblockWorldData.get(world).consumeDirtyCheck(controller, 10);
+
+        assertTrue(lease.shouldCheck());
+        assertFalse(lease.shouldCheckIncremental());
+        assertFalse(lease.shouldCheckActiveGraph());
+        assertEquals(StructureIncrementalFallbackReason.UNKNOWN_EXTERNAL_DEPENDENCY,
+                lease.getFallbackReason());
+
+        assertEquals(0, controller.checks);
+        assertEquals(0, controller.incrementalChecks);
+        assertEquals(0, controller.activeGraphChecks);
+        MultiblockWorldData.get(world).clear();
+        MultiblockWorldData.remove(world);
+    }
+
+    @Test
+    void nonEligibleDirtyLeaseFallsBackToFullCheck() {
+        TestController controller = testController(new EventDrivenOnlyPolicy());
+        BareWorld world = bareWorld();
+        controller.world = world;
+        controller.pos = BlockPos.ORIGIN;
+        controller.firstTick = false;
+        StructurePiece opaque = new StructurePiece(
+                "opaque",
+                template(new MatchingElement()),
+                Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE,
+                () -> true);
+        MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(opaque));
+        controller.runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+        setField(MultiblockControllerBase.class, controller, "structureRuntime", controller.runtime);
+        controller.runtime.publishLifecycleState(
+                Collections.emptyList(),
+                Collections.emptyMap(),
+                null,
+                new StructureChannelValues(),
+                null);
+        controller.projectStructureLifecycle(controller.runtime.getLifecycleState());
+        MultiblockWorldData.get(world).registerMultiblock(
+                controller,
+                new LongOpenHashSet(new long[] { BlockPos.ORIGIN.toLong() }),
+                pattern);
+        controller.runtime.addDirtyRoot("opaque");
+        assertTrue(MultiblockWorldData.get(world).enqueueDirtyRoots(
+                controller, Collections.singleton("opaque"), 0));
+
+        MultiblockWorldData.DirtyCheckLease lease =
+                MultiblockWorldData.get(world).consumeDirtyCheck(controller, 10);
+
+        assertTrue(lease.shouldCheck());
+        assertFalse(lease.shouldCheckIncremental());
+        assertFalse(lease.shouldCheckActiveGraph());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_CONDITION,
+                lease.getFallbackReason());
+
+        assertTrue(MultiblockWorldData.get(world).enqueueDirtyRoots(
+                controller, Collections.singleton("opaque"), -10));
+        new MultiblockStructureCheckScheduler().doStructureCheck(controller);
+
+        assertEquals(1, controller.checks);
+        assertEquals(0, controller.incrementalChecks);
+        assertEquals(0, controller.activeGraphChecks);
+        MultiblockWorldData.get(world).clear();
+        MultiblockWorldData.remove(world);
+    }
+
+    @Test
     void defaultAsyncPolicyRejectsFormedControllersForDirtyPrecheck() {
         TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
         controller.world = bareWorld();
@@ -402,6 +544,35 @@ class StructureLifecycleSchedulingTest {
         }
     }
 
+    private static final class EventDrivenOnlyPolicy implements StructureSchedulerPolicy {
+
+        @Override
+        public boolean shouldRunFirstTickCheck(@NotNull MultiblockControllerBase controller) {
+            return false;
+        }
+
+        @Override
+        public boolean allowsEventDriven(@NotNull MultiblockControllerBase controller) {
+            return true;
+        }
+
+        @Override
+        public boolean allowsAsync(@NotNull MultiblockControllerBase controller,
+                                   @NotNull AsyncStructureChecker checker) {
+            return false;
+        }
+
+        @Override
+        public int pollingInterval(@NotNull MultiblockControllerBase controller) {
+            return 1;
+        }
+
+        @Override
+        public boolean shouldPollingCheck(@NotNull MultiblockControllerBase controller) {
+            return false;
+        }
+    }
+
     private static final class TestPart implements IMultiblockPart {
 
         @Override
@@ -424,6 +595,8 @@ class StructureLifecycleSchedulingTest {
         private BlockPos pos = BlockPos.ORIGIN;
         private boolean firstTick;
         private int checks;
+        private int activeGraphChecks;
+        private int incrementalChecks;
         private String modeValue;
         private String channelValue;
         private String configValue;
@@ -510,6 +683,16 @@ class StructureLifecycleSchedulingTest {
         @Override
         public void checkStructurePattern() {
             checks++;
+        }
+
+        @Override
+        protected void checkActiveStructureGraph() {
+            activeGraphChecks++;
+        }
+
+        @Override
+        protected void checkIncrementalStructureGraph() {
+            incrementalChecks++;
         }
 
         @Override

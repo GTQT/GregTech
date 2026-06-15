@@ -9,7 +9,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -61,8 +61,8 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        super.formStructure(formed);
         computationHandler.onStructureForm(
                 getAbilities(MultiblockAbility.COMPUTATION_DATA_RECEPTION),
                 getAbilities(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION));

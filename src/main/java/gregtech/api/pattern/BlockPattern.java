@@ -17,13 +17,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 /**
- * Combines a shared immutable {@link BlockPatternTemplate} with a per-instance
- * mutable {@link MultiblockState}. This class preserves the original API surface
- * for backward compatibility while enabling template sharing.
+ * Combines a shared immutable {@link BlockPatternTemplate} with a deprecated
+ * compatibility {@link MultiblockState} projection. This class preserves the
+ * original API surface for backward compatibility while enabling template sharing.
  *
- * <p>For new code, prefer using {@link BlockPatternTemplate} and {@link MultiblockState} directly.
+ * <p>For new code, prefer {@link StructureRuntime} and typed operation requests.
  *
- * @deprecated Use {@link BlockPatternTemplate} + {@link MultiblockState} directly for new code.
+ * @deprecated Use {@link StructureRuntime} and typed operation requests for new code.
  *             This class is retained for backward compatibility during migration and will be
  *             removed in version 2.10.
  */
@@ -67,7 +67,7 @@ public class BlockPattern {
                         @NotNull int[][] aisleRepetitions) {
         this.template = new BlockPatternTemplate(predicatesIn, structureDir, aisleRepetitions);
         this.state = template.createState();
-        this.evaluator = new StructureOperationEvaluator(null, state, null, null);
+        this.evaluator = new StructureOperationEvaluator(null, state.getBackingState(), null, null);
         // Expose state fields directly for backward compatibility
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
@@ -81,7 +81,7 @@ public class BlockPattern {
     public BlockPattern(@NotNull BlockPatternTemplate template) {
         this.template = template;
         this.state = template.createState();
-        this.evaluator = new StructureOperationEvaluator(null, state, null, null);
+        this.evaluator = new StructureOperationEvaluator(null, state.getBackingState(), null, null);
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
         this.aisleRepetitions = template.getAisleRepetitions();
@@ -90,12 +90,12 @@ public class BlockPattern {
 
     /**
      * Create a BlockPattern from an existing template and state.
-     * Used by the controller to share the same state between the compat layer and the new architecture.
+     * Used by compatibility callers that already own a detached legacy state projection.
      */
     public BlockPattern(@NotNull BlockPatternTemplate template, @NotNull MultiblockState state) {
         this.template = template;
         this.state = state;
-        this.evaluator = new StructureOperationEvaluator(null, state, null, null);
+        this.evaluator = new StructureOperationEvaluator(null, state.getBackingState(), null, null);
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
         this.aisleRepetitions = template.getAisleRepetitions();
@@ -112,7 +112,7 @@ public class BlockPattern {
     }
 
     /**
-     * @return the mutable per-instance state
+     * @return the detached deprecated compatibility state projection
      */
     public MultiblockState getState() {
         return state;
@@ -130,7 +130,7 @@ public class BlockPattern {
 
     /**
      * The cache of formed structure block positions.
-     * Delegates to the internal MultiblockState.
+     * Delegates to the detached compatibility MultiblockState.
      */
     public Long2ObjectMap<BlockInfo> getCache() {
         return state.cache;

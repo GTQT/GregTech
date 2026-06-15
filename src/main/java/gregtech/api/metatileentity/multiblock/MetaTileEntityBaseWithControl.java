@@ -15,6 +15,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.client.renderer.ICubeRenderer;
 
@@ -134,6 +135,17 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
     @Override
     public abstract MetaTileEntity createMetaTileEntity(IGregTechTileEntity iGregTechTileEntity);
 
+    @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        if (hasLegacyFormStructureOverrideBelow(MetaTileEntityBaseWithControl.class)) {
+            formStructure(formed.copyLegacyCallbackContext());
+            return;
+        }
+        formStructureWithDisplay(formed);
+        this.initializeAbilities();
+    }
+
+    @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         this.initializeAbilities();

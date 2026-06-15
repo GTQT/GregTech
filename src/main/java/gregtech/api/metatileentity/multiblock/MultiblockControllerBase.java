@@ -17,6 +17,7 @@ import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureElementPreviewEntry;
@@ -92,7 +93,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     private final List<IMultiblockPart> multiblockParts = new ArrayList<>();
     private final MultiblockStructureCheckScheduler structureCheckScheduler = new MultiblockStructureCheckScheduler();
     /**
-     * @deprecated Use {@link #patternTemplate} + {@link #multiblockState} for new code. Retained for backward
+     * @deprecated Use {@link #getStructureRuntime()} for new code. Retained for backward
      * compatibility during migration. Will be removed in version 2.10.
      */
     @Deprecated
@@ -102,9 +103,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** Shared immutable structure template (new architecture) */
     @Nullable
     protected BlockPatternTemplate patternTemplate;
-    /** Per-instance mutable state for pattern checking (new architecture) */
+    /** Canonical single-template matcher/cache state. Null for multi-piece-only structures. */
     @Nullable
-    protected MultiblockState multiblockState;
+    protected PieceRuntimeState runtimeState;
     /** Multi-piece pattern for super-large structures (P3, opt-in) */
     @Nullable
     protected MultiPiecePattern multiPiecePattern;
@@ -113,7 +114,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Built in {@link #reinitializeStructurePattern()} and rebuilt whenever the
      * pattern itself is rebuilt. Null if the controller has no multi-piece pattern.
      *
-     * <p>This is the canonical place for per-instance state (the {@link MultiblockState}
+     * <p>This is the canonical place for per-instance state (the {@link PieceRuntimeState}
      * per piece, plus dirty/validated flags, formed-position set, and the
      * repeatable-piece search cache). The {@link MultiPiecePattern} itself is
      * stateless and safe to share across controllers of the same multiblock type.
@@ -126,6 +127,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /** V3 per-controller structure runtime. */
     @Nullable
     private StructureRuntime structureRuntime;
+    @Nullable
+    private String structureAdapterTraceSource;
     /** Invalidates detached async work whenever compiled runtime objects are rebuilt. */
     private volatile long structureRuntimeGeneration;
     private volatile long structureControllerModeGeneration;
@@ -270,21 +273,27 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
         if (this.structureDefinition.supportsSingleTemplatePath()) {
             this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
-            this.multiblockState = this.patternTemplate.createState();
+            this.runtimeState = new PieceRuntimeState(this.patternTemplate.getDelegate());
         } else {
             this.patternTemplate = null;
-            this.multiblockState = null;
+            this.runtimeState = null;
         }
-        // Per-controller state for the multi-piece pattern. Built every time the
-        // pattern is rebuilt (including first construction).
-        this.pieceRuntimes = new PieceRuntimes(this.multiPiecePattern);
+        // Per-controller state for the compiled pattern. Single-template
+        // runtimes use PieceRuntimeState directly; deprecated MultiblockState
+        // accessors return detached projections only.
+        this.pieceRuntimes = this.runtimeState == null
+                ? new PieceRuntimes(this.multiPiecePattern)
+                : PieceRuntimes.singleWithState(this.multiPiecePattern, this.runtimeState);
         this.structureRuntime = new StructureRuntime(this.structureDefinition, this.patternTemplate,
-                this.multiblockState, this.multiPiecePattern, this.pieceRuntimes);
+                this.runtimeState, this.multiPiecePattern, this.pieceRuntimes);
+        if (this.structureAdapterTraceSource != null) {
+            this.structureRuntime.recordAdapterTrace(
+                    this.structureAdapterTraceSource,
+                    this.multiPiecePattern == null ? 0 : this.multiPiecePattern.getPieceList().size());
+        }
         this.structureRuntimeGeneration++;
         this.structureRuntime.copyFormedStateFrom(previousRuntime);
-        this.structurePattern = (this.patternTemplate != null)
-                ? new BlockPattern(this.patternTemplate, this.multiblockState)
-                : null;
+        refreshDeprecatedStructurePatternProjection();
         StructureTrace.debug(this, "runtime-reinitialized", this.structureRuntime.describeShape());
     }
 
@@ -293,18 +302,21 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     private StructureDefinition<?> resolveStructureDefinition() {
         StructureDefinition<?> definition = createStructureDefinition();
         if (definition != null) {
+            this.structureAdapterTraceSource = null;
             return definition;
         }
 
         MultiPiecePattern legacyMultiPiece = createMultiPiecePattern();
         if (legacyMultiPiece != null) {
             RelativeDirection[] dirs = legacyMultiPiece.getPrimaryPiece().getTemplate().getStructureDir();
+            this.structureAdapterTraceSource = "createMultiPiecePattern";
             StructureTrace.debug(this, "legacy-adapter",
                     "source=createMultiPiecePattern, pieces=" + legacyMultiPiece.getPieceList().size());
             return StructureDefinition.fromMultiPiecePattern(dirs, legacyMultiPiece);
         }
 
         BlockPatternTemplate legacyTemplate = createStructureTemplate();
+        this.structureAdapterTraceSource = "createStructureTemplate";
         StructureTrace.debug(this, "legacy-adapter", "source=createStructureTemplate, pieces=1");
         return StructureDefinition.fromTemplate(legacyTemplate);
     }
@@ -349,7 +361,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * Override this method to provide a shared immutable structure template. The template is shared across all
-     * instances of the same machine type, while each instance holds its own mutable {@link MultiblockState}.
+     * instances of the same machine type, while each instance holds its own mutable {@link PieceRuntimeState}.
      *
      * <p>Default implementation delegates to the deprecated {@link #createStructurePattern()}
      * for backward compatibility.
@@ -415,7 +427,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Get the per-controller state for the multi-piece pattern.
      * Each controller of a given multiblock type has its own independent
      * {@link PieceRuntimes} so that per-instance state (the
-     * {@link MultiblockState} per piece, dirty/validated flags, etc.) is not
+     * {@link PieceRuntimeState} per piece, dirty/validated flags, etc.) is not
      * shared between independent controllers. See {@link PieceRuntime} for
      * the underlying per-piece state holder.
      *
@@ -443,10 +455,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 notifyBlockUpdate();
                 markDirty();
                 writeCustomData(UPDATE_UPWARDS_FACING, buf -> buf.writeByte(upwardsFacing.getIndex()));
-                if (multiblockState != null) {
+                if (runtimeState != null) {
                     // Unregister before clearing cache so positions can be properly cleaned up
                     MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
-                    multiblockState.clearCache();
+                    runtimeState.clearCache();
+                    refreshDeprecatedStructurePatternProjection();
                     checkStructurePattern();
                 }
             }
@@ -771,6 +784,25 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected void formStructure(PatternMatchContext context) {}
 
     /**
+     * Whether a subclass below the supplied API boundary still overrides the
+     * legacy formation callback. API base classes use this to keep addon
+     * overrides alive while routing GregTech-owned defaults through typed
+     * formation callbacks.
+     */
+    protected final boolean hasLegacyFormStructureOverrideBelow(@NotNull Class<?> boundary) {
+        Class<?> type = getClass();
+        while (type != null && type != boundary) {
+            try {
+                type.getDeclaredMethod("formStructure", PatternMatchContext.class);
+                return true;
+            } catch (NoSuchMethodException ignored) {
+                type = type.getSuperclass();
+            }
+        }
+        return false;
+    }
+
+    /**
      * Re-validates the complete active piece graph after an indexed block change.
      */
     protected void checkActiveStructureGraph() {
@@ -866,7 +898,20 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @Nullable
     @Deprecated
     public MultiblockState getMultiblockState() {
-        return multiblockState;
+        return createMultiblockStateProjection();
+    }
+
+    @Nullable
+    @SuppressWarnings("deprecation")
+    private MultiblockState createMultiblockStateProjection() {
+        return runtimeState == null ? null : runtimeState.createCompatibilityProjection();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void refreshDeprecatedStructurePatternProjection() {
+        this.structurePattern = (this.patternTemplate != null && this.runtimeState != null)
+                ? new BlockPattern(this.patternTemplate, createMultiblockStateProjection())
+                : null;
     }
 
     @Nullable
@@ -1107,6 +1152,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.structureFormed = lifecycleState.isFormed();
             writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(lifecycleState.isFormed()));
         }
+        refreshDeprecatedStructurePatternProjection();
     }
 
     @Override
@@ -1206,12 +1252,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             setUpwardsFacing(newUpwardsFacing);
         }
 
-        if (getWorld() != null && !getWorld().isRemote && multiblockState != null) {
+        if (getWorld() != null && !getWorld().isRemote && runtimeState != null) {
             // Unregister before clearing cache so positions can be properly cleaned up
             MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
             // clear cache since the cache has no concept of pre-existing facing
             // for the controller block (or any block) in the structure
-            multiblockState.clearCache();
+            runtimeState.clearCache();
+            refreshDeprecatedStructurePatternProjection();
             // recheck structure pattern immediately to avoid a slight "lag"
             // on deforming when rotating a multiblock controller
             checkStructurePattern();
@@ -1334,7 +1381,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Maps block positions (in the merged preview array's 0-based coordinate system)
      * to their TraceabilityPredicate for right-click block cycling in JEI.
      *
-     * <p>Iteration matches {@link MultiblockState#getPreview(int[], Map)} so that
+     * <p>Iteration matches {@link PieceRuntimeState#getPreview(int[], Map)} so that
      * every block rendered in the JEI preview (including all repeated slices of a
      * {@link RepeatGroupPiece}) gets a corresponding predicate entry. The previous
      * implementation only walked the base template, leaving repeated slices with
@@ -1357,6 +1404,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public Map<BlockPos, StructureElementPreviewEntry> buildMultiPiecePreviewEntries(
             @Nullable Map<String, Integer> channelValues) {
         return MultiblockStructureOperations.buildMultiPiecePreviewEntries(this, channelValues);
+    }
+
+    /**
+     * Build typed preview metadata for JEI, preview renderers and client tools.
+     *
+     * <p>This is the tooling-facing canonical path for candidate blocks and
+     * preview tooltips. Legacy predicate maps remain available only through
+     * deprecated/fallback accessors during the addon migration window.
+     */
+    @NotNull
+    public Map<BlockPos, StructureElementPreviewEntry> buildStructurePreviewEntries(
+            @Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructureOperations.buildStructurePreviewEntries(this, channelValues);
     }
 
     /**
@@ -1399,7 +1459,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     public void dismantleStructure(EntityPlayer player) {
-        MultiblockState state = this.multiblockState;
+        PieceRuntimeState state = this.runtimeState;
 
         if (!structureFormed || state == null) {
             return;

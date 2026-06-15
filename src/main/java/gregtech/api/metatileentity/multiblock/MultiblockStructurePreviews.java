@@ -4,8 +4,8 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureElementPreviewEntry;
@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Stack;
 
 final class MultiblockStructurePreviews {
@@ -33,11 +32,11 @@ final class MultiblockStructurePreviews {
     static List<MultiblockShapeInfo> getMatchingShapes(
             @NotNull MultiblockControllerBase controller,
             @NotNull BlockPatternTemplate patternTemplate,
-            @Nullable MultiblockState multiblockState,
+            @Nullable PieceRuntimeState runtimeState,
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues) {
         int[][] aisleRepetitions = patternTemplate.getAisleRepetitions();
-        return repetitionDFS(controller, patternTemplate, multiblockState, structureRuntime,
+        return repetitionDFS(controller, patternTemplate, runtimeState, structureRuntime,
                 new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues);
     }
 
@@ -127,7 +126,7 @@ final class MultiblockStructurePreviews {
     private static List<MultiblockShapeInfo> repetitionDFS(
             @NotNull MultiblockControllerBase controller,
             @NotNull BlockPatternTemplate patternTemplate,
-            @Nullable MultiblockState multiblockState,
+            @Nullable PieceRuntimeState runtimeState,
             @Nullable StructureRuntime structureRuntime,
             @NotNull List<MultiblockShapeInfo> pages,
             @NotNull int[][] aisleRepetitions,
@@ -139,7 +138,9 @@ final class MultiblockStructurePreviews {
                 repetition[i] = repetitionStack.get(i);
             }
             BlockInfo[][][] preview = structureRuntime == null
-                    ? Objects.requireNonNull(multiblockState).getPreview(repetition, channelValues)
+                    ? runtimeState == null
+                            ? new BlockInfo[][][]{{{BlockInfo.EMPTY}}}
+                            : runtimeState.getPreview(repetition, channelValues)
                     : structureRuntime.previewSingle(
                             StructureOperationRequest.preview(repetition, channelValues));
             pages.add(new MultiblockShapeInfo(preview));
@@ -157,13 +158,13 @@ final class MultiblockStructurePreviews {
                 int max = aisleRepetitions[aisleIdx][1];
                 int clamped = Math.max(min, Math.min(max, channelValue));
                 repetitionStack.push(clamped);
-                repetitionDFS(controller, patternTemplate, multiblockState, structureRuntime,
+                repetitionDFS(controller, patternTemplate, runtimeState, structureRuntime,
                         pages, aisleRepetitions, repetitionStack, channelValues);
                 repetitionStack.pop();
             } else {
                 for (int i = aisleRepetitions[aisleIdx][0]; i <= aisleRepetitions[aisleIdx][1]; i++) {
                     repetitionStack.push(i);
-                    repetitionDFS(controller, patternTemplate, multiblockState, structureRuntime,
+                    repetitionDFS(controller, patternTemplate, runtimeState, structureRuntime,
                             pages, aisleRepetitions, repetitionStack, channelValues);
                     repetitionStack.pop();
                 }

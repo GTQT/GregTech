@@ -35,7 +35,7 @@ import java.util.function.BooleanSupplier;
  * <p>All per-instance state (last successful repeat counts, last aggregated
  * context, last successful position set) lives on the per-controller
  * {@link PieceRuntime}, not on this piece. This is the same state-separation
- * contract that {@link StructurePiece} uses for {@link MultiblockState} — it
+ * contract that {@link StructurePiece} uses for {@link PieceRuntimeState} — it
  * keeps the compiled piece template stateless and safe to share across
  * controllers of the same multiblock type.
  *
@@ -108,7 +108,7 @@ public class RepeatGroupPiece extends StructurePiece {
      * Static snapshot-checker dispatch.
      * <p>The runtime is provided by the per-controller {@link PieceRuntimes} via the
      * {@link StructurePiece.SnapshotChecker#check} contract; it carries the
-     * {@link MultiblockState} plus the per-piece search cache. We forward to the
+     * {@link PieceRuntimeState} plus the per-piece search cache. We forward to the
      * instance method on the supplied piece reference.
      */
     private static boolean checkOnSnapshotDispatch(@NotNull IBlockAccess snap,
@@ -173,7 +173,7 @@ public class RepeatGroupPiece extends StructurePiece {
 
     /**
      * Synchronous check using World (main thread).
-     * Uses {@link MultiblockState#checkPatternFastAt} for each slice, which supports
+     * Uses {@link PieceRuntimeState#checkPatternFastAt} for each slice, which supports
      * cache-based fast path and proper World-level block access.
      *
      * @param runtime the per-controller state holder for this piece
@@ -298,7 +298,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                               int[] reps,
                                               @NotNull PieceRuntime runtime,
                                               @NotNull StructureMatchSession session) {
-        MultiblockState state = runtime.getState();
+        PieceRuntimeState state = runtime.getState();
         // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
         // center; the cell loop's template-local slice step (set in `local` below) is the
         // only thing added to each cell — baseOffset is absorbed by pieceCenter.
@@ -340,7 +340,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                                        int[] reps,
                                                        @NotNull PieceRuntime runtime,
                                                        @NotNull StructureMatchSession session) {
-        MultiblockState state = runtime.getState();
+        PieceRuntimeState state = runtime.getState();
         // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
         // center; the cell loop's template-local slice step (set in `local` below) is the
         // only thing added to each cell — baseOffset is absorbed by pieceCenter.
@@ -513,7 +513,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                                   int[] reps,
                                                   @NotNull PieceRuntime runtime,
                                                   @NotNull StructureMatchSession session) {
-        MultiblockState state = runtime.getState();
+        PieceRuntimeState state = runtime.getState();
         // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
         // center; the cell loop's template-local slice step (set in `local` below) is the
         // only thing added to each cell — baseOffset is absorbed by pieceCenter.
@@ -555,7 +555,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                         int[] reps,
                                         @NotNull PieceRuntime runtime,
                                         @NotNull StructureMatchSession session) {
-        MultiblockState state = runtime.getState();
+        PieceRuntimeState state = runtime.getState();
         // Use getCenterPos so the piece's OffsetMode is applied to compute the world-space
         // center; the cell loop's template-local slice step (set in `local` below) is the
         // only thing added to each cell — baseOffset is absorbed by pieceCenter.
@@ -610,7 +610,7 @@ public class RepeatGroupPiece extends StructurePiece {
      * <p>
      * Each slice is placed by folding the per-slice step (and the piece's base offset)
      * into the cell loop as a template-local offset passed to
-     * {@link MultiblockState#autoBuildAt(EntityPlayer, MultiblockControllerBase, BlockPos,
+     * {@link PieceRuntimeState#autoBuildAt(EntityPlayer, MultiblockControllerBase, BlockPos,
      * int, int, int, Map, boolean)}. {@code setActualRelativeOffset} therefore runs
      * exactly once per cell, so every slice keeps the same orientation — only the
      * per-cell world position shifts along the repeat axis / axes.
@@ -666,7 +666,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                                               @NotNull StructureEvaluationContext.Operation operation,
                                                               @NotNull ItemStack triggerStack) {
         int[] reps = resolveRepetitions(channelValues);
-        MultiblockState state = runtime.getState();
+        PieceRuntimeState state = runtime.getState();
         // Cache the actual repeat counts on the runtime so subsequent pieces
         // (notably DynamicOffsetPieces anchored to this one) can read them via
         // FormedStructureMetadata. Without this, the auto-build path cannot
@@ -709,7 +709,7 @@ public class RepeatGroupPiece extends StructurePiece {
             @NotNull PieceRuntime runtime,
             @NotNull ItemStack triggerStack) {
         int[] reps = resolveRepetitions(channelValues);
-        MultiblockState state = runtime.getState();
+        PieceRuntimeState state = runtime.getState();
         runtime.cacheFormedReps(reps);
         StructureHintResult.Builder result = StructureHintResult.builder();
         RepeatIterationResult iteration = iterate(
@@ -792,7 +792,7 @@ public class RepeatGroupPiece extends StructurePiece {
                 String name = repeatChannelNames[i];
                 if (name != null && channelValues.containsKey(name)) {
                     int val = channelValues.get(name);
-                    reps[i] = MultiblockState.resolveRepetitionValue(
+                    reps[i] = PieceRuntimeState.resolveRepetitionValue(
                             val, repeatRanges[i][0], repeatRanges[i][1]);
                 }
             }

@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
@@ -262,11 +261,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
             // Server-side: show error info if structure is not formed
             if (!multiblock.isStructureFormed()) {
-                MultiblockState state = multiblock.getMultiblockState();
-                PatternError error = state != null ? state.getError() : null;
-                if (error == null) {
-                    error = multiblock.getLastStructureError();
-                }
+                PatternError error = multiblock.getLastStructureError();
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
@@ -310,11 +305,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     private static void buildStructure(@NotNull MultiblockControllerBase multiblock,
                                        @NotNull StructureOperationRequest request) {
         var runtime = multiblock.getOrCreateStructureRuntime();
-        if (runtime.getState() != null) {
-            runtime.buildSingle(request);
-        } else {
-            runtime.buildAllPieces(request);
-        }
+        runtime.buildAllPieces(request);
     }
 
     private static void buildPiece(@NotNull MultiblockControllerBase multiblock,

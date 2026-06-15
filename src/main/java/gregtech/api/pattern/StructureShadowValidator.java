@@ -33,7 +33,7 @@ final class StructureShadowValidator {
     private StructureShadowValidator() {}
 
     static void maybeValidateIncremental(
-            @NotNull StructureOperationEvaluator evaluator,
+            @NotNull StructureCheckOperationService evaluator,
             @NotNull StructureOperationRequest request,
             @NotNull StructureCheckResult incrementalResult,
             @NotNull StructureWorldReadTracker.Metrics incrementalReads) {

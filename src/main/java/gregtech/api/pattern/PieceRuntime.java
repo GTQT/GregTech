@@ -5,6 +5,7 @@ import gregtech.api.util.BlockInfo;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,7 +31,7 @@ import java.util.Map;
  *
  * <p>For {@link RepeatGroupPiece} the runtime additionally carries repeat
  * metadata so the per-piece backtracking state lives next to the per-piece
- * {@link MultiblockState} it operates on.
+ * {@link PieceRuntimeState} it operates on.
  *
  * <h2>Thread safety</h2>
  * {@code positions} is updated via reference swap (volatile) so the event thread
@@ -39,8 +40,8 @@ import java.util.Map;
  */
 public final class PieceRuntime {
 
-    /** Per-piece {@link MultiblockState}, bound at construction. */
-    private final MultiblockState state;
+    /** Per-piece {@link PieceRuntimeState}, bound at construction. */
+    private final PieceRuntimeState state;
 
     /** The piece this runtime belongs to (back-reference for the snapshot-checker dispatch). */
     @NotNull
@@ -65,15 +66,20 @@ public final class PieceRuntime {
     private PatternMatchContext lastAggregatedContext;
 
     public PieceRuntime(@NotNull StructurePiece piece) {
-        this.piece = piece;
-        this.state = piece.getTemplate().createState();
+        this(piece, null);
     }
 
-    // --- MultiblockState access ---
+    PieceRuntime(@NotNull StructurePiece piece,
+                 @Nullable PieceRuntimeState stateOverride) {
+        this.piece = piece;
+        this.state = stateOverride == null ? new PieceRuntimeState(piece.getPieceTemplate()) : stateOverride;
+    }
 
-    /** @return the per-piece mutable {@link MultiblockState} */
+    // --- PieceRuntimeState access ---
+
+    /** @return the per-piece mutable {@link PieceRuntimeState} */
     @NotNull
-    public MultiblockState getState() {
+    public PieceRuntimeState getState() {
         return state;
     }
 
@@ -100,6 +106,17 @@ public final class PieceRuntime {
 
     public void setValidated(boolean validated) {
         this.validated = validated;
+    }
+
+    public boolean probeCachedBlocks(@NotNull World world,
+                                     boolean doRandomCheck) {
+        return probeCachedBlocks(world, doRandomCheck, 0, 0, 0);
+    }
+
+    public boolean probeCachedBlocks(@NotNull World world,
+                                     boolean doRandomCheck,
+                                     int xOffset, int yOffset, int zOffset) {
+        return state.probeCacheAt(world, doRandomCheck, xOffset, yOffset, zOffset);
     }
 
     public boolean isDirty() {
@@ -188,8 +205,7 @@ public final class PieceRuntime {
         this.dirty = false;
         this.positions = new LongOpenHashSet();
         this.state.clearCache();
-        this.state.formedRepetitionCount =
-                new int[this.state.getPieceTemplate().getAisles().length];
+        this.state.clearFormedRepetitionCount();
         this.lastAggregatedContext = null;
         this.lastFormedReps = null;
     }
@@ -197,7 +213,7 @@ public final class PieceRuntime {
     static final class Checkpoint {
 
         @NotNull
-        private final MultiblockState.Checkpoint stateCheckpoint;
+        private final PieceRuntimeState.Checkpoint stateCheckpoint;
         @NotNull
         private final LongSet positions;
         private final boolean validated;

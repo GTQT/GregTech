@@ -4,7 +4,6 @@ import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
@@ -61,11 +60,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
         } else {
             spawnStructureHints(multiblock, player, player.getHeldItem(hand));
             if (!multiblock.isStructureFormed()) {
-                MultiblockState state = multiblock.getMultiblockState();
-                PatternError error = state != null ? state.getError() : null;
-                if (error == null) {
-                    error = multiblock.getLastStructureError();
-                }
+                PatternError error = multiblock.getLastStructureError();
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
@@ -103,11 +98,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
     private void autoBuildStructure(@NotNull MultiblockControllerBase multiblock,
                                     @NotNull StructureOperationRequest request) {
         var runtime = multiblock.getOrCreateStructureRuntime();
-        if (runtime.getState() != null) {
-            runtime.buildSingle(request);
-        } else {
-            runtime.buildAllPieces(request);
-        }
+        runtime.buildAllPieces(request);
     }
 
     @Override

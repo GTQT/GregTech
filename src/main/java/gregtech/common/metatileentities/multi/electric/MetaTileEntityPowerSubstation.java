@@ -17,6 +17,7 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.CasingDefinition;
@@ -203,8 +204,8 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         List<IEnergyContainer> inputs = new ArrayList<>();
         inputs.addAll(getAbilities(MultiblockAbility.INPUT_ENERGY));
         inputs.addAll(getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
@@ -219,6 +220,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
         List<IBatteryData> parts = new ArrayList<>();
         Map<Integer, Integer> tierCounts = new HashMap<>();
+        PatternMatchContext context = formed.copyLegacyCallbackContext();
         for (Map.Entry<String, Object> battery : context.entrySet()) {
             if (battery.getKey().startsWith(PMC_BATTERY_HEADER) &&
                     battery.getValue() instanceof BatteryMatchWrapper wrapper) {

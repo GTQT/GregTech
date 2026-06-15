@@ -14,15 +14,20 @@ deprecated and scheduled for removal in v2.10.
 | Concept | Old (deprecated) | New |
 |---------|------------------|-----|
 | Pattern definition | `BlockPattern` (template + state combined) | `BlockPatternTemplate` (immutable, shared) |
-| Per-instance state | `BlockPattern` fields (`cache`, `formedRepetitionCount`) | `MultiblockState` (one per controller instance) |
+| Runtime state | `BlockPattern` fields (`cache`, `formedRepetitionCount`) | `StructureRuntime` / `StructureLifecycleState` / typed operation results |
 | Builder output | `FactoryBlockPattern.build()` → `BlockPattern` | `FactoryBlockPattern.buildTemplate()` → `BlockPatternTemplate` |
 | Controller override | `createStructurePattern()` → `BlockPattern` | `createStructureTemplate()` → `BlockPatternTemplate` |
 | Template caching | Manual or none | `SoftTemplate`, `TemplatePool` |
 | High-level builder | N/A | `DeclarativePatternBuilder` (optional, recommended) |
 
 **Key benefit:** Multiple controller instances of the same machine type now share a single
-`BlockPatternTemplate`, significantly reducing memory usage. Each instance only holds its own
-lightweight `MultiblockState`.
+`BlockPatternTemplate`, significantly reducing memory usage. Each instance owns canonical
+formation lifecycle and dirty/incremental state through `StructureRuntime`.
+
+> `MultiblockState` is deprecated. It is now a detached compatibility projection
+> over internal `PieceRuntimeState` snapshots for old APIs. New addon code should
+> not migrate `BlockPattern` field access to `MultiblockState`; use `StructureRuntime`,
+> typed operation requests, `StructureCheckResult`, and `FormedStructureView` instead.
 
 ---
 
@@ -120,23 +125,26 @@ protected BlockPatternTemplate createStructureTemplate() {
 }
 ```
 
-### Step 3: Update References to BlockPattern Fields
+### Step 3: Replace Direct BlockPattern State Access
 
-If your code accesses `structurePattern` fields directly, update to use the new accessors:
+If your code accesses `structurePattern` fields directly, do not move that code to
+`MultiblockState`. `MultiblockState` is also deprecated and should be treated as a
+compatibility-only object. Prefer the runtime/result APIs below:
 
-| Old (deprecated) | New |
-|-------------------|-----|
-| `structurePattern.cache` | `multiblockState.cache` |
-| `structurePattern.formedRepetitionCount` | `multiblockState.formedRepetitionCount` |
-| `structurePattern.aisleRepetitions` | `patternTemplate.getAisleRepetitions()` |
-| `structurePattern.structureDir` | `patternTemplate.getStructureDir()` |
-| `structurePattern.getError()` | `multiblockState.getError()` |
-| `structurePattern.clearCache()` | `multiblockState.clearCache()` |
-| `structurePattern.checkPatternFastAt(...)` | `multiblockState.checkPatternFastAt(...)` |
-| `structurePattern.autoBuild(...)` | `multiblockState.autoBuild(...)` |
+| Old direct access | Preferred replacement |
+|-------------------|-----------------------|
+| `structurePattern.cache` | Use `StructureCheckResult.getGraphPublication().getPositionIndex()` after a successful check, or `controller.getStructureRuntime().getCommittedGraph().getPositionIndex()` for committed watched positions. |
+| `structurePattern.formedRepetitionCount` | Use `controller.getFormedMetadata()` or `FormedStructureView.getMetadata()` and read piece repeat counts by piece name. |
+| `structurePattern.aisleRepetitions` | Use `patternTemplate.getAisleRepetitions()` for declaration metadata. |
+| `structurePattern.structureDir` | Use `patternTemplate.getStructureDir()` for declaration metadata. |
+| `structurePattern.getError()` | Use `StructureCheckResult.createFailureTrace(controller)` or `controller.getStructureRuntime().getLastFailure()`. |
+| `structurePattern.clearCache()` | Avoid manual cache control. Reinitialize the controller pattern/runtime if you intentionally changed the definition. |
+| `structurePattern.checkPatternFastAt(...)` | Use `controller.getOrCreateStructureRuntime().check(StructureOperationRequest.check(...))`. |
+| `structurePattern.autoBuild(...)` | Use `controller.getOrCreateStructureRuntime().buildSingle(...)` or piece build requests. |
 
-The fields `patternTemplate` and `multiblockState` are `protected` on `MultiblockControllerBase`.
-External code can use `getPatternTemplate()` and `getMultiblockState()`.
+The field `patternTemplate` remains available for immutable declaration metadata.
+`getMultiblockState()` remains for source compatibility only and may disappear with the
+deprecated API removal target.
 
 ### Step 4: Update DistillationTowerLogicHandler (if used)
 
@@ -149,8 +157,13 @@ handler.determineLayerCount(this.structurePattern);
 
 **After:**
 ```java
-handler.determineLayerCount(this.multiblockState);
+FormedStructureMetadata metadata = getFormedMetadata();
+int[] bodyReps = metadata == null ? null : metadata.getPieceRepeats("body");
+handler.determineLayerCountFromReps(bodyReps == null || bodyReps.length == 0 ? 0 : bodyReps[0]);
 ```
+
+The exact piece name depends on your structure definition. For GregTech's own
+distillation tower, the repeatable body piece is named `body`.
 
 ---
 
@@ -189,6 +202,8 @@ if (result.requiresResume()) {
 
 The runtime also exposes typed results for non-build operations:
 
+- `StructureCheckResult` carries success/failure, metadata, operation state,
+  graph publication, and failure diagnostics.
 - `StructureHintResult` now includes rendered/skipped/failed hint-render counts.
 - `StructurePreviewResult` wraps single-template and multi-piece previews behind one outcome type.
 - `StructureIterateResult` wraps read-only structure iteration; single-template iteration exposes
@@ -305,7 +320,10 @@ The built-in external dependency helpers are:
 Elements that depend on callbacks, lazy suppliers, or old predicate-shaped
 side effects should remain opaque through `getIncrementalSupport()`. An opaque
 element keeps the structure on the conservative active/full fallback path rather
-than allowing incorrect reuse of a clean piece.
+than allowing incorrect reuse of a clean piece. The fallback result retains the
+eligibility diagnostics, so structure traces and debug logs report reasons such
+as `OPAQUE_ELEMENT`, `OPAQUE_CONDITION`, or `NO_BASELINE` instead of silently
+pretending the structure was incremental-ready.
 
 New direct elements should implement `ITypedStructureElement` when they have
 typed contributions and no extra dependencies. Elements with custom support or
@@ -361,6 +379,14 @@ into a shared base snapshot unless every subclass genuinely owns that state.
 The scheduler also compares snapshots before consuming an event-driven dirty
 lease, but explicit notification wakes the scheduler immediately through
 `enqueueDirtyRoots(...)`.
+If a dirty lease is non-eligible for incremental evaluation, the scheduler runs
+the conservative full check path and preserves the fallback reason for
+diagnostics.
+If an external dependency snapshot or equivalence comparator throws, the runtime
+does not run incremental reuse. The dirty lease/full fallback uses
+`UNKNOWN_EXTERNAL_DEPENDENCY`, marks all graph pieces dirty for scheduling
+purposes, and keeps the failing dependency key plus exception summary in the
+trace/debug diagnostics.
 
 ---
 
@@ -691,12 +717,13 @@ You do NOT need to migrate immediately. The old code will continue to work:
   which extracts the template via `.getTemplate()`
 - `structurePattern` is automatically populated with a compat wrapper in
   `reinitializeStructurePattern()`
-- All `BlockPattern` methods delegate to the underlying `BlockPatternTemplate` + `MultiblockState`
+- Legacy `BlockPattern` methods are compatibility facades over the compiled template and runtime
+  operation path. `MultiblockState` is deprecated and should not be used as a migration target.
 
 However, migrating will:
 1. Suppress deprecation warnings in your build
 2. Reduce memory usage (shared templates)
-3. Enable access to new features (channels, declarative builder, auto-generated tooltips)
+3. Enable access to new features (typed results, channels, declarative builder, auto-generated tooltips)
 4. Prepare your addon for v2.10 where `BlockPattern` will be removed
 
 ---
@@ -709,16 +736,22 @@ import gregtech.api.pattern.BlockPattern;
 
 // Add (new)
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PieceDependencyAspect;              // optional incremental dependencies
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructureDependency;                // optional incremental dependencies
 import gregtech.api.pattern.StructureExternalDependencies;      // optional external state dependencies
+import gregtech.api.pattern.StructureOperationRequest;          // typed runtime requests
+import gregtech.api.pattern.StructureCheckResult;               // typed check result
+import gregtech.api.pattern.StructureRuntime;                   // controller-owned runtime
 import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.element.FormedStructureMetadata;    // formed repeats/channels/centers
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;  // optional
 import gregtech.api.pattern.casing.CasingDefinition;           // optional
 import gregtech.api.pattern.casing.ICasingGroup;               // optional
 import gregtech.api.pattern.casing.StructureChannel;            // optional
+
+// Avoid for new code (deprecated compatibility only)
+import gregtech.api.pattern.MultiblockState;
 ```
 
 ---
@@ -728,8 +761,9 @@ import gregtech.api.pattern.casing.StructureChannel;            // optional
 - [ ] Replace `createStructurePattern()` with `createStructureTemplate()`
 - [ ] Change `.build()` to `.buildTemplate()` in pattern builders
 - [ ] Add static template caching (`SoftTemplate` via `TemplatePool`)
-- [ ] Update `BlockPattern` field accesses to use `patternTemplate` / `multiblockState`
-- [ ] Update `DistillationTowerLogicHandler` calls if applicable
+- [ ] Replace direct `BlockPattern` field accesses with `StructureRuntime`, typed result, or metadata APIs
+- [ ] Avoid new direct use of `MultiblockState`
+- [ ] Update `DistillationTowerLogicHandler` calls to `determineLayerCountFromReps(...)` if applicable
 - [ ] Remove `import gregtech.api.pattern.BlockPattern` when no longer needed
 - [ ] (Optional) Migrate to `DeclarativePatternBuilder` for new multiblocks
 - [ ] (Optional) Define custom `ICasingGroup` and `StructureChannel` for tiered structures

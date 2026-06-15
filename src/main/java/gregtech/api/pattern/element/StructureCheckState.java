@@ -383,7 +383,7 @@ public final class StructureCheckState {
                 runtime.clearDirty();
                 runtime.swapPositions(new LongOpenHashSet(runtime.getState().cache.keySet()));
 
-                // Extract repeat counts from the piece's MultiblockState
+                // Extract repeat counts from the piece's runtime state.
                 int[] formedReps = runtime.getState().formedRepetitionCount;
                 if (formedReps != null && formedReps.length > 0) {
                     pieceRepeats.put(piece.getName(), formedReps.clone());

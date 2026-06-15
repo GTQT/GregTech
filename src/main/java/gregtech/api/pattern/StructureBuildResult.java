@@ -40,6 +40,8 @@ public final class StructureBuildResult {
     private final List<ItemAmount> consumedItems;
     @NotNull
     private final List<ItemAmount> missingItems;
+    @NotNull
+    private final StructureOperationDiagnostics diagnostics;
 
     private StructureBuildResult(@NotNull Builder builder) {
         this.attemptedTraversals = builder.attemptedTraversals;
@@ -57,6 +59,7 @@ public final class StructureBuildResult {
         this.requiredItems = immutableCopy(builder.requiredItems);
         this.consumedItems = immutableCopy(builder.consumedItems);
         this.missingItems = immutableCopy(builder.missingItems);
+        this.diagnostics = builder.diagnostics;
     }
 
     @NotNull
@@ -171,6 +174,19 @@ public final class StructureBuildResult {
     }
 
     @NotNull
+    public StructureOperationDiagnostics getDiagnostics() {
+        return diagnostics;
+    }
+
+    @NotNull
+    public StructureBuildResult withDiagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+        Builder builder = builder()
+                .merge(this)
+                .diagnostics(diagnostics);
+        return builder.build();
+    }
+
+    @NotNull
     public String describeCounts() {
         return "attemptedTraversals=" + attemptedTraversals +
                 ", inactivePieces=" + inactivePieces +
@@ -260,6 +276,8 @@ public final class StructureBuildResult {
         private final List<ItemAmount> consumedItems = new ArrayList<>();
         @NotNull
         private final List<ItemAmount> missingItems = new ArrayList<>();
+        @NotNull
+        private StructureOperationDiagnostics diagnostics = StructureOperationDiagnostics.empty();
 
         private Builder() {}
 
@@ -385,6 +403,16 @@ public final class StructureBuildResult {
             mergeItems(requiredItems, result.requiredItems);
             mergeItems(consumedItems, result.consumedItems);
             mergeItems(missingItems, result.missingItems);
+            if (diagnostics == StructureOperationDiagnostics.empty()
+                    && result.diagnostics != StructureOperationDiagnostics.empty()) {
+                diagnostics = result.diagnostics;
+            }
+            return this;
+        }
+
+        @NotNull
+        public Builder diagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+            this.diagnostics = diagnostics;
             return this;
         }
 

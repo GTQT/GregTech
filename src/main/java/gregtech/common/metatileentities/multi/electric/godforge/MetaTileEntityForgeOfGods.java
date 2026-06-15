@@ -14,7 +14,6 @@ import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructureCondition;
@@ -681,12 +680,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             builder.append(']');
         }
         return builder.length() == 0 ? "[]" : builder.toString();
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        formGodforgeStructure();
     }
 
     @Override

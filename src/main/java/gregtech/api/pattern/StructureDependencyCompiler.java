@@ -109,6 +109,11 @@ public final class StructureDependencyCompiler {
             return;
         }
 
+        if (dependencies == null) {
+            fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_CONDITION,
+                    "Piece '" + piece.getName() + "' condition returned null dependencies");
+            return;
+        }
         if (dependencies.isEmpty()) {
             fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_CONDITION,
                     "Piece '" + piece.getName() + "' condition declares no typed dependencies");
@@ -129,6 +134,11 @@ public final class StructureDependencyCompiler {
             @NotNull List<String> diagnostics,
             @NotNull String source) {
         for (StructureDependency dependency : dependencies) {
+            if (dependency == null) {
+                fail(fallback, diagnostics, StructureIncrementalFallbackReason.UNKNOWN_DEPENDENCY,
+                        "Piece '" + targetPiece + "' declares a null dependency via " + source);
+                continue;
+            }
             if (dependency.getKind() == StructureDependency.Kind.PIECE) {
                 String sourcePiece = dependency.getPieceName();
                 if (sourcePiece == null) {
@@ -142,7 +152,7 @@ public final class StructureDependencyCompiler {
                 StructureExternalDependencyKey<?> key = dependency.getExternalKey();
                 if (key == null) {
                     fail(fallback, diagnostics,
-                            StructureIncrementalFallbackReason.UNKNOWN_EXTERNAL_DEPENDENCY,
+                            StructureIncrementalFallbackReason.UNKNOWN_DEPENDENCY,
                             "Piece '" + targetPiece + "' declares a null external dependency");
                     continue;
                 }
@@ -176,7 +186,19 @@ public final class StructureDependencyCompiler {
                                         + x + "," + y + "," + z);
                         continue;
                     }
-                    if (!element.hasExplicitIncrementalContract()) {
+                    boolean explicitContract;
+                    try {
+                        explicitContract = element.hasExplicitIncrementalContract();
+                    } catch (RuntimeException e) {
+                        fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                                "Piece '" + piece.getName() + "' element "
+                                        + element.getClass().getName()
+                                        + " threw while declaring explicit incremental contract at "
+                                        + x + "," + y + "," + z + ": "
+                                        + e.getClass().getSimpleName());
+                        continue;
+                    }
+                    if (!explicitContract) {
                         fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
                                 "Piece '" + piece.getName() + "' has direct element "
                                         + element.getClass().getName()
@@ -184,7 +206,27 @@ public final class StructureDependencyCompiler {
                                         + x + "," + y + "," + z);
                         continue;
                     }
-                    if (element.getIncrementalSupport() == StructureIncrementalSupport.OPAQUE) {
+                    StructureIncrementalSupport support;
+                    try {
+                        support = element.getIncrementalSupport();
+                    } catch (RuntimeException e) {
+                        fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                                "Piece '" + piece.getName() + "' element "
+                                        + element.getClass().getName()
+                                        + " threw while declaring incremental support at "
+                                        + x + "," + y + "," + z + ": "
+                                        + e.getClass().getSimpleName());
+                        continue;
+                    }
+                    if (support == null) {
+                        fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                                "Piece '" + piece.getName() + "' element "
+                                        + element.getClass().getName()
+                                        + " returned null incremental support at "
+                                        + x + "," + y + "," + z);
+                        continue;
+                    }
+                    if (support == StructureIncrementalSupport.OPAQUE) {
                         fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
                                 "Piece '" + piece.getName() + "' has opaque element "
                                         + element.getClass().getName()
@@ -201,6 +243,14 @@ public final class StructureDependencyCompiler {
                                         + " threw while declaring dependencies at "
                                         + x + "," + y + "," + z + ": "
                                         + e.getClass().getSimpleName());
+                        continue;
+                    }
+                    if (dependencies == null) {
+                        fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                                "Piece '" + piece.getName() + "' element "
+                                        + element.getClass().getName()
+                                        + " returned null dependencies at "
+                                        + x + "," + y + "," + z);
                         continue;
                     }
                     if (!dependencies.isEmpty()) {

@@ -78,7 +78,7 @@ public final class MultiPiecePreviewAssembler {
                 continue;
             }
 
-            MultiblockState.PreviewCells preview = runtime.getState().createPreviewCells(
+            PieceRuntimeState.PreviewCells preview = runtime.getState().createPreviewCells(
                     internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION);
             Map<BlockPos, BlockInfo> pieceBlocks = new HashMap<>();
             forEachExternalRepeat(piece, externalRepetitions, localShift -> {
@@ -206,7 +206,7 @@ public final class MultiPiecePreviewAssembler {
                     : channelValues.get(aisle.channelName());
             repetitions[i] = value == null
                     ? aisle.maxRepeat()
-                    : MultiblockState.resolveRepetitionValue(
+                    : PieceRuntimeState.resolveRepetitionValue(
                             value, aisle.minRepeat(), aisle.maxRepeat());
         }
         return repetitions;
@@ -250,7 +250,7 @@ public final class MultiPiecePreviewAssembler {
                     : channelValues.get(names[i]);
             repetitions[i] = value == null
                     ? ranges[i][1]
-                    : MultiblockState.resolveRepetitionValue(value, ranges[i][0], ranges[i][1]);
+                    : PieceRuntimeState.resolveRepetitionValue(value, ranges[i][0], ranges[i][1]);
         }
         return repetitions;
     }

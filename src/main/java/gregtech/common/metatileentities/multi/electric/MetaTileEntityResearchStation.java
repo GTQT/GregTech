@@ -16,7 +16,6 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.StructureEvaluationContext;
@@ -205,7 +204,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+        public boolean check(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context) {
             return isObjectHolder(world.getTileEntity(pos));
         }
 
@@ -215,7 +214,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         }
 
         @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+        public boolean placeBlock(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context,
                                   EntityPlayer player, boolean skipHatches) {
             return false;
         }
@@ -232,12 +231,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityResearchStation(metaTileEntityId);
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        formResearchStationStructure();
     }
 
     @Override

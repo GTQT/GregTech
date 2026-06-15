@@ -63,4 +63,25 @@ class MBPatternTest {
 
         assertNull(pattern.getLegacyPredicateFallback(pos));
     }
+
+    @Test
+    void registryMetadataUsesDefensiveCopies() {
+        BlockPos pos = BlockPos.ORIGIN;
+        TraceabilityPredicate predicate = new TraceabilityPredicate(state -> true);
+        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
+        predicateMap.put(pos, predicate);
+        StructureElementPreviewEntry entry = StructureElementPreviewEntry.of(
+                StructureElementPreview.empty(),
+                Collections.singletonList("typed tooltip"));
+        Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
+        previewEntries.put(pos, entry);
+
+        MBPattern pattern = new MBPattern(null, Collections.emptyList(), predicateMap, previewEntries);
+
+        predicateMap.clear();
+        previewEntries.clear();
+
+        assertSame(entry, pattern.getPreviewEntry(pos));
+        assertNull(pattern.getLegacyPredicateFallback(pos));
+    }
 }

@@ -11,6 +11,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -92,8 +93,9 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        PatternMatchContext context = formed.copyLegacyCallbackContext();
         // Retrieve coil stats from the channel's matched ICasing
         ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
         IHeatingCoilBlockStats type = matchedCoil != null ?

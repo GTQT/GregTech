@@ -33,7 +33,7 @@ public class MBPattern {
                      Map<BlockPos, StructureElementPreviewEntry> previewEntries) {
         this.sceneRenderer = sceneRenderer;
         this.parts = parts;
-        this.predicateMap = predicateMap;
+        this.predicateMap = Collections.unmodifiableMap(new HashMap<>(predicateMap));
         this.previewEntries = Collections.unmodifiableMap(new HashMap<>(previewEntries));
     }
 
@@ -51,8 +51,8 @@ public class MBPattern {
     }
 
     /**
-     * Return the legacy predicate that may still be needed for old JEI tooltip
-     * and candidate fallback behavior.
+     * Return the legacy predicate only for cells that have no typed preview
+     * metadata.
      *
      * <p>When a typed preview entry exists for the position, it suppresses the
      * broader predicate map fallback. Legacy predicates adapted into typed
@@ -64,8 +64,10 @@ public class MBPattern {
     }
 
     /**
-     * @deprecated Compatibility accessor for old tooling. New internal tooling
-     *             should use {@link #getLegacyPredicateFallback(BlockPos)}.
+     * @deprecated Compatibility accessor for old tooling/addons. New internal
+     *             tooling should use {@link #getPreviewEntry(BlockPos)} first
+     *             and {@link #getLegacyPredicateFallback(BlockPos)} only as a
+     *             migration fallback.
      */
     @Deprecated
     @ApiStatus.Obsolete

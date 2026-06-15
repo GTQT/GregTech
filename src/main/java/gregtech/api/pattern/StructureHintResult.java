@@ -22,6 +22,8 @@ public final class StructureHintResult {
     private final int renderedCells;
     private final int skippedRenderCells;
     private final int failedRenderCells;
+    @NotNull
+    private final StructureOperationDiagnostics diagnostics;
 
     private StructureHintResult(@NotNull Builder builder) {
         this.attemptedTraversals = builder.attemptedTraversals;
@@ -33,6 +35,7 @@ public final class StructureHintResult {
         this.renderedCells = builder.renderedCells;
         this.skippedRenderCells = builder.skippedRenderCells;
         this.failedRenderCells = builder.failedRenderCells;
+        this.diagnostics = builder.diagnostics;
     }
 
     @NotNull
@@ -86,6 +89,19 @@ public final class StructureHintResult {
     }
 
     @NotNull
+    public StructureOperationDiagnostics getDiagnostics() {
+        return diagnostics;
+    }
+
+    @NotNull
+    public StructureHintResult withDiagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+        return builder()
+                .merge(this)
+                .diagnostics(diagnostics)
+                .build();
+    }
+
+    @NotNull
     public String describeCounts() {
         return "attemptedTraversals=" + attemptedTraversals +
                 ", activePieces=" + activePieces +
@@ -114,6 +130,8 @@ public final class StructureHintResult {
         private int renderedCells;
         private int skippedRenderCells;
         private int failedRenderCells;
+        @NotNull
+        private StructureOperationDiagnostics diagnostics = StructureOperationDiagnostics.empty();
 
         private Builder() {}
 
@@ -182,6 +200,16 @@ public final class StructureHintResult {
             renderedCells += result.renderedCells;
             skippedRenderCells += result.skippedRenderCells;
             failedRenderCells += result.failedRenderCells;
+            if (diagnostics == StructureOperationDiagnostics.empty()
+                    && result.diagnostics != StructureOperationDiagnostics.empty()) {
+                diagnostics = result.diagnostics;
+            }
+            return this;
+        }
+
+        @NotNull
+        public Builder diagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+            this.diagnostics = diagnostics;
             return this;
         }
 

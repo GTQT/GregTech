@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.pattern.element.CompiledStructureElement;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureCompiler;
@@ -119,6 +120,24 @@ class StructureTraversalBoundaryTest {
     }
 
     @Test
+    void legacyBlockPatternCheckPublishesTypedRuntimeState() {
+        RecordingElement element = new RecordingElement(true)
+                .withPredicate(new TraceabilityPredicate(
+                        worldState -> true, () -> new BlockInfo[] {
+                                new BlockInfo(net.minecraft.init.Blocks.STONE.getDefaultState(), null)
+                        }));
+        BlockPatternTemplate template = new BlockPatternTemplate(singleCellTemplate(element));
+        BlockPattern pattern = new BlockPattern(template);
+
+        PatternMatchContext context = pattern.checkPatternFastAt(
+                WORLD, BlockPos.ORIGIN, EnumFacing.NORTH, EnumFacing.UP, false, false);
+
+        assertNotNull(context);
+        assertEquals(1, context.getInt("channel"));
+        assertEquals(1, StructureOperationState.fromLegacyContext(context).getParts().size());
+    }
+
+    @Test
     void failedMultiPieceCheckRollsBackFormationEffectsAndRuntimeState() {
         RecordingElement firstElement = new RecordingElement(true);
         RecordingElement failingElement = new RecordingElement(false);
@@ -194,6 +213,57 @@ class StructureTraversalBoundaryTest {
         assertTrue(result.isMatched());
         assertEquals("kept", result.copyContext().get("external"));
         assertEquals("seed", result.copyContext().get("scratch"));
+    }
+
+    @Test
+    void legacyPredicateTemplateCompilesToElementBeforeLegacyViewProjection() {
+        TraceabilityPredicate original = new TraceabilityPredicate(worldState -> true)
+                .setCenter();
+        PieceTemplate template = new PieceTemplate(
+                new TraceabilityPredicate[][][] {
+                        {
+                                { original }
+                        }
+                },
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                new int[][] {
+                        { 1, 1 }
+                });
+
+        IStructureElement<?> element = template.getElements()[0][0][0];
+        assertTrue(element instanceof CompiledStructureElement);
+        assertTrue(element.usesLegacyPredicateRuntime());
+        assertTrue(element.isCenter());
+
+        TraceabilityPredicate projected = template.getBlockMatches()[0][0][0];
+        projected.common.clear();
+        projected.limited.clear();
+
+        assertTrue(element.toPredicate().isCenter());
+        assertTrue(template.getElements()[0][0][0].isCenter());
+    }
+
+    @Test
+    void directElementLegacyContextMutationDoesNotBecomeMatcherSharedState() {
+        LegacyContextWritingElement element = new LegacyContextWritingElement();
+        StructurePiece piece = new StructurePiece(
+                "direct", singleCellTemplate(element), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(Collections.singletonList(piece));
+        StructureRuntime runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+
+        StructureCheckResult result = runtime.check(checkRequest());
+
+        assertTrue(result.isMatched());
+        assertEquals(1, element.contextCopiesSeen);
+        assertEquals(1, result.copyContext().getInt("typed_value"));
+        assertNull(result.copyContext().get("direct_scratch"));
+        assertNull(result.copyContext().get("direct_shared"));
     }
 
     @Test
@@ -286,7 +356,11 @@ class StructureTraversalBoundaryTest {
         StructureCheckResult result = runtime.checkActiveGraph(checkRequest());
 
         assertTrue(result.isMatched());
-        assertEquals("active-graph", result.getTracePath());
+        assertEquals("v3-typed-pattern", result.getTracePath());
+        assertEquals("v3-typed-pattern", result.getDiagnostics().getPath());
+        assertEquals("MATCH_WORLD", result.getDiagnostics().getOperation());
+        assertEquals(1, result.getDiagnostics().getPieceCount());
+        assertFalse(result.getDiagnostics().isSyntheticSinglePiece());
         assertNotNull(result.getMetadata());
         assertEquals(BlockPos.ORIGIN, result.getMetadata().getPieceCenter("active"));
         assertEquals(1, result.getMetadata().getChannelValue("channel"));
@@ -320,11 +394,11 @@ class StructureTraversalBoundaryTest {
         StructureCheckResult failed = runtime.checkActiveGraph(checkRequest());
 
         assertFalse(failed.isMatched());
-        assertEquals("active-graph", failed.getTracePath());
+        assertEquals("v3-typed-pattern", failed.getTracePath());
         StructureFailureTrace failureTrace = failed.createFailureTrace(testController());
         assertEquals(StructureFailureTrace.Kind.BLOCK_MISMATCH,
                 failureTrace.getKind());
-        assertEquals("active-graph", failureTrace.getPath());
+        assertEquals("v3-typed-pattern", failureTrace.getPath());
         assertTrue(pieceRuntime.isValidated());
         assertTrue(pieceRuntime.isDirty());
         assertEquals(formedPositions, pieceRuntime.getPositions());
@@ -495,6 +569,8 @@ class StructureTraversalBoundaryTest {
         assertTrue(result.isSupported());
         assertTrue(result.isMatched());
         assertEquals(1, result.getProgressDepth());
+        assertEquals("definition", result.getDiagnostics().getPath());
+        assertEquals("MATCH_SNAPSHOT", result.getDiagnostics().getOperation());
     }
 
     private static RepeatGroupPiece repeatPiece(PieceTemplate template, int[] axes, int[] steps) {
@@ -804,6 +880,40 @@ class StructureTraversalBoundaryTest {
         @Override
         public boolean check(World world, BlockPos pos, PatternMatchContext context) {
             throw new AssertionError("context-aware check should be used");
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @Override
+        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+                                  EntityPlayer player, boolean skipHatches) {
+            return false;
+        }
+
+        @Override
+        public void spawnHint(World world, BlockPos pos) {}
+    }
+
+    private static final class LegacyContextWritingElement implements ITypedStructureElement<Object> {
+
+        private int contextCopiesSeen;
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            PatternMatchContext legacyContext = context.getLegacyContext();
+            legacyContext.set("direct_scratch", "not-shared");
+            contextCopiesSeen++;
+            context.getCollector().setValue("typed_value", 1);
+            return true;
+        }
+
+        @Override
+        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
+            context.set("direct_shared", "legacy-only");
+            return true;
         }
 
         @Override

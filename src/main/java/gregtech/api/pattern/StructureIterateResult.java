@@ -38,19 +38,23 @@ public final class StructureIterateResult {
     private final LongSet positions;
     private final int activePieces;
     private final int inactivePieces;
+    @NotNull
+    private final StructureOperationDiagnostics diagnostics;
 
     private StructureIterateResult(@NotNull Outcome outcome,
                                    @NotNull Source source,
                                    @NotNull Map<BlockPos, BlockInfo> blocks,
                                    @NotNull LongSet positions,
                                    int activePieces,
-                                   int inactivePieces) {
+                                   int inactivePieces,
+                                   @NotNull StructureOperationDiagnostics diagnostics) {
         this.outcome = outcome;
         this.source = source;
         this.blocks = Collections.unmodifiableMap(new HashMap<>(blocks));
         this.positions = new LongOpenHashSet(positions);
         this.activePieces = activePieces;
         this.inactivePieces = inactivePieces;
+        this.diagnostics = diagnostics;
     }
 
     @NotNull
@@ -61,7 +65,8 @@ public final class StructureIterateResult {
         }
         return new StructureIterateResult(
                 blocks.isEmpty() ? Outcome.EMPTY : Outcome.VISITED,
-                Source.SINGLE_PIECE, blocks, positions, blocks.isEmpty() ? 0 : 1, 0);
+                Source.SINGLE_PIECE, blocks, positions, blocks.isEmpty() ? 0 : 1, 0,
+                StructureOperationDiagnostics.empty());
     }
 
     @NotNull
@@ -71,14 +76,14 @@ public final class StructureIterateResult {
         return new StructureIterateResult(
                 positions.isEmpty() ? Outcome.EMPTY : Outcome.VISITED,
                 Source.MULTI_PIECE, Collections.emptyMap(), positions,
-                activePieces, inactivePieces);
+                activePieces, inactivePieces, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
     public static StructureIterateResult unsupported(@NotNull Source source) {
         return new StructureIterateResult(
                 Outcome.UNSUPPORTED, source, Collections.emptyMap(),
-                new LongOpenHashSet(), 0, 0);
+                new LongOpenHashSet(), 0, 0, StructureOperationDiagnostics.empty());
     }
 
     @NotNull
@@ -115,5 +120,16 @@ public final class StructureIterateResult {
 
     public int getInactivePieces() {
         return inactivePieces;
+    }
+
+    @NotNull
+    public StructureOperationDiagnostics getDiagnostics() {
+        return diagnostics;
+    }
+
+    @NotNull
+    public StructureIterateResult withDiagnostics(@NotNull StructureOperationDiagnostics diagnostics) {
+        return new StructureIterateResult(
+                outcome, source, blocks, positions, activePieces, inactivePieces, diagnostics);
     }
 }

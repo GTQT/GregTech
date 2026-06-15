@@ -19,6 +19,9 @@ public final class StructureIncrementalCheckResult {
     private final Set<String> prunedPieces;
     private final int recheckedPieces;
     private final int reusedPieces;
+    private final int cacheProbeAttempts;
+    private final int cacheProbeHits;
+    private final int cacheProbeMisses;
     private final boolean snapshotPrecheckAttempted;
     private final boolean snapshotPrecheckFailed;
     private final boolean asynchronousSnapshotPrecheck;
@@ -30,7 +33,7 @@ public final class StructureIncrementalCheckResult {
             int recheckedPieces,
             int reusedPieces) {
         this(dirtyRoots, dependencyClosure, Collections.emptySet(),
-                recheckedPieces, reusedPieces, false, false, false, 0);
+                recheckedPieces, reusedPieces, 0, 0, 0, false, false, false, 0);
     }
 
     public StructureIncrementalCheckResult(
@@ -42,7 +45,7 @@ public final class StructureIncrementalCheckResult {
             boolean snapshotPrecheckAttempted,
             boolean snapshotPrecheckFailed) {
         this(dirtyRoots, dependencyClosure, prunedPieces, recheckedPieces, reusedPieces,
-                snapshotPrecheckAttempted, snapshotPrecheckFailed, false, 0);
+                0, 0, 0, snapshotPrecheckAttempted, snapshotPrecheckFailed, false, 0);
     }
 
     public StructureIncrementalCheckResult(
@@ -51,6 +54,9 @@ public final class StructureIncrementalCheckResult {
             @NotNull Set<String> prunedPieces,
             int recheckedPieces,
             int reusedPieces,
+            int cacheProbeAttempts,
+            int cacheProbeHits,
+            int cacheProbeMisses,
             boolean snapshotPrecheckAttempted,
             boolean snapshotPrecheckFailed,
             boolean asynchronousSnapshotPrecheck,
@@ -60,6 +66,9 @@ public final class StructureIncrementalCheckResult {
         this.prunedPieces = Collections.unmodifiableSet(new LinkedHashSet<>(prunedPieces));
         this.recheckedPieces = recheckedPieces;
         this.reusedPieces = reusedPieces;
+        this.cacheProbeAttempts = Math.max(0, cacheProbeAttempts);
+        this.cacheProbeHits = Math.max(0, cacheProbeHits);
+        this.cacheProbeMisses = Math.max(0, cacheProbeMisses);
         this.snapshotPrecheckAttempted = snapshotPrecheckAttempted;
         this.snapshotPrecheckFailed = snapshotPrecheckFailed;
         this.asynchronousSnapshotPrecheck = asynchronousSnapshotPrecheck;
@@ -89,6 +98,18 @@ public final class StructureIncrementalCheckResult {
         return reusedPieces;
     }
 
+    public int getCacheProbeAttempts() {
+        return cacheProbeAttempts;
+    }
+
+    public int getCacheProbeHits() {
+        return cacheProbeHits;
+    }
+
+    public int getCacheProbeMisses() {
+        return cacheProbeMisses;
+    }
+
     public boolean wasSnapshotPrecheckAttempted() {
         return snapshotPrecheckAttempted;
     }
@@ -112,6 +133,9 @@ public final class StructureIncrementalCheckResult {
                 + ", pruned=" + prunedPieces.size()
                 + ", rechecked=" + recheckedPieces
                 + ", reused=" + reusedPieces
+                + ", cacheProbeAttempts=" + cacheProbeAttempts
+                + ", cacheProbeHits=" + cacheProbeHits
+                + ", cacheProbeMisses=" + cacheProbeMisses
                 + ", snapshotPrecheckAttempted=" + snapshotPrecheckAttempted
                 + ", snapshotPrecheckFailed=" + snapshotPrecheckFailed
                 + ", asynchronousSnapshotPrecheck=" + asynchronousSnapshotPrecheck

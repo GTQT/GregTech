@@ -77,10 +77,7 @@ final class MultiblockStructureCommitter {
 
         StructureTrace.debug(controller, "still-valid", "path=" + result.getTracePath()
                 + ", metadata=" + controller.getFormedMetadata());
-        if (result.getSource() == StructureCheckResult.Source.LEGACY_TEMPLATE) {
-            MultiblockStructureRegistration.reregisterLegacyCache(
-                    controller, controller.multiblockState);
-        } else if (result.getGraphPublication() != null) {
+        if (result.getGraphPublication() != null) {
             MultiblockStructureRegistration.refreshMultiPieceRegistrationFromRuntime(
                     controller, controller.multiPiecePattern, controller.pieceRuntimes);
         }
@@ -153,13 +150,6 @@ final class MultiblockStructureCommitter {
     private static void registerInitialCommit(
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureCheckResult.Source source) {
-        if (source == StructureCheckResult.Source.LEGACY_TEMPLATE) {
-            AsyncStructureChecker.getInstance().unregister(controller);
-            MultiblockStructureRegistration.registerFormedLegacy(
-                    controller, controller.multiPiecePattern, controller.pieceRuntimes,
-                    controller.multiblockState);
-            return;
-        }
         MultiblockStructureRegistration.registerFormedDefinition(
                 controller, controller.multiPiecePattern, controller.pieceRuntimes);
     }

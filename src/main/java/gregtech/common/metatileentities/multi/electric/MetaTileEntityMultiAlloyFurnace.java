@@ -8,6 +8,7 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
@@ -117,8 +118,9 @@ public class MetaTileEntityMultiAlloyFurnace extends RecipeMapMultiblockControll
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        PatternMatchContext context = formed.copyLegacyCallbackContext();
         ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
         IHeatingCoilBlockStats coilType = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;

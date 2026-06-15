@@ -237,7 +237,8 @@ final class StructureWorldIndex {
         if (runtime != null && runtime.hasPendingDirtyRoots(controller)) {
             StructureIncrementalFallbackReason reason =
                     runtime.getIncrementalFallbackReason(
-                            gregtech.api.pattern.StructureOrientation.fromController(controller));
+                            gregtech.api.pattern.StructureOrientation.fromController(controller),
+                            controller);
             return reason == null
                     ? DirtyCheckLease.incremental()
                     : DirtyCheckLease.full(reason);
