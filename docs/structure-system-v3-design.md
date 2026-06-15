@@ -280,10 +280,14 @@ incremental recheck 的入口是 `StructureRuntime.checkIncremental(...)`。它�
 - direct `IStructureElement.getDependencies()`，用于元素自身读取 typed contribution、先前 piece metadata
   或 external controller state 的场景。
 
-direct element 默认没有额外 dependency。`CompiledStructureElement` 会转发 source element 的 dependency；
+direct element 必须显式声明增量契约。内置 typed element 通过 `ITypedStructureElement` 声明
+`TYPED_CONTRIBUTION` 和 empty dependencies；自定义 `IStructureElement` 必须实际覆盖
+`getIncrementalSupport()` 与 `getDependencies()`。旧 addon 仍保持源码兼容，但未声明契约的 element
+会由 `StructureDependencyCompiler` 确定性降级为 `OPAQUE_ELEMENT`。
+`CompiledStructureElement` 会转发 source element 的 dependency 和契约状态；
 `WrapperElement` 只有在没有 callback/lazy supplier 时才透明转发，callback/lazy wrapper 仍视为 opaque。
 `ChainElement` 会合并 child dependencies，并按 child 中最保守的 `StructureIncrementalSupport` 上报；
-包含 legacy/opaque child 的 chain 不会绕过 eligibility fallback。
+包含 legacy/opaque/未声明契约 child 的 chain 不会绕过 eligibility fallback。
 
 满足条件时，incremental evaluator 从 committed graph 复制 baseline result table/runtime publication，只重算
 dirty roots 及 dependency closure 中需要重算的 piece，再 fold 成新的 aggregate 和 graph publication。
@@ -297,9 +301,10 @@ dirty roots 及 dependency closure 中需要重算的 piece，再 fold 成新的
 - baseline/result table 不完整。
 
 debug `debugStructureCheck` 打开时，`StructureShadowValidator` 会对成功的 incremental result 低频抽样执行
-一次 full check oracle。shadow validation 不发布 lifecycle、不替换结果，只在 mismatch 时输出 warn。
+一次 full check oracle。shadow validation 不发布 lifecycle、不替换结果；mismatch 输出 warn，成功样本输出 debug。
 比较内容包括 result table semantic fingerprint、aggregate values、parts、ability counts、ability parts、
-variant active blocks、formed metadata 和 channel values。
+variant active blocks、formed metadata 和 channel values。两条路径同时记录实际 block-state/tile-entity read
+计数，日志可直接比较 incremental 与 full oracle 的 world-read 成本。
 
 当前 world event 对 committed graph 注册的结构会通过 `StructurePositionIndex` 把 changed position 映射为
 dirty root piece。旧注册路径仍会使用 piece runtime dirty 标记并走 active-graph。
@@ -371,13 +376,15 @@ advanced thread、MultiMap recipe-map index、Large Boiler throttle/type，以�
 
 1. first tick live check；
 2. formed controller event-driven lease；
-3. unformed controller async precheck；
-4. polling fallback。
+3. eligible formed dirty controller 的 async state-only precheck；
+4. unformed controller async snapshot precheck；
+5. polling fallback。
 
 默认 policy 保留原行为：配置允许时 formed 结构消费 event-driven dirty，未 formed 结构在 definition 支持
-`SNAPSHOT_MATCH` 时进入 async，最后按 working/standby interval polling。
+`SNAPSHOT_MATCH` 时进入 async；eligible formed dirty graph 可进入 detached dirty precheck，最后按
+working/standby interval polling。
 
-async check 流程：
+未形成结构的 async check 流程：
 
 1. scheduler 将未 formed controller 注册到 `AsyncStructureChecker`。
 2. 主线程根据 definition AABB 捕获 `BlockStateSnapshot` 和 chunk change snapshot。
@@ -385,7 +392,20 @@ async check 流程：
 4. 主线程处理 result 时重新验证 async registration generation 和 `StructureCommitToken`。
 5. snapshot matched 时调用 `controller.checkStructurePattern()` 做 live confirm。
 
-async result 永远不直接 publish lifecycle 或 failure。超过 snapshot volume 上限的结构进入主线程 fallback queue。
+formed dirty async precheck 流程：
+
+1. scheduler 消费 `DirtyCheckLease.INCREMENTAL`，但 runtime dirty roots 保持未消费。
+2. 主线程从 committed graph 生成 `StructureDirtyPrecheck`，只复制 dirty roots 的 expected block states，
+   并捕获覆盖 chunk 的 change snapshot、graph generation 和 formed-only `StructureCommitToken`。
+3. async thread 只比较 detached block-state maps，不持有或访问 `World`、controller、tile entity。
+4. 主线程重新校验 registration、lifecycle、orientation、graph generation 和 chunk revision。
+5. token 有效时执行 live incremental confirm；live confirm 再次消费当前 dirty roots，因此会包含 async
+   期间新增的 roots。
+6. 只有 server-thread committer 可以发布 successor graph 和 formed lifecycle。stale token 或拒绝 commit
+   会重新唤醒 dirty scheduler，避免已消费 lease 丢失。
+
+async result 永远不直接 publish lifecycle 或 failure。超过 snapshot volume 上限的未形成结构进入主线程
+fallback queue；无法安全构造 detached dirty snapshot 时直接回退主线程 live incremental。
 
 ## 10. Element、Session 与 Transaction
 
@@ -400,6 +420,8 @@ async result 永远不直接 publish lifecycle 或 failure。超过 snapshot vol
 - `survivalPlaceBlock(...)` 提供 survival build result；
 - `spawnHintWithResult(...)` 提供 hint outcome。
 
+纯 typed direct element 应实现 `ITypedStructureElement`，或显式覆盖
+`getIncrementalSupport()` 与 `getDependencies()`。编译器不会再把继承 permissive 默认值视为可增量复用。
 direct element 如果读取先前 piece 的 contribution、repeat/center metadata、controller mode、channel/config/upgrade
 等非方块输入，必须通过 `StructureDependency` 显式声明。未声明依赖的 direct element 只会因自身 watched position
 dirty 而重算；读取 opaque legacy context 或 callback side effect 的 element 应保持 opaque support，避免错误复用。
@@ -467,7 +489,10 @@ legacy 兼容边界：
 - `BlockPattern` 仍是 deprecated facade；
 - `BlockPatternTemplate.getBlockMatches()` 仍可 materialize legacy predicate array；
 - `TraceabilityPredicate` 仍可适配为 direct element；
-- JEI/projector/diagnostic 优先读取 typed preview metadata，缺失时 fallback 到 legacy predicate candidates。
+- typed preview traversal 为每个 cell 保留 entry，包括 empty entry；
+- JEI 不再通过全模板 predicate-shaped traversal 补扫 candidate map；legacy predicate candidates 只来自
+  已存在的公开兼容投影或 legacy-adapted typed preview；
+- projector/diagnostic 优先读取 typed preview metadata，旧 cell 才使用 legacy predicate candidates。
 
 ## 13. Failure、Trace 与日志
 
@@ -624,6 +649,10 @@ compatibility：
 - `StructureExternalDependencies`：提供 controller mode、channel、configuration、upgrade snapshot key，并能通过
   `enqueueDirtyRoots(...)` 唤醒 scheduler。
 - `StructureShadowValidator`：debug 下低频抽样 full oracle，对比 incremental result 的结构语义输出。
+- `StructureWorldReadTracker`：debug shadow 样本同时统计 incremental/full 的 block-state 与 tile-entity reads。
+- `StructureDirtyPrecheck`：formed dirty graph 的 detached state-only precheck；worker 只比较不可变快照，
+  主线程 live confirm 和 committer 保持唯一发布权。
+- `ITypedStructureElement` 和显式契约检查：未声明 support/dependencies 的 direct element 保守 fallback。
 - 单元测试覆盖 fixed piece、repeat group、dynamic offset、多 dirty roots、external dependency、chain direct
   element dependency、opaque chain fallback，以及 clean piece 不重复读取 world/snapshot access 的核心场景。
 - 真实机器接入已覆盖 Godforge upgrade/config 条件：第二/第三 ring 条件声明 upgrades/config external
@@ -631,8 +660,9 @@ compatibility：
 - 真实机器配置迁移已覆盖 MultiMap/AdvanceMultiMap recipe-map index、Large Boiler throttle/type 和
   working-enabled mode；Research Station 的 object-holder direct element 显式声明 typed contribution、
   preview、empty dependencies 和 incremental support。
-- 性能验收除固定/repeat/dynamic/multi-root/external 单元场景外，还覆盖 controller-mode/config/upgrade
+- 性能验收除固定/repeat/dynamic/multi-root/external 单元场景外，还覆盖 controller-mode/channel/config/upgrade
   组合的 real-machine-style matrix，验证 clean piece world-read 计数不重复增加。
+- typed preview 覆盖空 cell，JEI 已删除只用于旧 predicate-shaped traversal 的内部全模板 fallback。
 
 当前尚未完成的部分：
 
@@ -640,21 +670,19 @@ compatibility：
   的 element 会 fallback 到 active-graph/full。
 - `StructureOperationEvaluator` 仍是委托层，不是所有 operation 共用的单一 traversal engine。
 - `PatternMatchContext` 仍是 compatibility surface，legacy callback 和部分旧工具仍依赖它。
-- async 仍只做未形成结构的 snapshot precheck，不异步重算 formed dirty piece；默认 policy 和
-  `StructureCommitToken` 都拒绝 already-formed async precheck。
+- async dirty 当前只做 committed watched block states 的预检，不会在线程外执行 element matcher、
+  tile-entity access、aggregate fold 或 lifecycle publication。
 - non-eligible event-driven 路径仍可能重扫 active graph 或 full graph。
-- 当前性能验收覆盖单元矩阵、Godforge 接入点以及 controller-mode/config/upgrade 组合矩阵；还没有
+- 当前性能验收覆盖单元矩阵、Godforge 接入点以及 controller-mode/channel/config/upgrade 组合矩阵；还没有
   大规模存档级 world profiling。
 
-后续推进顺序：
+继续演进时只保留以下边界：
 
-1. 持续收紧 legacy 边界。新增代码只消费 `StructureContribution`、`StructureOperationState` 和 typed preview；
-   `PatternMatchContext` 只在 callback/tooling 边界生成。
-2. 继续迁移 addon-specific external state。新 direct elements 必须补齐 typed contribution、dependency aspect、
-   `StructureIncrementalSupport` 和 `getDependencies()`；新 controller 模式、升级、配置状态必须接入 snapshot/notify。
-3. 扩展 shadow validation 和性能验收。继续从 Godforge 扩展到更多真实机器矩阵，观察 debug shadow mismatch
-   和 world-read 计数。
-4. 评估 async dirty precheck。只有在 live confirm、commit token 和 thread-safe snapshot contract 清晰后，
-   才允许把 dirty piece 的预检搬到 async；formed state 仍必须由主线程 committer 发布。
-5. 删除过时 fallback。等 addon 迁移窗口结束、typed direct element 覆盖足够后，再移除只服务旧
-   predicate-shaped traversal 的内部路径。
+1. 新 runtime 逻辑只消费 `StructureContribution`、`StructureOperationState` 和 typed preview；
+   `PatternMatchContext` 只在 callback/tooling/public compatibility 边界生成。
+2. 新 direct element 使用 `ITypedStructureElement` 或显式声明 support/dependencies；新 controller 私有状态
+   必须接入对应 snapshot/notify。
+3. async worker 只处理 detached immutable data；任何 live matcher、fold、failure/lifecycle publication
+   都留在主线程。
+4. public legacy facade 在 addon 迁移窗口内保留，但不得重新引入内部 predicate-shaped 全模板 traversal。
+5. 继续用 debug shadow mismatch、world-read metrics 和真实存档 profiling 验收增量收益。

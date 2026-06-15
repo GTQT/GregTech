@@ -80,6 +80,16 @@ public class ChainElement implements IStructureElement<Object> {
     }
 
     @Override
+    public boolean hasExplicitIncrementalContract() {
+        for (IStructureElement element : elements) {
+            if (!element.hasExplicitIncrementalContract()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public boolean check(@NotNull StructureEvaluationContext<Object> context) {
         for (IStructureElement e : elements) {
             if (context.transaction(e::check)) {

@@ -33,6 +33,16 @@ public interface StructureSchedulerPolicy {
     boolean allowsAsync(@NotNull MultiblockControllerBase controller,
                         @NotNull AsyncStructureChecker checker);
 
+    /**
+     * Whether a formed incremental lease may use a detached state-only async
+     * precheck before the mandatory server-thread live confirmation.
+     */
+    default boolean allowsAsyncDirtyPrecheck(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull AsyncStructureChecker checker) {
+        return false;
+    }
+
     int pollingInterval(@NotNull MultiblockControllerBase controller);
 
     boolean shouldPollingCheck(@NotNull MultiblockControllerBase controller);
@@ -77,6 +87,19 @@ public interface StructureSchedulerPolicy {
                 return false;
             }
             return true;
+        }
+
+        @Override
+        public boolean allowsAsyncDirtyPrecheck(
+                @NotNull MultiblockControllerBase controller,
+                @NotNull AsyncStructureChecker checker) {
+            return ConfigHolder.machines.enableAsyncStructureCheck
+                    && controller.allowsAsyncStructureCheck()
+                    && controller.isStructureFormed()
+                    && controller.getWorld() != null
+                    && !controller.getWorld().isRemote
+                    && !(controller.getWorld() instanceof DummyWorld)
+                    && checker.isRunning();
         }
 
         @Override

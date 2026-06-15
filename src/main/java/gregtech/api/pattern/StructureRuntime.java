@@ -143,6 +143,13 @@ public final class StructureRuntime {
 
     @NotNull
     public StructureCheckResult checkIncremental(@NotNull StructureOperationRequest request) {
+        return checkIncremental(request, null);
+    }
+
+    @NotNull
+    public StructureCheckResult checkIncremental(
+            @NotNull StructureOperationRequest request,
+            @Nullable StructureDirtyPrecheck.Result detachedPrecheck) {
         StructureOrientation orientation = request.requireOrientation();
         StructureIncrementalFallbackReason fallbackReason = getIncrementalFallbackReason(orientation);
         if (fallbackReason != null) {
@@ -153,7 +160,8 @@ public final class StructureRuntime {
             return fallbackFromIncremental(request, StructureIncrementalFallbackReason.NO_BASELINE);
         }
         return evaluator.checkIncremental(
-                request, getCommittedGraph(), dirtyRoots, definition.getEligibilityPlan());
+                request, getCommittedGraph(), dirtyRoots, definition.getEligibilityPlan(),
+                detachedPrecheck);
     }
 
     /**
@@ -343,10 +351,27 @@ public final class StructureRuntime {
     }
 
     public boolean hasPendingDirtyRoots(@Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
-        if (!dirtyState.isEmpty()) {
-            return true;
+        return !snapshotDirtyRoots(controller).isEmpty();
+    }
+
+    /**
+     * Build a detached async precheck plan without consuming pending roots.
+     *
+     * <p>The plan is only a scheduling hint. The server-thread live confirm
+     * consumes the current root set again before publishing any state.
+     */
+    @Nullable
+    public StructureDirtyPrecheck createDirtyPrecheck(
+            @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        CommittedStructureGraph graph = getCommittedGraph();
+        if (definition == null || graph == null || !definition.getEligibilityPlan().isEligible()) {
+            return null;
         }
-        return !rootsForChangedExternalDependencies(controller).isEmpty();
+        Set<String> roots = snapshotDirtyRoots(controller);
+        if (roots.isEmpty()) {
+            return null;
+        }
+        return StructureDirtyPrecheck.create(graph, roots);
     }
 
     @NotNull
@@ -530,6 +555,14 @@ public final class StructureRuntime {
                         current.changedKeys(graph.getExternalDependencySnapshot())));
             }
         }
+        return Collections.unmodifiableSet(roots);
+    }
+
+    @NotNull
+    private Set<String> snapshotDirtyRoots(
+            @Nullable gregtech.api.metatileentity.multiblock.MultiblockControllerBase controller) {
+        LinkedHashSet<String> roots = new LinkedHashSet<>(dirtyState.snapshot());
+        roots.addAll(rootsForChangedExternalDependencies(controller));
         return Collections.unmodifiableSet(roots);
     }
 

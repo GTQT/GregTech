@@ -2,6 +2,7 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureDirtyPrecheck;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureSnapshotResult;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -54,11 +55,31 @@ public class AsyncStructureChecker {
     /** Controllers waiting for async structure check */
     private final Set<MultiblockControllerBase> pendingControllers = ConcurrentHashMap.newKeySet();
 
+    /** Formed controllers waiting for detached dirty-piece precheck. */
+    private final Set<MultiblockControllerBase> pendingDirtyControllers =
+            ConcurrentHashMap.newKeySet();
+
+    /** Detached plans captured before worker-thread scheduling. */
+    private final Map<MultiblockControllerBase, DirtyRegistration> dirtyRegistrations =
+            new ConcurrentHashMap<>();
+
     /** Snapshot tasks ready for async processing */
     private final Queue<SnapshotTask> snapshotQueue = new ConcurrentLinkedQueue<>();
 
+    /** Dirty-piece state-only snapshots ready for worker comparison. */
+    private final Queue<DirtySnapshotTask> dirtySnapshotQueue =
+            new ConcurrentLinkedQueue<>();
+
     /** Results from async checks that need main-thread processing */
     private final Queue<AsyncCheckResult> resultQueue = new ConcurrentLinkedQueue<>();
+
+    /** Dirty precheck results that require server-thread live confirmation. */
+    private final Queue<DirtyAsyncCheckResult> dirtyResultQueue =
+            new ConcurrentLinkedQueue<>();
+
+    /** Dirty plans that could not be captured safely and need live fallback. */
+    private final Queue<DirtyCheckToken> dirtyFallbackQueue =
+            new ConcurrentLinkedQueue<>();
 
     /** Controller -> registration generation currently being processed. */
     private final Map<MultiblockControllerBase, Long> inFlight = new ConcurrentHashMap<>();
@@ -128,11 +149,16 @@ public class AsyncStructureChecker {
                 scheduledTask = null;
             }
             pendingControllers.clear();
+            pendingDirtyControllers.clear();
+            dirtyRegistrations.clear();
             snapshotQueue.clear();
+            dirtySnapshotQueue.clear();
             resultQueue.clear();
+            dirtyResultQueue.clear();
             inFlight.clear();
             registrationGenerations.clear();
             oversizedQueue.clear();
+            dirtyFallbackQueue.clear();
         }
     }
 
@@ -150,6 +176,42 @@ public class AsyncStructureChecker {
     }
 
     /**
+     * Register a formed controller for a detached dirty-piece precheck.
+     *
+     * <p>The returned plan contains no live world, controller, or tile-entity
+     * references. A false return means the caller must run the live incremental
+     * check immediately because the current baseline cannot be prechecked safely.
+     */
+    public boolean registerForAsyncDirtyPrecheck(
+            @NotNull MultiblockControllerBase controller) {
+        if (!running.get()) {
+            return false;
+        }
+        if (pendingDirtyControllers.contains(controller)
+                || inFlight.containsKey(controller)) {
+            return true;
+        }
+
+        StructureRuntime runtime = controller.getStructureRuntime();
+        StructureDirtyPrecheck precheck =
+                runtime == null ? null : runtime.createDirtyPrecheck(controller);
+        if (precheck == null) {
+            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug(
+                        "[AsyncStructureDirty] Detached precheck unavailable for {}, using live incremental check",
+                        controller.getMetaName());
+            }
+            return false;
+        }
+
+        long generation = nextRegistrationGeneration.incrementAndGet();
+        dirtyRegistrations.put(
+                controller, new DirtyRegistration(generation, precheck));
+        pendingDirtyControllers.add(controller);
+        return true;
+    }
+
+    /**
      * Unregister a controller from async checking.
      * Called when the controller forms, is removed, or the world unloads.
      *
@@ -157,6 +219,8 @@ public class AsyncStructureChecker {
      */
     public void unregister(@NotNull MultiblockControllerBase controller) {
         pendingControllers.remove(controller);
+        pendingDirtyControllers.remove(controller);
+        dirtyRegistrations.remove(controller);
         inFlight.remove(controller);
         registrationGenerations.remove(controller);
     }
@@ -171,6 +235,38 @@ public class AsyncStructureChecker {
         tickCounter++;
 
         int prepared = 0;
+        for (MultiblockControllerBase controller : pendingDirtyControllers) {
+            if (prepared >= MAX_SNAPSHOTS_PER_TICK) break;
+            if (inFlight.containsKey(controller)) continue;
+            if ((controller.hashCode() + tickCounter) % 4 != 0) continue;
+
+            DirtyRegistration registration = dirtyRegistrations.get(controller);
+            if (registration == null) continue;
+            World world = controller.getWorld();
+            if (world == null || world.isRemote) continue;
+            if (!controller.isStructureFormed()) {
+                completeDirty(controller, registration.generation);
+                continue;
+            }
+
+            DirtySnapshotCapture capture = captureDirtySnapshot(
+                    world, registration.precheck);
+            StructureCommitToken commitToken =
+                    StructureCommitToken.captureForAsyncDirtyPrecheck(
+                            controller, capture.changeSnapshot,
+                            registration.precheck.getGraphGeneration());
+            DirtyCheckToken token = new DirtyCheckToken(
+                    controller, registration.generation, commitToken,
+                    registration.precheck);
+            inFlight.put(controller, registration.generation);
+            if (capture.snapshot == null || !isCurrent(token)) {
+                dirtyFallbackQueue.offer(token);
+            } else {
+                dirtySnapshotQueue.offer(new DirtySnapshotTask(token, capture.snapshot));
+            }
+            prepared++;
+        }
+
         for (MultiblockControllerBase controller : pendingControllers) {
             if (prepared >= MAX_SNAPSHOTS_PER_TICK) break;
             if (inFlight.containsKey(controller)) continue;
@@ -230,6 +326,55 @@ public class AsyncStructureChecker {
     public void processResults() {
         if (!running.get()) return;
 
+        DirtyCheckToken dirtyFallback;
+        while ((dirtyFallback = dirtyFallbackQueue.poll()) != null) {
+            String staleReason = staleReason(dirtyFallback);
+            completeDirty(
+                    dirtyFallback.controller, dirtyFallback.registrationGeneration);
+            if (staleReason != null) {
+                traceStale(dirtyFallback, staleReason);
+                requeueDirtyCheck(dirtyFallback);
+                continue;
+            }
+            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug(
+                        "[AsyncStructureDirty] Snapshot capture unavailable for {}, performing live incremental confirm",
+                        dirtyFallback.controller.getMetaName());
+            }
+            dirtyFallback.controller.checkIncrementalStructureGraph();
+        }
+
+        DirtyAsyncCheckResult dirtyResult;
+        while ((dirtyResult = dirtyResultQueue.poll()) != null) {
+            DirtyCheckToken token = dirtyResult.token;
+            String tokenStaleReason = staleReason(token);
+            completeDirty(token.controller, token.registrationGeneration);
+            if (tokenStaleReason != null) {
+                traceStale(token, tokenStaleReason);
+                requeueDirtyCheck(token);
+                continue;
+            }
+            if (dirtyResult.result == null) {
+                if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                    GTLog.logger.debug(
+                            "[AsyncStructureDirty] Worker precheck failed for {} reason={}, performing live incremental fallback",
+                            token.controller.getMetaName(), dirtyResult.staleReason);
+                }
+                token.controller.checkIncrementalStructureGraph();
+                continue;
+            }
+            if (gregtech.common.ConfigHolder.machines.debugStructureCheck) {
+                GTLog.logger.debug(
+                        "[AsyncStructureDirty] Precheck complete for {} roots={} positions={} baselineMatch={}, performing live confirm",
+                        token.controller.getMetaName(),
+                        dirtyResult.result.getDirtyRoots(),
+                        dirtyResult.result.getComparedPositions(),
+                        dirtyResult.result.matchedBaseline());
+            }
+            MultiblockStructureOperations.checkIncrementalGraph(
+                    token.controller, token.commitToken, dirtyResult.result);
+        }
+
         // Process oversized controllers with the same generation/orientation
         // checks as snapshot results before falling back to a live check.
         AsyncCheckToken oversized;
@@ -283,7 +428,21 @@ public class AsyncStructureChecker {
         inFlight.remove(token.controller, token.registrationGeneration);
     }
 
+    private void completeDirty(@NotNull MultiblockControllerBase controller,
+                               long registrationGeneration) {
+        inFlight.remove(controller, registrationGeneration);
+        DirtyRegistration registration = dirtyRegistrations.get(controller);
+        if (registration != null && registration.generation == registrationGeneration) {
+            dirtyRegistrations.remove(controller, registration);
+            pendingDirtyControllers.remove(controller);
+        }
+    }
+
     private boolean isCurrent(@NotNull AsyncCheckToken token) {
+        return staleReason(token) == null;
+    }
+
+    private boolean isCurrent(@NotNull DirtyCheckToken token) {
         return staleReason(token) == null;
     }
 
@@ -300,11 +459,65 @@ public class AsyncStructureChecker {
         return token.commitToken.staleReason();
     }
 
+    @Nullable
+    private String staleReason(@NotNull DirtyCheckToken token) {
+        DirtyRegistration current = dirtyRegistrations.get(token.controller);
+        if (current == null
+                || current.generation != token.registrationGeneration) {
+            return "dirty-registration-generation";
+        }
+        if (!pendingDirtyControllers.contains(token.controller)) {
+            return "not-dirty-pending";
+        }
+        return token.commitToken.staleReason();
+    }
+
     private static void traceStale(@NotNull AsyncCheckToken token,
                                    @NotNull String reason) {
         token.commitToken.traceStale(
                 "async",
                 reason + ", registrationGeneration=" + token.registrationGeneration);
+    }
+
+    private static void traceStale(@NotNull DirtyCheckToken token,
+                                   @NotNull String reason) {
+        token.commitToken.traceStale(
+                "async-dirty",
+                reason + ", registrationGeneration=" + token.registrationGeneration);
+    }
+
+    private static void requeueDirtyCheck(@NotNull DirtyCheckToken token) {
+        World world = token.controller.getWorld();
+        if (world == null || world.isRemote || !token.controller.isStructureFormed()) {
+            return;
+        }
+        MultiblockWorldData.get(world).enqueueDirtyRoots(
+                token.controller,
+                token.precheck.getDirtyRoots(),
+                world.getTotalWorldTime());
+    }
+
+    @NotNull
+    private DirtySnapshotCapture captureDirtySnapshot(
+            @NotNull World world,
+            @NotNull StructureDirtyPrecheck precheck) {
+        MultiblockWorldData worldData = MultiblockWorldData.get(world);
+        BlockPos min = precheck.getMinCorner();
+        BlockPos max = precheck.getMaxCorner();
+        MultiblockWorldData.ChangeSnapshot before =
+                min == null || max == null
+                        ? null
+                        : worldData.captureChangeSnapshot(min, max);
+        StructureDirtyPrecheck.Snapshot snapshot = precheck.capture(world);
+        MultiblockWorldData.ChangeSnapshot after =
+                min == null || max == null
+                        ? null
+                        : worldData.captureChangeSnapshot(min, max);
+        if (snapshot == null
+                || before != null && !worldData.isChangeSnapshotCurrent(before)) {
+            return DirtySnapshotCapture.unavailable();
+        }
+        return DirtySnapshotCapture.success(snapshot, after);
     }
 
     /**
@@ -373,6 +586,24 @@ public class AsyncStructureChecker {
      */
     private void asyncCheckLoop() {
         try {
+            DirtySnapshotTask dirtyTask;
+            while ((dirtyTask = dirtySnapshotQueue.poll()) != null) {
+                if (!running.get()) return;
+                try {
+                    StructureDirtyPrecheck.Result result =
+                            dirtyTask.token.precheck.evaluate(dirtyTask.snapshot);
+                    dirtyResultQueue.offer(
+                            DirtyAsyncCheckResult.completed(dirtyTask.token, result));
+                } catch (RuntimeException e) {
+                    GTLog.logger.error(
+                            "Error comparing async dirty structure snapshot for graph generation {}",
+                            dirtyTask.token.precheck.getGraphGeneration(), e);
+                    dirtyResultQueue.offer(
+                            DirtyAsyncCheckResult.stale(
+                                    dirtyTask.token, "worker-exception"));
+                }
+            }
+
             SnapshotTask task;
             while ((task = snapshotQueue.poll()) != null) {
                 if (!running.get()) return;
@@ -434,11 +665,16 @@ public class AsyncStructureChecker {
      */
     public void clearWorld(@NotNull World world) {
         pendingControllers.removeIf(c -> c.getWorld() == world);
+        pendingDirtyControllers.removeIf(c -> c.getWorld() == world);
+        dirtyRegistrations.keySet().removeIf(c -> c.getWorld() == world);
         inFlight.keySet().removeIf(c -> c.getWorld() == world);
         registrationGenerations.keySet().removeIf(c -> c.getWorld() == world);
         snapshotQueue.removeIf(task -> task.token.commitToken.getWorld() == world);
+        dirtySnapshotQueue.removeIf(task -> task.token.commitToken.getWorld() == world);
         resultQueue.removeIf(result -> result.token.commitToken.getWorld() == world);
+        dirtyResultQueue.removeIf(result -> result.token.commitToken.getWorld() == world);
         oversizedQueue.removeIf(token -> token.commitToken.getWorld() == world);
+        dirtyFallbackQueue.removeIf(token -> token.commitToken.getWorld() == world);
     }
 
     /**
@@ -452,7 +688,7 @@ public class AsyncStructureChecker {
      * @return the number of controllers pending async check
      */
     public int getPendingCount() {
-        return pendingControllers.size();
+        return pendingControllers.size() + pendingDirtyControllers.size();
     }
 
     // --- Internal data classes ---
@@ -472,6 +708,37 @@ public class AsyncStructureChecker {
             this.registrationGeneration = registrationGeneration;
             this.commitToken = commitToken;
             this.definition = definition;
+        }
+    }
+
+    private static final class DirtyRegistration {
+
+        final long generation;
+        final StructureDirtyPrecheck precheck;
+
+        private DirtyRegistration(long generation,
+                                  StructureDirtyPrecheck precheck) {
+            this.generation = generation;
+            this.precheck = precheck;
+        }
+    }
+
+    private static final class DirtyCheckToken {
+
+        final MultiblockControllerBase controller;
+        final long registrationGeneration;
+        final StructureCommitToken commitToken;
+        final StructureDirtyPrecheck precheck;
+
+        private DirtyCheckToken(
+                MultiblockControllerBase controller,
+                long registrationGeneration,
+                StructureCommitToken commitToken,
+                StructureDirtyPrecheck precheck) {
+            this.controller = controller;
+            this.registrationGeneration = registrationGeneration;
+            this.commitToken = commitToken;
+            this.precheck = precheck;
         }
     }
 
@@ -506,12 +773,50 @@ public class AsyncStructureChecker {
         }
     }
 
+    private static final class DirtySnapshotCapture {
+
+        @Nullable
+        final StructureDirtyPrecheck.Snapshot snapshot;
+        @Nullable
+        final MultiblockWorldData.ChangeSnapshot changeSnapshot;
+
+        private DirtySnapshotCapture(
+                @Nullable StructureDirtyPrecheck.Snapshot snapshot,
+                @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot) {
+            this.snapshot = snapshot;
+            this.changeSnapshot = changeSnapshot;
+        }
+
+        private static DirtySnapshotCapture success(
+                StructureDirtyPrecheck.Snapshot snapshot,
+                @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot) {
+            return new DirtySnapshotCapture(snapshot, changeSnapshot);
+        }
+
+        private static DirtySnapshotCapture unavailable() {
+            return new DirtySnapshotCapture(null, null);
+        }
+    }
+
     private static class SnapshotTask {
 
         final AsyncCheckToken token;
         final BlockStateSnapshot snapshot;
 
         SnapshotTask(AsyncCheckToken token, BlockStateSnapshot snapshot) {
+            this.token = token;
+            this.snapshot = snapshot;
+        }
+    }
+
+    private static final class DirtySnapshotTask {
+
+        final DirtyCheckToken token;
+        final StructureDirtyPrecheck.Snapshot snapshot;
+
+        private DirtySnapshotTask(
+                DirtyCheckToken token,
+                StructureDirtyPrecheck.Snapshot snapshot) {
             this.token = token;
             this.snapshot = snapshot;
         }
@@ -537,6 +842,36 @@ public class AsyncStructureChecker {
 
         static AsyncCheckResult stale(AsyncCheckToken token, String reason) {
             return new AsyncCheckResult(token, false, reason);
+        }
+    }
+
+    private static final class DirtyAsyncCheckResult {
+
+        final DirtyCheckToken token;
+        @Nullable
+        final StructureDirtyPrecheck.Result result;
+        @Nullable
+        final String staleReason;
+
+        private DirtyAsyncCheckResult(
+                DirtyCheckToken token,
+                @Nullable StructureDirtyPrecheck.Result result,
+                @Nullable String staleReason) {
+            this.token = token;
+            this.result = result;
+            this.staleReason = staleReason;
+        }
+
+        private static DirtyAsyncCheckResult completed(
+                DirtyCheckToken token,
+                StructureDirtyPrecheck.Result result) {
+            return new DirtyAsyncCheckResult(token, result, null);
+        }
+
+        private static DirtyAsyncCheckResult stale(
+                DirtyCheckToken token,
+                String reason) {
+            return new DirtyAsyncCheckResult(token, null, reason);
         }
     }
 }

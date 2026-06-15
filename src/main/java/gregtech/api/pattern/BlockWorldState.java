@@ -179,6 +179,7 @@ public class BlockWorldState {
 
     public IBlockState getBlockState() {
         if (this.state == null) {
+            StructureWorldReadTracker.recordBlockStateRead();
             this.state = this.blockAccess.getBlockState(this.pos);
         }
 
@@ -193,6 +194,7 @@ public class BlockWorldState {
     @Nullable
     public TileEntity getTileEntity() {
         if (this.tileEntity == null && !this.tileEntityInitialized) {
+            StructureWorldReadTracker.recordTileEntityRead();
             this.tileEntity = this.blockAccess.getTileEntity(this.pos);
             this.tileEntityInitialized = true;
         }
@@ -205,6 +207,7 @@ public class BlockWorldState {
     }
 
     public IBlockState getOffsetState(EnumFacing face) {
+        StructureWorldReadTracker.recordBlockStateRead();
         if (pos instanceof MutableBlockPos) {
             ((MutableBlockPos) pos).move(face);
             IBlockState blockState = blockAccess.getBlockState(pos);

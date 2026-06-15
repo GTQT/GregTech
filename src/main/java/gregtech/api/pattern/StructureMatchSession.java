@@ -164,7 +164,7 @@ public final class StructureMatchSession {
                 contributionBuilder.copy(), contributionPiece);
     }
 
-    private void restore(@NotNull Checkpoint checkpoint) {
+    void restore(@NotNull Checkpoint checkpoint) {
         context.replaceWith(checkpoint.context);
         operationState.replaceWith(checkpoint.operationState);
         globalCount.clear();

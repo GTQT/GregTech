@@ -6,13 +6,17 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.impl.BlockElement;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -264,11 +268,14 @@ class StructureIncrementalEvaluatorTest {
                 true, StructureExternalDependencies.configuration());
         WorldReadingDependentElement upgradeElement = new WorldReadingDependentElement(
                 true, StructureExternalDependencies.upgrades());
+        WorldReadingDependentElement channelElement = new WorldReadingDependentElement(
+                true, StructureExternalDependencies.channelValues());
         WorldReadingElement cleanElement = new WorldReadingElement(true);
         StructureRuntime runtime = runtime(pattern(
                 piece("mode", modeElement),
                 piece("config", configElement),
                 piece("upgrade", upgradeElement),
+                piece("channel", channelElement),
                 piece("clean", cleanElement)));
         StructureOperationRequest request = checkRequest(controller);
         StructureCheckResult full = runtime.check(request);
@@ -278,15 +285,74 @@ class StructureIncrementalEvaluatorTest {
         controller.configRecipeMap = "distillery";
         controller.configThrottle = 60;
         controller.upgradeTier = 2;
+        controller.channelTier = 3;
         StructureCheckResult incremental = runtime.checkIncremental(request);
 
         assertTrue(incremental.isMatched());
         assertTrue(incremental.usedIncrementalEvaluator());
-        assertEquals(3, incremental.getIncrementalCheckResult().getRecheckedPieces());
+        assertEquals(4, incremental.getIncrementalCheckResult().getRecheckedPieces());
         assertEquals(2, modeElement.worldReads());
         assertEquals(2, configElement.worldReads());
         assertEquals(2, upgradeElement.worldReads());
+        assertEquals(2, channelElement.worldReads());
         assertEquals(1, cleanElement.worldReads());
+    }
+
+    @Test
+    void detachedDirtyPrecheckIsStateOnlyAndLiveConfirmRemainsIncremental() {
+        net.minecraft.init.Bootstrap.register();
+        LoadedBareWorld world = loadedBareWorld(Blocks.STONE.getDefaultState());
+        StructureRuntime runtime = runtime(pattern(new StructurePiece(
+                "dirty", template(new BlockElement(Blocks.STONE.getDefaultState())),
+                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null)));
+        StructureOperationRequest request = StructureOperationRequest.check(
+                world, BlockPos.ORIGIN, ORIENTATION, false, null, null);
+        StructureCheckResult full = runtime.check(request);
+        runtime.publishCommittedGraph(full.getGraphPublication());
+        assertTrue(runtime.addDirtyRoot("dirty"));
+        assertEquals(1, full.getResultTable().get("dirty")
+                .getWatchedPositions().size());
+
+        StructureDirtyPrecheck precheck = runtime.createDirtyPrecheck(null);
+        assertNotNull(precheck);
+        assertEquals(1, precheck.getPositionCount());
+        StructureDirtyPrecheck.Snapshot snapshot = precheck.capture(world);
+        assertNotNull(snapshot);
+        StructureDirtyPrecheck.Result precheckResult = precheck.evaluate(snapshot);
+        assertTrue(precheckResult.matchedBaseline());
+
+        StructureCheckResult incremental =
+                runtime.checkIncremental(request, precheckResult);
+
+        assertTrue(incremental.isMatched());
+        assertTrue(incremental.usedIncrementalEvaluator());
+        assertTrue(incremental.getIncrementalCheckResult()
+                .wasSnapshotPrecheckAsynchronous());
+        assertEquals(1, incremental.getIncrementalCheckResult()
+                .getSnapshotPrecheckPositions());
+        assertEquals(1, incremental.getIncrementalCheckResult()
+                .getRecheckedPieces());
+    }
+
+    @Test
+    void detachedDirtyPrecheckDetectsChangedBlockState() {
+        net.minecraft.init.Bootstrap.register();
+        LoadedBareWorld world = loadedBareWorld(Blocks.STONE.getDefaultState());
+        StructureRuntime runtime = runtime(pattern(new StructurePiece(
+                "dirty", template(new BlockElement(Blocks.STONE.getDefaultState())),
+                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null)));
+        StructureCheckResult full = runtime.check(StructureOperationRequest.check(
+                world, BlockPos.ORIGIN, ORIENTATION, false, null, null));
+        runtime.publishCommittedGraph(full.getGraphPublication());
+        assertTrue(runtime.addDirtyRoot("dirty"));
+
+        StructureDirtyPrecheck precheck = runtime.createDirtyPrecheck(null);
+        assertNotNull(precheck);
+        world.state = Blocks.AIR.getDefaultState();
+        StructureDirtyPrecheck.Snapshot snapshot = precheck.capture(world);
+
+        assertNotNull(snapshot);
+        assertFalse(precheck.evaluate(snapshot).matchedBaseline());
     }
 
     @Test
@@ -440,7 +506,7 @@ class StructureIncrementalEvaluatorTest {
         }
     }
 
-    private static class CountingElement implements IStructureElement<Object> {
+    private static class CountingElement implements ITypedStructureElement<Object> {
 
         private final AtomicInteger calls = new AtomicInteger();
         private boolean matches;
@@ -584,6 +650,7 @@ class StructureIncrementalEvaluatorTest {
         private String configRecipeMap = "assembler";
         private int configThrottle = 100;
         private int upgradeTier = 1;
+        private int channelTier = 1;
 
         private MachineStateController() {
             super(new ResourceLocation("gregtech", "machine_state_matrix_test"));
@@ -625,6 +692,13 @@ class StructureIncrementalEvaluatorTest {
         }
 
         @Override
+        protected Object getStructureChannelDependencyValue() {
+            Map<String, Object> values = new LinkedHashMap<>();
+            values.put("coil", channelTier);
+            return values;
+        }
+
+        @Override
         protected void updateFormedValid() {}
 
         @Override
@@ -643,6 +717,7 @@ class StructureIncrementalEvaluatorTest {
             controller.configRecipeMap = "assembler";
             controller.configThrottle = 100;
             controller.upgradeTier = 1;
+            controller.channelTier = 1;
             return controller;
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("Unable to allocate machine state controller", e);
@@ -663,6 +738,47 @@ class StructureIncrementalEvaluatorTest {
         @Override
         protected boolean isChunkLoaded(int x, int z, boolean allowEmpty) {
             return false;
+        }
+    }
+
+    private static LoadedBareWorld loadedBareWorld(@NotNull IBlockState state) {
+        try {
+            LoadedBareWorld world = (LoadedBareWorld) unsafe()
+                    .allocateInstance(LoadedBareWorld.class);
+            world.state = state;
+            return world;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to allocate loaded bare test world", e);
+        }
+    }
+
+    private static final class LoadedBareWorld extends World {
+
+        private IBlockState state;
+
+        private LoadedBareWorld() {
+            super(null, null, null, null, false);
+        }
+
+        @Override
+        public boolean isBlockLoaded(@NotNull BlockPos pos) {
+            return true;
+        }
+
+        @NotNull
+        @Override
+        public IBlockState getBlockState(@NotNull BlockPos pos) {
+            return state;
+        }
+
+        @Override
+        protected IChunkProvider createChunkProvider() {
+            return null;
+        }
+
+        @Override
+        protected boolean isChunkLoaded(int x, int z, boolean allowEmpty) {
+            return true;
         }
     }
 }

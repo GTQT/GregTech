@@ -176,6 +176,14 @@ public final class StructureDependencyCompiler {
                                         + x + "," + y + "," + z);
                         continue;
                     }
+                    if (!element.hasExplicitIncrementalContract()) {
+                        fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                                "Piece '" + piece.getName() + "' has direct element "
+                                        + element.getClass().getName()
+                                        + " without an explicit incremental support/dependency contract at "
+                                        + x + "," + y + "," + z);
+                        continue;
+                    }
                     if (element.getIncrementalSupport() == StructureIncrementalSupport.OPAQUE) {
                         fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
                                 "Piece '" + piece.getName() + "' has opaque element "

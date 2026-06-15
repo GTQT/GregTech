@@ -90,6 +90,11 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         return source.getDependencies();
     }
 
+    @Override
+    public boolean hasExplicitIncrementalContract() {
+        return source.hasExplicitIncrementalContract();
+    }
+
     @NotNull
     @Override
     public Set<StructureElementCapability> getCapabilities() {

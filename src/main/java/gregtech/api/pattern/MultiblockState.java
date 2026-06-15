@@ -750,13 +750,13 @@ public class MultiblockState {
             TraceabilityPredicate predicate = cell.runtimePredicate();
             worldState.update(world, cell.worldPos, activeContext, activeGlobalCount,
                     layerCounts, predicate, cell.previewEntry);
-            if (updateCache) {
-                recordLiveCacheCell(cell);
-            }
         }
         if (!checkElement(cell.element, session, operation)) {
             recordMissingFixedAbility(cell.runtimePredicate());
             return false;
+        }
+        if (updateCache && !operation.readsSnapshot()) {
+            recordLiveCacheCell(cell);
         }
         return true;
     }
@@ -882,9 +882,7 @@ public class MultiblockState {
             if (predicate != null && predicate != TraceabilityPredicate.ANY) {
                 predicates.put(pos, predicate);
             }
-            if (!previewEntry.getPreview().isEmpty() || !previewEntry.getTooltip().isEmpty()) {
-                previewEntries.put(pos, previewEntry);
-            }
+            previewEntries.put(pos, previewEntry);
             minX = Math.min(pos.getX(), minX);
             minY = Math.min(pos.getY(), minY);
             minZ = Math.min(pos.getZ(), minZ);

@@ -125,6 +125,16 @@ public final class StructureOperationEvaluator {
             @NotNull CommittedStructureGraph baseline,
             @NotNull Set<String> dirtyRoots,
             @NotNull StructureEligibilityPlan plan) {
+        return checkIncremental(request, baseline, dirtyRoots, plan, null);
+    }
+
+    @NotNull
+    public StructureCheckResult checkIncremental(
+            @NotNull StructureOperationRequest request,
+            @NotNull CommittedStructureGraph baseline,
+            @NotNull Set<String> dirtyRoots,
+            @NotNull StructureEligibilityPlan plan,
+            @Nullable StructureDirtyPrecheck.Result detachedPrecheck) {
         request.requireKind(StructureOperationRequest.Kind.CHECK);
         if (definition == null) {
             return checkActiveGraph(request)
@@ -135,16 +145,53 @@ public final class StructureOperationEvaluator {
                     .withEligibilityPlan(plan)
                     .withTraceContext("active-graph-fallback", plan.describeFallback());
         }
+        StructureWorldReadTracker.Scope readScope =
+                ConfigHolder.machines.debugStructureCheck
+                        ? StructureWorldReadTracker.begin()
+                        : null;
+        StructureCheckResult result;
+        StructureWorldReadTracker.Metrics readMetrics;
+        try {
+            result = checkIncrementalEligible(
+                    request, baseline, dirtyRoots, plan, detachedPrecheck);
+        } finally {
+            readMetrics = readScope == null
+                    ? StructureWorldReadTracker.emptyMetrics()
+                    : readScope.finish();
+        }
+        StructureShadowValidator.maybeValidateIncremental(
+                this, request, result, readMetrics);
+        return result;
+    }
+
+    @NotNull
+    private StructureCheckResult checkIncrementalEligible(
+            @NotNull StructureOperationRequest request,
+            @NotNull CommittedStructureGraph baseline,
+            @NotNull Set<String> dirtyRoots,
+            @NotNull StructureEligibilityPlan plan,
+            @Nullable StructureDirtyPrecheck.Result detachedPrecheck) {
         boolean snapshotPrecheckAttempted = false;
         boolean snapshotPrecheckFailed = false;
-        if (definition.supportsElementCapability(StructureElementCapability.SNAPSHOT_MATCH)) {
+        boolean asynchronousSnapshotPrecheck = false;
+        int snapshotPrecheckPositions = 0;
+        if (detachedPrecheck != null
+                && detachedPrecheck.getGraphGeneration() == baseline.getGeneration()) {
             snapshotPrecheckAttempted = true;
-            snapshotPrecheckFailed = !precheckDirtyPiecesOnSnapshot(
+            snapshotPrecheckFailed = !detachedPrecheck.matchedBaseline();
+            asynchronousSnapshotPrecheck = true;
+            snapshotPrecheckPositions = detachedPrecheck.getComparedPositions();
+        } else if (definition.supportsElementCapability(StructureElementCapability.SNAPSHOT_MATCH)) {
+            snapshotPrecheckAttempted = true;
+            SnapshotPrecheckDiagnostic precheck = precheckDirtyPiecesOnSnapshot(
                     request.requireWorld(), baseline, baseline.getOrientation(), dirtyRoots);
+            snapshotPrecheckFailed = !precheck.matched;
+            snapshotPrecheckPositions = precheck.comparedPositions;
         }
         return checkIncrementalOrientation(
                 request, baseline, plan, baseline.getOrientation(), dirtyRoots,
-                snapshotPrecheckAttempted, snapshotPrecheckFailed)
+                snapshotPrecheckAttempted, snapshotPrecheckFailed,
+                asynchronousSnapshotPrecheck, snapshotPrecheckPositions)
                 .withEligibilityPlan(plan);
     }
 
@@ -179,7 +226,9 @@ public final class StructureOperationEvaluator {
             @NotNull StructureOrientation orientation,
             @NotNull Set<String> dirtyRoots,
             boolean snapshotPrecheckAttempted,
-            boolean snapshotPrecheckFailed) {
+            boolean snapshotPrecheckFailed,
+            boolean asynchronousSnapshotPrecheck,
+            int snapshotPrecheckPositions) {
         MultiPiecePattern pattern = requireMultiPiecePattern();
         Set<String> staticClosure = plan.getGraph().dependentClosure(dirtyRoots);
         LinkedHashSet<String> recheckPieces = new LinkedHashSet<>(dirtyRoots);
@@ -199,7 +248,8 @@ public final class StructureOperationEvaluator {
             if (baselineResult == null) {
                 StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
                         dirtyRoots, staticClosure, prunedPieces, recheckPieces,
-                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed,
+                        asynchronousSnapshotPrecheck, snapshotPrecheckPositions);
                 return incrementalFailure(
                         request, orientation, null,
                         "Committed result table is missing piece '" + piece.getName() + "'",
@@ -220,7 +270,8 @@ public final class StructureOperationEvaluator {
             if (runtime == null) {
                 StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
                         dirtyRoots, staticClosure, prunedPieces, recheckPieces,
-                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed,
+                        asynchronousSnapshotPrecheck, snapshotPrecheckPositions);
                 return incrementalFailure(
                         request, orientation, null,
                         "Candidate runtimes are missing piece '" + piece.getName() + "'",
@@ -297,7 +348,8 @@ public final class StructureOperationEvaluator {
                         activePieceDepth(pattern, piece));
                 StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
                         dirtyRoots, staticClosure, prunedPieces, recheckPieces,
-                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                        pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed,
+                        asynchronousSnapshotPrecheck, snapshotPrecheckPositions);
                 return incrementalFailure(
                         request, orientation, failure,
                         "Incremental piece '" + piece.getName() + "' failed pattern check",
@@ -325,7 +377,8 @@ public final class StructureOperationEvaluator {
 
         StructureIncrementalCheckResult diagnostic = incrementalDiagnostic(
                 dirtyRoots, staticClosure, prunedPieces, recheckPieces,
-                pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                pattern, snapshotPrecheckAttempted, snapshotPrecheckFailed,
+                asynchronousSnapshotPrecheck, snapshotPrecheckPositions);
 
         StructureResultTable completedTable = resultTable.build();
         StructureAggregateFolder.Result aggregate =
@@ -357,7 +410,6 @@ public final class StructureOperationEvaluator {
                 .withEligibilityPlan(plan)
                 .withIncrementalCheckResult(diagnostic);
         result = attachGraphPublication(result, request, plan, orientation);
-        StructureShadowValidator.maybeValidateIncremental(this, request, result);
         return result;
     }
 
@@ -369,11 +421,14 @@ public final class StructureOperationEvaluator {
             @NotNull Set<String> recheckPieces,
             @NotNull MultiPiecePattern pattern,
             boolean snapshotPrecheckAttempted,
-            boolean snapshotPrecheckFailed) {
+            boolean snapshotPrecheckFailed,
+            boolean asynchronousSnapshotPrecheck,
+            int snapshotPrecheckPositions) {
         return new StructureIncrementalCheckResult(
                 dirtyRoots, staticClosure, prunedPieces,
                 recheckPieces.size(), pattern.getPieceCount() - recheckPieces.size(),
-                snapshotPrecheckAttempted, snapshotPrecheckFailed);
+                snapshotPrecheckAttempted, snapshotPrecheckFailed,
+                asynchronousSnapshotPrecheck, snapshotPrecheckPositions);
     }
 
     private static void propagateChangedAspects(
@@ -406,43 +461,63 @@ public final class StructureOperationEvaluator {
         return false;
     }
 
-    private static boolean precheckDirtyPiecesOnSnapshot(
+    @NotNull
+    private static SnapshotPrecheckDiagnostic precheckDirtyPiecesOnSnapshot(
             @NotNull IBlockAccess snapshot,
             @NotNull CommittedStructureGraph baseline,
             @NotNull StructureOrientation orientation,
             @NotNull Set<String> dirtyRoots) {
+        int comparedPositions = 0;
         for (String root : dirtyRoots) {
             PieceEvaluationResult result = baseline.getResultTable().get(root);
             if (result == null || !result.isActive()) {
                 continue;
             }
-            if (!precheckPiecePositions(snapshot, result, baseline.getRuntimePublication(), orientation)) {
-                return false;
+            SnapshotPrecheckDiagnostic pieceDiagnostic = precheckPiecePositions(
+                    snapshot, result, baseline.getRuntimePublication(), orientation);
+            comparedPositions += pieceDiagnostic.comparedPositions;
+            if (!pieceDiagnostic.matched) {
+                return new SnapshotPrecheckDiagnostic(false, comparedPositions);
             }
         }
-        return true;
+        return new SnapshotPrecheckDiagnostic(true, comparedPositions);
     }
 
-    private static boolean precheckPiecePositions(
+    @NotNull
+    private static SnapshotPrecheckDiagnostic precheckPiecePositions(
             @NotNull IBlockAccess snapshot,
             @NotNull PieceEvaluationResult result,
             @NotNull PieceRuntimes.Publication runtimePublication,
             @NotNull StructureOrientation orientation) {
         PieceRuntime.Publication piecePublication = runtimePublication.get(result.getPiece());
         if (piecePublication == null) {
-            return false;
+            return new SnapshotPrecheckDiagnostic(false, 0);
         }
+        int comparedPositions = 0;
         Map<Long, BlockInfo> cachedBlocks = piecePublication.copyCachedBlocks();
         for (long posLong : result.getWatchedPositions()) {
             BlockInfo expected = cachedBlocks.get(posLong);
             if (expected == null || expected.getBlockState() == null) {
                 continue;
             }
+            comparedPositions++;
+            StructureWorldReadTracker.recordBlockStateRead();
             if (!expected.getBlockState().equals(snapshot.getBlockState(BlockPos.fromLong(posLong)))) {
-                return false;
+                return new SnapshotPrecheckDiagnostic(false, comparedPositions);
             }
         }
-        return true;
+        return new SnapshotPrecheckDiagnostic(true, comparedPositions);
+    }
+
+    private static final class SnapshotPrecheckDiagnostic {
+
+        private final boolean matched;
+        private final int comparedPositions;
+
+        private SnapshotPrecheckDiagnostic(boolean matched, int comparedPositions) {
+            this.matched = matched;
+            this.comparedPositions = comparedPositions;
+        }
     }
 
     @NotNull

@@ -307,12 +307,16 @@ side effects should remain opaque through `getIncrementalSupport()`. An opaque
 element keeps the structure on the conservative active/full fallback path rather
 than allowing incorrect reuse of a clean piece.
 
-New direct elements should be explicit even when the dependency set is empty:
-declare `StructureIncrementalSupport`, return `Collections.emptySet()` from
-`getDependencies()`, and expose diagnostic/build candidates through
-`getPreview()`. `PatternMatchContext` should only appear in compatibility
-methods such as old callbacks, old placement/tooling APIs, or an optional
-`toPredicate()` view.
+New direct elements should implement `ITypedStructureElement` when they have
+typed contributions and no extra dependencies. Elements with custom support or
+dependencies may implement `IStructureElement`, but must explicitly override
+both `getIncrementalSupport()` and `getDependencies()`. The dependency compiler
+conservatively marks an element as `OPAQUE_ELEMENT` when that explicit contract
+is missing; old addons remain source-compatible but do not receive unsafe
+incremental reuse. Every direct element should also expose diagnostic/build
+candidates through `getPreview()`. `PatternMatchContext` should only appear in
+compatibility methods such as old callbacks, old placement/tooling APIs, or an
+optional `toPredicate()` view.
 
 Composite direct elements must aggregate child dependencies and child
 `StructureIncrementalSupport`. For example, a chain/alternative element that
@@ -396,7 +400,8 @@ re-scanning parts from controller or legacy state.
 `FactoryBlockPattern` and `TraceabilityPredicate` remain available as compatibility
 facades, but new addon code should declare structures through `StructureDefinition`
 or `DeclarativePatternBuilder` and implement custom cells as direct
-`IStructureElement` instances.
+`ITypedStructureElement` instances for normal typed cells, or explicitly
+contracted `IStructureElement` instances for opaque/specialized cells.
 
 Use these replacements when moving custom structures:
 
@@ -423,9 +428,10 @@ information through `TraceabilityPredicate`.
 
 JEI now follows the same rule. The multiblock page resolves candidates and
 tooltip text from `StructureElementPreview` / `addPreviewTooltip(...)` first.
-Its cached `MBPattern` exposes typed preview accessors and only builds legacy
-predicate-map entries for preview positions not already covered by direct
-preview entries. Legacy predicates adapted through
+Typed preview traversal records an entry for every cell, including cells with
+an empty preview, so the JEI path no longer performs an internal full-template
+predicate traversal to fill gaps. Existing public compatibility maps can still
+carry legacy entries. Legacy predicates adapted through
 `StructureElementPreview.fromPredicate(...)` carry their per-candidate tooltip
 text on the preview candidate group itself, so JEI does not need to materialize
 a predicate-shaped template view for normal tooltip/candidate display. This
@@ -447,7 +453,7 @@ elements should therefore expose diagnostic candidates through `getPreview()`
 even if they do not provide `toPredicate()`.
 
 ```java
-private static final class MyTieredElement implements IStructureElement<Object> {
+private static final class MyTieredElement implements ITypedStructureElement<Object> {
     private final BlockInfo[] candidates;
     private final StructureElementPreview preview;
 

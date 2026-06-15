@@ -18,6 +18,7 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
@@ -255,6 +256,57 @@ class StructureLifecycleSchedulingTest {
     }
 
     @Test
+    void channelDependencySnapshotEnqueuesDirtyRootsForScheduler() {
+        TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
+        BareWorld world = bareWorld();
+        controller.world = world;
+        controller.pos = BlockPos.ORIGIN;
+        controller.firstTick = false;
+        controller.channelValue = "before";
+        StructurePiece root = new StructurePiece(
+                "root",
+                template(new DependentElement(StructureExternalDependencies.channelValues())),
+                Vec3i.NULL_VECTOR,
+                OffsetMode.RELATIVE,
+                null);
+        StructurePiece clean = new StructurePiece(
+                "clean", template(new MatchingElement()), new Vec3i(0, 0, 1),
+                OffsetMode.RELATIVE, null);
+        MultiPiecePattern pattern = new MultiPiecePattern(Arrays.asList(root, clean));
+        controller.runtime = new StructureRuntime(
+                StructureDefinition.fromMultiPiecePattern(pattern),
+                null, null, pattern, new PieceRuntimes(pattern));
+        setField(MultiblockControllerBase.class, controller, "structureRuntime", controller.runtime);
+
+        StructureCheckResult result = controller.runtime.check(StructureOperationRequest.check(
+                world, BlockPos.ORIGIN,
+                StructureOrientation.fromController(controller),
+                false, null, controller));
+        assertTrue(result.isMatched());
+        assertNotNull(result.getGraphPublication());
+        controller.runtime.publishLifecycleState(
+                Collections.emptyList(), Collections.emptyMap(), result.getMetadata(),
+                result.copyChannelValues(), result.getGraphPublication());
+        controller.projectStructureLifecycle(controller.runtime.getLifecycleState());
+        MultiblockWorldData.get(world).registerMultiblock(
+                controller, result.getGraphPublication().getPositionIndex(), pattern);
+
+        controller.channelValue = "after";
+        controller.fireChannelsChanged();
+        MultiblockWorldData.DirtyCheckLease lease =
+                MultiblockWorldData.get(world).consumeDirtyCheck(controller, 10);
+
+        assertTrue(lease.shouldCheckIncremental());
+        assertTrue(MultiblockWorldData.get(world).enqueueDirtyRoots(
+                controller, Collections.singleton("root"), 20));
+        assertTrue(MultiblockWorldData.get(world)
+                .consumeDirtyCheck(controller, 30)
+                .shouldCheckIncremental());
+        MultiblockWorldData.get(world).clear();
+        MultiblockWorldData.remove(world);
+    }
+
+    @Test
     void defaultAsyncPolicyRejectsFormedControllersForDirtyPrecheck() {
         TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
         controller.world = bareWorld();
@@ -290,6 +342,31 @@ class StructureLifecycleSchedulingTest {
         StructureCommitToken token = StructureCommitToken.captureForAsyncPrecheck(controller, null);
 
         assertEquals("already-formed", token.staleReason());
+        MultiblockWorldData.remove(controller.world);
+    }
+
+    @Test
+    void asyncDirtyPrecheckTokenRequiresFormedController() {
+        TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
+        controller.world = bareWorld();
+        controller.pos = BlockPos.ORIGIN;
+        controller.firstTick = false;
+        controller.runtime.publishLifecycleState(
+                Collections.emptyList(),
+                Collections.emptyMap(),
+                null,
+                new StructureChannelValues(),
+                null);
+        controller.projectStructureLifecycle(controller.runtime.getLifecycleState());
+
+        StructureCommitToken token =
+                StructureCommitToken.captureForAsyncDirtyPrecheck(
+                        controller, null, -1L);
+        assertEquals(null, token.staleReason());
+
+        controller.invalidateStructure();
+
+        assertEquals("lifecycle-generation", token.staleReason());
         MultiblockWorldData.remove(controller.world);
     }
 
@@ -348,6 +425,7 @@ class StructureLifecycleSchedulingTest {
         private boolean firstTick;
         private int checks;
         private String modeValue;
+        private String channelValue;
         private String configValue;
         private String upgradeValue;
 
@@ -402,12 +480,21 @@ class StructureLifecycleSchedulingTest {
         }
 
         @Override
+        protected Object getStructureChannelDependencyValue() {
+            return channelValue;
+        }
+
+        @Override
         protected Object getStructureUpgradeDependencyValue() {
             return upgradeValue;
         }
 
         private void fireConfigChanged() {
             notifyStructureConfigChanged();
+        }
+
+        private void fireChannelsChanged() {
+            notifyStructureChannelsChanged();
         }
 
         private void fireUpgradesChanged() {
@@ -481,7 +568,7 @@ class StructureLifecycleSchedulingTest {
                 null);
     }
 
-    private static class MatchingElement implements IStructureElement<Object> {
+    private static class MatchingElement implements ITypedStructureElement<Object> {
 
         @Override
         public boolean check(@NotNull StructureEvaluationContext<Object> context) {

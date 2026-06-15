@@ -1,6 +1,7 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -15,6 +16,8 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Element that wraps an existing TraceabilityPredicate for backward compatibility.
@@ -98,6 +101,11 @@ public class LegacyElement implements IStructureElement<Object> {
     @Override
     public StructureIncrementalSupport getIncrementalSupport() {
         return StructureIncrementalSupport.OPAQUE;
+    }
+
+    @Override
+    public Set<StructureDependency> getDependencies() {
+        return Collections.emptySet();
     }
 
     @Override

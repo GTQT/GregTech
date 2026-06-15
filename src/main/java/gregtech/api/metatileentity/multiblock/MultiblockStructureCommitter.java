@@ -37,6 +37,7 @@ final class MultiblockStructureCommitter {
         String staleReason = token.staleReason();
         if (staleReason != null) {
             token.traceStale("commit", staleReason);
+            requeueRejectedIncremental(controller, result);
             return;
         }
         if (!result.isMatched()) {
@@ -170,6 +171,21 @@ final class MultiblockStructureCommitter {
         StructureTrace.debug(controller, "commit-rejected", "path=" + path + ", reason=" + message);
         StructureFailureTrace failure = StructureTrace.assemblyFailure(controller, path, message);
         requireRuntime(controller).recordLifecycleFailure(failure);
+    }
+
+    private static void requeueRejectedIncremental(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureCheckResult result) {
+        if (result.getIncrementalCheckResult() == null
+                || result.getIncrementalCheckResult().getDirtyRoots().isEmpty()
+                || controller.getWorld() == null
+                || controller.getWorld().isRemote) {
+            return;
+        }
+        MultiblockWorldData.get(controller.getWorld()).enqueueDirtyRoots(
+                controller,
+                result.getIncrementalCheckResult().getDirtyRoots(),
+                controller.getWorld().getTotalWorldTime());
     }
 
     @NotNull

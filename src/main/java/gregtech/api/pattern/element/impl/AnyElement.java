@@ -3,7 +3,7 @@ package gregtech.api.pattern.element.impl;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 
@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * Element that matches any block (wildcard).
  */
-public class AnyElement implements IStructureElement<Object> {
+public class AnyElement implements ITypedStructureElement<Object> {
 
     public static final AnyElement INSTANCE = new AnyElement();
 

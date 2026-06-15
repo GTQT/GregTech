@@ -5,6 +5,7 @@ import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
+import gregtech.api.pattern.StructureDirtyPrecheck;
 import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
@@ -73,6 +74,27 @@ final class MultiblockStructureOperations {
     static void checkIncrementalGraph(@NotNull MultiblockControllerBase controller) {
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
         StructureCommitToken token = StructureCommitToken.captureForCheck(controller);
+        checkIncrementalGraph(controller, runtime, token, null);
+    }
+
+    static void checkIncrementalGraph(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureCommitToken token,
+            @NotNull StructureDirtyPrecheck.Result detachedPrecheck) {
+        String staleReason = token.staleReason();
+        if (staleReason != null) {
+            token.traceStale("async-dirty-live-confirm", staleReason);
+            return;
+        }
+        checkIncrementalGraph(
+                controller, controller.getOrCreateStructureRuntime(), token, detachedPrecheck);
+    }
+
+    private static void checkIncrementalGraph(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull StructureRuntime runtime,
+            @NotNull StructureCommitToken token,
+            @Nullable StructureDirtyPrecheck.Result detachedPrecheck) {
         StructureTrace.debug(controller, "incremental-check-start", runtime.describeShape());
         StructureCheckResult result = runtime.checkIncremental(
                 StructureOperationRequest.check(
@@ -80,8 +102,8 @@ final class MultiblockStructureOperations {
                         controller.getPos(),
                         StructureOrientation.fromController(controller),
                         false,
-                        null,
-                        controller));
+                        null, controller),
+                detachedPrecheck);
         MultiblockStructureCommitter.applyCheckResult(controller, result, token);
     }
 

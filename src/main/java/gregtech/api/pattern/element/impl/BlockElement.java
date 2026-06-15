@@ -3,7 +3,7 @@ package gregtech.api.pattern.element.impl;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * Element that matches one or more specific block states.
  */
-public class BlockElement implements IStructureElement<Object> {
+public class BlockElement implements ITypedStructureElement<Object> {
 
     private final IBlockState[] states;
     private final TraceabilityPredicate cachedPredicate;

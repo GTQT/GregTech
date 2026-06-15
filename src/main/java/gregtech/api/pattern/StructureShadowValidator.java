@@ -35,7 +35,8 @@ final class StructureShadowValidator {
     static void maybeValidateIncremental(
             @NotNull StructureOperationEvaluator evaluator,
             @NotNull StructureOperationRequest request,
-            @NotNull StructureCheckResult incrementalResult) {
+            @NotNull StructureCheckResult incrementalResult,
+            @NotNull StructureWorldReadTracker.Metrics incrementalReads) {
         if (!ConfigHolder.machines.debugStructureCheck
                 || !incrementalResult.usedIncrementalEvaluator()
                 || (SAMPLE_COUNTER.incrementAndGet() & SAMPLE_MASK) != 0L) {
@@ -43,19 +44,37 @@ final class StructureShadowValidator {
         }
 
         StructureCheckResult fullResult;
+        StructureWorldReadTracker.Metrics fullReads;
+        StructureWorldReadTracker.Scope fullReadScope =
+                StructureWorldReadTracker.begin();
         try {
             fullResult = evaluator.check(request);
         } catch (RuntimeException e) {
+            fullReads = fullReadScope.finish();
             GTLog.logger.warn("[StructureIncrementalShadow] Full shadow check threw for {}: {}",
                     controllerName(request.getController()), e.toString());
+            GTLog.logger.warn(
+                    "[StructureIncrementalShadow] Read metrics before exception for {}: incremental={}, full={}",
+                    controllerName(request.getController()), incrementalReads, fullReads);
             return;
         }
+        fullReads = fullReadScope.finish();
 
         Mismatch mismatch = compare(incrementalResult, fullResult);
         if (mismatch != null) {
-            GTLog.logger.warn("[StructureIncrementalShadow] Mismatch for {}: {}",
-                    controllerName(request.getController()), mismatch.describe());
+            GTLog.logger.warn(
+                    "[StructureIncrementalShadow] Mismatch for {}: {}; reads incremental={}, full={}",
+                    controllerName(request.getController()), mismatch.describe(),
+                    incrementalReads, fullReads);
+            return;
         }
+        StructureIncrementalCheckResult diagnostic =
+                incrementalResult.getIncrementalCheckResult();
+        GTLog.logger.debug(
+                "[StructureIncrementalShadow] Validated {}: {}, reads incremental={}, full={}",
+                controllerName(request.getController()),
+                diagnostic == null ? "no incremental diagnostics" : diagnostic.describe(),
+                incrementalReads, fullReads);
     }
 
     @Nullable

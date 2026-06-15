@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.LegacyElement;
 import gregtech.api.util.BlockInfo;
@@ -232,6 +233,26 @@ class StructureDependencyCompilerTest {
     }
 
     @Test
+    void directElementWithoutExplicitIncrementalContractFallsBack() {
+        IStructureElement<Object> undeclared = new MatchingElement() {
+
+            @Override
+            public boolean hasExplicitIncrementalContract() {
+                return false;
+            }
+        };
+        StructureEligibilityPlan plan = StructureDependencyCompiler.compile(
+                new MultiPiecePattern(Collections.singletonList(
+                        new StructurePiece("undeclared", template(undeclared),
+                                Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null))));
+
+        assertFalse(plan.isEligible());
+        assertEquals(StructureIncrementalFallbackReason.OPAQUE_ELEMENT,
+                plan.getFallbackReason());
+        assertTrue(plan.describeFallback().contains("without an explicit incremental"));
+    }
+
+    @Test
     void externalDependencySnapshotReportsChangedKeys() {
         AtomicInteger externalState = new AtomicInteger(1);
         StructureExternalDependencyKey<Integer> key = StructureExternalDependencyKey.create(
@@ -370,7 +391,7 @@ class StructureDependencyCompilerTest {
         }
     }
 
-    private static class MatchingElement implements IStructureElement<Object> {
+    private static class MatchingElement implements ITypedStructureElement<Object> {
 
         @Override
         public boolean check(@NotNull StructureEvaluationContext<Object> context) {

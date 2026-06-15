@@ -10,7 +10,7 @@ import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
@@ -29,7 +29,7 @@ import java.util.function.Supplier;
 /**
  * Element that matches hatch positions for multiblock abilities.
  */
-public class HatchElement implements IStructureElement<Object> {
+public class HatchElement implements ITypedStructureElement<Object> {
 
     private final MultiblockAbility<?> ability;
     private final int minCount;

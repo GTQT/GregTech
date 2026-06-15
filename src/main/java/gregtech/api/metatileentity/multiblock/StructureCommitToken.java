@@ -32,7 +32,9 @@ final class StructureCommitToken {
     private final StructureOrientation orientation;
     @Nullable
     private final MultiblockWorldData.ChangeSnapshot changeSnapshot;
-    private final boolean allowAlreadyFormed;
+    @NotNull
+    private final ExpectedFormation expectedFormation;
+    private final long committedGraphGeneration;
 
     @NotNull
     static StructureCommitToken captureForCheck(@NotNull MultiblockControllerBase controller) {
@@ -44,7 +46,8 @@ final class StructureCommitToken {
                 controller.getPos() == null ? null : controller.getPos().toImmutable(),
                 StructureOrientation.fromController(controller),
                 null,
-                true);
+                ExpectedFormation.ANY,
+                -1L);
     }
 
     @NotNull
@@ -59,7 +62,25 @@ final class StructureCommitToken {
                 controller.getPos() == null ? null : controller.getPos().toImmutable(),
                 StructureOrientation.fromController(controller),
                 changeSnapshot,
-                false);
+                ExpectedFormation.UNFORMED,
+                -1L);
+    }
+
+    @NotNull
+    static StructureCommitToken captureForAsyncDirtyPrecheck(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot,
+            long committedGraphGeneration) {
+        return new StructureCommitToken(
+                controller,
+                controller.getStructureRuntimeGeneration(),
+                controller.getStructureLifecycleGeneration(),
+                controller.getWorld(),
+                controller.getPos() == null ? null : controller.getPos().toImmutable(),
+                StructureOrientation.fromController(controller),
+                changeSnapshot,
+                ExpectedFormation.FORMED,
+                committedGraphGeneration);
     }
 
     private StructureCommitToken(
@@ -70,7 +91,8 @@ final class StructureCommitToken {
             @Nullable BlockPos centerPos,
             @NotNull StructureOrientation orientation,
             @Nullable MultiblockWorldData.ChangeSnapshot changeSnapshot,
-            boolean allowAlreadyFormed) {
+            @NotNull ExpectedFormation expectedFormation,
+            long committedGraphGeneration) {
         this.controller = controller;
         this.runtimeGeneration = runtimeGeneration;
         this.lifecycleGeneration = lifecycleGeneration;
@@ -78,7 +100,8 @@ final class StructureCommitToken {
         this.centerPos = centerPos;
         this.orientation = orientation;
         this.changeSnapshot = changeSnapshot;
-        this.allowAlreadyFormed = allowAlreadyFormed;
+        this.expectedFormation = expectedFormation;
+        this.committedGraphGeneration = committedGraphGeneration;
     }
 
     @NotNull
@@ -143,8 +166,22 @@ final class StructureCommitToken {
         if (!orientation.matchesControllerForCheck(controller)) {
             return "orientation";
         }
-        if (!allowAlreadyFormed && controller.isStructureFormed()) {
+        if (expectedFormation == ExpectedFormation.UNFORMED
+                && controller.isStructureFormed()) {
             return "already-formed";
+        }
+        if (expectedFormation == ExpectedFormation.FORMED
+                && !controller.isStructureFormed()) {
+            return "no-longer-formed";
+        }
+        if (committedGraphGeneration >= 0) {
+            gregtech.api.pattern.StructureRuntime runtime =
+                    controller.getStructureRuntime();
+            gregtech.api.pattern.CommittedStructureGraph graph =
+                    runtime == null ? null : runtime.getCommittedGraph();
+            if (graph == null || graph.getGeneration() != committedGraphGeneration) {
+                return "committed-graph-generation";
+            }
         }
         if (world != null && changeSnapshot != null
                 && !MultiblockWorldData.get(world).isChangeSnapshotCurrent(changeSnapshot)) {
@@ -160,5 +197,11 @@ final class StructureCommitToken {
                 "reason=" + reason
                         + ", runtimeGeneration=" + runtimeGeneration
                         + ", lifecycleGeneration=" + lifecycleGeneration);
+    }
+
+    private enum ExpectedFormation {
+        ANY,
+        FORMED,
+        UNFORMED
     }
 }

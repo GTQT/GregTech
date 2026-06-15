@@ -17,7 +17,6 @@ import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementPreview;
-import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
@@ -1162,59 +1161,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             previewEntries.putAll(controllerBase.buildMultiPiecePreviewEntries(channelValues));
         }
 
-        // Fallback: build predicateMap directly from the pattern template(s) only
-        // for positions not already covered by typed preview entries or formed cache.
-        // JEI candidate cycling and tooltips are typed-first; the predicate map is
-        // now just the legacy compatibility gap filler.
-        if (controllerBase != null && needsLegacyPredicateFallback(predicateMap, previewEntries, blockMap)) {
-            // Route through StructureDefinition: 1-piece (whether SD-backed or legacy) walks the
-            // single template with cPos-based offset; multi-piece uses the controller's existing
-            // buildMultiPiecePredicateMap helper (its coordinates are in structure-local space,
-            // which is the established behavior for the multi-piece JEI preview).
-            if (singleTemplate != null && singleTemplateOffset != null) {
-                // Walk the (l, r, y, z) cell space the same way MultiblockState#getPreview
-                // does so that predicates are registered for every repeated aisle as well.
-                // The previous forEachPredicate-only path dropped predicates for all but
-                // the first slice, which broke right-click cycling for hatches in those
-                // repeated slices of single-template (legacy aisleRepeatable) structures.
-                RelativeDirection[] sDir = singleTemplate.getStructureDir();
-                int[][] aisleReps = singleTemplate.getAisleRepetitions();
-                int fingerLen = singleTemplate.getZLength();
-                int yLen = singleTemplate.getYLength();
-                int xLen = singleTemplate.getXLength();
-                IStructureElement<?>[][][] elements = singleTemplate.getDelegate().getElements();
-                for (int l = 0, x = 0; l < fingerLen; l++) {
-                    int aisleRepeat = aisleReps[l][0];
-                    for (int r = 0; r < aisleRepeat; r++) {
-                        for (int y = 0; y < yLen; y++) {
-                            for (int z = 0; z < xLen; z++) {
-                                IStructureElement<?> element = elements[l][y][z];
-                                TraceabilityPredicate pred = element == null ? null : element.toPredicate();
-                                if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-                                BlockPos localPos = RelativeDirection.setActualRelativeOffset(
-                                        z, y, x, EnumFacing.SOUTH, EnumFacing.UP, false, sDir);
-                                BlockPos blockMapPos = localPos.add(singleTemplateOffset);
-                                if (blockMap.containsKey(blockMapPos)
-                                        && shouldAddLegacyPredicate(blockMapPos, predicateMap, previewEntries)) {
-                                    predicateMap.put(blockMapPos, pred);
-                                }
-                            }
-                        }
-                        x++;
-                    }
-                }
-            } else if (controllerBlockPos != null) {
-                // Multi-piece path: helper handles the structure-local coordinate system
-                // and now expands repeated slices so right-click cycling works on every block
-                // of a RepeatGroupPiece, not just the first slice.
-                controllerBase.buildMultiPiecePredicateMap().forEach((pos, predicate) -> {
-                    if (shouldAddLegacyPredicate(pos, predicateMap, previewEntries)) {
-                        predicateMap.put(pos, predicate);
-                    }
-                });
-            }
-        }
-
         List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap, parts).stream()
                 .sorted((one, two) -> {
                     if (one.isController) return -1;
@@ -1226,31 +1172,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
         return new MBPattern(worldSceneRenderer, sortedParts, predicateMap, previewEntries);
-    }
-
-    private static boolean needsLegacyPredicateFallback(
-            @NotNull Map<BlockPos, TraceabilityPredicate> predicateMap,
-            @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries,
-            @NotNull Map<BlockPos, BlockInfo> blockMap) {
-        for (BlockPos pos : blockMap.keySet()) {
-            if (shouldAddLegacyPredicate(pos, predicateMap, previewEntries)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean shouldAddLegacyPredicate(
-            @NotNull BlockPos pos,
-            @NotNull Map<BlockPos, TraceabilityPredicate> predicateMap,
-            @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries) {
-        return !predicateMap.containsKey(pos) && !hasTypedPreviewEntry(previewEntries.get(pos));
-    }
-
-    private static boolean hasTypedPreviewEntry(@Nullable StructureElementPreviewEntry entry) {
-        return entry != null
-                && (!entry.getPreview().isEmpty()
-                || !entry.getTooltip().isEmpty());
     }
 
     @Nullable

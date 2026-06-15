@@ -3,7 +3,7 @@ package gregtech.api.pattern.element.impl;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  * Element that matches tiered blocks with a channel name for tier selection.
  * Used for blocks like heating coils where the tier determines the block variant.
  */
-public class TieredElement implements IStructureElement<Object> {
+public class TieredElement implements ITypedStructureElement<Object> {
 
     private final Supplier<BlockInfo[]> candidates;
     private final String channelName;

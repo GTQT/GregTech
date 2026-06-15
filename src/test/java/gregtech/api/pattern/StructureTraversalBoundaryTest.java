@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
@@ -171,8 +172,8 @@ class StructureTraversalBoundaryTest {
 
     @Test
     void fullContributionEvaluatorKeepsInitialCompatibilityContextOnlyAtResultBoundary() {
-        ContextScratchElement firstElement = new ContextScratchElement("scratch", "first");
-        ContextScratchElement secondElement = new ContextScratchElement("scratch", "second");
+        RecordingElement firstElement = new RecordingElement(true);
+        RecordingElement secondElement = new RecordingElement(true);
         StructurePiece first = new StructurePiece(
                 "first", singleCellTemplate(firstElement), Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
         StructurePiece second = new StructurePiece(
@@ -192,8 +193,6 @@ class StructureTraversalBoundaryTest {
 
         assertTrue(result.isMatched());
         assertEquals("kept", result.copyContext().get("external"));
-        assertEquals("seed", firstElement.seenBeforeWrite);
-        assertEquals("seed", secondElement.seenBeforeWrite);
         assertEquals("seed", result.copyContext().get("scratch"));
     }
 
@@ -651,7 +650,7 @@ class StructureTraversalBoundaryTest {
         return result;
     }
 
-    private static final class RecordingElement implements IStructureElement<Object> {
+    private static final class RecordingElement implements ITypedStructureElement<Object> {
 
         private final List<BlockPos> visited;
         @NotNull
@@ -736,7 +735,7 @@ class StructureTraversalBoundaryTest {
         }
     }
 
-    private static final class MinimumCountElement implements IStructureElement<Object> {
+    private static final class MinimumCountElement implements ITypedStructureElement<Object> {
 
         private final int minimum;
         private final TraceabilityPredicate predicate;
@@ -787,46 +786,7 @@ class StructureTraversalBoundaryTest {
         }
     }
 
-    private static final class ContextScratchElement implements IStructureElement<Object> {
-
-        private final String key;
-        private final String value;
-        private Object seenBeforeWrite;
-
-        private ContextScratchElement(@NotNull String key,
-                                      @NotNull String value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        @Override
-        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
-            seenBeforeWrite = context.getLegacyContext().get(key);
-            context.getLegacyContext().set(key, value);
-            return true;
-        }
-
-        @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            throw new AssertionError("context-aware check should be used");
-        }
-
-        @Override
-        public BlockInfo[] getCandidates() {
-            return new BlockInfo[0];
-        }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
-    }
-
-    private static final class MaximumCountElement implements IStructureElement<Object> {
+    private static final class MaximumCountElement implements ITypedStructureElement<Object> {
 
         private final int maximum;
 

@@ -270,6 +270,17 @@ class StructureBuildAccountingTest {
     }
 
     @Test
+    void previewCellsRetainEmptyTypedEntriesForFallbackSuppression() {
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                gregtech.api.pattern.element.impl.AnyElement.INSTANCE));
+
+        MultiblockState.PreviewCells preview =
+                state.createPreviewCells(new int[] {1}, null);
+
+        assertTrue(preview.getPreviewEntries().containsKey(BlockPos.ORIGIN));
+    }
+
+    @Test
     void patternErrorCandidatesPreferDirectPreviewEntry() {
         MutableWorld mutableWorld = mutableWorld();
         MultiblockState state = new MultiblockState(singleCellTemplateWithoutLegacyCandidates(

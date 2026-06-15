@@ -6,7 +6,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -17,7 +17,7 @@ import net.minecraft.world.World;
 /**
  * Element that matches the controller's own MetaTileEntity type (self predicate).
  */
-public class SelfElement implements IStructureElement<Object> {
+public class SelfElement implements ITypedStructureElement<Object> {
 
     private final Class<? extends MultiblockControllerBase> controllerClass;
     private final TraceabilityPredicate cachedPredicate;

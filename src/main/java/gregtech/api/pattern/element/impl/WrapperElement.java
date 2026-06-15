@@ -299,6 +299,12 @@ public class WrapperElement implements IStructureElement<Object> {
         return getDelegate().getDependencies();
     }
 
+    @Override
+    public boolean hasExplicitIncrementalContract() {
+        return callback != null || lazySupplier != null
+                || getDelegate().hasExplicitIncrementalContract();
+    }
+
     @Nullable
     @Override
     public TraceabilityPredicate toPredicate() {

@@ -84,6 +84,26 @@ public interface IStructureElement<T> {
     }
 
     /**
+     * Whether this direct element explicitly declares its incremental support
+     * and typed dependencies instead of inheriting compatibility defaults.
+     *
+     * <p>Existing addon elements remain source-compatible, but the dependency
+     * compiler treats undeclared contracts as opaque until both methods are
+     * implemented.
+     */
+    @ApiStatus.Internal
+    default boolean hasExplicitIncrementalContract() {
+        try {
+            return getClass().getMethod("getIncrementalSupport").getDeclaringClass()
+                    != IStructureElement.class
+                    && getClass().getMethod("getDependencies").getDeclaringClass()
+                    != IStructureElement.class;
+        } catch (NoSuchMethodException ignored) {
+            return false;
+        }
+    }
+
+    /**
      * Low-level runtime check entry. Compiled templates call
      * {@link #match(StructureEvaluationContext)} for normal formation matching;
      * direct callers can use this method when they intentionally need a check

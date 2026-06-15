@@ -54,7 +54,17 @@ final class MultiblockStructureCheckScheduler {
                         decision.describeAction(), controller.getMetaName());
             }
             if (decision.shouldCheckIncremental()) {
-                controller.checkIncrementalStructureGraph();
+                AsyncStructureChecker checker = AsyncStructureChecker.getInstance();
+                if (policy.allowsAsyncDirtyPrecheck(controller, checker)
+                        && checker.registerForAsyncDirtyPrecheck(controller)) {
+                    if (ConfigHolder.machines.debugStructureCheck) {
+                        GTLog.logger.debug(
+                                "[StructureCheck] Async dirty precheck scheduled for {}",
+                                controller.getMetaName());
+                    }
+                } else {
+                    controller.checkIncrementalStructureGraph();
+                }
             } else if (decision.shouldCheckActiveGraph()) {
                 controller.checkActiveStructureGraph();
             } else {

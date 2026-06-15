@@ -7,7 +7,7 @@ import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -25,7 +25,7 @@ import java.util.Set;
 /**
  * Direct element for one declarative casing state.
  */
-public final class CasingElement implements IStructureElement<Object> {
+public final class CasingElement implements ITypedStructureElement<Object> {
 
     private final IBlockState blockState;
     private final int minGlobalCount;

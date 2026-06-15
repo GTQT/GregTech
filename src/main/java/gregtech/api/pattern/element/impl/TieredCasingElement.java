@@ -9,7 +9,7 @@ import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.casing.ICasingGroup;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -29,7 +29,7 @@ import java.util.Set;
 /**
  * Direct element for a declarative tiered casing group.
  */
-public final class TieredCasingElement implements IStructureElement<Object> {
+public final class TieredCasingElement implements ITypedStructureElement<Object> {
 
     private static final String TIER_MISMATCH_ERROR =
             "gregtech.multiblock.pattern.error.casing_tier_mismatch";

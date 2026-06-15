@@ -176,7 +176,11 @@ final class StructureWorldIndex {
             return false;
         }
         StructureRuntime runtime = controller.getStructureRuntime();
-        if (runtime == null || !runtime.addDirtyRoots(roots)) {
+        if (runtime == null) {
+            return false;
+        }
+        boolean added = runtime.addDirtyRoots(roots);
+        if (!added && !runtime.hasPendingDirtyRoots(controller)) {
             return false;
         }
         lastChangedTick.put(controller, gameTick);
