@@ -139,7 +139,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         if (hasLegacyFormStructureOverrideBelow(RecipeMapSteamMultiblockController.class)) {
-            formStructure(formed.copyLegacyCallbackContext());
+            formLegacyStructureCallback(formed);
             return;
         }
         formSteamRecipeMapStructure(formed);

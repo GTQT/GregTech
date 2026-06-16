@@ -58,6 +58,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StructureLifecycleSchedulingTest {
 
+    private static final StructureContributionKey<Integer, Integer> FORMATION_PAYLOAD_KEY =
+            StructureContributionKey.uniform("gregtech:test/formation_payload");
+
     @Test
     void runtimeLifecycleStateOwnsControllerProjection() {
         TestController controller = testController(StructureSchedulerPolicy.defaultPolicy());
@@ -90,8 +93,6 @@ class StructureLifecycleSchedulingTest {
         controller.world = world;
         controller.pos = BlockPos.ORIGIN;
         int[] emittedValue = { 1 };
-        StructureContributionKey<Integer, Integer> payload =
-                StructureContributionKey.uniform("gregtech:test/formation_payload");
         StructureDefinition<TestController> definition =
                 StructureDefinition.<TestController>builder(
                         RelativeDirection.RIGHT,
@@ -102,7 +103,7 @@ class StructureLifecycleSchedulingTest {
                         .end()
                         .runtimeDetector(context -> {
                             context.includePosition(BlockPos.ORIGIN);
-                            context.emit(payload, emittedValue[0]);
+                            context.emit(FORMATION_PAYLOAD_KEY, emittedValue[0]);
                             return true;
                         })
                         .build();
@@ -751,7 +752,7 @@ class StructureLifecycleSchedulingTest {
         @Override
         protected void formStructure(@NotNull FormedStructureView formed) {
             formedCallbacks++;
-            Integer payload = formed.getAggregate("gregtech:test/formation_payload");
+            Integer payload = formed.getAggregate(FORMATION_PAYLOAD_KEY);
             lastFormationPayload = payload == null ? 0 : payload;
         }
 

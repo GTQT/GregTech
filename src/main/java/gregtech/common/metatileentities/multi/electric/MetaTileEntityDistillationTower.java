@@ -10,9 +10,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.StructurePieceKey;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
-import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
@@ -48,6 +48,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
 
     /** Piece name for the repeatable body section */
     private static final String PIECE_BODY = "body";
+    private static final StructurePieceKey BODY_PIECE = StructurePieceKey.of(PIECE_BODY);
 
     /** Structure definition registered via TemplatePool for soft-reference caching */
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
@@ -124,11 +125,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         // is always multi-piece (top / body / bottom), so the multiblockState
         // single-piece path has been removed — it was dead code after the
         // aisleRepeatable → repeatablePiece migration.
-        FormedStructureMetadata metadata = formed.getMetadata();
-        if (metadata != null) {
-            int bodyReps = metadata.getPieceRepeat(PIECE_BODY, 0);
-            handler.determineLayerCountFromReps(bodyReps);
-        }
+        handler.determineLayerCountFromReps(formed.getPieceRepeat(BODY_PIECE, 0));
         handler.determineOrderedFluidOutputs();
     }
 

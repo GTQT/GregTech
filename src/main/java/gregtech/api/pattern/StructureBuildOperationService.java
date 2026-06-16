@@ -120,11 +120,16 @@ final class StructureBuildOperationService {
         StructureOperationRuntime runtime = context.runtime();
         MultiPiecePattern pattern = runtime.pattern;
         AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
-        int pieceCount = pattern.getPieceCount();
+        int pieceCount = pattern.getToolingPieceCount();
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
+            int compiledPieceIndex = pattern.resolveToolingPieceIndex(pieceIndex);
+            if (compiledPieceIndex < 1) {
+                result.merge(StructureBuildResult.builder().recordInvalidPieceRequest().build());
+                continue;
+            }
             result.merge(creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
-                    pieceIndex, request.requirePlayer(), request.requireController(),
+                    compiledPieceIndex, request.requirePlayer(), request.requireController(),
                     request.requireOrientation(), request.getChannelValues(),
                     request.skipHatches(), abilityTracker)));
         }
@@ -201,11 +206,16 @@ final class StructureBuildOperationService {
         StructureOperationRuntime runtime = context.runtime();
         MultiPiecePattern pattern = runtime.pattern;
         AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
-        int pieceCount = pattern.getPieceCount();
+        int pieceCount = pattern.getToolingPieceCount();
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
+            int compiledPieceIndex = pattern.resolveToolingPieceIndex(pieceIndex);
+            if (compiledPieceIndex < 1) {
+                result.merge(StructureBuildResult.builder().recordInvalidPieceRequest().build());
+                continue;
+            }
             result.merge(survivalBuildPiece(StructureOperationRequest.survivalBuildPiece(
-                    pieceIndex, request.requirePlayer(), request.requireController(),
+                    compiledPieceIndex, request.requirePlayer(), request.requireController(),
                     request.requireOrientation(), request.getChannelValues(),
                     request.skipHatches(), abilityTracker, request.requireTriggerStack())));
         }

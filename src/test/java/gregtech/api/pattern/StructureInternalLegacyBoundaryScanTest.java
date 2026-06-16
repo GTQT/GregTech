@@ -70,6 +70,12 @@ class StructureInternalLegacyBoundaryScanTest {
             Pattern.compile("\\bcreateStructurePattern\\s*\\(");
     private static final Pattern LEGACY_CALLBACK_CONTEXT_COPY =
             Pattern.compile("\\.copyLegacyCallbackContext\\s*\\(");
+    private static final Pattern FORMED_STRUCTURE_ESCAPE_ACCESSOR =
+            Pattern.compile("\\bformed\\s*\\.\\s*(?:getMetadata"
+                    + "|copyChannelValues"
+                    + "|copyOperationState"
+                    + "|getAggregateValues)\\s*\\("
+                    + "|\\bformed\\s*\\.\\s*getAggregate\\s*\\(\\s*\"");
     private static final Pattern LEGACY_DYNAMIC_TOOLING =
             Pattern.compile("\\b(?:FactoryBlockPattern|BlockPattern|BlockPatternTemplate|MultiblockState)\\b"
                     + "|\\b(?:buildFactoryPattern|buildStructurePattern(?:ForChannelValues|ForLogSize)?)\\s*\\("
@@ -200,6 +206,28 @@ class StructureInternalLegacyBoundaryScanTest {
     }
 
     @Test
+    void gregTechControllersUseTypedFormedStructureViewAccessors() throws IOException {
+        List<String> violations = new ArrayList<>();
+        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT), (source, lines) -> {
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (isCommentOnlyLine(line)) {
+                    continue;
+                }
+                if (FORMED_STRUCTURE_ESCAPE_ACCESSOR.matcher(line).find()) {
+                    violations.add(relativeMainPath(source) + ":" + (i + 1)
+                            + " formed view escape accessor -> " + line.trim());
+                }
+            }
+        });
+
+        if (!violations.isEmpty()) {
+            fail("GregTech-owned controllers should read FormedStructureView through typed accessors:\n"
+                    + String.join("\n", violations));
+        }
+    }
+
+    @Test
     void runtimeShapedControllersKeepStableDefinitions() throws IOException {
         List<String> violations = new ArrayList<>();
         List<String> detectorControllers = Arrays.asList(
@@ -226,6 +254,15 @@ class StructureInternalLegacyBoundaryScanTest {
         String godforge = readSource(godforgePath);
         if (!godforge.contains(".conditionalPieceContextual(")) {
             violations.add(godforgePath + ": missing stable contextual ring pieces");
+        }
+        for (String runtimeOnlyPiece : Arrays.asList(
+                "first_ring_air",
+                "second_ring_air",
+                "third_ring_air")) {
+            if (!containsRuntimeOnlyPiece(godforge, runtimeOnlyPiece)) {
+                violations.add(godforgePath + ": " + runtimeOnlyPiece
+                        + " must be marked runtimeOnly()/hideFromTooling()");
+            }
         }
         if (!STABLE_DEFINITION_RETURN.matcher(godforge).find()) {
             violations.add(godforgePath
@@ -333,6 +370,21 @@ class StructureInternalLegacyBoundaryScanTest {
         if (text.contains("TemplatePool.getInstance().evict(")) {
             violations.add(path + ": runtime structure checks must not evict templates");
         }
+    }
+
+    private static boolean containsRuntimeOnlyPiece(@NotNull String source,
+                                                    @NotNull String pieceName) {
+        int pieceStart = source.indexOf("\"" + pieceName + "\"");
+        if (pieceStart < 0) {
+            return false;
+        }
+        int pieceEnd = source.indexOf(".end();", pieceStart);
+        if (pieceEnd < 0) {
+            return false;
+        }
+        String pieceBlock = source.substring(pieceStart, pieceEnd);
+        return pieceBlock.contains(".runtimeOnly()")
+                || pieceBlock.contains(".hideFromTooling()");
     }
 
     @NotNull

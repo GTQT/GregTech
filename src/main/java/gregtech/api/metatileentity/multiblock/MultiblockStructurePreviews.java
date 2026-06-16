@@ -103,7 +103,7 @@ final class MultiblockStructurePreviews {
             @Nullable Map<String, Integer> channelValues) {
         if (multiPiecePattern == null
                 || pieceIndex < 1
-                || pieceIndex > multiPiecePattern.getPieceList().size()) {
+                || pieceIndex > multiPiecePattern.getToolingPieceCount()) {
             return null;
         }
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,

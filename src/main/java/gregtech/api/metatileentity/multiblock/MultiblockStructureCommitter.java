@@ -51,8 +51,7 @@ final class MultiblockStructureCommitter {
             return;
         }
 
-        PatternMatchContext context = result.copyContext();
-        if (context == null) {
+        if (!result.hasLegacyContext()) {
             recordRejection(controller, result.getTracePath(),
                     "Successful structure check returned no match context");
             return;
@@ -67,8 +66,8 @@ final class MultiblockStructureCommitter {
             return;
         }
 
-        FormedStructureView formed = FormedStructureView.fromCheckResult(result, context);
-        commit(controller, runtime, context, formed, prepared, result.getMetadata(),
+        FormedStructureView formed = FormedStructureView.fromCheckResult(result);
+        commit(controller, runtime, formed, prepared, result.getMetadata(),
                 result.copyChannelValues(), result.isFlipped(), result.getTracePath(), result);
         if (prepared.initial) {
             registerInitialCommit(controller, result.getSource());
@@ -98,7 +97,7 @@ final class MultiblockStructureCommitter {
         FormedStructureView formed = FormedStructureView.legacy(
                 controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
                 operationState, context, context.neededFlip());
-        return commit(controller, requireRuntime(controller), context, formed, prepared,
+        return commit(controller, requireRuntime(controller), formed, prepared,
                 controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
                 context.neededFlip(), "runtime", null);
     }
@@ -106,7 +105,6 @@ final class MultiblockStructureCommitter {
     private static boolean commit(
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureRuntime runtime,
-            @NotNull PatternMatchContext context,
             @NotNull FormedStructureView formed,
             @NotNull MultiblockStructureAssembler.PreparedCommit prepared,
             @Nullable FormedStructureMetadata metadata,
@@ -142,12 +140,23 @@ final class MultiblockStructureCommitter {
                 graphPublication);
         controller.projectStructureLifecycle(runtime.getLifecycleState());
         if (formationPayloadChanged) {
-            controller.formStructure(formed);
+            runFormStructure(controller, formed, result);
             StructureTrace.debug(controller, prepared.initial ? "formed" :
                             prepared.changed ? "reassembled" : "formation-payload-refreshed",
                     "path=" + path + ", metadata=" + metadata + ", channels=" + channelValues);
         }
         return formationPayloadChanged;
+    }
+
+    private static void runFormStructure(@NotNull MultiblockControllerBase controller,
+                                         @NotNull FormedStructureView formed,
+                                         @Nullable StructureCheckResult result) {
+        if (result == null) {
+            controller.formStructure(formed);
+            return;
+        }
+        FormedStructureView.runWithLegacyCallbackProjection(
+                formed, result, () -> controller.formStructure(formed));
     }
 
     private static boolean hasFormationPayloadChanged(

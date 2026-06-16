@@ -95,7 +95,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         if (hasLegacyFormStructureOverrideBelow(AdvanceRecipeMapMultiblockController.class)) {
-            formStructure(formed.copyLegacyCallbackContext());
+            formLegacyStructureCallback(formed);
             return;
         }
         formAdvancedRecipeMapStructure(formed);

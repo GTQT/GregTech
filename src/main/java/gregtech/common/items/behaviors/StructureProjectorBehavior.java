@@ -9,6 +9,7 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -317,8 +318,16 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                                    boolean noHatch,
                                    @NotNull ItemStack triggerStack) {
         var runtime = multiblock.getOrCreateStructureRuntime();
+        MultiPiecePattern pattern = runtime.getMultiPiecePattern();
+        int compiledPieceIndex = pattern == null ? pieceIndex : pattern.resolveToolingPieceIndex(pieceIndex);
+        if (compiledPieceIndex < 1) {
+            GTLog.logger.debug(
+                    "[StructureProjector] skipped invalid structure_piece={} for controller={}",
+                    pieceIndex, multiblock.getMetaName());
+            return;
+        }
         runtime.buildPiece(StructureOperationRequest.buildPiece(
-                pieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
+                compiledPieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
                 channels, noHatch, triggerStack));
     }
 

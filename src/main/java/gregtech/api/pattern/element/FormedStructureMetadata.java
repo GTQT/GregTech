@@ -1,8 +1,11 @@
 package gregtech.api.pattern.element;
 
+import gregtech.api.pattern.StructurePieceKey;
+
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,10 +47,19 @@ public final class FormedStructureMetadata {
         return reps[axisIndex];
     }
 
+    public int getPieceRepeat(@NotNull StructurePieceKey pieceKey, int axisIndex) {
+        return getPieceRepeat(pieceKey.getName(), axisIndex);
+    }
+
     @NotNull
     public int[] getPieceRepeats(@NotNull String pieceName) {
         int[] reps = pieceRepeats.get(pieceName);
         return reps == null ? new int[0] : reps.clone();
+    }
+
+    @NotNull
+    public int[] getPieceRepeats(@NotNull StructurePieceKey pieceKey) {
+        return getPieceRepeats(pieceKey.getName());
     }
 
     @Nullable
@@ -55,11 +67,17 @@ public final class FormedStructureMetadata {
         return pieceCenters.get(pieceName);
     }
 
+    @Nullable
+    public BlockPos getPieceCenter(@NotNull StructurePieceKey pieceKey) {
+        return getPieceCenter(pieceKey.getName());
+    }
+
     public int getChannelValue(@NotNull String channelName) {
         return channelValues.getOrDefault(channelName, 0);
     }
 
     @NotNull
+    @ApiStatus.Internal
     public Map<String, Integer> getChannelValues() {
         return channelValues;
     }

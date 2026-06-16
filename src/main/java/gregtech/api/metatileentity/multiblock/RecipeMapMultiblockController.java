@@ -173,7 +173,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         if (hasLegacyFormStructureOverrideBelow(RecipeMapMultiblockController.class)) {
-            formStructure(formed.copyLegacyCallbackContext());
+            formLegacyStructureCallback(formed);
             return;
         }
         formRecipeMapStructure(formed);

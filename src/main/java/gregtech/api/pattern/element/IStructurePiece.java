@@ -60,4 +60,17 @@ public interface IStructurePiece {
     default boolean isRepeatable() {
         return getRepeatAxes().length > 0;
     }
+
+    /**
+     * Whether user-facing tooling should expose this piece for preview, hint,
+     * and construction operations.
+     *
+     * <p>Runtime-only pieces are still part of canonical matching and dirty
+     * validation, but are hidden from build/projector flows. Typical use cases
+     * are rendered-air validation variants that should never be constructed by
+     * players or JEI/projector tooling.
+     */
+    default boolean isToolingVisible() {
+        return true;
+    }
 }

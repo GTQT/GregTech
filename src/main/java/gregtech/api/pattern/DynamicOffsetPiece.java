@@ -55,7 +55,17 @@ public final class DynamicOffsetPiece extends StructurePiece {
                               @Nullable BooleanSupplier condition,
                               @NotNull String anchorPieceName,
                               @NotNull int[] anchorStep) {
-        super(name, template, staticOffset, offsetMode, condition);
+        this(name, template, staticOffset, offsetMode, condition, anchorPieceName, anchorStep, true);
+    }
+
+    public DynamicOffsetPiece(@NotNull String name, @NotNull PieceTemplate template,
+                              @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
+                              @Nullable BooleanSupplier condition,
+                              @NotNull String anchorPieceName,
+                              @NotNull int[] anchorStep,
+                              boolean toolingVisible) {
+        super(name, template, staticOffset, offsetMode, condition,
+                (snap, origin, orientation, prior, runtime, session) -> false, toolingVisible);
         if (anchorStep.length != 3) {
             throw new IllegalArgumentException("anchorStep must be a 3-element array (right, up, back)");
         }
@@ -71,7 +81,17 @@ public final class DynamicOffsetPiece extends StructurePiece {
                               @Nullable BooleanSupplier condition,
                               @NotNull String anchorPieceName,
                               @NotNull int[] anchorStep) {
-        super(name, template, staticOffset, offsetMode, condition);
+        this(name, template, staticOffset, offsetMode, condition, anchorPieceName, anchorStep, true);
+    }
+
+    public DynamicOffsetPiece(@NotNull String name, @NotNull BlockPatternTemplate template,
+                              @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
+                              @Nullable BooleanSupplier condition,
+                              @NotNull String anchorPieceName,
+                              @NotNull int[] anchorStep,
+                              boolean toolingVisible) {
+        super(name, template, staticOffset, offsetMode, condition,
+                (snap, origin, orientation, prior, runtime, session) -> false, toolingVisible);
         if (anchorStep.length != 3) {
             throw new IllegalArgumentException("anchorStep must be a 3-element array (right, up, back)");
         }

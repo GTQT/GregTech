@@ -112,6 +112,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private long lastStructureFailureLogTime = -1;
     private long lastModuleConnectionLogTime = -1;
     private long lastRingStateLogTime = -1;
+    private long lastRenderedRingOwnershipLogTime = -1;
     private boolean pendingStructureRefresh = false;
     private boolean recoveringRenderedStructure = false;
 
@@ -182,6 +183,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 ringTemplateCondition(1, true)), false, false)
                 .offsetMode(OffsetMode.RELATIVE)
                 .centerOffset(FIRST_RING_CENTER[0], FIRST_RING_CENTER[1], FIRST_RING_CENTER[2])
+                .runtimeOnly()
                 .end();
         applyAllElements(builder.conditionalPieceContextual(
                 "second_ring",
@@ -198,6 +200,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 ringTemplateCondition(2, true)), false, false)
                 .offsetMode(OffsetMode.RELATIVE)
                 .centerOffset(SECOND_RING_CENTER[0], SECOND_RING_CENTER[1], SECOND_RING_CENTER[2])
+                .runtimeOnly()
                 .end();
         applyAllElements(builder.conditionalPieceContextual(
                 "third_ring",
@@ -214,6 +217,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 ringTemplateCondition(3, true)), false, false)
                 .offsetMode(OffsetMode.RELATIVE)
                 .centerOffset(THIRD_RING_CENTER[0], THIRD_RING_CENTER[1], THIRD_RING_CENTER[2])
+                .runtimeOnly()
                 .end();
 
         return builder.build();
@@ -233,8 +237,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                             || controller.getStructureRingTargetAmount()
                             >= ringIndex;
                     return active
-                            && controller.isRenderedRingOwnedByRenderer(
-                                    ringIndex) == rendererOwned;
+                            && controller.canUseRenderedRingTemplate(
+                                    ringIndex, rendererOwned) == rendererOwned;
                 },
                 StructureExternalDependencies.upgrades(),
                 StructureExternalDependencies.configuration());
@@ -248,15 +252,29 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private int getRenderedRingTemplateMask() {
         int mask = 0;
         for (int ringIndex = 1; ringIndex <= ForgeOfGodsData.MAX_RING_AMOUNT; ringIndex++) {
-            if (isRenderedRingOwnedByRenderer(ringIndex)) {
+            if (canUseRenderedRingTemplate(ringIndex, false)) {
                 mask |= 1 << (ringIndex - 1);
             }
         }
         return mask;
     }
 
-    private boolean isRenderedRingOwnedByRenderer(int ringIndex) {
-        return (data.isRenderActive() || recoveringRenderedStructure) && data.isRingCleared(ringIndex);
+    private boolean canUseRenderedRingTemplate(int ringIndex, boolean logSkipped) {
+        boolean ringCleared = data.isRingCleared(ringIndex);
+        boolean rendererOwned = isRendererOwnedByThisController();
+        boolean foreignRenderer = isForeignRendererLoadedAtRenderPos();
+        boolean allowed = GodforgeRenderedRingPolicy.canUseRenderedRingTemplate(
+                ringCleared,
+                data.isRenderActive(),
+                recoveringRenderedStructure,
+                rendererOwned,
+                foreignRenderer,
+                data.getInternalBattery());
+
+        if (!allowed && logSkipped && ringCleared && (data.isRenderActive() || recoveringRenderedStructure)) {
+            logRenderedRingTemplateSkipped(ringIndex, rendererOwned, foreignRenderer);
+        }
+        return allowed;
     }
 
     private boolean isRendererOwnedByThisController() {
@@ -271,6 +289,38 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         BlockPos ownerPos = ((GodforgeRenderTileEntity) te).getOwnerPosForDebug();
         return getPos().equals(ownerPos);
+    }
+
+    private boolean isForeignRendererLoadedAtRenderPos() {
+        if (getWorld() == null || getPos() == null) return false;
+
+        BlockPos renderPos = getRenderPos();
+        if (renderPos == null || !getWorld().isBlockLoaded(renderPos)) return false;
+        if (getWorld().getBlockState(renderPos).getBlock() != MetaBlocks.GODFORGE_RENDER) return false;
+
+        TileEntity te = getWorld().getTileEntity(renderPos);
+        if (!(te instanceof GodforgeRenderTileEntity)) return false;
+
+        BlockPos ownerPos = ((GodforgeRenderTileEntity) te).getOwnerPosForDebug();
+        return ownerPos != null && !getPos().equals(ownerPos);
+    }
+
+    private void logRenderedRingTemplateSkipped(int ringIndex, boolean rendererOwned, boolean foreignRenderer) {
+        if (getWorld() == null || getWorld().isRemote) return;
+        if (!GTLog.logger.isDebugEnabled()) return;
+
+        long worldTime = getWorld().getTotalWorldTime();
+        if (lastRenderedRingOwnershipLogTime >= 0 &&
+                worldTime - lastRenderedRingOwnershipLogTime < TICK_INTERVAL) {
+            return;
+        }
+        lastRenderedRingOwnershipLogTime = worldTime;
+
+        GTLog.logger.debug("[FOG] rendered ring template skipped: controller={}, ring={}, renderActive={}, " +
+                        "recovering={}, rendererOwned={}, foreignRenderer={}, clearedRings={}, battery={}, owner={}",
+                getPos(), ringIndex, data.isRenderActive(), recoveringRenderedStructure,
+                rendererOwned, foreignRenderer, data.getClearedRingAmount(), data.getInternalBattery(),
+                describeRendererOwnershipForLog());
     }
 
     private String describeRendererOwnershipForLog() {
@@ -443,7 +493,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     private boolean tryRecoverRenderedStructure() {
-        if (data.isRenderActive()) return false;
         if (getWorld() == null || getWorld().isRemote || getPos() == null) return false;
         if (data.getInternalBattery() <= 0) return false;
         if (data.getClearedRingAmount() <= 0) return false;
@@ -618,12 +667,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         formStructureWithDisplay(formed);
-        formGodforgeStructure();
+        formGodforgeStructure(formed);
     }
 
-    private void formGodforgeStructure() {
+    private void formGodforgeStructure(@NotNull FormedStructureView formed) {
         logRingState("form-before-ring-commit", true);
-        commitFormedRingAmountFromStructure();
+        commitFormedRingAmountFromStructure(formed);
         logRingState("form-after-ring-commit", true);
         discoverModules();
 
@@ -739,8 +788,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
      * The active piece set was already selected from desiredRingAmount and validated
      * by the structure check, so this must not rescan ring templates as a second source.
      */
-    private void commitFormedRingAmountFromStructure() {
-        int rings = getStructureRingTargetAmount();
+    private void commitFormedRingAmountFromStructure(@NotNull FormedStructureView formed) {
+        int rings = GodforgeRingMatchPolicy.getFormedRingAmount(formed);
         int previousRings = getFormedRingAmount();
         if (previousRings != rings) {
             setFormedRingAmount(rings);
@@ -1074,6 +1123,17 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 GTLog.logger.info("[FOG] ensureRendererState: render block missing, recreating. isRenderActive={}", data.isRenderActive());
                 data.setRenderActive(false);
                 createRenderer();
+            } else if (!isRendererOwnedByThisController()) {
+                if (isForeignRendererLoadedAtRenderPos()) {
+                    GTLog.logger.warn("[FOG] ensureRendererState: foreign render block at {}; disabling renderer. owner={}",
+                            renderPos, describeRendererOwnershipForLog());
+                    data.setRenderActive(false);
+                    notifyGodforgeStructureStateChanged();
+                    return;
+                }
+                GTLog.logger.info("[FOG] ensureRendererState: render owner missing or invalid, repairing. owner={}",
+                        describeRendererOwnershipForLog());
+                createRenderer();
             }
             return;
         }
@@ -1287,7 +1347,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     public int[] getChannelRange(@NotNull StructureChannel channel) {
         if (channel == GTStructureChannels.STRUCTURE_PIECE) {
             // 0=main only, 1=beam_shaft, 2=first_ring, 3=second_ring, 4=third_ring
-            int pieceCount = multiPiecePattern != null ? multiPiecePattern.getPieceCount() : 0;
+            int pieceCount = multiPiecePattern != null ? multiPiecePattern.getToolingPieceCount() : 0;
             return new int[] { 0, pieceCount };
         }
         return super.getChannelRange(channel);

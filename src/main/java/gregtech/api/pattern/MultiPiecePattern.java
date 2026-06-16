@@ -61,12 +61,16 @@ public class MultiPiecePattern {
 
     private final Map<String, StructurePiece> pieces;
     private final List<StructurePiece> pieceList;
+    private final List<StructurePiece> toolingPieceList;
+    private final Map<String, Integer> toolingPieceIndices;
     private final Map<MultiblockAbility<?>, int[]> abilityLimits;
     private final List<AbilityGroupLimit> abilityGroupLimits;
 
     private MultiPiecePattern(Map<String, StructurePiece> pieces) {
         this.pieces = Collections.unmodifiableMap(pieces);
         this.pieceList = Collections.unmodifiableList(new ArrayList<>(pieces.values()));
+        this.toolingPieceList = Collections.unmodifiableList(computeToolingPieceList(this.pieceList));
+        this.toolingPieceIndices = Collections.unmodifiableMap(computeToolingPieceIndices(this.pieceList));
         this.abilityLimits = Collections.emptyMap();
         this.abilityGroupLimits = Collections.emptyList();
     }
@@ -99,6 +103,8 @@ public class MultiPiecePattern {
         }
         this.pieces = Collections.unmodifiableMap(map);
         this.pieceList = Collections.unmodifiableList(new ArrayList<>(pieceList));
+        this.toolingPieceList = Collections.unmodifiableList(computeToolingPieceList(this.pieceList));
+        this.toolingPieceIndices = Collections.unmodifiableMap(computeToolingPieceIndices(this.pieceList));
         Map<MultiblockAbility<?>, int[]> copiedLimits = new HashMap<>();
         for (Map.Entry<MultiblockAbility<?>, int[]> entry : abilityLimits.entrySet()) {
             copiedLimits.put(entry.getKey(), entry.getValue().clone());
@@ -151,6 +157,45 @@ public class MultiPiecePattern {
      */
     public List<StructurePiece> getPieceList() {
         return pieceList;
+    }
+
+    /**
+     * @return declaration-ordered pieces visible to user-facing tooling.
+     */
+    @NotNull
+    public List<StructurePiece> getToolingPieceList() {
+        return toolingPieceList;
+    }
+
+    public int getToolingPieceCount() {
+        return toolingPieceList.size();
+    }
+
+    /**
+     * Convert a 1-based user-facing tooling piece index to the compiled
+     * 1-based piece index. Returns {@code -1} when the user index is invalid
+     * or maps to no visible piece.
+     */
+    public int resolveToolingPieceIndex(int toolingPieceIndex) {
+        if (toolingPieceIndex < 1 || toolingPieceIndex > toolingPieceList.size()) {
+            return -1;
+        }
+        StructurePiece piece = toolingPieceList.get(toolingPieceIndex - 1);
+        Integer compiledIndex = toolingPieceIndices.get(piece.getName());
+        return compiledIndex == null ? -1 : compiledIndex;
+    }
+
+    /**
+     * Resolve a 1-based user-facing tooling piece index to the compiled piece.
+     *
+     * @return the visible piece, or null when the tooling index is invalid.
+     */
+    @Nullable
+    public StructurePiece getToolingPiece(int toolingPieceIndex) {
+        if (toolingPieceIndex < 1 || toolingPieceIndex > toolingPieceList.size()) {
+            return null;
+        }
+        return toolingPieceList.get(toolingPieceIndex - 1);
     }
 
     /**
@@ -888,6 +933,9 @@ public class MultiPiecePattern {
         }
 
         StructurePiece piece = pieceList.get(pieceIndex - 1);
+        if (!piece.isToolingVisible()) {
+            return result.recordInactivePiece().build();
+        }
         PieceRuntime runtime = runtimes.get(piece);
         if (runtime == null) {
             return result.recordInvalidPieceRequest().build();
@@ -934,16 +982,15 @@ public class MultiPiecePattern {
             @Nullable Map<String, Integer> channelValues,
             @NotNull PieceRuntimes runtimes,
             @NotNull ItemStack triggerStack) {
-        Map<String, int[]> priorRepeats = new HashMap<>();
-        Map<String, BlockPos> priorCenters = new HashMap<>();
         StructureHintResult.Builder result = StructureHintResult.builder();
 
-        for (StructurePiece piece : pieceList) {
+        for (int pieceIndex = 1; pieceIndex <= pieceList.size(); pieceIndex++) {
+            StructurePiece piece = pieceList.get(pieceIndex - 1);
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime == null) continue;
+            if (!piece.isToolingVisible()) continue;
 
-            FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
-                    new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
+            FormedStructureMetadata prior = buildPriorMetadata(pieceIndex, runtimes, controller, orientation);
             if (!piece.isActive(activationContext(controller, prior, null))) {
                 result.recordInactivePiece();
                 continue;
@@ -960,11 +1007,6 @@ public class MultiPiecePattern {
                     (fixedPiece, pieceRuntime, piecePrior, traversal) ->
                             pieceRuntime.getState().spawnHintsAtWithResult(
                                     world, controller, traversal, channelValues, triggerStack)));
-            int[] reps = runtime.getLastFormedReps();
-            if (reps != null && reps.length > 0) {
-                priorRepeats.put(piece.getName(), reps);
-            }
-            priorCenters.put(piece.getName(), pieceCenter);
         }
         return result.build();
     }
@@ -1016,6 +1058,10 @@ public class MultiPiecePattern {
         return pieceList.size();
     }
 
+    public int getVisiblePieceCount() {
+        return getToolingPieceCount();
+    }
+
     /**
      * Get the primary (first) piece of this pattern.
      * Useful for single-piece patterns where the first piece is the main structure.
@@ -1044,6 +1090,29 @@ public class MultiPiecePattern {
      */
     public static Builder builder() {
         return new Builder();
+    }
+
+    @NotNull
+    private static List<StructurePiece> computeToolingPieceList(@NotNull List<StructurePiece> pieces) {
+        List<StructurePiece> visible = new ArrayList<>();
+        for (StructurePiece piece : pieces) {
+            if (piece.isToolingVisible()) {
+                visible.add(piece);
+            }
+        }
+        return visible;
+    }
+
+    @NotNull
+    private static Map<String, Integer> computeToolingPieceIndices(@NotNull List<StructurePiece> pieces) {
+        Map<String, Integer> indices = new LinkedHashMap<>();
+        for (int i = 0; i < pieces.size(); i++) {
+            StructurePiece piece = pieces.get(i);
+            if (piece.isToolingVisible()) {
+                indices.put(piece.getName(), i + 1);
+            }
+        }
+        return indices;
     }
 
     // --- Builder ---

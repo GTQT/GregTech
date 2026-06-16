@@ -506,8 +506,12 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         Builder<T> builder = StructureDefinition.<T>builder(
                 structureDir[0], structureDir[1], structureDir[2]);
         for (StructurePiece piece : pattern.getPieceList()) {
-            builder.pieceFromTemplate(piece.getName(), piece.getTemplate(),
-                    piece.getOffset(), piece.getOffsetMode(), piece.getCondition()).end();
+            PieceBuilder<T> pieceBuilder = builder.pieceFromTemplate(piece.getName(), piece.getTemplate(),
+                    piece.getOffset(), piece.getOffsetMode(), piece.getCondition());
+            if (!piece.isToolingVisible()) {
+                pieceBuilder.runtimeOnly();
+            }
+            pieceBuilder.end();
         }
         for (Map.Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
             int[] range = entry.getValue();
@@ -922,6 +926,26 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             return this;
         }
 
+        /**
+         * Mark this piece as part of runtime validation only.
+         *
+         * <p>Runtime-only pieces still participate in structure matching,
+         * formed metadata, dirty tracking, and validation. User-facing preview,
+         * hint, projector, and auto-build tooling hides them so they cannot be
+         * constructed as normal structure pieces.
+         */
+        @NotNull
+        public PieceBuilder<T> runtimeOnly() {
+            piece.toolingVisible = false;
+            return this;
+        }
+
+        /** Alias for {@link #runtimeOnly()}. */
+        @NotNull
+        public PieceBuilder<T> hideFromTooling() {
+            return runtimeOnly();
+        }
+
         /** Finish this piece and return to the parent builder. */
         @NotNull
         public Builder<T> end() {
@@ -1026,6 +1050,21 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             return this;
         }
 
+        /**
+         * Mark this repeatable piece as part of runtime validation only.
+         */
+        @NotNull
+        public RepeatablePieceBuilder<T> runtimeOnly() {
+            piece.toolingVisible = false;
+            return this;
+        }
+
+        /** Alias for {@link #runtimeOnly()}. */
+        @NotNull
+        public RepeatablePieceBuilder<T> hideFromTooling() {
+            return runtimeOnly();
+        }
+
         /** Finish this piece and return to the parent builder. */
         @NotNull
         public Builder<T> end() {
@@ -1070,6 +1109,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         int[] stepSizes;
         @Nullable String[] repeatChannelNames;
         int[] centerOffset;
+        boolean toolingVisible = true;
 
         // For pieceFromTemplate(PieceTemplate): stores the canonical pre-built template.
         @Nullable PieceTemplate template;
@@ -1136,6 +1176,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @Override
         public int[] getCenterOffset() {
             return centerOffset;
+        }
+
+        @Override
+        public boolean isToolingVisible() {
+            return toolingVisible;
         }
 
         /** Convert to a standalone IStructurePiece (identity conversion). */

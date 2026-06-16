@@ -109,7 +109,8 @@ public final class StructureCompiler {
                              entry.baseOffset, entry.offsetMode, entry.condition,
                              (snap, origin, orientation, prior, runtime, session) ->
                                      runtime.getState().checkPatternAtSnapshotExact(
-                                             snap, origin, orientation, 0, 0, 0, session) != null);
+                                             snap, origin, orientation, 0, 0, 0, session) != null,
+                             p.isToolingVisible());
                     pieces.add(piece);
                     if (referenceCenterOffset == null) {
                         BlockPatternTemplate.CenterOffset co = mp.template.getCenterOffset();
@@ -125,7 +126,8 @@ public final class StructureCompiler {
                              entry.baseOffset, entry.offsetMode, entry.condition,
                              (snap, origin, orientation, prior, runtime, session) ->
                                      runtime.getState().checkPatternAtSnapshotExact(
-                                             snap, origin, orientation, 0, 0, 0, session) != null);
+                                             snap, origin, orientation, 0, 0, 0, session) != null,
+                             p.isToolingVisible());
                     pieces.add(piece);
                     // Record centerOffset from legacy templates that have isCenter
                     if (referenceCenterOffset == null) {
@@ -178,12 +180,12 @@ public final class StructureCompiler {
                             p.getName(), tpl, entry.baseOffset, entry.offsetMode, entry.condition,
                             p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
                             p.getRepeatChannelNames(), pieceCenterOffset, strategy,
-                            entry.anchorPieceName, entry.anchorStep);
+                            entry.anchorPieceName, entry.anchorStep, p.isToolingVisible());
                 } else {
                     group = new RepeatGroupPiece(
                             p.getName(), tpl, entry.baseOffset, entry.offsetMode, entry.condition,
                             p.getRepeatAxes(), p.getRepeatRanges(), p.getStepSizes(),
-                            p.getRepeatChannelNames(), pieceCenterOffset, strategy);
+                            p.getRepeatChannelNames(), pieceCenterOffset, strategy, p.isToolingVisible());
                 }
                 pieces.add(group);
             } else if (entry.anchorPieceName != null) {
@@ -193,7 +195,7 @@ public final class StructureCompiler {
                 // known at runtime (e.g. a "top" piece after a "body" piece).
                 DynamicOffsetPiece piece = new DynamicOffsetPiece(
                         p.getName(), tplFacade, entry.baseOffset, entry.offsetMode,
-                        entry.condition, entry.anchorPieceName, entry.anchorStep);
+                        entry.condition, entry.anchorPieceName, entry.anchorStep, p.isToolingVisible());
                 pieces.add(piece);
             } else {
                 // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
@@ -201,7 +203,8 @@ public final class StructureCompiler {
                          entry.baseOffset, entry.offsetMode, entry.condition,
                          (snap, origin, orientation, prior, runtime, session) ->
                                  runtime.getState().checkPatternAtSnapshotExact(
-                                         snap, origin, orientation, 0, 0, 0, session) != null);
+                                         snap, origin, orientation, 0, 0, 0, session) != null,
+                         p.isToolingVisible());
                 pieces.add(piece);
             }
         }

@@ -322,9 +322,8 @@ public class MultiblockPreviewRenderer {
         MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
         if (multiPiece == null) return;
 
-        List<StructurePiece> pieces = multiPiece.getPieceList();
-        if (pieceIndex < 1 || pieceIndex > pieces.size()) return;
-        StructurePiece piece = pieces.get(pieceIndex - 1);
+        StructurePiece piece = multiPiece.getToolingPiece(pieceIndex);
+        if (piece == null) return;
 
         // Compute the piece's center position in world space
         BlockPos pieceCenterPos = MultiPiecePreviewAssembler.resolveWorldPieceCenter(

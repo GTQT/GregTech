@@ -69,11 +69,21 @@ public class RepeatGroupPiece extends StructurePiece {
                             int[] axes, int[][] ranges, int[] steps,
                             @Nullable String[] channelNames, int[] centerOffset,
                             @NotNull StructureCompiler.SearchStrategy strategy) {
+        this(name, tpl, offset, mode, cond, axes, ranges, steps, channelNames, centerOffset, strategy, true);
+    }
+
+    public RepeatGroupPiece(@NotNull String name, @NotNull BlockPatternTemplate tpl,
+                            @NotNull Vec3i offset, @NotNull OffsetMode mode,
+                            @Nullable BooleanSupplier cond,
+                            int[] axes, int[][] ranges, int[] steps,
+                            @Nullable String[] channelNames, int[] centerOffset,
+                            @NotNull StructureCompiler.SearchStrategy strategy,
+                            boolean toolingVisible) {
         // The 6-arg StructurePiece constructor binds a SnapshotChecker closure that
         // receives the per-controller PieceRuntime as its last argument, so the
         // per-instance state (cache / lastSuccessReps / lastAggregatedContext) all
         // lives on the runtime and the piece itself stays stateless.
-        super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch);
+        super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch, toolingVisible);
         this.repeatAxes = axes;
         this.repeatRanges = ranges;
         this.stepSizes = steps;
@@ -95,7 +105,17 @@ public class RepeatGroupPiece extends StructurePiece {
                             int[] axes, int[][] ranges, int[] steps,
                             @Nullable String[] channelNames, int[] centerOffset,
                             @NotNull StructureCompiler.SearchStrategy strategy) {
-        super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch);
+        this(name, tpl, offset, mode, cond, axes, ranges, steps, channelNames, centerOffset, strategy, true);
+    }
+
+    public RepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate tpl,
+                            @NotNull Vec3i offset, @NotNull OffsetMode mode,
+                            @Nullable BooleanSupplier cond,
+                            int[] axes, int[][] ranges, int[] steps,
+                            @Nullable String[] channelNames, int[] centerOffset,
+                            @NotNull StructureCompiler.SearchStrategy strategy,
+                            boolean toolingVisible) {
+        super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch, toolingVisible);
         this.repeatAxes = axes;
         this.repeatRanges = ranges;
         this.stepSizes = steps;

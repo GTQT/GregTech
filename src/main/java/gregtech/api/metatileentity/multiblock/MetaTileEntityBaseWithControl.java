@@ -138,7 +138,7 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         if (hasLegacyFormStructureOverrideBelow(MetaTileEntityBaseWithControl.class)) {
-            formStructure(formed.copyLegacyCallbackContext());
+            formLegacyStructureCallback(formed);
             return;
         }
         formStructureWithDisplay(formed);

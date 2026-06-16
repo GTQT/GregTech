@@ -1,261 +1,296 @@
 # Godforge V3 Structure Design
 
-**Design status:** draft before refactor  
-**Related design:** `docs/design/structure-system-v3-design.md`
+**Implementation snapshot:** 2026-06-16  
+**Related design:** `../structure-system-v3-design.md`  
+**Status:** current implementation already uses V3 as the canonical path; this document is now a stabilization and
+hardening design, not a pre-migration refactor plan.
 
-## Goal
+## Conclusion
 
-Move Forge of the Gods to the V3 structure model without changing its gameplay contract:
+Do not continue the old document's broad refactor plan as-is.
 
-- The structure is declared once as a V3 `StructureDefinition`.
-- `beam_shaft`, `first_ring`, `second_ring`, and `third_ring` remain separate pieces.
-- Multi-piece checking becomes the only structure source, not a post-formation validation layer.
-- Upgrades, ring replacement, renderer recovery, module attachment, previews, and build tools all use the same
-  structure model.
+The current code has already completed the important V3 migration boundary for Forge of the Gods:
 
-This refactor must avoid two known traps:
+- `MetaTileEntityForgeOfGods` returns a stable static `STRUCTURE_DEFINITION` from `createStructureDefinition()`.
+- Formation uses `formStructure(FormedStructureView)`, not `PatternMatchContext`.
+- Initial formation, recheck, preview/build metadata, and piece activation are sourced from the V3 definition.
+- Ring count is committed from the successful multi-piece operation path, not by post-formation legacy template scans.
+- Module discovery is rebuilt from committed `GODFORGE_MODULE` abilities.
+- Renderer block replacement is treated as a world mutation after formation.
+- `StructureInternalLegacyBoundaryScanTest` already locks Godforge as a runtime-shaped V3 controller with stable
+  contextual pieces.
 
-- Ring count must not depend on a structure check result that depends on the same ring count.
-- Rendered rings must not make air globally valid for rings that were never physically built.
+The better design from this point is:
 
-When behavior is uncertain, add trace logs first and ask for logs before changing matching semantics.
+1. Keep the stable V3 `StructureDefinition`.
+2. Keep normal and rendered-air ring pieces as mutually exclusive contextual pieces.
+3. Harden the rendered-air activation policy so air rings are valid only when the renderer is owned by this controller,
+   or during an explicit persisted-render recovery mode.
+4. Keep `discoverModules()` as a cache rebuild from committed abilities; do not turn it back into an independent
+   structure scan.
+5. Treat future work as small correctness and tooling follow-ups, not as a second migration.
 
-## Current Problem
+When behavior is uncertain, add low-frequency Godforge logs first and ask for logs before changing matching semantics.
 
-The current Godforge implementation has two structure sources:
+## Current Implementation
 
-- Initial formation and JEI use a legacy merged `BlockPattern` containing `beam_shaft + first_ring`.
-- Post-formation dirty checking uses a `MultiPiecePattern` with ring pieces.
+Current Godforge structure code lives mainly in:
 
-That split causes drift:
+- `src/main/java/gregtech/common/metatileentities/multi/electric/godforge/MetaTileEntityForgeOfGods.java`
+- `src/main/java/gregtech/common/metatileentities/multi/electric/godforge/util/ForgeOfGodsData.java`
+- `src/main/java/gregtech/common/metatileentities/multi/electric/godforge/module/MTEBaseModule.java`
+- `src/test/java/gregtech/api/pattern/StructureInternalLegacyBoundaryScanTest.java`
 
-- `ringAmount` is computed after formation by extra template checks.
-- Render state rebuilds structure templates between normal ring and air ring variants.
-- Module hatches are collected by normal ability assembly and then discovered again from abilities and parts.
-- Event-driven dirty checking only becomes authoritative after the first legacy formation path has already succeeded.
+### Structure Declaration
 
-V3 wants one immutable declaration, one per-controller runtime, one operation request boundary, and one commit boundary.
-Godforge should follow that shape.
+`MetaTileEntityForgeOfGods` owns a single static definition:
 
-## State Model
+```text
+STRUCTURE_DEFINITION = buildGodforgeStructureDefinition()
+createStructureDefinition() -> STRUCTURE_DEFINITION
+```
 
-Godforge needs separate state names for separate meanings. Do not use one `ringAmount` for all of these roles.
+The definition contains stable pieces:
 
-| State | Owner | Meaning | Persistence |
-|---|---|---|---|
-| `desiredRingAmount` | Godforge data / structure policy | Highest ring tier the controller intends to validate or build. Derived from upgrades, GUI channel, and existing formed state. | May be persisted or derived from persisted fields. |
-| `formedRingAmount` | Structure runtime / Godforge formed metadata | Highest ring tier actually matched by the last successful structure check. | Persisted through existing Godforge data for save compatibility, but treated as commit output. |
-| `clearedRingAmount` | Godforge data / render policy | Highest ring tier currently replaced with air by the renderer. | Persisted. |
-| `renderActive` | Godforge data / render policy | The render block is expected to own ring visuals. | Persisted, but must be recovered from world state on load. |
-| `rendererDisabled` | Godforge data / user config | Player disabled renderer replacement. | Persisted. |
-| `moduleHatches` | Godforge runtime cache | Modules collected by the last committed structure result. | Not authoritative; rebuild from commit result. |
+| Piece | Role |
+|---|---|
+| `beam_shaft` | Controller, hatches, and Godforge module slots. |
+| `first_ring` | Physical first ring. |
+| `first_ring_air` | Rendered first ring footprint after renderer replacement. |
+| `second_ring` | Physical second ring. |
+| `second_ring_air` | Rendered second ring footprint. |
+| `third_ring` | Physical third ring. |
+| `third_ring_air` | Rendered third ring footprint. |
 
-Compatibility mapping for the current `ForgeOfGodsData` fields:
+This is intentionally different from the old design's "four pieces only" target. Seven stable pieces are acceptable
+because the definition is still immutable, and the normal/air variants are selected by contextual conditions instead of
+being rebuilt at runtime.
 
-- Existing `ringAmount` should become the save-compatible storage for `formedRingAmount`.
-- Existing `clearedRingAmount` keeps its meaning.
-- During migration, `desiredRingAmount` can be computed instead of persisted:
-  - At least 1.
-  - At least `formedRingAmount` while formed.
-  - At least 2 when the `CD` upgrade is active and a refresh/build operation is requested.
-  - At least 3 when the `END` upgrade is active and a refresh/build operation is requested.
-  - Clamped to 1..3.
+### Ring Conditions
 
-## Ring Activation Policy
+Ring pieces are selected by `ringTemplateCondition(ringIndex, rendererOwned)`.
 
-Ring piece activation must be deterministic before checking starts.
+The current rule is:
 
-Recommended rule:
+- Ring 1 is always structurally available.
+- Rings 2 and 3 are available when `getStructureRingTargetAmount() >= ringIndex`.
+- For each ring, exactly one of the physical piece or rendered-air piece should be active:
+  - physical piece when `canUseRenderedRingTemplate(ringIndex) == false`;
+  - air piece when `canUseRenderedRingTemplate(ringIndex) == true`.
+- `canUseRenderedRingTemplate(...)` requires `clearedRingAmount >= ringIndex`.
+- Normal rendered validation additionally requires the `GODFORGE_RENDER` tile at `getRenderPos()` to be owned by this
+  controller.
+- Explicit recovery mode may accept a missing renderer so persisted air-ring saves can be repaired, but it rejects a
+  loaded renderer owned by another controller.
 
-- `first_ring` is always active.
-- `second_ring` is active when `desiredRingAmount >= 2`.
-- `third_ring` is active when `desiredRingAmount >= 3`.
+`getStructureRingTargetAmount()` is:
 
-The structure checker may also support a discovery mode during manual refresh:
+```text
+max(desiredRingAmount, clearedRingAmount when render/recovery is active)
+```
 
-- Start with `desiredRingAmount` from upgrades and current formed state.
-- Check active pieces.
-- Commit `formedRingAmount` from matched active pieces.
-- Do not run hidden extra template checks after commit.
+This keeps already-rendered rings in the validation target during save/load recovery, even if the normal desired tier
+would otherwise be lower.
 
-This removes the current loop where `updateRingAmount()` decides active pieces by checking ring templates outside the
-canonical structure operation.
+### State Model
 
-## Rendered Ring Validity
+`ForgeOfGodsData` now separates the important ring concepts:
 
-Rendered rings are the highest-risk part of the migration. Air must be valid only when it represents a ring that was
-already formed and is currently owned by the renderer.
+| State | Current storage / method | Meaning |
+|---|---|---|
+| Desired ring amount | `getDesiredRingAmount()` | Tier requested by upgrades and current formed state. This is input to the next check. |
+| Formed ring amount | `ringAmount`, `getFormedRingAmount()` | Save-compatible storage for the highest ring tier committed by formation. This is gameplay authority. |
+| Cleared ring amount | `clearedRingAmount` | Highest ring tier currently replaced with air by the renderer. |
+| Render active | `isRenderActive` | The controller believes a render block should own ring visuals. |
+| Renderer disabled | `isRendererDisabled` | User/config state that prevents automatic renderer creation. |
+| Module cache | `moduleHatches` | Runtime cache rebuilt from committed abilities after formation. |
 
-Each ring cell should use a Godforge-specific ring element or predicate with this logic:
+The old single `ringAmount` problem is mostly solved: code comments and helper methods now treat the saved field as
+formed-ring storage.
 
-1. If the physical block matches the normal ring requirement, accept it.
-2. Otherwise, accept air only when all conditions are true:
-   - `renderActive` is true.
-   - `clearedRingAmount >= ringIndex`.
-   - The render block exists at `getRenderPos()`.
-   - The render tile owner is this controller.
-   - The last committed `formedRingAmount >= ringIndex`, or recovery mode has verified the same air-ring footprint.
-3. Otherwise fail with a diagnostic that includes ring index, render state, cleared count, actual block, and expected
-   normal candidates.
+### Formation Flow
 
-This means normal and air ring templates should not be separate structure definitions. The definition stays fixed; the
-cell runtime decides whether normal block or renderer-owned air is acceptable.
+The canonical formation flow is:
 
-## Renderer Lifecycle
+1. V3 checks the stable multi-piece definition.
+2. `formStructure(FormedStructureView)` calls `formStructureWithDisplay(formed)`.
+3. `formGodforgeStructure()` commits Godforge-specific state.
+4. `commitFormedRingAmountFromStructure()` writes the formed ring amount from the active structure target.
+5. `discoverModules()` rebuilds `moduleHatches` from committed `GODFORGE_MODULE` abilities.
+6. Milestones are recalculated.
+7. If the battery is active and the renderer is allowed, the renderer is created or repaired.
 
-Renderer operations are world mutations, not structure declarations.
+The important invariant is that `formStructure()` must not run additional ring template checks. The structure check has
+already selected the active piece set; Godforge-specific state should only consume that committed result.
 
-Creation:
+### Module Attachment
 
-- Only run after a successful structure commit.
-- Place or repair the render block.
-- Set `renderActive = true`.
-- Start a ring replacement task for `formedRingAmount`, not `desiredRingAmount`.
-- Suppress event-driven rechecks during block replacement.
-- When replacement finishes, set `clearedRingAmount` to the replaced ring count and mark those ring pieces dirty.
+Godforge modules are now regular multiblock ability parts:
 
-Destruction:
+- `MTEBaseModule` implements `IGodforgeModule` and `IMultiblockAbilityPart<IGodforgeModule>`.
+- `getAbility()` returns `MultiblockAbility.GODFORGE_MODULE`.
+- `registerAbilities()` adds the module to committed ability instances.
+- `beam_shaft` `J` slots accept module blocks, the normal casing, and currently air for empty module slots.
+- `discoverModules()` reads `getAbilities(MultiblockAbility.GODFORGE_MODULE)` and rebuilds `moduleHatches`.
 
-- Remove the render block.
-- Start a ring restoration task for `clearedRingAmount`.
-- Suppress event-driven rechecks during restoration.
-- When restoration finishes, set `clearedRingAmount = 0`, set `renderActive = false`, and mark restored ring pieces
-  dirty.
+This is the right boundary. Structure formation identifies eligible modules; the tick loop still owns connection,
+disconnect, battery, max-module-count, upgrade, and anti-cheese policy.
 
-Load recovery:
+### Renderer Lifecycle
 
-- If `renderActive` is persisted but the render block is missing or invalid, set `renderActive = false` and restore or
-  require physical rings according to current policy.
-- If `renderActive` is false but `clearedRingAmount > 0` and the battery indicates the renderer should have been active,
-  enter a recovery operation:
-  - Verify `beam_shaft`.
-  - Verify each cleared ring using renderer-owned-air rules without trusting a missing renderer blindly.
-  - Repair the render block.
-  - Commit `formedRingAmount = max(formedRingAmount, clearedRingAmount)` only after the check succeeds.
+Renderer operations are world mutations outside the declaration:
 
-## Upgrade Flow
+- `createRenderer()` places or repairs `GODFORGE_RENDER`, sets owner position and rotation, marks render active, and
+  starts ring replacement through `ringsDirty`.
+- `replaceRenderedRings(false)` replaces physical ring blocks with air up to `getFormedRingAmount()`.
+- `destroyRenderer()` removes the render block and starts restoration for `clearedRingAmount`.
+- `processRingReplacement()` suppresses event-driven rechecks while it mutates ring blocks.
+- `finishRingReplacement()` updates `clearedRingAmount`, notifies structure dependencies, and performs deferred refresh
+  when needed.
 
-Upgrade completion should not immediately mutate formed structure state.
+The renderer must not become a ring-tier source. It may only clear or restore rings that were already committed as
+formed.
 
-On `CD` or `END` unlock:
+### Recovery Flow
 
-- Mark the Godforge structure policy dirty.
-- Do not set `formedRingAmount`.
-- Do not allow the new ring to count for module limits or milestones until a structure refresh/check succeeds.
-- A GUI refresh, builder action, or normal structure check should use the new `desiredRingAmount`.
+`tryRecoverRenderedStructure()` supports persisted saves where:
 
-On respec or downgrade-like operations:
+- the battery is still active,
+- `clearedRingAmount > 0`,
+- physical rings are missing because a renderer had previously replaced them with air.
 
-- Compute the lower `desiredRingAmount`.
-- If `formedRingAmount` is now above `desiredRingAmount`, invalidate or recheck before continuing operation.
-- If a renderer is active and the removed ring tier was cleared, restore the now-invalid ring before the next committed
-  structure state.
+It temporarily enables `recoveringRenderedStructure`, re-runs the normal V3 check, and then recreates the renderer when
+the structure forms. This keeps recovery inside the canonical V3 operation path. Recovery may also run when
+`renderActive` was persisted but the renderer block or owner is missing; ordinary rendered validation remains strict.
 
-Split-upgrade limits currently use `ringAmount`. After migration they should use `formedRingAmount`, because gameplay
-benefits should depend on physically formed extensions, not merely unlocked desired extensions.
+## Design Decision: Normal/Air Pieces Are Better Than One Mixed Predicate
 
-## Structure Check And Commit Flow
+The old design recommended a single Godforge-specific cell predicate that accepted either physical ring blocks or
+renderer-owned air. That is no longer the best default for the current V3 code.
 
-Initial formation and recheck should share the same operation path:
+The current normal/air piece pair design is better because:
 
-1. Build or retrieve the fixed `StructureDefinition`.
-2. Build an operation request with:
-   - orientation,
-   - desired ring count,
-   - render policy snapshot,
-   - current formed metadata,
-   - controller context.
-3. Run the multi-piece check.
-4. Produce a result containing:
-   - matched pieces,
-   - formed ring amount,
-   - collected Godforge modules,
-   - normal multiblock abilities,
-   - channel values,
-   - diagnostics.
-5. Commit through the server-thread structure committer.
-6. Publish Godforge-specific commit state after the generic commit accepts the part/ability set.
+- The structure definition remains stable and immutable.
+- Physical and rendered footprints have clear names in traces: `first_ring` vs `first_ring_air`.
+- Air-ring templates can use ordinary typed `Elements.air()` cells.
+- Build tools can target physical pieces without teaching every cell how to reverse an air predicate.
+- Conditional pieces can declare external dependencies on upgrades/configuration.
+- Failure diagnostics can point to the active piece that failed.
 
-Godforge-specific commit state should include:
+The condition is that air pieces must be gated strictly. Air-ring variants are runtime validation pieces, not build
+templates and not a way to skip construction.
 
-- `formedRingAmount`.
-- `moduleHatches` derived from collected `GODFORGE_MODULE` ability parts and module-slot matches.
-- `lastCommittedRenderPolicy` or enough metadata for air-ring validation.
+## Remaining Hardening
 
-Avoid calling extra ring template checks from `formStructure()`. `formStructure()` should consume the result of the
-canonical check, not discover more structure.
+Only a few targeted follow-ups remain.
 
-## Module Attachment
+### 1. Keep Ring Commit Tied To The Checked Piece Set
 
-`beam_shaft` module slots should be collected during the structure operation.
+`commitFormedRingAmountFromStructure()` currently commits `getStructureRingTargetAmount()`. This is acceptable only
+because the active piece set is deterministic and the V3 check must pass before commit.
 
-Rules:
+Preferred future improvement, if the V3 result exposes matched piece names cleanly:
 
-- A module block in a `J` slot contributes `GODFORGE_MODULE`.
-- A casing block in a `J` slot is a valid empty slot.
-- Empty air should be allowed only in already formed beam-shaft reassembly if the old behavior must be preserved for
-  brief hot-swap windows.
-- `moduleHatches` is rebuilt from the committed result.
-- `discoverModules()` should become a compatibility/debug helper or be removed after instrumentation proves commit
-  collection is complete.
+- commit ring 1 when `first_ring` or `first_ring_air` matched;
+- commit ring 2 when `second_ring` or `second_ring_air` matched;
+- commit ring 3 when `third_ring` or `third_ring_air` matched.
 
-Connection/disconnection stays in Godforge tick policy:
+Do not reintroduce extra template scans to discover this.
 
-- Structure commit only identifies eligible modules.
-- The tick loop still decides whether modules connect based on battery, max module count, upgrade rules, and anti-cheese
-  checks.
+### 2. Hide Or Mark Air Pieces In Build Tooling
 
-## Preview And Build Tools
+Air pieces are validation variants. Builder/projector flows should build physical rings by default and should not offer
+`*_ring_air` as ordinary construction targets.
 
-Preview and construction must use the same ring policy inputs as checking.
+Preferred direction:
 
-Default preview:
+- Default build/preview shows `beam_shaft`, `first_ring`, `second_ring`, and `third_ring`.
+- If low-level piece-channel tooling exposes all pieces, mark `*_ring_air` as runtime-only or skip it in user-facing
+  construction.
+- Renderer replacement remains a post-commit world mutation.
 
-- Show one ring by default.
-- Expose structure-piece selection for `beam_shaft`, `first_ring`, `second_ring`, `third_ring`.
-- If the controller item or live controller has upgrade context, show pieces up to `desiredRingAmount`.
+### 3. Keep Async Disabled For Now
 
-Creative/survival build:
+`allowsAsyncStructureCheck()` returns false. Keep that until renderer ownership, recovery, and dependency snapshots are
+fully deterministic for detached workers. Godforge is large and stateful enough that conservative synchronous checks are
+the right default.
 
-- Build only active pieces by default.
-- Allow the structure-piece channel to build a specific ring piece.
-- Never build air-ring variants. Build tools place physical ring blocks.
-- Renderer replacement is a post-commit world mutation, not a build template.
+## Upgrade Policy
+
+Upgrade unlocks should change desired structure policy, not formed gameplay state.
+
+Current intended behavior:
+
+- Unlocking `CD` raises desired rings to at least 2.
+- Unlocking `END` raises desired rings to 3.
+- Split-upgrade checks still use the formed ring amount through save-compatible `ringAmount`.
+- New ring benefits are not granted until a structure refresh/check succeeds and commits the formed ring amount.
+- Module limit uses formed rings:
+
+```text
+maxModuleCount = 8 + (formedRingAmount - 1) * 4
+```
+
+On respec or downgrade-like operations, the code should restore rendered rings first when needed, then invalidate or
+refresh through the same V3 operation path. Do not directly lower gameplay state without a structure operation unless
+the structure is also being invalidated.
 
 ## Diagnostics
 
-Before changing matching behavior, add trace output around these points:
+The current implementation already has useful Godforge logs:
 
-- Desired, formed, and cleared ring counts at check start and commit.
-- Active piece list and skipped piece reasons.
-- Ring cell failure: ring index, render state, cleared count, actual block, normal candidate summary.
-- Renderer recovery: persisted render state, render block state, owner position, recovered pieces.
-- Module collection: collected `GODFORGE_MODULE` count, module positions, ignored invalid slots.
-- Ring replacement task completion: restore flag, target ring count, changed blocks, dirty pieces marked.
+- ring state before/after commit;
+- structure failure with trace path, operation, expected/actual, candidates, ring state, and renderer state;
+- module discovery mismatch;
+- module connection decisions in debug mode;
+- renderer creation and ring replacement completion;
+- persisted rendered-structure recovery.
 
-These logs should be rate-limited like the current structure failure and module connection logs.
+Keep logs rate-limited or debug-gated. Add logs before changing uncertain behavior, especially for:
 
-## Migration Plan
+- rendered-air piece activation and ownership failures;
+- recovery accepting a missing renderer;
+- recovery rejecting a foreign renderer;
+- deferred refresh after ring restoration;
+- build tooling hiding or exposing runtime-only air pieces.
 
-1. Add instrumentation using the current implementation.
-2. Introduce names and helper methods for desired, formed, and cleared ring counts without changing behavior.
-3. Add Godforge-specific formed metadata or a typed operation-state key for formed ring amount and collected modules.
-4. Convert ring predicates to context-aware normal-or-rendered-air predicates.
-5. Add a fixed `createStructureDefinition()` for Godforge with four pieces.
-6. Route initial formation through the multi-piece definition.
-7. Remove extra ring template checks from `formStructure()` and consume committed metadata instead.
-8. Rework renderer creation/destruction to mark pieces dirty after replacement and to use `formedRingAmount`.
-9. Rework module discovery to consume commit results.
-10. Remove the legacy `createStructurePattern()` and `createMultiPiecePattern()` Godforge paths after previews and build
-    tools use the V3 definition.
+## What Not To Do
+
+Do not continue these obsolete items from the old draft:
+
+- Do not rebuild Godforge around legacy `createStructurePattern()` or `createMultiPiecePattern()` paths.
+- Do not add post-formation ring template scans.
+- Do not make `ringAmount` mean desired, formed, and cleared state again.
+- Do not remove `discoverModules()` just because it is named "discover"; its current job is cache rebuild from committed
+  abilities.
+- Do not replace the current seven stable contextual pieces with runtime-rebuilt templates.
+- Do not make rendered-air templates globally valid.
+- Do not let renderer replacement grant rings that were never physically formed.
 
 ## Acceptance Criteria
 
-- A one-ring Godforge forms through the multi-piece definition.
-- Unlocking `CD` does not grant second-ring benefits until the second ring is built and a structure check commits.
-- Unlocking `END` does not grant third-ring benefits until the third ring is built and a structure check commits.
-- Renderer replacement does not invalidate a formed structure when the render block is valid and owns the air rings.
-- Air rings do not validate when the renderer is missing, owned by another controller, or the ring was never formed.
-- Reload recovery handles persisted rendered structures without requiring a full physical ring rebuild.
-- Module hotswap behavior is at least as permissive as the current implementation, with logs for any rejected slot.
-- JEI/projector/builder views come from the same multi-piece definition and never from a separate merged legacy pattern.
+The stabilized design is acceptable when:
+
+- One-ring Godforge forms through the V3 `STRUCTURE_DEFINITION`.
+- Unlocking `CD` or `END` changes desired rings but does not grant ring benefits until a successful check commits.
+- Physical ring pieces and rendered-air ring pieces are mutually exclusive for each ring.
+- Rendered-air pieces validate only for this controller's renderer, or during explicit safe recovery.
+- Missing or foreign renderer ownership produces useful logs and does not silently validate arbitrary air.
+- Renderer replacement uses `formedRingAmount`, not `desiredRingAmount`.
+- Ring restoration suppresses event-driven rechecks while blocks are being restored.
+- `moduleHatches` is rebuilt from committed `GODFORGE_MODULE` abilities.
+- Module connection policy remains in the tick loop.
+- Build/projector tooling does not construct air-ring variants as normal structure pieces.
+- Godforge remains locked by `StructureInternalLegacyBoundaryScanTest` as a stable V3 controller.
+
+## Recently Completed
+
+- Added `GodforgeRenderedRingPolicy` and tests for rendered-air activation.
+- Normal rendered validation now requires renderer ownership by the current controller.
+- Recovery accepts a missing renderer only when the battery is active and no loaded foreign renderer occupies the render
+  position.
+- Rendered-air activation failure logs ring index, cleared rings, recovery flag, and renderer ownership details in debug
+  mode.
+- `ensureRendererState()` repairs missing/invalid owner data but refuses a render block owned by another controller.
+
+The next patch should start with matched-piece ring commit metadata or build-tool filtering for `*_ring_air` pieces.

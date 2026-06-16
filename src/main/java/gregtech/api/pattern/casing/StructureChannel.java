@@ -90,8 +90,7 @@ public interface StructureChannel {
      */
     @Nullable
     default ICasing getMatchedCasing(@NotNull FormedStructureView formed) {
-        Object obj = formed.getAggregate("gregtech:legacy/channel/" + getName());
-        return obj instanceof ICasing ? (ICasing) obj : null;
+        return formed.getChannelAggregate(this, ICasing.class);
     }
 
     /**

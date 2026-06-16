@@ -773,15 +773,29 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /**
      * Typed formation callback for new controllers. The default implementation
-     * invokes the legacy callback with the compatibility projection so existing
-     * subclasses keep their behavior while new code can override this method
-     * and consume {@link FormedStructureView} directly.
+     * invokes the legacy callback only when a subclass still overrides it.
+     * New code should override this method and consume {@link FormedStructureView}
+     * directly.
      */
     protected void formStructure(@NotNull FormedStructureView formed) {
-        formStructure(formed.copyLegacyCallbackContext());
+        if (hasLegacyFormStructureOverrideBelow(MultiblockControllerBase.class)) {
+            formLegacyStructureCallback(formed);
+        }
     }
 
+    /**
+     * Legacy formation callback retained for addon compatibility.
+     *
+     * @deprecated Override {@link #formStructure(FormedStructureView)} instead.
+     */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     protected void formStructure(PatternMatchContext context) {}
+
+    @SuppressWarnings("deprecation")
+    protected final void formLegacyStructureCallback(@NotNull FormedStructureView formed) {
+        formStructure(formed.copyLegacyCallbackContext());
+    }
 
     /**
      * Whether a subclass below the supplied API boundary still overrides the

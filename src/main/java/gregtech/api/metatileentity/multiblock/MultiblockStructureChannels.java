@@ -4,6 +4,7 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelRegistry;
@@ -83,6 +84,9 @@ final class MultiblockStructureChannels {
             return new int[] { 0, 0 };
         }
         String channelName = channel.getName();
+        if (channel == GTStructureChannels.STRUCTURE_PIECE) {
+            return new int[] { 0, multiPiecePattern.getToolingPieceCount() };
+        }
 
         for (StructurePiece piece : multiPiecePattern.getPieceList()) {
             if (piece instanceof RepeatGroupPiece) {

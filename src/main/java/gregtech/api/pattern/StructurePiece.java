@@ -81,6 +81,7 @@ public class StructurePiece {
     private final OffsetMode offsetMode;
     @Nullable
     private final BooleanSupplier condition;
+    private final boolean toolingVisible;
 
     /**
      * Snapshot checker bound at construction time. Receives a per-call
@@ -123,12 +124,21 @@ public class StructurePiece {
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
                           @Nullable BooleanSupplier condition,
                           @NotNull SnapshotChecker snapshotChecker) {
+        this(name, template, offset, offsetMode, condition, snapshotChecker, true);
+    }
+
+    public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
+                          @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
+                          @Nullable BooleanSupplier condition,
+                          @NotNull SnapshotChecker snapshotChecker,
+                          boolean toolingVisible) {
         this.name = name;
         this.pieceTemplate = template;
         this.offset = offset;
         this.offsetMode = offsetMode;
         this.condition = condition;
         this.snapshotChecker = snapshotChecker;
+        this.toolingVisible = toolingVisible;
     }
 
     /**
@@ -151,7 +161,15 @@ public class StructurePiece {
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
                           @Nullable BooleanSupplier condition,
                           @NotNull SnapshotChecker snapshotChecker) {
-        this(name, template.getDelegate(), offset, offsetMode, condition, snapshotChecker);
+        this(name, template, offset, offsetMode, condition, snapshotChecker, true);
+    }
+
+    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template,
+                          @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
+                          @Nullable BooleanSupplier condition,
+                          @NotNull SnapshotChecker snapshotChecker,
+                          boolean toolingVisible) {
+        this(name, template.getDelegate(), offset, offsetMode, condition, snapshotChecker, toolingVisible);
         this.templateView = template;
     }
 
@@ -231,6 +249,10 @@ public class StructurePiece {
      */
     public boolean isConditional() {
         return condition != null;
+    }
+
+    public boolean isToolingVisible() {
+        return toolingVisible;
     }
 
     /**

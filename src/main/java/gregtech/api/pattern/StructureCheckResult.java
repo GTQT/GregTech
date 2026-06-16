@@ -8,6 +8,7 @@ import gregtech.api.pattern.element.StructureCheckState;
 
 import net.minecraft.util.math.BlockPos;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -445,6 +446,11 @@ public final class StructureCheckResult {
 
     public boolean isMatched() {
         return matched;
+    }
+
+    @ApiStatus.Internal
+    public boolean hasLegacyContext() {
+        return context != null;
     }
 
     @Nullable

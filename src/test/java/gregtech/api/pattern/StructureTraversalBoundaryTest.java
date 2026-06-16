@@ -40,6 +40,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -188,6 +189,30 @@ class StructureTraversalBoundaryTest {
         assertTrue(result.publishPieceRuntimes(controllerRuntimes));
         assertNull(controllerRuntimes.get(first).getLastAggregatedContext());
         assertNull(controllerRuntimes.get(second).getLastAggregatedContext());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void formedStructureViewMaterializesLegacyProjectionOnlyInBridgeScope() {
+        RecordingElement element = new RecordingElement(true);
+        StructureRuntime runtime = StructureRuntime.fromDefinition(
+                StructureDefinition.fromTemplate(new BlockPatternTemplate(singleCellTemplate(element))));
+
+        StructureCheckResult result = runtime.check(checkRequest());
+        FormedStructureView view = FormedStructureView.fromCheckResult(result);
+
+        assertEquals(1, view.getMetadataChannelValue("channel"));
+        assertThrows(IllegalStateException.class, view::copyLegacyCallbackContext);
+
+        FormedStructureView.runWithLegacyCallbackProjection(view, result, () -> {
+            PatternMatchContext first = view.copyLegacyCallbackContext();
+            first.set("channel", 9);
+            PatternMatchContext second = view.copyLegacyCallbackContext();
+
+            assertEquals(1, second.getInt("channel"));
+        });
+
+        assertThrows(IllegalStateException.class, view::copyLegacyCallbackContext);
     }
 
     @Test
@@ -540,15 +565,46 @@ class StructureTraversalBoundaryTest {
         TypedCallbackController controller = typedCallbackController();
         PatternMatchContext legacy = new PatternMatchContext();
         legacy.set("channel", 5);
+        FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
+                Collections.emptyMap(), Collections.singletonMap("channel", 5));
         FormedStructureView view = FormedStructureView.legacy(
-                null, new StructureChannelValues(), new StructureOperationState(), legacy, true);
+                metadata, new StructureChannelValues(), new StructureOperationState(), legacy, true);
 
         controller.invokeFormStructure(view);
 
         assertNotNull(controller.typedCallbackView);
-        assertEquals(5, controller.typedCallbackView.copyLegacyCallbackContext().getInt("channel"));
+        assertEquals(5, controller.typedCallbackView.getMetadataChannelValue("channel"));
         assertTrue(controller.typedCallbackView.isFlipped());
         assertNull(controller.legacyCallbackContext);
+    }
+
+    @Test
+    void formedStructureViewExposesTypedStateWithoutLegacyContextLookup() {
+        TestPart part = new TestPart();
+        BlockPos activePos = new BlockPos(1, 2, 3);
+        StructurePieceKey bodyPiece = StructurePieceKey.of("body");
+        StructurePieceKey missingPiece = StructurePieceKey.of("missing");
+        StructureOperationState state = new StructureOperationState();
+        state.parts.add(part);
+        state.abilityCounts.put(MultiblockAbility.IMPORT_ITEMS, 2);
+        state.variantActiveBlocks.add(activePos);
+        FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
+                Collections.singletonMap("body", new int[] {3}),
+                Collections.singletonMap("coil", 4),
+                Collections.singletonMap("body", BlockPos.ORIGIN));
+
+        FormedStructureView view = FormedStructureView.legacy(
+                metadata, new StructureChannelValues(), state, new PatternMatchContext(), false);
+
+        assertEquals(3, view.getPieceRepeat(bodyPiece, 0));
+        assertEquals(0, view.getPieceRepeat(missingPiece, 0));
+        assertEquals(BlockPos.ORIGIN, view.getPieceCenter(bodyPiece));
+        assertEquals(4, view.getMetadataChannelValue("coil"));
+        assertEquals(Collections.singleton(part), view.getParts());
+        assertEquals(Collections.singletonList(activePos), view.getVariantActiveBlocks());
+        assertEquals(2, view.getAbilityCount(MultiblockAbility.IMPORT_ITEMS));
+        assertTrue(view.hasAbility(MultiblockAbility.IMPORT_ITEMS));
+        assertFalse(view.hasAbility(MultiblockAbility.EXPORT_ITEMS));
     }
 
     @Test

@@ -22,7 +22,6 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.StructureOperationState;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
@@ -209,7 +208,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         if (hasLegacyFormStructureOverrideBelow(MultiblockWithDisplayBase.class)) {
-            formStructure(formed.copyLegacyCallbackContext());
+            formLegacyStructureCallback(formed);
             return;
         }
         formStructureWithDisplay(formed);
@@ -222,8 +221,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     protected final void formStructureWithDisplay(@NotNull FormedStructureView formed) {
-        StructureOperationState operationState = formed.copyOperationState();
-        formStructureWithDisplay(new LinkedList<>(operationState.getVariantActiveBlocks()));
+        formStructureWithDisplay(new LinkedList<>(formed.getVariantActiveBlocks()));
     }
 
     private void formStructureWithDisplay(@NotNull List<BlockPos> variantActiveBlocks) {

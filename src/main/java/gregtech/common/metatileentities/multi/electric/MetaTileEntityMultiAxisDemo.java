@@ -36,22 +36,25 @@ import static gregtech.api.pattern.element.Elements.*;
 /**
  * Demo multiblock using irregular repeatable sub-regions with multi-axis repetition.
  *
- * <p>Structure layout (L-shaped cross-section, repeatable along X and Y axes):
+ * <p>Structure layout (irregular two-aisle sub-region, repeatable along X, Y and Z axes):
  * <pre>
  *   Controller base (fixed, 1 aisle):
  *     WSW      S = self (controller)
  *     WWW      W = casing wall
  *
- *   L-shaped wall (repeatable along X and Y, 1 aisle):
+ *   Wall voxel (repeatable along X, Y and Z, 2 aisles):
  *     WCW      C = corner block (different from W, makes this non-tensor-product)
  *     W W      (space) = air inside
+ *
+ *     WWW
+ *     C W
  *              -> triggers NESTED_BACKTRACKING strategy
  * </pre>
  *
- * <p>The L-shaped wall piece repeats along X (width: 2~5) and Y (height: 2~7),
- * creating a variable-size L-shaped structure. The irregular pattern (different
- * characters W and C in the same slice) ensures this uses the NESTED_BACKTRACKING
- * search strategy rather than INDEPENDENT_1D.
+ * <p>The wall piece itself is larger than one block on every axis (3 x 2 x 2),
+ * and then repeats along X (width: 1~5), Y (height: 1~7) and Z (depth: 1~4).
+ * The irregular pattern (different characters W and C across slices) ensures
+ * this uses the NESTED_BACKTRACKING search strategy rather than INDEPENDENT_1D.
  */
 public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
@@ -63,17 +66,21 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
                     .piece("base")
                             .aisle("WSW", "WWW")
                             .centerOffset(1, 0, 0)
-                    // Repeatable L-shaped wall piece: irregular (W + C + space)
-                    // X axis: 2~5, Y axis: 2~7
+                    // Repeatable wall piece: irregular (W + C + space), size 3 x 2 x 2.
+                    // X axis: 1~5, Y axis: 1~7, Z axis: 1~4.
                     .repeatablePiece("wall",
-                            new String[][]{{"WCW", "W W"}},
+                            new String[][]{
+                                    {"WCW", "W W"},
+                                    {"WWW", "C W"}
+                            },
                             new Vec3i(0, 1, 0))
-                            .repeatAxes(0, 1)     // X and Y axes
-                            .repeatRange(2, 5, 2, 7) // X: 2~5, Y: 2~7
-                            .stepSizes(1, 1)       // step 1 for both axes
+                            .repeatAxes(0, 1, 2)       // X, Y and Z axes
+                            .repeatRange(1, 5, 1, 7, 1, 4) // X: 1~5, Y: 1~7, Z: 1~4
+                            .stepSizes(3, 2, 2)        // tile the 3 x 2 x 2 sub-region
                             .channelNames(
                                     GTStructureChannels.STRUCTURE_WIDTH.getName(),
-                                    GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                                    GTStructureChannels.STRUCTURE_HEIGHT.getName(),
+                                    GTStructureChannels.STRUCTURE_LENGTH.getName())
                             .centerOffset(1, 0, 0)
                     .where('S', self(MetaTileEntityMultiAxisDemo.class))
                     .where('W', block(getCasingState()))
@@ -141,8 +148,8 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
-        tooltip.add("Multi-Axis Demo: L-shaped irregular repeatable sub-region");
-        tooltip.add("X: 2~5, Y: 2~7 (NESTED_BACKTRACKING strategy)");
+        tooltip.add("Multi-Axis Demo: irregular 3 x 2 x 2 repeatable sub-region");
+        tooltip.add("X: 1~5, Y: 1~7, Z: 1~4 (NESTED_BACKTRACKING strategy)");
     }
 
     /** Get the casing block state for walls */

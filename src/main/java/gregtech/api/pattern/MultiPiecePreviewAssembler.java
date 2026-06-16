@@ -62,8 +62,11 @@ public final class MultiPiecePreviewAssembler {
                     new HashMap<>(pieceRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, null, BlockPos.ORIGIN, prior, null);
+            boolean toolingVisible = piece.isToolingVisible();
             if (!piece.isActive(activation)) {
-                pieceResults.add(PieceResult.empty());
+                if (toolingVisible) {
+                    pieceResults.add(PieceResult.empty());
+                }
                 continue;
             }
             BlockPos pieceCenter = piece.getCenterPos(
@@ -74,7 +77,9 @@ public final class MultiPiecePreviewAssembler {
 
             PieceRuntime runtime = runtimes.get(piece);
             if (runtime == null) {
-                pieceResults.add(PieceResult.empty());
+                if (toolingVisible) {
+                    pieceResults.add(PieceResult.empty());
+                }
                 continue;
             }
 
@@ -104,25 +109,31 @@ public final class MultiPiecePreviewAssembler {
                     BlockPos relative = baseRelative.add(canonicalShift);
                     BlockPos global = pieceCenter.add(relative);
                     pieceBlocks.put(relative, selected);
-                    allBlocks.put(global, selected);
+                    if (toolingVisible) {
+                        allBlocks.put(global, selected);
+                    }
                 }
 
-                for (Map.Entry<BlockPos, TraceabilityPredicate> entry : preview.getPredicates().entrySet()) {
-                    BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
-                    allPredicates.put(pieceCenter.add(relative), entry.getValue());
-                }
+                if (toolingVisible) {
+                    for (Map.Entry<BlockPos, TraceabilityPredicate> entry : preview.getPredicates().entrySet()) {
+                        BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
+                        allPredicates.put(pieceCenter.add(relative), entry.getValue());
+                    }
 
-                for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : preview.getPreviewEntries().entrySet()) {
-                    BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
-                    allPreviewEntries.put(pieceCenter.add(relative), entry.getValue());
+                    for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : preview.getPreviewEntries().entrySet()) {
+                        BlockPos relative = entry.getKey().subtract(preview.getCenter()).add(canonicalShift);
+                        allPreviewEntries.put(pieceCenter.add(relative), entry.getValue());
+                    }
                 }
             });
 
-            NormalizedShape pieceShape = normalize(pieceBlocks);
-            pieceResults.add(new PieceResult(
-                    pieceShape.shape,
-                    new BlockPos(-pieceShape.minX, -pieceShape.minY, -pieceShape.minZ),
-                    prior));
+            if (toolingVisible) {
+                NormalizedShape pieceShape = normalize(pieceBlocks);
+                pieceResults.add(new PieceResult(
+                        pieceShape.shape,
+                        new BlockPos(-pieceShape.minX, -pieceShape.minY, -pieceShape.minZ),
+                        prior));
+            }
 
             if (externalRepetitions.length > 0) {
                 pieceRepeats.put(piece.getName(), externalRepetitions.clone());
@@ -169,10 +180,14 @@ public final class MultiPiecePreviewAssembler {
             @NotNull BlockPos controllerPos,
             @NotNull StructureOrientation orientation,
             @Nullable MultiblockControllerBase controller) {
+        int compiledIndex = pattern.resolveToolingPieceIndex(oneBasedIndex);
+        if (compiledIndex < 1) {
+            return controllerPos;
+        }
         Map<String, int[]> repeats = new HashMap<>();
         Map<String, BlockPos> centers = new HashMap<>();
         List<StructurePiece> pieces = pattern.getPieceList();
-        for (int i = 0; i < oneBasedIndex; i++) {
+        for (int i = 0; i < compiledIndex; i++) {
             StructurePiece piece = pieces.get(i);
 
             FormedStructureMetadata actualPrior = FormedStructureMetadata.fromCheckResult(
@@ -182,7 +197,7 @@ public final class MultiPiecePreviewAssembler {
                             controllerPos, actualPrior, null);
             if (!piece.isActive(activation)) continue;
             BlockPos center = piece.getCenterPos(controllerPos, orientation, actualPrior);
-            if (i == oneBasedIndex - 1) {
+            if (i == compiledIndex - 1) {
                 return center;
             }
 

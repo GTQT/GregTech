@@ -26,8 +26,20 @@ public final class DynamicRepeatGroupPiece extends RepeatGroupPiece {
                                    @Nullable String[] channelNames, int[] centerOffset,
                                    @NotNull StructureCompiler.SearchStrategy strategy,
                                    @NotNull String anchorPieceName, @NotNull int[] anchorStep) {
+        this(name, template, staticOffset, offsetMode, condition, axes, ranges, steps,
+                channelNames, centerOffset, strategy, anchorPieceName, anchorStep, true);
+    }
+
+    public DynamicRepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate template,
+                                   @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
+                                   @Nullable BooleanSupplier condition,
+                                   int[] axes, int[][] ranges, int[] steps,
+                                   @Nullable String[] channelNames, int[] centerOffset,
+                                   @NotNull StructureCompiler.SearchStrategy strategy,
+                                   @NotNull String anchorPieceName, @NotNull int[] anchorStep,
+                                   boolean toolingVisible) {
         super(name, template, staticOffset, offsetMode, condition,
-                axes, ranges, steps, channelNames, centerOffset, strategy);
+                axes, ranges, steps, channelNames, centerOffset, strategy, toolingVisible);
         this.anchorPieceName = anchorPieceName;
         this.anchorStep = anchorStep.clone();
     }
