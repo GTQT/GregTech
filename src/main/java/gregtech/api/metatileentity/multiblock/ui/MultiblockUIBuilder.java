@@ -873,13 +873,24 @@ public class MultiblockUIBuilder {
      * Added if structure is formed, the machine is active, and the passed fuelName parameter is not null.
      */
     public MultiblockUIBuilder addFuelNeededLine(String fuelAmount, int previousRecipeDuration) {
+        if (fuelAmount == null) return this;
+        return addFuelNeededLine(() -> fuelAmount, () -> previousRecipeDuration);
+    }
+
+    public MultiblockUIBuilder addFuelNeededLine(@NotNull Supplier<@Nullable String> fuelAmount,
+                                                 @NotNull IntSupplier previousRecipeDuration) {
         if (!isStructureFormed || !isActive) return this;
-        fuelAmount = getSyncer().syncString(fuelAmount);
-        previousRecipeDuration = getSyncer().syncInt(previousRecipeDuration);
+        Supplier<String> syncedFuelAmountSupplier = () -> {
+            String value = fuelAmount.get();
+            return value == null ? "" : value;
+        };
+        String syncedFuelAmount = getSyncer().syncObject(syncedFuelAmountSupplier, ByteBufAdapters.STRING);
+        if (syncedFuelAmount.isEmpty()) return this;
+        int syncedPreviousRecipeDuration = getSyncer().syncInt(previousRecipeDuration);
         addKey(KeyUtil.lang(TextFormatting.GRAY,
                 "gregtech.multiblock.turbine.fuel_needed",
-                KeyUtil.string(TextFormatting.RED, fuelAmount),
-                KeyUtil.number(TextFormatting.AQUA, previousRecipeDuration)));
+                KeyUtil.string(TextFormatting.RED, syncedFuelAmount),
+                KeyUtil.number(TextFormatting.AQUA, syncedPreviousRecipeDuration)));
         return this;
     }
 

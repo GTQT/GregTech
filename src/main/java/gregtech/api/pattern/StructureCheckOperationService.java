@@ -661,6 +661,9 @@ final class StructureCheckOperationService {
                 || result.getRuntimePublication() == null) {
             return result;
         }
+        if (canUseLightweightSingleTemplateCommit(plan)) {
+            return result;
+        }
         MultiPiecePattern pattern = operationRuntime().pattern;
         CommittedStructureGraph graph = CommittedStructureGraph.create(
                 result.getResultTable(),
@@ -670,6 +673,12 @@ final class StructureCheckOperationService {
                 orientation,
                 plan.snapshotExternalDependencies(request.getController()));
         return result.withGraphPublication(graph);
+    }
+
+    private boolean canUseLightweightSingleTemplateCommit(@NotNull StructureEligibilityPlan plan) {
+        return definition != null
+                && definition.supportsSingleTemplatePath()
+                && plan.getExternalDependencies().isEmpty();
     }
 
     private static void accumulatePriorFromResult(

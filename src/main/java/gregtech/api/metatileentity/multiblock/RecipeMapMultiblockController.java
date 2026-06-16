@@ -212,6 +212,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     protected void initializeAbilities() {
         abilityManager.initialize(allowSameFluidFillForOutputs());
         syncFromAbilityManager();
+        notifyRecipeAbilityRefresh();
     }
 
     private void resetTileAbilities() {
@@ -230,6 +231,13 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         this.outputFluidInventory = abilityManager.getOutputFluidInventory();
         this.energyContainer = abilityManager.getEnergyContainer();
         this.refreshBeforeConsumptions = abilityManager.getRefreshBeforeConsumptions();
+    }
+
+    private void notifyRecipeAbilityRefresh() {
+        addNotifiedInput(this.inputInventory);
+        addNotifiedInput(this.inputFluidInventory);
+        addNotifiedOutput(this.outputInventory);
+        addNotifiedOutput(this.outputFluidInventory);
     }
 
     public boolean allowSameFluidFillForOutputs() {

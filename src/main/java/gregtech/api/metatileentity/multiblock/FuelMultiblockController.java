@@ -91,10 +91,12 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
+        boolean dynamoFull = isDynamoFull();
 
-        builder.setWorkingStatus(recipeLogic.isWorkingEnabled(), recipeLogic.isActive())
+        builder.setWorkingStatus(recipeLogic.isWorkingEnabled() && !dynamoFull,
+                recipeLogic.isActive() && !dynamoFull)
                 .addEnergyProductionLine(getMaxVoltage(), recipeLogic.getRecipeEUt())
-                .addFuelNeededLine(recipeLogic.getRecipeFluidInputInfo(), recipeLogic.getPreviousRecipeDuration())
+                .addFuelNeededLine(recipeLogic::getRecipeFluidInputInfo, recipeLogic::getPreviousRecipeDuration)
                 .addWorkingStatusLine();
     }
 
@@ -198,8 +200,9 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
         int fuelCapacity = 0;
         FluidStack fuelStack = null;
         MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
-        if (isStructureFormed() && recipeLogic.getInputFluidStack() != null && getInputFluidInventory() != null) {
-            fuelStack = recipeLogic.getInputFluidStack().copy();
+        FluidStack cachedFuel = recipeLogic.getCachedInputFluidStack();
+        if (isStructureFormed() && cachedFuel != null && getInputFluidInventory() != null) {
+            fuelStack = cachedFuel.copy();
             fuelStack.amount = Integer.MAX_VALUE;
             int[] fuelAmount = getTotalFluidAmount(fuelStack, getInputFluidInventory());
             fuelStored = fuelAmount[0];
@@ -236,7 +239,9 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
             Fluid fluid = fuelNameValue.getStringValue() == null ? null :
                     FluidRegistry.getFluid(fuelNameValue.getStringValue());
             if (fluid == null) {
-                tooltip.addLine(IKey.lang("gregtech.multiblock.large_combustion_engine.fuel_none"));
+                tooltip.addLine(IKey.lang(isDynamoFull()
+                        ? "gregtech.multiblock.large_combustion_engine.dynamo_hatch_full"
+                        : "gregtech.multiblock.large_combustion_engine.fuel_none"));
             } else {
                 tooltip.addLine(
                         IKey.lang("gregtech.multiblock.large_combustion_engine.fuel_amount", amounts.getValue(0),
@@ -249,7 +254,12 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
 
     @Override
     public boolean isDynamoFull() {
-        return getEnergyContainer().getEnergyCanBeInserted() < recipeMapWorkable.getRecipeEUt();
+        IEnergyContainer energyContainer = getEnergyContainer();
+        if (energyContainer == null || energyContainer.getEnergyCapacity() <= 0) {
+            return false;
+        }
+        long requiredOutputSpace = Math.max(1L, Math.abs(recipeMapWorkable.getRecipeEUt()));
+        return energyContainer.getEnergyCanBeInserted() < requiredOutputSpace;
     }
 
     @Override

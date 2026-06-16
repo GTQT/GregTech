@@ -211,7 +211,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
-        builder.setWorkingStatus(recipeLogic.isWorkingEnabled(), recipeLogic.isActive())
+        boolean dynamoFull = isDynamoFull();
+        builder.setWorkingStatus(recipeLogic.isWorkingEnabled() && !dynamoFull,
+                recipeLogic.isActive() && !dynamoFull)
                 .addEnergyProductionLine(getMaxVoltage(), recipeLogic.getRecipeEUt())
                 .addCustom((keyList, syncer) -> {
                     IRotorHolder rotorHolder = getRotorHolder();
@@ -230,7 +232,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                                 efficiencyInfo));
                     }
                 })
-                .addFuelNeededLine(recipeLogic.getRecipeFluidInputInfo(), recipeLogic.getPreviousRecipeDuration())
+                .addFuelNeededLine(recipeLogic::getRecipeFluidInputInfo, recipeLogic::getPreviousRecipeDuration)
                 .addWorkingStatusLine();
     }
 
@@ -351,7 +353,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     public void registerBars(List<UnaryOperator<TemplateBarBuilder>> bars, PanelSyncManager syncManager) {
         FixedIntArraySyncValue fuelValue = new FixedIntArraySyncValue(this::getFuelAmount);
         StringSyncValue fuelNameValue = new StringSyncValue(() -> {
-            FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getInputFluidStack();
+            FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getCachedInputFluidStack();
             if (stack == null) {
                 return null;
             }
@@ -467,8 +469,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     private int[] getFuelAmount() {
         if (getInputFluidInventory() != null) {
             MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
-            if (recipeLogic.getInputFluidStack() != null) {
-                FluidStack testStack = recipeLogic.getInputFluidStack().copy();
+            FluidStack fuelStack = recipeLogic.getCachedInputFluidStack();
+            if (fuelStack != null) {
+                FluidStack testStack = fuelStack.copy();
                 testStack.amount = Integer.MAX_VALUE;
                 return getTotalFluidAmount(testStack, getInputFluidInventory());
             }

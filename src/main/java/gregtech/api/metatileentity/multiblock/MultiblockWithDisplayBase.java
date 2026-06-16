@@ -45,6 +45,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -420,10 +421,11 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
         // After changing the voiding mode, reset the notified buses in case a recipe can run now that voiding mode has
         // been changed
         for (IFluidTank tank : this.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
-            this.getNotifiedFluidInputList().add((IFluidHandler) tank);
+            addNotifiedInput(tank);
         }
-        this.getNotifiedItemInputList()
-                .addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
+        for (IItemHandlerModifiable bus : this.getAbilities(MultiblockAbility.IMPORT_ITEMS)) {
+            addNotifiedInput(bus);
+        }
 
         markDirty();
         if (previousMode != mode) {
