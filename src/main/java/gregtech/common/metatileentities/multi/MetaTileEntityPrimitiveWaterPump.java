@@ -7,8 +7,8 @@ import gregtech.api.metatileentity.multiblock.IPrimitivePump;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.LocalizationUtils;
@@ -47,14 +47,17 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
                     .aisle("XXXX", "**F*", "**F*")
                     .aisle("XXHX", "F**F", "FFFF")
                     .aisle("SXXX", "**F*", "**F*")
-                    .where('S', selfPredicate(MetaTileEntityPrimitiveWaterPump.class))
-                    .where('F', frames(Materials.TreatedWood))
+                    .self('S', MetaTileEntityPrimitiveWaterPump.class)
+                    .frames('F', Materials.TreatedWood)
                     .where('H',
-                            abilities(MultiblockAbility.PUMP_FLUID_HATCH).or(metaTileEntities(
-                                    MetaTileEntities.FLUID_EXPORT_HATCH[0], MetaTileEntities.FLUID_EXPORT_HATCH[1])))
-                    .where('*', any())
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK)))
+                            Elements.chain(
+                                    Elements.abilities(MultiblockAbility.PUMP_FLUID_HATCH),
+                                    Elements.metaTileEntities(
+                                            MetaTileEntities.FLUID_EXPORT_HATCH[0],
+                                            MetaTileEntities.FLUID_EXPORT_HATCH[1])))
+                    .any('*')
+                    .casing('X',
+                            MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK))
                     .buildStructureDefinition());
 
     private IFluidTank waterTank;

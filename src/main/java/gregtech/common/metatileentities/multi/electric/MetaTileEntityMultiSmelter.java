@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 
@@ -52,11 +51,11 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
                     .aisle("XXX", "CCC", "XXX")
                     .aisle("XXX", "C#C", "XMX")
                     .aisle("XSX", "CCC", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityMultiSmelter.class))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('#', air())
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
+                    .self('S', MetaTileEntityMultiSmelter.class)
+                    .hatches('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('#')
+                    .casing('X', 
+                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF))
                         .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                         .withChannel(GTCasingGroups.heatingCoils().channel())

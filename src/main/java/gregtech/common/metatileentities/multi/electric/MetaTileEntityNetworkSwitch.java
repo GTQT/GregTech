@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
@@ -103,9 +102,9 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XAX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityNetworkSwitch.class))
-                    .where('A', states(getAdvancedState()))
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .self('S', MetaTileEntityNetworkSwitch.class)
+                    .block('A', getAdvancedState())
+                    .casing('X', getCasingState())
                         .energyInput(1,4)
                         .maintenance()
                         .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)

@@ -43,7 +43,7 @@ import java.util.function.BooleanSupplier;
  * Driven by {@link StructureCompiler.SearchStrategy}:
  * <ul>
  *   <li>{@link StructureCompiler.SearchStrategy#SLIDING_1D} — single 1D sliding window</li>
- *   <li>{@link StructureCompiler.SearchStrategy#INDEPENDENT_1D} — independent 1D per axis (tensor product)</li>
+ *   <li>{@link StructureCompiler.SearchStrategy#INDEPENDENT_1D} — independent 1D per axis (axis-separable)</li>
  *   <li>{@link StructureCompiler.SearchStrategy#NESTED_BACKTRACKING} — nested backtracking (non-tensor)</li>
  * </ul>
  */
@@ -142,6 +142,7 @@ public class RepeatGroupPiece extends StructurePiece {
                                          @NotNull StructureMatchSession session) {
         int[] priorReps = (prior != null) ? prior.getPieceRepeats(getName()) : null;
         BlockPos pieceCenter = getCenterPos(origin, orientation, prior);
+        int[] rejectedReps = null;
 
         // Formed state: O(1) verification with prior
         if (priorReps != null && priorReps.length == repeatAxes.length) {
@@ -150,22 +151,26 @@ public class RepeatGroupPiece extends StructurePiece {
                 runtime.cacheFormedReps(priorReps);
                 return true;
             }
+            rejectedReps = priorReps.clone();
             // Prior failed, fall through to full search
         }
+
+        int[] preferredReps = selectPreferredReps(priorReps, runtime);
 
         // Building state: dispatch by strategy
         boolean ok;
         switch (strategy) {
             case SLIDING_1D:
-                ok = searchSliding1D(snap, pieceCenter, orientation, runtime, session);
+                ok = searchSliding1D(snap, pieceCenter, orientation, runtime, session, preferredReps, rejectedReps);
                 break;
             case INDEPENDENT_1D:
-                ok = searchIndependent1D(snap, pieceCenter, orientation, runtime, session);
+                ok = searchIndependent1D(snap, pieceCenter, orientation, runtime, session,
+                        preferredReps, rejectedReps);
                 break;
             case NESTED_BACKTRACKING:
             default:
                 ok = backtrackAxes(0, new int[repeatAxes.length],
-                        snap, pieceCenter, orientation, runtime, session);
+                        snap, pieceCenter, orientation, runtime, session, preferredReps, rejectedReps);
                 break;
         }
         return ok;
@@ -195,6 +200,7 @@ public class RepeatGroupPiece extends StructurePiece {
                              @NotNull StructureMatchSession session) {
         int[] priorReps = (prior != null) ? prior.getPieceRepeats(getName()) : null;
         BlockPos pieceCenter = getCenterPos(origin, orientation, prior);
+        int[] rejectedReps = null;
 
         // Formed state: O(1) verification with prior
         if (priorReps != null && priorReps.length == repeatAxes.length) {
@@ -203,23 +209,28 @@ public class RepeatGroupPiece extends StructurePiece {
                 runtime.cacheFormedReps(priorReps);
                 return true;
             }
+            rejectedReps = priorReps.clone();
         }
+
+        int[] preferredReps = selectPreferredReps(priorReps, runtime);
 
         // Building state: dispatch by strategy using World-based search
         boolean ok;
         switch (strategy) {
             case SLIDING_1D:
-                ok = searchSliding1DWorld(world, pieceCenter, orientation, runtime, session);
+                ok = searchSliding1DWorld(world, pieceCenter, orientation, runtime, session,
+                        preferredReps, rejectedReps);
                 break;
             case INDEPENDENT_1D:
                 // INDEPENDENT_1D still uses snapshot path for axis line checks
                 // (tensor product optimization doesn't benefit from World-level access)
-                ok = searchIndependent1D(world, pieceCenter, orientation, runtime, session);
+                ok = searchIndependent1D(world, pieceCenter, orientation, runtime, session,
+                        preferredReps, rejectedReps);
                 break;
             case NESTED_BACKTRACKING:
             default:
                 ok = backtrackAxesWorld(0, new int[repeatAxes.length],
-                        world, pieceCenter, orientation, runtime, session);
+                        world, pieceCenter, orientation, runtime, session, preferredReps, rejectedReps);
                 break;
         }
         return ok;
@@ -233,10 +244,14 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean searchSliding1DWorld(@NotNull World world, @NotNull BlockPos origin,
                                           @NotNull StructureOrientation orientation,
                                           @NotNull PieceRuntime runtime,
-                                          @NotNull StructureMatchSession session) {
-        int min = repeatRanges[0][0], max = repeatRanges[0][1];
-        for (int r = max; r >= min; r--) {
+                                          @NotNull StructureMatchSession session,
+                                          @Nullable int[] preferredReps,
+                                          @Nullable int[] rejectedReps) {
+        for (int r : repeatCandidates(0, preferredReps)) {
             int[] reps = new int[]{r};
+            if (sameReps(reps, rejectedReps)) {
+                continue;
+            }
             if (tryCheckAtRepeatsWorld(
                     world, origin, orientation, reps, runtime, session)) {
                 runtime.cacheFormedReps(reps);
@@ -253,8 +268,13 @@ public class RepeatGroupPiece extends StructurePiece {
                                         @NotNull World world, @NotNull BlockPos origin,
                                         @NotNull StructureOrientation orientation,
                                         @NotNull PieceRuntime runtime,
-                                        @NotNull StructureMatchSession session) {
+                                        @NotNull StructureMatchSession session,
+                                        @Nullable int[] preferredReps,
+                                        @Nullable int[] rejectedReps) {
         if (axisIdx == repeatAxes.length) {
+            if (sameReps(currentReps, rejectedReps)) {
+                return false;
+            }
             if (tryCheckAtRepeatsWorld(
                     world, origin, orientation, currentReps, runtime, session)) {
                 runtime.cacheFormedReps(currentReps);
@@ -262,11 +282,10 @@ public class RepeatGroupPiece extends StructurePiece {
             }
             return false;
         }
-        int min = repeatRanges[axisIdx][0], max = repeatRanges[axisIdx][1];
-        for (int r = max; r >= min; r--) {
+        for (int r : repeatCandidates(axisIdx, preferredReps)) {
             currentReps[axisIdx] = r;
             if (backtrackAxesWorld(axisIdx + 1, currentReps,
-                    world, origin, orientation, runtime, session)) {
+                    world, origin, orientation, runtime, session, preferredReps, rejectedReps)) {
                 return true;
             }
         }
@@ -378,12 +397,15 @@ public class RepeatGroupPiece extends StructurePiece {
     private boolean searchSliding1D(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                     @NotNull StructureOrientation orientation,
                                     @NotNull PieceRuntime runtime,
-                                    @NotNull StructureMatchSession session) {
-        int min = repeatRanges[0][0], max = repeatRanges[0][1];
-        int[] reps = new int[]{min};
-        // Greedy: try max first
-        for (int r = max; r >= min; r--) {
+                                    @NotNull StructureMatchSession session,
+                                    @Nullable int[] preferredReps,
+                                    @Nullable int[] rejectedReps) {
+        int[] reps = new int[1];
+        for (int r : repeatCandidates(0, preferredReps)) {
             reps[0] = r;
+            if (sameReps(reps, rejectedReps)) {
+                continue;
+            }
             if (tryCheckAtRepeats(
                     snap, origin, orientation, reps, runtime, session)) {
                 runtime.cacheFormedReps(reps);
@@ -394,28 +416,31 @@ public class RepeatGroupPiece extends StructurePiece {
     }
 
     /**
-     * Independent 1D search per axis (multi-axis tensor product).
-     * Each axis is searched independently, ~190x faster than backtracking for tensor products.
+     * Independent 1D search per axis (multi-axis axis-separable shape).
+     * Each axis is searched independently, then the selected size is fully verified once.
      */
     private boolean searchIndependent1D(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                         @NotNull StructureOrientation orientation,
                                         @NotNull PieceRuntime runtime,
-                                        @NotNull StructureMatchSession session) {
+                                        @NotNull StructureMatchSession session,
+                                        @Nullable int[] preferredReps,
+                                        @Nullable int[] rejectedReps) {
         int[] reps = new int[repeatAxes.length];
         for (int i = 0; i < repeatAxes.length; i++) {
             reps[i] = repeatRanges[i][0];
         }
         for (int i = 0; i < repeatAxes.length; i++) {
-            reps[i] = searchAxisGreedy(snap, origin, i, reps, orientation, runtime);
+            reps[i] = searchAxisGreedy(snap, origin, i, reps, orientation, runtime, preferredReps);
             if (reps[i] < 0) return false; // Any axis failure = whole piece failure
         }
         // Final joint verification (safety net for axis boundary mismatches)
-        if (tryCheckAtRepeats(snap, origin, orientation, reps, runtime, session)) {
+        if (!sameReps(reps, rejectedReps)
+                && tryCheckAtRepeats(snap, origin, orientation, reps, runtime, session)) {
             runtime.cacheFormedReps(reps);
             return true;
         }
         return backtrackAxes(0, new int[repeatAxes.length],
-                snap, origin, orientation, runtime, session);
+                snap, origin, orientation, runtime, session, preferredReps, rejectedReps);
     }
 
     /**
@@ -425,9 +450,9 @@ public class RepeatGroupPiece extends StructurePiece {
     private int searchAxisGreedy(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                  int axisIdx, int[] partialReps,
                                  @NotNull StructureOrientation orientation,
-                                 @NotNull PieceRuntime runtime) {
-        int min = repeatRanges[axisIdx][0], max = repeatRanges[axisIdx][1];
-        for (int r = max; r >= min; r--) {
+                                 @NotNull PieceRuntime runtime,
+                                 @Nullable int[] preferredReps) {
+        for (int r : repeatCandidates(axisIdx, preferredReps)) {
             partialReps[axisIdx] = r;
             if (tryCheckAxisLine(snap, origin, axisIdx, partialReps, orientation, runtime)) {
                 return r;
@@ -437,8 +462,8 @@ public class RepeatGroupPiece extends StructurePiece {
     }
 
     /**
-     * 1D slice verification along a specific axis (tensor product optimization).
-     * Only checks the cells along the axisIdx direction, not the entire base piece.
+     * Probe the boundary slice for a specific axis before attempting a full
+     * cartesian repeat verification.
      */
     private boolean tryCheckAxisLine(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                      int axisIdx, int[] partialReps,
@@ -451,7 +476,7 @@ public class RepeatGroupPiece extends StructurePiece {
         BlockPos pieceCenter = origin;
         int[] local = {0, 0, 0};
         local[repeatAxes[axisIdx]] = stepSizes[axisIdx] * (partialReps[axisIdx] - 1);
-        return runtime.getState().checkAxisLineFastAtSnapshot(
+        return runtime.getState().checkAxisBoundaryFastAtSnapshot(
                 snap, repeatAxes[axisIdx], traversal(pieceCenter, orientation, local));
     }
 
@@ -464,8 +489,13 @@ public class RepeatGroupPiece extends StructurePiece {
                                   @NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                   @NotNull StructureOrientation orientation,
                                   @NotNull PieceRuntime runtime,
-                                  @NotNull StructureMatchSession session) {
+                                  @NotNull StructureMatchSession session,
+                                  @Nullable int[] preferredReps,
+                                  @Nullable int[] rejectedReps) {
         if (axisIdx == repeatAxes.length) {
+            if (sameReps(currentReps, rejectedReps)) {
+                return false;
+            }
             if (tryCheckAtRepeats(
                     snap, origin, orientation, currentReps, runtime, session)) {
                 runtime.cacheFormedReps(currentReps);
@@ -473,16 +503,98 @@ public class RepeatGroupPiece extends StructurePiece {
             }
             return false;
         }
-        int min = repeatRanges[axisIdx][0], max = repeatRanges[axisIdx][1];
-        // Greedy: try max first (players most likely build the largest structure)
-        for (int r = max; r >= min; r--) {
+        for (int r : repeatCandidates(axisIdx, preferredReps)) {
             currentReps[axisIdx] = r;
             if (backtrackAxes(axisIdx + 1, currentReps,
-                    snap, origin, orientation, runtime, session)) {
+                    snap, origin, orientation, runtime, session, preferredReps, rejectedReps)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean sameReps(@NotNull int[] left, @Nullable int[] right) {
+        if (right == null || left.length != right.length) {
+            return false;
+        }
+        for (int i = 0; i < left.length; i++) {
+            if (left[i] != right[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Nullable
+    private int[] selectPreferredReps(@Nullable int[] priorReps,
+                                      @NotNull PieceRuntime runtime) {
+        if (isUsablePreferredReps(priorReps)) {
+            return priorReps.clone();
+        }
+        int[] lastReps = runtime.getLastFormedReps();
+        return isUsablePreferredReps(lastReps) ? lastReps.clone() : null;
+    }
+
+    private boolean isUsablePreferredReps(@Nullable int[] reps) {
+        if (reps == null || reps.length != repeatAxes.length) {
+            return false;
+        }
+        for (int i = 0; i < reps.length; i++) {
+            if (reps[i] < repeatRanges[i][0] || reps[i] > repeatRanges[i][1]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @NotNull
+    int[] repeatCandidatesForTesting(int axisIdx, @Nullable int[] preferredReps) {
+        return repeatCandidates(axisIdx, preferredReps);
+    }
+
+    @NotNull
+    private int[] repeatCandidates(int axisIdx, @Nullable int[] preferredReps) {
+        int min = repeatRanges[axisIdx][0];
+        int max = repeatRanges[axisIdx][1];
+        int[] candidates = new int[max - min + 1];
+        boolean[] added = new boolean[candidates.length];
+        int count = 0;
+
+        if (preferredReps != null) {
+            int preferred = preferredReps[axisIdx];
+            int limit = Math.max(preferred - min, max - preferred);
+            for (int delta = 0; delta <= limit; delta++) {
+                if (delta == 0) {
+                    count = addRepeatCandidate(candidates, added, count, min, max, preferred);
+                } else {
+                    count = addRepeatCandidate(candidates, added, count, min, max, preferred + delta);
+                    count = addRepeatCandidate(candidates, added, count, min, max, preferred - delta);
+                }
+            }
+        }
+
+        for (int r = max; r >= min; r--) {
+            count = addRepeatCandidate(candidates, added, count, min, max, r);
+        }
+        return candidates;
+    }
+
+    private static int addRepeatCandidate(@NotNull int[] candidates,
+                                          @NotNull boolean[] added,
+                                          int count,
+                                          int min,
+                                          int max,
+                                          int value) {
+        if (value < min || value > max) {
+            return count;
+        }
+        int index = value - min;
+        if (added[index]) {
+            return count;
+        }
+        added[index] = true;
+        candidates[count] = value;
+        return count + 1;
     }
 
     /**
@@ -821,5 +933,9 @@ public class RepeatGroupPiece extends StructurePiece {
 
     public int[] getStepSizes() {
         return stepSizes;
+    }
+
+    public StructureCompiler.SearchStrategy getSearchStrategy() {
+        return strategy;
     }
 }

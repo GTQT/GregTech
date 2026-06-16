@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 class MBPatternTest {
 
     @Test
-    void typedPreviewEntrySuppressesPredicateMapFallback() {
+    void typedPreviewEntryIsReturnedDirectly() {
         BlockPos pos = BlockPos.ORIGIN;
         TraceabilityPredicate mapPredicate = new TraceabilityPredicate(state -> true);
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
@@ -32,11 +32,10 @@ class MBPatternTest {
         MBPattern pattern = new MBPattern(null, Collections.emptyList(), predicateMap, previewEntries);
 
         assertSame(entry, pattern.getPreviewEntry(pos));
-        assertNull(pattern.getLegacyPredicateFallback(pos));
     }
 
     @Test
-    void legacyPredicateFallbackUsesMapOnlyWhenNoPreviewEntryExists() {
+    void missingTypedPreviewEntryReturnsNull() {
         BlockPos pos = BlockPos.ORIGIN;
         TraceabilityPredicate predicate = new TraceabilityPredicate(state -> true);
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
@@ -44,11 +43,11 @@ class MBPatternTest {
 
         MBPattern pattern = new MBPattern(null, Collections.emptyList(), predicateMap);
 
-        assertSame(predicate, pattern.getLegacyPredicateFallback(pos));
+        assertNull(pattern.getPreviewEntry(pos));
     }
 
     @Test
-    void legacyPredicateFallbackIsSuppressedByPreviewEntry() {
+    void legacyPredicateMapRemainsOnlyAsCompatibilityAccessor() {
         BlockPos pos = BlockPos.ORIGIN;
         TraceabilityPredicate mapPredicate = new TraceabilityPredicate(state -> false);
         Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
@@ -61,7 +60,8 @@ class MBPatternTest {
 
         MBPattern pattern = new MBPattern(null, Collections.emptyList(), predicateMap, previewEntries);
 
-        assertNull(pattern.getLegacyPredicateFallback(pos));
+        assertSame(mapPredicate, pattern.getPredicateMap().get(pos));
+        assertSame(entry, pattern.getPreviewEntry(pos));
     }
 
     @Test
@@ -82,6 +82,6 @@ class MBPatternTest {
         previewEntries.clear();
 
         assertSame(entry, pattern.getPreviewEntry(pos));
-        assertNull(pattern.getLegacyPredicateFallback(pos));
+        assertSame(predicate, pattern.getPredicateMap().get(pos));
     }
 }

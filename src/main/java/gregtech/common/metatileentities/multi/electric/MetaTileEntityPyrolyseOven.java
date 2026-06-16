@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 
@@ -52,10 +51,10 @@ public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
                     .aisle("CCC", "C#C", "CCC")
                     .aisle("CCC", "C#C", "CCC")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityPyrolyseOven.class))
-                    .where('#', air())
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.MACHINE_CASING.getState(MachineCasingType.ULV)))
+                    .self('S', MetaTileEntityPyrolyseOven.class)
+                    .air('#')
+                    .casing('X', 
+                            MetaBlocks.MACHINE_CASING.getState(MachineCasingType.ULV))
                         .preset(HatchPresets.ELECTRIC_STANDARD)
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                         .withChannel(GTCasingGroups.heatingCoils().channel())

@@ -2,11 +2,14 @@ package gregtech.api.pattern.casing;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.unification.material.Material;
+import gregtech.api.util.BlockInfo;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -15,6 +18,8 @@ import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.pattern.element.impl.TieredCasingElement;
 import gregtech.api.util.RelativeDirection;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.Vec3i;
 
 import org.jetbrains.annotations.ApiStatus;
@@ -28,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -208,6 +214,58 @@ public class DeclarativePatternBuilder {
         return this;
     }
 
+    public DeclarativePatternBuilder self(
+            char symbol,
+            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+        return where(symbol, Elements.self(controllerClass));
+    }
+
+    public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+        return where(symbol, Elements.block(state));
+    }
+
+    public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+        return where(symbol, Elements.blocks(states));
+    }
+
+    public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+        return where(symbol, Elements.blocks(blocks));
+    }
+
+    public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+        return where(symbol, Elements.blockPredicate(predicate));
+    }
+
+    public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                    @NotNull Predicate<IBlockState> predicate,
+                                                    @NotNull Supplier<BlockInfo[]> candidates) {
+        return where(symbol, Elements.blockPredicate(predicate, candidates));
+    }
+
+    public DeclarativePatternBuilder air(char symbol) {
+        return where(symbol, Elements.air());
+    }
+
+    public DeclarativePatternBuilder any(char symbol) {
+        return where(symbol, Elements.any());
+    }
+
+    public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+        return where(symbol, Elements.hatch(ability));
+    }
+
+    public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+        return where(symbol, Elements.abilities(abilities));
+    }
+
+    public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+        return where(symbol, Elements.frames(frameMaterials));
+    }
+
+    public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+        return where(symbol, Elements.metaTileEntities(metaTileEntities));
+    }
+
     // --- Declarative casing methods (shared across all pieces) ---
 
     /**
@@ -218,6 +276,10 @@ public class DeclarativePatternBuilder {
         CasingSlotInfo info = new CasingSlotInfo(symbol, casing);
         casingSlots.put(symbol, info);
         return new CasingSlot(this, info);
+    }
+
+    public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+        return casing(symbol, CasingDefinition.simple(state));
     }
 
     /**
@@ -251,10 +313,7 @@ public class DeclarativePatternBuilder {
      * named pieces, conditional pieces, or multi-piece composition.
      */
     public BlockPatternTemplate buildTemplate() {
-        // Compute description lines first so we can pass them into the template constructor
-        // (the template is immutable and no longer has a description setter).
-        List<String> description = computeStructureDescription();
-        BlockPatternTemplate template = buildStructureDefinition().getPrimaryTemplate(description);
+        BlockPatternTemplate template = buildStructureDefinition().getPrimaryTemplate();
         if (template == null) {
             // Multi-piece definitions cannot be represented as a single BlockPatternTemplate.
             // Use buildStructureDefinition() to access the full multi-piece structure.
@@ -272,7 +331,8 @@ public class DeclarativePatternBuilder {
      */
     public StructureDefinition buildStructureDefinition() {
         StructureDefinition.Builder builder = StructureDefinition.builder(
-                structureDir[0], structureDir[1], structureDir[2]);
+                structureDir[0], structureDir[1], structureDir[2])
+                .primaryTemplateDescription(computeStructureDescription());
 
         List<PieceDef> activePieces = new ArrayList<>();
         for (PieceDef piece : pieces) {
@@ -659,7 +719,7 @@ public class DeclarativePatternBuilder {
                     hatch.defaultCandidate));
         }
         for (CustomHatchInfo customHatch : info.customHatches) {
-            alternatives.add(Elements.legacy(customHatch.predicate));
+            alternatives.add(customHatch.element);
         }
         return alternatives.size() == 1
                 ? alternatives.get(0)
@@ -829,8 +889,68 @@ public class DeclarativePatternBuilder {
             return parent.where(symbol, predicate);
         }
 
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return parent.where(symbol, element);
+        }
+
+        public DeclarativePatternBuilder self(
+                char symbol,
+                @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+            return parent.self(symbol, controllerClass);
+        }
+
+        public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+            return parent.block(symbol, state);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+            return parent.blocks(symbol, states);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+            return parent.blocks(symbol, blocks);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+            return parent.blockPredicate(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                        @NotNull Predicate<IBlockState> predicate,
+                                                        @NotNull Supplier<BlockInfo[]> candidates) {
+            return parent.blockPredicate(symbol, predicate, candidates);
+        }
+
+        public DeclarativePatternBuilder air(char symbol) {
+            return parent.air(symbol);
+        }
+
+        public DeclarativePatternBuilder any(char symbol) {
+            return parent.any(symbol);
+        }
+
+        public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+            return parent.hatch(symbol, ability);
+        }
+
+        public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+            return parent.hatches(symbol, abilities);
+        }
+
+        public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+            return parent.frames(symbol, frameMaterials);
+        }
+
+        public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+            return parent.metaTileEntities(symbol, metaTileEntities);
+        }
+
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
             return parent.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return parent.casing(symbol, state);
         }
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
@@ -940,8 +1060,64 @@ public class DeclarativePatternBuilder {
             return parent.where(symbol, element);
         }
 
+        public DeclarativePatternBuilder self(
+                char symbol,
+                @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+            return parent.self(symbol, controllerClass);
+        }
+
+        public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+            return parent.block(symbol, state);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+            return parent.blocks(symbol, states);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+            return parent.blocks(symbol, blocks);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+            return parent.blockPredicate(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                        @NotNull Predicate<IBlockState> predicate,
+                                                        @NotNull Supplier<BlockInfo[]> candidates) {
+            return parent.blockPredicate(symbol, predicate, candidates);
+        }
+
+        public DeclarativePatternBuilder air(char symbol) {
+            return parent.air(symbol);
+        }
+
+        public DeclarativePatternBuilder any(char symbol) {
+            return parent.any(symbol);
+        }
+
+        public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+            return parent.hatch(symbol, ability);
+        }
+
+        public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+            return parent.hatches(symbol, abilities);
+        }
+
+        public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+            return parent.frames(symbol, frameMaterials);
+        }
+
+        public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+            return parent.metaTileEntities(symbol, metaTileEntities);
+        }
+
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
             return parent.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return parent.casing(symbol, state);
         }
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
@@ -1190,7 +1366,12 @@ public class DeclarativePatternBuilder {
         }
 
         public CasingSlot custom(@NotNull TraceabilityPredicate predicate, int maxCount) {
-            info.customHatches.add(new CustomHatchInfo(predicate, maxCount));
+            info.customHatches.add(new CustomHatchInfo(Elements.legacy(predicate), maxCount));
+            return this;
+        }
+
+        public CasingSlot custom(@NotNull IStructureElement element, int maxCount) {
+            info.customHatches.add(new CustomHatchInfo(element, maxCount));
             return this;
         }
 
@@ -1213,8 +1394,16 @@ public class DeclarativePatternBuilder {
             return builder.where(symbol, predicate);
         }
 
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return builder.where(symbol, element);
+        }
+
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
             return builder.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return builder.casing(symbol, state);
         }
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
@@ -1289,8 +1478,16 @@ public class DeclarativePatternBuilder {
             return builder.where(symbol, predicate);
         }
 
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return builder.where(symbol, element);
+        }
+
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
             return builder.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return builder.casing(symbol, state);
         }
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
@@ -1371,11 +1568,11 @@ public class DeclarativePatternBuilder {
 
     private static class CustomHatchInfo {
 
-        final TraceabilityPredicate predicate;
+        final IStructureElement element;
         final int maxCount;
 
-        CustomHatchInfo(TraceabilityPredicate predicate, int maxCount) {
-            this.predicate = predicate;
+        CustomHatchInfo(IStructureElement element, int maxCount) {
+            this.element = element;
             this.maxCount = maxCount;
         }
     }

@@ -8,10 +8,10 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
@@ -71,24 +71,22 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                         .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("end")
                         .aisle("FOF", "RTR", "DAG", " Y ")
-                    .where('S', selfPredicate(MetaTileEntityAssemblyLine.class))
-                    .where('O', abilities(MultiblockAbility.EXPORT_ITEMS)
-                            .addTooltips("gregtech.multiblock.pattern.location_end"))
-                    .where('I', metaTileEntities(MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV]))
-                    .where('G', states(getGrateState()))
-                    .where('A',
-                            states(MetaBlocks.MULTIBLOCK_CASING
-                                    .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_CONTROL)))
-                    .where('R', states(MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS)))
-                    .where('T',
-                            states(MetaBlocks.MULTIBLOCK_CASING
-                                    .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING)))
-                    .where('D', dataHatchPredicate())
-                    .where(' ', any())
-                    .casing('F', CasingDefinition.simple(getCasingState()))
+                    .self('S', MetaTileEntityAssemblyLine.class)
+                    .where('O', Elements.withTooltips(Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
+                            "gregtech.multiblock.pattern.location_end"))
+                    .metaTileEntities('I', MetaTileEntities.ITEM_IMPORT_BUS[GTValues.ULV])
+                    .block('G', getGrateState())
+                    .block('A', MetaBlocks.MULTIBLOCK_CASING
+                                    .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_CONTROL))
+                    .block('R', MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS))
+                    .block('T', MetaBlocks.MULTIBLOCK_CASING
+                                    .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING))
+                    .where('D', dataHatchElement())
+                    .any(' ')
+                    .casing('F', getCasingState())
                         .maintenance()
-                        .custom(fluidInputPredicate(), 4)
-                    .casing('Y', CasingDefinition.simple(getCasingState()))
+                        .custom(fluidInputElement(), 4)
+                    .casing('Y', getCasingState())
                         .energyInput(1,3)
                     .buildStructureDefinition());
 
@@ -133,26 +131,27 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
     }
 
     @NotNull
-    protected static TraceabilityPredicate fluidInputPredicate() {
+    protected static IStructureElement fluidInputElement() {
         // block multi-fluid hatches if ordered fluids is enabled
         if (ConfigHolder.machines.orderedFluidAssembly) {
-            return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.IMPORT_FLUIDS).stream()
+            return Elements.metaTileEntities(0, 4,
+                    MultiblockAbility.REGISTRY.get(MultiblockAbility.IMPORT_FLUIDS).stream()
                     .filter(mte -> !(mte instanceof MetaTileEntityMultiFluidHatch))
-                    .toArray(MetaTileEntity[]::new))
-                            .setMaxGlobalLimited(4);
+                    .toArray(MetaTileEntity[]::new));
         }
-        return abilities(MultiblockAbility.IMPORT_FLUIDS);
+        return Elements.abilities(MultiblockAbility.IMPORT_FLUIDS);
     }
 
     @NotNull
-    protected static TraceabilityPredicate dataHatchPredicate() {
+    protected static IStructureElement dataHatchElement() {
         // if research is enabled, require the data hatch, otherwise use a grate instead
         if (ConfigHolder.machines.enableResearch) {
-            return abilities(MultiblockAbility.DATA_ACCESS_HATCH, MultiblockAbility.OPTICAL_DATA_RECEPTION)
-                    .setExactLimit(1)
-                    .or(states(getGrateState()));
+            return Elements.chain(
+                    Elements.abilities(1, 1,
+                            MultiblockAbility.DATA_ACCESS_HATCH, MultiblockAbility.OPTICAL_DATA_RECEPTION),
+                    Elements.block(getGrateState()));
         }
-        return states(getGrateState());
+        return Elements.block(getGrateState());
     }
 
     @Override

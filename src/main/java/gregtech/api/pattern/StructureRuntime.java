@@ -36,7 +36,7 @@ public final class StructureRuntime {
     @Nullable
     private final StructureDefinition<?> definition;
     @Nullable
-    private final BlockPatternTemplate template;
+    private BlockPatternTemplate template;
     @Nullable
     private final PieceRuntimeState state;
     @Nullable
@@ -84,11 +84,11 @@ public final class StructureRuntime {
     @NotNull
     public static StructureRuntime fromDefinition(@NotNull StructureDefinition<?> definition) {
         MultiPiecePattern multiPiecePattern = definition.getCompiledPattern();
-        BlockPatternTemplate template = definition.supportsSingleTemplatePath()
-                ? multiPiecePattern.getPrimaryPiece().getTemplate()
+        StructurePiece primaryPiece = definition.supportsSingleTemplatePath()
+                ? multiPiecePattern.getPrimaryPiece()
                 : null;
-        PieceRuntimeState state = template == null ? null : new PieceRuntimeState(template.getDelegate());
-        return new StructureRuntime(definition, template, state, multiPiecePattern,
+        PieceRuntimeState state = primaryPiece == null ? null : new PieceRuntimeState(primaryPiece.getPieceTemplate());
+        return new StructureRuntime(definition, null, state, multiPiecePattern,
                 state == null
                         ? new PieceRuntimes(multiPiecePattern)
                         : PieceRuntimes.singleWithState(multiPiecePattern, state));
@@ -101,6 +101,9 @@ public final class StructureRuntime {
 
     @Nullable
     public BlockPatternTemplate getTemplate() {
+        if (template == null && state != null) {
+            template = state.getTemplate();
+        }
         return template;
     }
 

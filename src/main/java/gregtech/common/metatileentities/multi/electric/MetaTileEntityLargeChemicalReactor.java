@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -42,8 +41,8 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XCX", "CPC", "XCX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityLargeChemicalReactor.class))
-                    .where('P', Elements.block(getPipeCasingState()))
+                    .self('S', MetaTileEntityLargeChemicalReactor.class)
+                    .block('P', getPipeCasingState())
                     .where('C', Elements.chain(
                             Elements.tieredCasing(
                                     GTCasingGroups.heatingCoils().group(),
@@ -54,7 +53,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
                             Elements.hatch(MultiblockAbility.IMPORT_FLUIDS, 0, -1, 0),
                             Elements.hatch(MultiblockAbility.EXPORT_FLUIDS, 0, -1, 0),
                             Elements.block(getCasingState())))
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                         .maintenance().preset(HatchPresets.STANDARD_IO).optionalEnergyInput(2)
                     .buildStructureDefinition()
     );

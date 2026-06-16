@@ -22,11 +22,10 @@ import gregtech.api.pattern.StructureContributionKey;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -49,7 +48,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
@@ -78,7 +76,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static gregtech.api.util.RelativeDirection.*;
@@ -119,36 +116,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                     },
                     UnaryOperator.identity(),
                     BatteryAggregate::copy);
-    protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> {
-        TraceabilityPredicate predicate = new TraceabilityPredicate(
-                blockWorldState -> {
-                    IBlockState state = blockWorldState.getBlockState();
-                    if (GregTechAPI.PSS_BATTERIES.containsKey(state)) {
-                        IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(state);
-                        if (battery.getTier() != -1 && battery.getCapacity() > 0) {
-                            String key = PMC_BATTERY_HEADER + battery.getBatteryName();
-                            BatteryMatchWrapper wrapper = blockWorldState.getMatchContext().get(key);
-                            if (wrapper == null) wrapper = new BatteryMatchWrapper(battery);
-                            blockWorldState.getMatchContext().set(key, wrapper.increment());
-                        }
-                        return true;
-                    }
-                    return false;
-                }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
-                .filter(entry -> entry.getValue().getCapacity() > 0)
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .map(entry -> new BlockInfo(entry.getKey(), null))
-                .toArray(BlockInfo[]::new))
-                .addTooltips("gregtech.multiblock.pattern.error.batteries");
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
-            sp.channelName = GTStructureChannels.BATTERY.getName();
-        }
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
-            sp.channelName = GTStructureChannels.BATTERY.getName();
-        }
-        return predicate;
-    };
-
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:power_substation", () -> DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                     .piece("top")
@@ -159,15 +126,17 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                         .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                     .piece("bottom")
                         .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
-                    .where('S', selfPredicate(MetaTileEntityPowerSubstation.class))
-                    .where('C', states(getCasingState()))
-                    .where('G', states(getGlassState()))
+                    .self('S', MetaTileEntityPowerSubstation.class)
+                    .block('C', getCasingState())
+                    .block('G', getGlassState())
                     .where('B', new BatteryElement())
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                         .maintenance()
                         .optionalHatch(MultiblockAbility.WIRELESS_CONTROLLER, 1)
-                        .custom(abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
-                        .custom(abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
+                        .custom(Elements.abilities(1, -1, MultiblockAbility.INPUT_ENERGY,
+                                MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER), 6)
+                        .custom(Elements.abilities(1, -1, MultiblockAbility.OUTPUT_ENERGY,
+                                MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER), 6)
                     .buildStructureDefinition());
 
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
@@ -185,10 +154,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private long averageOutLastSec;
     public MetaTileEntityPowerSubstation(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
-    }
-
-    private static TraceabilityPredicate getBatteryPredicate() {
-        return BATTERY_PREDICATE.get();
     }
 
     private static IKey getTimeToFillDrainText(BigInteger timeToFillSeconds) {
@@ -933,10 +898,14 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
     }
 
-    private static final class BatteryElement implements IStructureElement<Object> {
+    private static final class BatteryElement implements ITypedStructureElement<Object> {
 
-        private final TraceabilityPredicate legacyPredicate = getBatteryPredicate();
-        private final StructureElementPreview preview = StructureElementPreview.fromPredicate(legacyPredicate);
+        private final StructureElementPreview preview = StructureElementPreview.builder()
+                .common(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                        .channel(GTStructureChannels.BATTERY.getName())
+                        .tooltip(() -> Collections.singletonList("gregtech.multiblock.pattern.error.batteries"))
+                        .build())
+                .build();
 
         @NotNull
         @Override
@@ -957,13 +926,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context) {
-            gregtech.api.pattern.BlockWorldState worldState = new gregtech.api.pattern.BlockWorldState();
-            worldState.update(world, pos, context, new HashMap<>(), new HashMap<>(), legacyPredicate);
-            return legacyPredicate.test(worldState);
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return GregTechAPI.PSS_BATTERIES.entrySet().stream()
                     .filter(entry -> entry.getValue().getCapacity() > 0)
@@ -973,18 +935,19 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
 
         @Override
-        public boolean placeBlock(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
+        public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                                  @NotNull EntityPlayer player, boolean skipHatches) {
+            World world = context.getWorld();
+            if (world == null) {
+                return false;
+            }
             BlockInfo[] candidates = getCandidates();
             if (candidates.length == 0) {
                 return false;
             }
-            world.setBlockState(pos, candidates[0].getBlockState());
+            world.setBlockState(context.getPos(), candidates[0].getBlockState());
             return true;
         }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @NotNull
         @Override
@@ -1002,11 +965,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         @Override
         public Set<StructureDependency> getDependencies() {
             return Collections.emptySet();
-        }
-
-        @Override
-        public TraceabilityPredicate toPredicate() {
-            return legacyPredicate;
         }
     }
 }

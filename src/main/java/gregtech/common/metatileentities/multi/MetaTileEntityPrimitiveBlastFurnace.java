@@ -9,9 +9,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.widget.RecipeProgressWidget;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
@@ -58,22 +57,19 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMultiblockController {
 
-    private static final TraceabilityPredicate SNOW_PREDICATE = new TraceabilityPredicate(
-            bws -> GTUtility.isBlockSnow(bws.getBlockState()));
-
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:primitive_blast_furnace.bronze", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX", "XXX")
                     .aisle("XXX", "X&X", "X#X", "X#X")
                     .aisle("XXX", "XYX", "XXX", "XXX")
-                    .where('Y', selfPredicate(MetaTileEntityPrimitiveBlastFurnace.class))
-                    .where('#', air())
-                    .where('&', air().or(SNOW_PREDICATE))
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS)))
+                    .self('Y', MetaTileEntityPrimitiveBlastFurnace.class)
+                    .air('#')
+                    .where('&', Elements.chain(Elements.air(), Elements.blockPredicate(GTUtility::isBlockSnow)))
+                    .casing('X',
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PRIMITIVE_BRICKS))
                         .custom(
-                                metaTileEntities(MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH)
-                                        .setMaxGlobalLimited(3), 3)
+                                Elements.metaTileEntities(0, 3,
+                                        MetaTileEntities.PRIMITIVE_BLAST_FURNACE_HATCH), 3)
                     .buildStructureDefinition());
 
     UITexture[] importOverlays = {

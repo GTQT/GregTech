@@ -1,5 +1,6 @@
 package gregtech.api.pattern.element.impl;
 
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
@@ -16,13 +17,12 @@ import gregtech.common.ConfigHolder;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -43,6 +43,10 @@ public class WrapperElement implements IStructureElement<Object> {
     private final Consumer<PatternMatchContext> callback;
     @Nullable
     private final String channelName;
+    @NotNull
+    private final List<String> tooltips;
+    @Nullable
+    private final Supplier<? extends MetaTileEntity> defaultCandidate;
 
     // Lazy-resolved delegate
     private volatile IStructureElement resolved;
@@ -55,6 +59,32 @@ public class WrapperElement implements IStructureElement<Object> {
         this.lazySupplier = lazySupplier;
         this.callback = callback;
         this.channelName = channelName;
+        this.tooltips = Collections.emptyList();
+        this.defaultCandidate = null;
+    }
+
+    private WrapperElement(IStructureElement delegate,
+                           @Nullable Supplier<IStructureElement> lazySupplier,
+                           @Nullable Consumer<PatternMatchContext> callback,
+                           @Nullable String channelName,
+                           @NotNull List<String> tooltips,
+                           @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
+        this.delegate = delegate;
+        this.lazySupplier = lazySupplier;
+        this.callback = callback;
+        this.channelName = channelName;
+        this.tooltips = Collections.unmodifiableList(new ArrayList<>(tooltips));
+        this.defaultCandidate = defaultCandidate;
+    }
+
+    public static IStructureElement withTooltips(@NotNull IStructureElement delegate, String... tips) {
+        return new WrapperElement(delegate, null, null, null, Arrays.asList(tips), null);
+    }
+
+    public static IStructureElement withDefaultCandidate(
+            @NotNull IStructureElement delegate,
+            @NotNull Supplier<? extends MetaTileEntity> defaultCandidate) {
+        return new WrapperElement(delegate, null, null, null, Collections.emptyList(), defaultCandidate);
     }
 
     private IStructureElement getDelegate() {
@@ -92,15 +122,6 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        boolean result = getDelegate().check(world, pos, context);
-        if (result && callback != null) {
-            runCallback(context);
-        }
-        return result;
-    }
-
-    @Override
     public boolean check(@NotNull StructureEvaluationContext<Object> context) {
         boolean result = getDelegate().check(context);
         if (result && callback != null) {
@@ -119,13 +140,6 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
-                                @NotNull ItemStack trigger) {
-        return context.probe(legacyContext ->
-                getDelegate().couldBeValid(world, pos, legacyContext, trigger));
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         return getDelegate().getCandidates();
     }
@@ -140,7 +154,7 @@ public class WrapperElement implements IStructureElement<Object> {
     @Override
     public StructureElementPreview getPreview() {
         StructureElementPreview preview = getDelegate().getPreview();
-        return channelName == null ? preview : applyChannel(preview, channelName);
+        return applyPreviewMetadata(preview);
     }
 
     @NotNull
@@ -148,17 +162,8 @@ public class WrapperElement implements IStructureElement<Object> {
     public StructureElementPreview getPreview(@NotNull StructureEvaluationContext<Object> context) {
         return context.probeValue(probeContext -> {
             StructureElementPreview preview = getDelegate().getPreview(probeContext);
-            return channelName == null ? preview : applyChannel(preview, channelName);
+            return applyPreviewMetadata(preview);
         });
-    }
-
-    @Nullable
-    @Override
-    public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
-                                          @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env) {
-        return context.probeValue(legacyContext ->
-                getDelegate().getBlocksToPlace(world, pos, legacyContext, trigger, env));
     }
 
     @Nullable
@@ -171,25 +176,10 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
-        return getDelegate().placeBlock(world, pos, context, player, skipHatches);
-    }
-
-    @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
                               @NotNull EntityPlayer player, boolean skipHatches) {
         return context.probe(probeContext ->
                 getDelegate().placeBlock(probeContext, player, skipHatches));
-    }
-
-    @NotNull
-    @Override
-    public PlaceResult survivalPlaceBlock(World world, BlockPos pos, PatternMatchContext context,
-                                          @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
-        return getDelegate().survivalPlaceBlock(world, pos, context, trigger, env, skipHatches);
     }
 
     @NotNull
@@ -202,21 +192,12 @@ public class WrapperElement implements IStructureElement<Object> {
                 getDelegate().survivalPlaceBlock(probeContext, trigger, env, skipHatches));
     }
 
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        getDelegate().spawnHint(world, pos);
-    }
-
-    @Override
-    public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
-        return getDelegate().spawnHint(world, pos, trigger);
-    }
-
     @NotNull
     @Override
-    public StructureHintRenderResult spawnHintWithResult(
-            World world, BlockPos pos, @NotNull ItemStack trigger) {
-        return getDelegate().spawnHintWithResult(world, pos, trigger);
+    public StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<Object> context,
+                                                         @NotNull ItemStack trigger) {
+        return context.probeValue(probeContext ->
+                getDelegate().spawnHintWithResult(probeContext, trigger));
     }
 
     @Override
@@ -263,6 +244,7 @@ public class WrapperElement implements IStructureElement<Object> {
     @Override
     public void addPreviewTooltip(@NotNull List<String> tooltip) {
         getDelegate().addPreviewTooltip(tooltip);
+        tooltip.addAll(tooltips);
     }
 
     @Nullable
@@ -336,6 +318,9 @@ public class WrapperElement implements IStructureElement<Object> {
         if (channelName != null && !pred.common.isEmpty()) {
             pred.common.get(0).channelName = channelName;
         }
+        if (defaultCandidate != null) {
+            pred.setDefaultCandidate(defaultCandidate);
+        }
 
         return pred;
     }
@@ -368,16 +353,34 @@ public class WrapperElement implements IStructureElement<Object> {
     }
 
     @NotNull
-    private static StructureElementPreview applyChannel(@NotNull StructureElementPreview preview,
-                                                        @NotNull String channelName) {
+    private StructureElementPreview applyPreviewMetadata(@NotNull StructureElementPreview preview) {
+        if (channelName == null && defaultCandidate == null && tooltips.isEmpty()) {
+            return preview;
+        }
         StructureElementPreview.Builder builder = StructureElementPreview.builder();
         for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
-            builder.limited(group.withChannel(channelName));
+            builder.limited(applyPreviewMetadata(group));
         }
         for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
-            builder.common(group.withChannel(channelName));
+            builder.common(applyPreviewMetadata(group));
         }
         return builder.build();
+    }
+
+    @NotNull
+    private StructureElementPreview.CandidateGroup applyPreviewMetadata(
+            @NotNull StructureElementPreview.CandidateGroup group) {
+        StructureElementPreview.CandidateGroup result = group;
+        if (channelName != null) {
+            result = result.withChannel(channelName);
+        }
+        if (defaultCandidate != null) {
+            result = result.withDefaultCandidate(defaultCandidate);
+        }
+        if (!tooltips.isEmpty()) {
+            result = result.withAdditionalTooltip(tooltips);
+        }
+        return result;
     }
 
     private void runCallback(@NotNull PatternMatchContext context) {

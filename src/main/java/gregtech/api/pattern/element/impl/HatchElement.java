@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -14,10 +13,7 @@ import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -74,17 +70,6 @@ public class HatchElement implements ITypedStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        TileEntity te = world.getTileEntity(pos);
-        MetaTileEntity mte = getMetaTileEntity(te);
-        IMultiblockAbilityPart<?> abilityPart = asAbilityPart(mte);
-        if (hasAbility(abilityPart)) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public boolean check(StructureEvaluationContext<Object> context) {
         MetaTileEntity mte = getMetaTileEntity(context.getTileEntity());
         IMultiblockAbilityPart<?> abilityPart = asAbilityPart(mte);
@@ -113,17 +98,6 @@ public class HatchElement implements ITypedStructureElement<Object> {
     @Override
     public StructureElementPreview getPreview() {
         return preview;
-    }
-
-    @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
-        return false;
-    }
-
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        // Hints are handled at a higher level
     }
 
     @Override

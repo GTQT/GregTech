@@ -1,6 +1,5 @@
 package gregtech.api.pattern.element.impl;
 
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
@@ -10,7 +9,6 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.Set;
@@ -47,17 +45,6 @@ public class BlockElement implements ITypedStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        IBlockState worldState = world.getBlockState(pos);
-        for (IBlockState state : states) {
-            if (worldState == state) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         BlockInfo[] infos = new BlockInfo[states.length];
         for (int i = 0; i < states.length; i++) {
@@ -72,18 +59,17 @@ public class BlockElement implements ITypedStructureElement<Object> {
     }
 
     @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
+    public boolean placeBlock(StructureEvaluationContext<Object> context,
                               EntityPlayer player, boolean skipHatches) {
+        World world = context.getWorld();
+        if (world == null) {
+            return false;
+        }
         if (states.length == 0) {
             return false;
         }
-        world.setBlockState(pos, states[0]);
+        world.setBlockState(context.getPos(), states[0]);
         return true;
-    }
-
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        // Hints are handled at a higher level
     }
 
     @Override

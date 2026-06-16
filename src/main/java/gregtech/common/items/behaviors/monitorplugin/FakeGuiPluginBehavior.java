@@ -15,8 +15,8 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureLifecycleState;
+import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.common.gui.impl.FakeModularUIPluginContainer;
@@ -50,6 +50,7 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
     @SideOnly(Side.CLIENT)
     private FakeModularGui fakeModularGui;
     private BlockPos partPos;
+    private BlockPos syncedPartPos;
     private FakeModularUIPluginContainer fakeModularUIContainer;
     private GregFakePlayer fakePlayer;
     private static final Method methodCreateUI = ObfuscationReflectionHelper.findMethod(MetaTileEntity.class,
@@ -62,11 +63,14 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
         if (this.partIndex == partIndex || partIndex < 0) return;
         this.partIndex = partIndex;
         this.partPos = null;
-        writePluginData(GregtechDataCodes.UPDATE_PLUGIN_CONFIG, buffer -> buffer.writeVarInt(this.partIndex));
+        syncPartSelection();
         markAsDirty();
     }
 
     public MetaTileEntity getRealMTE() {
+        if (this.holder == null) {
+            return null;
+        }
         MetaTileEntity target = this.holder.getMetaTileEntity();
         if (target instanceof MultiblockControllerBase multi && partIndex > 0) {
             if (partPos != null) {
@@ -78,17 +82,15 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
                     return null;
                 }
             }
-            gregtech.api.pattern.MultiblockState state = multi.getMultiblockState();
-            if (state == null) {
+            StructureRuntime runtime = multi.getStructureRuntime();
+            if (runtime == null) {
                 return null;
             }
-            PatternMatchContext context = state.checkPatternFastAt(
-                    target.getWorld(), target.getPos(), StructureOrientation.fromController(multi));
-            if (context == null) {
+            StructureLifecycleState lifecycleState = runtime.getLifecycleState();
+            if (!lifecycleState.isFormed()) {
                 return null;
             }
-            Set<IMultiblockPart> rawPartsSet = context.getOrCreate("MultiblockParts", HashSet::new);
-            List<IMultiblockPart> parts = new ArrayList<>(rawPartsSet);
+            List<IMultiblockPart> parts = new ArrayList<>(lifecycleState.getParts());
             parts.sort(Comparator.comparing((it) -> ((MetaTileEntity) it).getPos().hashCode()));
             if (parts.size() > partIndex - 1 && parts.get(partIndex - 1) instanceof MetaTileEntity) {
                 target = (MetaTileEntity) parts.get(partIndex - 1);
@@ -98,6 +100,32 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
             }
         }
         return target;
+    }
+
+    private void syncPartSelection() {
+        if (this.screen == null || this.screen.getWorld() == null || this.screen.getWorld().isRemote) {
+            return;
+        }
+        if (this.partIndex > 0) {
+            MetaTileEntity target = getRealMTE();
+            this.partPos = target == null ? null : target.getPos();
+        }
+        this.syncedPartPos = this.partPos;
+        writePluginData(GregtechDataCodes.UPDATE_PLUGIN_CONFIG, this::writePartSelection);
+    }
+
+    private void writePartSelection(PacketBuffer buf) {
+        buf.writeVarInt(this.partIndex);
+        buf.writeBoolean(this.partPos != null);
+        if (this.partPos != null) {
+            buf.writeBlockPos(this.partPos);
+        }
+    }
+
+    private void readPartSelection(PacketBuffer buf) {
+        this.partIndex = buf.readVarInt();
+        this.partPos = buf.readBoolean() ? buf.readBlockPos() : null;
+        this.syncedPartPos = this.partPos;
     }
 
     public void createFakeGui() {
@@ -173,6 +201,22 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
     }
 
     @Override
+    public void writeInitialSyncData(PacketBuffer buf) {
+        if (this.partIndex > 0) {
+            MetaTileEntity target = getRealMTE();
+            this.partPos = target == null ? null : target.getPos();
+        }
+        writePartSelection(buf);
+        this.syncedPartPos = this.partPos;
+    }
+
+    @Override
+    public void receiveInitialSyncData(PacketBuffer buf) {
+        readPartSelection(buf);
+        createFakeGui();
+    }
+
+    @Override
     public void onHolderChanged(IGregTechTileEntity lastHolder) {
         if (holder == null) {
             if (this.screen.getWorld() != null && this.screen.getWorld().isRemote) {
@@ -198,9 +242,13 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
                 fakeModularGui.updateScreen();
         } else {
             if (partIndex > 0 && this.screen.getOffsetTimer() % 20 == 0) {
-                if (fakeModularUIContainer != null && getRealMTE() == null) {
-                    this.writePluginData(GregtechDataCodes.UPDATE_PLUGIN_CONFIG,
-                            buf -> buf.writeVarInt(this.partIndex));
+                MetaTileEntity target = getRealMTE();
+                BlockPos targetPos = target == null ? null : target.getPos();
+                if (!Objects.equals(this.syncedPartPos, targetPos)) {
+                    this.partPos = targetPos;
+                    syncPartSelection();
+                }
+                if (fakeModularUIContainer != null && target == null) {
                     fakeModularUIContainer = null;
                 }
             }
@@ -259,8 +307,7 @@ public class FakeGuiPluginBehavior extends ProxyHolderPluginBehavior {
     @Override
     public void readPluginData(int id, PacketBuffer buf) {
         if (id == GregtechDataCodes.UPDATE_PLUGIN_CONFIG) {
-            this.partIndex = buf.readVarInt();
-            this.partPos = null;
+            readPartSelection(buf);
             createFakeGui();
         } else if (id == GregtechDataCodes.UPDATE_FAKE_GUI) {
             int windowID = buf.readVarInt();

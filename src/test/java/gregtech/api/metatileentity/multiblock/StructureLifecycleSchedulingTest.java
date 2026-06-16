@@ -816,23 +816,9 @@ class StructureLifecycleSchedulingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return true;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class DependentElement extends MatchingElement {

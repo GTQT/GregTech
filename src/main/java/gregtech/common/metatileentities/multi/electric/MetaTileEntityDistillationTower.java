@@ -10,10 +10,10 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.FormedStructureMetadata;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
@@ -60,14 +60,14 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
                                 .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                             .piece("top")
                                 .aisle("XXX", "XXX", "XXX")
-                            .where('S', selfPredicate(MetaTileEntityDistillationTower.class))
-                            .where('#', air())
-                            .casing('Y', CasingDefinition.simple(getCasingState()))
+                            .self('S', MetaTileEntityDistillationTower.class)
+                            .air('#')
+                            .casing('Y', getCasingState())
                                 .optionalItemOutput(1)
                                 .energyInput(1, 3)
                                 .fluidInput(1)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
-                                .custom(abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
+                            .casing('X', getCasingState())
+                                .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 11)
                                 .maintenance()
                             .buildStructureDefinition()
     );

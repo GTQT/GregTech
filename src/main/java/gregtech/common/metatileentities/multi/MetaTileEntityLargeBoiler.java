@@ -24,7 +24,6 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
@@ -331,14 +330,14 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                 .aisle("XXX", "CCC", "CCC", "CCC")
                 .aisle("XXX", "CPC", "CPC", "CCC")
                 .aisle("XXX", "CSC", "CCC", "CCC")
-                .where('S', selfPredicate(MetaTileEntityLargeBoiler.class))
-                .where('P', states(boilerType.pipeState))
-                .casing('X', CasingDefinition.simple(boilerType.fireboxState))
+                .self('S', MetaTileEntityLargeBoiler.class)
+                .block('P', boilerType.pipeState)
+                .casing('X', boilerType.fireboxState)
                 .optionalEnergyInput(2)
                 .optionalItemInput(2)
                 .muffler()
                 .maintenance()
-                .casing('C', CasingDefinition.simple(boilerType.casingState))
+                .casing('C', boilerType.casingState)
                 .itemOutput(1,4)
                 .buildStructureDefinition();
     }
@@ -348,7 +347,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     protected StructureDefinition createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(boilerType.getName());
         if (definition == null) {
-            throw new IllegalStateException("Unknown turbine type: " + boilerType.getName());
+            throw new IllegalStateException("Unknown boiler type: " + boilerType.getName());
         }
         return definition.get();
     }

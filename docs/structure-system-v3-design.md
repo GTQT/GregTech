@@ -1,6 +1,6 @@
 # Structure System V3 Design
 
-**Implementation snapshot:** 2026-06-15
+**Implementation snapshot:** 2026-06-16
 
 **Scope:** `gregtech.api.pattern`、`gregtech.api.pattern.element`、
 `gregtech.api.metatileentity.multiblock`、JEI/preview/tooling 接入点，以及 GregTech 自带
@@ -257,157 +257,137 @@ signature 和 compatibility test 外，GregTech 内部不应引用它。
 
 ## 8. 迁移和清理顺序
 
-### 8.1 当前结论
+### 8.1 当前口径
 
-截至当前代码，V3 主路径已经收敛到 typed runtime：controller check、scheduler、committer、
-async precheck、build/hint/preview/iterate operation service、registry preview metadata 和大部分
-JEI/工具入口都不再以 `TraceabilityPredicate[][][]`、`BlockPattern` 或 `MultiblockState`
-作为 lifecycle owner。
+当前收口规则已经改为：
 
-内部旧 API 还没有清零，但剩余面已经比较明确：
+```text
+旧 API 只保留给仓库外 addon 兼容和 deprecated public projection。
+GregTech 仓库内的 common、gtqt、tooling、JEI、registry、operation 主路径必须清理。
+```
+
+`src/main/java/gtqt` 不是兼容白名单。它属于当前仓库内部代码，必须和 common 一样迁到
+`StructureDefinition` / typed element / `FormedStructureView`。需要保留兼容的是上级目录
+`..\GTQTCore` 仍在调用的 GregTech public API。
+
+`DeclarativePatternBuilder.start()` 是 V3 typed builder 的链式声明入口，不是为了外部 add-on
+兼容保留，也不属于旧 API 残留。静态单结构推荐保持模板池内联声明：
+
+```java
+private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+        "gregtech:coke_oven", () -> DeclarativePatternBuilder.start()
+                .aisle("XXX", "XXX", "XXX")
+                .self('Y', MetaTileEntityCokeOven.class)
+                .air('#')
+                .casing('X', casingState)
+                .buildStructureDefinition());
+```
+
+只有带 type 参数、并且还要给旧 `buildTemplate(type)` 兼容出口复用同一声明的机器，才保留
+`buildStructureDefinition(type)` helper。这个 helper 不是新的默认格式，只是避免变体注册和旧模板导出
+写两份结构。
+
+需要禁止的是旧模板构建链路：
+
+- `FactoryBlockPattern.start()`
+- builder 链尾 `.buildTemplate()`
+- GregTech 内部先生成 `BlockPatternTemplate` 再导入 `StructureDefinition`
+
+保留的 public `buildTemplate(...)` 兼容方法也必须内部走同一个 typed
+`StructureDefinition`，并从 `getPrimaryTemplate()` 导出旧模板；不能另起一条旧 builder 链。
+
+### 8.2 当前残留
+
+按当前代码扫描，主路径旧 API 残留如下：
 
 | 范围 | 当前数量 | 状态 |
 |------|----------|------|
-| GregTech common controller 覆盖 `createStructurePattern()` | 0 | 已清完，由扫描测试锁住。 |
-| GregTech common controller 覆盖 `formStructure(PatternMatchContext)` | 0 | 已清完，由扫描测试锁住。 |
-| common controller 通过 `copyLegacyCallbackContext()` 读旧 payload | 7 个文件 | 仍需转 typed contribution / metadata。 |
-| monitor plugin 通过 `getMultiblockState().checkPatternFastAt(...)` 重扫结构 | 2 个文件 | 仍是内部旧 traversal。 |
-| JEI tooltip/candidate fallback 触发 legacy predicate view | 1 个文件 | 仅 typed preview 缺失时 fallback，仍需补齐 typed preview。 |
-| 动态尺寸机器内部构造 `BlockPattern` 作为模板桥 | 2 个 controller | 已经从 `StructureDefinition` 进入 V3，但声明侧仍未完全 typed 化。 |
-| API compatibility bridge | 若干 API base class | 为外部 addon ABI 保留，不按内部主路径债务计算。 |
+| `src/main/java/gtqt` 旧结构 API 引用 | 0 | 已清理；不再作为兼容例外。 |
+| common / gtqt controller 覆盖 `createStructurePattern()` | 0 | 扫描测试锁住。 |
+| common / gtqt controller 覆盖 `formStructure(PatternMatchContext)` | 0 | 扫描测试锁住。 |
+| common / gtqt 内部 `FactoryBlockPattern.start()` / `.buildTemplate()` | 0 | 扫描测试锁住；不误伤 `DeclarativePatternBuilder.start()`。 |
+| common / gtqt `TraceabilityPredicate` 引用 | 0 | 自带 controller/helper 已迁到 typed element。 |
+| common / gtqt `MultiblockState` 引用 | 0 | runtime/tooling 主路径已清理。 |
+| common `BlockPatternTemplate` 引用 | 4 个文件 | 仅 public add-on 兼容 API，内部导出走池化 typed definition 的 `getPrimaryTemplate()`。 |
+| common / gtqt `PatternMatchContext` 引用 | 0 | custom element 旧签名已清理；扫描测试锁住。 |
+| `IStructureElement` 旧 world/context 方法签名 | 0 | 主接口只保留 `StructureEvaluationContext` typed 合约。 |
 
-因此，“内部旧 API 清理”按主路径算已基本完成；按仓库内引用算，剩余重点是
-context payload、client/monitor tooling fallback、JEI fallback 和动态声明桥接。`BlockPattern`、
-`BlockPatternTemplate`、`TraceabilityPredicate`、`PatternMatchContext`、`MultiblockState`、
-`PieceTemplateLegacyView` 这些类型本身仍会继续存在于 deprecated public surface、adapter、
-projection 和 compatibility tests 中，直到外部 API 移除窗口结束。
+剩余严格残留只剩 public add-on compatibility API：
 
-### 8.2 已锁住的边界
+`MetaTileEntityFluidDrill`、`MetaTileEntityLargeMiner`、`MetaTileEntityLargeTurbine`、
+`MetaTileEntityFusionReactor` 的 `register*Type(... Supplier<BlockPatternTemplate>)` 和
+`buildTemplate(...)`。
 
-以下内容已经作为完成项看待，后续不应反复迁移：
+### 8.3 保留边界
 
-- `LegacyStructureAdapterBoundaryTest` 覆盖 `GTQTCore` 风格的旧 template、旧 pattern、
-  自定义 `TraceabilityPredicate` 子类和旧 `formStructure(PatternMatchContext)` callback。
-- `StructureInternalLegacyBoundaryScanTest` 锁住 runtime、scheduler、committer、async、preview、
-  JEI、registry、builder/removal/projector tooling 的旧 traversal 禁用清单。
-- `StructureInternalLegacyBoundaryScanTest.gregTechControllersUseTypedFormationCallbacksAndDefinitions`
-  锁住 common controller 树：不能重新覆盖 `createStructurePattern()` 或
-  `formStructure(PatternMatchContext)`。
-- deprecated getter/projection 测试证明 mutation 不影响 canonical lifecycle。
-- adapter trace 通过 `StructureRuntime.getAdapterTrace()`、`describeShape()` 和 typed result
-  diagnostics 可观察。遇到不确定旧入口时，优先加低频日志/trace 让调用方输出数据，再扩展 adapter。
+`..\GTQTCore` 当前真实依赖的 GregTech common public compat surface 包括：
 
-### 8.3 剩余项 1：清掉 common controller 的 legacy context payload
+- `MetaTileEntityLargeTurbine.registerTurbineType(...)`
+- `MetaTileEntityLargeTurbine.buildTemplate(...)`
+- `MetaTileEntityFluidDrill.registerFluidDrillType(...)`
+- `MetaTileEntityFluidDrill.buildTemplate(...)`
+- `MetaTileEntityFusionReactor.registerFusionType(...)`
+- `MetaTileEntityFusionReactor.buildTemplate(...)`
 
-当前 common controller 仍有 7 个文件通过
-`FormedStructureView.copyLegacyCallbackContext()` 读取旧 predicate 写入的数据：
+同类 add-on 扩展 API `MetaTileEntityLargeMiner.registerLargeMinerType(...)` /
+`MetaTileEntityLargeMiner.buildTemplate(...)` 也按同一兼容边界暂留。
 
-- `MetaTileEntityElectricBlastFurnace`
-- `MetaTileEntityMultiSmelter`
-- `MetaTileEntityMultiAlloyFurnace`
-- `MetaTileEntityCrackingUnit`
-- `MetaTileEntityPyrolyseOven`
-- `MetaTileEntityCleanroom`
-- `MetaTileEntityPowerSubstation`
+这些方法可以继续暴露 `BlockPatternTemplate`，但只能作为 add-on ABI：
 
-这些已经不是旧 `formStructure(PatternMatchContext)` override，而是 typed callback 内部临时读取
-legacy projection。清理顺序：
+- 外部传入 `BlockPatternTemplate` 时，立即通过 `StructureDefinition.fromTemplate(...)` 导入 V3。
+- GregTech 自带类型导出旧模板时，只能从同一个 `TemplatePool` / typed `StructureDefinition`
+  调 `getPrimaryTemplate()`。
+- 不能在 common / gtqt 内部重新使用 `FactoryBlockPattern.start()` 或 `.buildTemplate()` 构建结构。
 
-1. heating coil 系列先做：把 matched `ICasing` / coil stats 从旧 channel context 迁移到 typed
-   contribution 或 `FormedStructureView` metadata helper。
-2. Cleanroom 再做：`FilterType` 和 `Doors` 由 typed element contribution 发布，形成回调只读 typed
-   view。
-3. Power Substation 最后做：`PMC_BATTERY_HEADER` / `BatteryMatchWrapper` 改成 typed battery
-   contribution，并保留 tier count 的形成结果。
-4. common controller 中 `copyLegacyCallbackContext()` 归零后，把扫描测试扩展为禁止
-   `gregtech/common/metatileentities` 引用该方法。
+### 8.4 已完成项
 
-验收标准：common controller 不再 import `PatternMatchContext`；旧 callback projection 只由 API
-base class 的外部 addon bridge 使用。
+以下内容已经按完成项处理：
 
-### 8.4 剩余项 2：清掉 tooling / JEI 的旧 traversal fallback
+- common 和 gtqt controller 声明侧都使用 `createStructureDefinition()`。
+- common 和 gtqt 形成回调都使用 `FormedStructureView` 或 typed helper。
+- common 声明 helper 的 `FactoryBlockPattern` / `TraceabilityPredicate` 已迁到
+  `DeclarativePatternBuilder` 和 `Elements` typed element。
+- `MetaTileEntityForgeOfGods`、`MTEBaseModule` 不再通过 `BlockPatternTemplate` 桥接内部结构。
+- monitor tooling、builder/removal/projector、JEI tooltip/candidate preview、registry preview
+  metadata 不再把 legacy predicate/state 当主路径。
+- dynamic sized controller (`Cleanroom` / `CharcoalPileIgniter`) 的 preview/build/hint 已走 typed
+  template path，不再通过 `BlockPattern`、`FactoryBlockPattern` 或 `MultiblockState`。
+- custom element (`CharcoalPileIgniter` / `Cleanroom` / `ResearchStation` / `PowerSubstation` /
+  `CentralMonitor`) 已迁到 `ITypedStructureElement`，不再实现 `PatternMatchContext` 旧签名。
+- `IStructureElement` 不再暴露 `check(World, BlockPos, PatternMatchContext)`、
+  `placeBlock(World, BlockPos, PatternMatchContext, ...)`、`spawnHint(World, BlockPos)` 等旧 cell
+  element 方法；legacy predicate 兼容集中在 `TraceabilityPredicate` / `LegacyElement` /
+  compatibility view。
+- `DeclarativePatternBuilder` 增加 typed 快捷方法：
+  `.self(...)`、`.block(...)`、`.blocks(...)`、`.air(...)`、`.any(...)`、`.frames(...)`、
+  `.hatches(...)`、`.casing(char, IBlockState)`，避免迁移后调用点比旧 API 更复杂。
 
-当前仍有 2 个 monitor plugin 直接从 deprecated state 重扫结构：
+### 8.5 测试锁定
 
-- `FakeGuiPluginBehavior`：通过 `getMultiblockState().checkPatternFastAt(...)` 取
-  `MultiblockParts`。
-- `AdvancedMonitorPluginBehavior`：通过同一路径重扫，然后读取 `state.cache`。
+`StructureInternalLegacyBoundaryScanTest` 当前需要锁住这些边界：
 
-迁移目标是让它们读取 committed typed publication：
+- runtime、scheduler、committer、async、operation、preview、JEI、registry、tooling 不得重新引入
+  legacy traversal owner。
+- common 和 gtqt controller 不得重新覆盖 `createStructurePattern()`、
+  `formStructure(PatternMatchContext)` 或调用 `copyLegacyCallbackContext()`。
+- common 和 gtqt 内部不得重新引用 `PatternMatchContext`；它只属于 API compatibility adapter。
+- common 和 gtqt controller 不得重新出现 `FactoryBlockPattern.start()` 或 `.buildTemplate()`。
+- `DeclarativePatternBuilder.start()` 明确允许，它是 typed declaration 入口。
+- `gregtech/api/pattern/element` 不得重新暴露旧 world/`PatternMatchContext` element 方法签名。
+- `Cleanroom` / `CharcoalPileIgniter` 的 dynamic tooling 必须继续走 typed template path。
 
-- part 列表从 `StructureLifecycleState` / `FormedStructureView` / typed ability publication 获取。
-- valid positions 从 `CommittedStructureGraph` 的 position index 或 formed position set 获取。
-- 不再调用 `getMultiblockState()`、`checkPatternFastAt(...)` 或读取 `state.cache`。
+### 8.6 后续清理顺序
 
-JEI 目前主路径已经使用 `StructureElementPreviewEntry`，但
-`MultiblockInfoRecipeWrapper` 仍在 typed entry 缺失时调用
-`getLegacyPredicateFallback(...)`，并用临时 `PatternMatchContext` 匹配 legacy tooltip。这个 fallback
-可以保留到 typed preview coverage 补齐；清理时先给缺失 entry 加 diagnostics/log，确认真实缺口，
-再删除 legacy tooltip 匹配。
+后续只剩一条线：
 
-### 8.5 剩余项 3：清掉动态声明侧的 `BlockPattern` 桥
+升级上级目录 `..\GTQTCore`，把它对 `register*Type(... Supplier<BlockPatternTemplate>)`
+和 `buildTemplate(...)` 的调用迁到 typed `StructureDefinition` 或 typed builder fragment。
+外部调用清零后，再移除这 4 个 common public compat 残留。
 
-`CharcoalPileIgniter` 和 `Cleanroom` 已经通过 `createStructureDefinition()` 进入 V3，但内部仍因
-动态尺寸、channel preview、auto-build/hint 复用而构造 `FactoryBlockPattern` / `BlockPattern`：
-
-- `CharcoalPileIgniter` 动态生成木堆尺寸，并把 `BlockPattern.getTemplate()` 包成
-  `StructureDefinition`。
-- `Cleanroom` 用 `FactoryBlockPattern` 生成动态尺寸结构，preview/build/hint 仍临时构造
-  `BlockPattern`。
-
-这类不再是 runtime owner 问题，但仍是内部旧声明 facade。清理顺序：
-
-1. 把动态尺寸 builder 输出改为 `PieceTemplate` / `StructureDefinition`，避免先 build
-   `BlockPattern` 再取 template。
-2. 把固定 repetition 读取从 `BlockPattern.getAisleRepetitions()` 改为 typed template metadata。
-3. 把 `MultiblockState.resolveRepetitionValue(...)` 移到非 deprecated helper，例如 channel/value
-   resolver。
-4. 动态 preview/build/hint 继续走 typed operation request，不回退到旧 state。
-
-另外，`FluidDrill`、`FusionReactor`、`LargeMiner`、`LargeTurbine`、`ForgeOfGods` 和
-`MTEBaseModule` 仍有 `BlockPatternTemplate` supplier 或 `FactoryBlockPattern` 声明 helper。它们目前
-主要是声明 facade，不是 lifecycle traversal；优先级低于 context payload 和 tooling fallback，但最终
-也应迁移到直接返回 `StructureDefinition` / typed template builder。
-
-### 8.6 Operation 服务状态
-
-`StructureOperationEvaluator` 当前只作为 public compatibility facade，主体已经拆成：
-
-- `StructureCheckOperationService`
-- `StructureSnapshotOperationService`
-- `StructureBuildOperationService`
-- `StructureHintOperationService`
-- `StructurePreviewOperationService`
-- `StructureIterateOperationService`
-
-拆分后的不变量：
-
-- request kind 在入口校验。
-- result diagnostics 不丢失。
-- commit path 只消费 `StructureCheckResult`。
-- build/hint/preview/iterate 不发布 lifecycle。
-- 旧 API 不能重新进入 operation 主路径。
-
-`StructureOperationRuntime` / `StructureOperationContext` 负责统一解析 compiled pattern、piece
-runtimes、synthetic single-piece runtime 和 operation diagnostics，避免每个 service 重新判断
-legacy shape。
-
-### 8.7 建议清理顺序
-
-后续按这个顺序收尾：
-
-1. 先清 7 个 common controller 的 `copyLegacyCallbackContext()`。
-2. 再清 2 个 monitor plugin 的 `getMultiblockState().checkPatternFastAt(...)`。
-3. 补齐 JEI typed preview entry，删除 legacy tooltip/candidate fallback。
-4. 清 `CharcoalPileIgniter` / `Cleanroom` 动态声明侧的 `BlockPattern` 桥。
-5. 清 template supplier registry 和 `FactoryBlockPattern` internal helper，转成 typed
-   `StructureDefinition` builder。
-6. 最后处理 public deprecated API 移除：`createStructurePattern()`、
-   `formStructure(PatternMatchContext)`、`getMultiblockState()`、`getPatternTemplate()`、
-   `getBlockMatches()` 等外部 surface 在 removal target 前只能继续 adapter/projection。
-
-每一步都先扩大扫描测试，再做代码迁移；如果某个旧 predicate 的 side effect 或 payload 语义不确定，
-先加 trace/log 让实际机器输出数据，再决定 typed contribution 的形状。
+完成后，common / gtqt 可扩大扫描为：除 `gregtech/api` 的 deprecated public adapter /
+projection、compatibility tests 和 migration docs 外，禁止 `BlockPatternTemplate`、`BlockPattern`、
+`FactoryBlockPattern`、`TraceabilityPredicate`、`MultiblockState`。`PatternMatchContext` 已经按这个口径
+在 common / gtqt 清零并锁住。
 
 ## 9. 不变量
 
@@ -461,8 +441,7 @@ legacy shape。
 
 仍需补强：
 
-- controller 私有状态中仍通过 `FormedStructureView.copyLegacyCallbackContext()` 读取的 legacy
-  payload typed contribution 化。
+- 声明 facade/helper 和 common legacy predicate/context hook 清理。
 - 大规模存档级 world profiling。
 
 ## 11. 代码导航

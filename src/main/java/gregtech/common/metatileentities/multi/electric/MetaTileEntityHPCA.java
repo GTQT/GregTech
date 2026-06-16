@@ -24,9 +24,9 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
@@ -101,12 +101,13 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
                         .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("bottom")
                         .aisle("SA", "CC", "CC", "CC", "AA")
-                    .where('S', selfPredicate(MetaTileEntityHPCA.class))
-                    .where('A', states(getAdvancedState()))
-                    .where('V', states(getVentState()))
-                    .where('X', abilities(MultiblockAbility.HPCA_COMPONENT)
-                            .setDefaultCandidate(() -> MetaTileEntities.HPCA_EMPTY_COMPONENT))
-                    .casing('C', CasingDefinition.simple(getCasingState()))
+                    .self('S', MetaTileEntityHPCA.class)
+                    .block('A', getAdvancedState())
+                    .block('V', getVentState())
+                    .where('X', Elements.withDefaultCandidate(
+                            Elements.abilities(MultiblockAbility.HPCA_COMPONENT),
+                            () -> MetaTileEntities.HPCA_EMPTY_COMPONENT))
+                    .casing('C', getCasingState())
                         .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
                                 () -> MetaTileEntities.MAINTENANCE_HATCH)
                         .hatch(MultiblockAbility.INPUT_ENERGY, 1, 3,

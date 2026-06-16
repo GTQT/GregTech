@@ -11,8 +11,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.mui.widget.RecipeProgressWidget;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -59,11 +59,11 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XYX", "XXX")
-                    .where('Y', selfPredicate(MetaTileEntityCokeOven.class))
-                    .where('#', air())
-                    .casing('X', CasingDefinition.simple(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS)))
+                    .self('Y', MetaTileEntityCokeOven.class)
+                    .air('#')
+                    .casing('X', MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS))
                         .custom(
-                                metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5), 5)
+                                Elements.metaTileEntities(0, 5, 5, MetaTileEntities.COKE_OVEN_HATCH), 5)
                     .buildStructureDefinition());
 
     public MetaTileEntityCokeOven(ResourceLocation metaTileEntityId) {

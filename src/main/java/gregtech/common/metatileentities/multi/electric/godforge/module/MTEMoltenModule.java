@@ -6,7 +6,8 @@ import org.jetbrains.annotations.NotNull;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
@@ -37,8 +38,9 @@ public class MTEMoltenModule extends MTEBaseModule {
     }
 
     @Override
-    protected TraceabilityPredicate getCoilBlockPredicate() {
-        return states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
+    protected IStructureElement getCoilBlockElement() {
+        return Elements.block(getCasingState(
+                BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
     }
 
     @Override

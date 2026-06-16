@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -76,6 +77,22 @@ class RepeatGroupPieceTest {
         RepeatGroupPiece piece = repeatPiece(new int[] {0}, new int[] {1});
 
         assertTrue(piece.visitRepeatOffsets(new int[] {2}, local -> true));
+    }
+
+    @Test
+    void repeatSearchKeepsDescendingOrderWithoutPreferredSize() {
+        RepeatGroupPiece piece = repeatPiece(new int[] {0}, new int[] {1});
+
+        assertArrayEquals(new int[] {4, 3, 2, 1},
+                piece.repeatCandidatesForTesting(0, null));
+    }
+
+    @Test
+    void repeatSearchTriesPreferredSizeNeighborhoodFirst() {
+        RepeatGroupPiece piece = repeatPiece(new int[] {0}, new int[] {1});
+
+        assertArrayEquals(new int[] {2, 3, 1, 4},
+                piece.repeatCandidatesForTesting(0, new int[] {2}));
     }
 
     @Test

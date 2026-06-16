@@ -7,15 +7,13 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
-import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureElementPreviewEntry;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.api.util.ItemStackHashStrategy;
 import gregtech.client.renderer.scene.FBOWorldSceneRenderer;
@@ -77,11 +75,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
@@ -103,6 +103,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static final int MAX_CANDIDATES = CANDIDATES_COLUMNS * CANDIDATES_PER_COL;
     // Candidate cycling interval in milliseconds
     private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
+    private static final Set<String> MISSING_TYPED_PREVIEW_DIAGNOSTICS = new HashSet<>();
     private static ItemStack tooltipBlockStack;
     private static long lastRender;
     private static MultiblockInfoRecipeWrapper lastWrapper;
@@ -642,7 +643,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     rayTraceResult.getBlockPos(), minecraft.player
             );
 
-            this.previewTips = previewTooltipFor(renderer.world, rayTraceResult.getBlockPos());
+            this.previewTips = previewTooltipFor(rayTraceResult.getBlockPos());
             if (!itemStack.isEmpty()) {
                 tooltipBlockStack = itemStack;
             }
@@ -862,42 +863,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     @NotNull
-    private List<String> previewTooltipFor(@NotNull World world, @NotNull BlockPos pos) {
+    private List<String> previewTooltipFor(@NotNull BlockPos pos) {
         StructureElementPreviewEntry entry = patterns[0].getPreviewEntry(pos);
         if (entry != null && !entry.getTooltip().isEmpty()) {
             return entry.getTooltip();
         }
-
-        TraceabilityPredicate predicate = patterns[0].getLegacyPredicateFallback(pos);
-        if (predicate == null) {
-            return Collections.emptyList();
+        if (entry == null) {
+            logMissingTypedPreview(pos, "tooltip");
         }
-        List<String> legacyTips = matchLegacyTooltip(world, pos, StructureElementPreview.fromPredicate(predicate),
-                predicate);
-        return legacyTips == null ? Collections.emptyList() : legacyTips;
-    }
-
-    @Nullable
-    private static List<String> matchLegacyTooltip(@NotNull World world,
-                                                   @NotNull BlockPos pos,
-                                                   @NotNull StructureElementPreview preview,
-                                                   @NotNull TraceabilityPredicate predicate) {
-        BlockWorldState worldState = new BlockWorldState();
-        worldState.update(world, pos, new PatternMatchContext(), new HashMap<>(), new HashMap<>(), predicate);
-
-        for (StructureElementPreview.CandidateGroup common : preview.getCommon()) {
-            TraceabilityPredicate.SimplePredicate legacy = common.getLegacyPredicate();
-            if (legacy != null && legacy.test(worldState)) {
-                return common.getTooltip();
-            }
-        }
-        for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
-            TraceabilityPredicate.SimplePredicate legacy = limit.getLegacyPredicate();
-            if (legacy != null && legacy.test(worldState)) {
-                return limit.getTooltip();
-            }
-        }
-        return null;
+        return Collections.emptyList();
     }
 
     @NotNull
@@ -909,10 +883,19 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 return candidates;
             }
         }
-        TraceabilityPredicate fallback = patterns[0].getLegacyPredicateFallback(pos);
-        return fallback == null
-                ? Collections.emptyList()
-                : previewCandidatesFromEntry(StructureElementPreviewEntry.fromPredicate(fallback));
+        logMissingTypedPreview(pos, "candidate");
+        return Collections.emptyList();
+    }
+
+    private void logMissingTypedPreview(@NotNull BlockPos pos, @NotNull String surface) {
+        String key = controller.metaTileEntityId + "|" + surface + "|" + pos + "|"
+                + new TreeMap<>(channelValues);
+        if (MISSING_TYPED_PREVIEW_DIAGNOSTICS.add(key)) {
+            GTLog.logger.debug(
+                    "Missing typed JEI multiblock preview {} for {} at preview position {} with channels {}. "
+                            + "Legacy predicate fallback is disabled; add StructureElementPreviewEntry metadata.",
+                    surface, controller.metaTileEntityId, pos, channelValues);
+        }
     }
 
     @NotNull
@@ -1127,7 +1110,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         world.updateEntities();
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
 
-        Map<BlockPos, TraceabilityPredicate> predicateMap = Collections.emptyMap();
         Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
         if (controllerBase != null && controllerBlockPos != null) {
             controllerBase.buildStructurePreviewEntries(channelValues).forEach((previewPos, entry) -> {
@@ -1147,7 +1129,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     return two.amount - one.amount;
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
-        return new MBPattern(worldSceneRenderer, sortedParts, predicateMap, previewEntries);
+        return new MBPattern(worldSceneRenderer, sortedParts, Collections.emptyMap(), previewEntries);
     }
 
     private static final class PreviewCandidate {

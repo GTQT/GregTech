@@ -661,23 +661,9 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return false;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class DirectCandidateElement implements IStructureElement<Object> {
@@ -699,23 +685,16 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return world.getBlockState(pos) == candidate.getBlockState();
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[] { candidate };
         }
 
         @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return world.setBlockState(pos, candidate.getBlockState());
+        public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                                  @NotNull EntityPlayer player, boolean skipHatches) {
+            World world = context.getWorld();
+            return world != null && world.setBlockState(context.getPos(), candidate.getBlockState());
         }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @Override
         public TraceabilityPredicate toPredicate() {
@@ -751,12 +730,6 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            IBlockState blockState = world.getBlockState(pos);
-            return blockState == first.getBlockState() || blockState == second.getBlockState();
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[] { first, second };
         }
@@ -768,13 +741,11 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return world.setBlockState(pos, first.getBlockState());
+        public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                                  @NotNull EntityPlayer player, boolean skipHatches) {
+            World world = context.getWorld();
+            return world != null && world.setBlockState(context.getPos(), first.getBlockState());
         }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class ThrowingLegacyPredicateDirectElement implements IStructureElement<Object> {
@@ -792,23 +763,9 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return world.getBlockState(pos) == candidate.getBlockState();
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[] {candidate};
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @Override
         public TraceabilityPredicate toPredicate() {
@@ -824,28 +781,14 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return true;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[] { stoneInfo };
         }
 
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
-
         @NotNull
         @Override
         public StructureHintRenderResult spawnHintWithResult(
-                World world, BlockPos pos, @NotNull ItemStack trigger) {
+                @NotNull StructureEvaluationContext<Object> context, @NotNull ItemStack trigger) {
             return StructureHintRenderResult.skipped(StructureHintRenderResult.Source.TRIGGER);
         }
 
@@ -875,23 +818,9 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return world.getBlockState(pos) == candidate.getBlockState();
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[] {candidate};
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @Override
         public void addPreviewTooltip(@NotNull java.util.List<String> tooltip) {
@@ -907,23 +836,9 @@ class StructureBuildAccountingTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return true;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @Override
         public boolean isCenter() {

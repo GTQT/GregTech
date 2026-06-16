@@ -18,7 +18,6 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureContributionKey;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureElementPreviewEntry;
@@ -28,10 +27,10 @@ import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureRuntimeDetectionContext;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.impl.ChainElement;
@@ -498,10 +497,10 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                     .aisle(slice.toString())
                 .piece("bottom")
                     .aisle(end.toString())
-                .where('S', selfPredicate(MetaTileEntityCentralMonitor.class))
-                .where('B', metaTileEntities(MetaTileEntities.MONITOR_SCREEN))
-                .casing('A', CasingDefinition.simple(
-                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID)))
+                .self('S', MetaTileEntityCentralMonitor.class)
+                .metaTileEntities('B', MetaTileEntities.MONITOR_SCREEN)
+                .casing('A', 
+                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID))
                     .energyInput(1, 3)
                 .buildStructureDefinition();
     }
@@ -919,12 +918,10 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     private static final class MonitorScreenElement
-            implements IStructureElement<Object> {
+            implements ITypedStructureElement<Object> {
 
-        private final TraceabilityPredicate legacyPredicate =
-                metaTileEntities(MetaTileEntities.MONITOR_SCREEN);
         private final StructureElementPreview preview =
-                StructureElementPreview.fromPredicate(legacyPredicate);
+                StructureElementPreview.of(this::getCandidates);
 
         @Override
         public boolean check(
@@ -945,30 +942,9 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         }
 
         @Override
-        public boolean check(
-                World world,
-                BlockPos pos,
-                PatternMatchContext context) {
-            return isMonitorScreen(world, pos);
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
-            return new BlockInfo[0];
+            return Elements.metaTileEntities(MetaTileEntities.MONITOR_SCREEN).getCandidates();
         }
-
-        @Override
-        public boolean placeBlock(
-                World world,
-                BlockPos pos,
-                PatternMatchContext context,
-                EntityPlayer player,
-                boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @NotNull
         @Override
@@ -986,11 +962,6 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         @Override
         public Set<StructureDependency> getDependencies() {
             return Collections.emptySet();
-        }
-
-        @Override
-        public TraceabilityPredicate toPredicate() {
-            return legacyPredicate;
         }
     }
 }

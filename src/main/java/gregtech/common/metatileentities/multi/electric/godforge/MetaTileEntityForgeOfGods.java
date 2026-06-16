@@ -8,23 +8,19 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWorldData;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
-import gregtech.api.pattern.SoftTemplate;
 import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructureCondition;
 import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
@@ -157,71 +153,70 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private static final int[] SECOND_RING_CENTER = { 55, 11, 0, 0, 0 };
     private static final int[] THIRD_RING_CENTER = { 47, 13, 0, 0, 0 };
 
-    // Static template cache using SoftTemplate (thread-safe, reclaimable under memory pressure)
-    private static final SoftTemplate BEAM_SHAFT_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/beam_shaft", MetaTileEntityForgeOfGods::buildBeamShaftTemplate);
-    private static final SoftTemplate FIRST_RING_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/first_ring", MetaTileEntityForgeOfGods::buildFirstRingTemplate);
-    private static final SoftTemplate FIRST_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/first_ring_air", MetaTileEntityForgeOfGods::buildFirstRingAirTemplate);
-    private static final SoftTemplate SECOND_RING_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/second_ring", MetaTileEntityForgeOfGods::buildSecondRingTemplate);
-    private static final SoftTemplate SECOND_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/second_ring_air", MetaTileEntityForgeOfGods::buildSecondRingAirTemplate);
-    private static final SoftTemplate THIRD_RING_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/third_ring", MetaTileEntityForgeOfGods::buildThirdRingTemplate);
-    private static final SoftTemplate THIRD_RING_AIR_TEMPLATE = TemplatePool.getInstance().register(
-            "gregtech:forge_of_gods/third_ring_air", MetaTileEntityForgeOfGods::buildThirdRingAirTemplate);
     private static final StructureDefinition<MetaTileEntityForgeOfGods>
-            STRUCTURE_DEFINITION = StructureDefinition.fromMultiPiecePattern(
-                    GODFORGE_STRUCTURE_DIRECTIONS,
-                    buildGodforgeMultiPiecePattern());
+            STRUCTURE_DEFINITION = buildGodforgeStructureDefinition();
 
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 
-    private static MultiPiecePattern buildGodforgeMultiPiecePattern() {
-        return MultiPiecePattern.builder()
-                .piece("beam_shaft", BEAM_SHAFT_TEMPLATE.get(), BEAM_SHAFT_OFFSET, OffsetMode.RELATIVE)
-                .conditionalPieceContextual(
-                        "first_ring",
-                        FIRST_RING_TEMPLATE.get(),
-                        FIRST_RING_OFFSET,
-                        OffsetMode.RELATIVE,
-                        ringTemplateCondition(1, false))
-                .conditionalPieceContextual(
-                        "first_ring_air",
-                        FIRST_RING_AIR_TEMPLATE.get(),
-                        FIRST_RING_OFFSET,
-                        OffsetMode.RELATIVE,
-                        ringTemplateCondition(1, true))
-                .conditionalPieceContextual(
-                        "second_ring",
-                        SECOND_RING_TEMPLATE.get(),
-                        SECOND_RING_OFFSET,
-                        OffsetMode.RELATIVE,
-                        ringTemplateCondition(2, false))
-                .conditionalPieceContextual(
-                        "second_ring_air",
-                        SECOND_RING_AIR_TEMPLATE.get(),
-                        SECOND_RING_OFFSET,
-                        OffsetMode.RELATIVE,
-                        ringTemplateCondition(2, true))
-                .conditionalPieceContextual(
-                        "third_ring",
-                        THIRD_RING_TEMPLATE.get(),
-                        THIRD_RING_OFFSET,
-                        OffsetMode.RELATIVE,
-                        ringTemplateCondition(3, false))
-                .conditionalPieceContextual(
-                        "third_ring_air",
-                        THIRD_RING_AIR_TEMPLATE.get(),
-                        THIRD_RING_OFFSET,
-                        OffsetMode.RELATIVE,
-                        ringTemplateCondition(3, true))
-                .build();
+    private static StructureDefinition<MetaTileEntityForgeOfGods> buildGodforgeStructureDefinition() {
+        StructureDefinition.Builder<MetaTileEntityForgeOfGods> builder = StructureDefinition
+                .<MetaTileEntityForgeOfGods>builder(RIGHT, UP, FRONT);
+
+        applyAllElements(builder.piece("beam_shaft", ForgeOfGodsStructureString.BEAM_SHAFT, BEAM_SHAFT_OFFSET),
+                true, true).end();
+        applyAllElements(builder.conditionalPieceContextual(
+                "first_ring",
+                ForgeOfGodsStructureString.FIRST_RING,
+                FIRST_RING_OFFSET,
+                ringTemplateCondition(1, false)), false, false)
+                .offsetMode(OffsetMode.RELATIVE)
+                .centerOffset(FIRST_RING_CENTER[0], FIRST_RING_CENTER[1], FIRST_RING_CENTER[2])
+                .end();
+        applyAllElements(builder.conditionalPieceContextual(
+                "first_ring_air",
+                ForgeOfGodsStructureString.FIRST_RING_AIR,
+                FIRST_RING_OFFSET,
+                ringTemplateCondition(1, true)), false, false)
+                .offsetMode(OffsetMode.RELATIVE)
+                .centerOffset(FIRST_RING_CENTER[0], FIRST_RING_CENTER[1], FIRST_RING_CENTER[2])
+                .end();
+        applyAllElements(builder.conditionalPieceContextual(
+                "second_ring",
+                ForgeOfGodsStructureString.SECOND_RING,
+                SECOND_RING_OFFSET,
+                ringTemplateCondition(2, false)), false, false)
+                .offsetMode(OffsetMode.RELATIVE)
+                .centerOffset(SECOND_RING_CENTER[0], SECOND_RING_CENTER[1], SECOND_RING_CENTER[2])
+                .end();
+        applyAllElements(builder.conditionalPieceContextual(
+                "second_ring_air",
+                ForgeOfGodsStructureString.SECOND_RING_AIR,
+                SECOND_RING_OFFSET,
+                ringTemplateCondition(2, true)), false, false)
+                .offsetMode(OffsetMode.RELATIVE)
+                .centerOffset(SECOND_RING_CENTER[0], SECOND_RING_CENTER[1], SECOND_RING_CENTER[2])
+                .end();
+        applyAllElements(builder.conditionalPieceContextual(
+                "third_ring",
+                ForgeOfGodsStructureString.THIRD_RING,
+                THIRD_RING_OFFSET,
+                ringTemplateCondition(3, false)), false, false)
+                .offsetMode(OffsetMode.RELATIVE)
+                .centerOffset(THIRD_RING_CENTER[0], THIRD_RING_CENTER[1], THIRD_RING_CENTER[2])
+                .end();
+        applyAllElements(builder.conditionalPieceContextual(
+                "third_ring_air",
+                ForgeOfGodsStructureString.THIRD_RING_AIR,
+                THIRD_RING_OFFSET,
+                ringTemplateCondition(3, true)), false, false)
+                .offsetMode(OffsetMode.RELATIVE)
+                .centerOffset(THIRD_RING_CENTER[0], THIRD_RING_CENTER[1], THIRD_RING_CENTER[2])
+                .end();
+
+        return builder.build();
     }
 
     @NotNull
@@ -360,101 +355,42 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 describeRendererOwnershipForLog());
     }
 
-    private static BlockPatternTemplate buildBeamShaftTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.BEAM_SHAFT) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, true, true);
-        return builder.buildTemplate();
-    }
-
-    private static BlockPatternTemplate buildFirstRingTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.FIRST_RING) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, false, false);
-        return builder.buildTemplate(FIRST_RING_CENTER);
-    }
-
-    private static BlockPatternTemplate buildFirstRingAirTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.FIRST_RING_AIR) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, false, false);
-        return builder.buildTemplate(FIRST_RING_CENTER);
-    }
-
-    private static BlockPatternTemplate buildSecondRingTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.SECOND_RING) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, false, false);
-        return builder.buildTemplate(SECOND_RING_CENTER);
-    }
-
-    private static BlockPatternTemplate buildSecondRingAirTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.SECOND_RING_AIR) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, false, false);
-        return builder.buildTemplate(SECOND_RING_CENTER);
-    }
-
-    private static BlockPatternTemplate buildThirdRingTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.THIRD_RING) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, false, false);
-        return builder.buildTemplate(THIRD_RING_CENTER);
-    }
-
-    private static BlockPatternTemplate buildThirdRingAirTemplate() {
-        FactoryBlockPattern builder = FactoryBlockPattern.start(RIGHT, UP, FRONT);
-        for (String[] layer : ForgeOfGodsStructureString.THIRD_RING_AIR) {
-            builder.aisle(layer);
-        }
-        applyAllPredicates(builder, false, false);
-        return builder.buildTemplate(THIRD_RING_CENTER);
-    }
-
-    /**
-     * Apply all known character -> predicate mappings to a builder.
-     * Includes all characters used across all pieces.
-     *
-     * @param builder          the factory block pattern builder
-     * @param includeController     true to include 'S' -> selfPredicate() (only for beam_shaft)
-     * @param allowEmptyModuleSlots true when validating an already formed beam shaft, so module hotswaps
-     *                              do not invalidate the whole Forge of Gods while a slot is briefly empty
-     */
-    private static void applyAllPredicates(FactoryBlockPattern builder, boolean includeController,
-                                           boolean allowEmptyModuleSlots) {
+    private static StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> applyAllElements(
+            StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> builder,
+            boolean includeController,
+            boolean allowEmptyModuleSlots) {
         if (includeController) {
             builder.where('S', godforgeController());
         }
-        applySharedPredicates(builder, allowEmptyModuleSlots);
+        applySharedElements(builder, allowEmptyModuleSlots);
+        return builder;
     }
 
     // ==================== Block State Helpers ====================
 
-    private static void applySharedPredicates(FactoryBlockPattern builder, boolean allowEmptyModuleSlots) {
+    private static void applySharedElements(
+            StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> builder,
+            boolean allowEmptyModuleSlots) {
         builder.where('A', hatches())
-                .where('B', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
-                .where('C', states(getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING)))
-                .where('D', states(getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING)))
-                .where('E', states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)))
-                .where('F', states(getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
-                .where('G', states(getCasingState(BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR)))
-                .where('H', states(getGlassState()))
+                .where('B', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
+                .where('C', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING)))
+                .where('D', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING)))
+                .where('E', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)))
+                .where('F', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
+                .where('G', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR)))
+                .where('H', Elements.block(getGlassState()))
                 .where('J', godforgeModuleSlot(allowEmptyModuleSlots))
-                .where('I', states(getCasingState(BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR)))
-                .where('K', states(getCasingState(BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR)))
-                .where('L', air());
+                .where('I', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR)))
+                .where('K', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR)))
+                .where('L', Elements.air());
     }
 
     private static IBlockState getCasingState(BlockGodforgeCasing.CasingType type) {
@@ -465,30 +401,32 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return MetaBlocks.GODFORGE_GLASS.getState(BlockGodforgeGlass.GlassType.SPATIALLY_TRANSCENDENT_GRAVITATIONAL_LENS);
     }
 
-    private static TraceabilityPredicate hatches() {
-        return abilities(MultiblockAbility.IMPORT_ITEMS)
-                .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
-                .or(abilities(MultiblockAbility.EXPORT_ITEMS))
-                .or(abilities(MultiblockAbility.EXPORT_FLUIDS))
-                .or(states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)));
+    private static IStructureElement hatches() {
+        return Elements.chain(
+                Elements.abilities(MultiblockAbility.IMPORT_ITEMS),
+                Elements.abilities(MultiblockAbility.IMPORT_FLUIDS),
+                Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
+                Elements.abilities(MultiblockAbility.EXPORT_FLUIDS),
+                Elements.block(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)));
     }
 
-    private static TraceabilityPredicate godforgeModules() {
-        return metaTileEntities(
+    private static IStructureElement godforgeModules() {
+        return Elements.metaTileEntities(
                 MetaTileEntities.GODFORGE_SMELTING_MODULE,
                 MetaTileEntities.GODFORGE_MOLTEN_MODULE,
                 MetaTileEntities.GODFORGE_PLASMA_MODULE,
                 MetaTileEntities.GODFORGE_EXOTIC_MODULE);
     }
 
-    private static TraceabilityPredicate godforgeModuleSlot(boolean allowEmptyModuleSlots) {
-        TraceabilityPredicate predicate = godforgeModules()
-                .or(states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)));
-        return allowEmptyModuleSlots ? predicate.or(air()) : predicate;
+    private static IStructureElement godforgeModuleSlot(boolean allowEmptyModuleSlots) {
+        IStructureElement predicate = Elements.chain(
+                godforgeModules(),
+                Elements.block(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)));
+        return allowEmptyModuleSlots ? Elements.chain(predicate, Elements.air()) : predicate;
     }
 
-    private static TraceabilityPredicate godforgeController() {
-        return selfPredicate(MetaTileEntityForgeOfGods.class);
+    private static IStructureElement godforgeController() {
+        return Elements.self(MetaTileEntityForgeOfGods.class);
     }
 
     // ==================== Structure Lifecycle ====================

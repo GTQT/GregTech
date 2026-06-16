@@ -1,6 +1,5 @@
 package gregtech.api.pattern.element.impl;
 
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
@@ -8,11 +7,7 @@ import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -48,18 +43,6 @@ public class TieredElement implements ITypedStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        IBlockState worldState = world.getBlockState(pos);
-        BlockInfo[] cand = candidates.get();
-        for (BlockInfo info : cand) {
-            if (info.getBlockState() == worldState) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         return candidates.get();
     }
@@ -67,17 +50,6 @@ public class TieredElement implements ITypedStructureElement<Object> {
     @Override
     public StructureElementPreview getPreview() {
         return preview;
-    }
-
-    @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
-        return false;
-    }
-
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        // Hints are handled at a higher level
     }
 
     @Override

@@ -929,23 +929,9 @@ class StructureTraversalBoundaryTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            throw new AssertionError("context-aware check should be used");
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @Override
         public TraceabilityPredicate toPredicate() {
@@ -969,30 +955,9 @@ class StructureTraversalBoundaryTest {
         }
 
         @Override
-        public boolean check(
-                World world,
-                BlockPos pos,
-                PatternMatchContext context) {
-            return false;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(
-                World world,
-                BlockPos pos,
-                PatternMatchContext context,
-                EntityPlayer player,
-                boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class State {
@@ -1034,23 +999,9 @@ class StructureTraversalBoundaryTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            throw new AssertionError("context-aware check should be used");
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
 
         @Override
         public TraceabilityPredicate toPredicate() {
@@ -1074,23 +1025,9 @@ class StructureTraversalBoundaryTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            throw new AssertionError("context-aware check should be used");
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class LegacyContextWritingElement implements ITypedStructureElement<Object> {
@@ -1107,24 +1044,9 @@ class StructureTraversalBoundaryTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            context.set("direct_shared", "legacy-only");
-            return true;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return new BlockInfo[0];
         }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class TestPart implements IMultiblockPart {

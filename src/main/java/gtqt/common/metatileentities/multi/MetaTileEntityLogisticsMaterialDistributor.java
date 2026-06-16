@@ -8,9 +8,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
@@ -113,8 +113,8 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
 
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         outputFluidTanks = getAbilities(MultiblockAbility.EXPORT_FLUIDS);
         outputItemHandlers = getAbilities(MultiblockAbility.EXPORT_ITEMS);
 
@@ -143,13 +143,6 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     }
 
     @Override
-    // Migrated to DeclarativePatternBuilder multi-piece: structure is split into
-    // two named pieces ("header" with the controller and fixed caps, "body" with
-    // the repeatable frame row) so each section can be checked independently by
-    // the sharded checker. Hatch/casing predicates for 'I'/'O'/'E' are kept as
-    // raw TraceabilityPredicate because each char shares the same casing state
-    // but with different hatch abilities — a pattern the L3 casing API does
-    // not express directly.
     protected StructureDefinition createStructureDefinition() {
         return DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                 .piece("header")
@@ -159,17 +152,19 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
                     .aisle("XXX", "OEO")
                 .repeatablePiece("body", 0, 12)
                     .aisle(" F ", "XEX")
-                .where('S', selfPredicate(MetaTileEntityLogisticsMaterialDistributor.class))
-                .where('I', states(getCasingState())
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS)))
-                .where('O', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_FLUIDS)))
-                .where('E', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS)))
-                .where('F', frames(Materials.StainlessSteel))
-                .where(' ', any())
-                .casing('X', CasingDefinition.simple(getCasingState()))
+                .self('S', MetaTileEntityLogisticsMaterialDistributor.class)
+                .where('I', Elements.chain(
+                        Elements.block(getCasingState()),
+                        Elements.abilities(MultiblockAbility.IMPORT_ITEMS, MultiblockAbility.IMPORT_FLUIDS)))
+                .where('O', Elements.chain(
+                        Elements.block(getCasingState()),
+                        Elements.abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                .where('E', Elements.chain(
+                        Elements.block(getCasingState()),
+                        Elements.abilities(MultiblockAbility.EXPORT_ITEMS)))
+                .frames('F', Materials.StainlessSteel)
+                .any(' ')
+                .casing('X', getCasingState())
                 .buildStructureDefinition();
     }
 

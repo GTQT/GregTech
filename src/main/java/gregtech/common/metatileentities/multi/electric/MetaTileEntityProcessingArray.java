@@ -17,8 +17,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -82,9 +80,9 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate(MetaTileEntityProcessingArray.class))
-                .where('#', air())
-                .casing('X', CasingDefinition.simple(casingState))
+                .self('S', MetaTileEntityProcessingArray.class)
+                .air('#')
+                .casing('X', casingState)
                 .energyInput(1, 4)
                 .maintenance()
                 .muffler()
@@ -218,30 +216,6 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     @Override
     public SoundEvent getSound() {
         return GTSoundEvents.ARC;
-    }
-
-    @Override
-    public TraceabilityPredicate autoAbilities(boolean checkEnergyIn, boolean checkMaintenance, boolean checkItemIn,
-                                               boolean checkItemOut, boolean checkFluidIn, boolean checkFluidOut,
-                                               boolean checkMuffler) {
-        TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
-
-        predicate = predicate.or(
-                checkEnergyIn ? abilities(MultiblockAbility.INPUT_ENERGY).setMaxGlobalLimited(4).setPreviewCount(1) :
-                        new TraceabilityPredicate());
-
-        predicate = predicate.or(checkEnergyIn ? abilities(MultiblockAbility.INPUT_LASER).setMaxGlobalLimited(1) :
-                new TraceabilityPredicate());
-
-        predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
-
-        predicate = predicate.or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1));
-
-        predicate = predicate.or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1));
-
-        predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
-
-        return predicate;
     }
 
     @Override

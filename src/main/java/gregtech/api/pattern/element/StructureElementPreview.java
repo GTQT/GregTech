@@ -279,6 +279,27 @@ public final class StructureElementPreview {
                     defaultCandidate, tooltip, legacyPredicate);
         }
 
+        @NotNull
+        public CandidateGroup withDefaultCandidate(@Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
+            return new CandidateGroup(candidates, minGlobalCount, maxGlobalCount,
+                    minLayerCount, maxLayerCount, previewCount, channelName,
+                    defaultCandidate, tooltip, legacyPredicate);
+        }
+
+        @NotNull
+        public CandidateGroup withAdditionalTooltip(@NotNull List<String> additionalTooltip) {
+            if (additionalTooltip.isEmpty()) {
+                return this;
+            }
+            return new CandidateGroup(candidates, minGlobalCount, maxGlobalCount,
+                    minLayerCount, maxLayerCount, previewCount, channelName,
+                    defaultCandidate, () -> {
+                        List<String> merged = new ArrayList<>(getTooltip());
+                        merged.addAll(additionalTooltip);
+                        return merged;
+                    }, legacyPredicate);
+        }
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;

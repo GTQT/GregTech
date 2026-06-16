@@ -111,11 +111,6 @@ class MultiblockStructureChannelsTest {
         }
 
         @Override
-        public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-            return true;
-        }
-
-        @Override
         public BlockInfo[] getCandidates() {
             return candidates;
         }
@@ -126,14 +121,6 @@ class MultiblockStructureChannelsTest {
             return preview;
         }
 
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
     }
 
     private static final class ThrowingLegacyPredicateChannelElement extends DirectPreviewChannelElement {

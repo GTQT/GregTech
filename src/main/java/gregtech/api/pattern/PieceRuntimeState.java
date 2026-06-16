@@ -491,6 +491,12 @@ public final class PieceRuntimeState {
                       @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts);
     }
 
+    @FunctionalInterface
+    private interface FixedStructureCellFilter {
+
+        boolean includes(int elementXIndex, int elementYIndex, int aisleIndex);
+    }
+
     private static final class FixedStructureCell {
 
         private final int aisleIndex;
@@ -795,6 +801,34 @@ public final class PieceRuntimeState {
         }
         if (updateCache && !operation.readsSnapshot()) {
             recordLiveCacheCell(cell);
+        }
+        return true;
+    }
+
+    private boolean visitFixedStructureCellsWhere(@NotNull BlockPos centerPos,
+                                                  @NotNull StructureOrientation orientation,
+                                                  int xOffset, int yOffset, int zOffset,
+                                                  @NotNull FixedStructureCellFilter filter,
+                                                  @NotNull FixedStructureCellPredicate visitor) {
+        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int fingerLength = template.getZLength();
+        int thumbLength = template.getYLength();
+        int palmLength = template.getXLength();
+
+        Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts = new HashMap<>();
+        for (int c = 0, localZ = -centerOffset.maxZ(); c < fingerLength; c++, localZ++) {
+            for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
+                for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
+                    if (!filter.includes(a, b, c)) {
+                        continue;
+                    }
+                    if (!visitor.visit(createFixedStructureCell(
+                            c, 0, a, b, x, y, localZ,
+                            centerPos, orientation, xOffset, yOffset, zOffset), layerCounts)) {
+                        return false;
+                    }
+                }
+            }
         }
         return true;
     }
@@ -1771,7 +1805,7 @@ public final class PieceRuntimeState {
                     StructureEvaluationContext.Operation.HINT);
             IStructureElement<Object> typedElement = (IStructureElement<Object>) cell.element;
             StructureHintRenderResult triggerResult =
-                    typedElement.spawnHintWithResult(world, cell.worldPos, triggerStack);
+                    typedElement.spawnHintWithResult(hintState.evaluationContext, triggerStack);
             if (!triggerResult.skipped()) {
                 hintState.result.recordTriggerHandledCell();
                 hintState.result.recordRenderOutcome(triggerResult);
@@ -2153,56 +2187,67 @@ public final class PieceRuntimeState {
         return true;
     }
 
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               @NotNull BlockPos pieceOrigin,
-                                               int axis,
-                                               @NotNull StructureOrientation orientation) {
-        return checkAxisLineFastAtSnapshot(snap, pieceOrigin, axis, orientation, 0, 0, 0);
+    public boolean checkAxisBoundaryFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
+                                                   int axis,
+                                                   @NotNull StructureCellTraversal traversal) {
+        return checkAxisBoundaryFastAtSnapshotCore(snap, axis, traversal);
     }
 
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               @NotNull BlockPos pieceOrigin,
-                                               int axis,
-                                               @NotNull StructureOrientation orientation,
-                                               int xOffset, int yOffset, int zOffset) {
-        return checkAxisLineFastAtSnapshot(
-                snap,
-                axis,
-                StructureCellTraversal.at(pieceOrigin, orientation).withLocalOffset(xOffset, yOffset, zOffset));
-    }
+    private boolean checkAxisBoundaryFastAtSnapshotCore(@NotNull net.minecraft.world.IBlockAccess snap,
+                                                        int axis,
+                                                        @NotNull StructureCellTraversal traversal) {
+        int boundaryIndex = axisBoundaryIndex(axis);
+        if (boundaryIndex < 0) {
+            return false;
+        }
 
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               int axis,
-                                               @NotNull StructureCellTraversal traversal) {
-        // For tensor product pieces, all cells are identical,
-        // so we only need to check one "line" along the axis.
-        // This is a simplified check that verifies the outermost slice.
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
-
-        // Check the first slice (z=0) as a representative sample.
-        // For tensor products, if one slice matches, all slices match. Use a
-        // session-backed execution context so direct element requirement/channel
-        // collection does not write into PatternMatchContext as internal storage.
         StructureMatchSession session = new StructureMatchSession();
         this.layerCount.clear();
         this.missingAbilities = Collections.emptyMap();
 
-        int z = -centerOffset.maxZ(); // Start at the first aisle
-        boolean matched = visitFixedStructureSlice(0, 0, z, traversal.getCenterPos(), traversal.getOrientation(),
+        boolean matched = visitFixedStructureCellsWhere(
+                traversal.getCenterPos(), traversal.getOrientation(),
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
-                layerCount, (cell, layerCounts) -> {
-                    worldState.updateFromBlockAccess(snap, cell.worldPos, session.getContext(), session.getGlobalCount(),
-                            layerCounts, cell.runtimePredicate(), cell.previewEntry);
+                (x, y, z) -> coordinateForAxis(axis, x, y, z) == boundaryIndex,
+                (cell, layerCounts) -> {
+                    worldState.updateFromBlockAccess(snap, cell.worldPos, session.getContext(),
+                            session.getGlobalCount(), layerCounts, cell.runtimePredicate(), cell.previewEntry);
                     return checkElement(cell.element, session, StructureEvaluationContext.Operation.MATCH_SNAPSHOT);
                 });
         if (!matched) {
             return false;
         }
-        if (failForMissingInternalSessionRequirements(session)) {
-            return false;
-        }
-        commitInternalSession(session, traversal.getOrientation());
+
+        // This method is a branch-pruning probe. Do not commit contexts, counts,
+        // or ability requirements; the selected repeat vector is fully verified
+        // before it is accepted.
         return true;
+    }
+
+    private int axisBoundaryIndex(int axis) {
+        switch (axis) {
+            case 0:
+                return template.getXLength() - 1;
+            case 1:
+                return template.getYLength() - 1;
+            case 2:
+                return template.getZLength() - 1;
+            default:
+                return -1;
+        }
+    }
+
+    private static int coordinateForAxis(int axis, int x, int y, int z) {
+        switch (axis) {
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+            default:
+                return -1;
+        }
     }
 
     /**

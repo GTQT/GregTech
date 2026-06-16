@@ -51,23 +51,8 @@ public class MBPattern {
     }
 
     /**
-     * Return the legacy predicate only for cells that have no typed preview
-     * metadata.
-     *
-     * <p>When a typed preview entry exists for the position, it suppresses the
-     * broader predicate map fallback. Legacy predicates adapted into typed
-     * preview entries expose candidates/tooltips through the entry itself.
-     */
-    @Nullable
-    public TraceabilityPredicate getLegacyPredicateFallback(@NotNull BlockPos pos) {
-        return previewEntries.containsKey(pos) ? null : predicateMap.get(pos);
-    }
-
-    /**
      * @deprecated Compatibility accessor for old tooling/addons. New internal
-     *             tooling should use {@link #getPreviewEntry(BlockPos)} first
-     *             and {@link #getLegacyPredicateFallback(BlockPos)} only as a
-     *             migration fallback.
+     *             tooling should use {@link #getPreviewEntry(BlockPos)}.
      */
     @Deprecated
     @ApiStatus.Obsolete

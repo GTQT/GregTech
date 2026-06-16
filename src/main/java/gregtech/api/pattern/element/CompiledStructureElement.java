@@ -1,6 +1,5 @@
 package gregtech.api.pattern.element;
 
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
@@ -10,8 +9,6 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -102,18 +99,6 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        return source.check(world, pos, context);
-    }
-
-    @Override
-    public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
-                                @NotNull ItemStack trigger) {
-        return context.probe(legacyContext ->
-                source.couldBeValid(world, pos, legacyContext, trigger));
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         return source.getCandidates();
     }
@@ -137,15 +122,6 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Nullable
     @Override
-    public BlocksToPlace getBlocksToPlace(World world, BlockPos pos, PatternMatchContext context,
-                                          @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env) {
-        return context.probeValue(legacyContext ->
-                source.getBlocksToPlace(world, pos, legacyContext, trigger, env));
-    }
-
-    @Nullable
-    @Override
     public BlocksToPlace getBlocksToPlace(@NotNull StructureEvaluationContext<T> context,
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env) {
@@ -154,25 +130,10 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     }
 
     @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
-        return source.placeBlock(world, pos, context, player, skipHatches);
-    }
-
-    @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
                               @NotNull EntityPlayer player, boolean skipHatches) {
         return context.probe(probeContext ->
                 source.placeBlock(probeContext, player, skipHatches));
-    }
-
-    @NotNull
-    @Override
-    public PlaceResult survivalPlaceBlock(World world, BlockPos pos, PatternMatchContext context,
-                                          @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
-        return source.survivalPlaceBlock(world, pos, context, trigger, env, skipHatches);
     }
 
     @NotNull
@@ -185,21 +146,12 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
                 source.survivalPlaceBlock(probeContext, trigger, env, skipHatches));
     }
 
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        source.spawnHint(world, pos);
-    }
-
-    @Override
-    public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
-        return source.spawnHint(world, pos, trigger);
-    }
-
     @NotNull
     @Override
-    public StructureHintRenderResult spawnHintWithResult(
-            World world, BlockPos pos, @NotNull ItemStack trigger) {
-        return source.spawnHintWithResult(world, pos, trigger);
+    public StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<T> context,
+                                                         @NotNull ItemStack trigger) {
+        return context.probeValue(probeContext ->
+                source.spawnHintWithResult(probeContext, trigger));
     }
 
     @Override

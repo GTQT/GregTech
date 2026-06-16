@@ -21,10 +21,8 @@ import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
-import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.recipes.Recipe;
@@ -43,11 +41,9 @@ import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -78,14 +74,14 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     .aisle(" X ", "XAX", "---", "---", "---", "XAX", " X ")
                     .aisle(" X ", "XAX", "-A-", "-H-", "-A-", "XAX", " X ")
                     .aisle("   ", "XXX", "---", "---", "---", "XXX", "   ")
-                    .where('S', selfPredicate(MetaTileEntityResearchStation.class))
-                    .where('X', states(getCasingState()))
-                    .where(' ', any())
-                    .where('-', air())
-                    .where('V', states(getVentState()))
-                    .where('A', states(getAdvancedState()))
+                    .self('S', MetaTileEntityResearchStation.class)
+                    .block('X', getCasingState())
+                    .any(' ')
+                    .air('-')
+                    .block('V', getVentState())
+                    .block('A', getAdvancedState())
                     .where('H', objectHolderFacingController())
-                    .casing('P', CasingDefinition.simple(getCasingState()))
+                    .casing('P', getCasingState())
                     .hatch(MultiblockAbility.INPUT_ENERGY, 1, 4,
                             () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
                     .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
@@ -117,7 +113,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     }
 
     @NotNull
-    private static IStructureElement<Object> objectHolderFacingController() {
+    private static ITypedStructureElement<Object> objectHolderFacingController() {
         return ObjectHolderElement.INSTANCE;
     }
 
@@ -141,14 +137,8 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         return ((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof IObjectHolder;
     }
 
-    private enum ObjectHolderElement implements IStructureElement<Object> {
+    private enum ObjectHolderElement implements ITypedStructureElement<Object> {
         INSTANCE;
-
-        private final TraceabilityPredicate legacyPredicate = new TraceabilityPredicate(
-                blockWorldState -> isObjectHolder(blockWorldState.getTileEntity()),
-                MetaTileEntityResearchStation::getObjectHolderCandidates)
-                        .addTooltips("gregtech.multiblock.pattern.error.object_holder_facing")
-                        .setAbility(MultiblockAbility.OBJECT_HOLDER);
 
         @Override
         public boolean check(@NotNull StructureEvaluationContext<Object> context) {
@@ -199,32 +189,19 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         @Override
         public StructureElementPreview getPreview() {
             return StructureElementPreview.builder()
-                    .limited(MetaTileEntityResearchStation::getObjectHolderCandidates, 1, 1, -1, -1, 1)
+                    .limited(StructureElementPreview.CandidateGroup
+                            .builder(MetaTileEntityResearchStation::getObjectHolderCandidates)
+                            .global(1, 1)
+                            .previewCount(1)
+                            .tooltip(() -> Collections.singletonList(
+                                    "gregtech.multiblock.pattern.error.object_holder_facing"))
+                            .build())
                     .build();
-        }
-
-        @Override
-        public boolean check(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context) {
-            return isObjectHolder(world.getTileEntity(pos));
         }
 
         @Override
         public BlockInfo[] getCandidates() {
             return getObjectHolderCandidates();
-        }
-
-        @Override
-        public boolean placeBlock(World world, BlockPos pos, gregtech.api.pattern.PatternMatchContext context,
-                                  EntityPlayer player, boolean skipHatches) {
-            return false;
-        }
-
-        @Override
-        public void spawnHint(World world, BlockPos pos) {}
-
-        @Override
-        public TraceabilityPredicate toPredicate() {
-            return legacyPredicate;
         }
     }
 

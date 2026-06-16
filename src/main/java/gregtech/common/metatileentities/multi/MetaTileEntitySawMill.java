@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.NoEnergyMultiblockController;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
@@ -40,12 +39,12 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
                     .aisle("PXXXP", "XX XF", " F  F")
                     .aisle("PXXXP", "XX XF", "FFFFF")
                     .aisle("PSPPP", "    F", "    F")
-                    .where('S', selfPredicate(MetaTileEntitySawMill.class))
-                    .where('F', states(MetaBlocks.FRAMES.get(Materials.TreatedWood).getBlock(Materials.TreatedWood)))
-                    .where('X', states(MetaBlocks.PLANKS.getState(BlockGregPlanks.BlockType.TREATED_PLANK)))
-                    .where(' ', any())
-                    .casing('P', CasingDefinition.simple(
-                            MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL)))
+                    .self('S', MetaTileEntitySawMill.class)
+                    .frames('F', Materials.TreatedWood)
+                    .block('X', MetaBlocks.PLANKS.getState(BlockGregPlanks.BlockType.TREATED_PLANK))
+                    .any(' ')
+                    .casing('P',
+                            MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL))
                         .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 2)
                         .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 2)
                         .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 2)

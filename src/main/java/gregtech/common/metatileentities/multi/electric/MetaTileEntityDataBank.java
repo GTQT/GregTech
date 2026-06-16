@@ -14,8 +14,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -66,17 +66,18 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
                         .aisle("CDD", "CAD", "CDD")
                     .piece("bottom")
                         .aisle("XXX", "XXX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityDataBank.class))
-                    .where('X', states(getOuterState()))
-                    .where('A', states(getInnerState()))
-                    .casing('D', CasingDefinition.simple(getInnerState()))
+                    .self('S', MetaTileEntityDataBank.class)
+                    .block('X', getOuterState())
+                    .block('A', getInnerState())
+                    .casing('D', getInnerState())
                         .optionalHatch(MultiblockAbility.DATA_ACCESS_HATCH, 9)
                         .custom(
-                                abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
-                                        .setMinGlobalLimited(1, 1), 1)
+                                Elements.abilities(1, -1, 1,
+                                        MultiblockAbility.OPTICAL_DATA_TRANSMISSION), 1)
                         .custom(
-                                abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
-                    .casing('C', CasingDefinition.simple(getFrontState()))
+                                Elements.abilities(0, -1, 1,
+                                        MultiblockAbility.OPTICAL_DATA_RECEPTION), 3)
+                    .casing('C', getFrontState())
                         .energyInput(1,2)
                     .buildStructureDefinition());
 

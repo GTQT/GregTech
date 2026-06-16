@@ -2,7 +2,6 @@ package gregtech.api.pattern.element.impl;
 
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.pattern.BlockWorldState;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -67,11 +66,6 @@ public final class CasingElement implements ITypedStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        return blockState.equals(world.getBlockState(pos));
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         return new BlockInfo[]{new BlockInfo(blockState, null)};
     }
@@ -82,15 +76,14 @@ public final class CasingElement implements ITypedStructureElement<Object> {
     }
 
     @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
-        world.setBlockState(pos, blockState);
+    public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                              @NotNull EntityPlayer player, boolean skipHatches) {
+        World world = context.getWorld();
+        if (world == null) {
+            return false;
+        }
+        world.setBlockState(context.getPos(), blockState);
         return true;
-    }
-
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        // Hints are handled at a higher level.
     }
 
     @Override

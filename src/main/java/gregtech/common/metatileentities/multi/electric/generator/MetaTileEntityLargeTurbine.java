@@ -19,8 +19,8 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -58,11 +58,14 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     static {
         STRUCTURE_DEFINITIONS.put("steam", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_turbine.steam", () -> buildStructureDefinition(LargeTurbineType.STEAM)));
+                .registerStructure(structurePoolKey(LargeTurbineType.STEAM),
+                        () -> buildStructureDefinition(LargeTurbineType.STEAM)));
         STRUCTURE_DEFINITIONS.put("gas", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_turbine.gas", () -> buildStructureDefinition(LargeTurbineType.GAS)));
+                .registerStructure(structurePoolKey(LargeTurbineType.GAS),
+                        () -> buildStructureDefinition(LargeTurbineType.GAS)));
         STRUCTURE_DEFINITIONS.put("plasma", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_turbine.plasma", () -> buildStructureDefinition(LargeTurbineType.PLASMA)));
+                .registerStructure(structurePoolKey(LargeTurbineType.PLASMA),
+                        () -> buildStructureDefinition(LargeTurbineType.PLASMA)));
     }
 
     public final ILargeTurbineType type;
@@ -86,34 +89,51 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     }
 
     public static BlockPatternTemplate buildTemplate(ILargeTurbineType type) {
-        return structureBuilder(type).buildTemplate();
+        return primaryTemplate(pooledStructureDefinition(type), type.getName());
+    }
+
+    private static StructureDefinition pooledStructureDefinition(ILargeTurbineType type) {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
+        return definition.get();
+    }
+
+    private static String structurePoolKey(ILargeTurbineType type) {
+        return "gregtech:large_turbine." + type.getName();
     }
 
     private static StructureDefinition buildStructureDefinition(ILargeTurbineType type) {
-        return structureBuilder(type).buildStructureDefinition();
-    }
-
-    private static DeclarativePatternBuilder.CasingSlot structureBuilder(ILargeTurbineType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
                 .aisle("CCCC", "CSHC", "CCCC")
-                .where('S', selfPredicate(MetaTileEntityLargeTurbine.class))
-                .where('G', states(type.getGearboxState()))
-                .where('C', states(type.getCasingState()))
-                .where('R', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.ROTOR_HOLDER).stream()
-                        .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
-                                (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
-                        .toArray(MetaTileEntity[]::new))
-                        .addTooltips("gregtech.multiblock.pattern.clear_amount_3")
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[type.getTier()])
-                        .setExactLimit(1)
-                        .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
-                .casing('H', CasingDefinition.simple(type.getCasingState()))
+                .self('S', MetaTileEntityLargeTurbine.class)
+                .block('G', type.getGearboxState())
+                .block('C', type.getCasingState())
+                .where('R', Elements.chain(
+                        Elements.withTooltips(
+                                Elements.metaTileEntities(1, 1, MultiblockAbility.REGISTRY
+                                        .get(MultiblockAbility.ROTOR_HOLDER).stream()
+                                        .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
+                                                (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
+                                        .toArray(MetaTileEntity[]::new)),
+                                "gregtech.multiblock.pattern.clear_amount_3",
+                                "gregtech.multiblock.pattern.error.limited.1 " + GTValues.VN[type.getTier()]),
+                        Elements.abilities(1, 1, MultiblockAbility.OUTPUT_ENERGY)))
+                .casing('H', type.getCasingState())
                 .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
                 .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
-                .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0);
+                .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
+                .buildStructureDefinition();
+    }
+
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+        BlockPatternTemplate template = definition.getPrimaryTemplate();
+        if (template == null) {
+            throw new IllegalStateException("Large turbine type '" + key + "' is not a single-piece structure");
+        }
+        return template;
     }
 
     @Override

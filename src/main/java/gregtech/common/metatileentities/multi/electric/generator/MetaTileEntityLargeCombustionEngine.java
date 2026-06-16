@@ -1,6 +1,7 @@
 package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
@@ -9,6 +10,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
@@ -17,9 +19,9 @@ import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
@@ -52,6 +54,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -157,14 +160,16 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .aisle("XCX", "CGC", "XCX")
                 .aisle("XCX", "CGC", "XCX")
                 .aisle("AAA", "AYA", "AAA")
-                .where('X', states(getCasingState(isExtreme)))
-                .where('G', states(getGearboxState(isExtreme)))
-                .where('D', energyOutput(getTier(isExtreme), true)
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[getTier(isExtreme)])
-                )
-                .where('A', states(getIntakeState(isExtreme)).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
-                .where('Y', selfPredicate(MetaTileEntityLargeCombustionEngine.class))
-                .casing('C', CasingDefinition.simple(getCasingState(isExtreme)))
+                .block('X', getCasingState(isExtreme))
+                .block('G', getGearboxState(isExtreme))
+                .where('D', Elements.withTooltips(
+                        Elements.metaTileEntities(getAllowedEnergyOutputs(getTier(isExtreme))),
+                        "gregtech.multiblock.pattern.error.limited.1"))
+                .where('A', Elements.withTooltips(
+                        Elements.block(getIntakeState(isExtreme)),
+                        "gregtech.multiblock.pattern.clear_amount_1"))
+                .self('Y', MetaTileEntityLargeCombustionEngine.class)
+                .casing('C', getCasingState(isExtreme))
                 .preset(HatchPresets.STANDARD_FLUID_IO)
                 .preset(HatchPresets.MUFFLER_IO)
                 .buildStructureDefinition();
@@ -172,6 +177,19 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
 
     private static int getTier(boolean isExtreme) {
         return isExtreme ? GTValues.IV : GTValues.EV;
+    }
+
+    private static MetaTileEntity[] getAllowedEnergyOutputs(int tier) {
+        return MultiblockAbility.REGISTRY
+                .getOrDefault(MultiblockAbility.OUTPUT_ENERGY, Collections.emptyList())
+                .stream()
+                .filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(
+                            GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                    return container != null
+                            && container.getOutputVoltage() * container.getOutputAmperage() >= GTValues.V[tier];
+                })
+                .toArray(MetaTileEntity[]::new);
     }
 
     public static IBlockState getCasingState(boolean isExtreme) {

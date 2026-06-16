@@ -112,11 +112,6 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        return casings.containsKey(world.getBlockState(pos));
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         return casings.keySet().stream()
                 .map(state -> new BlockInfo(state, null))
@@ -129,19 +124,18 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
     }
 
     @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
+    public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                              @NotNull EntityPlayer player, boolean skipHatches) {
+        World world = context.getWorld();
+        if (world == null) {
+            return false;
+        }
         BlockInfo[] candidates = getCandidates();
         if (candidates.length == 0) {
             return false;
         }
-        world.setBlockState(pos, candidates[0].getBlockState());
+        world.setBlockState(context.getPos(), candidates[0].getBlockState());
         return true;
-    }
-
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        // Hints are handled at a higher level.
     }
 
     @Override

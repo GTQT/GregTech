@@ -1,6 +1,5 @@
 package gregtech.api.pattern.element.impl;
 
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
@@ -14,8 +13,6 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -110,27 +107,6 @@ public class ChainElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        for (IStructureElement e : elements) {
-            if (context.transaction(legacyContext -> e.check(world, pos, legacyContext))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean couldBeValid(World world, BlockPos pos, PatternMatchContext context,
-                                @NotNull ItemStack trigger) {
-        for (IStructureElement e : elements) {
-            if (context.probe(legacyContext -> e.couldBeValid(world, pos, legacyContext, trigger))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         List<BlockInfo> all = new ArrayList<>();
         for (IStructureElement e : elements) {
@@ -159,11 +135,11 @@ public class ChainElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
+    public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                              @NotNull EntityPlayer player, boolean skipHatches) {
         for (IStructureElement e : elements) {
             if (context.transaction(legacyContext ->
-                    e.placeBlock(world, pos, legacyContext, player, skipHatches))) {
+                    e.placeBlock(legacyContext, player, skipHatches))) {
                 return true;
             }
         }
@@ -172,14 +148,14 @@ public class ChainElement implements IStructureElement<Object> {
 
     @NotNull
     @Override
-    public PlaceResult survivalPlaceBlock(World world, BlockPos pos, PatternMatchContext context,
+    public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<Object> context,
                                           @NotNull ItemStack trigger,
                                           @NotNull AutoPlaceEnvironment env,
                                           boolean skipHatches) {
         boolean allContinue = true;
         for (IStructureElement e : elements) {
             PlaceResult result = context.transactionValue(
-                    legacyContext -> e.survivalPlaceBlock(world, pos, legacyContext, trigger, env, skipHatches),
+                    legacyContext -> e.survivalPlaceBlock(legacyContext, trigger, env, skipHatches),
                     ChainElement::isCommittedSurvivalResult);
             switch (result) {
                 case REJECT_CONTINUE:
@@ -203,21 +179,13 @@ public class ChainElement implements IStructureElement<Object> {
         return result != PlaceResult.REJECT_CONTINUE && result != PlaceResult.REJECT;
     }
 
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        spawnHintWithResult(world, pos, ItemStack.EMPTY);
-    }
-
-    @Override
-    public boolean spawnHint(World world, BlockPos pos, @NotNull ItemStack trigger) {
-        return spawnHintWithResult(world, pos, trigger).rendered();
-    }
-
     @NotNull
     @Override
-    public StructureHintRenderResult spawnHintWithResult(World world, BlockPos pos, @NotNull ItemStack trigger) {
+    public StructureHintRenderResult spawnHintWithResult(@NotNull StructureEvaluationContext<Object> context,
+                                                         @NotNull ItemStack trigger) {
         for (IStructureElement e : elements) {
-            StructureHintRenderResult result = e.spawnHintWithResult(world, pos, trigger);
+            StructureHintRenderResult result = context.probeValue(probeContext ->
+                    e.spawnHintWithResult(probeContext, trigger));
             if (result.rendered() || result.failed()) {
                 return result;
             }

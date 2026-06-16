@@ -24,9 +24,9 @@ import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.KeyUtil;
@@ -128,14 +128,14 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
         if (structureDefinition == null) {
-            structureDefinition = StructureDefinition.fromTemplate("godforge_module", createStructureTemplateForModule());
+            structureDefinition = createStructureDefinitionForModule();
         }
         return structureDefinition;
     }
 
     @NotNull
-    private BlockPatternTemplate createStructureTemplateForModule() {
-        return FactoryBlockPattern.start()
+    private StructureDefinition<?> createStructureDefinitionForModule() {
+        return DeclarativePatternBuilder.start()
                 .aisle("       ", "       ", "       ", "   G   ", "       ", "       ", "       ")
                 .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
                 .aisle("       ", "       ", "       ", "   D   ", "       ", "       ", "       ")
@@ -149,22 +149,23 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
                 .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
                 .aisle("  CCC  ", " CFFFC ", "CFFFFFC", "CFFFFFC", "CFFFFFC", " CFFFC ", "  CCC  ")
                 .aisle("       ", "  BBB  ", " BBBBB ", " BB~BB ", " BBBBB ", "  BBB  ", "       ")
-                .where('~', selfPredicate())
-                .where('A', getCoilBlockPredicate())
-                .where('B', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS))
-                        .or(abilities(MultiblockAbility.EXPORT_FLUIDS)))
-                .where('C', states(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
-                .where('D', states(getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING)))
-                .where('E', states(getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING)))
-                .where('F', states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)))
-                .where('G', states(getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
-                .buildTemplate();
+                .metaTileEntities('~', this)
+                .where('A', getCoilBlockElement())
+                .where('B', Elements.chain(
+                        Elements.block(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)),
+                        Elements.abilities(MultiblockAbility.IMPORT_ITEMS),
+                        Elements.abilities(MultiblockAbility.IMPORT_FLUIDS),
+                        Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
+                        Elements.abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                .block('C', getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))
+                .block('D', getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING))
+                .block('E', getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING))
+                .block('F', getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
+                .block('G', getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING))
+                .buildStructureDefinition();
     }
 
-    protected abstract TraceabilityPredicate getCoilBlockPredicate();
+    protected abstract IStructureElement getCoilBlockElement();
 
     @Override
     protected void updateFormedValid() {

@@ -68,6 +68,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     private final List<AbilityGroupLimit> abilityGroupLimits;
     @Nullable
     private final StructureRuntimeDetector<T> runtimeDetector;
+    private final List<String> primaryTemplateDescription;
     @Nullable
     private final SoftReferenceHolder<StructureDefinition<T>> delegate;
 
@@ -91,6 +92,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.abilityLimits = Collections.unmodifiableMap(new HashMap<>(b.abilityLimits));
         this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(b.abilityGroupLimits));
         this.runtimeDetector = b.runtimeDetector;
+        this.primaryTemplateDescription = Collections.unmodifiableList(new ArrayList<>(b.primaryTemplateDescription));
         this.delegate = null;
         this.compiledPattern = b.compiledPattern;
         if (b.compiledPattern != null) {
@@ -108,6 +110,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.abilityLimits = Collections.emptyMap();
         this.abilityGroupLimits = Collections.emptyList();
         this.runtimeDetector = null;
+        this.primaryTemplateDescription = Collections.emptyList();
         this.delegate = delegate;
         this.supportsSingleTemplatePath = false;
     }
@@ -329,7 +332,10 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      */
     @Nullable
     public BlockPatternTemplate getPrimaryTemplate() {
-        return getPrimaryTemplate(null);
+        if (delegate != null) {
+            return delegate.get().getPrimaryTemplate();
+        }
+        return getPrimaryTemplate(primaryTemplateDescription);
     }
 
     /**
@@ -579,6 +585,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         private final List<PieceEntry> pieceEntries = new ArrayList<>();
         private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits = new HashMap<>();
         private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
+        private final List<String> primaryTemplateDescription = new ArrayList<>();
         @Nullable
         private MultiPiecePattern compiledPattern;
         @Nullable
@@ -631,6 +638,13 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             return pieceFromTemplate(name, template, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
         }
 
+        /** Add a piece from an existing canonical PieceTemplate. */
+        @NotNull
+        public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
+                                                 @NotNull PieceTemplate template) {
+            return pieceFromTemplate(name, template, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
+        }
+
         /** Add a piece from an existing BlockPatternTemplate with explicit placement. */
         @NotNull
         public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
@@ -645,6 +659,23 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             mp.offsetMode = offsetMode;
             mp.condition = condition;
             mp.legacyTemplate = template;
+            return new PieceBuilder<>(this, mp);
+        }
+
+        /** Add a piece from an existing canonical PieceTemplate with explicit placement. */
+        @NotNull
+        public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
+                                                 @NotNull PieceTemplate template,
+                                                 @NotNull Vec3i offset,
+                                                 @NotNull OffsetMode offsetMode,
+                                                 @Nullable BooleanSupplier condition) {
+            MutablePiece mp = new MutablePiece(name, null, Vec3i.NULL_VECTOR,
+                    OffsetMode.RELATIVE, null, new int[0], new int[0][0], new int[0], null,
+                    new int[]{0, 0, 0});
+            mp.baseOffset = offset;
+            mp.offsetMode = offsetMode;
+            mp.condition = condition;
+            mp.template = template;
             return new PieceBuilder<>(this, mp);
         }
 
@@ -766,6 +797,19 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @NotNull
         public Builder<T> runtimeDetector(@NotNull StructureRuntimeDetector<T> runtimeDetector) {
             this.runtimeDetector = runtimeDetector;
+            return this;
+        }
+
+        /**
+         * Optional description lines embedded when exporting the primary single-piece
+         * template through {@link StructureDefinition#getPrimaryTemplate()}.
+         */
+        @NotNull
+        public Builder<T> primaryTemplateDescription(@Nullable List<String> description) {
+            primaryTemplateDescription.clear();
+            if (description != null) {
+                primaryTemplateDescription.addAll(description);
+            }
             return this;
         }
 
@@ -1027,7 +1071,10 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @Nullable String[] repeatChannelNames;
         int[] centerOffset;
 
-        // For pieceFromFactory: stores the pre-built template
+        // For pieceFromTemplate(PieceTemplate): stores the canonical pre-built template.
+        @Nullable PieceTemplate template;
+
+        // For pieceFromFactory / pieceFromTemplate(BlockPatternTemplate): stores the legacy facade.
         @Nullable BlockPatternTemplate legacyTemplate;
 
         // Dynamic-anchor fields: see PieceEntry.anchorPieceName for semantics.

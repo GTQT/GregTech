@@ -11,10 +11,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -45,6 +44,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase implements IControllable {
 
@@ -84,8 +85,8 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         List<IEnergyContainer> powerInput = new ArrayList<>(getAbilities(MultiblockAbility.INPUT_ENERGY));
         List<IEnergyContainer> powerOutput = new ArrayList<>(getAbilities(MultiblockAbility.OUTPUT_ENERGY));
 
@@ -110,20 +111,15 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
     }
 
     @Override
-    // Retained on FactoryBlockPattern: trivially simple (1 aisle, 3 blocks),
-    // no casings — DeclarativePatternBuilder would add unnecessary complexity.
-    protected BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start()
-                .aisle("ISI")
-                .where('S', selfPredicate())
-                .where('I', getHatchPredicates()
-                )
-                .build();
-    }
-
-    private TraceabilityPredicate getHatchPredicates() {
-        return abilities(MultiblockAbility.INPUT_ENERGY).setPreviewCount(1)
-                .or(abilities(MultiblockAbility.OUTPUT_ENERGY).setPreviewCount(2));
+    protected StructureDefinition createStructureDefinition() {
+        return StructureDefinition.getOrBuild("gtqt:huge_transformer", () -> StructureDefinition.builder(RIGHT, UP, BACK)
+                .piece("main", "ISI")
+                    .where('S', Elements.self(MetaTileEntityHugeTransformer.class))
+                    .where('I', Elements.chain(
+                            Elements.hatch(MultiblockAbility.INPUT_ENERGY, 0, -1, 1),
+                            Elements.hatch(MultiblockAbility.OUTPUT_ENERGY, 0, -1, 2)))
+                    .end()
+                .build());
     }
 
     @Override

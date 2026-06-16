@@ -447,37 +447,6 @@ public class MultiblockState {
         return result;
     }
 
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               @NotNull BlockPos pieceOrigin,
-                                               int axis,
-                                               @NotNull StructureOrientation orientation) {
-        syncToBacking();
-        boolean result = backing.checkAxisLineFastAtSnapshot(snap, pieceOrigin, axis, orientation);
-        syncFromBacking();
-        return result;
-    }
-
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               @NotNull BlockPos pieceOrigin,
-                                               int axis,
-                                               @NotNull StructureOrientation orientation,
-                                               int xOffset, int yOffset, int zOffset) {
-        syncToBacking();
-        boolean result = backing.checkAxisLineFastAtSnapshot(
-                snap, pieceOrigin, axis, orientation, xOffset, yOffset, zOffset);
-        syncFromBacking();
-        return result;
-    }
-
-    public boolean checkAxisLineFastAtSnapshot(@NotNull net.minecraft.world.IBlockAccess snap,
-                                               int axis,
-                                               @NotNull StructureCellTraversal traversal) {
-        syncToBacking();
-        boolean result = backing.checkAxisLineFastAtSnapshot(snap, axis, traversal);
-        syncFromBacking();
-        return result;
-    }
-
     @Nullable
     public PatternMatchContext checkPatternAtSnapshotExact(
             @NotNull net.minecraft.world.IBlockAccess blockAccess,

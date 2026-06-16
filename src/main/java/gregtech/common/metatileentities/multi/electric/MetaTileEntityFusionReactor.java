@@ -18,10 +18,11 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
@@ -97,14 +98,14 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     static {
         STRUCTURE_DEFINITIONS.put("luv", TemplatePool.getInstance()
-                .registerStructure("gregtech:fusion_reactor.luv",
-                        () -> StructureDefinition.fromTemplate(buildTemplate(FusionReactorType.MK1))));
+                .registerStructure(structurePoolKey(FusionReactorType.MK1),
+                        () -> buildStructureDefinition(FusionReactorType.MK1)));
         STRUCTURE_DEFINITIONS.put("zpm", TemplatePool.getInstance()
-                .registerStructure("gregtech:fusion_reactor.zpm",
-                        () -> StructureDefinition.fromTemplate(buildTemplate(FusionReactorType.MK2))));
+                .registerStructure(structurePoolKey(FusionReactorType.MK2),
+                        () -> buildStructureDefinition(FusionReactorType.MK2)));
         STRUCTURE_DEFINITIONS.put("uv", TemplatePool.getInstance()
-                .registerStructure("gregtech:fusion_reactor.uv",
-                        () -> StructureDefinition.fromTemplate(buildTemplate(FusionReactorType.MK3))));
+                .registerStructure(structurePoolKey(FusionReactorType.MK3),
+                        () -> buildStructureDefinition(FusionReactorType.MK3)));
     }
 
     private final IFusionReactorType type;
@@ -135,7 +136,29 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     }
 
     public static BlockPatternTemplate buildTemplate(IFusionReactorType type) {
-        return FactoryBlockPattern.start()
+        return primaryTemplate(pooledStructureDefinition(type), type.getName());
+    }
+
+    private static StructureDefinition pooledStructureDefinition(IFusionReactorType type) {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
+        return definition.get();
+    }
+
+    private static String structurePoolKey(IFusionReactorType type) {
+        return "gregtech:fusion_reactor." + type.getName();
+    }
+
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+        BlockPatternTemplate template = definition.getPrimaryTemplate();
+        if (template == null) {
+            throw new IllegalStateException("Fusion reactor type '" + key + "' is not a single-piece structure");
+        }
+        return template;
+    }
+
+    private static StructureDefinition buildStructureDefinition(IFusionReactorType type) {
+        return DeclarativePatternBuilder.start()
                 .aisle("###############", "######OGO######", "###############")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
                 .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
@@ -151,22 +174,21 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                 .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
                 .aisle("###############", "######OSO######", "###############")
-                .where('S', selfPredicate(MetaTileEntityFusionReactor.class))
-                .where('G', states(type.getCasingState(), type.getGlassState()))
-                .where('E', metaTileEntities(getAllowedEnergyHatches(type))
-                        .setAbility(MultiblockAbility.INPUT_ENERGY)
-                        .setPreviewCount(16))
-                .where('C', states(type.getCasingState()))
-                .where('K', states(type.getCoilState()))
-                .where('O', states(type.getCasingState(), type.getGlassState())
-                        .fluidOutput()
-                )
-                .where('A', air())
-                .where('I',
-                        states(type.getCasingState()).or(
-                                abilities(MultiblockAbility.IMPORT_FLUIDS).setMinGlobalLimited(2)))
-                .where('#', any())
-                .buildTemplate();
+                .self('S', MetaTileEntityFusionReactor.class)
+                .blocks('G', type.getCasingState(), type.getGlassState())
+                .where('E', Elements.metaTileEntitiesAsAbility(MultiblockAbility.INPUT_ENERGY, 0, -1, 16,
+                        getAllowedEnergyHatches(type)))
+                .block('C', type.getCasingState())
+                .block('K', type.getCoilState())
+                .where('O', Elements.chain(
+                        Elements.blocks(type.getCasingState(), type.getGlassState()),
+                        Elements.abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                .air('A')
+                .where('I', Elements.chain(
+                        Elements.block(type.getCasingState()),
+                        Elements.abilities(2, -1, MultiblockAbility.IMPORT_FLUIDS)))
+                .any('#')
+                .buildStructureDefinition();
     }
 
     private static MetaTileEntity[] getAllowedEnergyHatches(IFusionReactorType type) {
@@ -197,7 +219,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     protected StructureDefinition createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
         if (definition == null) {
-            throw new IllegalStateException("Unknown turbine type: " + type.getName());
+            throw new IllegalStateException("Unknown fusion reactor type: " + type.getName());
         }
         return definition.get();
     }

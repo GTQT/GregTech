@@ -1,6 +1,5 @@
 package gregtech.api.pattern.element.impl;
 
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureIncrementalSupport;
@@ -8,10 +7,6 @@ import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
-
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,13 +34,6 @@ public class LegacyElement implements IStructureElement<Object> {
     }
 
     @Override
-    public boolean check(World world, BlockPos pos, PatternMatchContext context) {
-        // Direct check is not typically used for legacy predicates; V3 matching
-        // goes through StructureEvaluationContext.test(predicate).
-        return false;
-    }
-
-    @Override
     public BlockInfo[] getCandidates() {
         // Aggregate candidates from all simple predicates
         List<BlockInfo> result = new ArrayList<>();
@@ -66,17 +54,6 @@ public class LegacyElement implements IStructureElement<Object> {
             }
         }
         return result.toArray(new BlockInfo[0]);
-    }
-
-    @Override
-    public boolean placeBlock(World world, BlockPos pos, PatternMatchContext context,
-                              EntityPlayer player, boolean skipHatches) {
-        return false;
-    }
-
-    @Override
-    public void spawnHint(World world, BlockPos pos) {
-        // Hints are handled at a higher level
     }
 
     @Override

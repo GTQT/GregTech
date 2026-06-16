@@ -25,7 +25,6 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
@@ -87,11 +86,14 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     static {
         STRUCTURE_DEFINITIONS.put("ev", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_miner.ev", () -> buildStructureDefinition(LargeMinerType.BASIC)));
+                .registerStructure(structurePoolKey(LargeMinerType.BASIC),
+                        () -> buildStructureDefinition(LargeMinerType.BASIC)));
         STRUCTURE_DEFINITIONS.put("iv", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_miner.iv", () -> buildStructureDefinition(LargeMinerType.NORMAL)));
+                .registerStructure(structurePoolKey(LargeMinerType.NORMAL),
+                        () -> buildStructureDefinition(LargeMinerType.NORMAL)));
         STRUCTURE_DEFINITIONS.put("luv", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_miner.luv", () -> buildStructureDefinition(LargeMinerType.ADVANCED)));
+                .registerStructure(structurePoolKey(LargeMinerType.ADVANCED),
+                        () -> buildStructureDefinition(LargeMinerType.ADVANCED)));
     }
 
     private final MultiblockMinerLogic minerLogic;
@@ -117,26 +119,41 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     }
 
     public static BlockPatternTemplate buildTemplate(ILargeMinerType type) {
-        return structureBuilder(type).buildTemplate();
+        return primaryTemplate(pooledStructureDefinition(type), type.getName());
+    }
+
+    private static StructureDefinition pooledStructureDefinition(ILargeMinerType type) {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
+        return definition.get();
+    }
+
+    private static String structurePoolKey(ILargeMinerType type) {
+        return "gregtech:large_miner." + type.getName();
     }
 
     private static StructureDefinition buildStructureDefinition(ILargeMinerType type) {
-        return structureBuilder(type).buildStructureDefinition();
-    }
-
-    private static DeclarativePatternBuilder.CasingSlot structureBuilder(ILargeMinerType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
-                .where('S', selfPredicate(MetaTileEntityLargeMiner.class))
-                .where('C', states(type.getCasingState()))
-                .where('F', frames(type.getFrameMaterial()))
-                .where('#', any())
-                .casing('X', CasingDefinition.simple(type.getCasingState()))
+                .self('S', MetaTileEntityLargeMiner.class)
+                .block('C', type.getCasingState())
+                .frames('F', type.getFrameMaterial())
+                .any('#')
+                .casing('X', type.getCasingState())
                 .optionalItemOutput(1)
                 .optionalFluidInput(1)
-                .energyInput(1,3);
+                .energyInput(1,3)
+                .buildStructureDefinition();
+    }
+
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+        BlockPatternTemplate template = definition.getPrimaryTemplate();
+        if (template == null) {
+            throw new IllegalStateException("Large miner type '" + key + "' is not a single-piece structure");
+        }
+        return template;
     }
 
     @Override
@@ -348,7 +365,7 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     protected StructureDefinition createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
         if (definition == null) {
-            throw new IllegalStateException("Unknown turbine type: " + type.getName());
+            throw new IllegalStateException("Unknown large miner type: " + type.getName());
         }
         return definition.get();
     }

@@ -17,8 +17,6 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
@@ -195,12 +193,12 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                             .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
                             // Top layer — thermal management / heat sinks
                             .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
-                            .where('S', selfPredicate(MetaTileEntityBatteryAccumulator.class))
-                            .where('G', states(getGlassState()))
-                            .where('B', frames(Materials.Lead))
-                            .where('F', frames(Materials.Lead))
-                            .where('E', states(getHeatSinkState()))
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .self('S', MetaTileEntityBatteryAccumulator.class)
+                            .block('G', getGlassState())
+                            .frames('B', Materials.Lead)
+                            .frames('F', Materials.Lead)
+                            .block('E', getHeatSinkState())
+                            .casing('X', getCasingState())
                                     .maintenance()
                                     .energyIO(1, 4)
                                     .fluidInput(1, 4)
