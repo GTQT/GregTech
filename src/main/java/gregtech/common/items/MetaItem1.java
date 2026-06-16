@@ -877,22 +877,22 @@ public class MetaItem1 extends StandardMetaItem {
         NEUTRONIUM_WAFER = addItem(374, "wafer.neutronium");
 
         // Unfinished Circuit Boards: ID 381-400
-        COATED_BOARD = addItem(381, "board.coated").setTier(0);
-        PHENOLIC_BOARD = addItem(382, "board.phenolic").setTier(1);
-        PLASTIC_BOARD = addItem(383, "board.plastic").setTier(2);
-        EPOXY_BOARD = addItem(384, "board.epoxy").setTier(3);
-        FIBER_BOARD = addItem(385, "board.fiber_reinforced").setTier(4);
-        MULTILAYER_FIBER_BOARD = addItem(386, "board.multilayer.fiber_reinforced").setTier(5);
-        WETWARE_BOARD = addItem(387, "board.wetware").setTier(6);
+        COATED_BOARD = addItem(381, "board.coated").setTier(1);
+        PHENOLIC_BOARD = addItem(382, "board.phenolic").setTier(2);
+        PLASTIC_BOARD = addItem(383, "board.plastic").setTier(3);
+        EPOXY_BOARD = addItem(384, "board.epoxy").setTier(4);
+        FIBER_BOARD = addItem(385, "board.fiber_reinforced").setTier(5);
+        MULTILAYER_FIBER_BOARD = addItem(386, "board.multilayer.fiber_reinforced").setTier(6);
+        WETWARE_BOARD = addItem(387, "board.wetware").setTier(7);
 
         // Finished Circuit Boards: ID 401-420
-        BASIC_CIRCUIT_BOARD = addItem(401, "circuit_board.basic").setTier(0);
-        GOOD_CIRCUIT_BOARD = addItem(402, "circuit_board.good").setTier(1);
-        PLASTIC_CIRCUIT_BOARD = addItem(403, "circuit_board.plastic").setTier(2);
-        ADVANCED_CIRCUIT_BOARD = addItem(404, "circuit_board.advanced").setTier(3);
-        EXTREME_CIRCUIT_BOARD = addItem(405, "circuit_board.extreme").setTier(4);
-        ELITE_CIRCUIT_BOARD = addItem(406, "circuit_board.elite").setTier(5);
-        WETWARE_CIRCUIT_BOARD = addItem(407, "circuit_board.wetware").setTier(6);
+        BASIC_CIRCUIT_BOARD = addItem(401, "circuit_board.basic").setTier(1);
+        GOOD_CIRCUIT_BOARD = addItem(402, "circuit_board.good").setTier(2);
+        PLASTIC_CIRCUIT_BOARD = addItem(403, "circuit_board.plastic").setTier(3);
+        ADVANCED_CIRCUIT_BOARD = addItem(404, "circuit_board.advanced").setTier(4);
+        EXTREME_CIRCUIT_BOARD = addItem(405, "circuit_board.extreme").setTier(5);
+        ELITE_CIRCUIT_BOARD = addItem(406, "circuit_board.elite").setTier(6);
+        WETWARE_CIRCUIT_BOARD = addItem(407, "circuit_board.wetware").setTier(7);
 
         // Dyes: ID 421-436
         for (int i = 0; i < EnumDyeColor.values().length; i++) {

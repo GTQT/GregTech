@@ -142,49 +142,49 @@ public class GTQTMetaItem1 extends StandardMetaItem {
 
         //  General Circuits
         GTQTMetaItems.GENERAL_CIRCUIT_ULV = this.addItem(70, "general_circuit.ulv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ULV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ULV).setTier(0)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_LV = this.addItem(71, "general_circuit.lv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LV).setTier(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_MV = this.addItem(72, "general_circuit.mv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MV).setTier(2)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_HV = this.addItem(73, "general_circuit.hv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.HV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.HV).setTier(3)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_EV = this.addItem(74, "general_circuit.ev")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.EV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.EV).setTier(4)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_IV = this.addItem(75, "general_circuit.iv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.IV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.IV).setTier(5)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_LuV = this.addItem(76, "general_circuit.luv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LuV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LuV).setTier(6)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_ZPM = this.addItem(77, "general_circuit.zpm")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ZPM)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ZPM).setTier(7)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_UV = this.addItem(78, "general_circuit.uv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UV).setTier(8)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_UHV = this.addItem(79, "general_circuit.uhv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UHV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UHV).setTier(9)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_UEV = this.addItem(80, "general_circuit.uev")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UEV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UEV).setTier(10)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_UIV = this.addItem(81, "general_circuit.uiv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UIV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UIV).setTier(11)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_UXV = this.addItem(82, "general_circuit.uxv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UXV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UXV).setTier(12)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_OpV = this.addItem(83, "general_circuit.opv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.OpV)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.OpV).setTier(13)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         GTQTMetaItems.GENERAL_CIRCUIT_MAX = this.addItem(84, "general_circuit.max")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MAX)
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MAX).setTier(14)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         //流体单元90

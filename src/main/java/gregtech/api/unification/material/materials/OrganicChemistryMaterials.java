@@ -65,7 +65,7 @@ public class OrganicChemistryMaterials {
                 .polymer()
                 .liquid(new FluidBuilder().temperature(600))
                 .color(0xA07A10)
-                .flags(STD_METAL)
+                .flags(GENERATE_PLATE)
                 .components(Carbon, 6, Hydrogen, 4, Oxygen, 1)
                 .build();
 
@@ -73,7 +73,7 @@ public class OrganicChemistryMaterials {
                 .polymer()
                 .liquid(new FluidBuilder().temperature(373))
                 .color(0xD7E6E6)
-                .flags(EXT_METAL, GENERATE_FOIL)
+                .flags(GENERATE_FOIL)
                 .components(Carbon, 2, Hydrogen, 3, Chlorine, 1)
                 .itemPipeProperties(512, 4)
                 .build();
@@ -82,7 +82,7 @@ public class OrganicChemistryMaterials {
                 .polymer()
                 .liquid(new FluidBuilder().temperature(500))
                 .color(0xAA8800)
-                .flags(EXT_METAL, GENERATE_FOIL)
+                .flags(GENERATE_FOIL)
                 .components(Carbon, 6, Hydrogen, 4, Sulfur, 1)
                 .build();
 
@@ -123,7 +123,6 @@ public class OrganicChemistryMaterials {
                 .polymer(1)
                 .liquid(new FluidBuilder().temperature(400))
                 .color(0xC88C14)
-                .flags(STD_METAL)
                 .components(Carbon, 21, Hydrogen, 25, Chlorine, 1, Oxygen, 5)
                 .build();
 
@@ -133,7 +132,7 @@ public class OrganicChemistryMaterials {
                 .polymer(1)
                 .liquid(new FluidBuilder().temperature(493))
                 .color(0x323232)
-                .flags(STD_METAL, GENERATE_FOIL)
+                .flags(GENERATE_FOIL)
                 .components(Carbon, 6, Hydrogen, 11, Nitrogen, 1, Oxygen, 1)
                 .build();
 
@@ -141,7 +140,7 @@ public class OrganicChemistryMaterials {
                 .polymer(1)
                 .liquid(new FluidBuilder().temperature(600))
                 .color(0x646464)
-                .flags(STD_METAL, GENERATE_FRAME, GENERATE_FOIL,GENERATE_RING)
+                .flags(GENERATE_FRAME, GENERATE_FOIL,GENERATE_RING)
                 .components(Carbon, 2, Fluorine, 4)
                 .fluidPipeProperties(600, 100, true, true, false, false)
                 .build();

@@ -1,6 +1,5 @@
 package gregtech.api.unification.material;
 
-import gregtech.api.unification.material.info.MaterialFlag;
 import gregtech.api.unification.material.materials.ElementMaterials;
 import gregtech.api.unification.material.materials.FirstDegreeMaterials;
 import gregtech.api.unification.material.materials.HigherDegreeMaterials;
@@ -11,12 +10,8 @@ import gregtech.api.unification.material.materials.SoftToolAddition;
 import gregtech.api.unification.material.materials.UnknownCompositionMaterials;
 import gregtech.api.unification.ore.OrePrefix;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
@@ -105,18 +100,9 @@ public class Materials {
         OrePrefix.init();
     }
 
-    public static final List<MaterialFlag> STD_METAL = new ArrayList<>();
-    public static final List<MaterialFlag> EXT_METAL = new ArrayList<>();
-    public static final List<MaterialFlag> EXT2_METAL = new ArrayList<>();
 
     static {
-        STD_METAL.add(GENERATE_PLATE);
 
-        EXT_METAL.addAll(STD_METAL);
-        EXT_METAL.add(GENERATE_ROD);
-
-        EXT2_METAL.addAll(EXT_METAL);
-        EXT2_METAL.addAll(Arrays.asList(GENERATE_LONG_ROD, GENERATE_BOLT_SCREW));
     }
 
     public static final MarkerMaterial NULL = MarkerMaterial.create("null");
