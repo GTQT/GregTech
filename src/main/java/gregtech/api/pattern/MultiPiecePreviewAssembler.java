@@ -101,15 +101,14 @@ public final class MultiPiecePreviewAssembler {
                     TraceabilityPredicate predicate = preview.getPredicates().get(entry.getKey());
                     StructureElementPreviewEntry previewEntry = preview.getPreviewEntries().get(entry.getKey());
                     BlockInfo selected = info;
-                    if (!abilityTracker.canPlace(selected)) {
-                        selected = findFallback(previewEntry, predicate, abilityTracker);
-                    }
-                    abilityTracker.record(selected);
-
                     BlockPos relative = baseRelative.add(canonicalShift);
                     BlockPos global = pieceCenter.add(relative);
-                    pieceBlocks.put(relative, selected);
                     if (toolingVisible) {
+                        if (!abilityTracker.canPlace(selected)) {
+                            selected = findFallback(previewEntry, predicate, abilityTracker);
+                        }
+                        abilityTracker.record(selected);
+                        pieceBlocks.put(relative, selected);
                         allBlocks.put(global, selected);
                     }
                 }
