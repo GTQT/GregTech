@@ -71,7 +71,7 @@ final class StructurePlacementDecision {
         if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
             return Selection.creative(candidates.get(preferredIndex), infos[preferredIndex]);
         }
-        for (int i = candidates.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < candidates.size(); i++) {
             ItemStack found = candidates.get(i);
             if (!found.isEmpty()) {
                 return Selection.creative(found, infos[i]);
@@ -110,7 +110,7 @@ final class StructurePlacementDecision {
         if (preferredIndex >= 0 && preferredIndex < candidates.size()) {
             return Selection.creative(candidates.get(preferredIndex), infos[preferredIndex]);
         }
-        for (int i = candidates.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < candidates.size(); i++) {
             ItemStack found = candidates.get(i);
             if (!found.isEmpty()) {
                 return Selection.creative(found, infos[i]);
@@ -226,6 +226,32 @@ final class StructurePlacementDecision {
         return 0;
     }
 
+    static int getPlaceableCandidateIndex(@Nullable StructureElementPreview.CandidateGroup group,
+                                          @Nullable BlockInfo[] infos,
+                                          @Nullable Map<String, Integer> channelValues,
+                                          @Nullable AbilityPlacementTracker abilityTracker) {
+        if (infos == null || infos.length == 0) {
+            return -1;
+        }
+        int preferredIndex = getPreferredCandidateIndex(group, infos, channelValues);
+        int requiredAbilityIndex = findRequiredPlaceableAbilityCandidate(
+                infos, abilityTracker, preferredIndex);
+        if (requiredAbilityIndex >= 0) {
+            return requiredAbilityIndex;
+        }
+        if (preferredIndex >= 0
+                && preferredIndex < infos.length
+                && canPlaceCandidate(infos[preferredIndex], abilityTracker)) {
+            return preferredIndex;
+        }
+        for (int i = 0; i < infos.length; i++) {
+            if (canPlaceCandidate(infos[i], abilityTracker)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     static int getPreferredCandidateIndex(@Nullable TraceabilityPredicate.SimplePredicate predicate,
                                           @Nullable BlockInfo[] infos,
                                           @Nullable Map<String, Integer> channelValues) {
@@ -309,12 +335,41 @@ final class StructurePlacementDecision {
                 && abilityTracker.isStillRequired(infos[preferredCandidateIndex])) {
             return preferredCandidateIndex;
         }
-        for (int i = infos.length - 1; i >= 0; i--) {
+        for (int i = 0; i < infos.length; i++) {
             if (abilityTracker.isStillRequired(infos[i])) {
                 return i;
             }
         }
         return -1;
+    }
+
+    private static int findRequiredPlaceableAbilityCandidate(@NotNull BlockInfo[] infos,
+                                                             @Nullable AbilityPlacementTracker abilityTracker,
+                                                             int preferredCandidateIndex) {
+        if (abilityTracker == null) return -1;
+        if (preferredCandidateIndex >= 0
+                && preferredCandidateIndex < infos.length
+                && abilityTracker.isStillRequired(infos[preferredCandidateIndex])
+                && abilityTracker.canPlace(infos[preferredCandidateIndex])) {
+            return preferredCandidateIndex;
+        }
+        for (int i = 0; i < infos.length; i++) {
+            if (abilityTracker.isStillRequired(infos[i]) && abilityTracker.canPlace(infos[i])) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean canPlaceCandidate(@Nullable BlockInfo info,
+                                             @Nullable AbilityPlacementTracker abilityTracker) {
+        return info != null && (abilityTracker == null || isEmptyBlockInfo(info) || abilityTracker.canPlace(info));
+    }
+
+    private static boolean isEmptyBlockInfo(@NotNull BlockInfo info) {
+        return info == BlockInfo.EMPTY
+                || info.getBlockState() == null
+                || info.getBlockState().getBlock() == Blocks.AIR;
     }
 
     @Nullable

@@ -1381,7 +1381,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Merges all pieces' previews into a single combined shape by offsetting each piece
      * along the aisle direction (the repeat axis for repeatable pieces).
      *
-     * <p>The preview array from getPreview() is indexed as [worldX][worldY][worldZ].
+     * <p>The preview array is indexed as [worldX][worldY][worldZ].
      * For structure dir [RIGHT, BACK, UP] with NORTH-facing:
      * worldX = char index, worldY = repeat/aisle index, worldZ = -row index.
      * So merging along the aisle direction offsets worldY (the second array dimension).
@@ -1395,7 +1395,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Maps block positions (in the merged preview array's 0-based coordinate system)
      * to their TraceabilityPredicate for right-click block cycling in JEI.
      *
-     * <p>Iteration matches {@link PieceRuntimeState#getPreview(int[], Map)} so that
+     * <p>Iteration matches {@link PieceRuntimeState#createPreviewCells(int[], Map)} so that
      * every block rendered in the JEI preview (including all repeated slices of a
      * {@link RepeatGroupPiece}) gets a corresponding predicate entry. The previous
      * implementation only walked the base template, leaving repeated slices with

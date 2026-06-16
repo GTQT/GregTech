@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.godforge.util.FaceCulledRenderBlocks;
 import gregtech.client.renderer.godforge.util.FaceVisibility;
@@ -32,6 +33,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 
+import codechicken.lib.render.pipeline.ColourMultiplier;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -60,6 +64,10 @@ public class GhostBlockRenderer {
     // Preview block scale factor and centering offset (same as controller preview)
     private static final float BLOCK_SCALE = 0.75F;
     private static final float BLOCK_OFFSET = 0.125F;
+    private static final int GHOST_TINT = 0x9EDFFF;
+    private static final IVertexOperation[] GHOST_MTE_PIPELINE = new IVertexOperation[] {
+            new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(GHOST_TINT))
+    };
     private static final FaceVisibility FULL_BLOCK_VISIBILITY = new FaceVisibility();
     private static final BufferBuilder GHOST_BUFFER = new BufferBuilder(2 * 1024 * 1024);
     private static final WorldVertexBufferUploader GHOST_UPLOADER = new WorldVertexBufferUploader();
@@ -196,7 +204,14 @@ public class GhostBlockRenderer {
                                          GhostBlock ghost) {
         if (state.getBlock().getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
             mteAccess.setPos(ghost.localPos, ghost.worldPos, true);
-            MetaTileEntityRenderer.INSTANCE.renderBlock(mteAccess, ghost.worldPos, state, GHOST_BUFFER);
+            Matrix4 transform = new Matrix4()
+                    .translate(
+                            ghost.worldPos.getX() + BLOCK_OFFSET,
+                            ghost.worldPos.getY() + BLOCK_OFFSET,
+                            ghost.worldPos.getZ() + BLOCK_OFFSET)
+                    .scale(BLOCK_SCALE);
+            MetaTileEntityRenderer.INSTANCE.renderBlock(
+                    mteAccess, ghost.worldPos, state, GHOST_BUFFER, transform, GHOST_MTE_PIPELINE);
             return;
         }
 

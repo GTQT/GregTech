@@ -195,13 +195,6 @@ public final class StructureOperationEvaluator {
     }
 
     @NotNull
-    BlockInfo[][][] previewSingle(
-            @NotNull int[] repetitions,
-            @Nullable Map<String, Integer> channelValues) {
-        return previewOperations.previewSingle(repetitions, channelValues);
-    }
-
-    @NotNull
     public StructurePreviewResult previewSingleResult(@NotNull StructureOperationRequest request) {
         return previewOperations.previewSingleResult(request);
     }

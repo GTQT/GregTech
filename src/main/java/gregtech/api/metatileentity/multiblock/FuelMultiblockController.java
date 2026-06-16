@@ -124,8 +124,8 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
         if (isStructureFormed()) {
             IEnergyContainer energyContainer = recipeMapWorkable.getEnergyContainer();
             if (energyContainer != null && energyContainer.getEnergyCapacity() > 0) {
-                long maxVoltage = Math.max(energyContainer.getInputVoltage(), energyContainer.getOutputVoltage());
-                return maxVoltage < recipeMapWorkable.getRecipeEUt();
+                long maxOutput = energyContainer.getOutputVoltage() * energyContainer.getOutputAmperage();
+                return maxOutput < recipeMapWorkable.getRecipeEUt();
             }
         }
         return false;

@@ -77,6 +77,7 @@ public class DeclarativePatternBuilder {
     private final Map<Character, TieredSlotInfo> tieredSlots = new HashMap<>();
     private final Map<Character, TraceabilityPredicate> rawPredicates = new HashMap<>();
     private final Map<Character, IStructureElement> elementMappings = new HashMap<>();
+    private final List<AbilityLimitDef> abilityLimits = new ArrayList<>();
     private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
 
     private PieceDef currentPiece;
@@ -300,6 +301,13 @@ public class DeclarativePatternBuilder {
         return this;
     }
 
+    public DeclarativePatternBuilder globalAbilityLimit(@NotNull MultiblockAbility<?> ability,
+                                                        int minCount,
+                                                        int maxCount) {
+        abilityLimits.add(new AbilityLimitDef(ability, minCount, maxCount));
+        return this;
+    }
+
     // --- Build methods ---
 
     /**
@@ -376,6 +384,9 @@ public class DeclarativePatternBuilder {
                     builder.globalAbilityLimit(hatch.ability, hatch.minCount, hatch.maxCount);
                 }
             }
+        }
+        for (AbilityLimitDef limit : abilityLimits) {
+            builder.globalAbilityLimit(limit.ability, limit.minCount, limit.maxCount);
         }
         for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
             builder.globalAbilityGroupLimit(
@@ -1417,6 +1428,12 @@ public class DeclarativePatternBuilder {
             return builder.abilityGroup(displayAbility, minCount, maxCount, abilities);
         }
 
+        public DeclarativePatternBuilder globalAbilityLimit(@NotNull MultiblockAbility<?> ability,
+                                                            int minCount,
+                                                            int maxCount) {
+            return builder.globalAbilityLimit(ability, minCount, maxCount);
+        }
+
         public PieceBuilder piece(@NotNull String name) {
             return builder.piece(name);
         }
@@ -1563,6 +1580,19 @@ public class DeclarativePatternBuilder {
             this.minCount = minCount;
             this.maxCount = maxCount;
             this.defaultCandidate = defaultCandidate;
+        }
+    }
+
+    private static class AbilityLimitDef {
+
+        final MultiblockAbility<?> ability;
+        final int minCount;
+        final int maxCount;
+
+        AbilityLimitDef(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
+            this.ability = ability;
+            this.minCount = minCount;
+            this.maxCount = maxCount;
         }
     }
 

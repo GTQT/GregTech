@@ -227,6 +227,7 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public void onRemoval() {
+        super.onRemoval();
         if (!getWorld().isRemote && isConnected()) {
             IQuantumController controller = getQuantumController();
             if (controller != null) controller.rebuildNetwork();

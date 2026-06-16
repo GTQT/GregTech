@@ -18,13 +18,6 @@ final class StructurePreviewOperationService {
     }
 
     @NotNull
-    BlockInfo[][][] previewSingle(
-            @NotNull int[] repetitions,
-            @Nullable Map<String, Integer> channelValues) {
-        return previewSingle(StructureOperationRequest.preview(repetitions, channelValues));
-    }
-
-    @NotNull
     BlockInfo[][][] previewSingle(@NotNull StructureOperationRequest request) {
         return previewSingleResult(request).toBlockArray();
     }
@@ -38,8 +31,12 @@ final class StructurePreviewOperationService {
             return StructurePreviewResult.unsupported(StructurePreviewResult.Source.SINGLE_PIECE)
                     .withDiagnostics(runtimeView.diagnostics(request.getEvaluationOperation()));
         }
+        AbilityPlacementTracker abilityTracker = request.getAbilityTracker();
+        if (abilityTracker == null) {
+            abilityTracker = runtimeView.pattern.createAbilityPlacementTracker();
+        }
         return StructurePreviewResult.single(runtime.getState().createPreviewCells(
-                request.requireRepetitions(), request.getChannelValues()))
+                request.requireRepetitions(), request.getChannelValues(), abilityTracker))
                 .withDiagnostics(runtimeView.diagnostics(request.getEvaluationOperation()));
     }
 

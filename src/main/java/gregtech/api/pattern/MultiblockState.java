@@ -395,14 +395,6 @@ public class MultiblockState {
         return backing.getAllStructureBlocks(world, centerPos, orientation);
     }
 
-    public BlockInfo[][][] getPreview(int[] repetition) {
-        return backing.getPreview(repetition);
-    }
-
-    public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
-        return backing.getPreview(repetition, channelValues);
-    }
-
     @NotNull
     public PreviewCells createPreviewCells(@NotNull int[] repetition,
                                            @Nullable Map<String, Integer> channelValues) {

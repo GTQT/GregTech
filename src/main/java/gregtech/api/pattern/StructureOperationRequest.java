@@ -135,9 +135,16 @@ public final class StructureOperationRequest {
     @NotNull
     public static StructureOperationRequest preview(@NotNull int[] repetitions,
                                                     @Nullable Map<String, Integer> channelValues) {
+        return preview(repetitions, channelValues, null);
+    }
+
+    @NotNull
+    public static StructureOperationRequest preview(@NotNull int[] repetitions,
+                                                    @Nullable Map<String, Integer> channelValues,
+                                                    @Nullable AbilityPlacementTracker abilityTracker) {
         return new StructureOperationRequest(
                 Kind.PREVIEW, null, null, null, null, null, null, null,
-                channelValues, repetitions, null, ItemStack.EMPTY, false, false, 0);
+                channelValues, repetitions, abilityTracker, ItemStack.EMPTY, false, false, 0);
     }
 
     @NotNull

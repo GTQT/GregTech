@@ -19,6 +19,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -400,7 +401,27 @@ public final class PieceRuntimeState {
         }
         StructureWorldReadTracker.recordTileEntityRead();
         TileEntity tileEntity = world.getTileEntity(pos);
+        if (!matchesCachedMetaTileEntity(entry.getValue(), cachedTileEntity, tileEntity)) {
+            return false;
+        }
         return tileEntity == cachedTileEntity;
+    }
+
+    private static boolean matchesCachedMetaTileEntity(@NotNull BlockInfo cached,
+                                                       @NotNull TileEntity cachedTileEntity,
+                                                       @Nullable TileEntity tileEntity) {
+        if (!(cachedTileEntity instanceof IGregTechTileEntity)) {
+            return true;
+        }
+        if (!(tileEntity instanceof IGregTechTileEntity)) {
+            return false;
+        }
+        Object cachedInfo = cached.getInfo();
+        if (!(cachedInfo instanceof CachedMetaTileEntityInfo)) {
+            return true;
+        }
+        MetaTileEntity current = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+        return current != null && ((CachedMetaTileEntityInfo) cachedInfo).matches(current);
     }
 
     private PatternMatchContext checkPatternAt(World world, BlockPos centerPos,
@@ -846,7 +867,20 @@ public final class PieceRuntimeState {
             cache.put(cell.worldPos.toLong(), new BlockInfo(blockState, null, predicate));
             return;
         }
-        cache.put(cell.worldPos.toLong(), new BlockInfo(blockState, tileEntity, predicate));
+        cache.put(cell.worldPos.toLong(), new BlockInfo(
+                blockState, tileEntity, createCacheInfo(tileEntity, predicate)));
+    }
+
+    @Nullable
+    private static Object createCacheInfo(@Nullable TileEntity tileEntity,
+                                          @NotNull TraceabilityPredicate predicate) {
+        if (tileEntity instanceof IGregTechTileEntity) {
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (metaTileEntity != null) {
+                return new CachedMetaTileEntityInfo(metaTileEntity, predicate);
+            }
+        }
+        return predicate;
     }
 
     private boolean validateFixedStructureLayerCounts() {
@@ -1125,13 +1159,14 @@ public final class PieceRuntimeState {
         StructureElementPreview preview = getElementPreview(cell.element, buildState.evaluationContext);
         StructureElementPreview.CandidateGroup matchedGroup = null;
         for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
+            int nextCount;
             if (limit.getMinLayerCount() > 0) {
                 if (!cacheLayer.containsKey(limit)) {
-                    cacheLayer.put(limit, 1);
+                    nextCount = 1;
                 } else if (cacheLayer.get(limit) < limit.getMinLayerCount() &&
                         (limit.getMaxLayerCount() == -1 ||
                                 cacheLayer.get(limit) < limit.getMaxLayerCount())) {
-                    cacheLayer.put(limit, cacheLayer.get(limit) + 1);
+                    nextCount = cacheLayer.get(limit) + 1;
                 } else {
                     continue;
                 }
@@ -1142,19 +1177,24 @@ public final class PieceRuntimeState {
                 buildState.cacheInfos.put(limit, limit.getCandidates());
             }
             infos = buildState.cacheInfos.get(limit);
+            if (!hasPlaceableCandidate(infos, abilityTracker)) {
+                continue;
+            }
+            cacheLayer.put(limit, nextCount);
             matchedGroup = limit;
             find = true;
             break;
         }
         if (!find) {
             for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
+                int nextCount;
                 if (limit.getMinGlobalCount() > 0) {
                     if (!buildState.cacheGlobal.containsKey(limit)) {
-                        buildState.cacheGlobal.put(limit, 1);
+                        nextCount = 1;
                     } else if (buildState.cacheGlobal.get(limit) < limit.getMinGlobalCount() &&
                             (limit.getMaxGlobalCount() == -1 ||
                                     buildState.cacheGlobal.get(limit) < limit.getMaxGlobalCount())) {
-                        buildState.cacheGlobal.put(limit, buildState.cacheGlobal.get(limit) + 1);
+                        nextCount = buildState.cacheGlobal.get(limit) + 1;
                     } else {
                         continue;
                     }
@@ -1165,6 +1205,10 @@ public final class PieceRuntimeState {
                     buildState.cacheInfos.put(limit, limit.getCandidates());
                 }
                 infos = buildState.cacheInfos.get(limit);
+                if (!hasPlaceableCandidate(infos, abilityTracker)) {
+                    continue;
+                }
+                buildState.cacheGlobal.put(limit, nextCount);
                 matchedGroup = limit;
                 find = true;
                 break;
@@ -1180,6 +1224,9 @@ public final class PieceRuntimeState {
                     continue;
                 if (!buildState.cacheInfos.containsKey(limit)) {
                     buildState.cacheInfos.put(limit, limit.getCandidates());
+                }
+                if (!hasPlaceableCandidate(buildState.cacheInfos.get(limit), abilityTracker)) {
+                    continue;
                 }
                 cacheLayer.put(limit, cacheLayer.getOrDefault(limit, 0) + 1);
                 buildState.cacheGlobal.put(limit, buildState.cacheGlobal.getOrDefault(limit, 0) + 1);
@@ -1345,6 +1392,23 @@ public final class PieceRuntimeState {
                 }
             }
         }
+    }
+
+    private static boolean hasPlaceableCandidate(@Nullable BlockInfo[] infos,
+                                                 @Nullable AbilityPlacementTracker abilityTracker) {
+        if (infos == null) {
+            return false;
+        }
+        for (BlockInfo info : infos) {
+            if (info == null || info.getBlockState() == null ||
+                    info.getBlockState().getBlock() == Blocks.AIR) {
+                continue;
+            }
+            if (abilityTracker == null || abilityTracker.canPlace(info)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean hasFixedAisleLayout() {
@@ -1839,138 +1903,139 @@ public final class PieceRuntimeState {
     private static BlockInfo selectPreviewBlockInfo(@NotNull StructureElementPreview preview,
                                                     @NotNull Map<StructureElementPreview.CandidateGroup, Integer> cacheLayer,
                                                     @NotNull PreviewTraversalState previewState,
-                                                    @Nullable Map<String, Integer> channelValues) {
-        boolean find = false;
+                                                    @Nullable Map<String, Integer> channelValues,
+                                                    @Nullable AbilityPlacementTracker abilityTracker) {
         BlockInfo[] infos = null;
         StructureElementPreview.CandidateGroup matchedGroup = null;
         for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
-            if (limit.getMinLayerCount() > 0) {
-                if (!cacheLayer.containsKey(limit)) {
-                    cacheLayer.put(limit, 1);
-                } else if (cacheLayer.get(limit) < limit.getMinLayerCount()) {
-                    cacheLayer.put(limit, cacheLayer.get(limit) + 1);
-                } else {
-                    continue;
-                }
-                if (previewState.cacheGlobal.getOrDefault(limit, 0) < limit.getPreviewCount()) {
-                    if (!previewState.cacheGlobal.containsKey(limit)) {
-                        previewState.cacheGlobal.put(limit, 1);
-                    } else if (previewState.cacheGlobal.get(limit) < limit.getPreviewCount()) {
-                        previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
-                    } else {
-                        continue;
-                    }
-                }
-            } else {
+            if (limit.getMinLayerCount() <= 0) {
                 continue;
             }
-            if (!previewState.cacheInfos.containsKey(limit)) {
-                previewState.cacheInfos.put(limit, limit.getCandidates());
+            infos = getPreviewInfos(previewState, limit);
+            if (!hasPreviewCandidate(limit, infos, channelValues, abilityTracker)) {
+                continue;
             }
-            infos = previewState.cacheInfos.get(limit);
+            int layer = cacheLayer.getOrDefault(limit, 0);
+            if (layer >= limit.getMinLayerCount()) {
+                continue;
+            }
+            cacheLayer.put(limit, layer + 1);
+            int global = previewState.cacheGlobal.getOrDefault(limit, 0);
+            if (global < limit.getPreviewCount()) {
+                previewState.cacheGlobal.put(limit, global + 1);
+            }
             matchedGroup = limit;
-            find = true;
             break;
         }
-        if (!find) {
+        if (matchedGroup == null) {
             for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
                 if (limit.getMinGlobalCount() == -1 && limit.getPreviewCount() == -1) continue;
-                if (previewState.cacheGlobal.getOrDefault(limit, 0) < limit.getPreviewCount()) {
-                    if (!previewState.cacheGlobal.containsKey(limit)) {
-                        previewState.cacheGlobal.put(limit, 1);
-                    } else if (previewState.cacheGlobal.get(limit) < limit.getPreviewCount()) {
-                        previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
-                    } else {
-                        continue;
-                    }
+                infos = getPreviewInfos(previewState, limit);
+                if (!hasPreviewCandidate(limit, infos, channelValues, abilityTracker)) {
+                    continue;
+                }
+                int global = previewState.cacheGlobal.getOrDefault(limit, 0);
+                if (global < limit.getPreviewCount()) {
+                    previewState.cacheGlobal.put(limit, global + 1);
                 } else if (limit.getMinGlobalCount() > 0) {
-                    if (!previewState.cacheGlobal.containsKey(limit)) {
-                        previewState.cacheGlobal.put(limit, 1);
-                    } else if (previewState.cacheGlobal.get(limit) < limit.getMinGlobalCount()) {
-                        previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
+                    if (global < limit.getMinGlobalCount()) {
+                        previewState.cacheGlobal.put(limit, global + 1);
                     } else {
                         continue;
                     }
                 } else {
                     continue;
                 }
-                if (!previewState.cacheInfos.containsKey(limit)) {
-                    previewState.cacheInfos.put(limit, limit.getCandidates());
-                }
-                infos = previewState.cacheInfos.get(limit);
                 matchedGroup = limit;
-                find = true;
                 break;
             }
         }
-        if (!find) {
+        if (matchedGroup == null) {
             for (StructureElementPreview.CandidateGroup common : preview.getCommon()) {
-                if (common.getPreviewCount() > 0) {
-                    if (!previewState.cacheGlobal.containsKey(common)) {
-                        previewState.cacheGlobal.put(common, 1);
-                    } else if (previewState.cacheGlobal.get(common) < common.getPreviewCount()) {
-                        previewState.cacheGlobal.put(common, previewState.cacheGlobal.get(common) + 1);
-                    } else {
-                        continue;
-                    }
-                } else {
+                if (common.getPreviewCount() <= 0) {
                     continue;
                 }
-                if (!previewState.cacheInfos.containsKey(common)) {
-                    previewState.cacheInfos.put(common, common.getCandidates());
+                infos = getPreviewInfos(previewState, common);
+                if (!hasPreviewCandidate(common, infos, channelValues, abilityTracker)) {
+                    continue;
                 }
-                infos = previewState.cacheInfos.get(common);
+                int global = previewState.cacheGlobal.getOrDefault(common, 0);
+                if (global >= common.getPreviewCount()) {
+                    continue;
+                }
+                previewState.cacheGlobal.put(common, global + 1);
                 matchedGroup = common;
-                find = true;
                 break;
             }
         }
-        if (!find) {
+        if (matchedGroup == null) {
             for (StructureElementPreview.CandidateGroup common : preview.getCommon()) {
                 if (common.getPreviewCount() == -1) {
-                    if (!previewState.cacheInfos.containsKey(common)) {
-                        previewState.cacheInfos.put(common, common.getCandidates());
+                    infos = getPreviewInfos(previewState, common);
+                    if (!hasPreviewCandidate(common, infos, channelValues, abilityTracker)) {
+                        continue;
                     }
-                    infos = previewState.cacheInfos.get(common);
                     matchedGroup = common;
-                    find = true;
                     break;
                 }
             }
         }
-        if (!find) {
+        if (matchedGroup == null) {
             for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
                 if (limit.getPreviewCount() != -1) {
                     continue;
-                } else if (limit.getMaxGlobalCount() != -1 || limit.getMaxLayerCount() != -1) {
-                    if (previewState.cacheGlobal.getOrDefault(limit, 0) < limit.getMaxGlobalCount()) {
-                        if (!previewState.cacheGlobal.containsKey(limit)) {
-                            previewState.cacheGlobal.put(limit, 1);
-                        } else {
-                            previewState.cacheGlobal.put(limit, previewState.cacheGlobal.get(limit) + 1);
-                        }
-                    } else if (cacheLayer.getOrDefault(limit, 0) < limit.getMaxLayerCount()) {
-                        if (!cacheLayer.containsKey(limit)) {
-                            cacheLayer.put(limit, 1);
-                        } else {
-                            cacheLayer.put(limit, cacheLayer.get(limit) + 1);
-                        }
+                }
+                infos = getPreviewInfos(previewState, limit);
+                if (!hasPreviewCandidate(limit, infos, channelValues, abilityTracker)) {
+                    continue;
+                }
+                if (limit.getMaxGlobalCount() != -1 || limit.getMaxLayerCount() != -1) {
+                    int global = previewState.cacheGlobal.getOrDefault(limit, 0);
+                    if (limit.getMaxGlobalCount() != -1 && global < limit.getMaxGlobalCount()) {
+                        previewState.cacheGlobal.put(limit, global + 1);
                     } else {
-                        continue;
+                        int layer = cacheLayer.getOrDefault(limit, 0);
+                        if (limit.getMaxLayerCount() != -1 && layer < limit.getMaxLayerCount()) {
+                            cacheLayer.put(limit, layer + 1);
+                        } else {
+                            continue;
+                        }
                     }
                 }
 
-                if (!previewState.cacheInfos.containsKey(limit)) {
-                    previewState.cacheInfos.put(limit, limit.getCandidates());
-                }
-                infos = previewState.cacheInfos.get(limit);
                 matchedGroup = limit;
                 break;
             }
         }
-        int candidateIdx = StructurePlacementDecision.getChannelCandidateIndex(matchedGroup, infos, channelValues);
-        BlockInfo info = infos == null || infos.length == 0 ? BlockInfo.EMPTY : infos[candidateIdx];
+        if (matchedGroup == null) {
+            return BlockInfo.EMPTY;
+        }
+        int candidateIdx = StructurePlacementDecision.getPlaceableCandidateIndex(
+                matchedGroup, infos, channelValues, abilityTracker);
+        BlockInfo info = candidateIdx < 0 || infos == null || infos.length == 0
+                ? BlockInfo.EMPTY
+                : infos[candidateIdx];
+        if (abilityTracker != null) {
+            abilityTracker.record(info);
+        }
         return copyPreviewTileEntity(info);
+    }
+
+    @NotNull
+    private static BlockInfo[] getPreviewInfos(@NotNull PreviewTraversalState previewState,
+                                               @NotNull StructureElementPreview.CandidateGroup group) {
+        if (!previewState.cacheInfos.containsKey(group)) {
+            previewState.cacheInfos.put(group, group.getCandidates());
+        }
+        return previewState.cacheInfos.get(group);
+    }
+
+    private static boolean hasPreviewCandidate(@Nullable StructureElementPreview.CandidateGroup group,
+                                               @Nullable BlockInfo[] infos,
+                                               @Nullable Map<String, Integer> channelValues,
+                                               @Nullable AbilityPlacementTracker abilityTracker) {
+        return StructurePlacementDecision.getPlaceableCandidateIndex(
+                group, infos, channelValues, abilityTracker) >= 0;
     }
 
     /**
@@ -2019,23 +2084,6 @@ public final class PieceRuntimeState {
         return blocks;
     }
 
-    /**
-     * Get the preview blocks for JEI display.
-     */
-    public BlockInfo[][][] getPreview(int[] repetition) {
-        return getPreview(repetition, null);
-    }
-
-    /**
-     * Get the preview blocks for JEI display with channel value support.
-     *
-     * @param repetition    the aisle repetition counts
-     * @param channelValues map of channel name -> desired tier (1-based, null or 0 = auto)
-     */
-    public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
-        return createPreviewCells(repetition, channelValues).toBlockArray();
-    }
-
     @NotNull
     public PreviewCells createPreviewCells(@NotNull int[] repetition,
                                            @Nullable Map<String, Integer> channelValues) {
@@ -2045,12 +2093,27 @@ public final class PieceRuntimeState {
     @NotNull
     public PreviewCells createPreviewCells(@NotNull int[] repetition,
                                            @Nullable Map<String, Integer> channelValues,
+                                           @Nullable AbilityPlacementTracker abilityTracker) {
+        return createPreviewCells(repetition, channelValues, DEFAULT_PREVIEW_ORIENTATION, abilityTracker);
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues,
                                            @NotNull StructureOrientation previewOrientation) {
+        return createPreviewCells(repetition, channelValues, previewOrientation, null);
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues,
+                                           @NotNull StructureOrientation previewOrientation,
+                                           @Nullable AbilityPlacementTracker abilityTracker) {
         PreviewTraversalState previewState = new PreviewTraversalState();
         visitFixedStructureCells(repetition, BlockPos.ORIGIN, previewOrientation, 0, 0, 0, (cell, layerCounts) -> {
             StructureElementPreview preview = cell.element.getPreview();
             BlockInfo info = selectPreviewBlockInfo(
-                    preview, layerCounts, previewState, channelValues);
+                    preview, layerCounts, previewState, channelValues, abilityTracker);
             TraceabilityPredicate predicate = cell.runtimePredicate();
             previewState.record(cell.worldPos, info, predicate,
                     StructureElementPreviewEntry.of(preview, previewTooltip(cell.element)));
@@ -2294,6 +2357,32 @@ public final class PieceRuntimeState {
             @Nullable StructureMatchSession session) {
         return checkPatternAtSnapshot(blockAccess, traversal.getCenterPos(), traversal.getOrientation(),
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(), session);
+    }
+
+    private static final class CachedMetaTileEntityInfo {
+
+        @NotNull
+        private final MetaTileEntity instance;
+        @NotNull
+        private final ResourceLocation id;
+        @NotNull
+        private final TraceabilityPredicate predicate;
+
+        private CachedMetaTileEntityInfo(@NotNull MetaTileEntity instance,
+                                         @NotNull TraceabilityPredicate predicate) {
+            this.instance = instance;
+            this.id = instance.metaTileEntityId;
+            this.predicate = predicate;
+        }
+
+        private boolean matches(@NotNull MetaTileEntity current) {
+            return current == instance && id.equals(current.metaTileEntityId);
+        }
+
+        @Override
+        public String toString() {
+            return predicate.toString();
+        }
     }
 }
 

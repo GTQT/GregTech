@@ -218,11 +218,4 @@ public class BlockPattern {
                 StructureOrientation.legacy(frontFacing, upwardsFacing, isFlipped, false));
     }
 
-    public BlockInfo[][][] getPreview(int[] repetition) {
-        return evaluator.previewSingle(repetition, null);
-    }
-
-    public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
-        return evaluator.previewSingle(repetition, channelValues);
-    }
 }

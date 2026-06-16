@@ -1,6 +1,7 @@
 package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
@@ -36,7 +37,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     @Override
     protected void updateRecipeProgress() {
-        if (canRecipeProgress) {
+        if (canRecipeProgress && hasOutputEnergyContainer()) {
             this.recipeEUt = getCurrentProduction();
             drawEnergy(recipeEUt, false);
             if (++progressTime > maxProgressTime) {
@@ -66,6 +67,12 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     private long getCurrentProduction() {
         return boostProduction(getMaxVoltage());
+    }
+
+    private boolean hasOutputEnergyContainer() {
+        IEnergyContainer energyContainer = getEnergyContainer();
+        return energyContainer != null && energyContainer.getOutputVoltage() > 0 &&
+                energyContainer.getOutputAmperage() > 0 && energyContainer.getEnergyCapacity() > 0;
     }
 
     @Override

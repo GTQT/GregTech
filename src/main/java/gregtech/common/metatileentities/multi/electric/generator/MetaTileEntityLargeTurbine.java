@@ -24,6 +24,7 @@ import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
+import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -111,21 +112,45 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                 .block('G', type.getGearboxState())
                 .block('C', type.getCasingState())
                 .where('R', Elements.chain(
-                        Elements.withTooltips(
-                                Elements.metaTileEntities(1, 1, MultiblockAbility.REGISTRY
-                                        .get(MultiblockAbility.ROTOR_HOLDER).stream()
-                                        .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
-                                                (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
-                                        .toArray(MetaTileEntity[]::new)),
-                                "gregtech.multiblock.pattern.clear_amount_3",
-                                "gregtech.multiblock.pattern.error.limited.1 " + GTValues.VN[type.getTier()]),
-                        Elements.abilities(1, 1, MultiblockAbility.OUTPUT_ENERGY)))
+                        Elements.withDefaultCandidate(
+                                Elements.withTooltips(
+                                        Elements.metaTileEntities(1, 1, MultiblockAbility.REGISTRY
+                                                .get(MultiblockAbility.ROTOR_HOLDER).stream()
+                                                .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
+                                                        (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
+                                                .toArray(MetaTileEntity[]::new)),
+                                        "gregtech.multiblock.pattern.clear_amount_3",
+                                        "gregtech.multiblock.pattern.error.limited.1 " + GTValues.VN[type.getTier()]),
+                                () -> getDefaultRotorHolder(type)),
+                        Elements.withDefaultCandidate(
+                                Elements.abilities(1, 1, MultiblockAbility.OUTPUT_ENERGY),
+                                () -> getDefaultEnergyOutputHatch(type))))
                 .casing('H', type.getCasingState())
                 .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
                 .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
+                .globalAbilityLimit(MultiblockAbility.ROTOR_HOLDER, 1, 1)
+                .globalAbilityLimit(MultiblockAbility.OUTPUT_ENERGY, 1, 1)
                 .buildStructureDefinition();
+    }
+
+    @Nullable
+    private static MetaTileEntity getDefaultRotorHolder(@NotNull ILargeTurbineType type) {
+        int index = type.getTier() - GTValues.HV;
+        if (index < 0 || index >= MetaTileEntities.ROTOR_HOLDER.length) {
+            return null;
+        }
+        return MetaTileEntities.ROTOR_HOLDER[index];
+    }
+
+    @Nullable
+    private static MetaTileEntity getDefaultEnergyOutputHatch(@NotNull ILargeTurbineType type) {
+        int tier = type.getTier();
+        if (tier < 0 || tier >= MetaTileEntities.ENERGY_OUTPUT_HATCH.length) {
+            return null;
+        }
+        return MetaTileEntities.ENERGY_OUTPUT_HATCH[tier];
     }
 
     private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {

@@ -140,7 +140,11 @@ final class MultiblockStructurePreviews {
             BlockInfo[][][] preview = structureRuntime == null
                     ? runtimeState == null
                             ? new BlockInfo[][][]{{{BlockInfo.EMPTY}}}
-                            : runtimeState.getPreview(repetition, channelValues)
+                            : runtimeState.createPreviewCells(repetition, channelValues,
+                                    controller.multiPiecePattern == null
+                                            ? null
+                                            : controller.multiPiecePattern.createAbilityPlacementTracker())
+                                    .toBlockArray()
                     : structureRuntime.previewSingle(
                             StructureOperationRequest.preview(repetition, channelValues));
             pages.add(new MultiblockShapeInfo(preview));
