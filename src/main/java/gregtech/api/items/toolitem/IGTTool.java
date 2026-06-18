@@ -732,9 +732,17 @@ public interface IGTTool extends ItemUIFactory, IAEWrench, IToolWrench, IToolHam
         if (getMarkerItem() != null) {
             items.add(getMarkerItem().get());
         } else if (isElectric()) {
-            items.add(get(Materials.Iron, Integer.MAX_VALUE));
+            for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+                if (material.hasProperty(PropertyKey.TOOL)) {
+                    items.add(get(material, Long.MAX_VALUE));
+                }
+            }
         } else {
-            items.add(get(Materials.Iron));
+            for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+                if (material.hasProperty(PropertyKey.TOOL)) {
+                    items.add(get(material));
+                }
+            }
         }
     }
 

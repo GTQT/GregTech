@@ -77,8 +77,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
+import java.awt.geom.Rectangle2D;
+import java.time.MonthDay;
+import java.time.ZoneId;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1432,6 +1436,26 @@ public class GTUtility {
 
             world.spawnEntity(entity);
         }
+    }
+
+    public static <T> @NotNull List<T> unmodifiableOrEmpty(@Nullable List<T> sourceList) {
+        return sourceList == null ? Collections.emptyList() : Collections.unmodifiableList(sourceList);
+    }
+
+    public static boolean isToday(@NotNull MonthDay monthDay, @Nullable ZoneId tz) {
+        MonthDay now = tz == null ? MonthDay.now() : MonthDay.now(tz);
+        return now.equals(monthDay);
+    }
+
+    public static boolean isToday(@NotNull MonthDay monthDay) {
+        return isToday(monthDay, null);
+    }
+
+    public static boolean rectanglesCollide(@NotNull Rectangle2D a, @NotNull Rectangle2D b) {
+        return (a.getX() <= b.getX() + b.getWidth()) &&
+                (a.getX() + a.getWidth() >= b.getX()) &&
+                (a.getY() <= b.getY() + b.getHeight()) &&
+                (a.getY() + a.getHeight() >= b.getY());
     }
 
     /**

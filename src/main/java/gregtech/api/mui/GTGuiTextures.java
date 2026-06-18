@@ -804,6 +804,10 @@ public class GTGuiTextures {
 
     public static final UITexture RGB_GRADIENT = fullImage("textures/gui/widget/rgb_gradient.png");
 
+    public static final UITexture MAINTENANCE_ICON = fullImage("textures/gui/widget/button_maintenance.png",
+            ColorType.DEFAULT);
+
+    public static final UITexture SPEAKER_ICON = fullImage("textures/gui/widget/speaker.png");
     public static void init() {/**/}
 
     public static UITexture fullImage(String path) {
