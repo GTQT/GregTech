@@ -14,9 +14,9 @@ import java.util.Objects;
  * <p>For a single-piece definition, the per-piece list contains exactly one entry and
  * {@link #getFingerMin()} equals {@link #getFingerMax()}. For a multi-piece definition,
  * {@link #getFingerMin()} and {@link #getFingerMax()} may differ when at least one piece
- * is a repeatable group; {@link #getPalmMin()}/{@link #getPalmMax()} and
- * {@link #getThumbMin()}/{@link #getThumbMax()} may also differ when pieces have
- * different palm/thumb dimensions (uncommon, but possible).
+ * repeats along the finger axis; {@link #getPalmMin()}/{@link #getPalmMax()} and
+ * {@link #getThumbMin()}/{@link #getThumbMax()} may likewise differ for repeat groups
+ * that expand along the palm or thumb axis.
  *
  * <p>Use {@link #formatTooltip()} to obtain a human-readable string already collapsing
  * ranges (e.g. "5 x 3 x 9" for a fixed single piece, "5 x 3 x 3..9" for a single
@@ -37,14 +37,14 @@ public final class StructureSizeDescriptor {
         if (pieceSizes.isEmpty()) {
             throw new IllegalArgumentException("pieceSizes must not be empty");
         }
-        int pMin = Integer.MAX_VALUE, pMax = Integer.MIN_VALUE;
-        int tMin = Integer.MAX_VALUE, tMax = Integer.MIN_VALUE;
+        int pMin = 0, pMax = 0;
+        int tMin = 0, tMax = 0;
         int fMin = 0, fMax = 0;
         for (PieceSize ps : pieceSizes) {
-            pMin = Math.min(pMin, ps.palm);
-            pMax = Math.max(pMax, ps.palm);
-            tMin = Math.min(tMin, ps.thumb);
-            tMax = Math.max(tMax, ps.thumb);
+            pMin = Math.max(pMin, ps.palmMin);
+            pMax = Math.max(pMax, ps.palmMax);
+            tMin = Math.max(tMin, ps.thumbMin);
+            tMax = Math.max(tMax, ps.thumbMax);
             fMin += ps.fingerMin;
             fMax += ps.fingerMax;
         }
@@ -156,20 +156,31 @@ public final class StructureSizeDescriptor {
     }
 
     /**
-     * Per-piece pattern-local size (palm x thumb x finger range).
+     * Per-piece pattern-local size ranges (palm x thumb x finger).
      */
     public static final class PieceSize {
 
         private final String pieceName;
-        private final int palm;
-        private final int thumb;
+        private final int palmMin;
+        private final int palmMax;
+        private final int thumbMin;
+        private final int thumbMax;
         private final int fingerMin;
         private final int fingerMax;
 
         public PieceSize(@NotNull String pieceName, int palm, int thumb, int fingerMin, int fingerMax) {
+            this(pieceName, palm, palm, thumb, thumb, fingerMin, fingerMax);
+        }
+
+        public PieceSize(@NotNull String pieceName,
+                         int palmMin, int palmMax,
+                         int thumbMin, int thumbMax,
+                         int fingerMin, int fingerMax) {
             this.pieceName = Objects.requireNonNull(pieceName, "pieceName");
-            this.palm = palm;
-            this.thumb = thumb;
+            this.palmMin = palmMin;
+            this.palmMax = palmMax;
+            this.thumbMin = thumbMin;
+            this.thumbMax = thumbMax;
             this.fingerMin = fingerMin;
             this.fingerMax = fingerMax;
         }
@@ -180,11 +191,27 @@ public final class StructureSizeDescriptor {
         }
 
         public int getPalm() {
-            return palm;
+            return palmMax;
+        }
+
+        public int getPalmMin() {
+            return palmMin;
+        }
+
+        public int getPalmMax() {
+            return palmMax;
         }
 
         public int getThumb() {
-            return thumb;
+            return thumbMax;
+        }
+
+        public int getThumbMin() {
+            return thumbMin;
+        }
+
+        public int getThumbMax() {
+            return thumbMax;
         }
 
         public int getFingerMin() {

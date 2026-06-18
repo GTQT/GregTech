@@ -15,6 +15,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.TextFormattingUtil;
@@ -55,15 +56,17 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     private static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:data_bank", () -> DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+            "gregtech:data_bank", () -> DeclarativePatternBuilder.start(BACK, UP, RIGHT)
                     .piece("top")
                         .aisle("XXX", "XXX", "XXX")
                     .repeatablePiece("body1", 1, 3)
                         .aisle("CDD", "CAD", "CDD")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("middle")
                         .aisle("CDD", "SAD", "CDD")
                     .repeatablePiece("body2", 1, 3)
                         .aisle("CDD", "CAD", "CDD")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("bottom")
                         .aisle("XXX", "XXX", "XXX")
                     .self('S', MetaTileEntityDataBank.class)

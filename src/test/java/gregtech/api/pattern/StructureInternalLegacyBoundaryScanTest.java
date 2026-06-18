@@ -277,6 +277,19 @@ class StructureInternalLegacyBoundaryScanTest {
     }
 
     @Test
+    void dataBankMigrationKeepsPreV3HorizontalAxis() throws IOException {
+        String path = "gregtech/common/metatileentities/multi/electric/MetaTileEntityDataBank.java";
+        String source = readSource(path);
+        if (!source.contains("DeclarativePatternBuilder.start(BACK, UP, RIGHT)")) {
+            fail(path + ": Data Bank must use V3 BACK depth and extend horizontally along RIGHT");
+        }
+        String lengthChannel = ".withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())";
+        if (countOccurrences(source, lengthChannel) != 2) {
+            fail(path + ": both Data Bank repeatable bodies must use the shared structure-length channel");
+        }
+    }
+
+    @Test
     void gregTechControllersDoNotBuildLegacyTemplatesInternally() throws IOException {
         List<String> violations = new ArrayList<>();
         scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT), (source, lines) -> {
@@ -392,6 +405,16 @@ class StructureInternalLegacyBoundaryScanTest {
         return new String(
                 Files.readAllBytes(SOURCE_ROOT.resolve(path)),
                 StandardCharsets.UTF_8);
+    }
+
+    private static int countOccurrences(@NotNull String source, @NotNull String value) {
+        int count = 0;
+        int offset = 0;
+        while ((offset = source.indexOf(value, offset)) >= 0) {
+            count++;
+            offset += value.length();
+        }
+        return count;
     }
 
     private static boolean isAllowedBridge(@NotNull String path, int lineNumber, @NotNull String line) {

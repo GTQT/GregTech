@@ -408,8 +408,8 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * Get a {@link StructureSizeDescriptor} describing the pattern-local footprint of
      * this definition. For a single-piece definition the descriptor contains exactly
      * one entry and (typically) min == max on every axis. For a multi-piece definition
-     * the descriptor sums per-piece extents so the result reflects the overall world
-     * footprint of the structure.
+     * the descriptor combines per-piece width/height extents and sums their sequential
+     * aisle extents so the result reflects the overall pattern-local footprint.
      *
      * <p>Computation is lazy and cached for the lifetime of this {@code StructureDefinition},
      * which is itself held in {@link TemplatePool} behind a soft reference.
@@ -426,15 +426,43 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             List<PieceSize> sizes = new ArrayList<>(mpp.getPieceList().size());
             for (StructurePiece piece : mpp.getPieceList()) {
                 BlockPatternTemplate tpl = piece.getTemplate();
-                int palm = tpl.getXLength();
-                int thumb = tpl.getYLength();
+                int palmMin = tpl.getXLength();
+                int palmMax = palmMin;
+                int thumbMin = tpl.getYLength();
+                int thumbMax = thumbMin;
                 int fingerMin = 0;
                 int fingerMax = 0;
                 for (BlockPatternTemplate.AisleDef aisle : tpl.getAisles()) {
                     fingerMin += aisle.minRepeat();
                     fingerMax += aisle.maxRepeat();
                 }
-                sizes.add(new PieceSize(piece.getName(), palm, thumb, fingerMin, fingerMax));
+                if (piece instanceof RepeatGroupPiece repeatPiece) {
+                    int[] axes = repeatPiece.getRepeatAxes();
+                    int[][] ranges = repeatPiece.getRepeatRanges();
+                    int[] steps = repeatPiece.getStepSizes();
+                    for (int i = 0; i < axes.length; i++) {
+                        int minGrowth = Math.abs(steps[i]) * (ranges[i][0] - 1);
+                        int maxGrowth = Math.abs(steps[i]) * (ranges[i][1] - 1);
+                        switch (axes[i]) {
+                            case 0 -> {
+                                palmMin += minGrowth;
+                                palmMax += maxGrowth;
+                            }
+                            case 1 -> {
+                                thumbMin += minGrowth;
+                                thumbMax += maxGrowth;
+                            }
+                            case 2 -> {
+                                fingerMin += minGrowth;
+                                fingerMax += maxGrowth;
+                            }
+                            default -> throw new IllegalStateException(
+                                    "Invalid repeat axis " + axes[i] + " in piece '" + piece.getName() + "'");
+                        }
+                    }
+                }
+                sizes.add(new PieceSize(
+                        piece.getName(), palmMin, palmMax, thumbMin, thumbMax, fingerMin, fingerMax));
             }
             local = StructureSizeDescriptor.of(sizes);
             sizeDescriptor = local;
