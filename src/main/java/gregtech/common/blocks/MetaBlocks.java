@@ -19,10 +19,11 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.function.TriConsumer;
 import gregtech.client.model.SimpleStateMapper;
 import gregtech.client.model.modelfactories.BakedModelHandler;
-import gregtech.client.renderer.handler.MetaTileEntityRenderer;
-import gregtech.client.renderer.handler.MetaTileEntityTESR;
 import gregtech.client.renderer.godforge.GodforgeRenderTileEntity;
 import gregtech.client.renderer.godforge.GodforgeStarRenderer;
+import gregtech.client.renderer.handler.MetaTileEntityRenderer;
+import gregtech.client.renderer.handler.MetaTileEntityTESR;
+import gregtech.client.renderer.handler.TileEntityTreeTapRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
@@ -42,7 +43,9 @@ import gregtech.common.blocks.wood.BlockRubberDoor;
 import gregtech.common.blocks.wood.BlockRubberLeaves;
 import gregtech.common.blocks.wood.BlockRubberLog;
 import gregtech.common.blocks.wood.BlockRubberSapling;
+import gregtech.common.blocks.wood.BlockTreeTap;
 import gregtech.common.blocks.wood.BlockWoodenDoor;
+import gregtech.common.blocks.wood.TileEntityTreeTap;
 import gregtech.common.items.MetaItems;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.Insulation;
@@ -113,8 +116,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static gregtech.api.unification.material.info.MaterialFlags.FORCE_GENERATE_BLOCK;
-import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_FRAME;
+import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.util.GTUtility.gregtechId;
 
 public class MetaBlocks {
@@ -169,6 +171,7 @@ public class MetaBlocks {
     public static BlockRubberLog RUBBER_LOG;
     public static BlockRubberLeaves RUBBER_LEAVES;
     public static BlockRubberSapling RUBBER_SAPLING;
+    public static BlockTreeTap TREE_TAP;
     public static BlockGregPlanks PLANKS;
     public static BlockGregWoodSlab WOOD_SLAB;
     public static BlockGregWoodSlab DOUBLE_WOOD_SLAB;
@@ -191,10 +194,12 @@ public class MetaBlocks {
 
     public static final Map<Material, BlockCompressed> COMPRESSED = new Object2ObjectOpenHashMap<>();
     public static final Map<Material, BlockFrame> FRAMES = new Object2ObjectOpenHashMap<>();
+    public static final Map<Material, BlockSheet> SHEETS = new Object2ObjectOpenHashMap<>();
     public static final Map<Material, BlockSurfaceRock> SURFACE_ROCK = new Object2ObjectOpenHashMap<>();
 
     public static final List<BlockCompressed> COMPRESSED_BLOCKS = new ArrayList<>();
     public static final List<BlockFrame> FRAME_BLOCKS = new ArrayList<>();
+    public static final List<BlockSheet> SHEET_BLOCKS = new ArrayList<>();
     public static final List<BlockSurfaceRock> SURFACE_ROCK_BLOCKS = new ArrayList<>();
 
     public static final List<BlockOre> ORES = new ArrayList<>();
@@ -324,6 +329,8 @@ public class MetaBlocks {
 
         RUBBER_LOG = new BlockRubberLog();
         RUBBER_LOG.setRegistryName("rubber_log");
+        TREE_TAP = new BlockTreeTap();
+        TREE_TAP.setRegistryName("tree_tap");
         RUBBER_LEAVES = new BlockRubberLeaves();
         RUBBER_LEAVES.setRegistryName("rubber_leaves");
         RUBBER_SAPLING = new BlockRubberSapling();
@@ -377,6 +384,10 @@ public class MetaBlocks {
                 material -> (material.hasProperty(PropertyKey.INGOT) || material.hasProperty(PropertyKey.GEM) ||
                         material.hasFlag(FORCE_GENERATE_BLOCK)) && !OrePrefix.block.isIgnored(material),
                 MetaBlocks::createCompressedBlock);
+
+        createGeneratedBlock(
+                material -> material.hasFlag(GENERATE_SHEET) && !OrePrefix.sheet.isIgnored(material),
+                MetaBlocks::createSheetBlock);
 
         registerTileEntity();
 
@@ -448,6 +459,15 @@ public class MetaBlocks {
         FRAME_BLOCKS.add(block);
     }
 
+    private static void createSheetBlock(String modid, Material[] materials, int index) {
+        BlockSheet block = BlockSheet.create(materials);
+        block.setRegistryName(modid, "meta_block_sheet_" + index);
+        for (Material m : materials) {
+            SHEETS.put(m, block);
+        }
+        SHEET_BLOCKS.add(block);
+    }
+
     private static void createSurfaceRockBlock(String modid, Material[] materials, int index) {
         BlockSurfaceRock block = BlockSurfaceRock.create(materials);
         block.setRegistryName(modid, "meta_block_surface_rock_" + index);
@@ -470,6 +490,7 @@ public class MetaBlocks {
         GameRegistry.registerTileEntity(TileEntityFluidPipeTickable.class, gregtechId("fluid_pipe_active"));
         GameRegistry.registerTileEntity(TileEntityItemPipeTickable.class, gregtechId("item_pipe_active"));
         GameRegistry.registerTileEntity(GodforgeRenderTileEntity.class, gregtechId("godforge_render"));
+        GameRegistry.registerTileEntity(TileEntityTreeTap.class, gregtechId("tree_tap"));
     }
 
     @SideOnly(Side.CLIENT)
@@ -512,6 +533,7 @@ public class MetaBlocks {
         registerItemModel(RUBBER_LOG);
         registerItemModel(RUBBER_LEAVES);
         registerItemModel(RUBBER_SAPLING);
+        registerItemModel(TREE_TAP);
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(RUBBER_SAPLING), 0,
                 new ModelResourceLocation(Objects.requireNonNull(RUBBER_SAPLING.getRegistryName()), "inventory"));
         registerItemModel(PLANKS);
@@ -557,6 +579,7 @@ public class MetaBlocks {
 
         for (BlockCompressed block : COMPRESSED_BLOCKS) block.onModelRegister();
         for (BlockFrame block : FRAME_BLOCKS) block.onModelRegister();
+        for (BlockSheet block : SHEET_BLOCKS) block.onModelRegister();
         for (BlockOre block : ORES) block.onModelRegister();
     }
 
@@ -644,6 +667,7 @@ public class MetaBlocks {
 
         ClientRegistry.bindTileEntitySpecialRenderer(MetaTileEntityHolder.class, new MetaTileEntityTESR());
         ClientRegistry.bindTileEntitySpecialRenderer(GodforgeRenderTileEntity.class, new GodforgeStarRenderer());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityTreeTap.class, new TileEntityTreeTapRenderer());
     }
 
     @SideOnly(Side.CLIENT)
@@ -666,6 +690,11 @@ public class MetaBlocks {
         }
 
         for (BlockFrame block : FRAME_BLOCKS) {
+            blockColors.registerBlockColorHandler((s, w, p, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
+            itemColors.registerItemColorHandler((s, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
+        }
+
+        for (BlockSheet block : SHEET_BLOCKS) {
             blockColors.registerBlockColorHandler((s, w, p, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
             itemColors.registerItemColorHandler((s, i) -> block.getGtMaterial(s).getMaterialRGB(), block);
         }
@@ -741,6 +770,13 @@ public class MetaBlocks {
             BlockFrame block = entry.getValue();
             ItemStack itemStack = block.getItem(material);
             OreDictUnifier.registerOre(itemStack, OrePrefix.frameGt, material);
+        }
+
+        for (Entry<Material, BlockSheet> entry : SHEETS.entrySet()) {
+            Material material = entry.getKey();
+            BlockSheet block = entry.getValue();
+            ItemStack itemStack = block.getItem(material);
+            OreDictUnifier.registerOre(itemStack, OrePrefix.sheet, material);
         }
 
         for (BlockOre blockOre : ORES) {

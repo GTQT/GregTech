@@ -36,8 +36,8 @@ import net.minecraftforge.items.ItemStackHandler;
 import appeng.api.AEApi;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.util.item.AEItemStack;
 import appeng.tile.grid.AENetworkPowerTile;
+import appeng.util.item.AEItemStack;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
@@ -51,7 +51,6 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
-import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
@@ -69,26 +68,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
-import static gtqt.api.util.AE2PatternCompat.createPatternIngredientTag;
-import static gtqt.api.util.AE2PatternCompat.createProcessingPattern;
-import static gtqt.api.util.AE2PatternCompat.toFluidDrop;
+import static gtqt.api.util.AE2PatternCompat.*;
 
 public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPatternRegistrar
         implements IMEPatternProviderPart {
 
-    String input = "null";
-    String output = "null";
+    ArrayList<PrefixEntry> inputPrefixes = new ArrayList<>();
+    ArrayList<PrefixEntry> outputPrefixes = new ArrayList<>();
     ArrayList<String> blackList = new ArrayList<>();
     ArrayList<String> whiteTagList = new ArrayList<>();
     ArrayList<String> blackTagList = new ArrayList<>();
-    int inputNumber = 1;
-    int outputNumber = 1;
     ItemStackHandler extraInput = new ItemStackHandler(8);
     ItemStackHandler extraOutput = new ItemStackHandler(2);
 
@@ -116,13 +108,38 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
     public static List<String> stringToList(String str) {
         List<String> result = new ArrayList<>();
         if (str != null && !str.trim().isEmpty()) {
-            // 分割字符串，去除空白字符
             String[] parts = str.split(",");
             for (String part : parts) {
                 String trimmed = part.trim();
                 if (!trimmed.isEmpty()) {
                     result.add(trimmed);
                 }
+            }
+        }
+        return result;
+    }
+
+    public static String prefixEntriesToString(List<PrefixEntry> entries) {
+        if (entries == null || entries.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < entries.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(entries.get(i).prefix).append(":").append(entries.get(i).amount);
+        }
+        return sb.toString();
+    }
+
+    public static List<PrefixEntry> stringToPrefixEntries(String str) {
+        List<PrefixEntry> result = new ArrayList<>();
+        if (str != null && !str.trim().isEmpty()) {
+            String[] parts = str.split(",");
+            for (String part : parts) {
+                String trimmed = part.trim();
+                if (trimmed.isEmpty()) continue;
+                String[] pair = trimmed.split(":");
+                String prefix = pair[0];
+                int amount = pair.length > 1 ? Math.max(1, Integer.parseInt(pair[1])) : 1;
+                result.add(new PrefixEntry(prefix, amount));
             }
         }
         return result;
@@ -153,10 +170,8 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         data.setTag("ExtraInput", this.extraInput.serializeNBT());
         data.setTag("ExtraOutput", this.extraOutput.serializeNBT());
 
-        data.setInteger("inputNumber", inputNumber);
-        data.setInteger("outputNumber", outputNumber);
-        data.setString("input", input);
-        data.setString("output", output);
+        data.setString("inputPrefixes", prefixEntriesToString(inputPrefixes));
+        data.setString("outputPrefixes", prefixEntriesToString(outputPrefixes));
 
         data.setInteger("blackListSize", blackList.size());
         for (int i = 0; i < blackList.size(); i++) {
@@ -180,10 +195,13 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         this.extraInput.deserializeNBT(data.getCompoundTag("ExtraInput"));
         this.extraOutput.deserializeNBT(data.getCompoundTag("ExtraOutput"));
 
-        this.inputNumber = Math.max(1, data.getInteger("inputNumber"));
-        this.outputNumber = Math.max(1, data.getInteger("outputNumber"));
-        this.input = data.getString("input");
-        this.output = data.getString("output");
+        List<PrefixEntry> loaded = stringToPrefixEntries(data.getString("inputPrefixes"));
+        inputPrefixes.clear();
+        if (loaded != null) inputPrefixes.addAll(loaded);
+
+        loaded = stringToPrefixEntries(data.getString("outputPrefixes"));
+        outputPrefixes.clear();
+        if (loaded != null) outputPrefixes.addAll(loaded);
 
         blackList.clear();
         int size = data.getInteger("blackListSize");
@@ -224,64 +242,53 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         ArrayList<ItemStack> patterns = new ArrayList<>();
 
         // 1. 基础验证
-        if (Objects.equals(input, "null") || Objects.equals(output, "null") ||
-                inputNumber <= 0 || outputNumber <= 0) {
+        if (inputPrefixes.isEmpty() || outputPrefixes.isEmpty()) {
             return patterns;
         }
 
-        // 2. 获取OrePrefix (非流体时)
-        OrePrefix inputPrefix = null;
-        OrePrefix outputPrefix = null;
-
-        if (!input.equals("fluid")) {
-            inputPrefix = OrePrefix.getPrefix(input);
-            if (inputPrefix == null) return patterns;
-        }
-
-        if (!output.equals("fluid")) {
-            outputPrefix = OrePrefix.getPrefix(output);
-            if (outputPrefix == null) return patterns;
-        }
-
-        // ★ 核心：在调用层决策是否需要流体样板 ★
-        final boolean isFluidPattern = input.equals("fluid") || output.equals("fluid");
-
-        // 3. 材料过滤
+        // 2. 材料过滤
         List<MaterialFlag> whiteTag = MaterialFlag.getFlagListByName(whiteTagList);
         List<MaterialFlag> blackTag = MaterialFlag.getFlagListByName(blackTagList);
 
         for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
-            // 3.1 黑名单过滤
             if (blackList.contains(material.toString())) continue;
-
-            // 3.2 标签过滤
             if (!MaterialFlag.checkMaterialHasFlag(material, whiteTag, blackTag)) continue;
 
-            // 3.3 获取输入/输出物品
-            ItemStack inputStack;
-            ItemStack outputStack;
+            // 3. 笛卡尔积：遍历所有输入输出前缀条目
+            for (PrefixEntry inputEntry : inputPrefixes) {
+                for (PrefixEntry outputEntry : outputPrefixes) {
+                    String inPrefix = inputEntry.prefix;
+                    String outPrefix = outputEntry.prefix;
+                    boolean isFluidPattern = "fluid".equals(inPrefix) || "fluid".equals(outPrefix);
 
-            if (input.equals("fluid")) {
-                if (!material.hasFluid()) continue;
-                FluidStack fluid = material.getFluid(inputNumber);
-                inputStack = fluid == null ? ItemStack.EMPTY : toFluidDrop(fluid);
-            } else {
-                inputStack = OreDictUnifier.get(inputPrefix, material, inputNumber);
+                    ItemStack inputStack;
+                    ItemStack outputStack;
+
+                    if ("fluid".equals(inPrefix)) {
+                        if (!material.hasFluid()) continue;
+                        FluidStack fluid = material.getFluid(inputEntry.amount);
+                        inputStack = fluid == null ? ItemStack.EMPTY : toFluidDrop(fluid);
+                    } else {
+                        OrePrefix orePrefix = OrePrefix.getPrefix(inPrefix);
+                        if (orePrefix == null) continue;
+                        inputStack = OreDictUnifier.get(orePrefix, material, inputEntry.amount);
+                    }
+
+                    if ("fluid".equals(outPrefix)) {
+                        if (!material.hasFluid()) continue;
+                        FluidStack fluid = material.getFluid(outputEntry.amount);
+                        outputStack = fluid == null ? ItemStack.EMPTY : toFluidDrop(fluid);
+                    } else {
+                        OrePrefix orePrefix = OrePrefix.getPrefix(outPrefix);
+                        if (orePrefix == null) continue;
+                        outputStack = OreDictUnifier.get(orePrefix, material, outputEntry.amount);
+                    }
+
+                    if (inputStack.isEmpty() || outputStack.isEmpty()) continue;
+
+                    patterns.add(virtualCraftingPattern(inputStack, outputStack, true, isFluidPattern));
+                }
             }
-
-            if (output.equals("fluid")) {
-                if (!material.hasFluid()) continue;
-                FluidStack fluid = material.getFluid(outputNumber);
-                outputStack = fluid == null ? ItemStack.EMPTY : toFluidDrop(fluid);
-            } else {
-                outputStack = OreDictUnifier.get(outputPrefix, material, outputNumber);
-            }
-
-            // 3.4 有效性检查
-            if (inputStack.isEmpty() || outputStack.isEmpty()) continue;
-
-            // ★ 直接传递决策结果 ★
-            patterns.add(virtualCraftingPattern(inputStack, outputStack, true, isFluidPattern));
         }
         return patterns;
     }
@@ -436,107 +443,51 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
                     );
         }
 
-        // 1. 创建同步值 (绑定到字段)
-        StringSyncValue inputPrefixValue = new StringSyncValue(
-                () -> input, // getter
-                str -> {    // setter
-                    if (str != null && str.matches("[a-zA-Z0-9_]+")) { // 基础验证
-                        this.input = str;
-                    }
-                }
-        );
-
-        IntSyncValue inputNumberValue = new IntSyncValue(
-                () -> inputNumber,
-                num -> {
-                    if (num >= 1) this.inputNumber = num; // 堆叠大小限制
-                }
-        );
-
-        StringSyncValue outputPrefixValue = new StringSyncValue(
-                () -> output,
+        // 1. 创建同步值
+        StringSyncValue inputPrefixesValue = new StringSyncValue(
+                () -> prefixEntriesToString(inputPrefixes),
                 str -> {
-                    if (str != null && str.matches("[a-zA-Z0-9_]+")) {
-                        this.output = str;
+                    if (str != null) {
+                        List<PrefixEntry> newList = stringToPrefixEntries(str);
+                        inputPrefixes.clear();
+                        inputPrefixes.addAll(newList);
                     }
                 }
         );
 
-        IntSyncValue outputNumberValue = new IntSyncValue(
-                () -> outputNumber,
-                num -> {
-                    if (num >= 1) this.outputNumber = num;
+        StringSyncValue outputPrefixesValue = new StringSyncValue(
+                () -> prefixEntriesToString(outputPrefixes),
+                str -> {
+                    if (str != null) {
+                        List<PrefixEntry> newList = stringToPrefixEntries(str);
+                        outputPrefixes.clear();
+                        outputPrefixes.addAll(newList);
+                    }
                 }
         );
+
+        // 注册同步值
+        guiSyncManager.syncValue("inputPrefixes", inputPrefixesValue);
+        guiSyncManager.syncValue("outputPrefixes", outputPrefixesValue);
 
         List<List<IWidget>> weightText = new ArrayList<>();
 
-        // ★ 输入部分：单行包含前缀框+乘号+数量框 ★
+        // ★ 输入矿辞管理行 ★
         weightText.add(new ArrayList<>());
 
-        // 2.1 前缀文本框 (输入)
-        weightText.get(0).add(new TextFieldWidget()
-                .widthRel(0.5f)
+        TextFieldWidget inputPrefixTextField = new TextFieldWidget()
+                .widthRel(0.28f)
                 .height(20)
                 .setTextColor(Color.WHITE.darker(1))
-                .setValidator(str -> {
-                    // 保持OrePrefix格式
-                    if (str == null || str.isEmpty()) return "null";
-                    if (!str.matches("[a-zA-Z0-9_]+")) {
-                        return str.replaceAll("[^a-zA-Z0-9_]", "null"); // 移除非有效字符
-                    }
-                    return str;
-                })
-                .value(inputPrefixValue)
-                .background(GTGuiTextures.DISPLAY));
+                .background(GTGuiTextures.DISPLAY);
 
-        // 2.2 乘号分隔符
+        weightText.get(0).add(inputPrefixTextField);
         weightText.get(0).add(IKey.str(" x ").asWidget()
-                .widthRel(0.1f)
+                .widthRel(0.05f)
                 .height(20));
 
-        // 2.3 数量文本框 (输入)
-        weightText.get(0).add(new TextFieldWidget()
-                .widthRel(0.25f)
-                .height(20)
-                .setTextColor(Color.WHITE.darker(1))
-                .setValidator(str -> {
-                    if (str.isEmpty()) return "1";
-                    try {
-                        int num = Integer.parseInt(str);
-                        return String.valueOf(Math.max(1, num)); // 自动钳制范围
-                    } catch (NumberFormatException e) {
-                        return "0"; // 保持当前值
-                    }
-                })
-                .value(inputNumberValue) // 绑定到IntSyncValue
-                .background(GTGuiTextures.DISPLAY));
-
-        // ★ 输出部分：完全相同的结构 ★
-        weightText.add(new ArrayList<>());
-        // 3.1 前缀文本框 (输出)
-        weightText.get(1).add(new TextFieldWidget()
-                .widthRel(0.5f)
-                .height(20)
-                .setTextColor(Color.WHITE.darker(1))
-                .setValidator(str -> {
-                    if (str == null || str.isEmpty()) return "null";
-                    if (!str.matches("[a-zA-Z0-9_]+")) {
-                        return str.replaceAll("[^a-zA-Z0-9_]", "null");
-                    }
-                    return str;
-                })
-                .value(outputPrefixValue)
-                .background(GTGuiTextures.DISPLAY));
-
-        // 3.2 乘号分隔符
-        weightText.get(1).add(IKey.str(" x ").asWidget()
-                .widthRel(0.1f)
-                .height(20));
-
-        // 3.3 数量文本框 (输出)
-        weightText.get(1).add(new TextFieldWidget()
-                .widthRel(0.25f)
+        TextFieldWidget inputAmountTextField = new TextFieldWidget()
+                .widthRel(0.12f)
                 .height(20)
                 .setTextColor(Color.WHITE.darker(1))
                 .setValidator(str -> {
@@ -544,12 +495,116 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
                     try {
                         int num = Integer.parseInt(str);
                         return String.valueOf(Math.max(1, num));
-                    } catch (NumberFormatException e) {
-                        return "0";
-                    }
+                    } catch (NumberFormatException e) { return "1"; }
                 })
-                .value(outputNumberValue)
-                .background(GTGuiTextures.DISPLAY));
+                .background(GTGuiTextures.DISPLAY);
+        weightText.get(0).add(inputAmountTextField);
+
+        // Add 按钮
+        weightText.get(0).add(new ButtonWidget<>()
+                .size(18, 18)
+                .onMousePressed(mouseButton -> {
+                    String prefix = inputPrefixTextField.getText().trim();
+                    int amount;
+                    try {
+                        amount = Math.max(1, Integer.parseInt(inputAmountTextField.getText()));
+                    } catch (NumberFormatException e) { amount = 1; }
+                    if (!prefix.isEmpty()) {
+                        inputPrefixes.removeIf(e -> e.prefix.equals(prefix));
+                        inputPrefixes.add(new PrefixEntry(prefix, amount));
+                        inputPrefixesValue.setValue(prefixEntriesToString(inputPrefixes));
+                        guiSyncManager.getPlayer().sendMessage(
+                                new TextComponentTranslation(prefix + " x" + amount + " 已添加到输入矿辞"));
+                        inputPrefixTextField.setText("");
+                    }
+                    return true;
+                })
+                .overlay(GTGuiTextures.PLUS)
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("添加输入矿辞"))));
+
+        // Remove 按钮
+        weightText.get(0).add(new ButtonWidget<>()
+                .size(18, 18)
+                .onMousePressed(mouseButton -> {
+                    String value = inputPrefixTextField.getText().trim();
+                    if (!value.isEmpty()) {
+                        inputPrefixes.removeIf(e -> e.prefix.equals(value));
+                        inputPrefixesValue.setValue(prefixEntriesToString(inputPrefixes));
+                        guiSyncManager.getPlayer().sendMessage(
+                                new TextComponentTranslation(value + " 已从输入矿辞移除"));
+                        inputPrefixTextField.setText("");
+                    }
+                    return true;
+                })
+                .overlay(GTGuiTextures.MINUS)
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("移除输入矿辞"))));
+
+        // ★ 输出矿辞管理行 ★
+        weightText.add(new ArrayList<>());
+
+        TextFieldWidget outputPrefixTextField = new TextFieldWidget()
+                .widthRel(0.28f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .background(GTGuiTextures.DISPLAY);
+
+        weightText.get(1).add(outputPrefixTextField);
+        weightText.get(1).add(IKey.str(" x ").asWidget()
+                .widthRel(0.05f)
+                .height(20));
+
+        TextFieldWidget outputAmountTextField = new TextFieldWidget()
+                .widthRel(0.12f)
+                .height(20)
+                .setTextColor(Color.WHITE.darker(1))
+                .setValidator(str -> {
+                    if (str.isEmpty()) return "1";
+                    try {
+                        int num = Integer.parseInt(str);
+                        return String.valueOf(Math.max(1, num));
+                    } catch (NumberFormatException e) { return "1"; }
+                })
+                .background(GTGuiTextures.DISPLAY);
+        weightText.get(1).add(outputAmountTextField);
+
+        // Add 按钮
+        weightText.get(1).add(new ButtonWidget<>()
+                .size(18, 18)
+                .onMousePressed(mouseButton -> {
+                    String prefix = outputPrefixTextField.getText().trim();
+                    int amount;
+                    try {
+                        amount = Math.max(1, Integer.parseInt(outputAmountTextField.getText()));
+                    } catch (NumberFormatException e) { amount = 1; }
+                    if (!prefix.isEmpty()) {
+                        outputPrefixes.removeIf(e -> e.prefix.equals(prefix));
+                        outputPrefixes.add(new PrefixEntry(prefix, amount));
+                        outputPrefixesValue.setValue(prefixEntriesToString(outputPrefixes));
+                        guiSyncManager.getPlayer().sendMessage(
+                                new TextComponentTranslation(prefix + " x" + amount + " 已添加到输出矿辞"));
+                        outputPrefixTextField.setText("");
+                    }
+                    return true;
+                })
+                .overlay(GTGuiTextures.PLUS)
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("添加输出矿辞"))));
+
+        // Remove 按钮
+        weightText.get(1).add(new ButtonWidget<>()
+                .size(18, 18)
+                .onMousePressed(mouseButton -> {
+                    String value = outputPrefixTextField.getText().trim();
+                    if (!value.isEmpty()) {
+                        outputPrefixes.removeIf(e -> e.prefix.equals(value));
+                        outputPrefixesValue.setValue(prefixEntriesToString(outputPrefixes));
+                        guiSyncManager.getPlayer().sendMessage(
+                                new TextComponentTranslation(value + " 已从输出矿辞移除"));
+                        outputPrefixTextField.setText("");
+                    }
+                    return true;
+                })
+                .overlay(GTGuiTextures.MINUS)
+                .tooltip(tooltip -> tooltip.addLine(IKey.str("移除输出矿辞"))));
 
         // 在初始化时创建同步值
         StringSyncValue blackListValue = new StringSyncValue(
@@ -1198,7 +1253,7 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
             if (!buffer.isEmpty()) usedBuffers++;
         }
         return I18n.format("gregtech.machine.me_ore_prefix_pattern_provider.ui.link.status.buffers",
-                usedBuffers, MetaTileEntityMEPatternProvider.BUFFER_COUNT);
+                usedBuffers, master.getBufferCount());
     }
 
     @Override
@@ -1217,5 +1272,16 @@ public class MetaTileEntityMEOrePrefixPatternProvider extends MetaTileEntityAEPa
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
+    }
+
+    public static class PrefixEntry {
+
+        public String prefix;
+        public int amount;
+
+        public PrefixEntry(String prefix, int amount) {
+            this.prefix = prefix;
+            this.amount = amount;
+        }
     }
 }

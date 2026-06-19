@@ -32,6 +32,9 @@ death.attack.drill_mv=%s was drilled with 128V by %s
 death.attack.drill_hv=%s was drilled with 512V by %s
 death.attack.drill_ev=%s was drilled with 2048V by %s
 death.attack.drill_iv=%s was drilled with 8192V by %s
+death.attack.motorized_pestle_lv=%s was ground to dust with 32V  by %s
+death.attack.motorized_pestle_hv=%s was ground to dust with 512V by %s
+death.attack.motorized_pestle_iv=%s was ground to dust with 8192V by %s
 death.attack.hammer_drill_lv=%s was drilled with 32V by %s
 death.attack.hammer_drill_mv=%s was drilled with 128V by %s
 death.attack.hammer_drill_hv=%s was drilled with 512V by %s
@@ -97,12 +100,28 @@ gregtech.top.working_disabled=Working Disabled
 gregtech.top.energy_consumption=Using
 gregtech.top.energy_production=Producing
 gregtech.top.energy_required=Requires
+gregtech.top.parallel=Parallel
+gregtech.top.tread=Tread
+gregtech.top.batch=Batch Enabled
 
-gregtech.top.batch_enable=Batch Mode:On
-gregtech.top.batch_disable=Batch Mode:Off
+gregtech.top.batch_enable=Batch Mode On
+gregtech.top.batch_disable=Batch Mode Off
 
-gregtech.top.lock_enable=Lock Mode:On
-gregtech.top.lock_disable=Lock Mode:Off
+gregtech.top.lock_enable=Lock Mode On
+gregtech.top.lock_disable=Lock Mode Off
+
+gregtech.top.pollution=Pollution：
+gregtech.top.face=Face：
+gregtech.top.v=Voltage：
+gregtech.top.i=Amperage：
+gregtech.top.fusion_reactor.heat=Fusion Reactor Heat：
+gregtech.top.cleanroom=Cleanroom：
+gregtech.top.autoOutputItem=Auto-Output Items：
+gregtech.top.autoOutputFluid=Auto-Output Fluids：
+gregtech.top.outputs=Outputs：
+gregtech.top.pss.details=PSS Details：
+gregtech.top.averageInLastSec=Avg Input：
+gregtech.top.averageOutLastSec=Avg Output：
 
 gregtech.top.transform_up=Step Up
 gregtech.top.transform_down=Step Down
@@ -127,9 +146,6 @@ gregtech.top.maintenance.soft_mallet=Something is stuck
 gregtech.top.maintenance.hard_hammer=Plating is dented
 gregtech.top.maintenance.wire_cutter=Wires burned out
 gregtech.top.maintenance.crowbar=That doesn't belong there
-
-gregtech.top.tread=线程：
-gregtech.top.parallel=并行：
 
 gregtech.top.primitive_pump_production=Production:
 
@@ -1121,8 +1137,12 @@ metaitem.cover.ender_fluid_link.tooltip=Transports §fFluids§7 with a §fWirele
 metaitem.cover.ender_item_link.tooltip=Transports §fItems§7 with a §fWireless §dEnder§f Connection§7 as §fCover§7.
 
 metaitem.cover.air_vent.name=Air Vent
-metaitem.cover.air_vent.tooltip.1=When making §f covering plate§7, air is introduced into the pipe or machine §f§7, and the type of air depends on the current §f dimension§7.
+metaitem.cover.air_vent.tooltip.1=§fCollected Air§7 into Machines or Pipes as §fCover§7, the air type dependent with its §fdimension§7.
 metaitem.cover.air_vent.tooltip.2=§bTransfer Rate: §f%,d L/s
+
+metaitem.cover.drain.name=Drain
+metaitem.cover.drain.tooltip.1=§fExtracted Water§7 into Machines or Pipes as §fCover§7, required §fExisted Water§7 at orientated facing.
+metaitem.cover.drain.tooltip.2=§bExtract Rate: §f%,d L/s
 
 metaitem.gelled_toluene.name=Gelled Toluene
 metaitem.gelled_toluene.tooltip=Raw Explosive
@@ -1781,6 +1801,7 @@ item.material.oreprefix.toolHeadWrench=%s Wrench Tip
 item.material.oreprefix.turbineBlade=%s Turbine Blade
 item.material.oreprefix.block=Block of %s
 item.material.oreprefix.frameGt=%s Frame Box
+item.material.oreprefix.sheet=Sheet %s
 item.material.oreprefix.pipeTinyFluid=Tiny %s Fluid Pipe
 item.material.oreprefix.pipeSmallFluid=Small %s Fluid Pipe
 item.material.oreprefix.pipeNormalFluid=%s Fluid Pipe
@@ -2816,6 +2837,7 @@ tile.gt.reinforced_stone.name=Reinforced Stone
 tile.rubber_log.name=Rubber Wood
 tile.rubber_leaves.name=Rubber Tree Leaves
 tile.rubber_sapling.name=Rubber Tree Sapling
+tile.tree_tap.name=Tree Tap
 
 tile.planks.rubber.name=Rubber Wood Planks
 tile.planks.treated.name=Treated Wood Planks
@@ -5349,32 +5371,36 @@ gregtech.machine.loom.opv.name=Legendary Loom
 gregtech.machine.loom.opv.tooltip=Nano-Weaver
 
 # Roaster
+gregtech.machine.steam_roaster_bronze.name=§8Steam§f Roaster
+gregtech.machine.steam_roaster_bronze.tooltip=Not for baking bread
+gregtech.machine.steam_roaster_steel.name=§8High-Pressure Steam§f Roaster
+gregtech.machine.steam_roaster_steel.tooltip=Mineral processing from scratch
 gregtech.machine.roaster.lv.name=Basic Roaster
-gregtech.machine.roaster.lv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.lv.tooltip=Tailings re-refining
 gregtech.machine.roaster.mv.name=Advanced Roaster
-gregtech.machine.roaster.mv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.mv.tooltip=Tailings re-refining
 gregtech.machine.roaster.hv.name=Advanced Roaster II
-gregtech.machine.roaster.hv.tooltip=Material Drying Equipment
+gregtech.machine.roaster.hv.tooltip=Tailings re-refining
 gregtech.machine.roaster.ev.name=Advanced Roaster III
-gregtech.machine.roaster.ev.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.ev.tooltip=Tailings re-refining
 gregtech.machine.roaster.iv.name=Elite Roaster
-gregtech.machine.roaster.iv.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.iv.tooltip=Essence extractor
 gregtech.machine.roaster.luv.name=Elite Roaster II
-gregtech.machine.roaster.luv.tooltip=Mineral Roasting Device
+gregtech.machine.roaster.luv.tooltip=Essence extractor
 gregtech.machine.roaster.zpm.name=Elite Roaster III
-gregtech.machine.roaster.zpm.tooltip=Catalyst Activator
+gregtech.machine.roaster.zpm.tooltip=Essence extractor
 gregtech.machine.roaster.uv.name=Ultimate Roaster
-gregtech.machine.roaster.uv.tooltip=Catalyst Activator
+gregtech.machine.roaster.uv.tooltip=Essence extractor
 gregtech.machine.roaster.uhv.name=Epic Roaster
-gregtech.machine.roaster.uhv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uhv.tooltip=Ore dissociator
 gregtech.machine.roaster.uev.name=Epic Roaster II
-gregtech.machine.roaster.uev.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uev.tooltip=Ore dissociator
 gregtech.machine.roaster.uiv.name=Epic Roaster III
-gregtech.machine.roaster.uiv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uiv.tooltip=Ore dissociator
 gregtech.machine.roaster.uxv.name=Epic Roaster IV
-gregtech.machine.roaster.uxv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.uxv.tooltip=Ore dissociator
 gregtech.machine.roaster.opv.name=Legendary Roaster
-gregtech.machine.roaster.opv.tooltip=Ceramic Sintering Furnace
+gregtech.machine.roaster.opv.tooltip=Ore dissociator
 
 # Chemical Dehydrator
 gregtech.machine.chemical_dehydrator.lv.name=Basic Chemical Dehydrator
@@ -5463,7 +5489,6 @@ gregtech.machine.recycler.opv.tooltip=Molecular Decomposition Device
 # Vulcanizing Press
 gregtech.machine.steam_vulcanizing_press_bronze.name=蒸汽硫化机
 gregtech.machine.steam_vulcanizing_press_steel.name=高压蒸汽硫化机
-
 gregtech.machine.vulcanizing_press.lv.name=Basic Vulcanizing Press
 gregtech.machine.vulcanizing_press.lv.tooltip=Rubber Manufacturer
 gregtech.machine.vulcanizing_press.mv.name=Advanced Vulcanizing Press
@@ -7011,7 +7036,11 @@ gregtech.gui.config_slot.remove=§7Right click to §4clear§7 config slot.§r
 gregtech.gui.config_slot.auto_pull_managed=§4Disabled:§7 Managed by Auto-Pull
 gregtech.gui.me_bus.extra_slot=Extra Slot/n§7Put extra items for recipes here, like Molds or Lenses
 gregtech.gui.me_bus.auto_pull_button=Click to toggle automatic item pulling from ME
-gregtech.gui.alarm.radius=Radius:
+gregtech.gui.alarm.radius=Alarm Radius:
+gregtech.gui.alarm.sounds_popup_button=Select sound to play
+gregtech.gui.alarm.sounds_preview_button=Click to preview selected sound
+gregtech.gui.alarm.sounds=Sounds
+gregtech.gui.alarm.selected_sound=Selected sound
 gregtech.gui.item_passthrough.enabled=Item Passthough Enabled
 gregtech.gui.item_passthrough.disabled=Item Passthough Disabled
 gregtech.gui.fluid_passthrough.enabled=Fluid Passthough Enabled

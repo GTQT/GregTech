@@ -121,6 +121,11 @@ public class MaterialFlags {
             .requireProps(PropertyKey.DUST)
             .build();
 
+    public static final MaterialFlag GENERATE_SHEET = new MaterialFlag.Builder("generate_sheet")
+            .requireFlags(GENERATE_PLATE)
+            .requireProps(PropertyKey.INGOT)
+            .build();
+
     // 生成三重 四重 五重
     public static final MaterialFlag GENERATE_EXTRA = new MaterialFlag.Builder("generate_extra")
             .requireProps(PropertyKey.INGOT)

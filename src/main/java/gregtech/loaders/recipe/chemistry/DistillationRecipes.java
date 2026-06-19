@@ -8,7 +8,7 @@ import static gregtech.api.recipes.RecipeMaps.MIXER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
 import static gregtech.api.util.Mods.Names.GTFO;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class DistillationRecipes {
@@ -140,7 +140,7 @@ public class DistillationRecipes {
                 .duration(80).EUt(VA[MV])
                 .buildAndRegister();
 
-        if (!isModLoaded(GTQT_CORE)) {
+        if (!isModLoaded(GTQT_TEST)) {
             DISTILLATION_RECIPES.recipeBuilder()
                     .fluidInputs(CoalTar.getFluid(1000))
                     .chancedOutput(dust, Coke, 2500, 0)

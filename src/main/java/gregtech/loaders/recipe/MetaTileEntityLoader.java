@@ -41,7 +41,7 @@ import static gregtech.api.GTValues.L;
 import static gregtech.api.GTValues.VA;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.blocks.BlockBoilerCasing.BoilerCasingType.*;
 import static gregtech.common.blocks.BlockFireboxCasing.FireboxCasingType.*;
 import static gregtech.common.blocks.BlockHermeticCasing.HermeticCasingsType.*;
@@ -80,7 +80,7 @@ public class MetaTileEntityLoader {
                 9);
 
         // If these recipes are changed, change the values in MaterialInfoLoader.java
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             registerMachineRecipe(false, MetaTileEntities.HULL, "PLP", "CHC", 'P', HULL_PLATE, 'L', PLATE, 'C', CABLE,
                     'H', CASING);
 
@@ -569,6 +569,20 @@ public class MetaTileEntityLoader {
                 'S', new UnificationEntry(springSmall, WroughtIron),
                 'X', new UnificationEntry(gearSmall, Steel));
 
+        // Steam Roaster
+        ModHandler.addShapedRecipe(true, "roaster.bronze", MetaTileEntities.STEAM_ROASTER_BRONZE.getStackForm(),
+                "PRP", "PQP", "PHP",
+                'H', MetaBlocks.STEAM_CASING.getItemVariant(BlockSteamCasing.SteamCasingType.BRONZE_BRICKS_HULL),
+                'P', new UnificationEntry(pipeSmallFluid, Bronze),
+                'Q', new UnificationEntry(plate, Bronze),
+                'R', new UnificationEntry(rotor, Bronze));
+
+        ModHandler.addShapedRecipe(true, "roaster.steel", MetaTileEntities.STEAM_ROASTER_STEEL.getStackForm(),
+                "AAA", "QHQ", "PPP",
+                'H', MetaTileEntities.STEAM_ROASTER_BRONZE.getStackForm(),
+                'P', new UnificationEntry(pipeSmallFluid, TinAlloy),
+                'Q', new UnificationEntry(plate, Steel),
+                'A', new UnificationEntry(plate, WroughtIron));
 
         ModHandler.addShapedRecipe(true, "steam_miner", MetaTileEntities.STEAM_MINER.getStackForm(), "DSD", "SMS",
                 "GSG", 'M', MetaBlocks.STEAM_CASING.getItemVariant(BRONZE_HULL), 'S',
@@ -1026,7 +1040,7 @@ public class MetaTileEntityLoader {
         registerMachineRecipe(MetaTileEntities.CIRCUIT_ASSEMBLER, "RIE", "CHC", "WIW", 'R', ROBOT_ARM, 'I',
                 BETTER_CIRCUIT, 'E', EMITTER, 'C', CONVEYOR, 'H', HULL, 'W', CABLE);
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             registerMachineRecipe(MetaTileEntities.MASS_FABRICATOR, "CFC", "QMQ", "CFC", 'M', HULL, 'Q', CABLE_QUAD,
                     'C', BETTER_CIRCUIT, 'F', FIELD_GENERATOR);
             registerMachineRecipe(MetaTileEntities.REPLICATOR, "EFE", "CMC", "EQE", 'M', HULL, 'Q', CABLE_QUAD, 'C',

@@ -48,21 +48,21 @@ public class SecondDegreeMaterials {
         Olivine = Material.builder(2004, gregtechId("olivine"))
                 .gem().ore(2, 1)
                 .color(0x96FF96).iconSet(RUBY)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
                 .components(Magnesium, 2, Iron, 1, SiliconDioxide, 2)
                 .build();
 
         Opal = Material.builder(2005, gregtechId("opal"))
                 .gem().ore()
                 .color(0x0000FF).iconSet(OPAL)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, DECOMPOSITION_BY_CENTRIFUGING)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, DECOMPOSITION_BY_CENTRIFUGING)
                 .components(SiliconDioxide, 1)
                 .build();
 
         Amethyst = Material.builder(2006, gregtechId("amethyst"))
                 .gem(3).ore()
                 .color(0xD232D2).iconSet(RUBY)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
                 .components(SiliconDioxide, 4, Iron, 1)
                 .build();
 
@@ -96,7 +96,6 @@ public class SecondDegreeMaterials {
         BlackSteel = Material.builder(2011, gregtechId("black_steel"))
                 .ingot().fluid()
                 .color(0x646464).iconSet(METALLIC)
-                .flags(EXT_METAL)
                 .components(Nickel, 1, BlackBronze, 1, Steel, 3)
                 .cableProperties(V[EV], 3, 2)
                 .blast(1758, GasTier.LOW)
@@ -105,7 +104,6 @@ public class SecondDegreeMaterials {
         DamascusSteel = Material.builder(2012, gregtechId("damascus_steel"))
                 .ingot(3).fluid()
                 .color(0x6E6E6E).iconSet(METALLIC)
-                .flags(EXT_METAL)
                 .components(Steel, 1)
                 .toolStats(MaterialToolProperty.Builder.of(6.0F, 4.0F, 1024, 3)
                         .attackSpeed(0.3F).enchantability(33)
@@ -117,7 +115,7 @@ public class SecondDegreeMaterials {
         TungstenSteel = Material.builder(2013, gregtechId("tungsten_steel"))
                 .ingot(4).fluid()
                 .color(0x6464A0).iconSet(METALLIC)
-                .flags(EXT2_METAL)
+                .flags(GENERATE_SHEET, GENERATE_CURVED_PLATE)
                 .components(Steel, 1, Tungsten, 1)
                 .toolStats(MaterialToolProperty.Builder.of(9.0F, 7.0F, 2048, 4)
                         .enchantability(14).build())
@@ -134,7 +132,6 @@ public class SecondDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1202))
                 .color(0xB4B4A0).iconSet(METALLIC)
-                .flags(EXT2_METAL)
                 .components(Brass, 7, Aluminium, 1, Cobalt, 1)
                 .toolStats(MaterialToolProperty.Builder.of(2.5F, 2.0F, 1024, 2)
                         .attackSpeed(-0.2F).enchantability(5).build())
@@ -153,14 +150,14 @@ public class SecondDegreeMaterials {
         GarnetRed = Material.builder(2016, gregtechId("garnet_red"))
                 .gem().ore(4, 1)
                 .color(0xC85050).iconSet(RUBY)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, DECOMPOSITION_BY_CENTRIFUGING)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, DECOMPOSITION_BY_CENTRIFUGING)
                 .components(Pyrope, 3, Almandine, 5, Spessartine, 8)
                 .build();
 
         GarnetYellow = Material.builder(2017, gregtechId("garnet_yellow"))
                 .gem().ore(4, 1)
                 .color(0xC8C850).iconSet(RUBY)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, DECOMPOSITION_BY_CENTRIFUGING)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, DECOMPOSITION_BY_CENTRIFUGING)
                 .components(Andradite, 5, Grossular, 8, Uvarovite, 3)
                 .build();
 
@@ -286,7 +283,6 @@ public class SecondDegreeMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(2073))
                 .color(0xc0c0c0).iconSet(METALLIC)
-                .flags(EXT2_METAL)
                 .components(Vanadium, 1, Chrome, 1, Steel, 7)
                 .toolStats(MaterialToolProperty.Builder.of(3.0F, 3.0F, 1536, 3)
                         .attackSpeed(-0.2F).enchantability(5).build())
@@ -299,7 +295,6 @@ public class SecondDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1084))
                 .color(0xc99781).iconSet(METALLIC)
-                .flags(EXT2_METAL)
                 .components(Copper, 6, Tin, 2, Lead, 1)
                 .fluidPipeProperties(1456, 40, true)
                 .build();
@@ -325,7 +320,7 @@ public class SecondDegreeMaterials {
         NaquadahAlloy = Material.builder(2042, gregtechId("naquadah_alloy"))
                 .ingot(5).fluid()
                 .color(0x282828).iconSet(METALLIC)
-                .flags(EXT2_METAL)
+                .flags(GENERATE_CURVED_PLATE)
                 .components(Naquadah, 2, Osmiridium, 1, Trinium, 1)
                 .toolStats(MaterialToolProperty.Builder.of(40.0F, 12.0F, 3072, 5)
                         .attackSpeed(0.3F).enchantability(33).magnetic().build())
@@ -481,7 +476,7 @@ public class SecondDegreeMaterials {
         RhodiumPlatedPalladium = Material.builder(2062, gregtechId("rhodium_plated_palladium"))
                 .ingot().fluid()
                 .color(0xDAC5C5).iconSet(SHINY)
-                .flags(EXT2_METAL)
+                .flags(GENERATE_CURVED_PLATE)
                 .components(Palladium, 3, Rhodium, 1)
                 .rotorStats(12.0f, 3.0f, 1024)
                 .fluidPipeProperties(6200, 200, true, true, false, false)

@@ -51,8 +51,8 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
     private BlockPos mainPos;
     private boolean checkForMain = true;
 
-    public MetaTileEntityMEPatternProviderProxy(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, 6, false);
+    public MetaTileEntityMEPatternProviderProxy(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, tier, false);
     }
 
     private void tryToSetMain() {
@@ -219,7 +219,7 @@ public class MetaTileEntityMEPatternProviderProxy extends MetaTileEntityMultiblo
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMEPatternProviderProxy(metaTileEntityId);
+        return new MetaTileEntityMEPatternProviderProxy(metaTileEntityId, getTier());
     }
 
     @Override

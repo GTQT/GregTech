@@ -352,6 +352,8 @@ public class Textures {
     public static final SimpleOverlayRenderer DETECTOR_MAINTENANCE = new SimpleOverlayRenderer(
             "cover/overlay_maintenance_detector");
     public static final SimpleOverlayRenderer SOLAR_PANEL = new SimpleOverlayRenderer("cover/overlay_solar_panel");
+    public static final SimpleOverlayRenderer WIRELESS_ENERGY = new SimpleOverlayRenderer(
+            "cover/overlay_wireless_energy");
     public static final SimpleOverlayRenderer INFINITE_WATER = new SimpleOverlayRenderer(
             "cover/overlay_infinite_water");
     public static final SimpleOverlayRenderer FLUID_VOIDING = new SimpleOverlayRenderer("cover/overlay_fluid_voiding");
@@ -482,6 +484,8 @@ public class Textures {
             "cover/overlay_pump_inverted");
     public static final SimpleOverlayRenderer AIR_VENT_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_air_vent");
+    public static final SimpleOverlayRenderer DRAIN_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_drain");
     public static final SimpleOverlayRenderer BLOWER_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_blower");
     public static final SimpleOverlayRenderer BLOWER_ACTIVE_OVERLAY = new SimpleOverlayRenderer(

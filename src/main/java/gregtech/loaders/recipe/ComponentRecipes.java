@@ -119,7 +119,7 @@ public class ComponentRecipes {
                 .input(wireFine, Europium, 64)
                 .input(wireFine, Europium, 32)
                 .input(cableGtSingle, VanadiumGallium, 2)
-                .fluidInputs(HighGradeSolderingAlloy.getFluid(L*2))
+                .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 2))
                 .fluidInputs(MolybdeniteLubricant.getFluid(500))
                 .output(ELECTRIC_MOTOR_ZPM)
                 .scannerResearch(b -> b
@@ -136,7 +136,7 @@ public class ComponentRecipes {
                 .input(wireFine, Americium, 64)
                 .input(wireFine, Americium, 64)
                 .input(cableGtSingle, YttriumBariumCuprate, 2)
-                .fluidInputs(HighGradeSolderingAlloy.getFluid(L*4))
+                .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 4))
                 .fluidInputs(MolybdeniteLubricant.getFluid(1000))
                 .fluidInputs(Naquadria.getFluid(L * 4))
                 .output(ELECTRIC_MOTOR_UV)
@@ -183,50 +183,50 @@ public class ComponentRecipes {
                         'M',
                         ELECTRIC_MOTOR_IV.getStackForm());
 
+            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(cableGtSingle, Tin)
+                    .inputs(ELECTRIC_MOTOR_LV.getStackForm(2))
+                    .fluidInputs(materialEntry.getValue().getFluid(L * 6))
+                    .circuitMeta(1)
+                    .outputs(CONVEYOR_MODULE_LV.getStackForm())
+                    .duration(100).EUt(VA[LV]).buildAndRegister();
+
+            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(cableGtSingle, Copper)
+                    .inputs(ELECTRIC_MOTOR_MV.getStackForm(2))
+                    .fluidInputs(materialEntry.getValue().getFluid(L * 6))
+                    .circuitMeta(1)
+                    .outputs(CONVEYOR_MODULE_MV.getStackForm())
+                    .duration(100).EUt(VA[LV]).buildAndRegister();
+
+            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(cableGtSingle, Gold)
+                    .inputs(ELECTRIC_MOTOR_HV.getStackForm(2))
+                    .fluidInputs(materialEntry.getValue().getFluid(L * 6))
+                    .circuitMeta(1)
+                    .outputs(CONVEYOR_MODULE_HV.getStackForm())
+                    .duration(100).EUt(VA[LV]).buildAndRegister();
+
+            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(cableGtSingle, Aluminium)
+                    .inputs(ELECTRIC_MOTOR_EV.getStackForm(2))
+                    .fluidInputs(materialEntry.getValue().getFluid(L * 6))
+                    .circuitMeta(1)
+                    .outputs(CONVEYOR_MODULE_EV.getStackForm())
+                    .duration(100).EUt(VA[LV]).buildAndRegister();
+
+            if (!materialEntry.getValue().equals(Rubber))
+                COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                        .input(cableGtSingle, Tungsten)
+                        .inputs(ELECTRIC_MOTOR_IV.getStackForm(2))
+                        .fluidInputs(materialEntry.getValue().getFluid(L * 6))
+                        .circuitMeta(1)
+                        .outputs(CONVEYOR_MODULE_IV.getStackForm())
+                        .duration(100).EUt(VA[LV]).buildAndRegister();
+
+            // Pumps
+            // Start---------------------------------------------------------------------------------------------------
             if (!Loader.isModLoaded(GTQT_CORE)) {
-                COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                        .input(cableGtSingle, Tin)
-                        .inputs(ELECTRIC_MOTOR_LV.getStackForm(2))
-                        .fluidInputs(materialEntry.getValue().getFluid(L * 6))
-                        .circuitMeta(1)
-                        .outputs(CONVEYOR_MODULE_LV.getStackForm())
-                        .duration(100).EUt(VA[LV]).buildAndRegister();
-
-                COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                        .input(cableGtSingle, Copper)
-                        .inputs(ELECTRIC_MOTOR_MV.getStackForm(2))
-                        .fluidInputs(materialEntry.getValue().getFluid(L * 6))
-                        .circuitMeta(1)
-                        .outputs(CONVEYOR_MODULE_MV.getStackForm())
-                        .duration(100).EUt(VA[LV]).buildAndRegister();
-
-                COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                        .input(cableGtSingle, Gold)
-                        .inputs(ELECTRIC_MOTOR_HV.getStackForm(2))
-                        .fluidInputs(materialEntry.getValue().getFluid(L * 6))
-                        .circuitMeta(1)
-                        .outputs(CONVEYOR_MODULE_HV.getStackForm())
-                        .duration(100).EUt(VA[LV]).buildAndRegister();
-
-                COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                        .input(cableGtSingle, Aluminium)
-                        .inputs(ELECTRIC_MOTOR_EV.getStackForm(2))
-                        .fluidInputs(materialEntry.getValue().getFluid(L * 6))
-                        .circuitMeta(1)
-                        .outputs(CONVEYOR_MODULE_EV.getStackForm())
-                        .duration(100).EUt(VA[LV]).buildAndRegister();
-
-                if (!materialEntry.getValue().equals(Rubber))
-                    COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                            .input(cableGtSingle, Tungsten)
-                            .inputs(ELECTRIC_MOTOR_IV.getStackForm(2))
-                            .fluidInputs(materialEntry.getValue().getFluid(L * 6))
-                            .circuitMeta(1)
-                            .outputs(CONVEYOR_MODULE_IV.getStackForm())
-                            .duration(100).EUt(VA[LV]).buildAndRegister();
-
-                // Pumps
-                // Start---------------------------------------------------------------------------------------------------
                 ModHandler.addShapedRecipe(material.equals(Rubber), String.format("electric_pump_lv_%s", name),
                         ELECTRIC_PUMP_LV.getStackForm(), "SXR", "dPw", "RMC", 'S', new UnificationEntry(screw, Tin),
                         'X',
@@ -336,7 +336,7 @@ public class ComponentRecipes {
                 .input(round, Osmiridium, 16)
                 .input(screw, Osmiridium, 4)
                 .input(cableGtSingle, VanadiumGallium, 2)
-                .fluidInputs(HighGradeSolderingAlloy.getFluid(L*2))
+                .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 2))
                 .fluidInputs(MolybdeniteLubricant.getFluid(500))
                 .fluidInputs(StyreneButadieneRubber.getFluid(L * 16))
                 .output(CONVEYOR_MODULE_ZPM)
@@ -386,7 +386,7 @@ public class ComponentRecipes {
                 .input(ring, SiliconeRubber, 8)
                 .input(rotor, Osmiridium)
                 .input(cableGtSingle, VanadiumGallium, 2)
-                .fluidInputs(HighGradeSolderingAlloy.getFluid(L*2))
+                .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 2))
                 .fluidInputs(MolybdeniteLubricant.getFluid(500))
                 .output(ELECTRIC_PUMP_ZPM)
                 .scannerResearch(b -> b
@@ -403,7 +403,7 @@ public class ComponentRecipes {
                 .input(ring, SiliconeRubber, 16)
                 .input(rotor, NaquadahAlloy)
                 .input(cableGtSingle, YttriumBariumCuprate, 2)
-                .fluidInputs(HighGradeSolderingAlloy.getFluid(L*4))
+                .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 4))
                 .fluidInputs(MolybdeniteLubricant.getFluid(1000))
                 .fluidInputs(Naquadria.getFluid(L * 4))
                 .output(ELECTRIC_PUMP_UV)
@@ -777,47 +777,47 @@ public class ComponentRecipes {
                     'W', new UnificationEntry(wireGtQuadruple, SamariumIronArsenicOxide), 'P',
                     new UnificationEntry(plateDouble, TungstenSteel), 'G', QUANTUM_STAR.getStackForm(), 'X',
                     new UnificationEntry(circuit, Tier.IV));
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(gem, EnderPearl)
-                    .input(plate, Steel, 2)
-                    .input(circuit, Tier.LV, 2)
-                    .input(wireGtQuadruple, ManganesePhosphide, 4)
-                    .outputs(FIELD_GENERATOR_LV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(gem, EnderEye)
-                    .input(plate, Aluminium, 2)
-                    .input(circuit, Tier.MV, 2)
-                    .input(wireGtQuadruple, MagnesiumDiboride, 4)
-                    .outputs(FIELD_GENERATOR_MV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(QUANTUM_EYE)
-                    .input(plate, StainlessSteel, 2)
-                    .input(circuit, Tier.HV, 2)
-                    .input(wireGtQuadruple, MercuryBariumCalciumCuprate, 4)
-                    .outputs(FIELD_GENERATOR_HV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(gem, NetherStar)
-                    .input(plateDouble, Titanium, 2)
-                    .input(circuit, Tier.EV, 2)
-                    .input(wireGtQuadruple, UraniumTriplatinum, 4)
-                    .outputs(FIELD_GENERATOR_EV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(QUANTUM_STAR)
-                    .input(plateDouble, TungstenSteel, 2)
-                    .input(circuit, Tier.IV, 2)
-                    .input(wireGtQuadruple, SamariumIronArsenicOxide, 4)
-                    .outputs(FIELD_GENERATOR_IV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
         }
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(gem, EnderPearl)
+                .input(plate, Steel, 2)
+                .input(circuit, Tier.LV, 2)
+                .input(wireGtQuadruple, ManganesePhosphide, 4)
+                .outputs(FIELD_GENERATOR_LV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(gem, EnderEye)
+                .input(plate, Aluminium, 2)
+                .input(circuit, Tier.MV, 2)
+                .input(wireGtQuadruple, MagnesiumDiboride, 4)
+                .outputs(FIELD_GENERATOR_MV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(QUANTUM_EYE)
+                .input(plate, StainlessSteel, 2)
+                .input(circuit, Tier.HV, 2)
+                .input(wireGtQuadruple, MercuryBariumCalciumCuprate, 4)
+                .outputs(FIELD_GENERATOR_HV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(gem, NetherStar)
+                .input(plateDouble, Titanium, 2)
+                .input(circuit, Tier.EV, 2)
+                .input(wireGtQuadruple, UraniumTriplatinum, 4)
+                .outputs(FIELD_GENERATOR_EV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(QUANTUM_STAR)
+                .input(plateDouble, TungstenSteel, 2)
+                .input(circuit, Tier.IV, 2)
+                .input(wireGtQuadruple, SamariumIronArsenicOxide, 4)
+                .outputs(FIELD_GENERATOR_IV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
 
         ASSEMBLY_LINE_RECIPES.recipeBuilder()
                 .input(frameGt, HSSS)
@@ -887,47 +887,46 @@ public class ComponentRecipes {
             ModHandler.addShapedRecipe(true, "sensor_iv", SENSOR_IV.getStackForm(), "P G", "PR ", "XPP", 'P',
                     new UnificationEntry(plate, TungstenSteel), 'R', new UnificationEntry(stick, Iridium), 'G',
                     QUANTUM_STAR.getStackForm(), 'X', new UnificationEntry(circuit, Tier.IV));
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Brass)
-                    .input(plate, Steel, 4)
-                    .input(circuit, Tier.LV)
-                    .input(gem, Quartzite)
-                    .outputs(SENSOR_LV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Electrum)
-                    .input(plate, Aluminium, 4)
-                    .input(circuit, Tier.MV)
-                    .input(gemFlawless, Emerald)
-                    .outputs(SENSOR_MV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Chrome)
-                    .input(plate, StainlessSteel, 4)
-                    .input(circuit, Tier.HV)
-                    .input(gem, EnderEye)
-                    .outputs(SENSOR_HV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Platinum)
-                    .input(plate, Titanium, 4)
-                    .input(circuit, Tier.EV)
-                    .input(QUANTUM_EYE)
-                    .outputs(SENSOR_EV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Iridium)
-                    .input(plate, TungstenSteel, 4)
-                    .input(circuit, Tier.IV)
-                    .input(QUANTUM_STAR)
-                    .outputs(SENSOR_IV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
         }
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Brass)
+                .input(plate, Steel, 4)
+                .input(circuit, Tier.LV)
+                .input(gem, Quartzite)
+                .outputs(SENSOR_LV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Electrum)
+                .input(plate, Aluminium, 4)
+                .input(circuit, Tier.MV)
+                .input(gemFlawless, Emerald)
+                .outputs(SENSOR_MV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Chrome)
+                .input(plate, StainlessSteel, 4)
+                .input(circuit, Tier.HV)
+                .input(gem, EnderEye)
+                .outputs(SENSOR_HV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Platinum)
+                .input(plate, Titanium, 4)
+                .input(circuit, Tier.EV)
+                .input(QUANTUM_EYE)
+                .outputs(SENSOR_EV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Iridium)
+                .input(plate, TungstenSteel, 4)
+                .input(circuit, Tier.IV)
+                .input(QUANTUM_STAR)
+                .outputs(SENSOR_IV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
 
         ASSEMBLY_LINE_RECIPES.recipeBuilder()
                 .input(frameGt, HSSS)
@@ -997,52 +996,52 @@ public class ComponentRecipes {
             ModHandler.addShapedRecipe(true, "emitter_iv", EMITTER_IV.getStackForm(), "CRX", "RGR", "XRC", 'R',
                     new UnificationEntry(stick, Iridium), 'C', new UnificationEntry(cableGtSingle, Tungsten), 'G',
                     QUANTUM_STAR.getStackForm(), 'X', new UnificationEntry(circuit, Tier.IV));
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Brass, 4)
-                    .input(cableGtSingle, Tin, 2)
-                    .input(circuit, Tier.LV, 2)
-                    .input(gem, Quartzite)
-                    .circuitMeta(1)
-                    .outputs(EMITTER_LV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Electrum, 4)
-                    .input(cableGtSingle, Copper, 2)
-                    .input(circuit, Tier.MV, 2)
-                    .input(gemFlawless, Emerald)
-                    .circuitMeta(1)
-                    .outputs(EMITTER_MV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Chrome, 4)
-                    .input(cableGtSingle, Gold, 2)
-                    .input(circuit, Tier.HV, 2)
-                    .input(gem, EnderEye)
-                    .circuitMeta(1)
-                    .outputs(EMITTER_HV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Platinum, 4)
-                    .input(cableGtSingle, Aluminium, 2)
-                    .input(circuit, Tier.EV, 2)
-                    .input(QUANTUM_EYE)
-                    .circuitMeta(1)
-                    .outputs(EMITTER_EV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
-
-            COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(stick, Iridium, 4)
-                    .input(cableGtSingle, Tungsten, 2)
-                    .input(circuit, Tier.IV, 2)
-                    .input(QUANTUM_STAR)
-                    .circuitMeta(1)
-                    .outputs(EMITTER_IV.getStackForm())
-                    .duration(100).EUt(VA[LV]).buildAndRegister();
         }
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Brass, 4)
+                .input(cableGtSingle, Tin, 2)
+                .input(circuit, Tier.LV, 2)
+                .input(gem, Quartzite)
+                .circuitMeta(1)
+                .outputs(EMITTER_LV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Electrum, 4)
+                .input(cableGtSingle, Copper, 2)
+                .input(circuit, Tier.MV, 2)
+                .input(gemFlawless, Emerald)
+                .circuitMeta(1)
+                .outputs(EMITTER_MV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Chrome, 4)
+                .input(cableGtSingle, Gold, 2)
+                .input(circuit, Tier.HV, 2)
+                .input(gem, EnderEye)
+                .circuitMeta(1)
+                .outputs(EMITTER_HV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Platinum, 4)
+                .input(cableGtSingle, Aluminium, 2)
+                .input(circuit, Tier.EV, 2)
+                .input(QUANTUM_EYE)
+                .circuitMeta(1)
+                .outputs(EMITTER_EV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
+        COMPONENT_ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Iridium, 4)
+                .input(cableGtSingle, Tungsten, 2)
+                .input(circuit, Tier.IV, 2)
+                .input(QUANTUM_STAR)
+                .circuitMeta(1)
+                .outputs(EMITTER_IV.getStackForm())
+                .duration(100).EUt(VA[LV]).buildAndRegister();
+
         ASSEMBLY_LINE_RECIPES.recipeBuilder()
                 .input(frameGt, HSSS)
                 .input(ELECTRIC_MOTOR_LuV)

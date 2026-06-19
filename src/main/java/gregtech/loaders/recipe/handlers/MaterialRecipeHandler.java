@@ -68,6 +68,7 @@ public class MaterialRecipeHandler {
 
         OrePrefix.block.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processBlock);
         OrePrefix.frameGt.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processFrame);
+        OrePrefix.sheet.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processSheet);
 
         OrePrefix.dust.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processDust);
         OrePrefix.dustSmall.addProcessingHandler(PropertyKey.DUST, MaterialRecipeHandler::processSmallDust);
@@ -600,6 +601,26 @@ public class MaterialRecipeHandler {
                 ModHandler.addShapedRecipe(String.format("nugget_assembling_%s", material),
                         gemStack, "XXX", "XXX", "XXX", 'X', new UnificationEntry(orePrefix, material));
             }
+        }
+    }
+
+    public static void processSheet(OrePrefix sheetPrefix, Material material, DustProperty property) {
+        if (material.hasFlag(GENERATE_SHEET)) {
+            int workingTier = material.getWorkingTier();
+            boolean isWoodenFrame = ModHandler.isMaterialWood(material);
+            ModHandler.addShapedRecipe(String.format("sheet_%s", material),
+                    OreDictUnifier.get(sheetPrefix, material, 2),
+                    "PSP", isWoodenFrame ? "SsS" : "SwS", "PSP",
+                    'S', new UnificationEntry(OrePrefix.stick, material),
+                    'P', new UnificationEntry(OrePrefix.plate, material));
+
+            RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(OrePrefix.plate, material, 2)
+                    .input(OrePrefix.stick, material, 2)
+                    .circuitMeta(4)
+                    .outputs(OreDictUnifier.get(sheetPrefix, material, 1))
+                    .EUt(GTUtility.scaleVoltage(VA[ULV], workingTier)).duration(64)
+                    .buildAndRegister();
         }
     }
 

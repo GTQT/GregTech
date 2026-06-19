@@ -8,7 +8,7 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 
 public class PetrochemRecipes {
 
@@ -30,7 +30,7 @@ public class PetrochemRecipes {
         lightlyCrack(RefineryGas, LightlyHydroCrackedGas, LightlySteamCrackedGas);
         severelyCrack(RefineryGas, SeverelyHydroCrackedGas, SeverelySteamCrackedGas);
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             DISTILLATION_RECIPES.recipeBuilder()
                     .fluidInputs(Oil.getFluid(50))
                     .fluidOutputs(SulfuricHeavyFuel.getFluid(15))

@@ -98,6 +98,7 @@ public class MaterialIconType {
     // BLOCK MODELS
     public static final MaterialIconType block = new MaterialIconType("block");
     public static final MaterialIconType frameGt = new MaterialIconType("frameGt");
+    public static final MaterialIconType sheet = new MaterialIconType("sheet");
 
     // USED FOR GREGIFICATION ADDON
     public static final MaterialIconType seed = new MaterialIconType("seed");

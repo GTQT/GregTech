@@ -502,4 +502,9 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
             isOxygenBoosted = false;
         }
     }
+
+    @Override
+    public boolean isBatchAllowed() {
+        return false;
+    }
 }

@@ -31,6 +31,11 @@ public class FilteredItemHandler extends GTItemStackHandler {
         super(metaTileEntity, stacks);
     }
 
+    public FilteredItemHandler(MetaTileEntity metaTileEntity, int size, Predicate<ItemStack> fillPredicate) {
+        super(metaTileEntity, size);
+        this.fillPredicate = fillPredicate;
+    }
+
     public FilteredItemHandler setFillPredicate(Predicate<ItemStack> fillPredicate) {
         this.fillPredicate = fillPredicate;
         return this;

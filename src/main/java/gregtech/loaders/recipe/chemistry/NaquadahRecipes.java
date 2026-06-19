@@ -5,6 +5,7 @@ import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
 import static gregtech.api.unification.ore.OrePrefix.ingotHot;
+import static gregtech.api.util.Mods.Names.GTQT_CORE;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class NaquadahRecipes {
@@ -45,7 +46,7 @@ public class NaquadahRecipes {
                 .fluidOutputs(Hydrogen.getFluid(2000))
                 .buildAndRegister();
 
-        if(!isModLoaded("gtqtcore")) {
+        if(!isModLoaded(GTQT_CORE)) {
             // STARTING POINT
             LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[LuV]).duration(600)
                     .fluidInputs(FluoroantimonicAcid.getFluid(1000))

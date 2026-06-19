@@ -28,6 +28,42 @@ gregtech.machine.programming_provider.tooltip.2=§7Insert any item to add its co
 gregtech.machine.programming_provider.tooltip.3=§7Connect AE Storage Bus for infinite ME network supply
 gregtech.machine.programming_provider.tooltip.4=§7Incoming programmable circuits will be destroyed
 
+# 无线能源覆盖版
+metaitem.wireless_energy_cover_input.ulv.name=Wireless Energy Input Cover (§8ULV§r)
+metaitem.wireless_energy_cover_input.lv.name=Wireless Energy Input Cover (§7LV§r)
+metaitem.wireless_energy_cover_input.mv.name=Wireless Energy Input Cover (§bMV§r)
+metaitem.wireless_energy_cover_input.hv.name=Wireless Energy Input Cover (§6HV§r)
+metaitem.wireless_energy_cover_input.ev.name=Wireless Energy Input Cover (§5EV§r)
+metaitem.wireless_energy_cover_input.iv.name=Wireless Energy Input Cover (§1IV§r)
+metaitem.wireless_energy_cover_input.luv.name=Wireless Energy Input Cover (§dLuV§r)
+metaitem.wireless_energy_cover_input.zpm.name=Wireless Energy Input Cover (§cZPM§r)
+metaitem.wireless_energy_cover_input.uv.name=Wireless Energy Input Cover (§3UV§r)
+metaitem.wireless_energy_cover_input.uhv.name=Wireless Energy Input Cover (§4UHV§r)
+metaitem.wireless_energy_cover_input.uev.name=Wireless Energy Input Cover (§aUEV§r)
+metaitem.wireless_energy_cover_input.uiv.name=Wireless Energy Input Cover (§2UIV§r)
+metaitem.wireless_energy_cover_input.uxv.name=Wireless Energy Input Cover (§eUXV§r)
+metaitem.wireless_energy_cover_input.opv.name=Wireless Energy Input Cover (§9OpV§r)
+metaitem.wireless_energy_cover_input.max.name=Wireless Energy Input Cover (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_input.tooltip=从无线网络中获取能量输入机器
+
+metaitem.wireless_energy_cover_output.ulv.name=Wireless Energy Output Cover (§8ULV§r)
+metaitem.wireless_energy_cover_output.lv.name=Wireless Energy Output Cover (§7LV§r)
+metaitem.wireless_energy_cover_output.mv.name=Wireless Energy Output Cover (§bMV§r)
+metaitem.wireless_energy_cover_output.hv.name=Wireless Energy Output Cover (§6HV§r)
+metaitem.wireless_energy_cover_output.ev.name=Wireless Energy Output Cover (§5EV§r)
+metaitem.wireless_energy_cover_output.iv.name=Wireless Energy Output Cover (§1IV§r)
+metaitem.wireless_energy_cover_output.luv.name=Wireless Energy Output Cover (§dLuV§r)
+metaitem.wireless_energy_cover_output.zpm.name=Wireless Energy Output Cover (§cZPM§r)
+metaitem.wireless_energy_cover_output.uv.name=Wireless Energy Output Cover (§3UV§r)
+metaitem.wireless_energy_cover_output.uhv.name=Wireless Energy Output Cover (§4UHV§r)
+metaitem.wireless_energy_cover_output.uev.name=Wireless Energy Output Cover (§aUEV§r)
+metaitem.wireless_energy_cover_output.uiv.name=Wireless Energy Output Cover (§2UIV§r)
+metaitem.wireless_energy_cover_output.uxv.name=Wireless Energy Output Cover (§eUXV§r)
+metaitem.wireless_energy_cover_output.opv.name=Wireless Energy Output Cover (§9OpV§r)
+metaitem.wireless_energy_cover_output.max.name=Wireless Energy Output Cover (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_output.tooltip=从机器中获取能量输入能量网络
 #  Universal Circuit Boards
 metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
 metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)
@@ -244,10 +280,6 @@ gregtech.machine.huge_dual_hatch.export.uxv.name=§eUXV§r Huge  Dual Output Hat
 gregtech.machine.huge_dual_hatch.export.opv.name=§9OpV§r Huge  Dual Output Hatch
 gregtech.machine.huge_dual_hatch.export.max.name=§c§lMAX§r Huge  Dual Output Hatch
 
-gregtech.machine.me_pattern_provider.name=Pattern Provider
-
-gregtech.machine.me_ore_prefix_pattern_provider.name=Ore Prefix Pattern Mapping Area
-
 gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r Complex Dual Hatch
 gregtech.machine.complex_dual_hatch.lv.name=§7LV§r Complex Dual Hatch
 gregtech.machine.complex_dual_hatch.mv.name=§bMV§r Complex Dual Hatch
@@ -400,14 +432,40 @@ gregtech.universal.tooltip.max_temperature=§eMax Temperature: §f%,d K
 
 gregtech.machine.me_dual_hatch.import.name=ME Input Bus
 gregtech.machine.me_dual_hatch.export.name=ME Output Bus
-gregtech.machine.me_pattern_provider_proxy.name=Pattern Provider Mirror
-gregtech.machine.huge_me_pattern_provider_proxy.name=Huge Pattern Mapping Slave
-gregtech.machine.huge_pattern_mapping_slave.name=Huge Pattern Mapping Slave
-gregtech.machine.huge_pattern_mapping_slave.tooltip.1=Huge Pattern Mapping Slave: Has 144 independent pattern slots and AE network connection
-gregtech.machine.pattern_mapping_slave.name=Pattern Mapping Slave
-
 gregtech.machine.me_ore_dict_bus.name=ME OreDict Input Bus
 gregtech.machine.me_pattern_manager.name=ME Pattern Manager
+gregtech.machine.me_ore_prefix_pattern_provider.name=Ore Prefix Pattern Mapping Area
+gregtech.machine.me_pattern_provider_proxy.name=Pattern Provider Mirror
+
+gregtech.machine.me_pattern_provider.lv.name=样板总成（§7LV§r）
+gregtech.machine.me_pattern_provider.mv.name=样板总成（§bMV§r）
+gregtech.machine.me_pattern_provider.hv.name=样板总成（§6HV§r）
+gregtech.machine.me_pattern_provider.ev.name=样板总成（§5EV§r）
+gregtech.machine.me_pattern_provider.iv.name=样板总成（§1IV§r）
+gregtech.machine.me_pattern_provider.luv.name=样板总成（§dLuV§r）
+gregtech.machine.me_pattern_provider.zpm.name=样板总成（§cZPM§r）
+gregtech.machine.me_pattern_provider.uv.name=样板总成（§3UV§r）
+gregtech.machine.me_pattern_provider.uhv.name=样板总成（§4UHV§r）
+gregtech.machine.me_pattern_provider.uev.name=样板总成（§aUEV§r）
+gregtech.machine.me_pattern_provider.uiv.name=样板总成（§2UIV§r）
+gregtech.machine.me_pattern_provider.uxv.name=样板总成（§eUXV§r）
+gregtech.machine.me_pattern_provider.opv.name=样板总成（§9OpV§r）
+gregtech.machine.me_pattern_provider.max.name=样板总成（§c§lMAX§r）
+
+gregtech.machine.pattern_mapping_slave.lv.name=样板映射区（§7LV§r）
+gregtech.machine.pattern_mapping_slave.mv.name=样板映射区（§bMV§r）
+gregtech.machine.pattern_mapping_slave.hv.name=样板映射区（§6HV§r）
+gregtech.machine.pattern_mapping_slave.ev.name=样板映射区（§5EV§r）
+gregtech.machine.pattern_mapping_slave.iv.name=样板映射区（§1IV§r）
+gregtech.machine.pattern_mapping_slave.luv.name=样板映射区（§dLuV§r）
+gregtech.machine.pattern_mapping_slave.zpm.name=样板映射区（§cZPM§r）
+gregtech.machine.pattern_mapping_slave.uv.name=样板映射区（§3UV§r）
+gregtech.machine.pattern_mapping_slave.uhv.name=样板映射区（§4UHV§r）
+gregtech.machine.pattern_mapping_slave.uev.name=样板映射区（§aUEV§r）
+gregtech.machine.pattern_mapping_slave.uiv.name=样板映射区（§2UIV§r）
+gregtech.machine.pattern_mapping_slave.uxv.name=样板映射区（§eUXV§r）
+gregtech.machine.pattern_mapping_slave.opv.name=样板映射区（§9OpV§r）
+gregtech.machine.pattern_mapping_slave.max.name=样板映射区（§c§lMAX§r）
 
 #Bee Attractor
 gregtech.machine.bee_attractor.ulv.name=原始引蜂器
@@ -445,7 +503,6 @@ gregtech.machine.huge_buffer.mv.name=Advanced Huge Buffer
 gregtech.machine.huge_buffer.hv.name=Advanced Huge Buffer II
 gregtech.machine.huge_buffer.ev.name=Advanced Huge Buffer III
 gregtech.machine.huge_buffer.iv.name=Elite Huge Buffer
-
 
 gregtech.machine.wireless_controller.ulv.name=Wireless Controller（§8ULV§r）
 gregtech.machine.wireless_controller.lv.name=Wireless Controller（§7LV§r）
@@ -967,6 +1024,7 @@ gregtech.machine.me_pattern.tooltip.1=Built-in pattern provider: Directly orders
 gregtech.machine.me_pattern.tooltip.2=Blocking Mode: Only allows item flows matching cached recipes in bus, blocks other recipe items
 gregtech.machine.me_pattern.tooltip.3=Buffer capacity raised to maximum, supports cumulative pattern pushing
 gregtech.machine.me_pattern.tooltip.buffer=Buffer Pool: Has %d independent buffers, same item combinations share a buffer, supports programmable circuit auto-unwrapping
+gregtech.machine.me_pattern.tooltip.buffer_size=Each buffer pool consists of an unlimited number of %s items, %s fluids, and %s programmable slots
 gregtech.machine.me_pattern.tooltip.refund=Refund: Automatically returns buffered items and fluids to AE network on removal, drops to ground if return fails
 gregtech.machine.me_pattern.tooltip.lock=Buffer Lock: Delays buffer release after recipe consumption, prevents recipe conflicts
 
@@ -1014,7 +1072,7 @@ gtqt.machine.me_pattern_proxy.tooltip.usage=Use a data stick to bind by right-cl
 gtqt.machine.me_pattern_proxy.tooltip.requirements=Can only bind to the main bus in the same dimension. Please ensure the corresponding chunks are loaded!
 
 gregtech.machine.pattern_mapping_slave.data_stick_use=Linked to Pattern Provider at [%s, %s, %s]
-gregtech.machine.pattern_mapping_slave.tooltip.1=Pattern Mapping Slave: Has 36 independent pattern slots and AE network connection
+gregtech.machine.pattern_mapping_slave.tooltip.1=Pattern Mapping Slave: Has %s independent pattern slots and AE network connection
 gregtech.machine.pattern_mapping_slave.tooltip.2=Links to a Pattern Provider (master) via data stick, forwards AE-pushed materials to master's buffer pool
 gregtech.machine.pattern_mapping_slave.tooltip.3=Right-click the Pattern Provider with a data stick to write coordinates, then right-click this block to link
 gregtech.machine.pattern_mapping_slave.ui.tab.patterns=Patterns

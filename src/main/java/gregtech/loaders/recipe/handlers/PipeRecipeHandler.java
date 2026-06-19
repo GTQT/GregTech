@@ -24,6 +24,8 @@ import static gregtech.api.unification.material.Materials.Glue;
 import static gregtech.api.unification.material.info.MaterialFlags.NO_SMASHING;
 import static gregtech.api.unification.ore.OrePrefix.plate;
 import static gregtech.api.unification.ore.OrePrefix.plateDouble;
+import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class PipeRecipeHandler {
 
@@ -61,13 +63,15 @@ public class PipeRecipeHandler {
         else if (pipePrefix == OrePrefix.pipeHugeRestrictive) unrestrictive = OrePrefix.pipeHugeItem;
         else return;
 
-        RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder()
-                .input(unrestrictive, material)
-                .input(OrePrefix.ring, Materials.Iron, 2)
-                .output(pipePrefix, material)
-                .duration(20)
-                .EUt(VA[ULV])
-                .buildAndRegister();
+        if(!isModLoaded(GTQT_CORE)) {
+            RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder()
+                    .input(unrestrictive, material)
+                    .input(OrePrefix.ring, Materials.Iron, 2)
+                    .output(pipePrefix, material)
+                    .duration(20)
+                    .EUt(VA[ULV])
+                    .buildAndRegister();
+        }
 
         ModHandler.addShapedRecipe(
                 CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, pipePrefix.toString()) + "_" +

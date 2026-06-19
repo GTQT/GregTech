@@ -1,13 +1,16 @@
 package gregtech.loaders;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.stack.MaterialStack;
 import gregtech.api.unification.stack.RecyclingData;
 import gregtech.common.ConfigHolder;
-import gregtech.common.blocks.*;
+import gregtech.common.blocks.BlockBatteryPart;
+import gregtech.common.blocks.BlockCleanroomCasing;
+import gregtech.common.blocks.BlockGlassCasing;
+import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.BlockWireCoil.CoilType;
+import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.loaders.recipe.WoodRecipeLoader;
 
@@ -19,7 +22,7 @@ import net.minecraftforge.fml.common.Loader;
 import static gregtech.api.GTValues.M;
 import static gregtech.api.GTValues.W;
 import static gregtech.api.unification.material.Materials.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.metatileentities.MetaTileEntities.LONG_DIST_FLUID_ENDPOINT;
 import static gregtech.common.metatileentities.MetaTileEntities.LONG_DIST_ITEM_ENDPOINT;
 
@@ -67,7 +70,7 @@ public class MaterialInfoLoader {
                         new MaterialStack(Materials.Trinium, M)) // ingot
         );
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             GregTechAPI.RECYCLING_MANAGER.registerRecyclingData(MetaTileEntities.HULL[0].getStackForm(), new RecyclingData(
                     new MaterialStack(Materials.WroughtIron, M * 8), // plate
                     new MaterialStack(Materials.RedAlloy, M), // single cable
@@ -131,7 +134,7 @@ public class MaterialInfoLoader {
                 new MaterialStack(Materials.Titanium, M * 8), // plate
                 new MaterialStack(Materials.Aluminium, M * 2), // single cable
                 new MaterialStack(Materials.Rubber, M * 4), // plate
-                new MaterialStack(Materials.TungstenSteel, M * 2), // fine wire
+                new MaterialStack(Materials.Platinum, M * 2), // fine wire
                 new MaterialStack(Materials.NeodymiumMagnetic, M / 2) // rod
         ));
 

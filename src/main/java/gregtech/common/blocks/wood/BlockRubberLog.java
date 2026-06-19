@@ -1,6 +1,7 @@
 package gregtech.common.blocks.wood;
 
 import gregtech.api.items.toolitem.ToolClasses;
+import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.items.MetaItems;
 
@@ -11,6 +12,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.IStringSerializable;
@@ -58,10 +60,8 @@ public class BlockRubberLog extends BlockLog {
     public @NotNull IBlockState getStateForPlacement(@NotNull World world, @NotNull BlockPos pos, EnumFacing facing,
                                                      float hitX, float hitY, float hitZ,
                                                      int meta, @NotNull EntityLivingBase placer, @NotNull EnumHand hand) {
-        // 根据放置方向确定轴
         EnumAxis axis = EnumAxis.fromFacingAxis(facing.getAxis());
 
-        // 返回对应轴的普通状态
         return switch (axis) {
             case X -> getDefaultState().withProperty(STATE, RubberWoodState.PLAIN_X);
             case Z -> getDefaultState().withProperty(STATE, RubberWoodState.PLAIN_Z);
@@ -69,14 +69,6 @@ public class BlockRubberLog extends BlockLog {
         };
     }
 
-    // 从原版BlockLog复制的方法，用于轴转换
-    public static EnumAxis fromFacingAxis(EnumFacing.Axis axis) {
-        return switch (axis) {
-            case X -> EnumAxis.X;
-            case Z -> EnumAxis.Z;
-            default -> EnumAxis.Y;
-        };
-    }
 
     @Override
     public void getDrops(@NotNull NonNullList<ItemStack> drops, @NotNull IBlockAccess world, @NotNull BlockPos pos,
@@ -101,6 +93,35 @@ public class BlockRubberLog extends BlockLog {
 
         ItemStack heldItem = player.getHeldItem(hand);
         RubberWoodState woodState = state.getValue(STATE);
+
+        // Shift+右键：放置 TE 木龙头
+        if (player.isSneaking() && isTreeTap(heldItem)) {
+            if (!world.isRemote) {
+                BlockPos tapPos = pos.offset(facing);
+                IBlockState tapTargetState = world.getBlockState(tapPos);
+
+                // 确保目标位置可放置
+                if (tapTargetState.getBlock().isReplaceable(world, tapPos)) {
+                    // 放置木龙头方块，ATTACHED_FACING 朝向橡胶木
+                    world.setBlockState(tapPos, MetaBlocks.TREE_TAP.getDefaultState()
+                            .withProperty(BlockTreeTap.ATTACHED_FACING, facing.getOpposite()));
+
+                    // 设置 TE
+                    TileEntity te = world.getTileEntity(tapPos);
+                    if (te instanceof TileEntityTreeTap) {
+                        int durability = heldItem.getMaxDamage() - heldItem.getItemDamage();
+                        ((TileEntityTreeTap) te).setDurability(durability);
+                        ((TileEntityTreeTap) te).setItemStack(heldItem.copy());
+                    }
+
+                    // 消耗玩家手中的木龙头
+                    if (!player.isCreative()) {
+                        heldItem.shrink(1);
+                    }
+                }
+            }
+            return true;
+        }
 
         // 检查是否使用木龙头且树干是湿状态（有树脂）
         if (isTreeTap(heldItem) && woodState.wet) {

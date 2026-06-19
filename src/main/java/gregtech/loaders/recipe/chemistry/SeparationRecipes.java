@@ -24,7 +24,7 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.api.util.Mods.Names.GT_STEAM;
 import static gregtech.common.items.MetaItems.PLANT_BALL;
 import static gregtech.common.items.MetaItems.STICKY_RESIN;
@@ -212,7 +212,7 @@ public class SeparationRecipes {
                 .chancedOutput(dust, Tantalite, 125, 35)
                 .buildAndRegister();
 
-        if (!isModLoaded(GTQT_CORE)) {
+        if (!isModLoaded(GTQT_TEST)) {
             CENTRIFUGE_RECIPES.recipeBuilder().duration(64).EUt(20)
                     .input(dust, RareEarth)
                     .chancedOutput(dustSmall, Cadmium, 2500, 400)
@@ -338,15 +338,17 @@ public class SeparationRecipes {
 
         ELECTROLYZER_RECIPES.recipeBuilder()
                 .fluidInputs(Water.getFluid(1000))
+                .circuitMeta(1)
                 .fluidOutputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(Oxygen.getFluid(1000))
                 .duration(1500).EUt(VA[LV]).buildAndRegister();
 
         ELECTROLYZER_RECIPES.recipeBuilder()
                 .fluidInputs(DistilledWater.getFluid(1000))
+                .circuitMeta(1)
                 .fluidOutputs(Hydrogen.getFluid(2000))
                 .fluidOutputs(Oxygen.getFluid(1000))
-                .duration(1500).EUt(VA[LV]).buildAndRegister();
+                .duration(1200).EUt(VA[LV]).buildAndRegister();
 
         ELECTROLYZER_RECIPES.recipeBuilder()
                 .inputs(new ItemStack(Items.DYE, 3))

@@ -18,14 +18,14 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.REPLICATOR_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.SCANNER_RECIPES;
 import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.items.MetaItems.*;
 
 public class UURecipes {
 
     public static void init() {
         initRecycleRecipe();
-        if (!Loader.isModLoaded(GTQT_CORE)) UUUtils();
+        if (!Loader.isModLoaded(GTQT_TEST)) UUUtils();
     }
 
     public static void initRecycleRecipe() {

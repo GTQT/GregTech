@@ -22,8 +22,8 @@ import net.minecraft.util.ResourceLocation;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
-import static gregtech.api.unification.material.Materials.Wood;
-import static gregtech.api.unification.ore.OrePrefix.slab;
+import static gregtech.api.unification.material.Materials.*;
+import static gregtech.api.unification.ore.OrePrefix.*;
 
 public class VanillaOverrideRecipes {
 
@@ -400,22 +400,52 @@ public class VanillaOverrideRecipes {
      */
     private static void metalRecipes() {
         ModHandler.removeRecipeByName(new ResourceLocation("minecraft:cauldron"));
-        ModHandler.addShapedRecipe("cauldron", new ItemStack(Items.CAULDRON), "X X", "XhX", "XXX",
-                'X', new UnificationEntry(OrePrefix.plate, Materials.Iron));
+        ModHandler.addShapedRecipe("cauldron", new ItemStack(Items.CAULDRON),
+                "C C", "ChC", "CPC",
+                'C', new UnificationEntry(plateCurved, Iron),
+                'P', new UnificationEntry(plate, Iron));
 
         ModHandler.removeRecipeByName(new ResourceLocation("minecraft:hopper"));
-        ModHandler.addShapedRecipe("hopper", new ItemStack(Blocks.HOPPER), "XCX", "XGX", "wXh",
-                'X', new UnificationEntry(OrePrefix.plate, Materials.Iron),
+        ModHandler.addShapedRecipe("hopper", new ItemStack(Blocks.HOPPER),
+                "UCU", "UGU", "wPh",
+                'U', new UnificationEntry(plateCurved, Iron),
                 'C', "chestWood",
-                'G', new UnificationEntry(OrePrefix.gearSmall, Materials.Iron));
+                'G', new UnificationEntry(gearSmall, Iron),
+                'P', new UnificationEntry(plate, Iron));
 
         ModHandler.removeRecipeByName(new ResourceLocation("minecraft:iron_bars"));
         ModHandler.addShapedRecipe("iron_bars", new ItemStack(Blocks.IRON_BARS, 8), " h ", "XXX", "XXX",
                 'X', new UnificationEntry(OrePrefix.stick, Materials.Iron));
 
-        ModHandler.addShapedRecipe("iron_bucket", new ItemStack(Items.BUCKET), "XhX", " X ", 'X',
-                new UnificationEntry(OrePrefix.plate, Materials.Iron));
         ModHandler.removeRecipeByName(new ResourceLocation("minecraft:bucket"));
+        ModHandler.addShapedRecipe("iron_bucket", new ItemStack(Items.BUCKET),
+                "ChC", " P ",
+                'C', new UnificationEntry(plateCurved, Iron),
+                'P', new UnificationEntry(plate, Iron));
+
+        //  Clock
+        ModHandler.removeRecipeByName("minecraft:clock");
+        ModHandler.addShapedRecipe("clock", new ItemStack(Items.CLOCK),
+                " C ", "CRC", " C ",
+                'C', new UnificationEntry(plateCurved, Gold),
+                'R', new UnificationEntry(bolt, RedAlloy));
+
+        //  Fishing Rod
+        ModHandler.removeRecipeByName("minecraft:fishing_rod");
+        ModHandler.addShapedRecipe("fishing_rod", new ItemStack(Items.FISHING_ROD),
+                "  R", " RS", "R I",
+                'R', new UnificationEntry(stickLong, Wood),
+                'S', "string",
+                'I', new UnificationEntry(ring, Iron));
+
+        //  Shears
+        ModHandler.removeRecipeByName("minecraft:shears");
+        ModHandler.addShapedRecipe("shears", new ItemStack(Items.SHEARS),
+                "PSP", "hRf", "XsX",
+                'P', new UnificationEntry(plate, Iron),
+                'S', new UnificationEntry(screw, Iron),
+                'R', new UnificationEntry(ring, Iron),
+                'X', new UnificationEntry(stick, Wood));
     }
 
     /**

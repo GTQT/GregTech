@@ -38,7 +38,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1358))
                 .color(0xFF8D3B).iconSet(BRIGHT)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_FINE_WIRE)
+                .flags(MORTAR_GRINDABLE, GENERATE_FINE_WIRE)
                 .components(Copper, 1)
                 .cableProperties(V[MV], 1, 1)
                 .build();
@@ -67,14 +67,13 @@ public class FirstDegreeMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(660))
                 .color(0x9C7CA0)
-                .flags(EXT_METAL)
                 .components(Lead, 4, Antimony, 1)
                 .build();
 
         BlueTopaz = Material.builder(257, gregtechId("blue_topaz"))
                 .gem(3).ore(2, 1)
                 .color(0x7B96DC).iconSet(GEM_HORIZONTAL)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
                 .components(Aluminium, 2, Silicon, 1, Fluorine, 2, Hydrogen, 2, Oxygen, 6)
                 .build();
 
@@ -89,7 +88,7 @@ public class FirstDegreeMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(1160))
                 .color(0xFFB400).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_DOUBLE_PLATE)
+                .flags(MORTAR_GRINDABLE, GENERATE_DOUBLE_PLATE)
                 .components(Zinc, 1, Copper, 3)
                 .rotorStats(8.0f, 3.0f, 152)
                 .itemPipeProperties(2048, 1)
@@ -99,8 +98,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1357))
                 .color(0xFF8000).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_FRAME, GENERATE_SMALL_GEAR,
-                        GENERATE_FOIL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(MORTAR_GRINDABLE,GENERATE_SHEET, GENERATE_CURVED_PLATE)
                 .components(Tin, 1, Copper, 3)
                 .toolStats(MaterialToolProperty.Builder.of(3.0F, 2.0F, 192, 2)
                         .enchantability(18).build())
@@ -197,7 +195,7 @@ public class FirstDegreeMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(1542))
                 .color(0xE39680).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_SPRING, GENERATE_FINE_WIRE, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_SPRING, GENERATE_FINE_WIRE, GENERATE_DOUBLE_PLATE)
                 .components(Copper, 1, Nickel, 1)
                 .itemPipeProperties(2048, 1)
                 .cableProperties(V[MV], 1, 1)
@@ -224,7 +222,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1285))
                 .color(0xFFFF64).iconSet(SHINY)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_FINE_WIRE, GENERATE_RING, GENERATE_DOUBLE_PLATE)
+                .flags(MORTAR_GRINDABLE, GENERATE_FINE_WIRE, GENERATE_RING, GENERATE_DOUBLE_PLATE)
                 .components(Silver, 1, Gold, 1)
                 .itemPipeProperties(1024, 2)
                 .cableProperties(V[HV], 2, 2)
@@ -233,7 +231,7 @@ public class FirstDegreeMaterials {
         Emerald = Material.builder(278, gregtechId("emerald"))
                 .gem().ore(2, 1)
                 .color(0x50FF50).iconSet(EMERALD)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, EXCLUDE_BLOCK_CRAFTING_BY_HAND_RECIPES,
                         GENERATE_LENS)
                 .components(Beryllium, 3, Aluminium, 2, Silicon, 6, Oxygen, 18)
                 .build();
@@ -253,7 +251,7 @@ public class FirstDegreeMaterials {
         GreenSapphire = Material.builder(281, gregtechId("green_sapphire"))
                 .gem().ore()
                 .color(0x64C882).iconSet(GEM_HORIZONTAL)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
                 .components(Aluminium, 2, Oxygen, 3)
                 .build();
 
@@ -299,7 +297,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1916))
                 .color(0xB4B478).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_FRAME, GENERATE_GEAR)
+                .flags(MORTAR_GRINDABLE, GENERATE_FRAME, GENERATE_GEAR)
                 .components(Iron, 2, Nickel, 1)
                 .toolStats(MaterialToolProperty.Builder.of(4.0F, 3.0F, 384, 2)
                         .enchantability(18)
@@ -312,7 +310,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1708))
                 .color(0xC2D2DF).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_SPRING)
+                .flags(GENERATE_SPRING)
                 .components(Iron, 1, Aluminium, 1, Chrome, 1)
                 .cableProperties(V[HV], 4, 3)
                 .blast(b -> b.temp(1800, GasTier.LOW).blastStats(VA[HV], 900))
@@ -330,7 +328,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(929))
                 .color(0xC8BEFF)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_DOUBLE_PLATE)
                 .components(Magnesium, 1, Aluminium, 2)
                 .rotorStats(6.0f, 2.0f, 256)
                 .itemPipeProperties(1024, 2)
@@ -358,7 +356,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1818))
                 .color(0xCDCEF6).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_SPRING)
+                .flags(GENERATE_SPRING)
                 .components(Nickel, 4, Chrome, 1)
                 .cableProperties(V[EV], 4, 4)
                 .blast(b -> b
@@ -370,7 +368,7 @@ public class FirstDegreeMaterials {
         NiobiumNitride = Material.builder(295, gregtechId("niobium_nitride"))
                 .ingot().fluid()
                 .color(0x1D291D)
-                .flags(EXT_METAL, GENERATE_FOIL)
+                .flags(GENERATE_FOIL)
                 .components(Niobium, 1, Nitrogen, 1)
                 .cableProperties(V[LuV], 1, 1)
                 .blast(2846, GasTier.MID)
@@ -380,8 +378,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(2345))
                 .color(0x1D1D29)
-                .flags(EXT2_METAL, GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FOIL, GENERATE_FINE_WIRE,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_SHEET)
                 .components(Niobium, 1, Titanium, 1)
                 .fluidPipeProperties(5900, 175, true)
                 .cableProperties(V[LuV], 4, 2)
@@ -416,7 +413,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1258))
                 .color(0xFADCE1).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
                 .components(Copper, 1, Silver, 4)
                 .toolStats(MaterialToolProperty.Builder.of(3.0F, 8.0F, 768, 2)
                         .attackSpeed(0.3F).enchantability(33)
@@ -430,7 +427,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1341))
                 .color(0xFFE61E).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_RING, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_RING, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
                 .components(Copper, 1, Gold, 4)
                 .toolStats(MaterialToolProperty.Builder.of(12.0F, 2.0F, 768, 2)
                         .enchantability(33)
@@ -444,7 +441,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1328))
                 .color(0x64327D)
-                .flags(EXT2_METAL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
                 .components(Gold, 1, Silver, 1, Copper, 3)
                 .rotorStats(12.0f, 2.0f, 256)
                 .itemPipeProperties(1024, 2)
@@ -455,7 +452,6 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1036))
                 .color(0x647D7D)
-                .flags(EXT2_METAL)
                 .components(Bismuth, 1, Zinc, 1, Copper, 3)
                 .rotorStats(8.0f, 3.0f, 256)
                 .blast(b -> b.temp(1100, GasTier.LOW).blastStats(VA[MV], 1000))
@@ -512,7 +508,7 @@ public class FirstDegreeMaterials {
         Ruby = Material.builder(311, gregtechId("ruby"))
                 .gem().ore()
                 .color(0xFF6464).iconSet(RUBY)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, GENERATE_LENS)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, GENERATE_LENS)
                 .components(Chrome, 1, Aluminium, 2, Oxygen, 3)
                 .build();
 
@@ -533,7 +529,7 @@ public class FirstDegreeMaterials {
         Sapphire = Material.builder(314, gregtechId("sapphire"))
                 .gem().ore()
                 .color(0x6464C8).iconSet(GEM_VERTICAL)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, GENERATE_LENS)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT, GENERATE_LENS)
                 .components(Aluminium, 2, Oxygen, 3)
                 .build();
 
@@ -596,8 +592,7 @@ public class FirstDegreeMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(2011))
                 .color(0xC8C8DC).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_ROTOR, GENERATE_SMALL_GEAR, GENERATE_FRAME, GENERATE_LONG_ROD,
-                        GENERATE_FOIL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_SHEET, GENERATE_CURVED_PLATE)
                 .components(Iron, 6, Chrome, 1, Manganese, 1, Nickel, 1)
                 .toolStats(MaterialToolProperty.Builder.of(7.0F, 5.0F, 1024, 3)
                         .enchantability(14).build())
@@ -610,9 +605,7 @@ public class FirstDegreeMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(2046))
                 .color(0x808080).iconSet(METALLIC)
-                .flags(EXT2_METAL, MORTAR_GRINDABLE, GENERATE_ROTOR, GENERATE_SMALL_GEAR, GENERATE_SPRING,
-                        GENERATE_SPRING_SMALL, GENERATE_FRAME, DISABLE_DECOMPOSITION, GENERATE_FINE_WIRE, GENERATE_GEAR,
-                        GENERATE_DOUBLE_PLATE)
+                .flags(MORTAR_GRINDABLE , DISABLE_DECOMPOSITION ,GENERATE_SHEET, GENERATE_CURVED_PLATE)
                 .components(Iron, 1)
                 .toolStats(MaterialToolProperty.Builder.of(5.0F, 3.0F, 512, 3)
                         .enchantability(14).build())
@@ -646,7 +639,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1258))
                 .color(0xC8C8C8).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_DOUBLE_PLATE)
                 .components(Tin, 1, Iron, 1)
                 .fluidPipeProperties(1572, 20, true)
                 .build();
@@ -654,7 +647,7 @@ public class FirstDegreeMaterials {
         Topaz = Material.builder(329, gregtechId("topaz"))
                 .gem(3).ore()
                 .color(0xFF8000).iconSet(GEM_HORIZONTAL)
-                .flags(EXT_METAL, NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
+                .flags(NO_SMASHING, NO_SMELTING, HIGH_SIFTER_OUTPUT)
                 .components(Aluminium, 2, Silicon, 1, Fluorine, 1, Hydrogen, 2)
                 .build();
 
@@ -670,7 +663,7 @@ public class FirstDegreeMaterials {
                 .ingot(4)
                 .liquid(new FluidBuilder().temperature(1980))
                 .color(0xB4B4E6).iconSet(SHINY)
-                .flags(EXT2_METAL, GENERATE_GEAR, GENERATE_DOUBLE_PLATE, GENERATE_FRAME)
+                .flags(GENERATE_GEAR, GENERATE_DOUBLE_PLATE, GENERATE_FRAME)
                 .components(Cobalt, 5, Chrome, 2, Nickel, 1, Molybdenum, 1)
                 .toolStats(MaterialToolProperty.Builder.of(10.0F, 7.0F, 2048, 4)
                         .attackSpeed(0.1F).enchantability(21).build())
@@ -696,7 +689,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1712))
                 .color(0x80808C).iconSet(SHINY)
-                .flags(STD_METAL, GENERATE_FOIL, GENERATE_SPRING, GENERATE_SPRING_SMALL)
+                .flags(GENERATE_FOIL, GENERATE_SPRING, GENERATE_SPRING_SMALL)
                 .components(Vanadium, 3, Gallium, 1)
                 .cableProperties(V[ZPM], 4, 2)
                 .blast(b -> b
@@ -709,7 +702,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(2011))
                 .color(0xC8B4B4).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_GEAR, GENERATE_FOIL, MORTAR_GRINDABLE, GENERATE_RING, GENERATE_LONG_ROD,
+                .flags(GENERATE_GEAR, GENERATE_FOIL, MORTAR_GRINDABLE, GENERATE_RING, GENERATE_LONG_ROD,
                         GENERATE_BOLT_SCREW, DISABLE_DECOMPOSITION, GENERATE_DOUBLE_PLATE)
                 .components(Iron, 1)
                 .toolStats(MaterialToolProperty.Builder.of(2.0F, 2.0F, 384, 2)
@@ -736,7 +729,7 @@ public class FirstDegreeMaterials {
                 .ingot()
                 .liquid(new FluidBuilder().temperature(1799))
                 .color(0x504046).iconSet(METALLIC)
-                .flags(EXT_METAL, GENERATE_FINE_WIRE, GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FOIL,
+                .flags(GENERATE_FINE_WIRE, GENERATE_SPRING, GENERATE_SPRING_SMALL, GENERATE_FOIL,
                         GENERATE_BOLT_SCREW)
                 .components(Yttrium, 1, Barium, 2, Copper, 3, Oxygen, 7)
                 .cableProperties(V[UV], 4, 4)
@@ -796,8 +789,8 @@ public class FirstDegreeMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(3012))
                 .color(0x6464FF).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_SMALL_GEAR, GENERATE_RING, GENERATE_ROTOR, GENERATE_ROUND,
-                        GENERATE_FINE_WIRE, GENERATE_GEAR, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_SMALL_GEAR, GENERATE_RING, GENERATE_ROTOR, GENERATE_ROUND,
+                        GENERATE_FINE_WIRE, GENERATE_GEAR, GENERATE_DOUBLE_PLATE, GENERATE_CURVED_PLATE)
                 .components(Iridium, 3, Osmium, 1)
                 .rotorStats(9.0f, 3.0f, 3152)
                 .itemPipeProperties(64, 32)
@@ -849,7 +842,7 @@ public class FirstDegreeMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(1511))
                 .color(0xA0A0A0)
-                .flags(STD_METAL, DECOMPOSITION_BY_CENTRIFUGING)
+                .flags(DECOMPOSITION_BY_CENTRIFUGING)
                 .components(Arsenic, 1, Gallium, 1)
                 .blast(b -> b.temp(1200, GasTier.LOW).blastStats(VA[MV], 1200))
                 .build();
@@ -870,7 +863,7 @@ public class FirstDegreeMaterials {
                 .ingot(1)
                 .liquid(new FluidBuilder().temperature(350))
                 .color(0xA08CBE)
-                .flags(STD_METAL, DECOMPOSITION_BY_CENTRIFUGING)
+                .flags(DECOMPOSITION_BY_CENTRIFUGING)
                 .components(Indium, 1, Gallium, 1, Phosphorus, 1)
                 .build();
 
@@ -1131,7 +1124,7 @@ public class FirstDegreeMaterials {
         TungstenCarbide = Material.builder(396, gregtechId("tungsten_carbide"))
                 .ingot(4).fluid()
                 .color(0x330066).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_FOIL, GENERATE_GEAR, DECOMPOSITION_BY_CENTRIFUGING, GENERATE_DOUBLE_PLATE)
+                .flags(GENERATE_FOIL, GENERATE_GEAR, DECOMPOSITION_BY_CENTRIFUGING, GENERATE_DOUBLE_PLATE)
                 .components(Tungsten, 1, Carbon, 1)
                 .toolStats(MaterialToolProperty.Builder.of(60.0F, 2.0F, 1024, 4)
                         .enchantability(21).build())

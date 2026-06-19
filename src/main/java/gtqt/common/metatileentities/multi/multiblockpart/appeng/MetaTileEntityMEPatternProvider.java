@@ -1,5 +1,6 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
+import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IMultipleNotifiableHandler;
 import gregtech.api.capability.IMultipleTankHandler;
@@ -17,7 +18,6 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
-import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
@@ -25,9 +25,9 @@ import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
@@ -47,11 +47,11 @@ import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.networking.crafting.IMultiplePatternPushable;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
-import static gtqt.api.util.AE2PatternCompat.isFluidDrop;
 import appeng.tile.grid.AENetworkPowerTile;
 import appeng.util.item.AEItemStack;
 import codechicken.lib.render.CCRenderState;
@@ -80,7 +80,6 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
-import appeng.api.networking.crafting.IMultiplePatternPushable;
 import gtqt.common.items.behaviors.ProgrammableCircuit;
 import gtqt.api.capability.IPatternBufferIsolatedHandler;
 import org.jetbrains.annotations.NotNull;
@@ -94,6 +93,7 @@ import java.util.List;
 import java.util.Map;
 
 import static gtqt.api.util.AE2PatternCompat.getFluidStack;
+import static gtqt.api.util.AE2PatternCompat.isFluidDrop;
 
 /**
  * 可编程样板总成 — 带缓冲区池机制。
@@ -110,10 +110,8 @@ import static gtqt.api.util.AE2PatternCompat.getFluidStack;
 public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPart
         implements IMultiplePatternPushable, IMEPatternProviderPart {
 
-    // ==================== 缓冲区池常量 ====================
-    public static final int BUFFER_COUNT = 24;
-
     // ==================== 缓冲区池 ====================
+    protected final int bufferCount;
     private List<PatternBuffer> bufferPool;
 
     // Signature hash -> list of buffers with that signature, for O(1) lookup
@@ -140,7 +138,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMEPatternProvider(metaTileEntityId);
+        return new MetaTileEntityMEPatternProvider(metaTileEntityId, getTier());
     }
 
     @Override
@@ -195,6 +193,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
      */
     public List<PatternBuffer> getBufferPool() {
         return bufferPool;
+    }
+
+    public int getBufferCount() {
+        return bufferCount;
     }
 
     @Override
@@ -878,7 +880,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         if (usedCount == 0) {
             sb.append("§7所有缓冲区空闲§r\n");
         }
-        sb.append("§f已用: ").append(usedCount).append("/").append(BUFFER_COUNT).append("§r");
+        sb.append("§f已用: ").append(usedCount).append("/").append(bufferCount).append("§r");
         return sb.toString();
     }
 
@@ -1282,7 +1284,8 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.3"));
-        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.buffer", BUFFER_COUNT));
+        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.buffer", bufferCount));
+        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.buffer_size",patternSlotCount,tankCount,4));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.refund"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.lock"));
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));

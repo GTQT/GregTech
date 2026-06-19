@@ -2,7 +2,9 @@ package gregtech.integration.theoneprobe.provider;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IBatch;
 import gregtech.api.capability.IHeatMachine;
+import gregtech.api.capability.IRecipeControl;
 import gregtech.api.capability.ISteamMachine;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.PrimitiveRecipeLogic;
@@ -60,6 +62,17 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
                     text = TextFormatting.AQUA + TextFormattingUtil.formatNumbers(eut) +
                             TextStyleClass.INFO + " H/t 热量";
                 }
+
+                if (mte instanceof IBatch iBatch) {
+                    if (iBatch.isBatchAllowed())
+                        probeInfo.text(TextStyleClass.INFO + (iBatch.isBatchEnable() ? "{*gregtech.top.batch_enable*}" :
+                                    "{*gregtech.top.batch_disable*}"));
+                }
+                if (mte instanceof IRecipeControl recipeLock) {
+                    if (recipeLock.enableExtendControl())
+                        probeInfo.text(TextStyleClass.INFO + (recipeLock.isRecipeLocked() ? "{*gregtech.top.lock_enable*}" :
+                                    "{*gregtech.top.lock_disable*}"));
+                }
             }
 
             if (text == null) {
@@ -76,6 +89,14 @@ public class RecipeLogicInfoProvider extends CapabilityInfoProvider<AbstractReci
                 probeInfo.text(TextStyleClass.INFO + "{*gregtech.top.energy_consumption*} " + text);
             } else {
                 probeInfo.text(TextStyleClass.INFO + "{*gregtech.top.energy_production*} " + text);
+            }
+
+            if (capability.isActive()) {
+                int parallel = capability.getParallelLimit();
+                if (parallel > 1 && parallel < Integer.MAX_VALUE) {
+                    probeInfo.text(TextStyleClass.INFO + "{*gregtech.top.parallel*} " +
+                            TextFormatting.BLUE + parallel);
+                }
             }
         } else if (!Objects.equals(capability.getWhyFailed(), "")) {
             if (capability.getWhyFailed().equals("NoneRecipes")) {

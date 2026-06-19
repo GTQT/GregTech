@@ -1,21 +1,24 @@
 package gregtech.common.covers;
 
-import codechicken.lib.render.CCRenderState;
-import codechicken.lib.render.pipeline.IVertexOperation;
-import codechicken.lib.vec.Cuboid6;
-import codechicken.lib.vec.Matrix4;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.properties.impl.DimensionProperty;
 import gregtech.client.renderer.texture.Textures;
+
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Cuboid6;
+import codechicken.lib.vec.Matrix4;
+import org.jetbrains.annotations.NotNull;
 
 import static gregtech.api.GTValues.SECOND;
 
@@ -31,12 +34,14 @@ public class CoverAirVent extends CoverBase implements ITickable {
     }
 
     @Override
-    public boolean canAttach(CoverableView coverableView, EnumFacing attachedSide) {
+    public boolean canAttach(CoverableView coverableView, @NotNull EnumFacing attachedSide) {
         return coverableView.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, attachedSide);
     }
 
     @Override
-    public void renderCover(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline, Cuboid6 plateBox, BlockRenderLayer renderLayer) {
+    public void renderCover(@NotNull CCRenderState renderState, @NotNull Matrix4 translation,
+                            @NotNull IVertexOperation[] pipeline, @NotNull Cuboid6 plateBox,
+                            @NotNull BlockRenderLayer renderLayer) {
         Textures.AIR_VENT_OVERLAY.renderSided(getAttachedSide(), plateBox, renderState, pipeline, translation);
     }
 

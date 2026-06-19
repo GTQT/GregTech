@@ -16,7 +16,7 @@ import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLY_LINE_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.blocks.MetaBlocks.*;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
@@ -128,7 +128,7 @@ public class ComputerRecipes {
                 .duration(100).EUt(VA[MV]).buildAndRegister();
 
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             ASSEMBLY_LINE_RECIPES.recipeBuilder()
                     .inputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.COMPUTER_CASING))
                     .input(circuit, Tier.LuV, 8)
@@ -317,7 +317,7 @@ public class ComputerRecipes {
                 'W', CraftingComponent.CABLE,
                 'X', CraftingComponent.CIRCUIT);
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             ASSEMBLER_RECIPES.recipeBuilder()
                     .input(POWER_TRANSFORMER[LuV])
                     .input(circuit, Tier.LuV, 2)

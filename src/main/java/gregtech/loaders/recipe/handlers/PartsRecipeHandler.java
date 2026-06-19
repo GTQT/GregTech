@@ -27,6 +27,8 @@ import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
 import static gregtech.api.util.DyeUtil.determineDyeColor;
+import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class PartsRecipeHandler {
 
@@ -510,11 +512,20 @@ public class PartsRecipeHandler {
         int workingTier = material.getWorkingTier();
 
         if (workingTier <= HV) {
-            ModHandler.addShapedRecipe(String.format("rotor_%s", material.toString()), stack,
-                    "ChC", "SRf", "CdC",
-                    'C', new UnificationEntry(plate, material),
-                    'S', new UnificationEntry(screw, material),
-                    'R', new UnificationEntry(ring, material));
+            if(material.hasFlag(GENERATE_CURVED_PLATE))
+            {
+                ModHandler.addShapedRecipe(String.format("rotor_%s", material), stack,
+                        "ChC", "SRf", "CdC",
+                        'C', new UnificationEntry(plateCurved, material),
+                        'S', new UnificationEntry(screw, material),
+                        'R', new UnificationEntry(ring, material));
+            } else {
+                ModHandler.addShapedRecipe(String.format("rotor_%s", material), stack,
+                        "ChC", "SRf", "CdC",
+                        'C', new UnificationEntry(plate, material),
+                        'S', new UnificationEntry(screw, material),
+                        'R', new UnificationEntry(ring, material));
+            }
         }
 
         if (material.hasFluid() && material.getProperty(PropertyKey.FLUID).solidifiesFrom() != null) {
@@ -523,7 +534,7 @@ public class PartsRecipeHandler {
                     .fluidInputs(material.getProperty(PropertyKey.FLUID).solidifiesFrom(L * 4))
                     .outputs(GTUtility.copy(stack))
                     .duration(120)
-                    .EUt(GTUtility.scaleVoltage(20, workingTier))
+                    .EUt(GTUtility.scaleVoltage(VA[LV], workingTier))
                     .buildAndRegister();
         }
 
@@ -622,12 +633,14 @@ public class PartsRecipeHandler {
                     'S', new UnificationEntry(OrePrefix.stick, material));
         }
 
-        RecipeMaps.FORGE_HAMMER_RECIPES.recipeBuilder()
-                .input(OrePrefix.stick, material, 2)
-                .outputs(stack)
-                .duration((int) Math.max(material.getMass(), 1L))
-                .EUt(GTUtility.scaleVoltage(16, workingTier))
-                .buildAndRegister();
+        if(!isModLoaded(GTQT_CORE)) {
+            RecipeMaps.FORGE_HAMMER_RECIPES.recipeBuilder()
+                    .input(OrePrefix.stick, material, 2)
+                    .outputs(stack)
+                    .duration((int) Math.max(material.getMass(), 1L))
+                    .EUt(GTUtility.scaleVoltage(16, workingTier))
+                    .buildAndRegister();
+        }
 
         if (material.hasProperty(PropertyKey.INGOT)) {
             RecipeMaps.EXTRUDER_RECIPES.recipeBuilder()

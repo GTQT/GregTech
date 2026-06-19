@@ -83,7 +83,8 @@ public enum Mods {
     VoxelMap(Names.VOXEL_MAP),
     XaerosMinimap(Names.XAEROS_MINIMAP),
     Vintagium(Names.VINTAGIUM),
-    GTQTCore(Names.GTQT_CORE),
+    GTQT_TEST(Names.GTQT_TEST),
+    GTQTCore(Names.GTQT_TEST),
     Alfheim(Names.ALFHEIM),
     Loliasm(Names.LOLIASM),
     ModNameTooltip(Names.MOD_NAME_TOOLTIP),
@@ -166,7 +167,8 @@ public enum Mods {
         public static final String VOXEL_MAP = "voxelmap";
         public static final String XAEROS_MINIMAP = "xaerominimap";
         public static final String VINTAGIUM = "vintagium";
-        public static final String GTQT_CORE = "test_gtqt";
+        public static final String GTQT_TEST = "test_gtqt";
+        public static final String GTQT_CORE = "gtqtcore";
         public static final String GTFO = "gregtechfoodoption";
         public static final String GT_STEAM = "gtsteam";
         public static final String ALFHEIM = "alfheim";

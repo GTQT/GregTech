@@ -6,7 +6,7 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.LARGE_CHEMICAL_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.util.Mods.Names.GTQT_CORE;
+import static gregtech.api.util.Mods.Names.GTQT_TEST;
 
 public class LCRCombined {
 
@@ -62,7 +62,7 @@ public class LCRCombined {
                 .fluidOutputs(HydrochloricAcid.getFluid(2000))
                 .duration(1120).EUt(VA[LV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             LARGE_CHEMICAL_RECIPES.recipeBuilder()
                     .circuitMeta(24)
                     .fluidInputs(LightFuel.getFluid(20000))
@@ -71,7 +71,7 @@ public class LCRCombined {
                     .duration(100).EUt(VA[HV]).buildAndRegister();
         }
 
-        if (!Loader.isModLoaded(GTQT_CORE)) {
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             LARGE_CHEMICAL_RECIPES.recipeBuilder()
                     .circuitMeta(24)
                     .fluidInputs(Diesel.getFluid(10000))

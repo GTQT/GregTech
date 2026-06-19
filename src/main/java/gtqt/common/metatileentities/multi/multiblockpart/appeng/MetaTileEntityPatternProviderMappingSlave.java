@@ -1,7 +1,6 @@
 package gtqt.common.metatileentities.multi.multiblockpart.appeng;
 
 import gregtech.api.capability.DualHandler;
-import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
@@ -14,7 +13,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.sync.PagedWidgetSyncHandler;
-import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.texture.Textures;
@@ -76,7 +74,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
         implements IMEPatternProviderPart {
 
     // ==================== Pattern slots ====================
-    private static final int DEFAULT_PATTERN_SLOT_COUNT = 36;
+    protected final int patternSlotCount;
 
     // ==================== Link to master ====================
     private MetaTileEntityMEPatternProvider master;
@@ -86,15 +84,16 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
 
     public MetaTileEntityPatternProviderMappingSlave(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier, false);
+        this.patternSlotCount = tier * tier;
         patternDetails = new ArrayList<>(Collections.nCopies(getPatternSlotCount(), null));
         initializeInventory();
     }
 
     /**
-     * Pattern slot count. Subclasses can override to increase capacity.
+     * Pattern slot count = tier × tier. Subclasses can override to increase capacity.
      */
     protected int getPatternSlotCount() {
-        return DEFAULT_PATTERN_SLOT_COUNT;
+        return patternSlotCount;
     }
 
     @Override
@@ -463,7 +462,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
                                                     if (!buffer.isEmpty()) usedBuffers++;
                                                 }
                                                 return I18n.format("gregtech.machine.pattern_mapping_slave.ui.status.buffers",
-                                                        usedBuffers, MetaTileEntityMEPatternProvider.BUFFER_COUNT);
+                                                        usedBuffers, resolvedMaster.getBufferCount());
                                             }
                                             return "";
                                         })))
@@ -485,7 +484,7 @@ public class MetaTileEntityPatternProviderMappingSlave extends MetaTileEntityAEC
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
-        tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.1",patternSlotCount));
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.pattern_mapping_slave.tooltip.3"));
     }

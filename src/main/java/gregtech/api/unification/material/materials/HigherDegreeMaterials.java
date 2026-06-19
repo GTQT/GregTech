@@ -37,7 +37,6 @@ public class HigherDegreeMaterials {
         RedSteel = Material.builder(2510, gregtechId("red_steel"))
                 .ingot(3).fluid()
                 .color(0x8C6464).iconSet(METALLIC)
-                .flags(EXT_METAL)
                 .components(RoseGold, 1, Brass, 1, Steel, 2, BlackSteel, 4)
                 .toolStats(MaterialToolProperty.Builder.of(7.0F, 6.0F, 2560, 3)
                         .attackSpeed(0.1F).enchantability(21).build())
@@ -47,7 +46,6 @@ public class HigherDegreeMaterials {
         BlueSteel = Material.builder(2511, gregtechId("blue_steel"))
                 .ingot(3).fluid()
                 .color(0x64648C).iconSet(METALLIC)
-                .flags(EXT_METAL)
                 .components(SterlingSilver, 1, BismuthBronze, 1, Steel, 2, BlackSteel, 4)
                 .toolStats(MaterialToolProperty.Builder.of(15.0F, 6.0F, 1024, 3)
                         .attackSpeed(0.1F).enchantability(33).build())
@@ -84,7 +82,7 @@ public class HigherDegreeMaterials {
         HSSG = Material.builder(2516, gregtechId("hssg"))
                 .ingot(3).fluid()
                 .color(0x999900).iconSet(METALLIC)
-                .flags(EXT2_METAL, GENERATE_SMALL_GEAR, GENERATE_FRAME, GENERATE_SPRING, GENERATE_FINE_WIRE,
+                .flags(GENERATE_SMALL_GEAR, GENERATE_FRAME, GENERATE_SPRING, GENERATE_FINE_WIRE,
                         GENERATE_FOIL, GENERATE_GEAR)
                 .components(TungstenSteel, 5, Chrome, 1, Molybdenum, 2, Vanadium, 1)
                 .rotorStats(10.0f, 5.5f, 4000)
@@ -99,7 +97,7 @@ public class HigherDegreeMaterials {
                 .ingot(0)
                 .liquid(new FluidBuilder().temperature(1400))
                 .color(0xC80000)
-                .flags(STD_METAL,DISABLE_DECOMPOSITION)
+                .flags(DISABLE_DECOMPOSITION)
                 .components(Copper, 1, Redstone, 4)
                 .cableProperties(V[ULV], 1, 0)
                 .build();
@@ -113,7 +111,6 @@ public class HigherDegreeMaterials {
         HSSE = Material.builder(2519, gregtechId("hsse"))
                 .ingot(4).fluid()
                 .color(0x336600).iconSet(METALLIC)
-                .flags(EXT2_METAL)
                 .components(HSSG, 6, Cobalt, 1, Manganese, 1, Silicon, 1)
                 .toolStats(MaterialToolProperty.Builder.of(5.0F, 10.0F, 3072, 4)
                         .attackSpeed(0.3F).enchantability(33).build())
@@ -127,7 +124,7 @@ public class HigherDegreeMaterials {
         HSSS = Material.builder(2520, gregtechId("hsss"))
                 .ingot(4).fluid()
                 .color(0x660033).iconSet(METALLIC)
-                .flags(EXT2_METAL)
+                .flags(GENERATE_CURVED_PLATE)
                 .components(HSSG, 6, Iridium, 2, Osmium, 1)
                 .rotorStats(15.0f, 7.0f, 3000)
                 .blast(b -> b
@@ -203,7 +200,7 @@ public class HigherDegreeMaterials {
 
         // Dimensionally Transcendent Residue (DTR) - primary godforge fuel
         // GT5: ARGB=0x01000000 (near-transparent black), SET_FLUID, animated texture (frametime=4)
-        DimensionallyTranscendentResidue = Material.builder(2530, gregtechId("dimensionally_transcendent_residue"))
+        DimensionallyTranscendentResidue = Material.builder(10000, gregtechId("dimensionally_transcendent_residue"))
                 .liquid(new FluidBuilder().customStill())
                 .color(0x050005).iconSet(FLUID)
                 .flags(DISABLE_DECOMPOSITION)
@@ -211,7 +208,7 @@ public class HigherDegreeMaterials {
 
         // Raw Star Matter (Condensed Raw Stellar Plasma Mixture) - secondary godforge fuel
         // GT5: ARGB=0xff6401ff (purple), SET_FLUID, animated texture (frametime=2)
-        RawStarMatter = Material.builder(2531, gregtechId("raw_star_matter"))
+        RawStarMatter = Material.builder(10001, gregtechId("raw_star_matter"))
                 .liquid(new FluidBuilder().customStill())
                 .color(0x6401FF).iconSet(FLUID)
                 .flags(DISABLE_DECOMPOSITION)
@@ -219,7 +216,7 @@ public class HigherDegreeMaterials {
 
         // Magneto-Hydrodynamically Constrained Star Matter (MHDCSM) - tertiary godforge fuel (molten)
         // GT5: ARGB=0x00ffffff (white), SET_MHDCSM, animated texture (frametime=2), with dust/metal/toolhead/gear/frame
-        MagnetoHydrodynamicallyConstrainedStarMatter = Material.builder(2532,
+        MagnetoHydrodynamicallyConstrainedStarMatter = Material.builder(10002,
                         gregtechId("magneto_hydrodynamically_constrained_star_matter"))
                 .ingot().liquid(new FluidBuilder().customStill())
                 .color(0xF0F0FF).iconSet(METALLIC)
@@ -229,21 +226,21 @@ public class HigherDegreeMaterials {
                 .build();
 
         // Graviton Shard - godforge upgrade currency
-        GravitonShard = Material.builder(2533, gregtechId("graviton_shard"))
+        GravitonShard = Material.builder(10003, gregtechId("graviton_shard"))
                 .gem(1)
                 .color(0x9933FF).iconSet(DIAMOND)
                 .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
                 .build();
 
         // Quark-Gluon Plasma - exotic module output
-        QuarkGluonPlasma = Material.builder(2534, gregtechId("quark_gluon_plasma"))
+        QuarkGluonPlasma = Material.builder(10004, gregtechId("quark_gluon_plasma"))
                 .plasma()
                 .color(0x00FFCC).iconSet(SHINY)
                 .flags(DISABLE_DECOMPOSITION)
                 .build();
 
         // Mag Matter (Magmatter) - exotic module advanced output
-        MagMatter = Material.builder(2535, gregtechId("mag_matter"))
+        MagMatter = Material.builder(10005, gregtechId("mag_matter"))
                 .ingot().fluid()
                 .color(0x1A001A).iconSet(METALLIC)
                 .flags(DISABLE_DECOMPOSITION, NO_SMELTING)
