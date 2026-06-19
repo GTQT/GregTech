@@ -73,15 +73,18 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
                                     {"WCW", "W W"},
                                     {"WWW", "C W"}
                             },
-                            new Vec3i(0, 1, 0))
+                            // The base occupies local Y=0..1, so the wall must start at Y=2.
+                            new Vec3i(0, 2, 0))
                             .repeatAxes(0, 1, 2)       // X, Y and Z axes
                             .repeatRange(1, 5, 1, 7, 1, 4) // X: 1~5, Y: 1~7, Z: 1~4
-                            .stepSizes(3, 2, 2)        // tile the 3 x 2 x 2 sub-region
+                            // Runtime local +Z points toward the controller front. Anchor the
+                            // near aisle at Z=0 and repeat toward the back with a negative step.
+                            .stepSizes(3, 2, -2)       // tile the 3 x 2 x 2 sub-region
                             .channelNames(
                                     GTStructureChannels.STRUCTURE_WIDTH.getName(),
                                     GTStructureChannels.STRUCTURE_HEIGHT.getName(),
                                     GTStructureChannels.STRUCTURE_LENGTH.getName())
-                            .centerOffset(1, 0, 0)
+                            .centerOffset(1, 0, 1)
                     .where('S', self(MetaTileEntityMultiAxisDemo.class))
                     .where('W', block(getCasingState()))
                     .where('C', block(getCornerState()))
