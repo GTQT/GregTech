@@ -57,10 +57,10 @@ public class GTQTMetaTileEntities {
     public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
     public static MetaTileEntityMEPatternManager ME_PATTERN_MANAGER;
 
-    // ME样板总成（主控）
-    public static MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 1];
-    // 样板映射区 从属样板槽位扩展
-    public static MetaTileEntityPatternProviderMappingSlave[] PATTERN_MAPPING_SLAVE = new MetaTileEntityPatternProviderMappingSlave[GTValues.V.length - 1];
+    // ME样板总成（主控）从HV开始
+    public static MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 1 - GTValues.HV];
+    // 样板映射区 从属样板槽位扩展，从HV开始
+    public static MetaTileEntityPatternProviderMappingSlave[] PATTERN_MAPPING_SLAVE = new MetaTileEntityPatternProviderMappingSlave[GTValues.V.length - 1 - GTValues.HV];
     // ME样板提供器代理 可以同时为多个多方块结构提供材料输入能力
     public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
     // 矿石前缀样板提供器
@@ -188,15 +188,17 @@ public class GTQTMetaTileEntities {
         registerMetaTileEntity(2705, ME_ORE_PREFIX_PATTERN_PROVIDER);
 
         for (int i = 0; i < ME_PATTERN_PROVIDER.length; i++) {
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            int tier = GTValues.HV + i;
+            String voltageName = GTValues.VN[tier].toLowerCase();
             ME_PATTERN_PROVIDER[i] = new MetaTileEntityMEPatternProvider(
-                    gregtechId("me_pattern_provider." + voltageName), i + 1);
+                    gregtechId("me_pattern_provider." + voltageName), tier);
             registerMetaTileEntity(2710 + i, ME_PATTERN_PROVIDER[i]);
         }
         for (int i = 0; i < PATTERN_MAPPING_SLAVE.length; i++) {
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            int tier = GTValues.HV + i;
+            String voltageName = GTValues.VN[tier].toLowerCase();
             PATTERN_MAPPING_SLAVE[i] = new MetaTileEntityPatternProviderMappingSlave(
-                    gregtechId("pattern_mapping_slave." + voltageName), i + 1);
+                    gregtechId("pattern_mapping_slave." + voltageName), tier);
             registerMetaTileEntity(2730 + i, PATTERN_MAPPING_SLAVE[i]);
         }
 

@@ -100,17 +100,17 @@ import static gtqt.api.util.AE2PatternCompat.isFluidDrop;
  * <p>
  * 核心机制（移植自 Programmable-Hatches-Mod 的 BufferedDualInputHatch）：
  * <ul>
- *   <li>24 个共享缓冲区（PatternBuffer），每个缓冲区有独立的物品槽、流体槽和虚拟电路槽</li>
+ *   <li>缓冲区数量由等级决定12<=ev<24<=uv<36，每个缓冲区有独立的物品槽、流体槽和虚拟电路槽</li>
  *   <li>AE 推送样板材料时，相同物品组合进入同一个缓冲区，不同组合才分配新缓冲区</li>
  *   <li>所有缓冲区满时 isBusy() 返回 true，AE 暂停推送（阻挡模式）</li>
- *   <li>多方块配方系统通过 registerAbilities 获取 24 个隔离缓冲区入口进行独立匹配</li>
+ *   <li>多方块配方系统通过 registerAbilities 获取隔离缓冲区入口进行独立匹配</li>
  *   <li>可编程电路适配：推送的物品中如果有可编程电路，自动解包并设置到缓冲区的虚拟电路槽</li>
  * </ul>
  */
 public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPart
         implements IMultiplePatternPushable, IMEPatternProviderPart {
 
-    // ==================== 缓冲区池 ====================
+    // ==================== 缓冲区池（数量由等级决定）====================
     protected final int bufferCount;
     private List<PatternBuffer> bufferPool;
 
@@ -122,17 +122,21 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     private final List<MetaTileEntityMEPatternProviderProxy> proxies = new ArrayList<>();
     private final List<MetaTileEntityAEPatternRegistrar> orePrefixRegistrars = new ArrayList<>();
 
-    // ==================== 固定参数 ====================
-    // AE2 样板卡槽是 6x6 网格；这不是缓存区材料槽数量。
-    private static final int AE_PATTERN_SLOT_COUNT = 36;
-    private static final int AE_PATTERN_GRID_ROW_SIZE = 6;
+    // ==================== 由等级决定的参数 ====================
+    // 样板卡槽数量 = tier * tier（如 EV=16, IV=25, LuV=36）
+    protected final int patternSlotCount;
+    // 样板卡网格行大小 = tier（如 EV=4, IV=5, LuV=6）
+    protected final int patternGridRowSize;
     private static final int MATERIAL_SLOT_CAPACITY = Integer.MAX_VALUE;
     // 缓冲区配方消耗后延迟释放的 tick 数（防止不同配方抢占同一缓冲区）
     private static final int DEFAULT_UNLOCK_DELAY = 10;
 
-    public MetaTileEntityMEPatternProvider(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, 5, false);
-        patternDetails = new ArrayList<>(Collections.nCopies(AE_PATTERN_SLOT_COUNT, null));
+    public MetaTileEntityMEPatternProvider(ResourceLocation metaTileEntityId, int tier) {
+        super(metaTileEntityId, tier, false);
+        this.patternSlotCount = tier * tier;
+        this.patternGridRowSize = tier;
+        this.bufferCount = tier <= GTValues.EV ? 12 : tier <= GTValues.UV ? 24 : 36;
+        patternDetails = new ArrayList<>(Collections.nCopies(bufferCount, null));
         initializeInventory();
     }
 
@@ -144,7 +148,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
     @Override
     protected void initializeInventory() {
         super.initializeInventory();
-        this.patternSlot = new ItemStackHandler(AE_PATTERN_SLOT_COUNT) {
+        this.patternSlot = new ItemStackHandler(patternSlotCount) {
 
             @Override
             public int getSlotLimit(int slot) {
@@ -183,7 +187,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
      */
     private void initBufferPool() {
         bufferPool = new ArrayList<>();
-        for (int i = 0; i < BUFFER_COUNT; i++) {
+        for (int i = 0; i < bufferCount; i++) {
             bufferPool.add(new PatternBuffer(this));
         }
     }
@@ -637,7 +641,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     @Override
     protected int getPatternSlotCount() {
-        return AE_PATTERN_SLOT_COUNT;
+        return patternSlotCount;
     }
 
     // ==================== Signature map maintenance ====================
@@ -893,7 +897,7 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        int rowSize = AE_PATTERN_GRID_ROW_SIZE;
+        int rowSize = patternGridRowSize;
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
@@ -1285,11 +1289,10 @@ public class MetaTileEntityMEPatternProvider extends MetaTileEntityAECraftingPar
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.3"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.buffer", bufferCount));
-        tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.buffer_size",patternSlotCount,tankCount,4));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.refund"));
         tooltip.add(I18n.format("gregtech.machine.me_pattern.tooltip.lock"));
         tooltip.add(I18n.format("gregtech.machine.dual_hatch.import.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", AE_PATTERN_SLOT_COUNT));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", patternSlotCount));
         tooltip.add(I18n.format("gregtech.machine.me.data_stick_proxy"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
