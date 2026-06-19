@@ -223,4 +223,9 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
     public boolean getIsWeatherOrTerrainResistant() {
         return true;
     }
+
+    @Override
+    public boolean isBatchAllowed() {
+        return false;
+    }
 }
