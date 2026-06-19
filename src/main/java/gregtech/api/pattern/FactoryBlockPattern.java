@@ -1,112 +1,78 @@
 package gregtech.api.pattern;
 
 import gregtech.api.util.RelativeDirection;
+import gregtech.api.pattern.element.IStructureElement;
 
-import com.google.common.base.Joiner;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import static gregtech.api.util.RelativeDirection.*;
-
+/**
+ * Public-facing fluent facade for building a {@link BlockPatternTemplate} from
+ * a flat-string pattern. This class is the entry point used by 100+ existing
+ * legacy multiblocks; its public API is preserved verbatim.
+ *
+ * <p>All compilation logic lives in
+ * {@link PieceTemplateCompiler} — this class is a thin wrapper that holds a
+ * {@code PieceTemplateCompiler} instance and delegates every call to it. The
+ * new structure system ({@link gregtech.api.pattern.element.StructureCompiler})
+ * uses {@code PieceTemplateCompiler} directly, so the new system no longer
+ * depends on this facade.
+ *
+ * <p>New code should prefer
+ * {@link gregtech.api.pattern.element.StructureDefinition.Builder} and the
+ * {@link gregtech.api.pattern.element.Elements} factory methods instead of
+ * this class. {@code aisleRepeatable(...)} is scheduled for removal in 2.10.
+ *
+ * <p>Usage example (legacy):
+ * <pre>{@code
+ * return FactoryBlockPattern.start()
+ *     .aisle("XXX", "X#X", "XXX")
+ *     .where('X', casingPredicate)
+ *     .where('#', airPredicate)
+ *     .build();
+ * }</pre>
+ */
+@ApiStatus.Obsolete
 public class FactoryBlockPattern {
 
-    private static final Joiner COMMA_JOIN = Joiner.on(",");
-    private final List<String[]> depth = new ArrayList<>();
-    private final List<int[]> aisleRepetitions = new ArrayList<>();
-    private final List<String> aisleChannelNames = new ArrayList<>();
-    private final Map<Character, TraceabilityPredicate> symbolMap = new HashMap<>();
-    private int aisleHeight;
-    private int rowWidth;
-    private final RelativeDirection[] structureDir = new RelativeDirection[3];
+    private final PieceTemplateCompiler compiler;
 
     private FactoryBlockPattern(RelativeDirection charDir, RelativeDirection stringDir, RelativeDirection aisleDir) {
-        structureDir[0] = charDir;
-        structureDir[1] = stringDir;
-        structureDir[2] = aisleDir;
-        int flags = 0;
-        for (RelativeDirection relativeDirection : this.structureDir) {
-            switch (relativeDirection) {
-                case UP:
-                case DOWN:
-                    flags |= 0x1;
-                    break;
-                case LEFT:
-                case RIGHT:
-                    flags |= 0x2;
-                    break;
-                case FRONT:
-                case BACK:
-                    flags |= 0x4;
-                    break;
-            }
-        }
-        if (flags != 0x7) throw new IllegalArgumentException("Must have 3 different axes!");
-        this.symbolMap.put(' ', TraceabilityPredicate.ANY);
+        this.compiler = new PieceTemplateCompiler(charDir, stringDir, aisleDir);
     }
 
     /**
      * Adds a repeatable aisle to this pattern.
+     *
+     * @deprecated Use {@link gregtech.api.pattern.element.StructureDefinition} builder's
+     *         {@code .repeatableX(...) / .repeatableY(...) / .repeatableZ(...)} (uniform single-axis)
+     *         or {@code .repeatablePiece(...).repeatAxes(...)} (uniform multi-axis) instead.
+     *         This API will be removed in 2.10. New machines must use
+     *         {@code createStructureDefinition()} (see {@code docs/design/structure-system-v3-design.md}).
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public FactoryBlockPattern aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
-        if (!ArrayUtils.isEmpty(aisle) && !StringUtils.isEmpty(aisle[0])) {
-            if (this.depth.isEmpty()) {
-                this.aisleHeight = aisle.length;
-                this.rowWidth = aisle[0].length();
-            }
-
-            if (aisle.length != this.aisleHeight) {
-                throw new IllegalArgumentException("Expected aisle with height of " + this.aisleHeight +
-                        ", but was given one with a height of " + aisle.length + ")");
-            } else {
-                for (String s : aisle) {
-                    if (s.length() != this.rowWidth) {
-                        throw new IllegalArgumentException(
-                                "Not all rows in the given aisle are the correct width (expected " + this.rowWidth +
-                                        ", found one with " + s.length() + ")");
-                    }
-
-                    for (char c0 : s.toCharArray()) {
-                        if (!this.symbolMap.containsKey(c0)) {
-                            this.symbolMap.put(c0, null);
-                        }
-                    }
-                }
-
-                this.depth.add(aisle);
-                if (minRepeat > maxRepeat)
-                    throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
-                aisleRepetitions.add(new int[] { minRepeat, maxRepeat });
-                aisleChannelNames.add(null);
-                return this;
-            }
-        } else {
-            throw new IllegalArgumentException("Empty pattern for aisle");
-        }
+        compiler.aisleRepeatable(minRepeat, maxRepeat, aisle);
+        return this;
     }
 
     /**
      * Adds a single aisle to this pattern. (so multiple calls to this will increase the aisleDir by 1)
      */
     public FactoryBlockPattern aisle(String... aisle) {
-        return aisleRepeatable(1, 1, aisle);
+        compiler.aisle(aisle);
+        return this;
     }
 
     /**
      * Set last aisle repeatable
      */
     public FactoryBlockPattern setRepeatable(int minRepeat, int maxRepeat) {
-        if (minRepeat > maxRepeat)
-            throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
-        aisleRepetitions.set(aisleRepetitions.size() - 1, new int[] { minRepeat, maxRepeat });
+        compiler.setRepeatable(minRepeat, maxRepeat);
         return this;
     }
 
@@ -114,29 +80,20 @@ public class FactoryBlockPattern {
      * Set last aisle repeatable with an associated channel.
      */
     public FactoryBlockPattern setRepeatable(int minRepeat, int maxRepeat, String channelName) {
-        if (minRepeat > maxRepeat)
-            throw new IllegalArgumentException("Lower bound of repeat counting must smaller than upper bound!");
-        aisleRepetitions.set(aisleRepetitions.size() - 1, new int[] { minRepeat, maxRepeat });
-        aisleChannelNames.set(aisleChannelNames.size() - 1, channelName);
+        compiler.setRepeatable(minRepeat, maxRepeat, channelName);
         return this;
-    }
-
-    /**
-     * Get the repetition range of the last aisle.
-     */
-    public int[] getLastAisleRepetition() {
-        return aisleRepetitions.get(aisleRepetitions.size() - 1);
     }
 
     /**
      * Set last aisle repeatable
      */
     public FactoryBlockPattern setRepeatable(int repeatCount) {
-        return setRepeatable(repeatCount, repeatCount);
+        compiler.setRepeatable(repeatCount);
+        return this;
     }
 
     public static FactoryBlockPattern start() {
-        return new FactoryBlockPattern(RIGHT, UP, BACK);
+        return new FactoryBlockPattern(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK);
     }
 
     public static FactoryBlockPattern start(RelativeDirection charDir, RelativeDirection stringDir,
@@ -145,16 +102,23 @@ public class FactoryBlockPattern {
     }
 
     public FactoryBlockPattern where(char symbol, TraceabilityPredicate blockMatcher) {
-        this.symbolMap.put(symbol, new TraceabilityPredicate(blockMatcher).sort());
+        compiler.where(symbol, blockMatcher);
         return this;
     }
 
     public FactoryBlockPattern where(String symbol, TraceabilityPredicate blockMatcher) {
-        if (symbol.length() == 1) {
-            return where(symbol.charAt(0), blockMatcher);
-        }
-        throw new IllegalArgumentException(
-                String.format("Symbol \"%s\" is invalid! It must be exactly one character!", symbol));
+        compiler.where(symbol, blockMatcher);
+        return this;
+    }
+
+    public FactoryBlockPattern whereElement(char symbol, @NotNull IStructureElement<?> element) {
+        compiler.whereElement(symbol, element);
+        return this;
+    }
+
+    public FactoryBlockPattern whereElement(String symbol, @NotNull IStructureElement<?> element) {
+        compiler.whereElement(symbol, element);
+        return this;
     }
 
     /**
@@ -163,9 +127,7 @@ public class FactoryBlockPattern {
      * @return the shared immutable template
      */
     public BlockPatternTemplate buildTemplate() {
-        return new BlockPatternTemplate(makePredicateArray(), structureDir,
-                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
-                aisleChannelNames.toArray(new String[aisleChannelNames.size()]));
+        return compiler.buildTemplate();
     }
 
     /**
@@ -176,10 +138,7 @@ public class FactoryBlockPattern {
      * @return the shared immutable template
      */
     public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset) {
-        return new BlockPatternTemplate(makePredicateArray(), structureDir,
-                aisleRepetitions.toArray(new int[aisleRepetitions.size()][]),
-                aisleChannelNames.toArray(new String[aisleChannelNames.size()]),
-                centerOffset);
+        return compiler.buildTemplate(centerOffset);
     }
 
     /**
@@ -195,33 +154,50 @@ public class FactoryBlockPattern {
         return new BlockPattern(buildTemplate());
     }
 
-    private TraceabilityPredicate[][][] makePredicateArray() {
-        this.checkMissingPredicates();
-        TraceabilityPredicate[][][] predicate = (TraceabilityPredicate[][][]) Array
-                .newInstance(TraceabilityPredicate.class, this.depth.size(), this.aisleHeight, this.rowWidth);
+    // --- Internal-state accessors ---
+    //
+    // These accessors expose the underlying PieceTemplateCompiler's state and
+    // are used by integration code (e.g. StructureDefinition.pieceFromFactory)
+    // to migrate factory-built patterns into the new structure system. They
+    // are not part of the public builder API.
 
-        for (int i = 0; i < this.depth.size(); ++i) {
-            for (int j = 0; j < this.aisleHeight; ++j) {
-                for (int k = 0; k < this.rowWidth; ++k) {
-                    predicate[i][j][k] = this.symbolMap.get(this.depth.get(i)[j].charAt(k));
-                }
-            }
-        }
-
-        return predicate;
+    /**
+     * @return the aisle repetition ranges. Each entry is {@code [minRepeat, maxRepeat]}.
+     */
+    @NotNull
+    public List<int[]> getAisleRepetitions() {
+        return compiler.aisleRepetitionsView();
     }
 
-    private void checkMissingPredicates() {
-        List<Character> list = new ArrayList<>();
+    /**
+     * @return the channel names for repeatable aisles. Null for non-channel aisles.
+     */
+    @NotNull
+    public List<String> getAisleChannelNames() {
+        return compiler.aisleChannelNamesView();
+    }
 
-        for (Entry<Character, TraceabilityPredicate> entry : this.symbolMap.entrySet()) {
-            if (entry.getValue() == null) {
-                list.add(entry.getKey());
-            }
-        }
+    /**
+     * @return the aisle string definitions. Each entry is an array of row strings.
+     */
+    @NotNull
+    public List<String[]> getDepth() {
+        return compiler.depthView();
+    }
 
-        if (!list.isEmpty()) {
-            throw new IllegalStateException("Predicates for character(s) " + COMMA_JOIN.join(list) + " are missing");
-        }
+    /**
+     * @return the symbol-to-predicate mapping.
+     */
+    @NotNull
+    public Map<Character, TraceabilityPredicate> getSymbolMap() {
+        return compiler.symbolMapView();
+    }
+
+    /**
+     * @return the structure direction triple [charDir, stringDir, aisleDir].
+     */
+    @NotNull
+    public RelativeDirection[] getStructureDir() {
+        return compiler.getStructureDir();
     }
 }

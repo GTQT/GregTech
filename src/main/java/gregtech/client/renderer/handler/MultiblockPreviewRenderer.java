@@ -2,8 +2,11 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
@@ -311,21 +314,25 @@ public class MultiblockPreviewRenderer {
      * Build VBO for a specific piece from the MultiPiecePattern at its world-space offset position.
      */
     private static void buildPieceVBO(MultiblockControllerBase controller, int pieceIndex) {
-        MultiblockShapeInfo shapeInfo = controller.getMatchingShapeForPiece(pieceIndex, channelValues);
-        if (shapeInfo == null) return;
+        MultiPiecePreviewAssembler.PieceResult piecePreview =
+                controller.getMatchingPreviewPiece(pieceIndex, channelValues);
+        if (piecePreview == null) return;
+        MultiblockShapeInfo shapeInfo = piecePreview.getShape();
 
         MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
         if (multiPiece == null) return;
 
-        List<StructurePiece> pieces = multiPiece.getPieceList();
-        if (pieceIndex < 1 || pieceIndex > pieces.size()) return;
-        StructurePiece piece = pieces.get(pieceIndex - 1);
+        StructurePiece piece = multiPiece.getToolingPiece(pieceIndex);
+        if (piece == null) return;
 
         // Compute the piece's center position in world space
-        BlockPos pieceCenterPos = piece.getCenterPos(
+        BlockPos pieceCenterPos = MultiPiecePreviewAssembler.resolveWorldPieceCenter(
+                multiPiece,
+                pieceIndex,
+                piecePreview.getPrior(),
                 controller.getPos(),
-                controller.getFrontFacing().getOpposite(),
-                controller.getUpwardsFacing());
+                StructureOrientation.fromController(controller),
+                controller);
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
@@ -350,8 +357,8 @@ public class MultiblockPreviewRenderer {
         // Use the piece's own template for coordinate transformation
         gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
-        int[] centerOffset = pieceTemplate.getCenterOffset();
-        BlockPos pieceCenterInLocal = new BlockPos(centerOffset[0], centerOffset[1], centerOffset[3]);
+        BlockPos pieceCenterInLocal = piecePreview.getCenter();
+        StructureOrientation orientation = StructureOrientation.fromController(controller);
 
         FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(world);
         PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(world);
@@ -376,9 +383,8 @@ public class MultiblockPreviewRenderer {
                         // Compute world-space position for this block
                         BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
                                 pos.subtract(pieceCenterInLocal), structureDir,
-                                controller.getFrontFacing().getOpposite(),
-                                controller.getUpwardsFacing(),
-                                controller.isFlipped());
+                                orientation.getStructureFront(), orientation.getUp(),
+                                orientation.isFlipped());
                         BlockPos worldPos = pieceCenterPos.add(tPos);
 
                         renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
@@ -413,6 +419,15 @@ public class MultiblockPreviewRenderer {
 
     /**
      * Build VBO for the main controller pattern preview at a specific target position.
+     * <p>
+     * The merged preview array produced by
+     * {@link MultiblockControllerBase#buildMultiPieceShapes} is laid out in world
+     * coordinates: each piece's local y (string index) is offset by the cumulative
+     * aisle depth of all preceding pieces, so the merged y already encodes the
+     * world-space vertical position of every block. The blockMap / dummy world use
+     * these merged world coordinates so neighbor lookups and block-state lookups
+     * remain correct, and {@link PreviewRenderUtils#transformPreviewOffset} reads
+     * the merged y directly when producing the world-space offset.
      */
     private static void buildControllerVBO(MultiblockControllerBase controllerBase, MultiblockShapeInfo shapeInfo,
                                            int layer, BlockPos targetPos) {
@@ -431,6 +446,7 @@ public class MultiblockPreviewRenderer {
         }
 
         BlockPos controllerPos = PreviewRenderUtils.findControllerInPreview(blocks, controllerBase);
+        if (controllerPos == null) return;
         TrackedDummyWorld world = new TrackedDummyWorld();
         world.addBlocks(blockMap);
         int finalMaxY = layer % (maxY + 1);
@@ -458,7 +474,10 @@ public class MultiblockPreviewRenderer {
                         if (state.getBlock() == Blocks.AIR) continue;
                         if (!state.getBlock().canRenderInLayer(state, renderLayer)) continue;
 
-                        // Compute world-space position for this block
+                        // Compute world-space position for this block. The merged
+                        // array's y already includes the piece's vertical offset
+                        // from the controller, so transformPreviewOffset can read
+                        // it directly as the world y component.
                         BlockPos tPos = PreviewRenderUtils.transformPreviewOffset(
                                 controllerBase, pos.subtract(controllerPos));
                         BlockPos worldPos = targetPos.add(tPos);

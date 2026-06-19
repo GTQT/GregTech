@@ -2,6 +2,7 @@ package gtqt.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IGhostSlotConfigurable;
+import gregtech.api.capability.INotifiableHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
@@ -40,6 +41,7 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.layout.Grid;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,11 +51,14 @@ import java.util.List;
 public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IFluidTank>, IGhostSlotConfigurable {
 
+    private static final int ROW_SIZE = 9;
+    private static final int TEMPLATE_TANKS = ROW_SIZE * ROW_SIZE;
     private static final int TEMPLATE_TANK_CAPACITY = 1;
-    private static final int CREATIVE_FLUID_AMOUNT = Integer.MAX_VALUE / 64;
+    private static final int CREATIVE_FLUID_AMOUNT = Integer.MAX_VALUE / TEMPLATE_TANKS;
 
-    private NotifiableFluidTank templateTank;
-    private CreativeFluidTank creativeTank;
+    private NotifiableFluidTank[] templateTanks;
+    private FluidTankList templateTankList;
+    private CreativeFluidTank[] creativeTanks;
     private GhostCircuitItemStackHandler circuitInventory;
 
     public MetaTileEntityCreativeInputHatch(ResourceLocation metaTileEntityId) {
@@ -68,15 +73,20 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
 
     @Override
     protected void initializeInventory() {
-        this.templateTank = new NotifiableFluidTank(TEMPLATE_TANK_CAPACITY, this, false);
-        this.creativeTank = new CreativeFluidTank(this.templateTank);
+        this.templateTanks = new NotifiableFluidTank[TEMPLATE_TANKS];
+        this.creativeTanks = new CreativeFluidTank[TEMPLATE_TANKS];
+        for (int i = 0; i < TEMPLATE_TANKS; i++) {
+            this.templateTanks[i] = new NotifiableFluidTank(TEMPLATE_TANK_CAPACITY, this, false);
+            this.creativeTanks[i] = new CreativeFluidTank(this.templateTanks[i]);
+        }
+        this.templateTankList = new FluidTankList(false, this.templateTanks);
         this.circuitInventory = new GhostCircuitItemStackHandler(this);
         super.initializeInventory();
     }
 
     @Override
     protected FluidTankList createImportFluidHandler() {
-        return new FluidTankList(false, this.templateTank);
+        return this.templateTankList == null ? new FluidTankList(false) : this.templateTankList;
     }
 
     @Override
@@ -92,7 +102,9 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         if (abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
-            abilityInstances.add(this.creativeTank);
+            for (CreativeFluidTank creativeTank : this.creativeTanks) {
+                abilityInstances.add(creativeTank);
+            }
         } else if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS)) {
             abilityInstances.add(this.circuitInventory);
         }
@@ -105,23 +117,23 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        var fluidSyncHandler = GTFluidSlot.sync(this.templateTank)
-                .phantom(true)
-                .showAmount(false, false);
+        int backgroundHeight = 18 + 18 * ROW_SIZE + 18 + 94 + 4;
 
-        return GTGuis.createPanel(this, 176, 166)
-                .child(IKey.lang(getMetaFullName()).asWidget().pos(6, 6))
-                .child(GTGuiTextures.TANK_ICON.asWidget()
-                        .pos(78, 35)
-                        .size(14, 15))
-                .child(new GTFluidSlot()
-                        .syncHandler(fluidSyncHandler)
-                        .pos(77, 52)
-                        .size(18))
+        return GTGuis.createPanel(this, 176, backgroundHeight)
+                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
+                .child(new Grid()
+                        .margin(0)
+                        .leftRel(0.5f)
+                        .top(18)
+                        .mapTo(ROW_SIZE, TEMPLATE_TANKS, index -> new GTFluidSlot()
+                                .syncHandler(GTFluidSlot.sync(this.templateTankList.getTankAt(index))
+                                        .phantom(true)
+                                        .showAmount(false, false)))
+                        .coverChildren())
                 .child(new GhostCircuitSlotWidget()
                         .slot(this.circuitInventory, 0)
                         .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY)
-                        .pos(101, 52))
+                        .pos(79, 18 + 18 * ROW_SIZE + 4))
                 .bindPlayerInventory();
     }
 
@@ -200,11 +212,11 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
         tooltip.add(I18n.format("gregtech.machine.creative_input_hatch.tooltip"));
     }
 
-    private static class CreativeFluidTank extends FluidTank {
+    private static class CreativeFluidTank extends FluidTank implements INotifiableHandler {
 
-        private final FluidTank template;
+        private final NotifiableFluidTank template;
 
-        private CreativeFluidTank(FluidTank template) {
+        private CreativeFluidTank(NotifiableFluidTank template) {
             super(CREATIVE_FLUID_AMOUNT);
             this.template = template;
         }
@@ -251,6 +263,16 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
         @Override
         public int fill(FluidStack resource, boolean doFill) {
             return 0;
+        }
+
+        @Override
+        public void addNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+            this.template.addNotifiableMetaTileEntity(metaTileEntity);
+        }
+
+        @Override
+        public void removeNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+            this.template.removeNotifiableMetaTileEntity(metaTileEntity);
         }
 
         @Override

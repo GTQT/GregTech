@@ -7,16 +7,13 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.MultiblockState;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.util.RelativeDirection;
+import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.api.util.ItemStackHashStrategy;
 import gregtech.client.renderer.scene.FBOWorldSceneRenderer;
@@ -38,6 +35,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.client.util.ITooltipFlag.TooltipFlags;
 import net.minecraft.item.EnumRarity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -67,6 +65,7 @@ import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeWrapper;
 import mezz.jei.gui.recipes.RecipeLayout;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
@@ -76,11 +75,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
@@ -102,6 +103,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static final int MAX_CANDIDATES = CANDIDATES_COLUMNS * CANDIDATES_PER_COL;
     // Candidate cycling interval in milliseconds
     private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
+    private static final Set<String> MISSING_TYPED_PREVIEW_DIAGNOSTICS = new HashSet<>();
     private static ItemStack tooltipBlockStack;
     private static long lastRender;
     private static MultiblockInfoRecipeWrapper lastWrapper;
@@ -109,7 +111,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final Map<GuiButton, Runnable> buttons = new HashMap<>();
     private final List<ItemStack> allItemStackInputs = new ArrayList<>();
     private final GuiButton nextLayerButton;
-    private final List<TraceabilityPredicate.SimplePredicate> predicates;
+    private final List<PreviewCandidate> previewCandidates;
     private final Map<String, Integer> channelValues = new HashMap<>();
     private final List<StructureChannel> supportedChannels;
     private final int[][] channelRanges; // [channelIdx][0=min, 1=max]
@@ -125,9 +127,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private IDrawable slot;
     private IDrawable infoIcon;
     private boolean drawInfoIcon;
-    private List<String> predicateTips;
+    private List<String> previewTips;
     private BlockPos selected;
-    private TraceabilityPredicate father;
     // Candidate cycling state for 3D in-place rendering
     private int candidateCycleIndex = 0;
     private long lastCandidateCycleTime = 0L;
@@ -152,7 +153,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 ICON_SIZE, "");
 
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
-        this.predicates = new ArrayList<>();
+        this.previewCandidates = new ArrayList<>();
         GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
     }
 
@@ -255,15 +256,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             candidateCycleIndex++;
         }
 
-        // Collect all candidate BlockInfo from all predicates
+        // Collect all candidate BlockInfo from typed preview groups.
         List<BlockInfo> allCandidateBlocks = new ArrayList<>();
-        for (TraceabilityPredicate.SimplePredicate predicate : predicates) {
-            if (predicate.candidates != null) {
-                BlockInfo[] infos = predicate.candidates.get();
-                for (BlockInfo info : infos) {
-                    if (info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
-                        allCandidateBlocks.add(info);
-                    }
+        for (PreviewCandidate candidate : previewCandidates) {
+            for (BlockInfo info : candidate.getBlockCandidates()) {
+                if (info != null && info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
+                    allCandidateBlocks.add(info);
                 }
             }
         }
@@ -353,8 +351,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         preparePlaceForParts(border.getHeight());
         if (Mouse.getEventDWheel() == 0 || lastWrapper != this) {
             selected = null;
-            this.predicates.clear();
-            this.father = null;
+            this.previewCandidates.clear();
             lastWrapper = this;
             this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
             this.nextLayerButton.y = LAYER_BUTTON_Y;
@@ -367,7 +364,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         } else {
             zoom = (float) MathHelper.clamp(zoom + (Mouse.getEventDWheel() < 0 ? 0.5 : -0.5), 3, 999);
             setNextLayer(getLayerIndex());
-            if (predicates != null && predicates.size() > 0) {
+            if (!previewCandidates.isEmpty()) {
                 setItemStackGroup();
             }
         }
@@ -435,7 +432,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         int min = channelRanges[channelIndex][0];
         int max = channelRanges[channelIndex][1];
         int current = channelValues.getOrDefault(channelName, 0);
-        int newValue = Math.max(0, Math.min(max, current + delta));
+        int currentIndex = channelValueToSliderIndex(current, min, max);
+        int newIndex = Math.max(0, Math.min(getSliderStepCount(min, max), currentIndex + delta));
+        int newValue = sliderIndexToChannelValue(newIndex, min, max);
         if (newValue == 0) {
             channelValues.remove(channelName);
         } else {
@@ -447,8 +446,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void setChannelValue(int channelIndex, int value) {
         if (channelIndex < 0 || channelIndex >= supportedChannels.size()) return;
         String channelName = supportedChannels.get(channelIndex).getName();
+        int min = channelRanges[channelIndex][0];
         int max = channelRanges[channelIndex][1];
-        int clamped = Math.max(0, Math.min(max, value));
+        int firstValue = getFirstSelectableValue(min);
+        int clamped = value <= 0 || max < firstValue ? 0 : Math.max(firstValue, Math.min(max, value));
         if (clamped == 0) {
             channelValues.remove(channelName);
         } else {
@@ -472,11 +473,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 Math.toRadians(rotationYaw));
         if (this.selected != null) {
             this.selected = null;
-            for (int i = 0; i < predicates.size(); i++) {
+            for (int i = 0; i < previewCandidates.size(); i++) {
                 recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
             }
-            predicates.clear();
-            this.father = null;
+            previewCandidates.clear();
         }
     }
 
@@ -547,7 +547,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
 
         // Draw right-side candidate slots (overlaid on 3D scene, no overlap with left panel)
-        for (int i = 0; i < predicates.size() && i < MAX_CANDIDATES; i++) {
+        for (int i = 0; i < previewCandidates.size() && i < MAX_CANDIDATES; i++) {
             int col = i / CANDIDATES_PER_COL;
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
@@ -631,7 +631,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         // 悬停检测（仅当未拖拽时）
         tooltipBlockStack = null;
-        this.predicateTips = null;
+        this.previewTips = null;
         RayTraceResult rayTraceResult = renderer.getLastTraceResult();
 
         if (!(leftClickHeld || rightClickHeld) && insideView && rayTraceResult != null &&
@@ -643,30 +643,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     rayTraceResult.getBlockPos(), minecraft.player
             );
 
-            TraceabilityPredicate predicates = patterns[0].getPredicateMap()
-                    .get(rayTraceResult.getBlockPos());
-            if (predicates != null) {
-                BlockWorldState worldState = new BlockWorldState();
-                worldState.update(renderer.world, rayTraceResult.getBlockPos(), new PatternMatchContext(),
-                        new HashMap<>(), new HashMap<>(), predicates);
-
-                // 优先匹配common predicates
-                for (TraceabilityPredicate.SimplePredicate common : predicates.common) {
-                    if (common.test(worldState)) {
-                        predicateTips = common.getToolTips(predicates);
-                        break;
-                    }
-                }
-                // 未匹配则尝试limited predicates
-                if (predicateTips == null) {
-                    for (TraceabilityPredicate.SimplePredicate limit : predicates.limited) {
-                        if (limit.test(worldState)) {
-                            predicateTips = limit.getToolTips(predicates);
-                            break;
-                        }
-                    }
-                }
-            }
+            this.previewTips = previewTooltipFor(rayTraceResult.getBlockPos());
             if (!itemStack.isEmpty()) {
                 tooltipBlockStack = itemStack;
             }
@@ -719,8 +696,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             drawRect(trackX, trackY, trackX + sliderWidth, trackY + trackHeight, 0xFFAAAAAA);
 
             // Draw slider handle
-            int range = Math.max(1, max);
-            float ratio = (float) value / range;
+            int stepCount = getSliderStepCount(min, max);
+            int sliderIndex = channelValueToSliderIndex(value, min, max);
+            float ratio = stepCount == 0 ? 0.0F : (float) sliderIndex / stepCount;
             int handleX = trackX + (int) (ratio * (sliderWidth - 4));
             drawRect(handleX, trackY - 1, handleX + 4, trackY + trackHeight + 1, 0xFF4488CC);
 
@@ -752,6 +730,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         return recipeWidth - PARTS_WIDTH - 10;
     }
 
+    private static int getFirstSelectableValue(int min) {
+        return Math.max(1, min);
+    }
+
+    private static int getSliderStepCount(int min, int max) {
+        int firstValue = getFirstSelectableValue(min);
+        return max < firstValue ? 0 : max - firstValue + 1;
+    }
+
+    private static int channelValueToSliderIndex(int value, int min, int max) {
+        int firstValue = getFirstSelectableValue(min);
+        if (value <= 0 || max < firstValue) return 0;
+        int clamped = Math.max(firstValue, Math.min(max, value));
+        return clamped - firstValue + 1;
+    }
+
+    private static int sliderIndexToChannelValue(int index, int min, int max) {
+        int firstValue = getFirstSelectableValue(min);
+        if (index <= 0 || max < firstValue) return 0;
+        return Math.min(max, firstValue + index - 1);
+    }
+
     @Override
     public boolean handleClick(@NotNull Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
         // Handle channel slider clicks
@@ -764,9 +764,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 // Click area: track region with some vertical tolerance
                 if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth
                         && mouseY >= trackY - 3 && mouseY <= trackY + 7) {
+                    int min = channelRanges[i][0];
                     int max = channelRanges[i][1];
                     float ratio = (float) (mouseX - sliderX) / sliderWidth;
-                    int newValue = Math.round(ratio * max);
+                    int newIndex = Math.round(ratio * getSliderStepCount(min, max));
+                    int newValue = sliderIndexToChannelValue(newIndex, min, max);
                     setChannelValue(i, newValue);
                     return true;
                 }
@@ -786,8 +788,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     this.selected = null;
                     // Clear predicates without directly accessing item stacks
                     // JEI will handle clearing the slots when they are re-initialized
-                    predicates.clear();
-                    this.father = null;
+                    previewCandidates.clear();
                     this.candidateCycleIndex = 0;
                     this.lastCandidateCycleTime = 0L;
                     return true;
@@ -798,22 +799,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (!Objects.equals(this.selected, selected)) {
                 // Clear old predicates without accessing item stacks directly
                 // The item stacks will be properly cleared in setItemStackGroup when new slots are initialized
-                predicates.clear();
-                this.father = null;
+                previewCandidates.clear();
                 this.selected = selected;
                 // Reset candidate cycling state for 3D in-place preview
                 this.candidateCycleIndex = 0;
                 this.lastCandidateCycleTime = 0L;
-                TraceabilityPredicate predicate = patterns[0].getPredicateMap().get(this.selected);
-                if (predicate != null) {
-                    predicates.addAll(predicate.common);
-                    predicates.addAll(predicate.limited);
-                    predicates.removeIf(p -> p.candidates == null);
-                    this.father = predicate;
-                    // Only call setItemStackGroup if we have valid predicates
-                    if (!predicates.isEmpty()) {
-                        setItemStackGroup();
-                    }
+                previewCandidates.addAll(loadPreviewCandidates(this.selected));
+                // Only call setItemStackGroup if we have valid candidates
+                if (!previewCandidates.isEmpty()) {
+                    setItemStackGroup();
                 }
                 // Mark FBO dirty so scene re-renders with candidate block cycling
                 if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
@@ -826,7 +820,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void setItemStackGroup() {
-        if (predicates.isEmpty())
+        if (previewCandidates.isEmpty())
             return;
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         IDrawable border = recipeLayout.getRecipeCategory().getBackground();
@@ -842,17 +836,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         
         // Place candidate slots on the right side (no overlap with left parts panel)
-        int count = Math.min(predicates.size(), MAX_CANDIDATES);
+        int count = Math.min(previewCandidates.size(), MAX_CANDIDATES);
         for (int i = 0; i < count; i++) {
             int col = i / CANDIDATES_PER_COL;
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
             int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
             itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
-            // Safety check: ensure predicate has candidates before setting
-            TraceabilityPredicate.SimplePredicate pred = predicates.get(i);
-            if (pred != null && pred.getCandidates() != null) {
-                itemStackGroup.set(i + MAX_PARTS, pred.getCandidates());
+            PreviewCandidate candidate = previewCandidates.get(i);
+            if (candidate != null && !candidate.getItemCandidates().isEmpty()) {
+                itemStackGroup.set(i + MAX_PARTS, candidate.getItemCandidates());
             } else {
                 itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
             }
@@ -860,19 +853,89 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         // Add tooltip callback with safety checks
         itemStackGroup.addTooltipCallback((slotIndex, input, itemStack, tooltip) -> {
-            if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + predicates.size()) {
+            if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + previewCandidates.size()) {
                 int predIndex = slotIndex - MAX_PARTS;
-                if (predIndex >= 0 && predIndex < predicates.size()) {
-                    TraceabilityPredicate.SimplePredicate pred = predicates.get(predIndex);
-                    if (pred != null && father != null) {
-                        List<String> tips = pred.getToolTips(father);
-                        if (tips != null) {
-                            tooltip.addAll(tips);
-                        }
-                    }
+                if (predIndex >= 0 && predIndex < previewCandidates.size()) {
+                    tooltip.addAll(previewCandidates.get(predIndex).getTooltip());
                 }
             }
         });
+    }
+
+    @NotNull
+    private List<String> previewTooltipFor(@NotNull BlockPos pos) {
+        StructureElementPreviewEntry entry = patterns[0].getPreviewEntry(pos);
+        if (entry != null && !entry.getTooltip().isEmpty()) {
+            return entry.getTooltip();
+        }
+        if (entry == null) {
+            logMissingTypedPreview(pos, "tooltip");
+        }
+        return Collections.emptyList();
+    }
+
+    @NotNull
+    private List<PreviewCandidate> loadPreviewCandidates(@NotNull BlockPos pos) {
+        StructureElementPreviewEntry entry = patterns[0].getPreviewEntry(pos);
+        if (entry != null && !entry.getPreview().isEmpty()) {
+            List<PreviewCandidate> candidates = previewCandidatesFromEntry(entry);
+            if (!candidates.isEmpty()) {
+                return candidates;
+            }
+        }
+        logMissingTypedPreview(pos, "candidate");
+        return Collections.emptyList();
+    }
+
+    private void logMissingTypedPreview(@NotNull BlockPos pos, @NotNull String surface) {
+        String key = controller.metaTileEntityId + "|" + surface + "|" + pos + "|"
+                + new TreeMap<>(channelValues);
+        if (MISSING_TYPED_PREVIEW_DIAGNOSTICS.add(key)) {
+            GTLog.logger.debug(
+                    "Missing typed JEI multiblock preview {} for {} at preview position {} with channels {}. "
+                            + "Legacy predicate fallback is disabled; add StructureElementPreviewEntry metadata.",
+                    surface, controller.metaTileEntityId, pos, channelValues);
+        }
+    }
+
+    @NotNull
+    private static List<PreviewCandidate> previewCandidatesFromEntry(@NotNull StructureElementPreviewEntry entry) {
+        List<PreviewCandidate> candidates = new ArrayList<>();
+        StructureElementPreview preview = entry.getPreview();
+        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+            PreviewCandidate candidate = PreviewCandidate.fromGroup(entry, group);
+            if (candidate.hasCandidates()) {
+                candidates.add(candidate);
+            }
+        }
+        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+            PreviewCandidate candidate = PreviewCandidate.fromGroup(entry, group);
+            if (candidate.hasCandidates()) {
+                candidates.add(candidate);
+            }
+        }
+        return candidates;
+    }
+
+    @NotNull
+    private static List<ItemStack> itemCandidatesFrom(@NotNull BlockInfo[] infos) {
+        List<ItemStack> result = new ArrayList<>();
+        for (BlockInfo info : infos) {
+            if (info == null || info.getBlockState().getBlock() == net.minecraft.init.Blocks.AIR) {
+                continue;
+            }
+            IBlockState blockState = info.getBlockState();
+            MetaTileEntity metaTileEntity = info.getTileEntity() instanceof IGregTechTileEntity
+                    ? ((IGregTechTileEntity) info.getTileEntity()).getMetaTileEntity()
+                    : null;
+            if (metaTileEntity != null) {
+                result.add(metaTileEntity.getStackForm());
+            } else {
+                result.add(new ItemStack(Item.getItemFromBlock(blockState.getBlock()), 1,
+                        blockState.getBlock().damageDropped(blockState)));
+            }
+        }
+        return result;
     }
 
     @NotNull
@@ -934,8 +997,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     tooltip.set(k, TextFormatting.GRAY + tooltip.get(k));
                 }
             }
-            if (predicateTips != null) {
-                tooltip.addAll(predicateTips);
+            if (previewTips != null) {
+                tooltip.addAll(previewTips);
             }
             return tooltip;
         }
@@ -1040,65 +1103,20 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 renderBlockOverLay(selected, 255, 0, 0);
             }
             // Render candidate block cycling at the selected position (GT5 style in-place preview)
-            if (selected != null && !predicates.isEmpty()) {
+            if (selected != null && !previewCandidates.isEmpty()) {
                 renderCandidateBlockAtPosition(world, selected);
             }
         });
         world.updateEntities();
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
 
-        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
-        if (controllerBase != null) {
-            MultiblockState state = controllerBase.getMultiblockState();
-            if (state == null) {
-                controllerBase.reinitializeStructurePattern();
-                state = controllerBase.getMultiblockState();
-            }
-            if (state != null) {
-                state.cache.forEach((pos, blockInfo) -> predicateMap
-                        .put(BlockPos.fromLong(pos), (TraceabilityPredicate) blockInfo.getInfo()));
-            }
-        }
-
-        // Fallback: build predicateMap directly from the pattern template.
-        // The cache-based approach only works when the multiblock is currently formed in-world.
-        // For JEI preview, the controller is typically NOT formed, so the cache is empty.
-        // This fallback ensures right-click cycling works for all structure positions.
-        if (predicateMap.isEmpty() && controllerBase != null) {
-            MultiblockState state = controllerBase.getMultiblockState();
-            if (state != null) {
-                BlockPatternTemplate tmpl = state.getTemplate();
-                TraceabilityPredicate[][][] blockMatches = tmpl.getBlockMatches();
-                RelativeDirection[] sDir = tmpl.getStructureDir();
-                int[] centerOff = tmpl.getCenterOffset();
-
-                // controllerBlockPos is the controller's position in the TrackedDummyWorld
-                // (blockMap coordinates). Compute the controller's actual preview-space
-                // position using the same direction transform as getPreview(), then derive
-                // the offset that converts preview-space positions to blockMap-space positions.
-                BlockPos cPos = controllerBlockPos != null ? controllerBlockPos : BlockPos.ORIGIN;
-                BlockPos controllerPreviewPos = RelativeDirection.setActualRelativeOffset(
-                        centerOff[0], centerOff[1], centerOff[3],
-                        EnumFacing.NORTH, EnumFacing.UP, false, sDir);
-                BlockPos offset = cPos.subtract(controllerPreviewPos);
-
-                for (int iz = 0; iz < tmpl.getFingerLength(); iz++) {
-                    for (int iy = 0; iy < tmpl.getThumbLength(); iy++) {
-                        for (int ix = 0; ix < tmpl.getPalmLength(); ix++) {
-                            TraceabilityPredicate pred = blockMatches[iz][iy][ix];
-                            if (pred == null || pred == TraceabilityPredicate.ANY) continue;
-
-                            // Mirror the same coordinate transform used by getPreview()
-                            BlockPos previewPos = RelativeDirection.setActualRelativeOffset(
-                                    ix, iy, iz, EnumFacing.NORTH, EnumFacing.UP, false, sDir);
-                            BlockPos blockMapPos = previewPos.add(offset);
-                            if (blockMap.containsKey(blockMapPos)) {
-                                predicateMap.put(blockMapPos, pred);
-                            }
-                        }
-                    }
+        Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
+        if (controllerBase != null && controllerBlockPos != null) {
+            controllerBase.buildStructurePreviewEntries(channelValues).forEach((previewPos, entry) -> {
+                if (blockMap.containsKey(previewPos)) {
+                    previewEntries.put(previewPos, entry);
                 }
-            }
+            });
         }
 
         List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap, parts).stream()
@@ -1111,7 +1129,53 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     return two.amount - one.amount;
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
-        return new MBPattern(worldSceneRenderer, sortedParts, predicateMap);
+        return new MBPattern(worldSceneRenderer, sortedParts, Collections.emptyMap(), previewEntries);
+    }
+
+    private static final class PreviewCandidate {
+
+        @NotNull
+        private final BlockInfo[] blockCandidates;
+        @NotNull
+        private final List<ItemStack> itemCandidates;
+        @NotNull
+        private final List<String> tooltip;
+
+        private PreviewCandidate(@NotNull BlockInfo[] blockCandidates,
+                                 @NotNull List<ItemStack> itemCandidates,
+                                 @NotNull List<String> tooltip) {
+            this.blockCandidates = blockCandidates;
+            this.itemCandidates = itemCandidates;
+            this.tooltip = tooltip;
+        }
+
+        @NotNull
+        private static PreviewCandidate fromGroup(@NotNull StructureElementPreviewEntry entry,
+                                                  @NotNull StructureElementPreview.CandidateGroup group) {
+            BlockInfo[] infos = group.getCandidates();
+            List<String> tooltip = new ArrayList<>(entry.getTooltip());
+            tooltip.addAll(group.getTooltip());
+            return new PreviewCandidate(infos, itemCandidatesFrom(infos), tooltip);
+        }
+
+        private boolean hasCandidates() {
+            return !itemCandidates.isEmpty();
+        }
+
+        @NotNull
+        private BlockInfo[] getBlockCandidates() {
+            return blockCandidates;
+        }
+
+        @NotNull
+        private List<ItemStack> getItemCandidates() {
+            return itemCandidates;
+        }
+
+        @NotNull
+        private List<String> getTooltip() {
+            return tooltip;
+        }
     }
 
     private static class PartInfo {

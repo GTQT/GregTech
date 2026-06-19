@@ -1,22 +1,23 @@
 package gregtech.api.pattern;
 
+import gregtech.api.pattern.internal.PooledReference;
+
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.ref.SoftReference;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
  * Memory-pressure-sensitive lazy holder for {@link BlockPatternTemplate}.
- * Uses {@link SoftReference} so templates can be GC'd when no controller instance holds a strong
- * reference. Re-creates via factory on next access if reclaimed.
+ * Uses {@link PooledReference} internally for GC-reclaimable caching with anti-thrashing
+ * protection. The public API is unchanged from the pre-refactor version.
  *
  * <p>Includes an anti-thrashing mechanism: after a template is (re-)created, it is pinned via a
- * strong reference for a configurable minimum lifetime ({@link #MIN_PIN_DURATION_MS}).
+ * strong reference for a minimum lifetime of 30 seconds.
  * This prevents rapid GC→recreate→GC cycles under memory pressure.
  *
  * <p>Best for environments with hundreds of multiblock types where most are rarely used.
- * For core high-frequency machines, prefer {@link LazyTemplate} which never releases.
+ * For core high-frequency machines, prefer holding a strong static reference to the
+ * {@link SoftTemplate} instance — it will not be reclaimed while the static field is alive.
  *
  * <p>Usage:
  * <pre>{@code
@@ -33,41 +34,18 @@ import java.util.function.Supplier;
  * }
  * }</pre>
  *
- * <p>Thread safety is guaranteed via double-checked locking with volatile fields.
+ * <p>Thread safety is guaranteed via double-checked locking with volatile fields
+ * (delegated to {@link PooledReference}).
  *
- * @see LazyTemplate for permanent (never-evicted) caching
  * @see TemplatePool for centralized pool management and statistics
+ * @see SoftReferenceHolder for the generic equivalent usable for any type
  */
 public final class SoftTemplate {
 
-    /**
-     * Minimum duration (in milliseconds) to pin a newly created template via strong reference.
-     * Prevents rapid GC thrashing when memory pressure is high but the template is still in use.
-     * Default: 30 seconds.
-     */
-    private static final long MIN_PIN_DURATION_MS = 30_000L;
-
-    private final Supplier<BlockPatternTemplate> factory;
-
-    // --- Soft-reference caching with anti-thrash pin ---
-
-    private volatile SoftReference<BlockPatternTemplate> softRef;
-
-    /**
-     * Strong reference pin that keeps the template alive for at least {@link #MIN_PIN_DURATION_MS}
-     * after creation. Cleared by {@link #get()} once the pin duration expires.
-     */
-    private volatile BlockPatternTemplate pin;
-
-    /** System.nanoTime() at which the pin was set */
-    private volatile long pinTimestampNanos;
-
-    // --- Statistics ---
-
-    private final AtomicInteger recreationCount = new AtomicInteger();
+    private final PooledReference<BlockPatternTemplate> ref;
 
     private SoftTemplate(@NotNull Supplier<BlockPatternTemplate> factory) {
-        this.factory = factory;
+        this.ref = new PooledReference<>(factory);
     }
 
     /**
@@ -87,58 +65,13 @@ public final class SoftTemplate {
      * Thread-safe via double-checked locking on the soft reference.
      *
      * <p>After creation, the template is pinned with a strong reference for
-     * {@link #MIN_PIN_DURATION_MS} to prevent thrashing.
+     * 30 seconds to prevent thrashing.
      *
      * @return the shared immutable template (never null)
      */
     @NotNull
     public BlockPatternTemplate get() {
-        // Fast path: check pin first (strong reference, cheapest check)
-        BlockPatternTemplate pinned = pin;
-        if (pinned != null) {
-            // Check if pin has expired
-            if (System.nanoTime() - pinTimestampNanos >= MIN_PIN_DURATION_MS * 1_000_000L) {
-                pin = null; // Release pin, let SoftReference manage lifetime
-            }
-            return pinned;
-        }
-
-        // Check soft reference
-        SoftReference<BlockPatternTemplate> currentRef = softRef;
-        BlockPatternTemplate result = (currentRef != null) ? currentRef.get() : null;
-        if (result != null) {
-            return result;
-        }
-
-        // Slow path: need to create or re-create
-        synchronized (this) {
-            // Double-check inside lock
-            pinned = pin;
-            if (pinned != null) {
-                return pinned;
-            }
-            currentRef = softRef;
-            result = (currentRef != null) ? currentRef.get() : null;
-            if (result != null) {
-                return result;
-            }
-
-            // (Re-)create the template
-            boolean isRecreation = recreationCount.get() > 0;
-            result = factory.get();
-            softRef = new SoftReference<>(result);
-
-            // Pin with strong reference to prevent immediate GC thrashing
-            pin = result;
-            pinTimestampNanos = System.nanoTime();
-
-            recreationCount.incrementAndGet();
-            if (isRecreation) {
-                TemplatePool.onTemplateRecreated();
-            }
-
-            return result;
-        }
+        return ref.get();
     }
 
     /**
@@ -146,31 +79,27 @@ public final class SoftTemplate {
      * The template will be recreated on next {@link #get()} call.
      */
     public void invalidate() {
-        pin = null;
-        softRef = null;
+        ref.invalidate();
     }
 
     /**
      * @return true if the template is currently loaded in memory (either pinned or soft-reachable)
      */
     public boolean isLoaded() {
-        if (pin != null) return true;
-        SoftReference<BlockPatternTemplate> r = softRef;
-        return r != null && r.get() != null;
+        return ref.isLoaded();
     }
 
     /**
      * @return the number of times the template has been created (1 = initial, 2+ = recreations)
      */
     public int getCreationCount() {
-        return recreationCount.get();
+        return ref.getRecreationCount() + 1;
     }
 
     /**
      * @return the number of times the template was recreated after GC reclaim (creationCount - 1)
      */
     public int getRecreationCount() {
-        int count = recreationCount.get();
-        return count > 0 ? count - 1 : 0;
+        return ref.getRecreationCount();
     }
 }

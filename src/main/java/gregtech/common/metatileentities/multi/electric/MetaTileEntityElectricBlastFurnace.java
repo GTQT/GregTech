@@ -11,16 +11,13 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.casing.ICasing;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
@@ -54,21 +51,20 @@ import java.util.List;
 
 public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockController implements IHeatingCoil {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:electric_blast_furnace", () ->
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:electric_blast_furnace", () ->
                     DeclarativePatternBuilder.start()
                             .aisle("XXX", "CCC", "CCC", "XXX")
                             .aisle("XXX", "C#C", "C#C", "XMX")
                             .aisle("XSX", "CCC", "CCC", "XXX")
-                            .where('S', selfPredicate(MetaTileEntityElectricBlastFurnace.class))
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('#', air())
-                            .casing('X', CasingDefinition.simple(MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF)))
-                            .preset(HatchPresets.STANDARD_IO)
-                            .maintenance()
-                            .energyInput(1,2)
+                            .self('S', MetaTileEntityElectricBlastFurnace.class)
+                            .hatches('M', MultiblockAbility.MUFFLER_HATCH)
+                            .air('#')
+                            .casing('X', MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF))
+                            .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .buildTemplate()
+                            .buildStructureDefinition()
             );
 
     private int blastFurnaceTemperature;
@@ -95,10 +91,10 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         // Retrieve coil stats from the channel's matched ICasing
-        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats type = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (type == null) {
@@ -126,8 +122,8 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     protected IBlockState getCasingState() {

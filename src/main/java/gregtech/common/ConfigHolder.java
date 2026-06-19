@@ -208,6 +208,11 @@ public class ConfigHolder {
         @Config.Comment({ "Whether to enable debug logging for structure check events.",
                 "Logs event-driven triggers, async check results, and timing info.", "Default: false" })
         public boolean debugStructureCheck = false;
+
+        @Config.Comment({ "Whether to enable verbose trace logging for multiblock structure decisions.",
+                "Logs controller position, orientation, check path, missing abilities, and pattern error positions.",
+                "Default: false" })
+        public boolean debugStructureTrace = false;
     }
 
     public static class WorldGenOptions {

@@ -16,14 +16,10 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.OCParams;
@@ -64,11 +60,10 @@ import static gregtech.api.recipes.logic.OverclockingLogic.subTickNonParallelOC;
 public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         implements IMachineHatchMultiblock {
 
-    // Static template cache: one SoftTemplate per tier (0 = normal, 1 = advanced)
-    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[] {
-            TemplatePool.getInstance().register("gregtech:processing_array/normal", () -> buildTemplate(
+    private static final StructureDefinition[] STRUCTURE_DEFINITIONS = new StructureDefinition[] {
+            StructureDefinition.getOrBuild("gregtech:processing_array/normal", () -> buildStructureDefinition(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST))),
-            TemplatePool.getInstance().register("gregtech:processing_array/advanced", () -> buildTemplate(
+            StructureDefinition.getOrBuild("gregtech:processing_array/advanced", () -> buildStructureDefinition(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
     };
 
@@ -80,20 +75,20 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         this.recipeMapWorkable = new ProcessingArrayWorkable(this);
     }
 
-    private static BlockPatternTemplate buildTemplate(IBlockState casingState) {
+    private static StructureDefinition buildStructureDefinition(IBlockState casingState) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate(MetaTileEntityProcessingArray.class))
-                .where('#', air())
-                .casing('X', CasingDefinition.simple(casingState))
+                .self('S', MetaTileEntityProcessingArray.class)
+                .air('#')
+                .casing('X', casingState)
                 .energyInput(1, 4)
                 .maintenance()
                 .muffler()
                 .preset(HatchPresets.STANDARD_IO)
                 .hatch(MultiblockAbility.MACHINE_HATCH, 1, 1)
-                .buildTemplate();
+                .buildStructureDefinition();
     }
 
     @Override
@@ -102,8 +97,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         ((ProcessingArrayWorkable) this.recipeMapWorkable).findMachineStack();
     }
 
@@ -114,8 +109,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES[tier].get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITIONS[tier];
     }
 
     public IBlockState getCasingState() {
@@ -221,30 +216,6 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     @Override
     public SoundEvent getSound() {
         return GTSoundEvents.ARC;
-    }
-
-    @Override
-    public TraceabilityPredicate autoAbilities(boolean checkEnergyIn, boolean checkMaintenance, boolean checkItemIn,
-                                               boolean checkItemOut, boolean checkFluidIn, boolean checkFluidOut,
-                                               boolean checkMuffler) {
-        TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
-
-        predicate = predicate.or(
-                checkEnergyIn ? abilities(MultiblockAbility.INPUT_ENERGY).setMaxGlobalLimited(4).setPreviewCount(1) :
-                        new TraceabilityPredicate());
-
-        predicate = predicate.or(checkEnergyIn ? abilities(MultiblockAbility.INPUT_LASER).setMaxGlobalLimited(1) :
-                new TraceabilityPredicate());
-
-        predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
-
-        predicate = predicate.or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1));
-
-        predicate = predicate.or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1));
-
-        predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
-
-        return predicate;
     }
 
     @Override

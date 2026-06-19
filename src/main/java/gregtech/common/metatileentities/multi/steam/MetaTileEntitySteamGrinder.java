@@ -6,11 +6,8 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -48,24 +45,23 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
         return new MetaTileEntitySteamGrinder(metaTileEntityId);
     }
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:steam_grinder", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:steam_grinder", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntitySteamGrinder.class))
-                    .where('#', air())
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS)))
+                    .self('S', MetaTileEntitySteamGrinder.class)
+                    .air('#')
+                    .casing('X',
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS))
                         .hatch(MultiblockAbility.STEAM, 1, 2)
                         .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
                         .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     public IBlockState getCasingState() {

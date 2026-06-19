@@ -16,7 +16,8 @@ import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.recipes.GTRecipeHandler;
 import gregtech.api.recipes.GodforgeRecipeMaps;
 import gregtech.api.unification.material.Material;
@@ -67,8 +68,9 @@ public class MTEExoticModule extends MTEBaseModule {
     }
 
     @Override
-    protected TraceabilityPredicate getCoilBlockPredicate() {
-        return states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
+    protected IStructureElement getCoilBlockElement() {
+        return Elements.block(getCasingState(
+                BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
     }
 
     // ==================== Dynamic Recipe Generation (C4) ====================

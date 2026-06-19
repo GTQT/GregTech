@@ -44,6 +44,7 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.Vector3;
 import codechicken.lib.vec.uv.IconTransformation;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.lwjgl.opengl.GL11;
 
@@ -92,6 +93,12 @@ public class MetaTileEntityRenderer implements ICCBlockRenderer, IItemRenderer {
 
     @Override
     public boolean renderBlock(IBlockAccess world, BlockPos pos, IBlockState state, BufferBuilder buffer) {
+        return renderBlock(world, pos, state, buffer,
+                new Matrix4().translate(pos.getX(), pos.getY(), pos.getZ()), new IVertexOperation[0]);
+    }
+
+    public boolean renderBlock(IBlockAccess world, BlockPos pos, IBlockState state, BufferBuilder buffer,
+                               Matrix4 translation, IVertexOperation[] extraPipeline) {
         MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(world, pos);
         if (metaTileEntity == null || !metaTileEntity.isValid()) {
             return false;
@@ -99,7 +106,6 @@ public class MetaTileEntityRenderer implements ICCBlockRenderer, IItemRenderer {
         CCRenderState renderState = CCRenderState.instance();
         renderState.reset();
         renderState.bind(buffer);
-        Matrix4 translation = new Matrix4().translate(pos.getX(), pos.getY(), pos.getZ());
         BlockRenderLayer renderLayer = MinecraftForgeClient.getRenderLayer();
         boolean[] sideMask = new boolean[EnumFacing.VALUES.length];
         for (EnumFacing side : EnumFacing.VALUES) {
@@ -108,7 +114,9 @@ public class MetaTileEntityRenderer implements ICCBlockRenderer, IItemRenderer {
         Textures.RENDER_STATE.set(new CubeRendererState(renderLayer, sideMask, world));
         if (metaTileEntity.canRenderInLayer(renderLayer)) {
             renderState.lightMatrix.locate(world, pos);
-            IVertexOperation[] pipeline = new IVertexOperation[] { renderState.lightMatrix };
+            IVertexOperation[] pipeline = extraPipeline == null || extraPipeline.length == 0
+                    ? new IVertexOperation[] { renderState.lightMatrix }
+                    : ArrayUtils.addAll(new IVertexOperation[] { renderState.lightMatrix }, extraPipeline);
             metaTileEntity.renderMetaTileEntity(renderState, translation.copy(), pipeline);
         }
 

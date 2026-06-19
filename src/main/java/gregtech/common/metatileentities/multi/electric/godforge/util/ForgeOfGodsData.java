@@ -1,8 +1,12 @@
 package gregtech.common.metatileentities.multi.electric.godforge.util;
 
+import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.CD;
 import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.END;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -49,6 +53,7 @@ public class ForgeOfGodsData {
     private int maxBatteryCharge = DEFAULT_MAX_BATTERY_CHARGE;
     private int gravitonShardsAvailable;
     private int gravitonShardsSpent;
+    // Save-compatible storage for the highest ring tier committed by structure formation.
     private int ringAmount = DEFAULT_RING_AMOUNT;
     private int clearedRingAmount;
     private int stellarFuelAmount;
@@ -85,6 +90,17 @@ public class ForgeOfGodsData {
     private String selectedStarColor = DEFAULT_STAR_COLOR;
     private int rotationSpeed = DEFAULT_ROTATION_SPEED;
     private int starSize = DEFAULT_STAR_SIZE;
+    private Runnable structureStateChangeListener;
+
+    public void setStructureStateChangeListener(Runnable listener) {
+        this.structureStateChangeListener = listener;
+    }
+
+    private void notifyStructureStateChanged() {
+        if (structureStateChangeListener != null) {
+            structureStateChangeListener.run();
+        }
+    }
 
     public int getFuelConsumptionFactor() {
         return fuelConsumptionFactor;
@@ -139,7 +155,35 @@ public class ForgeOfGodsData {
     }
 
     public void setRingAmount(int ringAmount) {
-        this.ringAmount = MathHelper.clamp(ringAmount, DEFAULT_RING_AMOUNT, MAX_RING_AMOUNT);
+        int clamped = MathHelper.clamp(ringAmount, DEFAULT_RING_AMOUNT, MAX_RING_AMOUNT);
+        if (this.ringAmount != clamped) {
+            this.ringAmount = clamped;
+            notifyStructureStateChanged();
+        }
+    }
+
+    public int getFormedRingAmount() {
+        return getRingAmount();
+    }
+
+    public void setFormedRingAmount(int formedRingAmount) {
+        setRingAmount(formedRingAmount);
+    }
+
+    /**
+     * Ring tier the next explicit structure operation should try to validate.
+     * This is intentionally separate from {@link #getFormedRingAmount()} so
+     * upgrades can request a larger structure without granting formed benefits.
+     */
+    public int getDesiredRingAmount() {
+        int desired = getFormedRingAmount();
+        if (isUpgradeActive(CD)) {
+            desired = Math.max(desired, 2);
+        }
+        if (isUpgradeActive(END)) {
+            desired = Math.max(desired, MAX_RING_AMOUNT);
+        }
+        return MathHelper.clamp(desired, DEFAULT_RING_AMOUNT, MAX_RING_AMOUNT);
     }
 
     public int getClearedRingAmount() {
@@ -147,7 +191,11 @@ public class ForgeOfGodsData {
     }
 
     public void setClearedRingAmount(int clearedRingAmount) {
-        this.clearedRingAmount = MathHelper.clamp(clearedRingAmount, 0, MAX_RING_AMOUNT);
+        int clamped = MathHelper.clamp(clearedRingAmount, 0, MAX_RING_AMOUNT);
+        if (this.clearedRingAmount != clamped) {
+            this.clearedRingAmount = clamped;
+            notifyStructureStateChanged();
+        }
     }
 
     public boolean isRingCleared(int ringIndex) {
@@ -323,7 +371,10 @@ public class ForgeOfGodsData {
     }
 
     public void setRenderActive(boolean renderActive) {
-        isRenderActive = renderActive;
+        if (isRenderActive != renderActive) {
+            isRenderActive = renderActive;
+            notifyStructureStateChanged();
+        }
     }
 
     public boolean isSecretUpgrade() {
@@ -339,7 +390,10 @@ public class ForgeOfGodsData {
     }
 
     public void setRendererDisabled(boolean rendererDisabled) {
-        isRendererDisabled = rendererDisabled;
+        if (isRendererDisabled != rendererDisabled) {
+            isRendererDisabled = rendererDisabled;
+            notifyStructureStateChanged();
+        }
     }
 
     public UpgradeStorage getUpgrades() {
@@ -347,11 +401,19 @@ public class ForgeOfGodsData {
     }
 
     public void resetAllUpgrades() {
+        List<String> previous = getActiveUpgradeNames();
         upgrades.resetAll();
+        if (!previous.equals(getActiveUpgradeNames())) {
+            notifyStructureStateChanged();
+        }
     }
 
     public void unlockAllUpgrades() {
+        List<String> previous = getActiveUpgradeNames();
         upgrades.unlockAll();
+        if (!previous.equals(getActiveUpgradeNames())) {
+            notifyStructureStateChanged();
+        }
     }
 
     public void manualInsertion() {}
@@ -365,6 +427,7 @@ public class ForgeOfGodsData {
         upgrades.unlockUpgrade(upgrade);
         gravitonShardsAvailable -= upgrade.getShardCost();
         gravitonShardsSpent += upgrade.getShardCost();
+        notifyStructureStateChanged();
     }
 
     public void respecUpgrade(ForgeOfGodsUpgrade upgrade) {
@@ -378,10 +441,26 @@ public class ForgeOfGodsData {
         if (upgrade == END) {
             gravitonShardEjection = false;
         }
+        notifyStructureStateChanged();
     }
 
     public boolean isUpgradeActive(ForgeOfGodsUpgrade upgrade) {
         return upgrades.isUpgradeActive(upgrade);
+    }
+
+    public List<String> getActiveUpgradeNames() {
+        List<String> active = new ArrayList<>();
+        for (ForgeOfGodsUpgrade upgrade : upgrades.getAllUpgrades()) {
+            if (upgrades.isUpgradeActive(upgrade)) {
+                active.add(upgrade.name());
+            }
+        }
+        Collections.sort(active);
+        return active;
+    }
+
+    public Object getStructureUpgradeSnapshotValue() {
+        return getActiveUpgradeNames();
     }
 
     public ItemStack[] getStoredUpgradeWindowItems() {

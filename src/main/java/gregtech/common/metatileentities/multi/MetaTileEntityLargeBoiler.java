@@ -21,12 +21,11 @@ import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.api.util.tooltips.AbstractTooltipComponent;
@@ -72,6 +71,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -100,8 +100,8 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         initializeAbilities();
     }
 
@@ -236,7 +236,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                     str = str.substring(0, str.length() - 1);
                 }
 
-                this.throttlePercentage = Integer.parseInt(str);
+                setThrottlePercentage(Integer.parseInt(str));
             } catch (NumberFormatException ignored) {
 
             }
@@ -294,7 +294,11 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     }
 
     private void setThrottlePercentage(int amount) {
-        this.throttlePercentage = Math.max(20, Math.min(amount, 100));
+        int clamped = Math.max(20, Math.min(amount, 100));
+        if (this.throttlePercentage != clamped) {
+            this.throttlePercentage = clamped;
+            notifyStructureConfigChanged();
+        }
     }
 
     private int getThrottlePercentage() {
@@ -306,44 +310,46 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         return super.isActive() && recipeLogic.isActive() && recipeLogic.isWorkingEnabled();
     }
 
-    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
 
     static {
-        TEMPLATES.put("bronze", TemplatePool.getInstance()
-                .register("gregtech:large_boiler.bronze", () -> buildTemplate(BoilerType.BRONZE)));
-        TEMPLATES.put("steel", TemplatePool.getInstance()
-                .register("gregtech:large_boiler.steel", () -> buildTemplate(BoilerType.STEEL)));
-        TEMPLATES.put("titanium", TemplatePool.getInstance()
-                .register("gregtech:large_boiler.titanium", () -> buildTemplate(BoilerType.TITANIUM)));
-        TEMPLATES.put("tungstensteel", TemplatePool.getInstance()
-                .register("gregtech:large_boiler.tungstensteel", () -> buildTemplate(BoilerType.TUNGSTENSTEEL)));
+        STRUCTURE_DEFINITIONS.put("bronze", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.bronze", () -> buildStructureDefinition(BoilerType.BRONZE)));
+        STRUCTURE_DEFINITIONS.put("steel", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.steel", () -> buildStructureDefinition(BoilerType.STEEL)));
+        STRUCTURE_DEFINITIONS.put("titanium", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.titanium", () -> buildStructureDefinition(BoilerType.TITANIUM)));
+        STRUCTURE_DEFINITIONS.put("tungstensteel", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.tungstensteel",
+                        () -> buildStructureDefinition(BoilerType.TUNGSTENSTEEL)));
     }
 
-    private static BlockPatternTemplate buildTemplate(BoilerType boilerType) {
+    private static StructureDefinition buildStructureDefinition(BoilerType boilerType) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "CCC", "CCC", "CCC")
                 .aisle("XXX", "CPC", "CPC", "CCC")
                 .aisle("XXX", "CSC", "CCC", "CCC")
-                .where('S', selfPredicate(MetaTileEntityLargeBoiler.class))
-                .where('P', states(boilerType.pipeState))
-                .casing('X', CasingDefinition.simple(boilerType.fireboxState))
+                .self('S', MetaTileEntityLargeBoiler.class)
+                .block('P', boilerType.pipeState)
+                .casing('X', boilerType.fireboxState)
                 .optionalEnergyInput(2)
                 .optionalItemInput(2)
                 .muffler()
                 .maintenance()
-                .casing('C', CasingDefinition.simple(boilerType.casingState))
+                .casing('C', boilerType.casingState)
                 .itemOutput(1,4)
-                .buildTemplate();
+                .buildStructureDefinition();
     }
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        SoftTemplate softTemplate = TEMPLATES.get(boilerType.getName());
-        if (softTemplate == null) {
-            throw new IllegalStateException("Unknown turbine type: " + boilerType.getName());
+    protected StructureDefinition createStructureDefinition() {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(boilerType.getName());
+        if (definition == null) {
+            throw new IllegalStateException("Unknown boiler type: " + boilerType.getName());
         }
-        return softTemplate.get();
+        return definition.get();
     }
 
 
@@ -445,6 +451,17 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         return throttlePercentage;
     }
 
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("boilerType", boilerType == null ? null : boilerType.getName());
+        values.put("throttlePercentage", throttlePercentage);
+        return values;
+    }
+
     @Override
     public IItemHandlerModifiable getImportItems() {
         return itemImportInventory;
@@ -539,6 +556,10 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
+        boolean changed = recipeLogic.isWorkingEnabled() != isWorkingAllowed;
         recipeLogic.setWorkingEnabled(isWorkingAllowed);
+        if (changed) {
+            notifyStructureControllerModeChanged();
+        }
     }
 }

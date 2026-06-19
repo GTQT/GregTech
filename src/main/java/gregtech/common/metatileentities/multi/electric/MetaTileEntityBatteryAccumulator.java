@@ -16,13 +16,9 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.category.ICategoryOverride;
@@ -186,9 +182,9 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     //
     // -----------------------------------------------------------------
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
-            .register("gregtech:battery_accumulator", () ->
-                    DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:battery_accumulator", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                             // Base layer — electrical panel and controller
                             .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
                             // Battery module layer 1
@@ -197,19 +193,17 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                             .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
                             // Top layer — thermal management / heat sinks
                             .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
-                            .where('S', selfPredicate(MetaTileEntityBatteryAccumulator.class))
-                            .where('G', states(getGlassState()))
-                            .where('B', frames(Materials.Lead))
-                            .where('F', frames(Materials.Lead))
-                            .where('E', states(getHeatSinkState()))
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .self('S', MetaTileEntityBatteryAccumulator.class)
+                            .block('G', getGlassState())
+                            .frames('B', Materials.Lead)
+                            .frames('F', Materials.Lead)
+                            .block('E', getHeatSinkState())
+                            .casing('X', getCasingState())
                                     .maintenance()
-                                    .energyInput(1, 4)
-                                    .energyOutput(1, 4)
+                                    .energyIO(1, 4)
                                     .fluidInput(1, 4)
                                     .fluidOutput(1, 4)
-                            .buildTemplate()
-            );
+                            .buildStructureDefinition());
 
     // -----------------------------------------------------------------
     // Constructor
@@ -235,8 +229,8 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     protected static IBlockState getCasingState() {
@@ -271,8 +265,8 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     // -----------------------------------------------------------------
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
 
         // Collect energy input hatches
         List<IEnergyContainer> inputs = new ArrayList<>();

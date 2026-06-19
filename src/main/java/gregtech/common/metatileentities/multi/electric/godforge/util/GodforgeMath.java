@@ -263,7 +263,7 @@ public class GodforgeMath {
         }
 
         if (data.isUpgradeActive(ForgeOfGodsUpgrade.NGMS)) {
-            voltage *= (long) Math.pow(4, data.getRingAmount());
+            voltage *= (long) Math.pow(4, data.getFormedRingAmount());
         }
 
         module.setProcessingVoltage(voltage);

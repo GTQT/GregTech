@@ -9,6 +9,9 @@ import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.mui.GTByteBufAdapters;
+import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.mui.drawable.GTObjectDrawable;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
@@ -50,7 +53,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -148,6 +153,80 @@ public class MultiblockUIBuilder {
                     "gregtech.multiblock.invalid_structure"));
             addKey(KeyUtil.lang(TextFormatting.GRAY,
                     "gregtech.multiblock.invalid_structure.tooltip"));
+        }
+        return this;
+    }
+
+    public MultiblockUIBuilder addMissingStructureAbilities(Map<String, Integer> missingAbilities) {
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(missingAbilities.entrySet());
+        int size = getSyncer().syncInt(entries.size());
+        if (size <= 0) return this;
+
+        addKey(KeyUtil.lang(TextFormatting.RED,
+                "gregtech.multiblock.missing_ability_header"));
+        for (int i = 0; i < size; i++) {
+            String abilityName = getSyncer().syncString(
+                    i < entries.size() ? entries.get(i).getKey() : "");
+            int count = getSyncer().syncInt(
+                    i < entries.size() ? entries.get(i).getValue() : 0);
+            addKey(KeyUtil.lang(TextFormatting.RED,
+                    "gregtech.multiblock.missing_ability",
+                    count,
+                    IKey.lang("gregtech.multiblock.ability." + abilityName)));
+        }
+        return this;
+    }
+
+    public MultiblockUIBuilder addStructureError(@Nullable PatternError error) {
+        boolean hasError = getSyncer().syncBoolean(error != null);
+        if (!hasError) return this;
+
+        List<ItemStack> candidates = new ArrayList<>();
+        String position = "";
+        String detailKey = "";
+        int detailNumber = 0;
+        if (isServer() && error != null) {
+            try {
+                for (List<ItemStack> group : error.getCandidates()) {
+                    if (group != null && !group.isEmpty() && !group.get(0).isEmpty()) {
+                        candidates.add(group.get(0));
+                    }
+                }
+                position = error.getPosString(error.getPos());
+            } catch (RuntimeException ignored) {}
+
+            if (error instanceof PatternStringError stringError) {
+                detailKey = stringError.translateKey;
+            } else if (error instanceof TraceabilityPredicate.SinglePredicateError predicateError) {
+                detailKey = "gregtech.multiblock.pattern.error.limited." + predicateError.type;
+                if (predicateError.type == 0) detailNumber = predicateError.predicate.maxGlobalCount;
+                if (predicateError.type == 1) detailNumber = predicateError.predicate.minGlobalCount;
+                if (predicateError.type == 2) detailNumber = predicateError.predicate.maxLayerCount;
+                if (predicateError.type == 3) detailNumber = predicateError.predicate.minLayerCount;
+            }
+        }
+
+        candidates = getSyncer().syncCollection(candidates, ByteBufAdapters.ITEM_STACK);
+        position = getSyncer().syncString(position);
+        detailKey = getSyncer().syncString(detailKey);
+        detailNumber = getSyncer().syncInt(detailNumber);
+
+        addKey(KeyUtil.lang(TextFormatting.RED,
+                "gregtech.multiblock.pattern.error_message_header"));
+        if (!candidates.isEmpty()) {
+            StringJoiner candidateNames = new StringJoiner(", ");
+            for (ItemStack candidate : candidates) {
+                candidateNames.add(candidate.getDisplayName());
+            }
+            addKey(KeyUtil.lang(TextFormatting.RED,
+                    "gregtech.multiblock.pattern.error",
+                    candidateNames.toString(),
+                    position));
+        }
+        if (!detailKey.isEmpty()) {
+            addKey(detailKey.startsWith("gregtech.multiblock.pattern.error.limited.")
+                    ? KeyUtil.lang(TextFormatting.RED, detailKey, detailNumber)
+                    : KeyUtil.lang(TextFormatting.RED, detailKey));
         }
         return this;
     }
@@ -794,13 +873,24 @@ public class MultiblockUIBuilder {
      * Added if structure is formed, the machine is active, and the passed fuelName parameter is not null.
      */
     public MultiblockUIBuilder addFuelNeededLine(String fuelAmount, int previousRecipeDuration) {
+        if (fuelAmount == null) return this;
+        return addFuelNeededLine(() -> fuelAmount, () -> previousRecipeDuration);
+    }
+
+    public MultiblockUIBuilder addFuelNeededLine(@NotNull Supplier<@Nullable String> fuelAmount,
+                                                 @NotNull IntSupplier previousRecipeDuration) {
         if (!isStructureFormed || !isActive) return this;
-        fuelAmount = getSyncer().syncString(fuelAmount);
-        previousRecipeDuration = getSyncer().syncInt(previousRecipeDuration);
+        Supplier<String> syncedFuelAmountSupplier = () -> {
+            String value = fuelAmount.get();
+            return value == null ? "" : value;
+        };
+        String syncedFuelAmount = getSyncer().syncObject(syncedFuelAmountSupplier, ByteBufAdapters.STRING);
+        if (syncedFuelAmount.isEmpty()) return this;
+        int syncedPreviousRecipeDuration = getSyncer().syncInt(previousRecipeDuration);
         addKey(KeyUtil.lang(TextFormatting.GRAY,
                 "gregtech.multiblock.turbine.fuel_needed",
-                KeyUtil.string(TextFormatting.RED, fuelAmount),
-                KeyUtil.number(TextFormatting.AQUA, previousRecipeDuration)));
+                KeyUtil.string(TextFormatting.RED, syncedFuelAmount),
+                KeyUtil.number(TextFormatting.AQUA, syncedPreviousRecipeDuration)));
         return this;
     }
 

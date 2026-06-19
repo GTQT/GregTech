@@ -19,6 +19,7 @@ import gregtech.api.modules.IGregTechModule;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.recipes.RecipeMap;
@@ -48,6 +49,7 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.command.CommandHand;
 import gregtech.common.command.CommandRecipeCheck;
 import gregtech.common.command.CommandShaders;
+import gregtech.common.command.CommandStructureTrace;
 import gregtech.common.command.wireless.CommandWireless;
 import gregtech.common.command.worldgen.CommandWorldgen;
 import gregtech.common.covers.CoverBehaviors;
@@ -343,6 +345,7 @@ public class CoreModule implements IGregTechModule {
         GTCasingGroups.heatingCoils();
         GTCasingGroups.machineCasings();
         GTCasingGroups.borosilicateGlasses();
+        TemplatePool.getInstance().evictAll();
     }
 
     @Override
@@ -355,6 +358,7 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.commandManager.addCommand(new CommandHand());
         GregTechAPI.commandManager.addCommand(new CommandRecipeCheck());
         GregTechAPI.commandManager.addCommand(new CommandShaders());
+        GregTechAPI.commandManager.addCommand(new CommandStructureTrace());
         GregTechAPI.commandManager.addCommand(new CommandDataFix());
         GregTechAPI.commandManager.addCommand(new CommandWireless());
         CapesRegistry.load();

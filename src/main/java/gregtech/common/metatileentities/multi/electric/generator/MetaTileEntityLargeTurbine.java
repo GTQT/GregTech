@@ -16,13 +16,15 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
+import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -52,15 +54,19 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
     private static final int MIN_DURABILITY_TO_WARN = 10;
-    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
 
     static {
-        TEMPLATES.put("steam", TemplatePool.getInstance()
-                .register("gregtech:large_turbine.steam", () -> buildTemplate(LargeTurbineType.STEAM)));
-        TEMPLATES.put("gas", TemplatePool.getInstance()
-                .register("gregtech:large_turbine.gas", () -> buildTemplate(LargeTurbineType.GAS)));
-        TEMPLATES.put("plasma", TemplatePool.getInstance()
-                .register("gregtech:large_turbine.plasma", () -> buildTemplate(LargeTurbineType.PLASMA)));
+        STRUCTURE_DEFINITIONS.put("steam", TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(LargeTurbineType.STEAM),
+                        () -> buildStructureDefinition(LargeTurbineType.STEAM)));
+        STRUCTURE_DEFINITIONS.put("gas", TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(LargeTurbineType.GAS),
+                        () -> buildStructureDefinition(LargeTurbineType.GAS)));
+        STRUCTURE_DEFINITIONS.put("plasma", TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(LargeTurbineType.PLASMA),
+                        () -> buildStructureDefinition(LargeTurbineType.PLASMA)));
     }
 
     public final ILargeTurbineType type;
@@ -79,31 +85,80 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
      */
 
     public static void registerTurbineType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        TEMPLATES.put(key, TemplatePool.getInstance().register(key, templateSupplier));
+        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
+                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
     }
 
     public static BlockPatternTemplate buildTemplate(ILargeTurbineType type) {
+        return primaryTemplate(pooledStructureDefinition(type), type.getName());
+    }
+
+    private static StructureDefinition pooledStructureDefinition(ILargeTurbineType type) {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
+        return definition.get();
+    }
+
+    private static String structurePoolKey(ILargeTurbineType type) {
+        return "gregtech:large_turbine." + type.getName();
+    }
+
+    private static StructureDefinition buildStructureDefinition(ILargeTurbineType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
                 .aisle("CCCC", "CSHC", "CCCC")
-                .where('S', selfPredicate(MetaTileEntityLargeTurbine.class))
-                .where('G', states(type.getGearboxState()))
-                .where('C', states(type.getCasingState()))
-                .where('R', metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.ROTOR_HOLDER).stream()
-                        .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
-                                (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
-                        .toArray(MetaTileEntity[]::new))
-                        .addTooltips("gregtech.multiblock.pattern.clear_amount_3")
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[type.getTier()])
-                        .setExactLimit(1)
-                        .or(abilities(MultiblockAbility.OUTPUT_ENERGY)).setExactLimit(1))
-                .casing('H', CasingDefinition.simple(type.getCasingState()))
-                .maintenance()
-                .fluidInput(1,1)
-                .fluidOutput(1,2)
+                .self('S', MetaTileEntityLargeTurbine.class)
+                .block('G', type.getGearboxState())
+                .block('C', type.getCasingState())
+                .where('R', Elements.chain(
+                        Elements.withDefaultCandidate(
+                                Elements.withTooltips(
+                                        Elements.metaTileEntities(1, 1, MultiblockAbility.REGISTRY
+                                                .get(MultiblockAbility.ROTOR_HOLDER).stream()
+                                                .filter(mte -> (mte instanceof ITieredMetaTileEntity) &&
+                                                        (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
+                                                .toArray(MetaTileEntity[]::new)),
+                                        "gregtech.multiblock.pattern.clear_amount_3",
+                                        "gregtech.multiblock.pattern.error.limited.1 " + GTValues.VN[type.getTier()]),
+                                () -> getDefaultRotorHolder(type)),
+                        Elements.withDefaultCandidate(
+                                Elements.abilities(1, 1, MultiblockAbility.OUTPUT_ENERGY),
+                                () -> getDefaultEnergyOutputHatch(type))))
+                .casing('H', type.getCasingState())
+                .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
+                .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
-                .buildTemplate();
+                .globalAbilityLimit(MultiblockAbility.ROTOR_HOLDER, 1, 1)
+                .globalAbilityLimit(MultiblockAbility.OUTPUT_ENERGY, 1, 1)
+                .buildStructureDefinition();
+    }
+
+    @Nullable
+    private static MetaTileEntity getDefaultRotorHolder(@NotNull ILargeTurbineType type) {
+        int index = type.getTier() - GTValues.HV;
+        if (index < 0 || index >= MetaTileEntities.ROTOR_HOLDER.length) {
+            return null;
+        }
+        return MetaTileEntities.ROTOR_HOLDER[index];
+    }
+
+    @Nullable
+    private static MetaTileEntity getDefaultEnergyOutputHatch(@NotNull ILargeTurbineType type) {
+        int tier = type.getTier();
+        if (tier < 0 || tier >= MetaTileEntities.ENERGY_OUTPUT_HATCH.length) {
+            return null;
+        }
+        return MetaTileEntities.ENERGY_OUTPUT_HATCH[tier];
+    }
+
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+        BlockPatternTemplate template = definition.getPrimaryTemplate();
+        if (template == null) {
+            throw new IllegalStateException("Large turbine type '" + key + "' is not a single-piece structure");
+        }
+        return template;
     }
 
     @Override
@@ -136,8 +191,8 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         this.exportFluidHandler = new FluidTankList(true, getAbilities(MultiblockAbility.EXPORT_FLUIDS));
         ((LargeTurbineWorkableHandler) this.recipeMapWorkable).updateTanks();
     }
@@ -156,13 +211,18 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
-        builder.setWorkingStatus(recipeLogic.isWorkingEnabled(), recipeLogic.isActive())
+        boolean dynamoFull = isDynamoFull();
+        builder.setWorkingStatus(recipeLogic.isWorkingEnabled() && !dynamoFull,
+                recipeLogic.isActive() && !dynamoFull)
                 .addEnergyProductionLine(getMaxVoltage(), recipeLogic.getRecipeEUt())
                 .addCustom((keyList, syncer) -> {
-                    if (!isStructureFormed()) return;
+                    IRotorHolder rotorHolder = getRotorHolder();
+                    if (!syncer.syncBoolean(rotorHolder != null)) return;
 
-                    int rotorEfficiency = syncer.syncInt(() -> getRotorHolder().getRotorEfficiency());
-                    int totalEfficiency = syncer.syncInt(() -> getRotorHolder().getTotalEfficiency());
+                    int rotorEfficiency = syncer.syncInt(
+                            () -> rotorHolder == null ? 0 : rotorHolder.getRotorEfficiency());
+                    int totalEfficiency = syncer.syncInt(
+                            () -> rotorHolder == null ? 0 : rotorHolder.getTotalEfficiency());
 
                     if (rotorEfficiency > 0) {
                         IKey efficiencyInfo = KeyUtil.number(TextFormatting.AQUA,
@@ -172,18 +232,20 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                                 efficiencyInfo));
                     }
                 })
-                .addFuelNeededLine(recipeLogic.getRecipeFluidInputInfo(), recipeLogic.getPreviousRecipeDuration())
+                .addFuelNeededLine(recipeLogic::getRecipeFluidInputInfo, recipeLogic::getPreviousRecipeDuration)
                 .addWorkingStatusLine();
     }
 
     @Override
     protected void configureWarningText(MultiblockUIBuilder builder) {
         builder.addCustom((keyList, syncer) -> {
-            if (!isStructureFormed() || syncer.syncBoolean(() -> getRotorHolder() == null))
-                return;
+            IRotorHolder rotorHolder = getRotorHolder();
+            if (!syncer.syncBoolean(rotorHolder != null)) return;
 
-            int rotorEfficiency = syncer.syncInt(() -> getRotorHolder().getRotorEfficiency());
-            int rotorDurability = syncer.syncInt(() -> getRotorHolder().getRotorDurabilityPercent());
+            int rotorEfficiency = syncer.syncInt(
+                    () -> rotorHolder == null ? 0 : rotorHolder.getRotorEfficiency());
+            int rotorDurability = syncer.syncInt(
+                    () -> rotorHolder == null ? 0 : rotorHolder.getRotorDurabilityPercent());
 
             if (rotorEfficiency > 0 && rotorDurability <= MIN_DURABILITY_TO_WARN) {
                 keyList.add(KeyUtil.lang(TextFormatting.YELLOW,
@@ -197,16 +259,17 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     protected void configureErrorText(MultiblockUIBuilder builder) {
         super.configureErrorText(builder);
         builder.addCustom((keyList, syncer) -> {
-            if (!isStructureFormed() || syncer.syncBoolean(() -> getRotorHolder() == null))
-                return;
+            IRotorHolder rotorHolder = getRotorHolder();
+            if (!syncer.syncBoolean(rotorHolder != null)) return;
 
-            if (syncer.syncBoolean(!isRotorFaceFree())) {
+            if (syncer.syncBoolean(() -> rotorHolder != null && !rotorHolder.isFrontFaceFree())) {
                 keyList.add(KeyUtil.lang(TextFormatting.RED,
                         "gregtech.multiblock.turbine.obstructed"));
                 keyList.add(KeyUtil.lang(TextFormatting.GRAY,
                         "gregtech.multiblock.turbine.obstructed.desc"));
             }
-            int rotorEfficiency = syncer.syncInt(() -> getRotorHolder().getRotorEfficiency());
+            int rotorEfficiency = syncer.syncInt(
+                    () -> rotorHolder == null ? 0 : rotorHolder.getRotorEfficiency());
 
             if (rotorEfficiency <= 0) {
                 keyList.add(KeyUtil.lang(TextFormatting.RED,
@@ -225,12 +288,12 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        SoftTemplate softTemplate = TEMPLATES.get(type.getName());
-        if (softTemplate == null) {
+    protected StructureDefinition createStructureDefinition() {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
+        if (definition == null) {
             throw new IllegalStateException("Unknown turbine type: " + type.getName());
         }
-        return softTemplate.get();
+        return definition.get();
     }
 
     @Override
@@ -290,7 +353,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     public void registerBars(List<UnaryOperator<TemplateBarBuilder>> bars, PanelSyncManager syncManager) {
         FixedIntArraySyncValue fuelValue = new FixedIntArraySyncValue(this::getFuelAmount);
         StringSyncValue fuelNameValue = new StringSyncValue(() -> {
-            FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getInputFluidStack();
+            FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getCachedInputFluidStack();
             if (stack == null) {
                 return null;
             }
@@ -406,8 +469,9 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     private int[] getFuelAmount() {
         if (getInputFluidInventory() != null) {
             MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
-            if (recipeLogic.getInputFluidStack() != null) {
-                FluidStack testStack = recipeLogic.getInputFluidStack().copy();
+            FluidStack fuelStack = recipeLogic.getCachedInputFluidStack();
+            if (fuelStack != null) {
+                FluidStack testStack = fuelStack.copy();
                 testStack.amount = Integer.MAX_VALUE;
                 return getTotalFluidAmount(testStack, getInputFluidInventory());
             }

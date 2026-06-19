@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
@@ -18,15 +17,18 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.StructureContributionKey;
+import gregtech.api.pattern.StructureDependency;
+import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -36,12 +38,11 @@ import gregtech.client.utils.TooltipHelper;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.BlockMetalCasing;
-import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -68,11 +69,13 @@ import java.math.BigInteger;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static gregtech.api.util.RelativeDirection.*;
@@ -92,52 +95,49 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private static final String NBT_ENERGY_BANK = "EnergyBank";
     // Match Context Headers
     private static final String PMC_BATTERY_HEADER = "PSSBattery_";
-    protected static final Supplier<TraceabilityPredicate> BATTERY_PREDICATE = () -> {
-        TraceabilityPredicate predicate = new TraceabilityPredicate(
-                blockWorldState -> {
-                    IBlockState state = blockWorldState.getBlockState();
-                    if (GregTechAPI.PSS_BATTERIES.containsKey(state)) {
-                        IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(state);
-                        if (battery.getTier() != -1 && battery.getCapacity() > 0) {
-                            String key = PMC_BATTERY_HEADER + battery.getBatteryName();
-                            BatteryMatchWrapper wrapper = blockWorldState.getMatchContext().get(key);
-                            if (wrapper == null) wrapper = new BatteryMatchWrapper(battery);
-                            blockWorldState.getMatchContext().set(key, wrapper.increment());
+    private static final StructureContributionKey<IBatteryData, BatteryAggregate> BATTERY_KEY =
+            StructureContributionKey.create(
+                    "gregtech:power_substation/batteries",
+                    "battery-counts",
+                    BatteryAggregate::new,
+                    (current, emitted) -> {
+                        current.add(emitted);
+                        return current;
+                    },
+                    BatteryAggregate::validate,
+                    (legacyContext, aggregate) -> {
+                        if (aggregate == null) {
+                            return;
                         }
-                        return true;
-                    }
-                    return false;
-                }, () -> GregTechAPI.PSS_BATTERIES.entrySet().stream()
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .map(entry -> new BlockInfo(entry.getKey(), null))
-                .toArray(BlockInfo[]::new))
-                .addTooltips("gregtech.multiblock.pattern.error.batteries");
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
-            sp.channelName = GTStructureChannels.BATTERY.getName();
-        }
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
-            sp.channelName = GTStructureChannels.BATTERY.getName();
-        }
-        return predicate;
-    };
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:power_substation", () ->
-            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                    .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                    .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
-                    .aisleRepeatable(1, MAX_BATTERY_LAYERS, "GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
-                    .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                    .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
-                    .where('S', selfPredicate(MetaTileEntityPowerSubstation.class))
-                    .where('C', states(getCasingState()))
-                    .where('G', states(getGlassState()))
-                    .where('B', getBatteryPredicate())
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .maintenance()
-                    .optionalHatch(MultiblockAbility.WIRELESS_CONTROLLER, 1)
-                    .custom(abilities(MultiblockAbility.INPUT_ENERGY, MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER).setMinGlobalLimited(1), 6)
-                    .custom(abilities(MultiblockAbility.OUTPUT_ENERGY, MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER).setMinGlobalLimited(1), 6)
-                    .buildTemplate()
-    );
+                        for (Map.Entry<IBatteryData, Integer> entry : aggregate.getCounts().entrySet()) {
+                            String key = PMC_BATTERY_HEADER + entry.getKey().getBatteryName();
+                            legacyContext.set(key, new BatteryMatchWrapper(entry.getKey(), entry.getValue()));
+                        }
+                    },
+                    UnaryOperator.identity(),
+                    BatteryAggregate::copy);
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:power_substation", () -> DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                    .piece("top")
+                        .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                        .aisle("XXXXX", "XCCCX", "XCCCX", "XCCCX", "XXXXX")
+                    .repeatablePiece("body", 1, MAX_BATTERY_LAYERS)
+                        .aisle("GGGGG", "GBBBG", "GBBBG", "GBBBG", "GGGGG")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                    .piece("bottom")
+                        .aisle("GGGGG", "GGGGG", "GGGGG", "GGGGG", "GGGGG")
+                    .self('S', MetaTileEntityPowerSubstation.class)
+                    .block('C', getCasingState())
+                    .block('G', getGlassState())
+                    .where('B', new BatteryElement())
+                    .casing('X', getCasingState())
+                        .maintenance()
+                        .optionalHatch(MultiblockAbility.WIRELESS_CONTROLLER, 1)
+                        .custom(Elements.abilities(1, -1, MultiblockAbility.INPUT_ENERGY,
+                                MultiblockAbility.SUBSTATION_INPUT_ENERGY, MultiblockAbility.INPUT_LASER), 6)
+                        .custom(Elements.abilities(1, -1, MultiblockAbility.OUTPUT_ENERGY,
+                                MultiblockAbility.SUBSTATION_OUTPUT_ENERGY, MultiblockAbility.OUTPUT_LASER), 6)
+                    .buildStructureDefinition());
 
     private static final BigInteger BIG_INTEGER_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
     private PowerStationEnergyBank energyBank;
@@ -154,10 +154,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private long averageOutLastSec;
     public MetaTileEntityPowerSubstation(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
-    }
-
-    private static TraceabilityPredicate getBatteryPredicate() {
-        return BATTERY_PREDICATE.get();
     }
 
     private static IKey getTimeToFillDrainText(BigInteger timeToFillSeconds) {
@@ -205,8 +201,8 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         List<IEnergyContainer> inputs = new ArrayList<>();
         inputs.addAll(getAbilities(MultiblockAbility.INPUT_ENERGY));
         inputs.addAll(getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
@@ -219,21 +215,9 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         outputs.addAll(getAbilities(MultiblockAbility.OUTPUT_LASER));
         this.outputHatches = new EnergyContainerList(outputs);
 
-        List<IBatteryData> parts = new ArrayList<>();
-        Map<Integer, Integer> tierCounts = new HashMap<>();
-        for (Map.Entry<String, Object> battery : context.entrySet()) {
-            if (battery.getKey().startsWith(PMC_BATTERY_HEADER) &&
-                    battery.getValue() instanceof BatteryMatchWrapper wrapper) {
-                for (int i = 0; i < wrapper.amount; i++) {
-                    parts.add(wrapper.partType);
-                }
-                // Accumulate battery count per tier for wireless transfer rate formula
-                int tier = wrapper.partType.getTier();
-                if (tier >= 0) {
-                    tierCounts.merge(tier, wrapper.amount, Integer::sum);
-                }
-            }
-        }
+        BatteryAggregate batteries = formed.getAggregate(BATTERY_KEY);
+        List<IBatteryData> parts = batteries == null ? Collections.emptyList() : batteries.expandParts();
+        Map<Integer, Integer> tierCounts = batteries == null ? Collections.emptyMap() : batteries.tierCounts();
         if (parts.isEmpty()) {
             // only empty batteries found in the structure
             invalidateStructure();
@@ -363,39 +347,14 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        List<MultiblockShapeInfo> shapeInfo = new ArrayList<>();
-        MultiblockShapeInfo.Builder builder = MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                .aisle("CCCCC", "CCCCC", "GGGGG", "GGGGG", "GGGGG")
-                .aisle("CCCCC", "CCCCC", "GBBBG", "GBBBG", "GGGGG")
-                .aisle("CCCCC", "CCCCC", "GBBBG", "GBBBG", "GGGGG")
-                .aisle("CCCCC", "CCCCC", "GBBBG", "GBBBG", "GGGGG")
-                .aisle("ICSCO", "NCMCT", "GGGGG", "GGGGG", "GGGGG")
-                .where('S', MetaTileEntities.POWER_SUBSTATION, EnumFacing.SOUTH)
-                .where('C', getCasingState())
-                .where('G', getGlassState())
-                .where('I', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                .where('N', MetaTileEntities.SUBSTATION_ENERGY_INPUT_HATCH[0], EnumFacing.SOUTH)
-                .where('O', MetaTileEntities.ENERGY_OUTPUT_HATCH[GTValues.HV], EnumFacing.SOUTH)
-                .where('T', MetaTileEntities.SUBSTATION_ENERGY_OUTPUT_HATCH[0], EnumFacing.SOUTH)
-                .where('M',
-                        () -> ConfigHolder.machines.enableMaintenance ? MetaTileEntities.MAINTENANCE_HATCH :
-                                MetaBlocks.METAL_CASING.getState(MetalCasingType.PALLADIUM_SUBSTATION),
-                        EnumFacing.SOUTH);
-
-        GregTechAPI.PSS_BATTERIES.entrySet().stream()
-                // filter out empty batteries in example structures, though they are still
-                // allowed in the predicate (so you can see them on right-click)
-                .filter(entry -> entry.getValue().getCapacity() > 0)
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .forEach(entry -> shapeInfo.add(builder.where('B', entry.getKey()).build()));
-
-        return shapeInfo;
+    // Migrated to createStructureDefinition(): the structure is split into three
+    // named pieces ("top" with the controller and top cap, "body" with the
+    // repeatable battery row, "bottom" with the bottom cap) so each section can
+    // be checked independently by the sharded checker. The StructureDefinition
+    // is cached via StructureDefinition.getOrBuild() since the structure has
+    // no runtime-editable dimensions.
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)
@@ -874,9 +833,138 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
             this.partType = partType;
         }
 
+        public BatteryMatchWrapper(IBatteryData partType, int amount) {
+            this.partType = partType;
+            this.amount = amount;
+        }
+
         public BatteryMatchWrapper increment() {
             amount++;
             return this;
+        }
+    }
+
+    private static final class BatteryAggregate {
+
+        private final Map<IBatteryData, Integer> counts = new LinkedHashMap<>();
+
+        private void add(@Nullable IBatteryData battery) {
+            if (battery == null || battery.getTier() == -1 || battery.getCapacity() <= 0) {
+                return;
+            }
+            counts.merge(battery, 1, Integer::sum);
+        }
+
+        @NotNull
+        private StructureContributionKey.Validation validate() {
+            return counts.isEmpty()
+                    ? StructureContributionKey.Validation.failure("Power substation battery blocks were not matched")
+                    : StructureContributionKey.Validation.success();
+        }
+
+        @NotNull
+        private Map<IBatteryData, Integer> getCounts() {
+            return Collections.unmodifiableMap(counts);
+        }
+
+        @NotNull
+        private List<IBatteryData> expandParts() {
+            List<IBatteryData> result = new ArrayList<>();
+            for (Map.Entry<IBatteryData, Integer> entry : counts.entrySet()) {
+                for (int i = 0; i < entry.getValue(); i++) {
+                    result.add(entry.getKey());
+                }
+            }
+            return result;
+        }
+
+        @NotNull
+        private Map<Integer, Integer> tierCounts() {
+            Map<Integer, Integer> result = new HashMap<>();
+            for (Map.Entry<IBatteryData, Integer> entry : counts.entrySet()) {
+                int tier = entry.getKey().getTier();
+                if (tier >= 0) {
+                    result.merge(tier, entry.getValue(), Integer::sum);
+                }
+            }
+            return result;
+        }
+
+        @NotNull
+        private BatteryAggregate copy() {
+            BatteryAggregate copy = new BatteryAggregate();
+            copy.counts.putAll(counts);
+            return copy;
+        }
+    }
+
+    private static final class BatteryElement implements ITypedStructureElement<Object> {
+
+        private final StructureElementPreview preview = StructureElementPreview.builder()
+                .common(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                        .channel(GTStructureChannels.BATTERY.getName())
+                        .tooltip(() -> Collections.singletonList("gregtech.multiblock.pattern.error.batteries"))
+                        .build())
+                .build();
+
+        @NotNull
+        @Override
+        public Set<StructureElementCapability> getCapabilities() {
+            return StructureElementCapability.snapshotSafe();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            IBatteryData battery = GregTechAPI.PSS_BATTERIES.get(context.getBlockState());
+            if (battery == null) {
+                return false;
+            }
+            if (battery.getTier() != -1 && battery.getCapacity() > 0) {
+                context.getCollector().emit(BATTERY_KEY, battery);
+            }
+            return true;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return GregTechAPI.PSS_BATTERIES.entrySet().stream()
+                    .filter(entry -> entry.getValue().getCapacity() > 0)
+                    .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
+                    .map(entry -> new BlockInfo(entry.getKey(), null))
+                    .toArray(BlockInfo[]::new);
+        }
+
+        @Override
+        public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                                  @NotNull EntityPlayer player, boolean skipHatches) {
+            World world = context.getWorld();
+            if (world == null) {
+                return false;
+            }
+            BlockInfo[] candidates = getCandidates();
+            if (candidates.length == 0) {
+                return false;
+            }
+            world.setBlockState(context.getPos(), candidates[0].getBlockState());
+            return true;
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
         }
     }
 }

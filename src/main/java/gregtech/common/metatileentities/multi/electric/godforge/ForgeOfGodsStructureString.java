@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 // Auto-generated from GT5-Unofficial ForgeOfGodsStructureString.java
-// Character mapping (used in controller's where() clauses):
-// ' ' (space) -> any (automatically handled by FactoryBlockPattern)
-// 'S' -> selfPredicate() (controller)
+// Character mapping (used in StructureDefinition element clauses):
+// ' ' (space) -> any
+// 'S' -> controller self element
 // 'A' -> Hatches (InputBus, InputHatch, OutputBus) or TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING
 // 'B' -> SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING
 // 'C' -> CELESTIAL_MATTER_GUIDANCE_CASING

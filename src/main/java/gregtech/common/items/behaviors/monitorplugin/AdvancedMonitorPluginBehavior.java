@@ -9,7 +9,10 @@ import gregtech.api.items.behavior.ProxyHolderPluginBehavior;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.CommittedStructureGraph;
+import gregtech.api.pattern.PieceRuntime;
+import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.StructureRuntime;
 import gregtech.client.renderer.scene.FBOWorldSceneRenderer;
 import gregtech.client.renderer.scene.WorldSceneRenderer;
 import gregtech.client.utils.RenderUtil;
@@ -51,7 +54,6 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import javax.vecmath.Vector3f;
 
@@ -251,24 +253,16 @@ public class AdvancedMonitorPluginBehavior extends ProxyHolderPluginBehavior {
                     MultiblockControllerBase entity = (MultiblockControllerBase) holder.getMetaTileEntity();
                     if (entity.isStructureFormed()) {
                         if (!isValid) {
-                            gregtech.api.pattern.MultiblockState state = entity.getMultiblockState();
-                            if (state != null) {
-                                PatternMatchContext result = state.checkPatternFastAt(
-                                        entity.getWorld(), entity.getPos(), entity.getFrontFacing().getOpposite(),
-                                        entity.getUpwardsFacing(), entity.allowsFlip());
-                                if (result != null) {
-                                    validPos = state.cache.keySet().stream().map(BlockPos::fromLong)
-                                            .collect(Collectors.toSet());
-                                    writePluginData(GregtechDataCodes.UPDATE_ADVANCED_VALID_POS, buf -> {
-                                        buf.writeVarInt(validPos.size());
-                                        for (BlockPos pos : validPos) {
-                                            buf.writeBlockPos(pos);
-                                        }
-                                    });
-                                    isValid = true;
-                                } else {
-                                    validPos = Collections.emptySet();
-                                }
+                            Set<BlockPos> formedPositions = getCommittedFormedPositions(entity);
+                            if (!formedPositions.isEmpty()) {
+                                validPos = formedPositions;
+                                writePluginData(GregtechDataCodes.UPDATE_ADVANCED_VALID_POS, buf -> {
+                                    buf.writeVarInt(validPos.size());
+                                    for (BlockPos pos : validPos) {
+                                        buf.writeBlockPos(pos);
+                                    }
+                                });
+                                isValid = true;
                             }
                         }
                     } else if (isValid) {
@@ -281,6 +275,32 @@ public class AdvancedMonitorPluginBehavior extends ProxyHolderPluginBehavior {
         if (this.screen.getWorld().isRemote && spin > 0 && lastMouse == null) {
             rotationPitch = (int) ((rotationPitch + spin * 4) % 360);
         }
+    }
+
+    private Set<BlockPos> getCommittedFormedPositions(MultiblockControllerBase controller) {
+        StructureRuntime runtime = controller.getStructureRuntime();
+        if (runtime == null) {
+            return Collections.emptySet();
+        }
+        CommittedStructureGraph graph = runtime.getLifecycleState().getCommittedGraph();
+        if (graph == null) {
+            PieceRuntimes runtimes = controller.getPieceRuntimes();
+            if (runtimes == null) {
+                return Collections.emptySet();
+            }
+            Set<BlockPos> positions = new HashSet<>();
+            for (PieceRuntime pieceRuntime : runtimes.getAll()) {
+                for (long pos : pieceRuntime.getPositions()) {
+                    positions.add(BlockPos.fromLong(pos));
+                }
+            }
+            return positions;
+        }
+        Set<BlockPos> positions = new HashSet<>();
+        for (long pos : graph.getPositionIndex().getAllFormedPositions()) {
+            positions.add(BlockPos.fromLong(pos));
+        }
+        return positions;
     }
 
     @Override

@@ -76,7 +76,9 @@ public class MultiblockUIFactory {
 
     public MultiblockUIFactory(@NotNull MultiblockWithDisplayBase mte) {
         this.mte = mte;
-        configureDisplayText(builder -> builder.title(mte.getMetaFullName()).structureFormed(mte.isStructureFormed()));
+        configureDisplayText(builder -> builder.title(mte.getMetaFullName())
+                .structureFormed(mte.isStructureFormed())
+                .addMissingStructureAbilities(mte.getMissingStructureAbilities()));
         if(mte.hasSideUI())height += 18;
     }
 

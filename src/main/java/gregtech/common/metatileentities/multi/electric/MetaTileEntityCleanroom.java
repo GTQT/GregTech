@@ -24,16 +24,35 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PatternStringError;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.PieceTemplate;
+import gregtech.api.pattern.StructureContributionKey;
+import gregtech.api.pattern.StructureDependency;
+import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureHintResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
+import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructurePreviewResult;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureRuntimeDetectionContext;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
+import gregtech.api.pattern.element.StructureElementPreview;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.impl.ChainElement;
+import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.Mods;
+import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
@@ -41,7 +60,6 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockCleanroomCasing;
 import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnace;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
@@ -52,6 +70,7 @@ import net.minecraft.block.BlockDoor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -88,9 +107,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         implements ICleanroomProvider, IWorkable, IDataInfoProvider {
@@ -100,6 +121,84 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     public static final int MIN_RADIUS = 2;
     public static final int MIN_DEPTH = 4;
+    private static final int MIN_STRUCTURE_SIZE = 5;
+    private static final int MAX_STRUCTURE_SIZE = 15;
+    private static final String CLEANROOM_FILTER_LEGACY_KEY = "FilterType";
+    private static final String CLEANROOM_DOORS_LEGACY_KEY = "Doors";
+    private static final String CLEANROOM_RUNTIME_PIECE = "runtime";
+    private static final StructureContributionKey<ICleanroomFilter, CleanroomFilterAggregate> CLEANROOM_FILTER_KEY =
+            StructureContributionKey.create(
+                    "gregtech:cleanroom/filter",
+                    "cleanroom-filter",
+                    CleanroomFilterAggregate::new,
+                    (current, emitted) -> {
+                        current.add(emitted);
+                        return current;
+                    },
+                    CleanroomFilterAggregate::validate,
+                    (legacyContext, aggregate) -> {
+                        if (aggregate != null && aggregate.getFilter() != null) {
+                            legacyContext.set(CLEANROOM_FILTER_LEGACY_KEY, aggregate.getFilter());
+                        }
+                    },
+                    UnaryOperator.identity(),
+                    CleanroomFilterAggregate::copy);
+    private static final StructureContributionKey<BlockPos, Set<BlockPos>> CLEANROOM_DOORS_KEY =
+            StructureContributionKey.create(
+                    "gregtech:cleanroom/doors",
+                    "set-union",
+                    LinkedHashSet::new,
+                    (current, emitted) -> {
+                        Set<BlockPos> result = new LinkedHashSet<>(current);
+                        if (emitted != null) {
+                            result.add(emitted.toImmutable());
+                        }
+                        return result;
+                    },
+                    ignored -> StructureContributionKey.Validation.success(),
+                    (legacyContext, aggregate) -> legacyContext.set(CLEANROOM_DOORS_LEGACY_KEY,
+                            aggregate == null ? new ObjectOpenHashSet<>() : new ObjectOpenHashSet<>(aggregate)),
+                    BlockPos::toImmutable,
+                    value -> Collections.unmodifiableSet(new LinkedHashSet<>(value)));
+    private static final StructureContributionKey<CleanroomDimensions, CleanroomDimensions>
+            CLEANROOM_DIMENSIONS_KEY = StructureContributionKey.uniform(
+                    "gregtech:cleanroom/dimensions");
+    private static final StructureContributionKey<ICleanroomReceiver, Set<ICleanroomReceiver>>
+            CLEANROOM_RECEIVERS_KEY = StructureContributionKey.setUnion(
+                    "gregtech:cleanroom/receivers");
+    private static final StructureContributionKey<Integer, Integer> CLEANROOM_WIDTH_KEY =
+            StructureContributionKey.uniform(
+                    "gregtech:cleanroom/channel/width",
+                    (context, value) -> context.set(
+                            GTStructureChannels.STRUCTURE_WIDTH.getName(), value));
+    private static final StructureContributionKey<Integer, Integer> CLEANROOM_HEIGHT_KEY =
+            StructureContributionKey.uniform(
+                    "gregtech:cleanroom/channel/height",
+                    (context, value) -> context.set(
+                            GTStructureChannels.STRUCTURE_HEIGHT.getName(), value));
+    private static final StructureContributionKey<Integer, Integer> CLEANROOM_LENGTH_KEY =
+            StructureContributionKey.uniform(
+                    "gregtech:cleanroom/channel/length",
+                    (context, value) -> context.set(
+                            GTStructureChannels.STRUCTURE_LENGTH.getName(), value));
+    private static final CleanroomDoorElement CLEANROOM_DOOR_ELEMENT = new CleanroomDoorElement();
+    private static final CleanroomFilterElement CLEANROOM_FILTER_ELEMENT = new CleanroomFilterElement();
+    private static final CleanroomInnerElement CLEANROOM_INNER_ELEMENT = new CleanroomInnerElement();
+    private static final StructureDefinition<MetaTileEntityCleanroom> STRUCTURE_DEFINITION =
+            StructureDefinition.getOrBuild("gregtech:cleanroom", () ->
+                    StructureDefinition.<MetaTileEntityCleanroom>builder(
+                            RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
+                            .piece(CLEANROOM_RUNTIME_PIECE, "S")
+                            .where('S', gregtech.api.pattern.element.Elements.self(
+                                    MetaTileEntityCleanroom.class))
+                            .end()
+                            .globalAbilityLimit(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                            .globalAbilityLimit(
+                                    MultiblockAbility.MAINTENANCE_HATCH,
+                                    ConfigHolder.machines.enableMaintenance ? 1 : 0,
+                                    1)
+                            .runtimeDetector(MetaTileEntityCleanroom::detectRuntimeStructure)
+                            .build());
 
     private int lDist = 0;
     private int rDist = 0;
@@ -138,10 +237,21 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
+        CleanroomDimensions dimensions = formed.getAggregate(CLEANROOM_DIMENSIONS_KEY);
+        if (dimensions == null) {
+            invalidateStructure();
+            return;
+        }
+        applyStructureDimensions(dimensions);
         initializeAbilities();
-        this.cleanroomFilter = context.get("FilterType");
+        CleanroomFilterAggregate filterAggregate = formed.getAggregate(CLEANROOM_FILTER_KEY);
+        this.cleanroomFilter = filterAggregate == null ? null : filterAggregate.getFilter();
+        if (cleanroomFilter == null) {
+            invalidateStructure();
+            return;
+        }
         this.cleanroomType = cleanroomFilter.getCleanroomType();
 
         // max progress is based on the dimensions of the structure: (x^3)-(x^2)
@@ -151,7 +261,11 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                 ((lDist + rDist + 1) * (bDist + fDist + 1) * hDist) - ((lDist + rDist + 1) * (bDist + fDist + 1))));
         this.cleanroomLogic.setMinEnergyTier(cleanroomFilter.getMinTier());
 
-        this.doors = context.get("Doors");
+        Set<BlockPos> matchedDoors = formed.getAggregate(CLEANROOM_DOORS_KEY);
+        this.doors = matchedDoors == null ? Collections.emptySet() : matchedDoors;
+        Set<ICleanroomReceiver> matchedReceivers = formed.getAggregate(CLEANROOM_RECEIVERS_KEY);
+        updateCleanroomReceivers(
+                matchedReceivers == null ? Collections.emptySet() : matchedReceivers);
     }
 
     @Override
@@ -183,12 +297,9 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     @Override
     public void checkStructurePattern() {
-        if (!this.isStructureFormed()) {
-            reinitializeStructurePattern();
-        }
         super.checkStructurePattern();
         if (isStructureFormed()) {
-            if(doors!=null)checkDoors();
+            if (doors != null) checkDoors();
         }
     }
 
@@ -346,53 +457,103 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
      * Scans for blocks around the controller to update the dimensions
      */
     public boolean updateStructureDimensions() {
+        DimensionScanResult result = scanStructureDimensions();
+        if (!result.isSuccess()) {
+            invalidateStructure();
+            return false;
+        }
+        applyStructureDimensions(result.dimensions);
+        return true;
+    }
+
+    @NotNull
+    private DimensionScanResult scanStructureDimensions() {
         World world = getWorld();
+        if (world == null) {
+            return DimensionScanResult.failure(
+                    getPos(), "loaded world", "cleanroom controller has no world");
+        }
+
         EnumFacing front = getFrontFacing();
         EnumFacing back = front.getOpposite();
         EnumFacing left = front.rotateYCCW();
         EnumFacing right = left.getOpposite();
+        BlockPos origin = getPos();
 
-        BlockPos.MutableBlockPos lPos = new BlockPos.MutableBlockPos(getPos());
-        BlockPos.MutableBlockPos rPos = new BlockPos.MutableBlockPos(getPos());
-        BlockPos.MutableBlockPos fPos = new BlockPos.MutableBlockPos(getPos());
-        BlockPos.MutableBlockPos bPos = new BlockPos.MutableBlockPos(getPos());
-        BlockPos.MutableBlockPos hPos = new BlockPos.MutableBlockPos(getPos());
+        int leftDistance = findHorizontalBoundary(world, origin, left);
+        int rightDistance = findHorizontalBoundary(world, origin, right);
+        int backDistance = findHorizontalBoundary(world, origin, back);
+        int frontDistance = findHorizontalBoundary(world, origin, front);
+        int heightDistance = findFloorBoundary(world, origin);
 
-        // find the distances from the controller to the plascrete blocks on one horizontal axis and the Y axis
-        // repeatable aisles take care of the second horizontal axis
-        int lDist = 0;
-        int rDist = 0;
-        int bDist = 0;
-        int fDist = 0;
-        int hDist = 0;
-
-        // find the left, right, back, and front distances for the structure pattern
-        // maximum size is 15x15x15 including walls, so check 7 block radius around the controller for blocks
-        for (int i = 1; i < 8; i++) {
-            if (lDist == 0 && isBlockEdge(world, lPos, left)) lDist = i;
-            if (rDist == 0 && isBlockEdge(world, rPos, right)) rDist = i;
-            if (bDist == 0 && isBlockEdge(world, bPos, back)) bDist = i;
-            if (fDist == 0 && isBlockEdge(world, fPos, front)) fDist = i;
-            if (lDist != 0 && rDist != 0 && bDist != 0 && fDist != 0) break;
+        if (leftDistance < MIN_RADIUS) {
+            return missingBoundary(origin.offset(left, Math.max(1, leftDistance)), "left", leftDistance);
         }
-
-        // height is diameter instead of radius, so it needs to be done separately
-        for (int i = 1; i < 15; i++) {
-            if (isBlockFloor(world, hPos, EnumFacing.DOWN)) hDist = i;
-            if (hDist != 0) break;
+        if (rightDistance < MIN_RADIUS) {
+            return missingBoundary(origin.offset(right, Math.max(1, rightDistance)), "right", rightDistance);
         }
-
-        if (lDist < MIN_RADIUS || rDist < MIN_RADIUS || bDist < MIN_RADIUS || fDist < MIN_RADIUS || hDist < MIN_DEPTH) {
-            invalidateStructure();
-            return false;
+        if (backDistance < MIN_RADIUS) {
+            return missingBoundary(origin.offset(back, Math.max(1, backDistance)), "back", backDistance);
         }
+        if (frontDistance < MIN_RADIUS) {
+            return missingBoundary(origin.offset(front, Math.max(1, frontDistance)), "front", frontDistance);
+        }
+        if (heightDistance < MIN_DEPTH) {
+            return DimensionScanResult.failure(
+                    origin.down(Math.max(1, heightDistance)),
+                    "cleanroom floor at least " + MIN_DEPTH + " blocks below the controller",
+                    "detected depth " + heightDistance);
+        }
+        return DimensionScanResult.success(new CleanroomDimensions(
+                leftDistance, rightDistance, backDistance, frontDistance, heightDistance));
+    }
 
-        this.lDist = lDist;
-        this.rDist = rDist;
-        this.bDist = bDist;
-        this.fDist = fDist;
-        this.hDist = hDist;
+    private int findHorizontalBoundary(@NotNull World world,
+                                       @NotNull BlockPos origin,
+                                       @NotNull EnumFacing direction) {
+        for (int distance = 1; distance <= MAX_STRUCTURE_SIZE / 2; distance++) {
+            if (world.getBlockState(origin.offset(direction, distance)).equals(getCasingState())) {
+                return distance;
+            }
+        }
+        return 0;
+    }
 
+    private int findFloorBoundary(@NotNull World world, @NotNull BlockPos origin) {
+        for (int distance = 1; distance < MAX_STRUCTURE_SIZE; distance++) {
+            IBlockState state = world.getBlockState(origin.down(distance));
+            if (state.equals(getCasingState()) || state.equals(getGlassState())) {
+                return distance;
+            }
+        }
+        return 0;
+    }
+
+    @NotNull
+    private static DimensionScanResult missingBoundary(@NotNull BlockPos pos,
+                                                       @NotNull String side,
+                                                       int distance) {
+        return DimensionScanResult.failure(
+                pos,
+                "plascrete " + side + " boundary at least " + MIN_RADIUS
+                        + " blocks from the controller",
+                distance == 0 ? "no boundary detected" : "detected distance " + distance);
+    }
+
+    private void applyStructureDimensions(@NotNull CleanroomDimensions dimensions) {
+        boolean changed = this.lDist != dimensions.left
+                || this.rDist != dimensions.right
+                || this.bDist != dimensions.back
+                || this.fDist != dimensions.front
+                || this.hDist != dimensions.height;
+        this.lDist = dimensions.left;
+        this.rDist = dimensions.right;
+        this.bDist = dimensions.back;
+        this.fDist = dimensions.front;
+        this.hDist = dimensions.height;
+        if (!changed || getWorld() == null || getWorld().isRemote) {
+            return;
+        }
         writeCustomData(GregtechDataCodes.UPDATE_STRUCTURE_SIZE, buf -> {
             buf.writeInt(this.lDist);
             buf.writeInt(this.rDist);
@@ -400,7 +561,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
             buf.writeInt(this.fDist);
             buf.writeInt(this.hDist);
         });
-        return true;
     }
 
     /**
@@ -429,160 +589,718 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    // Retained on FactoryBlockPattern: structure is dynamically generated from variable dimensions.
-    // The aisle strings are built at runtime based on detected cleanroom boundaries.
-    protected BlockPattern createStructurePattern() {
-        // return the default structure, even if there is no valid size found
-        // this means auto-build will still work, and prevents terminal crashes.
-        if (getWorld() != null) updateStructureDimensions();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
+    }
 
-        // these can sometimes get set to 0 when loading the game, breaking JEI
-        if (lDist < MIN_RADIUS) lDist = MIN_RADIUS;
-        if (rDist < MIN_RADIUS) rDist = MIN_RADIUS;
-        if (bDist < MIN_RADIUS) bDist = MIN_RADIUS;
-        if (fDist < MIN_RADIUS) fDist = MIN_RADIUS;
-        if (hDist < MIN_DEPTH) hDist = MIN_DEPTH;
-
-        if (this.frontFacing == EnumFacing.EAST || this.frontFacing == EnumFacing.WEST) {
-            int tmp = lDist;
-            lDist = rDist;
-            rDist = tmp;
+    private static boolean detectRuntimeStructure(
+            @NotNull StructureRuntimeDetectionContext<MetaTileEntityCleanroom> context) {
+        MetaTileEntityCleanroom controller = context.getController();
+        DimensionScanResult scan = controller.scanStructureDimensions();
+        if (!scan.isSuccess()) {
+            return context.fail(scan.failurePos, scan.expected, scan.actual);
         }
 
-        // build each row of the structure
-        StringBuilder borderBuilder = new StringBuilder();     // BBBBB
-        StringBuilder wallBuilder = new StringBuilder();       // BXXXB
-        StringBuilder insideBuilder = new StringBuilder();     // X X
-        StringBuilder roofBuilder = new StringBuilder();       // BFFFB
-        StringBuilder controllerBuilder = new StringBuilder(); // BFSFB
-        StringBuilder centerBuilder = new StringBuilder();     // BXKXB
+        CleanroomDimensions dimensions = scan.dimensions;
+        context.emit(CLEANROOM_DIMENSIONS_KEY, dimensions);
+        context.emit(CLEANROOM_WIDTH_KEY, dimensions.getWidth());
+        context.emit(CLEANROOM_HEIGHT_KEY, dimensions.getStructureHeight());
+        context.emit(CLEANROOM_LENGTH_KEY, dimensions.getLength());
 
-        // everything to the left of the controller
-        for (int i = 0; i < lDist; i++) {
-            borderBuilder.append("B");
-            if (i == 0) {
-                wallBuilder.append("B");
-                insideBuilder.append("X");
-                roofBuilder.append("B");
-                controllerBuilder.append("B");
-                centerBuilder.append("B");
-            } else {
-                insideBuilder.append(" ");
-                wallBuilder.append("X");
-                roofBuilder.append("F");
-                controllerBuilder.append("F");
-                centerBuilder.append("X");
+        RuntimeCellElements elements = controller.createRuntimeCellElements();
+        BlockPos origin = context.getControllerPos();
+        EnumFacing front = controller.getFrontFacing();
+        EnumFacing right = front.rotateY();
+
+        for (int depth = 0; depth <= dimensions.height; depth++) {
+            for (int forward = -dimensions.back; forward <= dimensions.front; forward++) {
+                for (int lateral = -dimensions.left; lateral <= dimensions.right; lateral++) {
+                    CleanroomCellType cellType = classifyCell(
+                            lateral, forward, depth, dimensions);
+                    BlockPos pos = offset(origin, right, lateral, front, forward).down(depth);
+                    IStructureElement<?> element = elements.get(cellType);
+                    if (!context.match(pos, element)) {
+                        return context.fail(
+                                pos, cellType.expected,
+                                String.valueOf(context.getWorld().getBlockState(pos)));
+                    }
+                }
             }
         }
+        return true;
+    }
 
-        // everything in-line with the controller
-        borderBuilder.append("B");
-        wallBuilder.append("X");
-        insideBuilder.append(" ");
-        roofBuilder.append("F");
-        controllerBuilder.append("S");
-        centerBuilder.append("K");
+    @NotNull
+    private RuntimeCellElements createRuntimeCellElements() {
+        IStructureElement<?> casing =
+                gregtech.api.pattern.element.Elements.block(getCasingState());
+        IStructureElement<?> wall = gregtech.api.pattern.element.Elements.blocks(
+                getCasingState(), getGlassState());
+        List<IStructureElement<?>> baseAlternatives = new ArrayList<>();
+        baseAlternatives.add(casing);
+        List<IStructureElement<?>> wallAlternatives = new ArrayList<>();
+        wallAlternatives.add(wall);
 
-        // everything to the right of the controller
-        for (int i = 0; i < rDist; i++) {
-            borderBuilder.append("B");
-            if (i == rDist - 1) {
-                wallBuilder.append("B");
-                insideBuilder.append("X");
-                roofBuilder.append("B");
-                controllerBuilder.append("B");
-                centerBuilder.append("B");
-            } else {
-                insideBuilder.append(" ");
-                wallBuilder.append("X");
-                roofBuilder.append("F");
-                controllerBuilder.append("F");
-                centerBuilder.append("X");
+        if (hasMaintenanceMechanics()) {
+            HatchElement maintenance = new HatchElement(
+                    MultiblockAbility.MAINTENANCE_HATCH,
+                    ConfigHolder.machines.enableMaintenance ? 1 : 0, 1);
+            baseAlternatives.add(maintenance);
+            wallAlternatives.add(maintenance);
+        }
+        if (hasMufflerMechanics()) {
+            HatchElement muffler = new HatchElement(
+                    MultiblockAbility.MUFFLER_HATCH, 1, 1);
+            baseAlternatives.add(muffler);
+            wallAlternatives.add(muffler);
+        }
+
+        HatchElement energy = new HatchElement(
+                MultiblockAbility.INPUT_ENERGY, 1, 3);
+        baseAlternatives.add(energy);
+        wallAlternatives.add(energy);
+        wallAlternatives.add(new HatchElement(
+                MultiblockAbility.PASSTHROUGH_HATCH, 0, 30));
+        wallAlternatives.add(CLEANROOM_DOOR_ELEMENT);
+
+        return new RuntimeCellElements(
+                gregtech.api.pattern.element.Elements.self(MetaTileEntityCleanroom.class),
+                new ChainElement(baseAlternatives.toArray(new IStructureElement[0])),
+                new ChainElement(wallAlternatives.toArray(new IStructureElement[0])),
+                wall,
+                CLEANROOM_FILTER_ELEMENT,
+                CLEANROOM_INNER_ELEMENT);
+    }
+
+    @NotNull
+    private static BlockPos offset(@NotNull BlockPos origin,
+                                   @NotNull EnumFacing right,
+                                   int lateral,
+                                   @NotNull EnumFacing front,
+                                   int forward) {
+        BlockPos result = lateral >= 0
+                ? origin.offset(right, lateral)
+                : origin.offset(right.getOpposite(), -lateral);
+        return forward >= 0
+                ? result.offset(front, forward)
+                : result.offset(front.getOpposite(), -forward);
+    }
+
+    @NotNull
+    private static CleanroomCellType classifyCell(
+            int lateral,
+            int forward,
+            int depth,
+            @NotNull CleanroomDimensions dimensions) {
+        boolean lateralBoundary =
+                lateral == -dimensions.left || lateral == dimensions.right;
+        boolean forwardBoundary =
+                forward == -dimensions.back || forward == dimensions.front;
+
+        if (depth == 0) {
+            if (lateral == 0 && forward == 0) {
+                return CleanroomCellType.CONTROLLER;
             }
+            return lateralBoundary || forwardBoundary
+                    ? CleanroomCellType.BASE_BOUNDARY
+                    : CleanroomCellType.FILTER;
+        }
+        if (depth == dimensions.height) {
+            if (lateralBoundary || forwardBoundary) {
+                return CleanroomCellType.BASE_BOUNDARY;
+            }
+            if (lateral == 0 && forward == 0) {
+                return CleanroomCellType.FOUNDATION;
+            }
+            return CleanroomCellType.WALL_SLOT;
+        }
+        if (lateralBoundary && forwardBoundary) {
+            return CleanroomCellType.BASE_BOUNDARY;
+        }
+        if (lateralBoundary || forwardBoundary) {
+            return CleanroomCellType.WALL_SLOT;
+        }
+        return CleanroomCellType.INTERIOR;
+    }
+
+    private void updateCleanroomReceivers(@NotNull Set<ICleanroomReceiver> matchedReceivers) {
+        cleanroomReceivers.removeIf(receiver -> {
+            if (matchedReceivers.contains(receiver)) {
+                return false;
+            }
+            if (receiver.getCleanroom() == this) {
+                receiver.unsetCleanroom();
+            }
+            return true;
+        });
+        for (ICleanroomReceiver receiver : matchedReceivers) {
+            if (receiver.getCleanroom() != this) {
+                receiver.setCleanroom(this);
+            }
+            cleanroomReceivers.add(receiver);
+        }
+    }
+
+    @NotNull
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Arrays.asList(
+                GTStructureChannels.STRUCTURE_WIDTH,
+                GTStructureChannels.STRUCTURE_HEIGHT,
+                GTStructureChannels.STRUCTURE_LENGTH);
+    }
+
+    @NotNull
+    @Override
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        String channelName = channel.getName();
+        if (GTStructureChannels.STRUCTURE_WIDTH.getName().equals(channelName) ||
+                GTStructureChannels.STRUCTURE_HEIGHT.getName().equals(channelName) ||
+                GTStructureChannels.STRUCTURE_LENGTH.getName().equals(channelName)) {
+            return new int[] { MIN_STRUCTURE_SIZE, MAX_STRUCTURE_SIZE };
+        }
+        return super.getChannelRange(channel);
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes() {
+        return getMatchingShapes(Collections.emptyMap());
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
+        StructureRuntime runtime = createToolingRuntime(channelValues);
+        return Collections.singletonList(new MultiblockShapeInfo(
+                runtime.previewSingle(StructureOperationRequest.preview(
+                        getToolingRepetitions(channelValues), channelValues))));
+    }
+
+    @NotNull
+    @Override
+    public Map<BlockPos, StructureElementPreviewEntry> buildStructurePreviewEntries(
+            @Nullable Map<String, Integer> channelValues) {
+        StructureRuntime runtime = createToolingRuntime(channelValues);
+        StructurePreviewResult result = runtime.previewSingleResult(
+                StructureOperationRequest.preview(getToolingRepetitions(channelValues), channelValues));
+        gregtech.api.pattern.PieceRuntimeState.PreviewCells cells =
+                result.getSinglePieceCells();
+        if (cells == null || cells.getPreviewEntries().isEmpty()) {
+            return Collections.emptyMap();
         }
 
-        // build each slice of the structure
-        String[] wall = new String[hDist + 1]; // "BBBBB", "BXXXB", "BXXXB", "BXXXB", "BBBBB"
-        Arrays.fill(wall, wallBuilder.toString());
-        wall[0] = borderBuilder.toString();
-        wall[wall.length - 1] = borderBuilder.toString();
-
-        String[] slice = new String[hDist + 1]; // "BXXXB", "X X", "X X", "X X", "BFFFB"
-        Arrays.fill(slice, insideBuilder.toString());
-        slice[0] = wallBuilder.toString();
-        slice[slice.length - 1] = roofBuilder.toString();
-
-        String[] center = Arrays.copyOf(slice, slice.length); // "BXKXB", "X X", "X X", "X X", "BFSFB"
-        if (this.frontFacing == EnumFacing.NORTH || this.frontFacing == EnumFacing.SOUTH) {
-            center[0] = centerBuilder.reverse().toString();
-            center[center.length - 1] = controllerBuilder.reverse().toString();
-        } else {
-            center[0] = centerBuilder.toString();
-            center[center.length - 1] = controllerBuilder.toString();
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        for (BlockPos pos : cells.getBlocks().keySet()) {
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
         }
+        Map<BlockPos, StructureElementPreviewEntry> normalized = new java.util.HashMap<>();
+        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry :
+                cells.getPreviewEntries().entrySet()) {
+            BlockPos pos = entry.getKey();
+            normalized.put(
+                    new BlockPos(
+                            pos.getX() - minX,
+                            pos.getY() - minY,
+                            pos.getZ() - minZ),
+                    entry.getValue());
+        }
+        return normalized;
+    }
 
-        TraceabilityPredicate wallPredicate = states(getCasingState(), getGlassState());
-        TraceabilityPredicate basePredicate = autoAbilities().or(abilities(MultiblockAbility.INPUT_ENERGY)
-                .setMinGlobalLimited(1).setMaxGlobalLimited(3));
+    @Override
+    public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
+        request.requireBuildKind();
+        createToolingRuntime(request.getChannelValues()).buildAllPieces(request);
+        return true;
+    }
 
-        // layer the slices one behind the next
-        return FactoryBlockPattern.start()
-                .aisle(wall)
-                .aisle(slice).setRepeatable(bDist - 1)
-                .aisle(center)
-                .aisle(slice).setRepeatable(fDist - 1)
-                .aisle(wall)
-                .where('S', selfPredicate())
-                .where('B', states(getCasingState()).or(basePredicate))
-                .where('X', wallPredicate.or(basePredicate)
-                        .or(improvedDoorPredicate().setMaxGlobalLimited(8))
-                        .or(abilities(MultiblockAbility.PASSTHROUGH_HATCH).setMaxGlobalLimited(30)))
-                .where('K', wallPredicate) // the block beneath the controller must only be a casing for structure
-                // dimension checks
-                .where('F', filterPredicate())
-                .where(' ', innerPredicate())
+    @Override
+    public void spawnStructureHints(@NotNull StructureOperationRequest request) {
+        hintStructure(request);
+    }
+
+    @Override
+    @NotNull
+    public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.HINT);
+        return createToolingRuntime(request.getChannelValues()).hintAllPieces(request);
+    }
+
+    @Override
+    @Deprecated
+    public boolean autoBuildStructure(@NotNull EntityPlayer player,
+                                      @Nullable Map<String, Integer> channelValues,
+                                      boolean skipHatches) {
+        return autoBuildStructure(StructureOperationRequest.build(
+                player, this, StructureOrientation.fromController(this),
+                channelValues, skipHatches, ItemStack.EMPTY));
+    }
+
+    @NotNull
+    private StructureRuntime createToolingRuntime(@Nullable Map<String, Integer> channelValues) {
+        return createDynamicStructureRuntime(buildToolingDefinition(channelValues));
+    }
+
+    @NotNull
+    private StructureDefinition<MetaTileEntityCleanroom> buildToolingDefinition(
+            @Nullable Map<String, Integer> channelValues) {
+        return StructureDefinition.<MetaTileEntityCleanroom>builder(
+                RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.FRONT)
+                .pieceFromTemplate(CLEANROOM_RUNTIME_PIECE, buildToolingTemplate(channelValues))
+                .end()
+                .globalAbilityLimit(MultiblockAbility.INPUT_ENERGY, 1, 3)
+                .globalAbilityLimit(
+                        MultiblockAbility.MAINTENANCE_HATCH,
+                        ConfigHolder.machines.enableMaintenance ? 1 : 0,
+                        1)
                 .build();
     }
-    @NotNull
-    protected static TraceabilityPredicate improvedDoorPredicate() {
-        return new TraceabilityPredicate(blockWorldState -> {
-            IBlockState state = blockWorldState.getBlockState();
-            if (state.getBlock() instanceof BlockDoor) {
-                BlockDoor.EnumDoorHalf half = state.getValue(BlockDoor.HALF);
-                if (half == BlockDoor.EnumDoorHalf.LOWER) {
-                    // we only need the door once
-                    blockWorldState.getMatchContext().getOrCreate("Doors", () -> new ObjectOpenHashSet<BlockPos>())
-                            .add(blockWorldState.getPos().toImmutable());
-                }
-                return true;
-            }
-            return false;
-        });
-    }
-    @NotNull
-    protected TraceabilityPredicate filterPredicate() {
-        return new TraceabilityPredicate(blockWorldState -> {
-            IBlockState blockState = blockWorldState.getBlockState();
-            if (GregTechAPI.CLEANROOM_FILTERS.containsKey(blockState)) {
-                ICleanroomFilter cleanroomFilter = GregTechAPI.CLEANROOM_FILTERS.get(blockState);
-                if (cleanroomFilter.getCleanroomType() == null) return false;
 
-                ICleanroomFilter currentFilter = blockWorldState.getMatchContext().getOrPut("FilterType",
-                        cleanroomFilter);
-                if (!currentFilter.getCleanroomType().equals(cleanroomFilter.getCleanroomType())) {
-                    blockWorldState.setError(new PatternStringError("gregtech.multiblock.pattern.error.filters"));
-                    return false;
+    @NotNull
+    private PieceTemplate buildToolingTemplate(@Nullable Map<String, Integer> channelValues) {
+        int width = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_WIDTH.getName());
+        int height = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_HEIGHT.getName());
+        int length = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_LENGTH.getName());
+
+        CleanroomDimensions dimensions = CleanroomDimensions.centered(width, height, length);
+        RuntimeCellElements elements = createRuntimeCellElements();
+        IStructureElement<?>[][][] template = new IStructureElement<?>[dimensions.getLength()]
+                [dimensions.getStructureHeight()][dimensions.getWidth()];
+        for (int forward = -dimensions.back; forward <= dimensions.front; forward++) {
+            int z = forward + dimensions.back;
+            for (int depth = dimensions.height; depth >= 0; depth--) {
+                int y = dimensions.height - depth;
+                for (int lateral = -dimensions.left; lateral <= dimensions.right; lateral++) {
+                    int x = lateral + dimensions.left;
+                    template[z][y][x] = elements.get(classifyCell(lateral, forward, depth, dimensions));
                 }
-                blockWorldState.getMatchContext().getOrPut("VABlock", new LinkedList<>()).add(blockWorldState.getPos());
+            }
+        }
+        int[] centerOffset = new int[] {
+                dimensions.left,
+                dimensions.height,
+                dimensions.back,
+                dimensions.back,
+                dimensions.back
+        };
+        int[][] repetitions = new int[dimensions.getLength()][2];
+        for (int i = 0; i < repetitions.length; i++) {
+            repetitions[i][0] = 1;
+            repetitions[i][1] = 1;
+        }
+        return new PieceTemplate(
+                template,
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.FRONT
+                },
+                repetitions,
+                new String[repetitions.length],
+                centerOffset,
+                null);
+    }
+
+    private static int resolveChannelSize(@Nullable Map<String, Integer> channelValues,
+                                          @NotNull String channelName) {
+        if (channelValues == null) return MAX_STRUCTURE_SIZE;
+        Integer value = channelValues.get(channelName);
+        if (value == null || value <= 0) return MAX_STRUCTURE_SIZE;
+        if (value == 1) return MIN_STRUCTURE_SIZE;
+        return Math.max(MIN_STRUCTURE_SIZE, Math.min(MAX_STRUCTURE_SIZE, value));
+    }
+
+    @NotNull
+    private int[] getToolingRepetitions(@Nullable Map<String, Integer> channelValues) {
+        int length = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_LENGTH.getName());
+        int[] repetitions = new int[length];
+        Arrays.fill(repetitions, 1);
+        return repetitions;
+    }
+
+    private enum CleanroomCellType {
+
+        CONTROLLER("cleanroom controller"),
+        BASE_BOUNDARY("plascrete casing or a permitted ability hatch"),
+        WALL_SLOT("cleanroom wall, permitted ability hatch, passthrough hatch, or door"),
+        FOUNDATION("cleanroom casing or cleanroom glass beneath the controller"),
+        FILTER("cleanroom filter"),
+        INTERIOR("valid cleanroom interior");
+
+        @NotNull
+        private final String expected;
+
+        CleanroomCellType(@NotNull String expected) {
+            this.expected = expected;
+        }
+    }
+
+    private static final class RuntimeCellElements {
+
+        @NotNull
+        private final IStructureElement<?> controller;
+        @NotNull
+        private final IStructureElement<?> baseBoundary;
+        @NotNull
+        private final IStructureElement<?> wallSlot;
+        @NotNull
+        private final IStructureElement<?> foundation;
+        @NotNull
+        private final IStructureElement<?> filter;
+        @NotNull
+        private final IStructureElement<?> interior;
+
+        private RuntimeCellElements(
+                @NotNull IStructureElement<?> controller,
+                @NotNull IStructureElement<?> baseBoundary,
+                @NotNull IStructureElement<?> wallSlot,
+                @NotNull IStructureElement<?> foundation,
+                @NotNull IStructureElement<?> filter,
+                @NotNull IStructureElement<?> interior) {
+            this.controller = controller.compile();
+            this.baseBoundary = baseBoundary.compile();
+            this.wallSlot = wallSlot.compile();
+            this.foundation = foundation.compile();
+            this.filter = filter.compile();
+            this.interior = interior.compile();
+        }
+
+        @NotNull
+        private IStructureElement<?> get(@NotNull CleanroomCellType type) {
+            switch (type) {
+                case CONTROLLER:
+                    return controller;
+                case BASE_BOUNDARY:
+                    return baseBoundary;
+                case WALL_SLOT:
+                    return wallSlot;
+                case FOUNDATION:
+                    return foundation;
+                case FILTER:
+                    return filter;
+                case INTERIOR:
+                    return interior;
+                default:
+                    throw new IllegalStateException("Unhandled cleanroom cell type " + type);
+            }
+        }
+    }
+
+    private static final class CleanroomDimensions {
+
+        private final int left;
+        private final int right;
+        private final int back;
+        private final int front;
+        private final int height;
+
+        private CleanroomDimensions(int left, int right, int back, int front, int height) {
+            this.left = left;
+            this.right = right;
+            this.back = back;
+            this.front = front;
+            this.height = height;
+        }
+
+        @NotNull
+        private static CleanroomDimensions centered(int width, int structureHeight, int length) {
+            int left = (width - 1) / 2;
+            int right = width - 1 - left;
+            int back = (length - 1) / 2;
+            int front = length - 1 - back;
+            return new CleanroomDimensions(left, right, back, front, structureHeight - 1);
+        }
+
+        private int getWidth() {
+            return left + right + 1;
+        }
+
+        private int getLength() {
+            return back + front + 1;
+        }
+
+        private int getStructureHeight() {
+            return height + 1;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) return true;
+            if (!(object instanceof CleanroomDimensions)) return false;
+            CleanroomDimensions that = (CleanroomDimensions) object;
+            return left == that.left
+                    && right == that.right
+                    && back == that.back
+                    && front == that.front
+                    && height == that.height;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = left;
+            result = 31 * result + right;
+            result = 31 * result + back;
+            result = 31 * result + front;
+            result = 31 * result + height;
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "left=" + left + ", right=" + right
+                    + ", back=" + back + ", front=" + front
+                    + ", height=" + height;
+        }
+    }
+
+    private static final class DimensionScanResult {
+
+        @Nullable
+        private final CleanroomDimensions dimensions;
+        @NotNull
+        private final BlockPos failurePos;
+        @NotNull
+        private final String expected;
+        @NotNull
+        private final String actual;
+
+        private DimensionScanResult(
+                @Nullable CleanroomDimensions dimensions,
+                @NotNull BlockPos failurePos,
+                @NotNull String expected,
+                @NotNull String actual) {
+            this.dimensions = dimensions;
+            this.failurePos = failurePos.toImmutable();
+            this.expected = expected;
+            this.actual = actual;
+        }
+
+        @NotNull
+        private static DimensionScanResult success(@NotNull CleanroomDimensions dimensions) {
+            return new DimensionScanResult(
+                    dimensions, BlockPos.ORIGIN, "detected cleanroom bounds", "matched");
+        }
+
+        @NotNull
+        private static DimensionScanResult failure(
+                @NotNull BlockPos pos,
+                @NotNull String expected,
+                @NotNull String actual) {
+            return new DimensionScanResult(null, pos, expected, actual);
+        }
+
+        private boolean isSuccess() {
+            return dimensions != null;
+        }
+    }
+
+    private static final class CleanroomInnerElement implements ITypedStructureElement<Object> {
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            Object rawController = context.getController();
+            if (!(rawController instanceof MetaTileEntityCleanroom)) {
+                return false;
+            }
+            MetaTileEntityCleanroom controller = (MetaTileEntityCleanroom) rawController;
+            TileEntity tileEntity = context.getTileEntity();
+            if (!(tileEntity instanceof IGregTechTileEntity)) {
                 return true;
             }
-            return false;
-        }, () -> GregTechAPI.CLEANROOM_FILTERS.entrySet().stream()
-                .filter(entry -> entry.getValue().getCleanroomType() != null)
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .map(entry -> new BlockInfo(entry.getKey(), null))
-                .toArray(BlockInfo[]::new))
-                .addTooltips("gregtech.multiblock.pattern.error.filters");
+
+            MetaTileEntity metaTileEntity =
+                    ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (metaTileEntity instanceof ICleanroomProvider
+                    || controller.isMachineBanned(metaTileEntity)) {
+                return false;
+            }
+            if (metaTileEntity instanceof ICleanroomReceiver) {
+                context.getCollector().emit(
+                        CLEANROOM_RECEIVERS_KEY,
+                        (ICleanroomReceiver) metaTileEntity);
+            }
+            return true;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+    }
+
+    private static final class CleanroomFilterAggregate {
+
+        private ICleanroomFilter filter;
+        private boolean mismatched;
+
+        private void add(@Nullable ICleanroomFilter emitted) {
+            if (emitted == null) {
+                return;
+            }
+            if (filter == null) {
+                filter = emitted;
+                return;
+            }
+            if (!filter.getCleanroomType().equals(emitted.getCleanroomType())) {
+                mismatched = true;
+            }
+        }
+
+        @Nullable
+        private ICleanroomFilter getFilter() {
+            return filter;
+        }
+
+        @NotNull
+        private StructureContributionKey.Validation validate() {
+            if (filter == null) {
+                return StructureContributionKey.Validation.failure("Cleanroom filter was not matched");
+            }
+            if (mismatched) {
+                return StructureContributionKey.Validation.failure(
+                        "Cleanroom filters must share the same cleanroom type");
+            }
+            return StructureContributionKey.Validation.success();
+        }
+
+        @NotNull
+        private CleanroomFilterAggregate copy() {
+            CleanroomFilterAggregate copy = new CleanroomFilterAggregate();
+            copy.filter = filter;
+            copy.mismatched = mismatched;
+            return copy;
+        }
+    }
+
+    private static final class CleanroomDoorElement implements ITypedStructureElement<Object> {
+
+        @NotNull
+        @Override
+        public Set<StructureElementCapability> getCapabilities() {
+            return StructureElementCapability.snapshotSafe();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            IBlockState state = context.getBlockState();
+            if (!(state.getBlock() instanceof BlockDoor)) {
+                return false;
+            }
+            if (state.getValue(BlockDoor.HALF) == BlockDoor.EnumDoorHalf.LOWER) {
+                context.getCollector().emit(CLEANROOM_DOORS_KEY, context.getPos());
+            }
+            return true;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[0];
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return StructureElementPreview.empty();
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+    }
+
+    private static final class CleanroomFilterElement implements ITypedStructureElement<Object> {
+
+        private final StructureElementPreview preview = StructureElementPreview.builder()
+                .common(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                        .tooltip(() -> Collections.singletonList(
+                                "gregtech.multiblock.pattern.error.filters"))
+                        .build())
+                .build();
+
+        @NotNull
+        @Override
+        public Set<StructureElementCapability> getCapabilities() {
+            return StructureElementCapability.snapshotSafe();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            ICleanroomFilter filter = GregTechAPI.CLEANROOM_FILTERS.get(context.getBlockState());
+            if (filter == null || filter.getCleanroomType() == null) {
+                return false;
+            }
+            return context.transaction(transactionContext -> {
+                transactionContext.getCollector().emit(CLEANROOM_FILTER_KEY, filter);
+                transactionContext.getCollector().recordVariantActiveBlock(transactionContext.getPos());
+                return true;
+            });
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return GregTechAPI.CLEANROOM_FILTERS.entrySet().stream()
+                    .filter(entry -> entry.getValue().getCleanroomType() != null)
+                    .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
+                    .map(entry -> new BlockInfo(entry.getKey(), null))
+                    .toArray(BlockInfo[]::new);
+        }
+
+        @Override
+        public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
+                                  EntityPlayer player, boolean skipHatches) {
+            BlockInfo[] candidates = getCandidates();
+            if (candidates.length == 0) {
+                return false;
+            }
+            World world = context.getWorld();
+            if (world == null) {
+                return false;
+            }
+            world.setBlockState(context.getPos(), candidates[0].getBlockState());
+            return true;
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+
     }
 
     @SideOnly(Side.CLIENT)
@@ -600,40 +1318,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     @NotNull
     protected IBlockState getGlassState() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.CLEANROOM_GLASS);
-    }
-
-    @NotNull
-    protected static TraceabilityPredicate doorPredicate() {
-        return new TraceabilityPredicate(
-                blockWorldState -> blockWorldState.getBlockState().getBlock() instanceof BlockDoor);
-    }
-
-    @NotNull
-    protected TraceabilityPredicate innerPredicate() {
-        return new TraceabilityPredicate(blockWorldState -> {
-            // all non-MetaTileEntities are allowed inside by default
-            TileEntity tileEntity = blockWorldState.getTileEntity();
-            if (!(tileEntity instanceof IGregTechTileEntity)) return true;
-
-            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-
-            // always ban other cleanrooms, can cause problems otherwise
-            if (metaTileEntity instanceof ICleanroomProvider)
-                return false;
-
-            if (isMachineBanned(metaTileEntity))
-                return false;
-
-            // the machine does not need a cleanroom, so do nothing more
-            if (!(metaTileEntity instanceof ICleanroomReceiver cleanroomReceiver)) return true;
-
-            // give the machine this cleanroom if it doesn't have this one
-            if (cleanroomReceiver.getCleanroom() != this) {
-                cleanroomReceiver.setCleanroom(this);
-                cleanroomReceivers.add(cleanroomReceiver);
-            }
-            return true;
-        });
     }
 
     @Override
@@ -859,8 +1543,8 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         super.writeToNBT(data);
         data.setInteger("lDist", this.lDist);
         data.setInteger("rDist", this.rDist);
-        data.setInteger("bDist", this.fDist);
-        data.setInteger("fDist", this.bDist);
+        data.setInteger("bDist", this.bDist);
+        data.setInteger("fDist", this.fDist);
         data.setInteger("hDist", this.hDist);
         data.setInteger("cleanAmount", this.cleanAmount);
         return this.cleanroomLogic.writeToNBT(data);
@@ -874,7 +1558,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         this.hDist = data.hasKey("hDist") ? data.getInteger("hDist") : this.hDist;
         this.bDist = data.hasKey("bDist") ? data.getInteger("bDist") : this.bDist;
         this.fDist = data.hasKey("fDist") ? data.getInteger("fDist") : this.fDist;
-        reinitializeStructurePattern();
         this.cleanAmount = data.getInteger("cleanAmount");
         this.cleanroomLogic.readFromNBT(data);
     }
@@ -908,42 +1591,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
         if (ConfigHolder.machines.enableCleanroom) {
             super.getSubItems(creativeTab, subItems);
         }
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        ArrayList<MultiblockShapeInfo> shapeInfo = new ArrayList<>();
-        MultiblockShapeInfo.Builder builder = MultiblockShapeInfo.builder()
-                .aisle("XXXXX", "XIHLX", "XXDXX", "XXXXX", "XXXXX")
-                .aisle("XXXXX", "X   X", "G   G", "X   X", "XFFFX")
-                .aisle("XXXXX", "X   X", "G   G", "X   X", "XFSFX")
-                .aisle("XXXXX", "X   X", "G   G", "X   X", "XFFFX")
-                .aisle("XMXEX", "XXOXX", "XXRXX", "XXXXX", "XXXXX")
-                .where('X', MetaBlocks.CLEANROOM_CASING.getState(BlockCleanroomCasing.CasingType.PLASCRETE))
-                .where('G', MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.CLEANROOM_GLASS))
-                .where('S', MetaTileEntities.CLEANROOM, EnumFacing.SOUTH)
-                .where(' ', Blocks.AIR.getDefaultState())
-                .where('E', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LV], EnumFacing.SOUTH)
-                .where('I', MetaTileEntities.PASSTHROUGH_HATCH_ITEM, EnumFacing.NORTH)
-                .where('L', MetaTileEntities.PASSTHROUGH_HATCH_FLUID, EnumFacing.NORTH)
-                .where('H', MetaTileEntities.HULL[GTValues.HV], EnumFacing.NORTH)
-                .where('D', MetaTileEntities.DIODES[GTValues.HV], EnumFacing.NORTH)
-                .where('M',
-                        () -> ConfigHolder.machines.enableMaintenance ? MetaTileEntities.MAINTENANCE_HATCH :
-                                MetaBlocks.CLEANROOM_CASING.getState(BlockCleanroomCasing.CasingType.PLASCRETE),
-                        EnumFacing.SOUTH)
-                .where('O',
-                        Blocks.IRON_DOOR.getDefaultState().withProperty(BlockDoor.FACING, EnumFacing.NORTH)
-                                .withProperty(BlockDoor.HALF, BlockDoor.EnumDoorHalf.LOWER))
-                .where('R', Blocks.IRON_DOOR.getDefaultState().withProperty(BlockDoor.FACING, EnumFacing.NORTH)
-                        .withProperty(BlockDoor.HALF, BlockDoor.EnumDoorHalf.UPPER));
-
-        GregTechAPI.CLEANROOM_FILTERS.entrySet().stream()
-                .filter(entry -> entry.getValue().getCleanroomType() != null)
-                .sorted(Comparator.comparingInt(entry -> entry.getValue().getTier()))
-                .forEach(entry -> shapeInfo.add(builder.where('F', entry.getKey()).build()));
-
-        return shapeInfo;
     }
 
     @Override

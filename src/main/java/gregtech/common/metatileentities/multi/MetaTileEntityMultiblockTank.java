@@ -10,9 +10,9 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
@@ -102,17 +102,17 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
     @Override
     @NotNull
-    protected BlockPattern createStructurePattern() {
-        return DeclarativePatternBuilder.start()
+    protected StructureDefinition createStructureDefinition() {
+        return StructureDefinition.getOrBuild(metaTileEntityId + "/structure", () -> DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .where('S', selfPredicate())
-                .where(' ', air())
-                .casing('X', CasingDefinition.simple(casingState))
+                .self('S', MetaTileEntityMultiblockTank.class)
+                .air(' ')
+                .casing('X', casingState)
                 .custom(
-                        metaTileEntities(valve).setMaxGlobalLimited(2), 2)
-                .build();
+                        Elements.metaTileEntities(0, 2, 2, valve), 2)
+                .buildStructureDefinition());
     }
 
     @SideOnly(Side.CLIENT)

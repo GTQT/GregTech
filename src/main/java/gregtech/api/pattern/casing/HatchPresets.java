@@ -27,5 +27,11 @@ public final class HatchPresets {
         STANDARD_IO.apply(slot);
     };
 
+    public static final IHatchPreset ELECTRIC_STANDARD_FIXED_MUFFLER = slot -> {
+        slot.hatch(MultiblockAbility.INPUT_ENERGY, 1, 2);
+        slot.hatch(MultiblockAbility.MAINTENANCE_HATCH, 1);
+        STANDARD_IO.apply(slot);
+    };
+
     private HatchPresets() {}
 }

@@ -1,6 +1,7 @@
 package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
@@ -9,18 +10,19 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.KeyUtil;
@@ -52,6 +54,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -61,11 +64,14 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     @Getter
     private boolean boostAllowed;
 
-    private static final SoftTemplate[] TEMPLATES = new SoftTemplate[2];
+    private static final SoftReferenceHolder<? extends StructureDefinition<?>>[] STRUCTURE_DEFINITIONS =
+            new SoftReferenceHolder[2];
 
     static {
-        TEMPLATES[0] = TemplatePool.getInstance().register("gregtech:large_combustion_engine", () -> buildTemplate(false));
-        TEMPLATES[1] = TemplatePool.getInstance().register("gregtech:extreme_combustion_engine", () -> buildTemplate(true));
+        STRUCTURE_DEFINITIONS[0] = TemplatePool.getInstance()
+                .registerStructure("gregtech:large_combustion_engine", () -> buildStructureDefinition(false));
+        STRUCTURE_DEFINITIONS[1] = TemplatePool.getInstance()
+                .registerStructure("gregtech:extreme_combustion_engine", () -> buildStructureDefinition(true));
     }
 
     public MetaTileEntityLargeCombustionEngine(ResourceLocation metaTileEntityId, int tier) {
@@ -83,8 +89,10 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         var recipeLogic = (LargeCombustionEngineWorkableHandler) recipeMapWorkable;
+        boolean dynamoFull = isDynamoFull();
 
-        builder.setWorkingStatus(recipeLogic.isWorkingEnabled(), recipeLogic.isActive() && !isDynamoFull());
+        builder.setWorkingStatus(recipeLogic.isWorkingEnabled() && !dynamoFull,
+                recipeLogic.isActive() && !dynamoFull);
 
         if (isExtreme) {
             builder.addEnergyProductionLine(GTValues.V[tier + 1], recipeLogic.getRecipeEUt());
@@ -92,7 +100,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
             builder.addEnergyProductionAmpsLine(GTValues.V[tier] * 3, 3);
         }
 
-        builder.addFuelNeededLine(recipeLogic.getRecipeFluidInputInfo(), recipeLogic.getPreviousRecipeDuration())
+        builder.addFuelNeededLine(recipeLogic::getRecipeFluidInputInfo, recipeLogic::getPreviousRecipeDuration)
                 .addCustom((richText, syncer) -> {
                     if (isStructureFormed() && syncer.syncBoolean(recipeLogic.isOxygenBoosted)) {
                         String key = isExtreme ?
@@ -143,32 +151,47 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATES[isExtreme?1:0].get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITIONS[isExtreme ? 1 : 0].get();
     }
 
 
-    private static BlockPatternTemplate buildTemplate(boolean isExtreme) {
+    private static StructureDefinition buildStructureDefinition(boolean isExtreme) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XDX", "XXX")
                 .aisle("XCX", "CGC", "XCX")
                 .aisle("XCX", "CGC", "XCX")
                 .aisle("AAA", "AYA", "AAA")
-                .where('X', states(getCasingState(isExtreme)))
-                .where('G', states(getGearboxState(isExtreme)))
-                .where('D', energyOutput(getTier(isExtreme), true)
-                        .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[getTier(isExtreme)])
-                )
-                .where('A', states(getIntakeState(isExtreme)).addTooltips("gregtech.multiblock.pattern.clear_amount_1"))
-                .where('Y', selfPredicate(MetaTileEntityLargeCombustionEngine.class))
-                .casing('C', CasingDefinition.simple(getCasingState(isExtreme)))
+                .block('X', getCasingState(isExtreme))
+                .block('G', getGearboxState(isExtreme))
+                .where('D', Elements.withTooltips(
+                        Elements.metaTileEntities(getAllowedEnergyOutputs(getTier(isExtreme))),
+                        "gregtech.multiblock.pattern.error.limited.1"))
+                .where('A', Elements.withTooltips(
+                        Elements.block(getIntakeState(isExtreme)),
+                        "gregtech.multiblock.pattern.clear_amount_1"))
+                .self('Y', MetaTileEntityLargeCombustionEngine.class)
+                .casing('C', getCasingState(isExtreme))
                 .preset(HatchPresets.STANDARD_FLUID_IO)
                 .preset(HatchPresets.MUFFLER_IO)
-                .buildTemplate();
+                .buildStructureDefinition();
     }
 
     private static int getTier(boolean isExtreme) {
         return isExtreme ? GTValues.IV : GTValues.EV;
+    }
+
+    private static MetaTileEntity[] getAllowedEnergyOutputs(int tier) {
+        return MultiblockAbility.REGISTRY
+                .getOrDefault(MultiblockAbility.OUTPUT_ENERGY, Collections.emptyList())
+                .stream()
+                .filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(
+                            GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                    return container != null
+                            && container.getOutputVoltage() * container.getOutputAmperage() >= GTValues.V[tier];
+                })
+                .toArray(MetaTileEntity[]::new);
     }
 
     public static IBlockState getCasingState(boolean isExtreme) {
@@ -210,8 +233,8 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         IEnergyContainer energyContainer = getEnergyContainer();
         this.boostAllowed = energyContainer != null && energyContainer.getOutputVoltage() >= GTValues.V[this.tier + 1];
     }
@@ -250,7 +273,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
         FixedIntArraySyncValue fuelValue = new FixedIntArraySyncValue(this::getFuelAmount);
         syncManager.syncValue("fuel_amount", fuelValue);
         StringSyncValue fuelNameValue = new StringSyncValue(() -> {
-            FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getInputFluidStack();
+            FluidStack stack = ((MultiblockFuelRecipeLogic) recipeMapWorkable).getCachedInputFluidStack();
             if (stack == null) {
                 return null;
             }
@@ -327,8 +350,9 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     private int[] getFuelAmount() {
         if (getInputFluidInventory() != null) {
             MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
-            if (recipeLogic.getInputFluidStack() != null) {
-                FluidStack testStack = recipeLogic.getInputFluidStack().copy();
+            FluidStack fuelStack = recipeLogic.getCachedInputFluidStack();
+            if (fuelStack != null) {
+                FluidStack testStack = fuelStack.copy();
                 testStack.amount = Integer.MAX_VALUE;
                 return getTotalFluidAmount(testStack, getInputFluidInventory());
             }

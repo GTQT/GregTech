@@ -17,6 +17,8 @@ import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import org.jetbrains.annotations.ApiStatus;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static gregtech.api.metatileentity.multiblock.MultiblockControllerBase.abilities;
 
+@ApiStatus.Obsolete
 public class TraceabilityPredicate {
 
     // Allow any block.
@@ -85,6 +88,10 @@ public class TraceabilityPredicate {
 
     public boolean isHasAir() {
         return hasAir;
+    }
+
+    public boolean isCenter() {
+        return isCenter;
     }
 
     public boolean isSingle() {
@@ -223,6 +230,45 @@ public class TraceabilityPredicate {
         return this;
     }
 
+    /**
+     * Marks this predicate as matching a specific multiblock ability so failed
+     * minimum-count checks can report the missing hatch to the controller UI.
+     */
+    public TraceabilityPredicate setAbility(MultiblockAbility<?> ability) {
+        common.forEach(predicate -> predicate.ability = ability);
+        limited.forEach(predicate -> predicate.ability = ability);
+        return this;
+    }
+
+    /**
+     * Select the default machine candidate used by previews and automatic construction.
+     * The supplier is resolved lazily because multiblock definitions may be initialized
+     * before all multiblock parts have been registered.
+     */
+    public TraceabilityPredicate setDefaultCandidate(Supplier<? extends MetaTileEntity> candidate) {
+        common.forEach(predicate -> predicate.defaultCandidate = candidate);
+        limited.forEach(predicate -> predicate.defaultCandidate = candidate);
+        return this;
+    }
+
+    /**
+     * Returns the ability when this cell exclusively accepts one hatch ability.
+     */
+    public MultiblockAbility<?> getSingleAbility() {
+        MultiblockAbility<?> result = null;
+        for (SimplePredicate predicate : common) {
+            if (predicate.ability == null) return null;
+            if (result != null && result != predicate.ability) return null;
+            result = predicate.ability;
+        }
+        for (SimplePredicate predicate : limited) {
+            if (predicate.ability == null) return null;
+            if (result != null && result != predicate.ability) return null;
+            result = predicate.ability;
+        }
+        return result;
+    }
+
     public boolean test(BlockWorldState blockWorldState) {
         for (SimplePredicate predicate : limited) {
             boolean needGlobal = predicate.minGlobalCount > 0 &&
@@ -231,7 +277,7 @@ public class TraceabilityPredicate {
                     blockWorldState.layerCount.getOrDefault(predicate, 0) < predicate.minLayerCount;
 
             if (needGlobal || needLayer) {
-                if (predicate.testLimited(blockWorldState)) {
+                if (testBranch(blockWorldState, predicate::testLimited)) {
                     return true;
                 }
             }
@@ -239,12 +285,17 @@ public class TraceabilityPredicate {
 
         boolean flag = false;
         for (SimplePredicate predicate : limited) {
-            if (predicate.testLimited(blockWorldState)) {
+            if (testBranch(blockWorldState, predicate::testLimited)) {
                 flag = true;
             }
         }
 
-        return flag || common.stream().anyMatch(predicate -> predicate.test(blockWorldState));
+        return flag || common.stream().anyMatch(predicate -> testBranch(blockWorldState, predicate::test));
+    }
+
+    private static boolean testBranch(BlockWorldState blockWorldState,
+                                      Predicate<BlockWorldState> predicate) {
+        return blockWorldState.transaction(predicate);
     }
 
     public TraceabilityPredicate or(TraceabilityPredicate other) {
@@ -362,6 +413,8 @@ public class TraceabilityPredicate {
         public int previewCount = -1;
 
         public String channelName = null;
+        public MultiblockAbility<?> ability = null;
+        public Supplier<? extends MetaTileEntity> defaultCandidate = null;
 
         public SimplePredicate(Predicate<BlockWorldState> predicate, Supplier<BlockInfo[]> candidates) {
             this.predicate = predicate;
@@ -475,4 +528,5 @@ public class TraceabilityPredicate {
             return I18n.format("gregtech.multiblock.pattern.error.limited." + type, number);
         }
     }
+
 }

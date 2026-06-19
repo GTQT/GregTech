@@ -15,6 +15,7 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
@@ -51,7 +52,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMultiblockController
         implements IDataInfoProvider,
@@ -90,9 +93,23 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     }
 
     @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        if (hasLegacyFormStructureOverrideBelow(AdvanceRecipeMapMultiblockController.class)) {
+            formLegacyStructureCallback(formed);
+            return;
+        }
+        formAdvancedRecipeMapStructure(formed);
+    }
+
+    @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
         initializeAbilities();
+        refreshThread(getThread());
+    }
+
+    protected final void formAdvancedRecipeMapStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         refreshThread(getThread());
     }
 
@@ -205,12 +222,19 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setThread(int thread) {
+        int clampedThread = MathHelper.clamp(thread, 1, getMaxThread());
+        int previousThread = getThread();
         markDirty();
         if (getWorld() != null && !getWorld().isRemote) {
-            writeCustomData(GregtechDataCodes.UPDATE_THREAD_STATE, buf -> buf.writeInt(thread));
+            writeCustomData(GregtechDataCodes.UPDATE_THREAD_STATE, buf -> buf.writeInt(clampedThread));
         }
         if (!this.getAbilities(MultiblockAbility.THREAD_HATCH).isEmpty()) {
-            this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).setCurrentThread(thread);
+            this.getAbilities(MultiblockAbility.THREAD_HATCH).get(0).setCurrentThread(clampedThread);
+        } else {
+            this.thread = clampedThread;
+        }
+        if (previousThread != clampedThread) {
+            notifyStructureConfigChanged();
         }
     }
 
@@ -452,6 +476,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setDistinct(boolean isDistinct) {
+        boolean changed = this.isDistinct != isDistinct;
         this.isDistinct = isDistinct;
         for (MultiblockRecipeLogic multiblockRecipeLogic : recipeMapWorkable)
             multiblockRecipeLogic.onDistinctChanged();
@@ -462,6 +487,9 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                     .addAll(this.getAbilities(MultiblockAbility.IMPORT_ITEMS));
         } else {
             this.notifiedItemInputList.add(this.inputInventory);
+        }
+        if (changed) {
+            notifyStructureConfigChanged();
         }
     }
 
@@ -553,8 +581,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
+        boolean changed = isWorkingEnabled() != isWorkingAllowed;
         for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
             recipeMapWorkable.setWorkingEnabled(isWorkingAllowed);
+        if (changed) {
+            notifyStructureControllerModeChanged();
+        }
     }
 
     @Override
@@ -572,8 +604,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setBatchEnable(boolean enable) {
+        boolean changed = isBatchEnable() != enable;
         for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
             recipeMapWorkable.setBatchEnable(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
     }
 
     @Override
@@ -586,8 +622,12 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setRecipeLocked(boolean enable) {
+        boolean changed = isRecipeLocked() != enable;
         for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
             recipeMapWorkable.setRecipeLockEnable(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
     }
 
     @Override
@@ -600,8 +640,27 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
 
     @Override
     public void setEnergyLackWarningEnabled(boolean enable) {
+        boolean changed = isEnergyLackWarningEnabled() != enable;
         for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable)
             recipeMapWorkable.setEnergyLackWarningEnable(enable);
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("distinct", isDistinct);
+        values.put("thread", getThread());
+        values.put("maxThread", getMaxThread());
+        values.put("batchEnable", isBatchEnable());
+        values.put("recipeLocked", isRecipeLocked());
+        values.put("energyLackWarning", isEnergyLackWarningEnabled());
+        return values;
     }
 
     @Override

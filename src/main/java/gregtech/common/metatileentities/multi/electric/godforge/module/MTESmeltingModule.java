@@ -11,7 +11,8 @@ import org.jetbrains.annotations.NotNull;
 import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
@@ -51,8 +52,9 @@ public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeM
     }
 
     @Override
-    protected TraceabilityPredicate getCoilBlockPredicate() {
-        return states(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
+    protected IStructureElement getCoilBlockElement() {
+        return Elements.block(getCasingState(
+                BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
     }
 
     // ==================== Temperature Check ====================

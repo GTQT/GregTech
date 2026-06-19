@@ -22,11 +22,11 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
@@ -81,15 +81,19 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         implements ITieredMetaTileEntity, IMiner, IControllable, IDataInfoProvider {
 
     private static final int CHUNK_LENGTH = 16;
-    private static final Map<String, SoftTemplate> TEMPLATES = new HashMap<>();
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
 
     static {
-        TEMPLATES.put("ev", TemplatePool.getInstance()
-                .register("gregtech:large_miner.ev", () -> buildTemplate(LargeMinerType.BASIC)));
-        TEMPLATES.put("iv", TemplatePool.getInstance()
-                .register("gregtech:large_miner.iv", () -> buildTemplate(LargeMinerType.NORMAL)));
-        TEMPLATES.put("luv", TemplatePool.getInstance()
-                .register("gregtech:large_miner.luv", () -> buildTemplate(LargeMinerType.ADVANCED)));
+        STRUCTURE_DEFINITIONS.put("ev", TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(LargeMinerType.BASIC),
+                        () -> buildStructureDefinition(LargeMinerType.BASIC)));
+        STRUCTURE_DEFINITIONS.put("iv", TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(LargeMinerType.NORMAL),
+                        () -> buildStructureDefinition(LargeMinerType.NORMAL)));
+        STRUCTURE_DEFINITIONS.put("luv", TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(LargeMinerType.ADVANCED),
+                        () -> buildStructureDefinition(LargeMinerType.ADVANCED)));
     }
 
     private final MultiblockMinerLogic minerLogic;
@@ -110,23 +114,46 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     }
 
     public static void registerLargeMinerType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        TEMPLATES.put(key, TemplatePool.getInstance().register(key, templateSupplier));
+        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
+                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
     }
 
     public static BlockPatternTemplate buildTemplate(ILargeMinerType type) {
+        return primaryTemplate(pooledStructureDefinition(type), type.getName());
+    }
+
+    private static StructureDefinition pooledStructureDefinition(ILargeMinerType type) {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
+                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
+        return definition.get();
+    }
+
+    private static String structurePoolKey(ILargeMinerType type) {
+        return "gregtech:large_miner." + type.getName();
+    }
+
+    private static StructureDefinition buildStructureDefinition(ILargeMinerType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
-                .where('S', selfPredicate(MetaTileEntityLargeMiner.class))
-                .where('C', states(type.getCasingState()))
-                .where('F', frames(type.getFrameMaterial()))
-                .where('#', any())
-                .casing('X', CasingDefinition.simple(type.getCasingState()))
+                .self('S', MetaTileEntityLargeMiner.class)
+                .block('C', type.getCasingState())
+                .frames('F', type.getFrameMaterial())
+                .any('#')
+                .casing('X', type.getCasingState())
                 .optionalItemOutput(1)
                 .optionalFluidInput(1)
                 .energyInput(1,3)
-                .buildTemplate();
+                .buildStructureDefinition();
+    }
+
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+        BlockPatternTemplate template = definition.getPrimaryTemplate();
+        if (template == null) {
+            throw new IllegalStateException("Large miner type '" + key + "' is not a single-piece structure");
+        }
+        return template;
     }
 
     @Override
@@ -143,8 +170,8 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         initializeAbilities();
     }
 
@@ -335,12 +362,12 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        SoftTemplate softTemplate = TEMPLATES.get(type.getName());
-        if (softTemplate == null) {
-            throw new IllegalStateException("Unknown turbine type: " + type.getName());
+    protected StructureDefinition createStructureDefinition() {
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
+        if (definition == null) {
+            throw new IllegalStateException("Unknown large miner type: " + type.getName());
         }
-        return softTemplate.get();
+        return definition.get();
     }
 
     @SideOnly(Side.CLIENT)

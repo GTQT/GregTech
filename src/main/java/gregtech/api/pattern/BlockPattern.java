@@ -17,13 +17,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 /**
- * Combines a shared immutable {@link BlockPatternTemplate} with a per-instance
- * mutable {@link MultiblockState}. This class preserves the original API surface
- * for backward compatibility while enabling template sharing.
+ * Combines a shared immutable {@link BlockPatternTemplate} with a deprecated
+ * compatibility {@link MultiblockState} projection. This class preserves the
+ * original API surface for backward compatibility while enabling template sharing.
  *
- * <p>For new code, prefer using {@link BlockPatternTemplate} and {@link MultiblockState} directly.
+ * <p>For new code, prefer {@link StructureRuntime} and typed operation requests.
  *
- * @deprecated Use {@link BlockPatternTemplate} + {@link MultiblockState} directly for new code.
+ * @deprecated Use {@link StructureRuntime} and typed operation requests for new code.
  *             This class is retained for backward compatibility during migration and will be
  *             removed in version 2.10.
  */
@@ -33,6 +33,7 @@ public class BlockPattern {
 
     private final BlockPatternTemplate template;
     private final MultiblockState state;
+    private final StructureOperationEvaluator evaluator;
 
     /**
      * Direct access to the formed structure cache for backward compatibility.
@@ -66,6 +67,7 @@ public class BlockPattern {
                         @NotNull int[][] aisleRepetitions) {
         this.template = new BlockPatternTemplate(predicatesIn, structureDir, aisleRepetitions);
         this.state = template.createState();
+        this.evaluator = new StructureOperationEvaluator(null, state.getBackingState(), null, null);
         // Expose state fields directly for backward compatibility
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
@@ -79,6 +81,7 @@ public class BlockPattern {
     public BlockPattern(@NotNull BlockPatternTemplate template) {
         this.template = template;
         this.state = template.createState();
+        this.evaluator = new StructureOperationEvaluator(null, state.getBackingState(), null, null);
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
         this.aisleRepetitions = template.getAisleRepetitions();
@@ -87,11 +90,12 @@ public class BlockPattern {
 
     /**
      * Create a BlockPattern from an existing template and state.
-     * Used by the controller to share the same state between the compat layer and the new architecture.
+     * Used by compatibility callers that already own a detached legacy state projection.
      */
     public BlockPattern(@NotNull BlockPatternTemplate template, @NotNull MultiblockState state) {
         this.template = template;
         this.state = state;
+        this.evaluator = new StructureOperationEvaluator(null, state.getBackingState(), null, null);
         this.cache = state.cache;
         this.formedRepetitionCount = state.formedRepetitionCount;
         this.aisleRepetitions = template.getAisleRepetitions();
@@ -108,7 +112,7 @@ public class BlockPattern {
     }
 
     /**
-     * @return the mutable per-instance state
+     * @return the detached deprecated compatibility state projection
      */
     public MultiblockState getState() {
         return state;
@@ -126,7 +130,7 @@ public class BlockPattern {
 
     /**
      * The cache of formed structure block positions.
-     * Delegates to the internal MultiblockState.
+     * Delegates to the detached compatibility MultiblockState.
      */
     public Long2ObjectMap<BlockInfo> getCache() {
         return state.cache;
@@ -142,15 +146,15 @@ public class BlockPattern {
     }
 
     public int getStructureXSize() {
-        return template.getStructureXSize();
+        return template.getXLength();
     }
 
     public int getStructureYSize() {
-        return template.getStructureYSize();
+        return template.getYLength();
     }
 
     public int getStructureZSize() {
-        return template.getStructureZSize();
+        return template.getZLength();
     }
 
     public PatternError getError() {
@@ -159,46 +163,59 @@ public class BlockPattern {
 
     // --- Delegated operations ---
 
+    /**
+     * @deprecated Legacy orientation facade. New runtime code should pass
+     *             {@link StructureOrientation} through {@link StructureOperationRequest}.
+     */
+    @Deprecated
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip) {
-        return state.checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip);
+        return evaluator.checkSingle(
+                world, centerPos, StructureOrientation.legacy(frontFacing, upwardsFacing, false, allowsFlip), true);
     }
 
+    /**
+     * @deprecated Legacy orientation facade. New runtime code should pass
+     *             {@link StructureOrientation} through {@link StructureOperationRequest}.
+     */
+    @Deprecated
     public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos, EnumFacing frontFacing,
                                                   EnumFacing upwardsFacing, boolean allowsFlip,
                                                   boolean doRandomCheck) {
-        return state.checkPatternFastAt(world, centerPos, frontFacing, upwardsFacing, allowsFlip, doRandomCheck);
+        return evaluator.checkSingle(
+                world, centerPos,
+                StructureOrientation.legacy(frontFacing, upwardsFacing, false, allowsFlip),
+                doRandomCheck);
     }
 
     public void clearCache() {
-        state.clearCache();
+        evaluator.clearSingleCache();
     }
 
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase) {
-        state.autoBuild(player, controllerBase);
+        evaluator.creativeBuildSingle(player, controllerBase, null, false);
     }
 
     @Deprecated
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
-        state.autoBuild(player, controllerBase, tier);
+        evaluator.creativeBuildSingle(player, controllerBase, tier);
     }
 
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,
                           java.util.Map<String, Integer> channelValues, boolean skipHatches) {
-        state.autoBuild(player, controllerBase, channelValues, skipHatches);
+        evaluator.creativeBuildSingle(player, controllerBase, channelValues, skipHatches);
     }
 
+    /**
+     * @deprecated Legacy orientation facade. New runtime code should use
+     *             {@link StructureOperationRequest#iterate(World, BlockPos, StructureOrientation)}.
+     */
+    @Deprecated
     public Map<BlockPos, BlockInfo> getAllStructureBlocks(World world, BlockPos centerPos,
                                                           EnumFacing frontFacing, EnumFacing upwardsFacing,
                                                           boolean isFlipped) {
-        return state.getAllStructureBlocks(world, centerPos, frontFacing, upwardsFacing, isFlipped);
+        return evaluator.iterateSingle(world, centerPos,
+                StructureOrientation.legacy(frontFacing, upwardsFacing, isFlipped, false));
     }
 
-    public BlockInfo[][][] getPreview(int[] repetition) {
-        return state.getPreview(repetition);
-    }
-
-    public BlockInfo[][][] getPreview(int[] repetition, @Nullable Map<String, Integer> channelValues) {
-        return state.getPreview(repetition, channelValues);
-    }
 }

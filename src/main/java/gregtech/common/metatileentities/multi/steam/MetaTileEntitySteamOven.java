@@ -8,11 +8,8 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ParallelLogicType;
 import gregtech.api.metatileentity.multiblock.RecipeMapSteamMultiblockController;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -51,26 +48,25 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
     }
 
     @NotNull
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:steam_oven", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:steam_oven", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "CCC", "#C#")
                     .aisle("XXX", "C#C", "#C#")
                     .aisle("XXX", "CSC", "#C#")
-                    .where('S', selfPredicate(MetaTileEntitySteamOven.class))
-                    .where('#', any())
-                    .casing('X', CasingDefinition.simple(
-                            MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX)))
+                    .self('S', MetaTileEntitySteamOven.class)
+                    .any('#')
+                    .casing('X',
+                            MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX))
                         .hatch(MultiblockAbility.STEAM, 1, 3)
-                    .casing('C', CasingDefinition.simple(
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS)))
+                    .casing('C',
+                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS))
                         .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
                         .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     public IBlockState getCasingState() {

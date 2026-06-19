@@ -11,17 +11,39 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.*;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.PieceRuntimeState;
+import gregtech.api.pattern.PieceTemplate;
+import gregtech.api.pattern.StructureContributionKey;
+import gregtech.api.pattern.StructureDependency;
+import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureHintResult;
+import gregtech.api.pattern.StructureIncrementalSupport;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructurePreviewResult;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.StructureRuntimeDetectionContext;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.util.BlockInfo;
 import gregtech.api.util.Mods;
+import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.behaviors.LighterBehaviour;
-import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemFireball;
@@ -47,7 +69,6 @@ import codechicken.lib.vec.Matrix4;
 import crafttweaker.annotations.ZenRegister;
 import crafttweaker.api.block.IBlock;
 import crafttweaker.api.minecraft.CraftTweakerMC;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,17 +77,68 @@ import stanhebben.zenscript.annotations.ZenMethod;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @ZenClass("mods.gregtech.machines.CharcoalPileIgniter")
 @ZenRegister
 public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase implements IWorkable {
 
+    private static final String DYNAMIC_PIECE_NAME = "charcoal_pile_dynamic";
+
     private static final int MIN_RADIUS = 1;
     private static final int MIN_DEPTH = 2;
+    private static final int MAX_REPEAT = 4;
+    private static final int MIN_LOG_WIDTH = 1;
+    private static final int MAX_LOG_WIDTH = 9;
+    private static final int MIN_LOG_HEIGHT = 1;
+    private static final int MAX_LOG_HEIGHT = 4;
+    private static final int MIN_LOG_LENGTH = 1;
+    private static final int MAX_LOG_LENGTH = 9;
 
     private static final Set<Block> WALL_BLOCKS = new ObjectOpenHashSet<>();
+    private static final StructureContributionKey<CharcoalDimensions, CharcoalDimensions>
+            CHARCOAL_DIMENSIONS_KEY = StructureContributionKey.uniform(
+                    "gregtech:charcoal_pile/dimensions");
+    private static final StructureContributionKey<BlockPos, Set<BlockPos>>
+            CHARCOAL_LOG_POSITIONS_KEY = StructureContributionKey.setUnion(
+                    "gregtech:charcoal_pile/log_positions");
+    private static final StructureContributionKey<Integer, Integer> CHARCOAL_WIDTH_KEY =
+            StructureContributionKey.uniform(
+                    "gregtech:charcoal_pile/channel/width",
+                    (context, value) -> context.set(
+                            GTStructureChannels.STRUCTURE_WIDTH.getName(), value));
+    private static final StructureContributionKey<Integer, Integer> CHARCOAL_HEIGHT_KEY =
+            StructureContributionKey.uniform(
+                    "gregtech:charcoal_pile/channel/height",
+                    (context, value) -> context.set(
+                            GTStructureChannels.STRUCTURE_HEIGHT.getName(), value));
+    private static final StructureContributionKey<Integer, Integer> CHARCOAL_LENGTH_KEY =
+            StructureContributionKey.uniform(
+                    "gregtech:charcoal_pile/channel/length",
+                    (context, value) -> context.set(
+                            GTStructureChannels.STRUCTURE_LENGTH.getName(), value));
+    private static final CharcoalLogElement CHARCOAL_LOG_ELEMENT =
+            new CharcoalLogElement();
+    private static final CharcoalWallElement CHARCOAL_WALL_ELEMENT =
+            new CharcoalWallElement();
+    private static final StructureDefinition<MetaTileEntityCharcoalPileIgniter>
+            STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+                    "gregtech:charcoal_pile",
+                    () -> StructureDefinition
+                            .<MetaTileEntityCharcoalPileIgniter>builder(
+                                    RelativeDirection.RIGHT,
+                                    RelativeDirection.UP,
+                                    RelativeDirection.BACK)
+                            .piece(DYNAMIC_PIECE_NAME, "S")
+                            .where('S', gregtech.api.pattern.element.Elements.self(
+                                    MetaTileEntityCharcoalPileIgniter.class))
+                            .end()
+                            .runtimeDetector(
+                                    MetaTileEntityCharcoalPileIgniter::detectRuntimeStructure)
+                            .build());
 
     private final Collection<BlockPos> logPositions = new ObjectOpenHashSet<>();
 
@@ -108,179 +180,435 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         setActive(false);
         this.progressTime = 0;
         this.maxProgress = 0;
+        this.logPositions.clear();
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        // calculate the duration upon formation
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        CharcoalDimensions dimensions = formed.getAggregate(
+                CHARCOAL_DIMENSIONS_KEY);
+        if (dimensions == null) {
+            invalidateStructure();
+            return;
+        }
+        applyStructureDimensions(dimensions);
+        Set<BlockPos> matchedLogs = formed.getAggregate(
+                CHARCOAL_LOG_POSITIONS_KEY);
+        logPositions.clear();
+        if (matchedLogs != null) {
+            logPositions.addAll(matchedLogs);
+        }
         updateMaxProgressTime();
     }
 
     @NotNull
     @Override
-    // Retained on FactoryBlockPattern: structure is dynamically generated from variable dimensions.
-    // Aisle strings are built at runtime based on detected pile boundaries.
-    protected BlockPattern createStructurePattern() {
-        // update the structure's dimensions just before we create it
-        // return the default structure, even if there is no valid size found
-        // this means auto-build will still work, and prevents terminal crashes.
-        if (getWorld() != null) updateStructureDimensions();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
+    }
 
-        // these can sometimes get set to 0 when loading the game, breaking JEI
-        if (lDist < 1) lDist = MIN_RADIUS;
-        if (rDist < 1) rDist = MIN_RADIUS;
-        if (hDist < 2) hDist = MIN_DEPTH;
+    @NotNull
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Arrays.asList(
+                GTStructureChannels.STRUCTURE_WIDTH,
+                GTStructureChannels.STRUCTURE_HEIGHT,
+                GTStructureChannels.STRUCTURE_LENGTH);
+    }
 
-        // swap the left and right distances if the front facing is east or west
-        // i guess allows BlockPattern checkPatternAt to get the correct relative position, somehow.
-        if (this.frontFacing == EnumFacing.EAST || this.frontFacing == EnumFacing.WEST) {
-            int tmp = lDist;
-            lDist = rDist;
-            rDist = tmp;
+    @NotNull
+    @Override
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        String channelName = channel.getName();
+        if (GTStructureChannels.STRUCTURE_WIDTH.getName().equals(channelName)) {
+            return new int[] { 0, MAX_LOG_WIDTH };
+        }
+        if (GTStructureChannels.STRUCTURE_HEIGHT.getName().equals(channelName)) {
+            return new int[] { 0, MAX_LOG_HEIGHT };
+        }
+        if (GTStructureChannels.STRUCTURE_LENGTH.getName().equals(channelName)) {
+            return new int[] { 0, MAX_LOG_LENGTH };
+        }
+        return super.getChannelRange(channel);
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes() {
+        return getMatchingShapes(Collections.emptyMap());
+    }
+
+    @Override
+    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
+        StructureRuntime runtime = createToolingRuntime(channelValues);
+        return Collections.singletonList(new MultiblockShapeInfo(
+                runtime.previewSingle(StructureOperationRequest.preview(
+                        getToolingRepetitions(channelValues), channelValues))));
+    }
+
+    @NotNull
+    @Override
+    public Map<BlockPos, StructureElementPreviewEntry> buildStructurePreviewEntries(
+            @Nullable Map<String, Integer> channelValues) {
+        StructureRuntime runtime = createToolingRuntime(channelValues);
+        StructurePreviewResult result = runtime.previewSingleResult(
+                StructureOperationRequest.preview(getToolingRepetitions(channelValues), channelValues));
+        PieceRuntimeState.PreviewCells cells = result.getSinglePieceCells();
+        if (cells == null || cells.getPreviewEntries().isEmpty()) {
+            return Collections.emptyMap();
         }
 
-        StringBuilder wallBuilder = new StringBuilder();       // " XXX "
-        StringBuilder floorBuilder = new StringBuilder();      // " BBB "
-        StringBuilder cornerBuilder = new StringBuilder();     // " "
-        StringBuilder ctrlBuilder = new StringBuilder();       // " XSX "
-        StringBuilder woodBuilder = new StringBuilder();       // "XCCCX"
-
-        // everything to the left of the controller
-        wallBuilder.append(" ");
-        floorBuilder.append(" ");
-        ctrlBuilder.append(" ");
-        woodBuilder.append("X");
-
-        for (int i = 0; i < lDist; i++) {
-            cornerBuilder.append(" ");
-            if (i > 0) {
-                wallBuilder.append("X");
-                floorBuilder.append("B");
-                ctrlBuilder.append("X");
-                woodBuilder.append("C");
-            }
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        for (BlockPos pos : cells.getBlocks().keySet()) {
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
         }
-
-        // everything in-line with the controller
-        wallBuilder.append("X");
-        floorBuilder.append("B");
-        cornerBuilder.append(" ");
-        ctrlBuilder.append("S");
-        woodBuilder.append("C");
-
-        // everything to the right of the controller
-        for (int i = 0; i < rDist; i++) {
-            cornerBuilder.append(" ");
-            if (i < rDist - 1) {
-                wallBuilder.append("X");
-                floorBuilder.append("B");
-                ctrlBuilder.append("X");
-                woodBuilder.append("C");
-            }
+        Map<BlockPos, StructureElementPreviewEntry> normalized =
+                new java.util.HashMap<>();
+        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry :
+                cells.getPreviewEntries().entrySet()) {
+            BlockPos pos = entry.getKey();
+            normalized.put(
+                    new BlockPos(
+                            pos.getX() - minX,
+                            pos.getY() - minY,
+                            pos.getZ() - minZ),
+                    entry.getValue());
         }
+        return normalized;
+    }
 
-        wallBuilder.append(" ");
-        floorBuilder.append(" ");
-        ctrlBuilder.append(" ");
-        woodBuilder.append("X");
+    @Override
+    public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
+        request.requireBuildKind();
+        createToolingRuntime(request.getChannelValues()).buildAllPieces(request);
+        return true;
+    }
 
-        String[] wall = new String[hDist + 1]; // " ", " XXX ", " "
-        Arrays.fill(wall, wallBuilder.toString());
-        wall[0] = cornerBuilder.toString();
-        wall[wall.length - 1] = cornerBuilder.toString();
+    @Override
+    public void spawnStructureHints(@NotNull StructureOperationRequest request) {
+        hintStructure(request);
+    }
 
-        String[] slice = new String[hDist + 1]; // " BBB ", "XCCCX", " XXX "
-        Arrays.fill(slice, woodBuilder.toString());
-        slice[0] = floorBuilder.toString();
+    @Override
+    @NotNull
+    public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
+        request.requireKind(StructureOperationRequest.Kind.HINT);
+        return createToolingRuntime(request.getChannelValues()).hintAllPieces(request);
+    }
 
-        String[] center = Arrays.copyOf(slice, slice.length); // " BBB ", "XCCCX", " XSX "
-        // inverse the center slice if facing east or west.
-        if (this.frontFacing == EnumFacing.EAST || this.frontFacing == EnumFacing.WEST) {
-            center[center.length - 1] = ctrlBuilder.reverse().toString();
-        } else {
-            center[center.length - 1] = ctrlBuilder.toString();
-        }
+    @Override
+    @Deprecated
+    public boolean autoBuildStructure(@NotNull EntityPlayer player,
+                                      @Nullable Map<String, Integer> channelValues,
+                                      boolean skipHatches) {
+        return autoBuildStructure(StructureOperationRequest.build(
+                player, this, StructureOrientation.fromController(this),
+                channelValues, skipHatches, ItemStack.EMPTY));
+    }
 
-        // slice is finished after center, so we can re-use it a bit more
-        slice[slice.length - 1] = wallBuilder.toString();
+    @NotNull
+    private StructureRuntime createToolingRuntime(@Nullable Map<String, Integer> channelValues) {
+        return createDynamicStructureRuntime(buildToolingDefinition(channelValues));
+    }
 
-        return FactoryBlockPattern.start()
-                .aisle(wall)
-                .aisle(slice).setRepeatable(0, 4)
-                .aisle(center)
-                .aisle(slice).setRepeatable(0, 4)
-                .aisle(wall)
-                .where('S', selfPredicate())
-                .where('B', blocks(Blocks.BRICK_BLOCK))
-                .where('X', blocks(WALL_BLOCKS.toArray(new Block[0])))
-                .where('C', logPredicate())
-                .where(' ', any())
+    @NotNull
+    private StructureDefinition<MetaTileEntityCharcoalPileIgniter> buildToolingDefinition(
+            @Nullable Map<String, Integer> channelValues) {
+        return StructureDefinition.<MetaTileEntityCharcoalPileIgniter>builder(
+                RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
+                .pieceFromTemplate(DYNAMIC_PIECE_NAME, buildToolingTemplate(channelValues))
+                .end()
                 .build();
     }
 
     @NotNull
-    private TraceabilityPredicate logPredicate() {
-        return new TraceabilityPredicate(blockWorldState -> {
-            if (blockWorldState.getBlockState().getBlock().isWood(blockWorldState.getWorld(),
-                    blockWorldState.getPos())) {
-                // store the position of every log, so we can easily turn them into charcoal
-                logPositions.add(blockWorldState.getPos());
-                return true;
+    private PieceTemplate buildToolingTemplate(@Nullable Map<String, Integer> channelValues) {
+        CharcoalDimensions dimensions = resolveToolingDimensions(channelValues);
+        RuntimeCellElements elements = createRuntimeCellElements();
+        IStructureElement<?>[][][] template = new IStructureElement<?>[dimensions.getStructureLength()]
+                [dimensions.getStructureHeight()][dimensions.getStructureWidth()];
+        for (int forward = -dimensions.back; forward <= dimensions.front; forward++) {
+            int z = forward + dimensions.back;
+            for (int depth = dimensions.height; depth >= 0; depth--) {
+                int y = dimensions.height - depth;
+                for (int lateral = -dimensions.left; lateral <= dimensions.right; lateral++) {
+                    int x = lateral + dimensions.left;
+                    template[z][y][x] = elements.get(classifyCell(lateral, forward, depth, dimensions));
+                }
             }
-            return false;
-        });
+        }
+        int[] centerOffset = new int[] {
+                dimensions.left,
+                dimensions.height,
+                dimensions.back,
+                dimensions.back,
+                dimensions.back
+        };
+        int[][] repetitions = new int[dimensions.getStructureLength()][2];
+        for (int i = 0; i < repetitions.length; i++) {
+            repetitions[i][0] = 1;
+            repetitions[i][1] = 1;
+        }
+        return new PieceTemplate(
+                template,
+                new RelativeDirection[] {
+                        RelativeDirection.RIGHT,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK
+                },
+                repetitions,
+                new String[repetitions.length],
+                centerOffset,
+                null);
     }
 
-    private boolean updateStructureDimensions() {
+    @NotNull
+    private static CharcoalDimensions resolveToolingDimensions(@Nullable Map<String, Integer> channelValues) {
+        int width = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_WIDTH.getName(),
+                MIN_LOG_WIDTH, MAX_LOG_WIDTH);
+        int height = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_HEIGHT.getName(),
+                MIN_LOG_HEIGHT, MAX_LOG_HEIGHT);
+        int length = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_LENGTH.getName(),
+                MIN_LOG_LENGTH, MAX_LOG_LENGTH);
+        return CharcoalDimensions.fromLogSize(width, height, length);
+    }
+
+    private static int resolveChannelSize(@Nullable Map<String, Integer> channelValues,
+                                          @NotNull String channelName,
+                                          int min, int max) {
+        if (channelValues == null) return max;
+        Integer value = channelValues.get(channelName);
+        if (value == null || value <= 0) return max;
+        if (value == 1) return min;
+        return Math.max(min, Math.min(max, value));
+    }
+
+    @NotNull
+    private static int[] getToolingRepetitions(@Nullable Map<String, Integer> channelValues) {
+        int length = resolveChannelSize(channelValues, GTStructureChannels.STRUCTURE_LENGTH.getName(),
+                MIN_LOG_LENGTH, MAX_LOG_LENGTH) + 2;
+        int[] repetitions = new int[length];
+        Arrays.fill(repetitions, 1);
+        return repetitions;
+    }
+
+    @NotNull
+    private DimensionScanResult scanStructureDimensions() {
         World world = getWorld();
-        EnumFacing left = getFrontFacing().getOpposite().rotateYCCW();
-        EnumFacing right = left.getOpposite();
-
-        // l, r move down 1 block because the top layer has no bricks
-        BlockPos.MutableBlockPos lPos = new BlockPos.MutableBlockPos(getPos()).move(EnumFacing.DOWN);
-        BlockPos.MutableBlockPos rPos = new BlockPos.MutableBlockPos(getPos()).move(EnumFacing.DOWN);
-        BlockPos.MutableBlockPos hPos = new BlockPos.MutableBlockPos(getPos());
-
-        // find the distances from the controller to the brick blocks on one horizontal axis and the Y axis
-        // repeatable aisles take care of the second horizontal axis
-        int lDist = 0;
-        int rDist = 0;
-        int hDist = 0;
-
-        // find the left, right, height distances for the structure pattern
-        // maximum size is 11x11x6 including walls, so check 5 block radius around the controller for blocks
-        for (int i = 1; i < 6; i++) {
-            if (lDist != 0 && rDist != 0 && hDist != 0) break;
-            if (lDist == 0 && isBlockWall(world, lPos, left)) lDist = i;
-            if (rDist == 0 && isBlockWall(world, rPos, right)) rDist = i;
-            if (hDist == 0 && isBlockFloor(world, hPos)) hDist = i;
+        if (world == null) {
+            return DimensionScanResult.failure(
+                    getPos(), "loaded world",
+                    "charcoal pile controller has no world");
         }
+        EnumFacing front = getFrontFacing();
+        EnumFacing left = front.rotateYCCW();
+        EnumFacing right = front.rotateY();
+        EnumFacing back = front.getOpposite();
+        BlockPos origin = getPos();
+        BlockPos wallOrigin = origin.down();
 
-        if (lDist < MIN_RADIUS || rDist < MIN_RADIUS || hDist < MIN_DEPTH) {
-            invalidateStructure();
-            return false;
+        int leftDistance = findWallBoundary(world, wallOrigin, left);
+        int rightDistance = findWallBoundary(world, wallOrigin, right);
+        int backDistance = findWallBoundary(world, wallOrigin, back);
+        int frontDistance = findWallBoundary(world, wallOrigin, front);
+        int heightDistance = findFloorBoundary(world, origin);
+
+        if (leftDistance < MIN_RADIUS) {
+            return missingBoundary(
+                    origin.offset(left, Math.max(1, leftDistance)),
+                    "left", leftDistance);
         }
+        if (rightDistance < MIN_RADIUS) {
+            return missingBoundary(
+                    origin.offset(right, Math.max(1, rightDistance)),
+                    "right", rightDistance);
+        }
+        if (backDistance < MIN_RADIUS) {
+            return missingBoundary(
+                    origin.offset(back, Math.max(1, backDistance)),
+                    "back", backDistance);
+        }
+        if (frontDistance < MIN_RADIUS) {
+            return missingBoundary(
+                    origin.offset(front, Math.max(1, frontDistance)),
+                    "front", frontDistance);
+        }
+        if (heightDistance < MIN_DEPTH) {
+            return DimensionScanResult.failure(
+                    origin.down(Math.max(1, heightDistance)),
+                    "brick floor at least " + MIN_DEPTH
+                            + " blocks below the controller",
+                    "detected depth " + heightDistance);
+        }
+        return DimensionScanResult.success(new CharcoalDimensions(
+                leftDistance, rightDistance,
+                backDistance, frontDistance, heightDistance));
+    }
 
-        this.lDist = lDist;
-        this.rDist = rDist;
-        this.hDist = hDist;
+    private static int findWallBoundary(
+            @NotNull World world,
+            @NotNull BlockPos origin,
+            @NotNull EnumFacing direction) {
+        for (int distance = 1; distance <= MAX_REPEAT + 1; distance++) {
+            if (WALL_BLOCKS.contains(world.getBlockState(
+                    origin.offset(direction, distance)).getBlock())) {
+                return distance;
+            }
+        }
+        return 0;
+    }
 
+    private static int findFloorBoundary(
+            @NotNull World world,
+            @NotNull BlockPos origin) {
+        for (int distance = 1; distance <= MAX_LOG_HEIGHT + 1; distance++) {
+            if (world.getBlockState(origin.down(distance)).getBlock()
+                    == Blocks.BRICK_BLOCK) {
+                return distance;
+            }
+        }
+        return 0;
+    }
+
+    @NotNull
+    private static DimensionScanResult missingBoundary(
+            @NotNull BlockPos pos,
+            @NotNull String side,
+            int distance) {
+        return DimensionScanResult.failure(
+                pos,
+                "charcoal pile wall " + side + " boundary",
+                distance == 0
+                        ? "no boundary detected"
+                        : "detected distance " + distance);
+    }
+
+    private void applyStructureDimensions(
+            @NotNull CharcoalDimensions dimensions) {
+        boolean changed = lDist != dimensions.left
+                || rDist != dimensions.right
+                || hDist != dimensions.height;
+        lDist = dimensions.left;
+        rDist = dimensions.right;
+        hDist = dimensions.height;
+        if (!changed || getWorld() == null || getWorld().isRemote) {
+            return;
+        }
         writeCustomData(GregtechDataCodes.UPDATE_STRUCTURE_SIZE, buf -> {
             buf.writeInt(this.lDist);
             buf.writeInt(this.rDist);
             buf.writeInt(this.hDist);
         });
+    }
+
+    private static boolean detectRuntimeStructure(
+            @NotNull StructureRuntimeDetectionContext<
+                    MetaTileEntityCharcoalPileIgniter> context) {
+        MetaTileEntityCharcoalPileIgniter controller =
+                context.getController();
+        DimensionScanResult scan = controller.scanStructureDimensions();
+        if (!scan.isSuccess()) {
+            return context.fail(
+                    scan.failurePos, scan.expected, scan.actual);
+        }
+
+        CharcoalDimensions dimensions = scan.dimensions;
+        context.emit(CHARCOAL_DIMENSIONS_KEY, dimensions);
+        context.emit(CHARCOAL_WIDTH_KEY, dimensions.getLogWidth());
+        context.emit(CHARCOAL_HEIGHT_KEY, dimensions.getLogHeight());
+        context.emit(CHARCOAL_LENGTH_KEY, dimensions.getLogLength());
+
+        RuntimeCellElements elements = createRuntimeCellElements();
+
+        BlockPos origin = context.getControllerPos();
+        EnumFacing front = controller.getFrontFacing();
+        EnumFacing right = front.rotateY();
+        for (int depth = 0; depth <= dimensions.height; depth++) {
+            for (int forward = -dimensions.back;
+                 forward <= dimensions.front;
+                 forward++) {
+                for (int lateral = -dimensions.left;
+                     lateral <= dimensions.right;
+                     lateral++) {
+                    CharcoalCellType type = classifyCell(
+                            lateral, forward, depth, dimensions);
+                    BlockPos pos = offset(
+                            origin, right, lateral, front, forward)
+                            .down(depth);
+                    if (!context.match(pos, elements.get(type))) {
+                        return context.fail(
+                                pos, type.expected,
+                                String.valueOf(
+                                        context.getWorld().getBlockState(pos)));
+                    }
+                }
+            }
+        }
         return true;
     }
 
-    private static boolean isBlockWall(@NotNull World world, @NotNull BlockPos.MutableBlockPos pos,
-                                       @NotNull EnumFacing direction) {
-        return WALL_BLOCKS.contains(world.getBlockState(pos.move(direction)).getBlock());
+    @NotNull
+    private static BlockPos offset(
+            @NotNull BlockPos origin,
+            @NotNull EnumFacing right,
+            int lateral,
+            @NotNull EnumFacing front,
+            int forward) {
+        BlockPos result = lateral >= 0
+                ? origin.offset(right, lateral)
+                : origin.offset(right.getOpposite(), -lateral);
+        return forward >= 0
+                ? result.offset(front, forward)
+                : result.offset(front.getOpposite(), -forward);
     }
 
-    private static boolean isBlockFloor(@NotNull World world, @NotNull BlockPos.MutableBlockPos pos) {
-        return world.getBlockState(pos.move(EnumFacing.DOWN)).getBlock() == Blocks.BRICK_BLOCK;
+    @NotNull
+    private static CharcoalCellType classifyCell(
+            int lateral,
+            int forward,
+            int depth,
+            @NotNull CharcoalDimensions dimensions) {
+        boolean lateralBoundary =
+                lateral == -dimensions.left
+                        || lateral == dimensions.right;
+        boolean forwardBoundary =
+                forward == -dimensions.back
+                        || forward == dimensions.front;
+
+        if (depth == 0) {
+            if (lateral == 0 && forward == 0) {
+                return CharcoalCellType.CONTROLLER;
+            }
+            return lateralBoundary || forwardBoundary
+                    ? CharcoalCellType.ANY
+                    : CharcoalCellType.WALL;
+        }
+        if (depth == dimensions.height) {
+            return lateralBoundary || forwardBoundary
+                    ? CharcoalCellType.ANY
+                    : CharcoalCellType.BRICK;
+        }
+        if (lateralBoundary || forwardBoundary) {
+            return lateralBoundary && forwardBoundary
+                    ? CharcoalCellType.ANY
+                    : CharcoalCellType.WALL;
+        }
+        return CharcoalCellType.LOG;
+    }
+
+    @NotNull
+    private static RuntimeCellElements createRuntimeCellElements() {
+        return new RuntimeCellElements(
+                gregtech.api.pattern.element.Elements.self(
+                        MetaTileEntityCharcoalPileIgniter.class),
+                CHARCOAL_WALL_ELEMENT,
+                gregtech.api.pattern.element.Elements.block(
+                        Blocks.BRICK_BLOCK.getDefaultState()),
+                CHARCOAL_LOG_ELEMENT,
+                gregtech.api.pattern.element.Elements.any());
     }
 
     private void setActive(boolean active) {
@@ -296,9 +624,7 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     public void update() {
         super.update();
         if (getWorld() != null) {
-            if (!getWorld().isRemote && !this.isStructureFormed() && getOffsetTimer() % 20 == 0) {
-                this.reinitializeStructurePattern();
-            } else if (isActive) {
+            if (isActive) {
                 BlockPos pos = getPos();
                 EnumFacing facing = EnumFacing.UP;
                 float xPos = facing.getXOffset() * 0.76F + pos.getX() + 0.5F;
@@ -354,26 +680,6 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         } else {
             tooltip.add(I18n.format("gregtech.tooltip.hold_ctrl"));
         }
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        List<MultiblockShapeInfo> shapeInfos = new ObjectArrayList<>();
-        for (Block block : WALL_BLOCKS) {
-            shapeInfos.add(MultiblockShapeInfo.builder()
-                    .aisle("     ", " XXX ", " XXX ", " XXX ", "     ")
-                    .aisle(" BBB ", "XCCCX", "XCCCX", "XCCCX", " DDD ")
-                    .aisle(" BBB ", "XCCCX", "XCCCX", "XCCCX", " DSD ")
-                    .aisle(" BBB ", "XCCCX", "XCCCX", "XCCCX", " DDD ")
-                    .aisle("     ", " XXX ", " XXX ", " XXX ", "     ")
-                    .where('S', MetaTileEntities.CHARCOAL_PILE_IGNITER, EnumFacing.NORTH)
-                    .where('B', Blocks.BRICK_BLOCK.getDefaultState())
-                    .where('X', block.getDefaultState())
-                    .where('D', block.getDefaultState())
-                    .where('C', Blocks.LOG.getDefaultState())
-                    .build());
-        }
-        return shapeInfos;
     }
 
     @Override
@@ -555,5 +861,301 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     @Override
     public boolean allowsFlip() {
         return false;
+    }
+
+    private enum CharcoalCellType {
+
+        CONTROLLER("charcoal pile controller"),
+        WALL("configured charcoal pile wall block"),
+        BRICK("brick floor"),
+        LOG("wood log"),
+        ANY("unrestricted edge cell");
+
+        @NotNull
+        private final String expected;
+
+        CharcoalCellType(@NotNull String expected) {
+            this.expected = expected;
+        }
+    }
+
+    private static final class RuntimeCellElements {
+
+        @NotNull
+        private final IStructureElement<?> controller;
+        @NotNull
+        private final IStructureElement<?> wall;
+        @NotNull
+        private final IStructureElement<?> brick;
+        @NotNull
+        private final IStructureElement<?> log;
+        @NotNull
+        private final IStructureElement<?> any;
+
+        private RuntimeCellElements(
+                @NotNull IStructureElement<?> controller,
+                @NotNull IStructureElement<?> wall,
+                @NotNull IStructureElement<?> brick,
+                @NotNull IStructureElement<?> log,
+                @NotNull IStructureElement<?> any) {
+            this.controller = controller.compile();
+            this.wall = wall.compile();
+            this.brick = brick.compile();
+            this.log = log.compile();
+            this.any = any.compile();
+        }
+
+        @NotNull
+        private IStructureElement<?> get(@NotNull CharcoalCellType type) {
+            switch (type) {
+                case CONTROLLER:
+                    return controller;
+                case WALL:
+                    return wall;
+                case BRICK:
+                    return brick;
+                case LOG:
+                    return log;
+                case ANY:
+                    return any;
+                default:
+                    throw new IllegalStateException(
+                            "Unhandled charcoal pile cell type " + type);
+            }
+        }
+    }
+
+    private static final class CharcoalDimensions {
+
+        private final int left;
+        private final int right;
+        private final int back;
+        private final int front;
+        private final int height;
+
+        private CharcoalDimensions(
+                int left,
+                int right,
+                int back,
+                int front,
+                int height) {
+            this.left = left;
+            this.right = right;
+            this.back = back;
+            this.front = front;
+            this.height = height;
+        }
+
+        @NotNull
+        private static CharcoalDimensions fromLogSize(int width, int height, int length) {
+            int leftLogs = (width - 1) / 2;
+            int rightLogs = width - 1 - leftLogs;
+            int backLogs = (length - 1) / 2;
+            int frontLogs = length - 1 - backLogs;
+            return new CharcoalDimensions(
+                    leftLogs + 1,
+                    rightLogs + 1,
+                    backLogs + 1,
+                    frontLogs + 1,
+                    height + 1);
+        }
+
+        private int getLogWidth() {
+            return left + right - 1;
+        }
+
+        private int getLogHeight() {
+            return height - 1;
+        }
+
+        private int getLogLength() {
+            return back + front - 1;
+        }
+
+        private int getStructureWidth() {
+            return left + right + 1;
+        }
+
+        private int getStructureHeight() {
+            return height + 1;
+        }
+
+        private int getStructureLength() {
+            return back + front + 1;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) return true;
+            if (!(object instanceof CharcoalDimensions)) return false;
+            CharcoalDimensions that = (CharcoalDimensions) object;
+            return left == that.left
+                    && right == that.right
+                    && back == that.back
+                    && front == that.front
+                    && height == that.height;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = left;
+            result = 31 * result + right;
+            result = 31 * result + back;
+            result = 31 * result + front;
+            result = 31 * result + height;
+            return result;
+        }
+    }
+
+    private static final class DimensionScanResult {
+
+        @Nullable
+        private final CharcoalDimensions dimensions;
+        @NotNull
+        private final BlockPos failurePos;
+        @NotNull
+        private final String expected;
+        @NotNull
+        private final String actual;
+
+        private DimensionScanResult(
+                @Nullable CharcoalDimensions dimensions,
+                @NotNull BlockPos failurePos,
+                @NotNull String expected,
+                @NotNull String actual) {
+            this.dimensions = dimensions;
+            this.failurePos = failurePos.toImmutable();
+            this.expected = expected;
+            this.actual = actual;
+        }
+
+        @NotNull
+        private static DimensionScanResult success(
+                @NotNull CharcoalDimensions dimensions) {
+            return new DimensionScanResult(
+                    dimensions, BlockPos.ORIGIN,
+                    "detected charcoal pile bounds", "matched");
+        }
+
+        @NotNull
+        private static DimensionScanResult failure(
+                @NotNull BlockPos pos,
+                @NotNull String expected,
+                @NotNull String actual) {
+            return new DimensionScanResult(
+                    null, pos, expected, actual);
+        }
+
+        private boolean isSuccess() {
+            return dimensions != null;
+        }
+    }
+
+    private static final class CharcoalLogElement
+            implements ITypedStructureElement<Object> {
+
+        private final StructureElementPreview preview =
+                StructureElementPreview.of(this::getCandidates);
+
+        @Override
+        public boolean check(
+                @NotNull StructureEvaluationContext<Object> context) {
+            if (!context.getBlockState().getBlock().isWood(
+                    context.getWorld(), context.getPos())) {
+                return false;
+            }
+            context.getCollector().emit(
+                    CHARCOAL_LOG_POSITIONS_KEY, context.getPos());
+            return true;
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] {
+                    new BlockInfo(Blocks.LOG.getDefaultState())
+            };
+        }
+
+        @Override
+        public boolean placeBlock(
+                @NotNull StructureEvaluationContext<Object> context,
+                EntityPlayer player,
+                boolean skipHatches) {
+            World world = context.getWorld();
+            return world != null && world.setBlockState(
+                    context.getPos(), Blocks.LOG.getDefaultState());
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+
+    }
+
+    private static final class CharcoalWallElement
+            implements ITypedStructureElement<Object> {
+
+        private final StructureElementPreview preview =
+                StructureElementPreview.of(this::getCandidates);
+
+        @Override
+        public boolean check(
+                @NotNull StructureEvaluationContext<Object> context) {
+            return WALL_BLOCKS.contains(context.getBlockState().getBlock());
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return WALL_BLOCKS.stream()
+                    .map(Block::getDefaultState)
+                    .map(BlockInfo::new)
+                    .toArray(BlockInfo[]::new);
+        }
+
+        @Override
+        public boolean placeBlock(
+                @NotNull StructureEvaluationContext<Object> context,
+                EntityPlayer player,
+                boolean skipHatches) {
+            BlockInfo[] candidates = getCandidates();
+            if (candidates.length == 0) {
+                return false;
+            }
+            World world = context.getWorld();
+            return world != null && world.setBlockState(context.getPos(), candidates[0].getBlockState());
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
+        }
+
+        @NotNull
+        @Override
+        public StructureIncrementalSupport getIncrementalSupport() {
+            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
+        }
+
+        @NotNull
+        @Override
+        public Set<StructureDependency> getDependencies() {
+            return Collections.emptySet();
+        }
+
     }
 }

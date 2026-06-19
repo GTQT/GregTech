@@ -1,12 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
 public enum ParallelLogicType {
-
-    /**
-     * @deprecated Use {@link #CROSS_RECIPE} instead. MULTIPLY only duplicates a single recipe;
-     * CROSS_RECIPE subsumes this behavior with its "same recipe first" strategy.
-     */
-    @Deprecated
     MULTIPLY,
 
     /**

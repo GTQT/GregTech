@@ -23,13 +23,11 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
@@ -94,23 +92,31 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance()
-            .register("gregtech:high_performance_computing_array", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("AA", "CC", "CC", "CC", "AA")
-                            .aisleRepeatable(3, 14, "VA", "XV", "XV", "XV", "VA")
-                            .aisle("SA", "CC", "CC", "CC", "AA")
-                            .where('S', selfPredicate(MetaTileEntityHPCA.class))
-                            .where('A', states(getAdvancedState()))
-                            .where('V', states(getVentState()))
-                            .where('X', abilities(MultiblockAbility.HPCA_COMPONENT))
-                            .casing('C', CasingDefinition.simple(getCasingState()))
-                            .maintenance()
-                            .energyInput(1, 3)
-                            .optionalFluidInput(1)
-                            .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1)
-                            .buildTemplate()
-            );
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:high_performance_computing_array", () -> DeclarativePatternBuilder.start()
+                    .piece("top")
+                        .aisle("AA", "CC", "CC", "CC", "AA")
+                    .repeatablePiece("body", 3, 14)
+                        .aisle("VA", "XV", "XV", "XV", "VA")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .piece("bottom")
+                        .aisle("SA", "CC", "CC", "CC", "AA")
+                    .self('S', MetaTileEntityHPCA.class)
+                    .block('A', getAdvancedState())
+                    .block('V', getVentState())
+                    .where('X', Elements.withDefaultCandidate(
+                            Elements.abilities(MultiblockAbility.HPCA_COMPONENT),
+                            () -> MetaTileEntities.HPCA_EMPTY_COMPONENT))
+                    .casing('C', getCasingState())
+                        .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
+                                () -> MetaTileEntities.MAINTENANCE_HATCH)
+                        .hatch(MultiblockAbility.INPUT_ENERGY, 1, 3,
+                                () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
+                        .hatch(MultiblockAbility.IMPORT_FLUIDS, 0, 1,
+                                () -> MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.LV])
+                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 1,
+                                () -> MetaTileEntities.COMPUTATION_HATCH_TRANSMITTER[GTValues.LuV])
+                    .buildStructureDefinition());
     private final HPCAGridHandler hpcaHandler;
     private final TimedProgressSupplier progressSupplier;
     private IEnergyContainer energyContainer;
@@ -145,8 +151,8 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         this.energyContainer = new EnergyContainerList(getAbilities(MultiblockAbility.INPUT_ENERGY));
         this.coolantHandler = new FluidTankList(false, getAbilities(MultiblockAbility.IMPORT_FLUIDS));
         this.hpcaHandler.onStructureForm(getAbilities(MultiblockAbility.HPCA_COMPONENT));
@@ -245,79 +251,13 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
-    }
-
-    @Override
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        List<MultiblockShapeInfo> shapeInfo = new ArrayList<>();
-        MultiblockShapeInfo.Builder builder = MultiblockShapeInfo.builder(RIGHT, DOWN, FRONT)
-                .aisle("AA", "EC", "MC", "HC", "AA")
-                .aisle("VA", "6V", "3V", "0V", "VA")
-                .aisle("VA", "7V", "4V", "1V", "VA")
-                .aisle("VA", "8V", "5V", "2V", "VA")
-                .aisle("SA", "CC", "CC", "OC", "AA")
-                .where('S', MetaTileEntities.HIGH_PERFORMANCE_COMPUTING_ARRAY, EnumFacing.SOUTH)
-                .where('A', getAdvancedState())
-                .where('V', getVentState())
-                .where('C', getCasingState())
-                .where('E', MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV], EnumFacing.NORTH)
-                .where('H', MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.LV], EnumFacing.NORTH)
-                .where('O', MetaTileEntities.COMPUTATION_HATCH_TRANSMITTER[GTValues.LuV], EnumFacing.SOUTH)
-                .where('M', () -> ConfigHolder.machines.enableMaintenance ? MetaTileEntities.MAINTENANCE_HATCH :
-                        getCasingState(), EnumFacing.NORTH);
-
-        // a few example structures
-        shapeInfo.add(builder.shallowCopy()
-                .where('0', MetaTileEntities.HPCA_EMPTY_COMPONENT, EnumFacing.WEST)
-                .where('1', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('2', MetaTileEntities.HPCA_EMPTY_COMPONENT, EnumFacing.WEST)
-                .where('3', MetaTileEntities.HPCA_EMPTY_COMPONENT, EnumFacing.WEST)
-                .where('4', MetaTileEntities.HPCA_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('5', MetaTileEntities.HPCA_EMPTY_COMPONENT, EnumFacing.WEST)
-                .where('6', MetaTileEntities.HPCA_EMPTY_COMPONENT, EnumFacing.WEST)
-                .where('7', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('8', MetaTileEntities.HPCA_EMPTY_COMPONENT, EnumFacing.WEST)
-                .build());
-
-        shapeInfo.add(builder.shallowCopy()
-                .where('0', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('1', MetaTileEntities.HPCA_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('2', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('3', MetaTileEntities.HPCA_ACTIVE_COOLER_COMPONENT, EnumFacing.WEST)
-                .where('4', MetaTileEntities.HPCA_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('5', MetaTileEntities.HPCA_BRIDGE_COMPONENT, EnumFacing.WEST)
-                .where('6', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('7', MetaTileEntities.HPCA_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('8', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .build());
-
-        shapeInfo.add(builder.shallowCopy()
-                .where('0', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('1', MetaTileEntities.HPCA_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('2', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('3', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('4', MetaTileEntities.HPCA_ADVANCED_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('5', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('6', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('7', MetaTileEntities.HPCA_BRIDGE_COMPONENT, EnumFacing.WEST)
-                .where('8', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .build());
-
-        shapeInfo.add(builder.shallowCopy()
-                .where('0', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('1', MetaTileEntities.HPCA_ADVANCED_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('2', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('3', MetaTileEntities.HPCA_ACTIVE_COOLER_COMPONENT, EnumFacing.WEST)
-                .where('4', MetaTileEntities.HPCA_BRIDGE_COMPONENT, EnumFacing.WEST)
-                .where('5', MetaTileEntities.HPCA_ACTIVE_COOLER_COMPONENT, EnumFacing.WEST)
-                .where('6', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .where('7', MetaTileEntities.HPCA_ADVANCED_COMPUTATION_COMPONENT, EnumFacing.WEST)
-                .where('8', MetaTileEntities.HPCA_HEAT_SINK_COMPONENT, EnumFacing.WEST)
-                .build());
-
-        return shapeInfo;
+    // Migrated to createStructureDefinition(): structure is split into three
+    // named pieces ("top" cap, "body" with the repeatable component row,
+    // "bottom" cap) so each section can be checked independently by the
+    // sharded checker. Cached via StructureDefinition.getOrBuild() since the
+    // structure has no runtime-editable dimensions.
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)

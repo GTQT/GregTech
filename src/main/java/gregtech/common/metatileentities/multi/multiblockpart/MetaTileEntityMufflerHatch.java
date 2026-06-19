@@ -161,7 +161,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
             }
             return true;
         }
-        else return false;
+        return false;
     }
 
     @Override

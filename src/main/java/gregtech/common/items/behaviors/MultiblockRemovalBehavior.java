@@ -4,7 +4,6 @@ import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
@@ -60,15 +59,18 @@ public class MultiblockRemovalBehavior implements IItemBehaviour {
         } else {
             // If not sneaking, try to show structure debug info (if any) in chat.
             if (!multiblock.isStructureFormed()) {
-                MultiblockState state = multiblock.getMultiblockState();
-                PatternError error = state != null ? state.getError() : null;
+                PatternError error = multiblock.getLastStructureError();
                 if (error != null) {
 
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
                             new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
-                    for (List<ItemStack> stack : error.getCandidates())
+                    for (List<ItemStack> stack : error.getCandidates()) {
+                        if (stack == null || stack.isEmpty() || stack.get(0).isEmpty()) {
+                            continue;
+                        }
                         player.sendMessage(new TextComponentString("问题模块：" + stack.get(0).getDisplayName()));
+                    }
                     player.sendMessage(new TextComponentString("问题坐标：" + error.getPosString(error.getPos())));
                     player.sendMessage(new TextComponentString("————————————————————————————"));
                     player.sendMessage(new TextComponentString("整改建议："));

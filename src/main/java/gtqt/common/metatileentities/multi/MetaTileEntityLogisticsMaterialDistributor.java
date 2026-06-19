@@ -8,9 +8,10 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -112,8 +113,8 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
 
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         outputFluidTanks = getAbilities(MultiblockAbility.EXPORT_FLUIDS);
         outputItemHandlers = getAbilities(MultiblockAbility.EXPORT_ITEMS);
 
@@ -142,28 +143,29 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     }
 
     @Override
-    // Retained on FactoryBlockPattern: non-standard direction (RIGHT, FRONT, UP),
-    // mixed hatch/casing predicates on multiple chars with frames — low migration value.
-    protected @NotNull BlockPattern createStructurePattern() {
-        return FactoryBlockPattern.start(RIGHT, FRONT, UP)
-                .aisle("ISI", "OEO")
-                .aisle("XXX", "OEO")
-                .aisle("XXX", "OEO")
-                .aisle("XXX", "OEO")
-                .aisle(" F ", "XEX").setRepeatable(0, 12)
-                .where('S', selfPredicate())
-                .where('I', states(getCasingState())
-                        .or(abilities(MultiblockAbility.IMPORT_ITEMS))
-                        .or(abilities(MultiblockAbility.IMPORT_FLUIDS))
-                )
-                .where('O', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_FLUIDS)))
-                .where('E', states(getCasingState())
-                        .or(abilities(MultiblockAbility.EXPORT_ITEMS)))
-                .where('X', states(getCasingState()))
-                .where('F', frames(Materials.StainlessSteel))
-                .where(' ', any())
-                .build();
+    protected StructureDefinition createStructureDefinition() {
+        return DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                .piece("header")
+                    .aisle("ISI", "OEO")
+                    .aisle("XXX", "OEO")
+                    .aisle("XXX", "OEO")
+                    .aisle("XXX", "OEO")
+                .repeatablePiece("body", 0, 12)
+                    .aisle(" F ", "XEX")
+                .self('S', MetaTileEntityLogisticsMaterialDistributor.class)
+                .where('I', Elements.chain(
+                        Elements.block(getCasingState()),
+                        Elements.abilities(MultiblockAbility.IMPORT_ITEMS, MultiblockAbility.IMPORT_FLUIDS)))
+                .where('O', Elements.chain(
+                        Elements.block(getCasingState()),
+                        Elements.abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                .where('E', Elements.chain(
+                        Elements.block(getCasingState()),
+                        Elements.abilities(MultiblockAbility.EXPORT_ITEMS)))
+                .frames('F', Materials.StainlessSteel)
+                .any(' ')
+                .casing('X', getCasingState())
+                .buildStructureDefinition();
     }
 
     @Override

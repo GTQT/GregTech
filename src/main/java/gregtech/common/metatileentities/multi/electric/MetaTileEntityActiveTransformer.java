@@ -11,12 +11,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -51,22 +48,18 @@ import java.util.List;
 
 public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase implements IControllable {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:active_transformer", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:active_transformer", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityActiveTransformer.class))
-                    .where('C', states(MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL)))
-                    .casing('X', CasingDefinition.simple(MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING)))
-                    .optionalEnergyInput(4)
-                    .optionalEnergyOutput(4)
-                    .optionalLaserInput(4)
-                    .optionalLaserOutput(4)
-                    .optionalSubstationInput(4)
-                    .optionalSubstationOutput(4)
-                    .buildTemplate()
-    );
+                    .self('S', MetaTileEntityActiveTransformer.class)
+                    .block('C', 
+                            MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL))
+                    .casing('X', MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING))
+                    .universalEnergyInput(1, 4)
+                    .universalEnergyOutput(1, 4)
+                    .buildStructureDefinition());
 
     private boolean isWorkingEnabled = false;
     private IEnergyContainer powerOutput;
@@ -104,8 +97,8 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         List<IEnergyContainer> powerInput = new ArrayList<>(getAbilities(MultiblockAbility.INPUT_ENERGY));
         powerInput.addAll(getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
 
@@ -136,8 +129,8 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

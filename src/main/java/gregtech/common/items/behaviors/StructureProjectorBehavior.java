@@ -8,14 +8,19 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
-import gregtech.api.pattern.MultiblockState;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.StructureBuildResult;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import gregtech.client.renderer.handler.GhostBlockRenderer;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -230,19 +235,18 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Check if a specific piece is requested via STRUCTURE_PIECE channel
             int pieceIndex = channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
             if (pieceIndex > 0) {
-                // Build a specific piece from the MultiPiecePattern
-                var multiPiece = multiblock.getMultiPiecePattern();
-                if (multiPiece != null) {
-                    multiPiece.autoBuildPiece(pieceIndex, player, multiblock, channels, noHatch);
-                }
+                buildPiece(multiblock, player, pieceIndex, channels, noHatch, heldStack);
                 return EnumActionResult.SUCCESS;
             }
 
             if (!multiblock.isStructureFormed()) {
-                MultiblockState state = multiblock.getMultiblockState();
-                if (state != null) {
-                    state.autoBuild(player, multiblock, channels, noHatch);
+                StructureOperationRequest request = StructureOperationRequest.build(
+                        player, multiblock, StructureOrientation.fromController(multiblock),
+                        channels, noHatch, heldStack);
+                if (multiblock.autoBuildStructure(request)) {
+                    return EnumActionResult.SUCCESS;
                 }
+                buildStructure(multiblock, request);
                 return EnumActionResult.SUCCESS;
             }
             return EnumActionResult.PASS;
@@ -250,23 +254,29 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Right-click: Show hologram preview / error info
             if (world.isRemote) {
                 GhostBlockRenderer.setCompareMode(compareMode);
+                GhostBlockRenderer.setNoHatch(noHatch);
                 GhostBlockRenderer.setChannelValues(channelValues);
                 GhostBlockRenderer.renderGhostPreview(multiblock, 10000);
                 return EnumActionResult.SUCCESS;
             }
 
             // Server-side: store supported channel ranges into NBT for GUI use
+            PatternError structureError = multiblock.isStructureFormed() ?
+                    null : multiblock.getLastStructureError();
             saveControllerChannelRanges(heldStack, multiblock);
+            spawnStructureHints(multiblock, player, heldStack, channelValues);
 
             // Server-side: show error info if structure is not formed
             if (!multiblock.isStructureFormed()) {
-                MultiblockState state = multiblock.getMultiblockState();
-                PatternError error = state != null ? state.getError() : null;
+                PatternError error = structureError != null ? structureError : multiblock.getLastStructureError();
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
                             new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
                     for (List<ItemStack> stack : error.getCandidates()) {
+                        if (stack == null || stack.isEmpty() || stack.get(0).isEmpty()) {
+                            continue;
+                        }
                         player.sendMessage(new TextComponentString(
                                 TextFormatting.RED + "  " + stack.get(0).getDisplayName()));
                     }
@@ -297,6 +307,60 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             ranges.put(ch.getName(), range);
         }
         writeChannelRanges(stack, ranges);
+    }
+
+    private static void buildStructure(@NotNull MultiblockControllerBase multiblock,
+                                       @NotNull StructureOperationRequest request) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        StructureBuildResult result = runtime.buildAllPieces(request);
+        logBuildResult(multiblock, 0, request.skipHatches(), result);
+    }
+
+    private static void buildPiece(@NotNull MultiblockControllerBase multiblock,
+                                   @NotNull EntityPlayer player,
+                                   int pieceIndex,
+                                   Map<String, Integer> channels,
+                                   boolean noHatch,
+                                   @NotNull ItemStack triggerStack) {
+        var runtime = multiblock.getOrCreateStructureRuntime();
+        MultiPiecePattern pattern = runtime.getMultiPiecePattern();
+        int compiledPieceIndex = pattern == null ? pieceIndex : pattern.resolveToolingPieceIndex(pieceIndex);
+        if (compiledPieceIndex < 1) {
+            GTLog.logger.debug(
+                    "[StructureProjector] skipped invalid structure_piece={} for controller={}",
+                    pieceIndex, multiblock.getMetaName());
+            return;
+        }
+        StructureBuildResult result = runtime.buildPiece(StructureOperationRequest.buildPiece(
+                compiledPieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
+                channels, noHatch, triggerStack));
+        logBuildResult(multiblock, compiledPieceIndex, noHatch, result);
+    }
+
+    private static void logBuildResult(@NotNull MultiblockControllerBase multiblock,
+                                       int pieceIndex,
+                                       boolean noHatch,
+                                       @NotNull StructureBuildResult result) {
+        GTLog.logger.info("[StructureProjector] build result controller={} pos={} piece={} noHatch={}, {}",
+                multiblock.getMetaName(), multiblock.getPos(), pieceIndex, noHatch, result.describeCounts());
+    }
+
+    private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,
+                                            @NotNull EntityPlayer player,
+                                            @NotNull ItemStack triggerStack,
+                                            @NotNull Map<String, Integer> channelValues) {
+        long start = System.nanoTime();
+        Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
+        StructureOperationRequest request = StructureOperationRequest.hint(
+                player, multiblock, StructureOrientation.fromController(multiblock),
+                channels, triggerStack);
+        multiblock.spawnStructureHints(request);
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+        if (ConfigHolder.machines.debugStructureTrace && elapsedMillis >= 25L) {
+            GTLog.logger.debug(
+                    "[StructureProjector] slow server hints controller={} channels={} totalMs={}",
+                    multiblock.getMetaName(), channelValues, elapsedMillis);
+        }
     }
 
     @Override
@@ -348,7 +412,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         Map<String, int[]> channelRanges = readChannelRanges(stack);
         List<ChannelEntry> entries = buildChannelEntries(channelValues, channelRanges);
 
-        var panel = GTGuis.createPanel(stack, 176, 220);
+        var panel = GTGuis.createPanel(stack, 176, 240);
 
         // --- Compare mode sync ---
         BooleanSyncValue compareModeValue = new BooleanSyncValue(
@@ -368,11 +432,22 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 });
         guiSyncManager.syncValue("no_hatch", noHatchValue);
 
-        // --- Structure height/length sync ---
+        // --- Structure width/height/length sync ---
+        int[] widthRange = channelRanges.getOrDefault(
+                GTStructureChannels.STRUCTURE_WIDTH.getName(), new int[] { 0, 100 });
         int[] heightRange = channelRanges.getOrDefault(
                 GTStructureChannels.STRUCTURE_HEIGHT.getName(), new int[] { 0, 100 });
         int[] lengthRange = channelRanges.getOrDefault(
                 GTStructureChannels.STRUCTURE_LENGTH.getName(), new int[] { 0, 100 });
+
+        IntSyncValue widthValue = new IntSyncValue(
+                () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_WIDTH.getName(), 0),
+                v -> {
+                    if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_WIDTH.getName());
+                    else channelValues.put(GTStructureChannels.STRUCTURE_WIDTH.getName(), v);
+                    writeChannelValues(stack, channelValues);
+                });
+        guiSyncManager.syncValue("structure_width", widthValue);
 
         IntSyncValue heightValue = new IntSyncValue(
                 () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_HEIGHT.getName(), 0),
@@ -435,11 +510,11 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                 })
                 .scrollDirection(new VerticalScrollData())
                 .size(162, listHeight)
-                .pos(7, 85);
+                .pos(7, 105);
 
         // --- Clear button: properly resets all sync values ---
         var clearButton = new ButtonWidget<>()
-                .pos(7, 195)
+                .pos(7, 215)
                 .width(60).height(16)
                 .overlay(IKey.lang("gregtech.tool.projector.clear"))
                 .onMousePressed(m -> {
@@ -448,6 +523,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     entries.clear();
                     writeChannelValues(stack, channelValues);
                     // Reset sync values so GUI and server reflect the cleared state
+                    widthValue.setValue(0, true, true);
                     heightValue.setValue(0, true, true);
                     lengthValue.setValue(0, true, true);
                     for (int i = 0; i < MAX_CHANNEL_ROWS; i++) {
@@ -483,9 +559,17 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                         .setNumbers(heightRange[0], heightRange[1])
                         .value(heightValue)
                         .background(GTGuiTextures.DISPLAY))
-                .child(IKey.lang("gregtech.tool.projector.structure_length").asWidget().pos(7, 62))
+                .child(IKey.lang("gregtech.tool.projector.structure_width").asWidget().pos(7, 62))
                 .child(new TextFieldWidget()
                         .pos(80, 62)
+                        .width(40).height(12)
+                        .setTextColor(Color.WHITE.darker(1))
+                        .setNumbers(widthRange[0], widthRange[1])
+                        .value(widthValue)
+                        .background(GTGuiTextures.DISPLAY))
+                .child(IKey.lang("gregtech.tool.projector.structure_length").asWidget().pos(7, 82))
+                .child(new TextFieldWidget()
+                        .pos(80, 82)
                         .width(40).height(12)
                         .setTextColor(Color.WHITE.darker(1))
                         .setNumbers(lengthRange[0], lengthRange[1])
@@ -509,6 +593,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         if (channelValues.isEmpty() && !channelRanges.isEmpty()) {
             for (Map.Entry<String, int[]> rangeEntry : channelRanges.entrySet()) {
                 String name = rangeEntry.getKey();
+                if (name.equals(GTStructureChannels.STRUCTURE_WIDTH.getName())) continue;
                 if (name.equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
                 if (name.equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
                 entries.add(new ChannelEntry(name, 0));
@@ -518,6 +603,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
         // Build entries from existing channel values
         for (Map.Entry<String, Integer> e : channelValues.entrySet()) {
+            if (e.getKey().equals(GTStructureChannels.STRUCTURE_WIDTH.getName())) continue;
             if (e.getKey().equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
             if (e.getKey().equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
             entries.add(new ChannelEntry(e.getKey(), e.getValue()));

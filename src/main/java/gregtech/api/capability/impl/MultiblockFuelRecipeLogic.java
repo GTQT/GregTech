@@ -16,22 +16,28 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
+    private static final int CROSS_RECIPE_PROGRESS_SENTINEL = Integer.MAX_VALUE;
+
     protected long totalContinuousRunningTime;
     public FuelMultiblockController metaTileEntity;
     private int previousDuration = 0;
+    @NotNull
+    private final ParallelLogicType parallelLogicType;
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity) {
-        this(tileEntity, ParallelLogicType.CROSS_RECIPE);
+        this(tileEntity, ParallelLogicType.MULTIPLY);
     }
 
     public MultiblockFuelRecipeLogic(FuelMultiblockController tileEntity, ParallelLogicType type) {
         super(tileEntity);
         this.metaTileEntity = tileEntity;
+        this.parallelLogicType = type == ParallelLogicType.CROSS_RECIPE ? ParallelLogicType.MULTIPLY : type;
     }
 
     @Override
@@ -75,6 +81,10 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public void update() {
+        if (!isCrossRecipeMode() && maxProgressTime == CROSS_RECIPE_PROGRESS_SENTINEL) {
+            invalidate();
+        }
+
         super.update();
         if (workingEnabled && isActive && progressTime > 0) {
             totalContinuousRunningTime++;
@@ -119,20 +129,15 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     public void invalidate() {
         super.invalidate();
         totalContinuousRunningTime = 0;
+        previousDuration = 0;
     }
 
     public String getRecipeFluidInputInfo() {
         List<IRotorHolder> abilities = metaTileEntity.getAbilities(MultiblockAbility.ROTOR_HOLDER);
         IRotorHolder rotorHolder = abilities.size() > 0 ? abilities.get(0) : null;
 
-        // Previous Recipe is always null on first world load, so try to acquire a new recipe
-        Recipe recipe;
-        if (previousRecipe == null) {
-            recipe = findRecipe(Integer.MAX_VALUE, getInputInventory(), getInputTank());
-            if (recipe == null) return null;
-        } else {
-            recipe = previousRecipe;
-        }
+        Recipe recipe = getFuelDisplayRecipe();
+        if (recipe == null || recipe.getFluidInputs().isEmpty()) return null;
         previousDuration = recipe.getDuration();
         FluidStack requiredFluidInput = recipe.getFluidInputs().get(0).getInputFluidStack();
 
@@ -146,13 +151,33 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
         return TextFormatting.RED + TextFormattingUtil.formatNumbers(neededAmount) + "L";
     }
 
+    @Nullable
+    protected Recipe getFuelDisplayRecipe() {
+        return previousRecipe != null ? previousRecipe : showRecipes;
+    }
+
+    @Nullable
+    public FluidStack getCachedInputFluidStack() {
+        Recipe recipe = getFuelDisplayRecipe();
+        if (recipe == null || recipe.getFluidInputs().isEmpty()) {
+            return null;
+        }
+        FluidStack fuelStack = recipe.getFluidInputs().get(0).getInputFluidStack();
+        return getInputTank().drain(new FluidStack(fuelStack.getFluid(), Integer.MAX_VALUE), false);
+    }
+
     @Override
     public int getPreviousRecipeDuration() {
         return previousDuration;
     }
 
     public FluidStack getInputFluidStack() {
-        // Previous Recipe is always null on first world load, so try to acquire a new recipe
+        FluidStack cached = getCachedInputFluidStack();
+        if (cached != null || getFuelDisplayRecipe() != null) {
+            return cached;
+        }
+
+        // External callers historically used this as a lookup helper before a recipe was cached.
         if (previousRecipe == null) {
             Recipe recipe = findRecipe(Integer.MAX_VALUE, getInputInventory(), getInputTank());
 
@@ -167,6 +192,12 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
     @Override
     public boolean isAllowOverclocking() {
         return false;
+    }
+
+    @Override
+    @NotNull
+    public ParallelLogicType getParallelLogicType() {
+        return parallelLogicType;
     }
 
     @Override

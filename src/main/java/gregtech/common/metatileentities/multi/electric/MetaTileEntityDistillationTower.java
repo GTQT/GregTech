@@ -9,13 +9,12 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.StructurePieceKey;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTTransferUtils;
@@ -34,29 +33,44 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
 
 import static gregtech.api.util.RelativeDirection.*;
 
+/**
+ * Distillation Tower multiblock controller.
+ * Uses the new {@link StructureDefinition} system via
+ * {@link DeclarativePatternBuilder#buildStructureDefinition()}.
+ */
 public class MetaTileEntityDistillationTower extends RecipeMapMultiblockController implements IDistillationTower {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:distillation_tower", () ->
-            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
-                    .aisle("YSY", "YYY", "YYY")
-                    .aisleRepeatable(1, 11, "XXX", "X#X", "XXX")
-                        .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
-                    .aisle("XXX", "XXX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityDistillationTower.class))
-                    .where('#', air())
-                    .casing('Y', CasingDefinition.simple(getCasingState()))
-                        .optionalItemOutput(1)
-                        .energyInput(1,3)
-                        .fluidInput(1)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                        .custom(abilities(MultiblockAbility.EXPORT_FLUIDS).setMaxLayerLimited(1, 1), 11)
-                        .maintenance()
-                    .buildTemplate()
+    /** Piece name for the repeatable body section */
+    private static final String PIECE_BODY = "body";
+    private static final StructurePieceKey BODY_PIECE = StructurePieceKey.of(PIECE_BODY);
+
+    /** Structure definition registered via TemplatePool for soft-reference caching */
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:distillation_tower", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            .piece("bottom")
+                                .aisle("YSY", "YYY", "YYY")
+                            .repeatablePiece(PIECE_BODY, 1, 11)
+                                .aisle("XXX", "X#X", "XXX")
+                                .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                            .piece("top")
+                                .aisle("XXX", "XXX", "XXX")
+                            .self('S', MetaTileEntityDistillationTower.class)
+                            .air('#')
+                            .casing('Y', getCasingState())
+                                .optionalItemOutput(1)
+                                .energyInput(1, 3)
+                                .fluidInput(1)
+                            .casing('X', getCasingState())
+                                .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 11)
+                                .maintenance()
+                            .buildStructureDefinition()
     );
 
     protected DistillationTowerLogicHandler handler;
@@ -103,10 +117,15 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        if (this.handler == null || this.multiblockState == null) return;
-        handler.determineLayerCount(this.multiblockState);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        if (this.handler == null) return;
+
+        // Determine layer count from the body piece repeat count. The structure
+        // is always multi-piece (top / body / bottom), so the multiblockState
+        // single-piece path has been removed — it was dead code after the
+        // aisleRepeatable → repeatablePiece migration.
+        handler.determineLayerCountFromReps(formed.getPieceRepeat(BODY_PIECE, 0));
         handler.determineOrderedFluidOutputs();
     }
 
@@ -116,9 +135,10 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         if (this.handler != null) handler.invalidate();
     }
 
+    @Nullable
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

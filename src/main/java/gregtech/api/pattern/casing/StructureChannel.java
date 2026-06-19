@@ -1,5 +1,6 @@
 package gregtech.api.pattern.casing;
 
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.PatternMatchContext;
 
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,20 @@ public interface StructureChannel {
     default ICasing getMatchedCasing(@NotNull PatternMatchContext context) {
         Object obj = context.get(getName());
         return obj instanceof ICasing ? (ICasing) obj : null;
+    }
+
+    /**
+     * Get the matched ICasing object from a typed formation view.
+     *
+     * <p>This reads the V3 aggregate emitted by tiered casing elements. The
+     * {@link PatternMatchContext} overload remains for external legacy callbacks.
+     *
+     * @param formed the typed formation view
+     * @return the matched ICasing, or null if not set
+     */
+    @Nullable
+    default ICasing getMatchedCasing(@NotNull FormedStructureView formed) {
+        return formed.getChannelAggregate(this, ICasing.class);
     }
 
     /**

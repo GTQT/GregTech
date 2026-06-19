@@ -58,6 +58,6 @@ public class EnergyContainerWireless extends EnergyContainerHandler {
 
     @Override
     public long getEnergyCanBeInserted() {
-        return 0;
+        return isExport ? super.getEnergyCanBeInserted() : 0;
     }
 }

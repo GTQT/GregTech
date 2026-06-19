@@ -11,11 +11,9 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.mui.widget.RecipeProgressWidget;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.ICubeRenderer;
@@ -56,18 +54,17 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:coke_oven", () ->
-            DeclarativePatternBuilder.start()
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:coke_oven", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XYX", "XXX")
-                    .where('Y', selfPredicate(MetaTileEntityCokeOven.class))
-                    .where('#', air())
-                    .casing('X', CasingDefinition.simple(MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS)))
+                    .self('Y', MetaTileEntityCokeOven.class)
+                    .air('#')
+                    .casing('X', MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS))
                         .custom(
-                                metaTileEntities(MetaTileEntities.COKE_OVEN_HATCH).setMaxGlobalLimited(5), 5)
-                    .buildTemplate()
-    );
+                                Elements.metaTileEntities(0, 5, 5, MetaTileEntities.COKE_OVEN_HATCH), 5)
+                    .buildStructureDefinition());
 
     public MetaTileEntityCokeOven(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.COKE_OVEN_RECIPES);
@@ -80,8 +77,8 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     protected IBlockState getCasingState() {

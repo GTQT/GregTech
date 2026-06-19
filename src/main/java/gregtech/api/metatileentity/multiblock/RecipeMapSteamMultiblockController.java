@@ -13,6 +13,7 @@ import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
@@ -38,7 +39,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class RecipeMapSteamMultiblockController extends MultiblockWithDisplayBase implements IControllable,
                                                                                                       IDistinctBusController,
@@ -77,6 +80,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
 
     @Override
     public void setDistinct(boolean isDistinct) {
+        boolean changed = this.isDistinct != isDistinct;
         this.isDistinct = isDistinct;
         recipeMapWorkable.onDistinctChanged();
         getMultiblockParts().forEach(part -> part.onDistinctChange(isDistinct));
@@ -86,6 +90,20 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
         } else {
             this.notifiedItemInputList.add(this.inputInventory);
         }
+        if (changed) {
+            notifyStructureConfigChanged();
+        }
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        values.put("distinct", isDistinct);
+        values.put("parallelLogicType", type == null ? null : type.name());
+        return values;
     }
 
     @Override
@@ -119,8 +137,22 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
     }
 
     @Override
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        if (hasLegacyFormStructureOverrideBelow(RecipeMapSteamMultiblockController.class)) {
+            formLegacyStructureCallback(formed);
+            return;
+        }
+        formSteamRecipeMapStructure(formed);
+    }
+
+    @Override
     protected void formStructure(PatternMatchContext context) {
         super.formStructure(context);
+        initializeAbilities();
+    }
+
+    protected final void formSteamRecipeMapStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         initializeAbilities();
     }
 
@@ -267,6 +299,10 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
+        boolean changed = recipeMapWorkable.isWorkingEnabled() != isWorkingAllowed;
         recipeMapWorkable.setWorkingEnabled(isWorkingAllowed);
+        if (changed) {
+            notifyStructureControllerModeChanged();
+        }
     }
 }

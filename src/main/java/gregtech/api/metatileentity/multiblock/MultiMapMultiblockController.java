@@ -26,6 +26,10 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.widgets.CycleButtonWidget;
 import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public abstract class MultiMapMultiblockController extends RecipeMapMultiblockController
         implements IMultipleRecipeMaps {
@@ -76,17 +80,33 @@ public abstract class MultiMapMultiblockController extends RecipeMapMultiblockCo
 
     @Override
     public void setRecipeMapIndex(int index) {
+        int previousIndex = this.recipeMapIndex;
         this.recipeMapIndex = index;
         if (!getWorld().isRemote) {
             writeCustomData(GregtechDataCodes.RECIPE_MAP_INDEX, buf -> buf.writeByte(index));
             recipeMapWorkable.forceRecipeRecheck();
             markDirty();
+            if (previousIndex != index) {
+                notifyStructureConfigChanged();
+            }
         }
     }
 
     @Override
     public RecipeMap<?> getCurrentRecipeMap() {
         return getAvailableRecipeMaps()[recipeMapIndex];
+    }
+
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Object getStructureConfigDependencyValue() {
+        Map<String, Object> values = new LinkedHashMap<>(
+                (Map<String, Object>) super.getStructureConfigDependencyValue());
+        RecipeMap<?> currentRecipeMap = getCurrentRecipeMap();
+        values.put("recipeMapIndex", recipeMapIndex);
+        values.put("currentRecipeMap", currentRecipeMap == null ? null : currentRecipeMap.getUnlocalizedName());
+        return values;
     }
 
     @Override

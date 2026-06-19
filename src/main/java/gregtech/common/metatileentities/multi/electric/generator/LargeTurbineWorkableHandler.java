@@ -1,6 +1,7 @@
 package gregtech.common.metatileentities.multi.electric.generator;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
@@ -36,7 +37,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     @Override
     protected void updateRecipeProgress() {
-        if (canRecipeProgress) {
+        if (canRecipeProgress && hasOutputEnergyContainer()) {
             this.recipeEUt = getCurrentProduction();
             drawEnergy(recipeEUt, false);
             if (++progressTime > maxProgressTime) {
@@ -46,6 +47,11 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     }
 
     public FluidStack getInputFluidStack() {
+        FluidStack cached = getCachedInputFluidStack();
+        if (cached != null || getFuelDisplayRecipe() != null) {
+            return cached;
+        }
+
         if (previousRecipe == null) {
             Recipe recipe = super.findRecipe(Integer.MAX_VALUE, getInputInventory(), getInputTank());
             return recipe == null ? null : getInputTank().drain(
@@ -66,6 +72,12 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     private long getCurrentProduction() {
         return boostProduction(getMaxVoltage());
+    }
+
+    private boolean hasOutputEnergyContainer() {
+        IEnergyContainer energyContainer = getEnergyContainer();
+        return energyContainer != null && energyContainer.getOutputVoltage() > 0 &&
+                energyContainer.getOutputAmperage() > 0 && energyContainer.getEnergyCapacity() > 0;
     }
 
     @Override
@@ -98,6 +110,20 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
         return (int) Math.ceil(numerator / (recipeEUt * totalHolderEfficiencyCoefficient));
     }
 
+    private boolean canDoRecipeWithParallel(@NotNull Recipe recipe,
+                                            double totalHolderEfficiencyCoefficient, long turbineMaxVoltage,
+                                            @NotNull IMultipleTankHandler inputTank) {
+        int parallel = getParallel(recipe, totalHolderEfficiencyCoefficient, turbineMaxVoltage);
+
+        if (parallel <= 0) return false;
+
+        FluidStack recipeFluidStack = recipe.getFluidInputs().get(0).getInputFluidStack();
+        FluidStack inputFluid = inputTank.drain(
+                new FluidStack(recipeFluidStack.getFluid(), Integer.MAX_VALUE),
+                false);
+        return inputFluid != null && inputFluid.amount >= recipeFluidStack.amount * parallel;
+    }
+
     private boolean canDoRecipeWithParallel(Recipe recipe) {
         IRotorHolder rotorHolder = ((MetaTileEntityLargeTurbine) metaTileEntity).getRotorHolder();
         if (rotorHolder == null || !rotorHolder.hasRotor())
@@ -105,15 +131,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
         double totalHolderEfficiencyCoefficient = rotorHolder.getTotalEfficiency() / 100.0;
         long turbineMaxVoltage = getMaxVoltage();
-        int parallel = getParallel(recipe, totalHolderEfficiencyCoefficient, turbineMaxVoltage);
-
-        if (parallel <= 0) return false;
-
-        FluidStack recipeFluidStack = recipe.getFluidInputs().get(0).getInputFluidStack();
-        FluidStack inputFluid = getInputTank().drain(
-                new FluidStack(recipeFluidStack.getFluid(), Integer.MAX_VALUE),
-                false);
-        return inputFluid != null && inputFluid.amount >= recipeFluidStack.amount * parallel;
+        return canDoRecipeWithParallel(recipe, totalHolderEfficiencyCoefficient, turbineMaxVoltage, getInputTank());
     }
 
     @Override
@@ -129,6 +147,16 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
             return null;
         }
 
+        IRotorHolder rotorHolder = ((MetaTileEntityLargeTurbine) metaTileEntity).getRotorHolder();
+        if (rotorHolder == null || !rotorHolder.hasRotor()) {
+            return null;
+        }
+        double totalHolderEfficiencyCoefficient = rotorHolder.getTotalEfficiency() / 100.0;
+        long turbineMaxVoltage = getMaxVoltage();
+        if (turbineMaxVoltage <= 0) {
+            return null;
+        }
+
         final List<ItemStack> items = GTUtility.itemHandlerToList(inputs).stream().filter(s -> !s.isEmpty()).collect(
                 Collectors.toList());
         final List<FluidStack> fluids = GTUtility.fluidHandlerToList(fluidInputs).stream()
@@ -138,7 +166,8 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
         return map.find(items, fluids, recipe -> {
             // 修改 2: 使用绝对值比较电压
             if (Math.abs(recipe.getEUt()) > maxVoltage) return false;
-            return recipe.matches(false, inputs, fluidInputs) && this.canDoRecipeWithParallel(recipe);
+            return recipe.matches(false, inputs, fluidInputs) && this.canDoRecipeWithParallel(
+                    recipe, totalHolderEfficiencyCoefficient, turbineMaxVoltage, fluidInputs);
         });
     }
 
@@ -172,7 +201,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
             this.excessVoltage += (long) (producedVoltage - turbineMaxVoltage);
         }
 
-        RecipeBuilder<?> recipeBuilder = getRecipeMap().recipeBuilder();
+        RecipeBuilder<?> recipeBuilder = getRecipeMap().recipeBuilder().EUt(0);
         recipeBuilder.append(recipe, parallel, false)
                 .EUt(turbineMaxVoltage);
         applyParallelBonus(recipeBuilder);
@@ -196,9 +225,8 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
 
     public void updateTanks() {
         FuelMultiblockController controller = (FuelMultiblockController) this.metaTileEntity;
-        List<IFluidHandler> tanks = controller.getNotifiedFluidInputList();
         for (IFluidTank tank : controller.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
-            tanks.add((IFluidHandler) tank);
+            controller.addNotifiedInput(tank);
         }
     }
 }

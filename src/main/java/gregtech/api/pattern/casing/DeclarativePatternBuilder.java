@@ -1,26 +1,40 @@
 package gregtech.api.pattern.casing;
 
-import gregtech.api.block.VariantActiveBlock;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.BlockWorldState;
-import gregtech.api.pattern.FactoryBlockPattern;
-import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.impl.CasingElement;
+import gregtech.api.pattern.element.impl.HatchElement;
+import gregtech.api.pattern.element.impl.TieredCasingElement;
+import gregtech.api.util.RelativeDirection;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.math.Vec3i;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A declarative builder for multiblock structure patterns.
@@ -28,23 +42,27 @@ import java.util.Map;
  * with automatic minimum casing count calculation, declarative hatch placement,
  * and tiered casing tracking.
  *
- * <p>This builder co-exists with FactoryBlockPattern — existing multiblocks
- * do not need to migrate. New multiblocks can use either approach.
+ * <p>Supports both single-piece (legacy) and multi-piece (named) structure definitions.
+ * Use {@link #piece(String)} and {@link #repeatablePiece(String, int, int)} to define
+ * named pieces. When no named pieces are declared, all aisles belong to a single piece "main".
  *
- * <p>Usage example:
+ * <p>Usage example (multi-piece):
  * <pre>{@code
- * DeclarativePatternBuilder.start(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.FRONT)
- *     .aisle("XXX", "XCX", "XXX")
- *     .aisle("XXX", "X#X", "XXX")
- *     .aisle("XXX", "XSX", "XXX")
+ * DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+ *     .piece("base")
+ *         .aisle("YSY", "YYY", "YYY")
+ *     .repeatablePiece("body", 1, 11)
+ *         .aisle("XXX", "X#X", "XXX")
+ *         .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+ *     .piece("top")
+ *         .aisle("XXX", "XXX", "XXX")
  *     .where('S', selfPredicate())
  *     .where('#', air())
+ *     .casing('Y', casingDef)
+ *         .maintenance()
  *     .casing('X', casingDef)
- *         .withHatches(MultiblockAbility.IMPORT_ITEMS, 1, 4)
- *         .withHatches(MultiblockAbility.EXPORT_ITEMS, 1, 4)
- *         .withHatches(MultiblockAbility.INPUT_ENERGY, 1, 3)
- *     .tieredCasing('C', coilGroup)
- *     .build();
+ *         .maintenance()
+ *     .buildStructureDefinition();
  * }</pre>
  *
  * @see FactoryBlockPattern for the traditional builder
@@ -53,85 +71,207 @@ import java.util.Map;
  */
 public class DeclarativePatternBuilder {
 
-    private final FactoryBlockPattern factoryBuilder;
+    private final RelativeDirection[] structureDir;
+    private final List<PieceDef> pieces = new ArrayList<>();
     private final Map<Character, CasingSlotInfo> casingSlots = new HashMap<>();
     private final Map<Character, TieredSlotInfo> tieredSlots = new HashMap<>();
-    private final List<String[]> aisles = new ArrayList<>();
+    private final Map<Character, TraceabilityPredicate> rawPredicates = new HashMap<>();
+    private final Map<Character, IStructureElement> elementMappings = new HashMap<>();
+    private final List<AbilityLimitDef> abilityLimits = new ArrayList<>();
+    private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
 
-    private DeclarativePatternBuilder(FactoryBlockPattern factoryBuilder) {
-        this.factoryBuilder = factoryBuilder;
+    private PieceDef currentPiece;
+    private boolean multiPieceMode;
+
+    private DeclarativePatternBuilder(RelativeDirection[] dirs) {
+        this.structureDir = dirs;
+        // Default piece "main" for backward compat
+        this.currentPiece = new PieceDef("main", false, 0, 0);
+        this.pieces.add(currentPiece);
+        this.multiPieceMode = false;
     }
 
     /**
-     * Start building a declarative pattern with default directions (RIGHT, UP, FRONT).
+     * Start building a declarative pattern with default directions (RIGHT, UP, BACK).
      */
     public static DeclarativePatternBuilder start() {
-        return new DeclarativePatternBuilder(FactoryBlockPattern.start());
+        return new DeclarativePatternBuilder(new RelativeDirection[]{
+                RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK});
     }
 
     /**
      * Start building a declarative pattern with specified directions.
      */
     public static DeclarativePatternBuilder start(
-            gregtech.api.util.RelativeDirection charDir,
-            gregtech.api.util.RelativeDirection stringDir,
-            gregtech.api.util.RelativeDirection aisleDir) {
-        return new DeclarativePatternBuilder(FactoryBlockPattern.start(charDir, stringDir, aisleDir));
+            RelativeDirection charDir,
+            RelativeDirection stringDir,
+            RelativeDirection aisleDir) {
+        return new DeclarativePatternBuilder(new RelativeDirection[]{charDir, stringDir, aisleDir});
     }
 
-    // --- Aisle methods (delegated to FactoryBlockPattern) ---
+    // --- Piece definitions ---
 
     /**
-     * Define an aisle (a layer of the structure).
+     * Start a new fixed (non-repeatable) named piece.
+     * Subsequent {@link #aisle(String...)} calls will add to this piece.
+     */
+    public PieceBuilder piece(@NotNull String name) {
+        multiPieceMode = true;
+        closeCurrentPiece();
+        currentPiece = new PieceDef(name, false, 0, 0);
+        pieces.add(currentPiece);
+        return new PieceBuilder(this, currentPiece);
+    }
+
+    /**
+     * Start a new repeatable named piece (single-axis, aisle-repeatable style).
+     *
+     * @param name      the piece name
+     * @param minRepeat minimum repetition count
+     * @param maxRepeat maximum repetition count
+     */
+    public PieceBuilder repeatablePiece(@NotNull String name, int minRepeat, int maxRepeat) {
+        multiPieceMode = true;
+        closeCurrentPiece();
+        currentPiece = new PieceDef(name, true, minRepeat, maxRepeat);
+        pieces.add(currentPiece);
+        return new PieceBuilder(this, currentPiece);
+    }
+
+    /**
+     * Start a new repeatable named piece (multi-axis, raw pattern style).
+     *
+     * @param name    the piece name
+     * @param pattern the raw pattern (aisles x rows)
+     * @param offset  the base offset of this piece
+     */
+    public MultiAxisPieceBuilder repeatablePiece(@NotNull String name, @NotNull String[][] pattern,
+                                                  @NotNull Vec3i offset) {
+        multiPieceMode = true;
+        closeCurrentPiece();
+        currentPiece = new PieceDef(name, true, 0, 0);
+        currentPiece.rawPattern = pattern;
+        currentPiece.offset = offset;
+        pieces.add(currentPiece);
+        return new MultiAxisPieceBuilder(this, currentPiece);
+    }
+
+    private void closeCurrentPiece() {
+        // No-op: the PieceDef is already stored in pieces list.
+        // Any subsequent aisle() calls will go to the new current piece.
+    }
+
+    // --- Aisle methods (delegate to current piece) ---
+
+    /**
+     * Define an aisle for the current piece.
      */
     public DeclarativePatternBuilder aisle(String... aisle) {
-        factoryBuilder.aisle(aisle);
-        aisles.add(aisle);
+        currentPiece.aisles.add(new AisleDef(aisle));
         return this;
     }
 
     /**
-     * Define a repeatable aisle.
+     * @deprecated Use {@link #repeatablePiece(String, int, int)} for multi-piece mode instead,
+     *             or {@link #aisle(String...)} for fixed aisles.
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public DeclarativePatternBuilder aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
-        factoryBuilder.aisleRepeatable(minRepeat, maxRepeat, aisle);
-        aisles.add(aisle);
+        currentPiece.aisles.add(new AisleDef(aisle));
         return this;
     }
 
     /**
-     * Set a channel name on the last declared repeatable aisle.
-     * The channel value controls the repetition count in previews and autoBuild.
-     *
-     * @param channelName the channel name controlling this aisle's repetition
+     * @deprecated Use {@link #repeatablePiece(String, int, int)} with
+     *             {@link PieceBuilder#withAisleChannel(String)} instead.
      */
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
     public DeclarativePatternBuilder withAisleChannel(@NotNull String channelName) {
-        factoryBuilder.setRepeatable(
-                factoryBuilder.getLastAisleRepetition()[0],
-                factoryBuilder.getLastAisleRepetition()[1],
-                channelName);
+        if (!currentPiece.aisles.isEmpty()) {
+            AisleDef last = currentPiece.aisles.get(currentPiece.aisles.size() - 1);
+            last.channelName = channelName;
+        }
         return this;
     }
 
-    // --- Standard where (pass-through to FactoryBlockPattern) ---
+    // --- Standard where (shared across all pieces) ---
 
     /**
-     * Define a character mapping using raw TraceabilityPredicate (for non-casing blocks).
+     * Define a character mapping using raw TraceabilityPredicate (shared across all pieces).
      */
     public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
-        factoryBuilder.where(symbol, predicate);
+        rawPredicates.put(symbol, predicate);
         return this;
     }
 
-    // --- Declarative casing methods ---
+    /**
+     * Define a character mapping using IStructureElement (for multi-axis pieces).
+     * Takes precedence over {@link #where(char, TraceabilityPredicate)} for the same character.
+     */
+    public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+        elementMappings.put(symbol, element);
+        return this;
+    }
+
+    public DeclarativePatternBuilder self(
+            char symbol,
+            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+        return where(symbol, Elements.self(controllerClass));
+    }
+
+    public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+        return where(symbol, Elements.block(state));
+    }
+
+    public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+        return where(symbol, Elements.blocks(states));
+    }
+
+    public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+        return where(symbol, Elements.blocks(blocks));
+    }
+
+    public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+        return where(symbol, Elements.blockPredicate(predicate));
+    }
+
+    public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                    @NotNull Predicate<IBlockState> predicate,
+                                                    @NotNull Supplier<BlockInfo[]> candidates) {
+        return where(symbol, Elements.blockPredicate(predicate, candidates));
+    }
+
+    public DeclarativePatternBuilder air(char symbol) {
+        return where(symbol, Elements.air());
+    }
+
+    public DeclarativePatternBuilder any(char symbol) {
+        return where(symbol, Elements.any());
+    }
+
+    public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+        return where(symbol, Elements.hatch(ability));
+    }
+
+    public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+        return where(symbol, Elements.abilities(abilities));
+    }
+
+    public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+        return where(symbol, Elements.frames(frameMaterials));
+    }
+
+    public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+        return where(symbol, Elements.metaTileEntities(metaTileEntities));
+    }
+
+    // --- Declarative casing methods (shared across all pieces) ---
 
     /**
      * Define a casing slot. The minimum required count will be automatically calculated as:
      * (total occurrences of this char in all aisles) - (sum of all max hatch counts for this slot).
-     *
-     * @param symbol the character representing this casing in the aisle definition
-     * @param casing the casing definition
-     * @return a {@link CasingSlot} for chaining hatch declarations
      */
     public CasingSlot casing(char symbol, @NotNull ICasing casing) {
         CasingSlotInfo info = new CasingSlotInfo(symbol, casing);
@@ -139,13 +279,12 @@ public class DeclarativePatternBuilder {
         return new CasingSlot(this, info);
     }
 
+    public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+        return casing(symbol, CasingDefinition.simple(state));
+    }
+
     /**
      * Define a tiered casing slot. Automatically tracks tier uniformity through PatternMatchContext.
-     * All blocks matching this character must be from the same tier in the given group.
-     *
-     * @param symbol the character representing this tiered casing in the aisle definition
-     * @param group  the casing group (contains all valid tier options)
-     * @return a {@link TieredCasingSlot} for optional channel configuration
      */
     public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
         TieredSlotInfo info = new TieredSlotInfo(symbol, group);
@@ -153,109 +292,478 @@ public class DeclarativePatternBuilder {
         return new TieredCasingSlot(this, info);
     }
 
+    public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                  int minCount,
+                                                  int maxCount,
+                                                  @NotNull MultiblockAbility<?>... abilities) {
+        abilityGroupLimits.add(new AbilityGroupLimit(
+                displayAbility, minCount, maxCount, Arrays.asList(abilities)));
+        return this;
+    }
+
+    public DeclarativePatternBuilder globalAbilityLimit(@NotNull MultiblockAbility<?> ability,
+                                                        int minCount,
+                                                        int maxCount) {
+        abilityLimits.add(new AbilityLimitDef(ability, minCount, maxCount));
+        return this;
+    }
+
     // --- Build methods ---
 
     /**
-     * Build the pattern. Automatically calculates minimum casing counts and
-     * generates TraceabilityPredicates for all declared casing/tiered slots.
-     * Also generates and attaches structure description to the template for tooltip display.
+     * Build the structure template (1-piece view of the underlying StructureDefinition).
      *
-     * @return the built BlockPattern (with template + state)
-     * @deprecated Use {@link #buildTemplate()} for the new template-based architecture.
-     *             Will be removed in version 2.10.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    @SuppressWarnings("deprecation")
-    public BlockPattern build() {
-        processSlots();
-        BlockPattern pattern = factoryBuilder.build();
-        attachStructureDescription(pattern.getTemplate());
-        return pattern;
-    }
-
-    /**
-     * Build only the immutable template. Use for shared templates (P1 architecture).
-     * Also generates and attaches structure description.
+     * <p>This is a convenience entry point for machines that use a single structure piece
+     * (the common case). It internally delegates to {@link #buildStructureDefinition()}
+     * and extracts the primary piece's template.
      *
-     * @return the built BlockPatternTemplate
+     * <p>Use {@link #buildStructureDefinition()} directly if you need access to
+     * named pieces, conditional pieces, or multi-piece composition.
      */
     public BlockPatternTemplate buildTemplate() {
-        processSlots();
-        BlockPatternTemplate template = factoryBuilder.buildTemplate();
-        attachStructureDescription(template);
+        BlockPatternTemplate template = buildStructureDefinition().getPrimaryTemplate();
+        if (template == null) {
+            // Multi-piece definitions cannot be represented as a single BlockPatternTemplate.
+            // Use buildStructureDefinition() to access the full multi-piece structure.
+            throw new IllegalStateException(
+                    "buildTemplate() requires a single-piece structure; "
+                            + "use buildStructureDefinition() for multi-piece structures");
+        }
         return template;
     }
 
     /**
-     * Process all declared casing and tiered slots into FactoryBlockPattern predicates.
+     * Build a StructureDefinition from this declarative pattern.
+     * When named pieces are declared via {@link #piece(String)} / {@link #repeatablePiece(String, int, int)},
+     * each piece is registered as a named entry. Otherwise a single piece "main" is created.
      */
-    private void processSlots() {
-        // Process casing slots
-        for (Map.Entry<Character, CasingSlotInfo> entry : casingSlots.entrySet()) {
-            char symbol = entry.getKey();
-            CasingSlotInfo info = entry.getValue();
+    public StructureDefinition buildStructureDefinition() {
+        StructureDefinition.Builder builder = StructureDefinition.builder(
+                structureDir[0], structureDir[1], structureDir[2])
+                .primaryTemplateDescription(computeStructureDescription());
 
-            int totalCount = countCharInAisles(symbol);
-            int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
-                    + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
-            int minCasings = Math.max(0, totalCount - maxHatches);
-
-            TraceabilityPredicate predicate = createCasingPredicate(info.casing)
-                    .setMinGlobalLimited(minCasings);
-
-            // Add ability-based hatch predicates with JEI preview count
-            for (HatchInfo hatch : info.hatches) {
-                predicate = predicate.or(
-                        MultiblockControllerBase.abilities(hatch.ability)
-                                .setMinGlobalLimited(hatch.minCount)
-                                .setMaxGlobalLimited(hatch.maxCount)
-                                .setPreviewCount(Math.max(1, hatch.minCount)));
+        List<PieceDef> activePieces = new ArrayList<>();
+        for (PieceDef piece : pieces) {
+            if (piece.rawPattern != null || !piece.aisles.isEmpty()) {
+                activePieces.add(piece);
             }
-
-            // Add custom hatch predicates
-            for (CustomHatchInfo customHatch : info.customHatches) {
-                predicate = predicate.or(customHatch.predicate);
-            }
-
-            factoryBuilder.where(symbol, predicate);
+        }
+        if (activePieces.isEmpty()) {
+            throw new IllegalStateException("Structure must contain at least one non-empty piece");
         }
 
-        // Process tiered casing slots
-        for (Map.Entry<Character, TieredSlotInfo> entry : tieredSlots.entrySet()) {
-            char symbol = entry.getKey();
-            TieredSlotInfo info = entry.getValue();
-            String channelName = info.channel != null ? info.channel.getName() : info.group.getTierChannel();
-            factoryBuilder.where(symbol, createTieredPredicate(info.group, channelName));
+        int centerIndex = findCenterPieceIndex(activePieces);
+        PieceDef centerPiece = activePieces.get(centerIndex);
+        registerSequencedPiece(builder, centerPiece, null, null, 1);
+
+        String anchorName = centerPiece.name;
+        int[] anchorStep = pieceTraversalStep(centerPiece, 1);
+        for (int i = centerIndex + 1; i < activePieces.size(); i++) {
+            PieceDef piece = activePieces.get(i);
+            registerSequencedPiece(builder, piece, anchorName, anchorStep, 1);
+            if (piece.rawPattern == null) {
+                anchorName = piece.name;
+                anchorStep = pieceTraversalStep(piece, 1);
+            }
+        }
+
+        anchorName = centerPiece.name;
+        anchorStep = pieceTraversalStep(centerPiece, -1);
+        for (int i = centerIndex - 1; i >= 0; i--) {
+            PieceDef piece = activePieces.get(i);
+            registerSequencedPiece(builder, piece, anchorName, anchorStep, -1);
+            if (piece.rawPattern == null) {
+                anchorName = piece.name;
+                anchorStep = pieceTraversalStep(piece, -1);
+            }
+        }
+
+        if (multiPieceMode) {
+            for (CasingSlotInfo slot : casingSlots.values()) {
+                for (HatchInfo hatch : slot.hatches) {
+                    builder.globalAbilityLimit(hatch.ability, hatch.minCount, hatch.maxCount);
+                }
+            }
+        }
+        for (AbilityLimitDef limit : abilityLimits) {
+            builder.globalAbilityLimit(limit.ability, limit.minCount, limit.maxCount);
+        }
+        for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
+            builder.globalAbilityGroupLimit(
+                    groupLimit.getDisplayAbility(), groupLimit.getMin(), groupLimit.getMax(),
+                    groupLimit.getAbilities().toArray(new MultiblockAbility<?>[0]));
+        }
+        return builder.build();
+    }
+
+    private int findCenterPieceIndex(@NotNull List<PieceDef> activePieces) {
+        for (int i = 0; i < activePieces.size(); i++) {
+            PieceDef piece = activePieces.get(i);
+            String[][] pattern = piece.rawPattern != null
+                    ? piece.rawPattern
+                    : flattenAisles(piece.aisles);
+            for (String[] aisle : pattern) {
+                for (String row : aisle) {
+                    for (int c = 0; c < row.length(); c++) {
+                        IStructureElement element = resolveCharacterMap(row.charAt(c));
+                        if (element != null && element.isCenter()) {
+                            return i;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    private void registerSequencedPiece(@NotNull StructureDefinition.Builder builder,
+                                        @NotNull PieceDef piece,
+                                        @Nullable String anchorName,
+                                        @Nullable int[] anchorStep,
+        int repeatDirection) {
+        if (piece.rawPattern != null) {
+            // Raw multi-axis pieces already carry an explicit controller-relative
+            // offset. Treating them as members of the linear aisle chain would
+            // apply both that offset and an implicit predecessor offset.
+            registerMultiAxisPiece(builder, piece, null, null);
+        } else if (piece.repeatable) {
+            convertFactoryToMultiAxisPiece(
+                    builder, piece, Vec3i.NULL_VECTOR, anchorName, anchorStep, repeatDirection);
+        } else {
+            registerFactoryPiece(builder, piece, anchorName, anchorStep, Vec3i.NULL_VECTOR);
+        }
+    }
+
+    private int[] pieceTraversalStep(@NotNull PieceDef piece, int direction) {
+        int depth = piece.rawPattern != null ? piece.rawPattern.length : piece.aisles.size();
+        Vec3i unit = aisleUnitVec(structureDir[2]);
+        return new int[]{
+                unit.getX() * depth * direction,
+                unit.getY() * depth * direction,
+                unit.getZ() * depth * direction
+        };
+    }
+
+    /**
+     * Convert a structure aisle direction into a unit vector in the (right, up, back)
+     * coordinate system used by {@link OffsetMode#RELATIVE} for piece base offsets.
+     * Positive values move in the matching (right, up, back) direction.
+     */
+    private static Vec3i aisleUnitVec(RelativeDirection dir) {
+        return switch (dir) {
+            case UP -> new Vec3i(0, 1, 0);
+            case DOWN -> new Vec3i(0, -1, 0);
+            case RIGHT -> new Vec3i(1, 0, 0);
+            case LEFT -> new Vec3i(-1, 0, 0);
+            case BACK -> new Vec3i(0, 0, 1);
+            case FRONT -> new Vec3i(0, 0, -1);
+        };
+    }
+
+    /**
+     * Flatten a list of {@link AisleDef} into a {@code String[][]} pattern matrix.
+     * The channel name on each aisle is intentionally not included here; callers
+     * that need the channel information (e.g. {@link #convertFactoryToMultiAxisPiece})
+     * read it directly from the {@link AisleDef} list.
+     */
+    @NotNull
+    private static String[][] flattenAisles(@NotNull List<AisleDef> aisles) {
+        String[][] pattern = new String[aisles.size()][];
+        for (int i = 0; i < aisles.size(); i++) {
+            pattern[i] = aisles.get(i).pattern;
+        }
+        return pattern;
+    }
+
+    /**
+     * Walk every non-null row in {@code pattern}, resolve each character via
+     * {@code resolver} (skipping ones already in {@code piece.mappedChars}),
+     * and forward the resulting {@link IStructureElement} to {@code target}.
+     * This consolidates the identical char-mapping loops that used to live
+     * inline in {@link #registerMultiAxisPiece}, {@link #convertFactoryToMultiAxisPiece},
+     * and {@link #registerFactoryPiece}.
+     */
+    private void addCharMappings(@NotNull String[][] pattern,
+                                 @NotNull PieceDef piece,
+                                 @NotNull Function<Character, IStructureElement> resolver,
+                                 @NotNull BiConsumer<Character, IStructureElement> target) {
+        for (String[] aisle : pattern) {
+            for (String row : aisle) {
+                if (row == null) continue;
+                for (int i = 0; i < row.length(); i++) {
+                    char c = row.charAt(i);
+                    if (!piece.mappedChars.contains(c)) {
+                        piece.mappedChars.add(c);
+                        IStructureElement element = resolver.apply(c);
+                        if (element != null) {
+                            target.accept(c, element);
+                        }
+                    }
+                }
+            }
         }
     }
 
     /**
-     * Generate structure tooltip description from declared slots and attach to template.
-     * Stores raw translation keys (not formatted strings) for server-safe operation.
-     * Actual formatting happens at tooltip display time (client-side).
+     * Register a multi-axis repeatable piece in the StructureDefinition builder.
+     * For multi-axis pieces, character mappings must be converted from TraceabilityPredicate
+     * to IStructureElement via {@link Elements#legacy(TraceabilityPredicate)}.
      */
-    private void attachStructureDescription(@NotNull BlockPatternTemplate template) {
+    private void registerMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
+                                         @NotNull PieceDef piece,
+                                         @Nullable String anchorName,
+                                         @Nullable int[] anchorStep) {
+        StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
+                piece.name, piece.rawPattern, piece.offset);
+
+        // Resolve and register every character used in the pattern
+        addCharMappings(piece.rawPattern, piece, this::resolveCharacterMap, rpb::where);
+
+        // Configure repeat axes
+        if (piece.axes.length > 0) {
+            rpb.repeatAxes(piece.axes);
+        }
+        if (piece.ranges.length > 0) {
+            int[] flat = new int[piece.ranges.length * 2];
+            for (int i = 0; i < piece.ranges.length; i++) {
+                flat[i * 2] = piece.ranges[i][0];
+                flat[i * 2 + 1] = piece.ranges[i][1];
+            }
+            rpb.repeatRange(flat);
+        }
+        if (piece.steps.length > 0) {
+            rpb.stepSizes(piece.steps);
+        }
+        if (piece.rawChannelNames != null) {
+            rpb.channelNames(piece.rawChannelNames);
+        }
+        if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
+            rpb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+        if (anchorName != null && anchorStep != null) {
+            rpb.positionedAfter(anchorName, anchorStep);
+        }
+        rpb.end();
+    }
+
+    /**
+     * Resolve a character to an IStructureElement by checking element mappings,
+     * raw predicates, casing slots, and tiered slots in order.
+     */
+    private IStructureElement resolveCharacterMap(char c) {
+        // Check IStructureElement mappings first (for multi-axis pieces)
+        IStructureElement element = elementMappings.get(c);
+        if (element != null) return element;
+        // Check raw predicates
+        TraceabilityPredicate pred = rawPredicates.get(c);
+        if (pred != null) return Elements.legacy(pred);
+        // Check casing slots
+        CasingSlotInfo casingInfo = casingSlots.get(c);
+        if (casingInfo != null) {
+            return buildCasingElement(
+                    casingInfo,
+                    countCharInAllPieces(casingInfo.symbol),
+                    false);
+        }
+        // Check tiered slots
+        TieredSlotInfo tieredInfo = tieredSlots.get(c);
+        if (tieredInfo != null) {
+            String channelName = tieredInfo.channel != null
+                    ? tieredInfo.channel.getName() : tieredInfo.group.getTierChannel();
+            return new TieredCasingElement(tieredInfo.group, channelName);
+        }
+        return null;
+    }
+
+    /**
+     * Convert a factory-based repeatable piece to a multi-axis RepeatGroupPiece.
+     * Groups all aisles into a single String[][] pattern so they repeat as a block.
+     *
+     * @param baseOffset Offset from the controller to the piece's center, in
+     *                   (right, up, back) world coordinates. The caller must compute
+     *                   this based on the cumulative aisle count of any fixed pieces
+     *                   declared before this repeatable body; otherwise the first
+     *                   slice of the body overlaps the previous piece.
+     */
+    private void convertFactoryToMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
+                                                 @NotNull PieceDef piece,
+                                                 @NotNull Vec3i baseOffset,
+                                                 @Nullable String anchorName,
+                                                 @Nullable int[] anchorStep,
+                                                 int repeatDirection) {
+        // Convert all aisles to a String[][] pattern matrix
+        String[][] pattern = flattenAisles(piece.aisles);
+
+        StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
+                piece.name, pattern, baseOffset);
+
+        // Repeat along the aisle direction (axis 2)
+        rpb.repeatAxes(2);
+        rpb.repeatRange(piece.minRepeat, piece.maxRepeat);
+        // Step equals the intrinsic depth so there is no gap/overlap between repeats
+        rpb.stepSizes(piece.aisles.size() * repeatDirection);
+
+        // Build per-piece character → IStructureElement mappings
+        addCharMappings(pattern, piece, c -> buildPieceElement(c, piece), rpb::where);
+
+        // Propagate channel name if all aisles agree on one
+        String channel = null;
+        for (AisleDef ad : piece.aisles) {
+            if (ad.channelName != null) {
+                if (channel == null) {
+                    channel = ad.channelName;
+                } else if (!channel.equals(ad.channelName)) {
+                    channel = null;
+                    break;
+                }
+            }
+        }
+        if (channel != null) {
+            rpb.channelNames(channel);
+        }
+
+        if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
+            rpb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+        if (anchorName != null && anchorStep != null) {
+            rpb.positionedAfter(anchorName, anchorStep);
+        }
+
+        rpb.end();
+    }
+
+    /**
+     * Register a factory-style fixed piece without pre-building a legacy template.
+     * This lets StructureCompiler use explicit center offsets for pieces without
+     * a controller predicate.
+     */
+    private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
+                                      @NotNull PieceDef piece) {
+        registerFactoryPiece(builder, piece, null, null, null);
+    }
+
+    /**
+     * Register a fixed piece, optionally anchoring it to a previously declared
+     * repeatable body piece. When {@code anchorPieceName} is non-null, the
+     * resulting piece is compiled into a {@code DynamicOffsetPiece} whose
+     * center position is computed at check time as
+     * {@code anchorBaseOffset + anchorCount * anchorStep}. When the anchor
+     * parameters are null, the piece is registered as a regular fixed piece
+     * (delegates to the no-anchor overload).
+     *
+     * <p>{@code anchorBaseOffset} seeds the piece's static baseOffset with the
+     * body's own offset, so the dynamic formula naturally lands one slice
+     * <i>after</i> the body's last slice (rather than one slice inside it).
+     */
+    private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
+                                      @NotNull PieceDef piece,
+                                      @Nullable String anchorPieceName,
+                                      @Nullable int[] anchorStep,
+                                      @Nullable Vec3i anchorBaseOffset) {
+        String[][] pattern = flattenAisles(piece.aisles);
+
+        // Seed the piece's baseOffset with the anchor's baseOffset so the
+        // dynamic formula resolves to the correct position relative to the
+        // body. Falls back to NULL_VECTOR when no anchor is present.
+        Vec3i baseOffset = anchorBaseOffset != null ? anchorBaseOffset : Vec3i.NULL_VECTOR;
+        StructureDefinition.PieceBuilder pb = builder.piece(piece.name, pattern, baseOffset);
+
+        addCharMappings(pattern, piece, c -> buildPieceElement(c, piece), pb::where);
+
+        if (piece.centerOffset[0] != 0 || piece.centerOffset[1] != 0 || piece.centerOffset[2] != 0) {
+            pb.centerOffset(piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2]);
+        }
+
+        if (anchorPieceName != null && anchorStep != null) {
+            pb.positionedAfterRepeatable(anchorPieceName, anchorStep);
+        }
+
+        pb.end();
+    }
+
+    /**
+     * Resolve a character to an IStructureElement using per-piece casing counts.
+     */
+    private IStructureElement buildPieceElement(char c, @NotNull PieceDef piece) {
+        // Check IStructureElement mappings first
+        IStructureElement element = elementMappings.get(c);
+        if (element != null) return element;
+        // Check raw predicates
+        TraceabilityPredicate pred = rawPredicates.get(c);
+        if (pred != null) return Elements.legacy(pred);
+        // Check casing slots (per-piece count)
+        CasingSlotInfo casingInfo = casingSlots.get(c);
+        if (casingInfo != null) {
+            return buildCasingElement(
+                    casingInfo,
+                    countCharInPiece(piece, casingInfo.symbol),
+                    multiPieceMode);
+        }
+        // Check tiered slots
+        TieredSlotInfo tieredInfo = tieredSlots.get(c);
+        if (tieredInfo != null) {
+            String channelName = tieredInfo.channel != null
+                    ? tieredInfo.channel.getName() : tieredInfo.group.getTierChannel();
+            return new TieredCasingElement(tieredInfo.group, channelName);
+        }
+        return null;
+    }
+
+    /**
+     * Build a direct casing element with hatch alternatives.
+     */
+    private IStructureElement buildCasingElement(@NotNull CasingSlotInfo info,
+                                                  int totalCount,
+                                                  boolean deferHatchMinimums) {
+        int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
+                + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
+        int minCasings = Math.max(0, totalCount - maxHatches);
+
+        List<IStructureElement> alternatives = new ArrayList<>();
+        alternatives.add(new CasingElement(info.casing, minCasings));
+        for (HatchInfo hatch : info.hatches) {
+            alternatives.add(new HatchElement(
+                    hatch.ability,
+                    deferHatchMinimums ? 0 : hatch.minCount,
+                    hatch.maxCount,
+                    Math.max(1, hatch.minCount),
+                    hatch.defaultCandidate));
+        }
+        for (CustomHatchInfo customHatch : info.customHatches) {
+            alternatives.add(customHatch.element);
+        }
+        return alternatives.size() == 1
+                ? alternatives.get(0)
+                : Elements.chain(alternatives.toArray(new IStructureElement[0]));
+    }
+
+    // --- Structure description ---
+
+    /**
+     * Build the auto-generated structure description lines for this pattern. Pure function
+     * of the current builder state; returns an empty list if there are no entries to describe.
+     *
+     * <p>The returned list is the canonical list passed to the template constructor.
+     * Callers must not mutate it.
+     */
+    @NotNull
+    private List<String> computeStructureDescription() {
         List<String> lines = new ArrayList<>();
 
-        // Add casing requirements as raw format patterns
         for (CasingSlotInfo info : casingSlots.values()) {
             char symbol = info.symbol;
-            int totalCount = countCharInAisles(symbol);
+            int totalCount = countCharInAllPieces(symbol);
             int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
                     + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
             int minCasings = Math.max(0, totalCount - maxHatches);
 
-            // Format: "casing:<translationKey>:<minCount>:<maxCount>"
-            lines.add("casing:" + info.casing.getItemStack().getTranslationKey() + ":" + minCasings + ":" + totalCount);
+            lines.add("casing:" + info.casing.getTranslationKey() + ":" + minCasings + ":" + totalCount);
 
-            // Add hatch lines: "hatch:<abilityName>:<minCount>:<maxCount>"
             for (HatchInfo hatch : info.hatches) {
                 lines.add("hatch:" + hatch.ability.toString() + ":" + hatch.minCount + ":" + hatch.maxCount);
             }
         }
 
-        // Add tiered casing requirements: "tiered:<translationKey>:<requiresUniform>"
         for (TieredSlotInfo info : tieredSlots.values()) {
             lines.add("tiered:" + info.group.getTranslationKey() + ":" + info.group.requiresUniformTier());
             if (info.channel != null) {
@@ -263,93 +771,380 @@ public class DeclarativePatternBuilder {
             }
         }
 
-        if (!lines.isEmpty()) {
-            template.setStructureDescription(lines);
+        for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
+            lines.add("hatch_group:" + groupLimit.getDisplayAbility() + ":"
+                    + groupLimit.getMin() + ":" + groupLimit.getMax());
         }
-    }
 
-    /**
-     * Get the translation key for a MultiblockAbility's display name.
-     */
-    private static String getAbilityTranslationKey(MultiblockAbility<?> ability) {
-        return "gregtech.multiblock.ability." + ability.toString();
+        return lines;
     }
 
     // --- Internal helpers ---
 
-    private int countCharInAisles(char symbol) {
+    private int countCharInAllPieces(char symbol) {
         int count = 0;
-        for (String[] aisle : aisles) {
-            for (String row : aisle) {
-                for (int i = 0; i < row.length(); i++) {
-                    if (row.charAt(i) == symbol) {
-                        count++;
+        for (PieceDef piece : pieces) {
+            count += countCharInPiece(piece, symbol);
+        }
+        return count;
+    }
+
+    private int countCharInPiece(@NotNull PieceDef piece, char symbol) {
+        int count = 0;
+        if (piece.rawPattern != null) {
+            for (String[] aisle : piece.rawPattern) {
+                for (String row : aisle) {
+                    if (row == null) continue;
+                    for (int i = 0; i < row.length(); i++) {
+                        if (row.charAt(i) == symbol) count++;
                     }
+                }
+            }
+        }
+        for (AisleDef aisleDef : piece.aisles) {
+            for (String row : aisleDef.pattern) {
+                for (int i = 0; i < row.length(); i++) {
+                    if (row.charAt(i) == symbol) count++;
                 }
             }
         }
         return count;
     }
 
-    private TraceabilityPredicate createCasingPredicate(@NotNull ICasing casing) {
-        IBlockState state = casing.getBlockState();
-        return new TraceabilityPredicate(
-                blockWorldState -> {
-                    if (!blockWorldState.getBlockState().equals(state)) return false;
-                    trackVariantActiveBlock(blockWorldState);
-                    return true;
-                },
-                () -> new BlockInfo[] { new BlockInfo(state, null) });
+    // --- AisleDef (per-aisle metadata) ---
+
+    private static class AisleDef {
+        final String[] pattern;
+        String channelName;
+
+        AisleDef(String[] pattern) {
+            this.pattern = pattern;
+        }
     }
 
-    private TraceabilityPredicate createTieredPredicate(@NotNull ICasingGroup group, @NotNull String channelName) {
-        boolean requiresUniform = group.requiresUniformTier();
-        List<ICasing> casings = group.getCasings();
+    // --- PieceDef (internal data) ---
 
-        Map<IBlockState, ICasing> stateMap = new HashMap<>();
-        for (ICasing c : casings) {
-            stateMap.put(c.getBlockState(), c);
+    private static class PieceDef {
+        final String name;
+
+        // Piece-level repeatability (set by repeatablePiece(), applied to all aisles)
+        boolean repeatable;
+        int minRepeat, maxRepeat;
+
+        final List<AisleDef> aisles = new ArrayList<>();
+
+        // For multi-axis repeatable pieces:
+        String[][] rawPattern;
+        Vec3i offset;
+        int[] axes = new int[0];
+        int[][] ranges = new int[0][0];
+        int[] steps = new int[0];
+        String[] rawChannelNames;
+        int[] centerOffset = {0, 0, 0};
+
+        // Characters already mapped for multi-axis piece (avoid duplicates)
+        final List<Character> mappedChars = new ArrayList<>();
+
+        PieceDef(String name, boolean repeatable, int minRepeat, int maxRepeat) {
+            this.name = name;
+            this.repeatable = repeatable;
+            this.minRepeat = minRepeat;
+            this.maxRepeat = maxRepeat;
+        }
+    }
+
+    // --- PieceBuilder fluent API ---
+
+    /**
+     * Fluent API for defining the aisles within a named piece.
+     */
+    public static class PieceBuilder {
+
+        private final DeclarativePatternBuilder parent;
+        private final PieceDef piece;
+
+        PieceBuilder(DeclarativePatternBuilder parent, PieceDef piece) {
+            this.parent = parent;
+            this.piece = piece;
         }
 
-        TraceabilityPredicate predicate = new TraceabilityPredicate(blockWorldState -> {
-            IBlockState blockState = blockWorldState.getBlockState();
-            ICasing matched = stateMap.get(blockState);
-            if (matched == null) return false;
-            trackVariantActiveBlock(blockWorldState);
+        /** Add an aisle to this piece. */
+        public PieceBuilder aisle(String... aisle) {
+            piece.aisles.add(new AisleDef(aisle));
+            return this;
+        }
 
-            if (requiresUniform) {
-                Object existing = blockWorldState.getMatchContext().getOrPut(channelName, matched);
-                if (!existing.equals(matched)) {
-                    blockWorldState.setError(new PatternStringError(
-                            "gregtech.multiblock.pattern.error.casing_tier_mismatch"));
-                    return false;
+        /** Set the channel name for a repeatable aisle. */
+        public PieceBuilder withAisleChannel(@NotNull String channelName) {
+            if (!piece.aisles.isEmpty()) {
+                AisleDef last = piece.aisles.get(piece.aisles.size() - 1);
+                last.channelName = channelName;
+            }
+            return this;
+        }
+
+        /** Set the center offset for this piece. */
+        public PieceBuilder centerOffset(int x, int y, int z) {
+            piece.centerOffset = new int[]{x, y, z};
+            return this;
+        }
+
+        /** Finish defining this piece and return to the parent builder. */
+        public DeclarativePatternBuilder end() {
+            return parent;
+        }
+
+        // --- Pass-through methods for seamless chaining ---
+
+        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
+            return parent.where(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return parent.where(symbol, element);
+        }
+
+        public DeclarativePatternBuilder self(
+                char symbol,
+                @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+            return parent.self(symbol, controllerClass);
+        }
+
+        public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+            return parent.block(symbol, state);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+            return parent.blocks(symbol, states);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+            return parent.blocks(symbol, blocks);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+            return parent.blockPredicate(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                        @NotNull Predicate<IBlockState> predicate,
+                                                        @NotNull Supplier<BlockInfo[]> candidates) {
+            return parent.blockPredicate(symbol, predicate, candidates);
+        }
+
+        public DeclarativePatternBuilder air(char symbol) {
+            return parent.air(symbol);
+        }
+
+        public DeclarativePatternBuilder any(char symbol) {
+            return parent.any(symbol);
+        }
+
+        public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+            return parent.hatch(symbol, ability);
+        }
+
+        public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+            return parent.hatches(symbol, abilities);
+        }
+
+        public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+            return parent.frames(symbol, frameMaterials);
+        }
+
+        public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+            return parent.metaTileEntities(symbol, metaTileEntities);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull ICasing casing) {
+            return parent.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return parent.casing(symbol, state);
+        }
+
+        public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
+            return parent.tieredCasing(symbol, group);
+        }
+
+        public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                      int minCount,
+                                                      int maxCount,
+                                                      @NotNull MultiblockAbility<?>... abilities) {
+            return parent.abilityGroup(displayAbility, minCount, maxCount, abilities);
+        }
+
+        public PieceBuilder piece(@NotNull String name) {
+            return parent.piece(name);
+        }
+
+        public PieceBuilder repeatablePiece(@NotNull String name, int minRepeat, int maxRepeat) {
+            return parent.repeatablePiece(name, minRepeat, maxRepeat);
+        }
+
+        public MultiAxisPieceBuilder repeatablePiece(@NotNull String name, @NotNull String[][] pattern,
+                                                      @NotNull Vec3i offset) {
+            return parent.repeatablePiece(name, pattern, offset);
+        }
+
+        public BlockPatternTemplate buildTemplate() {
+            return parent.buildTemplate();
+        }
+
+        public StructureDefinition buildStructureDefinition() {
+            return parent.buildStructureDefinition();
+        }
+    }
+
+    // --- MultiAxisPieceBuilder fluent API ---
+
+    /**
+     * Fluent API for configuring a multi-axis repeatable piece.
+     */
+    public static class MultiAxisPieceBuilder {
+
+        private final DeclarativePatternBuilder parent;
+        private final PieceDef piece;
+
+        MultiAxisPieceBuilder(DeclarativePatternBuilder parent, PieceDef piece) {
+            this.parent = parent;
+            this.piece = piece;
+        }
+
+        /** Set the repeat axes (0=X, 1=Y, 2=Z). */
+        public MultiAxisPieceBuilder repeatAxes(int... axes) {
+            piece.axes = axes;
+            if (piece.ranges.length != axes.length) {
+                piece.ranges = new int[axes.length][2];
+            }
+            if (piece.steps.length != axes.length) {
+                piece.steps = new int[axes.length];
+                for (int i = 0; i < axes.length; i++) {
+                    piece.steps[i] = 1;
                 }
-            } else {
-                blockWorldState.getMatchContext().getOrPut(channelName, matched);
             }
-            if (matched.isTiered()) {
-                blockWorldState.getMatchContext().set(channelName + ".tier", matched.getTier());
-            }
-            return true;
-        }, () -> casings.stream()
-                .map(c -> new BlockInfo(c.getBlockState(), null))
-                .toArray(BlockInfo[]::new))
-                .addTooltips("gregtech.multiblock.pattern.error.casing_tier_mismatch");
-
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.common) {
-            sp.channelName = channelName;
-        }
-        for (TraceabilityPredicate.SimplePredicate sp : predicate.limited) {
-            sp.channelName = channelName;
+            return this;
         }
 
-        return predicate;
-    }
+        /** Set the repeat ranges (flat: min0, max0, min1, max1, ...). */
+        public MultiAxisPieceBuilder repeatRange(int... flatRanges) {
+            int count = flatRanges.length / 2;
+            piece.ranges = new int[count][2];
+            for (int i = 0; i < count; i++) {
+                piece.ranges[i][0] = flatRanges[i * 2];
+                piece.ranges[i][1] = flatRanges[i * 2 + 1];
+            }
+            return this;
+        }
 
-    private static void trackVariantActiveBlock(@NotNull BlockWorldState blockWorldState) {
-        if (blockWorldState.getBlockState().getBlock() instanceof VariantActiveBlock) {
-            blockWorldState.getMatchContext().getOrPut("VABlock", new LinkedList<>())
-                    .add(blockWorldState.getPos());
+        /** Set the step sizes for each repeat axis. */
+        public MultiAxisPieceBuilder stepSizes(int... steps) {
+            piece.steps = steps;
+            return this;
+        }
+
+        /** Set the channel names for each repeat axis. */
+        public MultiAxisPieceBuilder channelNames(@NotNull String... names) {
+            piece.rawChannelNames = names;
+            return this;
+        }
+
+        /** Set the center offset. */
+        public MultiAxisPieceBuilder centerOffset(int x, int y, int z) {
+            piece.centerOffset = new int[]{x, y, z};
+            return this;
+        }
+
+        /** Finish configuring this piece and return to the parent builder. */
+        public DeclarativePatternBuilder end() {
+            return parent;
+        }
+
+        // --- Pass-through methods for seamless chaining ---
+
+        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
+            return parent.where(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return parent.where(symbol, element);
+        }
+
+        public DeclarativePatternBuilder self(
+                char symbol,
+                @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+            return parent.self(symbol, controllerClass);
+        }
+
+        public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+            return parent.block(symbol, state);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+            return parent.blocks(symbol, states);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+            return parent.blocks(symbol, blocks);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+            return parent.blockPredicate(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                        @NotNull Predicate<IBlockState> predicate,
+                                                        @NotNull Supplier<BlockInfo[]> candidates) {
+            return parent.blockPredicate(symbol, predicate, candidates);
+        }
+
+        public DeclarativePatternBuilder air(char symbol) {
+            return parent.air(symbol);
+        }
+
+        public DeclarativePatternBuilder any(char symbol) {
+            return parent.any(symbol);
+        }
+
+        public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+            return parent.hatch(symbol, ability);
+        }
+
+        public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+            return parent.hatches(symbol, abilities);
+        }
+
+        public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+            return parent.frames(symbol, frameMaterials);
+        }
+
+        public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+            return parent.metaTileEntities(symbol, metaTileEntities);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull ICasing casing) {
+            return parent.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return parent.casing(symbol, state);
+        }
+
+        public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
+            return parent.tieredCasing(symbol, group);
+        }
+
+        public PieceBuilder piece(@NotNull String name) {
+            return parent.piece(name);
+        }
+
+        public PieceBuilder repeatablePiece(@NotNull String name, int minRepeat, int maxRepeat) {
+            return parent.repeatablePiece(name, minRepeat, maxRepeat);
+        }
+
+        public StructureDefinition buildStructureDefinition() {
+            return parent.buildStructureDefinition();
         }
     }
 
@@ -368,22 +1163,19 @@ public class DeclarativePatternBuilder {
             this.info = info;
         }
 
-        /**
-         * Add a hatch type to this casing slot.
-         *
-         * @param ability  the multiblock ability for this hatch
-         * @param minCount minimum number of this hatch type
-         * @param maxCount maximum number of this hatch type
-         * @return this CasingSlot for chaining
-         */
         public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
-            if(maxCount == 0)return this;
-            info.hatches.add(new HatchInfo(ability, minCount, maxCount));
+            return hatch(ability, minCount, maxCount, null);
+        }
+
+        public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount,
+                                @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
+            if (maxCount == 0) return this;
+            info.hatches.add(new HatchInfo(ability, minCount, maxCount, defaultCandidate));
             return this;
         }
 
         public CasingSlot hatch(@NotNull MultiblockAbility<?> ability, int currentCount) {
-            if(currentCount == 0)return this;
+            if (currentCount == 0) return this;
             info.hatches.add(new HatchInfo(ability, currentCount, currentCount));
             return this;
         }
@@ -480,6 +1272,38 @@ public class DeclarativePatternBuilder {
             return optionalHatch(MultiblockAbility.OUTPUT_LASER, maxCount);
         }
 
+        public CasingSlot universalEnergyInput(int minCount, int maxPerType) {
+            optionalEnergyInput(maxPerType);
+            optionalSubstationInput(maxPerType);
+            optionalLaserInput(maxPerType);
+            builder.abilityGroup(MultiblockAbility.INPUT_ENERGY_GROUP, minCount, -1,
+                    MultiblockAbility.INPUT_ENERGY,
+                    MultiblockAbility.SUBSTATION_INPUT_ENERGY,
+                    MultiblockAbility.INPUT_LASER);
+            return this;
+        }
+
+        public CasingSlot universalEnergyOutput(int minCount, int maxPerType) {
+            optionalEnergyOutput(maxPerType);
+            optionalSubstationOutput(maxPerType);
+            optionalLaserOutput(maxPerType);
+            builder.abilityGroup(MultiblockAbility.OUTPUT_ENERGY_GROUP, minCount, -1,
+                    MultiblockAbility.OUTPUT_ENERGY,
+                    MultiblockAbility.SUBSTATION_OUTPUT_ENERGY,
+                    MultiblockAbility.OUTPUT_LASER);
+            return this;
+        }
+
+        public CasingSlot energyIO(int minCount, int maxPerType) {
+            optionalEnergyInput(maxPerType);
+            optionalEnergyOutput(maxPerType);
+            int maxTotal = maxPerType < 0 ? -1 : maxPerType * 2;
+            builder.abilityGroup(MultiblockAbility.ENERGY_IO_GROUP, minCount, maxTotal,
+                    MultiblockAbility.INPUT_ENERGY,
+                    MultiblockAbility.OUTPUT_ENERGY);
+            return this;
+        }
+
         public CasingSlot fluidInput(int minCount, int maxCount) {
             return hatch(MultiblockAbility.IMPORT_FLUIDS, minCount, maxCount);
         }
@@ -528,62 +1352,45 @@ public class DeclarativePatternBuilder {
             return optionalHatch(MultiblockAbility.EXPORT_ITEMS, maxCount);
         }
 
-        public CasingSlot auto(){
+        public CasingSlot auto() {
             return muffler()
                     .maintenance()
-                    .energyInput(1,2)
-                    .itemInput(1,4)
-                    .itemOutput(1,4)
-                    .fluidInput(1,2)
-                    .fluidOutput(1,2);
+                    .energyInput(1, 2)
+                    .itemInput(1, 4)
+                    .itemOutput(1, 4)
+                    .fluidInput(1, 2)
+                    .fluidOutput(1, 2);
         }
 
-        public CasingSlot auto(boolean isMuffler,boolean isMaintenance,boolean isEnergyInput,boolean isItemInput,boolean isItemOutput,boolean isFluidInput,boolean isFluidOutput){
+        public CasingSlot auto(boolean isMuffler, boolean isMaintenance, boolean isEnergyInput,
+                               boolean isItemInput, boolean isItemOutput, boolean isFluidInput,
+                               boolean isFluidOutput) {
             CasingSlot slot = this;
-            if(isMuffler) slot = slot.muffler();
-            if(isMaintenance) slot = slot.maintenance();
-            if(isEnergyInput) slot = slot.energyInput(1,2);
-            if(isItemInput) slot = slot.itemInput(1,4);
-            if(isItemOutput) slot = slot.itemOutput(1,4);
-            if(isFluidInput) slot = slot.fluidInput(1,2);
-            if(isFluidOutput) slot = slot.fluidOutput(1,2);
+            if (isMuffler) slot = slot.muffler();
+            if (isMaintenance) slot = slot.maintenance();
+            if (isEnergyInput) slot = slot.energyInput(1, 2);
+            if (isItemInput) slot = slot.itemInput(1, 4);
+            if (isItemOutput) slot = slot.itemOutput(1, 4);
+            if (isFluidInput) slot = slot.fluidInput(1, 2);
+            if (isFluidOutput) slot = slot.fluidOutput(1, 2);
             return slot;
         }
 
-        /**
-         * Add a custom hatch using a raw TraceabilityPredicate.
-         * Useful for non-standard hatches that don't use {@link MultiblockAbility},
-         * such as special hatch MetaTileEntities (e.g. coke oven hatch, tank valve).
-         *
-         * <p>The maxCount contributes to the automatic minimum casing count calculation:
-         * minCasings = totalPositions - sum(allMaxHatches).
-         *
-         * @param predicate the custom predicate for the hatch
-         * @param maxCount  maximum number of positions this predicate can occupy
-         * @return this CasingSlot for chaining
-         */
         public CasingSlot custom(@NotNull TraceabilityPredicate predicate, int maxCount) {
-            info.customHatches.add(new CustomHatchInfo(predicate, maxCount));
+            info.customHatches.add(new CustomHatchInfo(Elements.legacy(predicate), maxCount));
             return this;
         }
 
-        /**
-         * Apply a reusable hatch preset to this casing slot.
-         * Presets encapsulate common hatch combinations to reduce boilerplate.
-         *
-         * @param preset the hatch preset to apply
-         * @return this CasingSlot for chaining
-         * @see HatchPresets for standard presets
-         */
+        public CasingSlot custom(@NotNull IStructureElement element, int maxCount) {
+            info.customHatches.add(new CustomHatchInfo(element, maxCount));
+            return this;
+        }
+
         public CasingSlot preset(@NotNull IHatchPreset preset) {
             preset.apply(this);
             return this;
         }
 
-        /**
-         * Finish declaring hatches for this slot and return to the main builder.
-         * (Also allows chaining back to builder methods directly through the CasingSlot.)
-         */
         public DeclarativePatternBuilder done() {
             return builder;
         }
@@ -598,32 +1405,67 @@ public class DeclarativePatternBuilder {
             return builder.where(symbol, predicate);
         }
 
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return builder.where(symbol, element);
+        }
+
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
             return builder.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return builder.casing(symbol, state);
         }
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
             return builder.tieredCasing(symbol, group);
         }
 
-        /** @deprecated Use {@link #buildTemplate()} instead. Will be removed in version 2.10. */
-        @Deprecated
-        @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-        @SuppressWarnings("deprecation")
-        public BlockPattern build() {
-            return builder.build();
+        public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                      int minCount,
+                                                      int maxCount,
+                                                      @NotNull MultiblockAbility<?>... abilities) {
+            return builder.abilityGroup(displayAbility, minCount, maxCount, abilities);
+        }
+
+        public DeclarativePatternBuilder globalAbilityLimit(@NotNull MultiblockAbility<?> ability,
+                                                            int minCount,
+                                                            int maxCount) {
+            return builder.globalAbilityLimit(ability, minCount, maxCount);
+        }
+
+        public PieceBuilder piece(@NotNull String name) {
+            return builder.piece(name);
+        }
+
+        public PieceBuilder repeatablePiece(@NotNull String name, int minRepeat, int maxRepeat) {
+            return builder.repeatablePiece(name, minRepeat, maxRepeat);
         }
 
         public BlockPatternTemplate buildTemplate() {
             return builder.buildTemplate();
         }
+
+        /**
+         * Convenience build returning a {@link BlockPattern} wrapper for the compiled
+         * primary template. Intended for legacy call sites that still expect
+         * {@link BlockPattern} from a {@link FactoryBlockPattern#build()}-style terminal
+         * call. Multiblock controllers that have migrated to {@link StructureDefinition}
+         * should prefer {@link #buildStructureDefinition()} instead.
+         *
+         * @return a BlockPattern wrapping the compiled primary template
+         */
+        public BlockPattern build() {
+            return new BlockPattern(buildTemplate());
+        }
+
+        public StructureDefinition buildStructureDefinition() {
+            return builder.buildStructureDefinition();
+        }
     }
 
     // --- TieredCasingSlot fluent API ---
 
-    /**
-     * Fluent API for configuring a tiered casing slot (channel override, etc.).
-     */
     public static class TieredCasingSlot {
 
         private final DeclarativePatternBuilder builder;
@@ -634,27 +1476,16 @@ public class DeclarativePatternBuilder {
             this.info = info;
         }
 
-        /**
-         * Override the default tier channel for this tiered casing slot.
-         * By default, the channel name comes from {@link ICasingGroup#getTierChannel()}.
-         * Use this method to associate an explicit {@link StructureChannel}.
-         *
-         * @param channel the structure channel to use
-         * @return this TieredCasingSlot for chaining
-         */
         public TieredCasingSlot withChannel(@NotNull StructureChannel channel) {
             info.channel = channel;
             return this;
         }
 
-        /**
-         * Finish configuring this tiered slot and return to the main builder.
-         */
         public DeclarativePatternBuilder done() {
             return builder;
         }
 
-        // --- Pass-through methods for seamless chaining ---
+        // --- Pass-through methods ---
 
         public DeclarativePatternBuilder aisle(String... aisle) {
             return builder.aisle(aisle);
@@ -664,24 +1495,43 @@ public class DeclarativePatternBuilder {
             return builder.where(symbol, predicate);
         }
 
+        public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
+            return builder.where(symbol, element);
+        }
+
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
             return builder.casing(symbol, casing);
+        }
+
+        public CasingSlot casing(char symbol, @NotNull IBlockState state) {
+            return builder.casing(symbol, state);
         }
 
         public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
             return builder.tieredCasing(symbol, group);
         }
 
-        /** @deprecated Use {@link #buildTemplate()} instead. Will be removed in version 2.10. */
-        @Deprecated
-        @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-        @SuppressWarnings("deprecation")
-        public BlockPattern build() {
-            return builder.build();
+        public DeclarativePatternBuilder abilityGroup(@NotNull MultiblockAbility<?> displayAbility,
+                                                      int minCount,
+                                                      int maxCount,
+                                                      @NotNull MultiblockAbility<?>... abilities) {
+            return builder.abilityGroup(displayAbility, minCount, maxCount, abilities);
+        }
+
+        public PieceBuilder piece(@NotNull String name) {
+            return builder.piece(name);
+        }
+
+        public PieceBuilder repeatablePiece(@NotNull String name, int minRepeat, int maxRepeat) {
+            return builder.repeatablePiece(name, minRepeat, maxRepeat);
         }
 
         public BlockPatternTemplate buildTemplate() {
             return builder.buildTemplate();
+        }
+
+        public StructureDefinition buildStructureDefinition() {
+            return builder.buildStructureDefinition();
         }
     }
 
@@ -717,23 +1567,42 @@ public class DeclarativePatternBuilder {
         final MultiblockAbility<?> ability;
         final int minCount;
         final int maxCount;
+        @Nullable
+        final Supplier<? extends MetaTileEntity> defaultCandidate;
 
         HatchInfo(MultiblockAbility<?> ability, int minCount, int maxCount) {
+            this(ability, minCount, maxCount, null);
+        }
+
+        HatchInfo(MultiblockAbility<?> ability, int minCount, int maxCount,
+                  @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
+            this.ability = ability;
+            this.minCount = minCount;
+            this.maxCount = maxCount;
+            this.defaultCandidate = defaultCandidate;
+        }
+    }
+
+    private static class AbilityLimitDef {
+
+        final MultiblockAbility<?> ability;
+        final int minCount;
+        final int maxCount;
+
+        AbilityLimitDef(@NotNull MultiblockAbility<?> ability, int minCount, int maxCount) {
             this.ability = ability;
             this.minCount = minCount;
             this.maxCount = maxCount;
         }
     }
 
-    // --- Custom hatch info for non-ability predicates ---
-
     private static class CustomHatchInfo {
 
-        final TraceabilityPredicate predicate;
+        final IStructureElement element;
         final int maxCount;
 
-        CustomHatchInfo(TraceabilityPredicate predicate, int maxCount) {
-            this.predicate = predicate;
+        CustomHatchInfo(IStructureElement element, int maxCount) {
+            this.element = element;
             this.maxCount = maxCount;
         }
     }

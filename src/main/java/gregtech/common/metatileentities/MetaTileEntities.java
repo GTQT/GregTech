@@ -58,6 +58,7 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityImplosionCo
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeChemicalReactor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeMiner;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyFurnace;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAxisDemo;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
@@ -410,6 +411,7 @@ public class MetaTileEntities {
     public static MetaTileEntityCrackingUnit CRACKER;
     public static MetaTileEntityMultiSmelter MULTI_FURNACE;
     public static MetaTileEntityMultiAlloyFurnace MULTI_ALLOY_FURNACE;
+    public static MetaTileEntityMultiAxisDemo MULTI_AXIS_DEMO;
     public static MetaTileEntitySawMill SAW_MILL;
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;

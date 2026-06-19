@@ -13,12 +13,11 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
-import gregtech.api.pattern.casing.CasingDefinition;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -56,27 +55,34 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     private static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
     private static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gregtech:data_bank", () ->
-            DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
-                    .aisle("XXX", "XXX", "XXX")
-                    .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
-                    .aisle("CDD", "SAD", "CDD")
-                    .aisleRepeatable(1, 3, "CDD", "CAD", "CDD")
-                    .aisle("XXX", "XXX", "XXX")
-                    .where('S', selfPredicate(MetaTileEntityDataBank.class))
-                    .where('X', states(getOuterState()))
-                    .where('A', states(getInnerState()))
-                    .casing('D', CasingDefinition.simple(getInnerState()))
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:data_bank", () -> DeclarativePatternBuilder.start(BACK, UP, RIGHT)
+                    .piece("top")
+                        .aisle("XXX", "XXX", "XXX")
+                    .repeatablePiece("body1", 1, 3)
+                        .aisle("CDD", "CAD", "CDD")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .piece("middle")
+                        .aisle("CDD", "SAD", "CDD")
+                    .repeatablePiece("body2", 1, 3)
+                        .aisle("CDD", "CAD", "CDD")
+                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .piece("bottom")
+                        .aisle("XXX", "XXX", "XXX")
+                    .self('S', MetaTileEntityDataBank.class)
+                    .block('X', getOuterState())
+                    .block('A', getInnerState())
+                    .casing('D', getInnerState())
                         .optionalHatch(MultiblockAbility.DATA_ACCESS_HATCH, 9)
                         .custom(
-                                abilities(MultiblockAbility.OPTICAL_DATA_TRANSMISSION)
-                                        .setMinGlobalLimited(1, 1), 1)
+                                Elements.abilities(1, -1, 1,
+                                        MultiblockAbility.OPTICAL_DATA_TRANSMISSION), 1)
                         .custom(
-                                abilities(MultiblockAbility.OPTICAL_DATA_RECEPTION).setPreviewCount(1), 3)
-                    .casing('C', CasingDefinition.simple(getFrontState()))
+                                Elements.abilities(0, -1, 1,
+                                        MultiblockAbility.OPTICAL_DATA_RECEPTION), 3)
+                    .casing('C', getFrontState())
                         .energyInput(1,2)
-                    .buildTemplate()
-    );
+                    .buildStructureDefinition());
 
     private IEnergyContainer energyContainer;
 
@@ -97,8 +103,8 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formStructureWithDisplay(formed);
         this.energyContainer = new EnergyContainerList(getAbilities(MultiblockAbility.INPUT_ENERGY));
         this.energyUsage = calculateEnergyUsage();
     }
@@ -191,8 +197,14 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
 
     @NotNull
     @Override
-    protected BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    // Migrated to createStructureDefinition(): structure is split into five
+    // named pieces ("top" cap, "body1" repeatable, "middle" with controller,
+    // "body2" repeatable, "bottom" cap) so each section can be checked
+    // independently by the sharded checker. Cached via
+    // StructureDefinition.getOrBuild() since the structure has no
+    // runtime-editable dimensions.
+    protected StructureDefinition createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @NotNull
