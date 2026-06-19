@@ -6,8 +6,8 @@ import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
@@ -358,6 +358,7 @@ public class MultiblockPreviewRenderer {
         gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
         BlockPos pieceCenterInLocal = piecePreview.getCenter();
+        StructureOrientation orientation = StructureOrientation.fromController(controller);
 
         FaceCulledRenderBlocks renderer = new FaceCulledRenderBlocks(world);
         PreviewRenderUtils.OffsetBlockAccess mteAccess = new PreviewRenderUtils.OffsetBlockAccess(world);
@@ -382,9 +383,8 @@ public class MultiblockPreviewRenderer {
                         // Compute world-space position for this block
                         BlockPos tPos = PreviewRenderUtils.transformPieceOffset(
                                 pos.subtract(pieceCenterInLocal), structureDir,
-                                controller.getFrontFacingForStructure(),
-                                controller.getUpwardsFacing(),
-                                controller.isFlipped());
+                                orientation.getStructureFront(), orientation.getUp(),
+                                orientation.isFlipped());
                         BlockPos worldPos = pieceCenterPos.add(tPos);
 
                         renderPreviewBlock(renderer, mteAccess, state, pos, worldPos, buffer);
@@ -446,6 +446,7 @@ public class MultiblockPreviewRenderer {
         }
 
         BlockPos controllerPos = PreviewRenderUtils.findControllerInPreview(blocks, controllerBase);
+        if (controllerPos == null) return;
         TrackedDummyWorld world = new TrackedDummyWorld();
         world.addBlocks(blockMap);
         int finalMaxY = layer % (maxY + 1);

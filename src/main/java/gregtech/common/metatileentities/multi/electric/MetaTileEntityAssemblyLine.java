@@ -63,7 +63,7 @@ import static gregtech.api.util.RelativeDirection.*;
 public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:assembly_line", () -> DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+            "gregtech:assembly_line", () -> DeclarativePatternBuilder.start(BACK, UP, RIGHT)
                     .piece("start")
                         .aisle("FIF", "RTR", "SAG", " Y ")
                     .repeatablePiece("body", 3, 15)
@@ -82,6 +82,9 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
                     .block('T', MetaBlocks.MULTIBLOCK_CASING
                                     .getState(BlockMultiblockCasing.MultiblockCasingType.ASSEMBLY_LINE_CASING))
                     .where('D', dataHatchElement())
+                    .abilityGroup(MultiblockAbility.DATA_ACCESS_HATCH, 0, 1,
+                            MultiblockAbility.DATA_ACCESS_HATCH,
+                            MultiblockAbility.OPTICAL_DATA_RECEPTION)
                     .any(' ')
                     .casing('F', getCasingState())
                         .maintenance()

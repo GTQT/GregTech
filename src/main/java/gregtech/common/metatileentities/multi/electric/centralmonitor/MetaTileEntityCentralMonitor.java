@@ -15,7 +15,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructureContributionKey;
@@ -28,6 +27,8 @@ import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureRuntimeDetectionContext;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.ITypedStructureElement;
@@ -61,7 +62,6 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -78,9 +78,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.value.sync.IntSyncValue;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
@@ -95,6 +92,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     private final static long ENERGY_COST = ConfigHolder.machines.centralMonitorEuCost;
     public final static int MAX_HEIGHT = 9;
     public final static int MAX_WIDTH = 14;
+    private static final int MIN_HEIGHT = 2;
     private static final int MIN_WIDTH = 3;
     private static final StructureContributionKey<MonitorDimensions, MonitorDimensions>
             MONITOR_DIMENSIONS_KEY = StructureContributionKey.uniform(
@@ -130,7 +128,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     public MetaTileEntityMonitorScreen[][] screens;
     private boolean isActive;
     private EnergyContainerList inputEnergy;
-    // persistent data
+    // detected structure dimensions
     public int height = 3;
 
     public MetaTileEntityCentralMonitor(ResourceLocation metaTileEntityId) {
@@ -286,13 +284,6 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         }
     }
 
-    public void setHeight(int height) {
-        if (this.height == height || height < 2 || height > MAX_HEIGHT) return;
-        this.height = height;
-        checkStructurePattern();
-        writeCustomData(GregtechDataCodes.UPDATE_HEIGHT, buf -> buf.writeInt(height));
-    }
-
     private void setActive(boolean isActive) {
         if (isActive == this.isActive) return;
         this.isActive = isActive;
@@ -322,40 +313,11 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     @Override
-    protected MultiblockUIFactory createUIFactory() {
-        return super.createUIFactory()
-                .createFlexButton((posGuiData, panelSyncManager) -> {
-                    IntSyncValue intSync = new IntSyncValue(() -> height, this::setHeight);
-                    panelSyncManager.syncValue("height", intSync);
-
-                    // todo make this a popup?
-                    return new ButtonWidget<>()
-                            .addTooltipLine(IKey.lang("gregtech.multiblock.central_monitor.button_tooltip"))
-                            .onMousePressed(mouseData -> {
-                                int currentHeight = intSync.getIntValue();
-
-                                if (mouseData == 0 && currentHeight < MAX_HEIGHT) {
-                                    intSync.setIntValue(currentHeight + 1);
-                                    return true;
-                                } else if (mouseData == 1 && currentHeight > 3) {
-                                    intSync.setIntValue(currentHeight - 1);
-                                    return true;
-                                } else if (mouseData == 2) {
-                                    intSync.setIntValue(3);
-                                }
-
-                                return false;
-                            });
-                });
-    }
-
-    @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
         builder.addCustom((list, syncer) -> {
-            list.add(KeyUtil.lang(TextFormatting.GRAY, "gregtech.multiblock.central_monitor.height",
-                    syncer.syncInt(this.height)));
-
             if (isStructureFormed()) {
+                list.add(KeyUtil.lang(TextFormatting.GRAY, "gregtech.multiblock.central_monitor.height",
+                        syncer.syncInt(this.height)));
                 list.add(KeyUtil.lang(TextFormatting.GRAY, "gregtech.multiblock.central_monitor.width",
                         syncer.syncInt(this.width)));
             }
@@ -406,8 +368,6 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
             readParts(buf);
         } else if (id == GregtechDataCodes.UPDATE_COVERS) {
             readCovers(buf);
-        } else if (id == GregtechDataCodes.UPDATE_HEIGHT) {
-            this.height = buf.readInt();
         } else if (id == GregtechDataCodes.UPDATE_ACTIVE) {
             this.isActive = buf.readBoolean();
         } else if (id == GregtechDataCodes.STRUCTURE_FORMED) {
@@ -415,18 +375,6 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                 clearScreens();
             }
         }
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        data.setInteger("screenH", this.height);
-        return super.writeToNBT(data);
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound data) {
-        super.readFromNBT(data);
-        this.height = data.hasKey("screenH") ? data.getInteger("screenH") : this.height;
     }
 
     @Override
@@ -481,11 +429,11 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     @NotNull
-    private StructureDefinition<?> buildToolingDefinition() {
+    private StructureDefinition<?> buildToolingDefinition(int previewHeight) {
         StringBuilder start = new StringBuilder("AS");
         StringBuilder slice = new StringBuilder("BB");
         StringBuilder end = new StringBuilder("AA");
-        for (int i = 0; i < height - 2; i++) {
+        for (int i = 0; i < previewHeight - 2; i++) {
             start.append('A');
             slice.append('B');
             end.append('A');
@@ -493,13 +441,14 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         return DeclarativePatternBuilder.start(UP, BACK, RIGHT)
                 .piece("top")
                     .aisle(start.toString())
-                .repeatablePiece("body", 3, MAX_WIDTH)
+                .repeatablePiece("body", MIN_WIDTH, MAX_WIDTH)
                     .aisle(slice.toString())
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_WIDTH.getName())
                 .piece("bottom")
                     .aisle(end.toString())
                 .self('S', MetaTileEntityCentralMonitor.class)
                 .metaTileEntities('B', MetaTileEntities.MONITOR_SCREEN)
-                .casing('A', 
+                .casing('A',
                         MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID))
                     .energyInput(1, 3)
                 .buildStructureDefinition();
@@ -508,13 +457,28 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     private static boolean detectRuntimeStructure(
             @NotNull StructureRuntimeDetectionContext<
                     MetaTileEntityCentralMonitor> context) {
-        MetaTileEntityCentralMonitor controller = context.getController();
-        int configuredHeight = controller.height;
-        if (configuredHeight < 2 || configuredHeight > MAX_HEIGHT) {
+        int detectedHeight = 1;
+        for (int vertical = 0; vertical <= MAX_HEIGHT - 2; vertical++) {
+            BlockPos probe = context.localPos(
+                    vertical, 0, 1,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            if (!isMonitorScreen(context.getWorld(), probe)) {
+                break;
+            }
+            detectedHeight++;
+        }
+        BlockPos bottomScreenPos = context.localPos(
+                -1, 0, 1,
+                RelativeDirection.UP,
+                RelativeDirection.BACK,
+                RelativeDirection.RIGHT);
+        if (!isMonitorScreen(context.getWorld(), bottomScreenPos) || detectedHeight < MIN_HEIGHT) {
             return context.fail(
-                    context.getControllerPos(),
-                    "monitor height in [2, " + MAX_HEIGHT + "]",
-                    "configured height " + configuredHeight);
+                    bottomScreenPos,
+                    "at least " + MIN_HEIGHT + " contiguous monitor rows",
+                    "detected height " + (detectedHeight - 1));
         }
 
         int detectedWidth = 0;
@@ -540,8 +504,29 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                     "detected width " + detectedWidth);
         }
 
+        for (int column = 1; column <= detectedWidth; column++) {
+            BlockPos belowPos = context.localPos(
+                    -2, 0, column,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            BlockPos abovePos = context.localPos(
+                    detectedHeight - 1, 0, column,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            boolean extendsBelow = isMonitorScreen(context.getWorld(), belowPos);
+            boolean extendsAbove = isMonitorScreen(context.getWorld(), abovePos);
+            if (extendsBelow || extendsAbove) {
+                return context.fail(
+                        extendsBelow ? belowPos : abovePos,
+                        "monitor height in [" + MIN_HEIGHT + ", " + MAX_HEIGHT + "]",
+                        "screen wall extends beyond detected height " + detectedHeight);
+            }
+        }
+
         MonitorDimensions dimensions =
-                new MonitorDimensions(detectedWidth, configuredHeight);
+                new MonitorDimensions(detectedWidth, detectedHeight);
         context.emit(MONITOR_DIMENSIONS_KEY, dimensions);
 
         IStructureElement<?> controllerElement =
@@ -555,7 +540,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                         MultiblockAbility.INPUT_ENERGY, 0, 3));
 
         for (int vertical = -1;
-             vertical <= configuredHeight - 2;
+             vertical <= detectedHeight - 2;
              vertical++) {
             BlockPos topPos = context.localPos(
                     vertical, 0, 0,
@@ -626,7 +611,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     public List<MultiblockShapeInfo> getMatchingShapes(
             @Nullable Map<String, Integer> channelValues) {
         StructureRuntime runtime =
-                createDynamicStructureRuntime(buildToolingDefinition());
+                createDynamicStructureRuntime(buildToolingDefinition(resolvePreviewHeight(channelValues)));
         return Collections.singletonList(runtime.previewMultiPiece(
                 StructureOperationRequest.previewMultiPiece(
                         channelValues, this)).getShape());
@@ -638,7 +623,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     buildStructurePreviewEntries(
             @Nullable Map<String, Integer> channelValues) {
         StructureRuntime runtime =
-                createDynamicStructureRuntime(buildToolingDefinition());
+                createDynamicStructureRuntime(buildToolingDefinition(resolvePreviewHeight(channelValues)));
         return runtime.previewMultiPiece(
                 StructureOperationRequest.previewMultiPiece(
                         channelValues, this)).getPreviewEntries();
@@ -648,7 +633,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     public boolean autoBuildStructure(
             @NotNull StructureOperationRequest request) {
         request.requireBuildKind();
-        createDynamicStructureRuntime(buildToolingDefinition())
+        createDynamicStructureRuntime(buildToolingDefinition(resolvePreviewHeight(request.getChannelValues())))
                 .buildAllPieces(request);
         return true;
     }
@@ -663,8 +648,49 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     @Override
     public StructureHintResult hintStructure(
             @NotNull StructureOperationRequest request) {
-        return createDynamicStructureRuntime(buildToolingDefinition())
+        return createDynamicStructureRuntime(buildToolingDefinition(resolvePreviewHeight(request.getChannelValues())))
                 .hintAllPieces(request);
+    }
+
+    /**
+     * Resolve the preview height from channel values, falling back to the
+     * last detected height when no {@code structure_height} channel is present
+     * or the value is out of range.
+     */
+    private int resolvePreviewHeight(@Nullable Map<String, Integer> channelValues) {
+        if (channelValues != null) {
+            int ch = channelValues.getOrDefault(
+                    GTStructureChannels.STRUCTURE_HEIGHT.getName(), 0);
+            if (ch >= MIN_HEIGHT && ch <= MAX_HEIGHT) return ch;
+        }
+        return this.height;
+    }
+
+    /**
+     * Expose width and height channels so the structure projector can
+     * configure preview size and auto-build dimensions for the central monitor.
+     * The runtime structure definition is a minimal runtime-detected piece and
+     * does not carry channel metadata, so the channels are reported here
+     * explicitly based on the tooling definition's capabilities.
+     */
+    @NotNull
+    @Override
+    public List<StructureChannel> getSupportedChannels() {
+        return Arrays.asList(
+                GTStructureChannels.STRUCTURE_WIDTH,
+                GTStructureChannels.STRUCTURE_HEIGHT);
+    }
+
+    @NotNull
+    @Override
+    public int[] getChannelRange(@NotNull StructureChannel channel) {
+        if (channel == GTStructureChannels.STRUCTURE_WIDTH) {
+            return new int[] { MIN_WIDTH, MAX_WIDTH };
+        }
+        if (channel == GTStructureChannels.STRUCTURE_HEIGHT) {
+            return new int[] { MIN_HEIGHT, MAX_HEIGHT };
+        }
+        return new int[] { 0, 0 };
     }
 
     @Override
@@ -674,20 +700,21 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
-        formStructureWithDisplay(formed);
         MonitorDimensions dimensions = formed.getAggregate(
                 MONITOR_DIMENSIONS_KEY);
         if (dimensions == null) {
             invalidateStructure();
             return;
         }
+        width = dimensions.width;
+        height = dimensions.height;
+        formStructureWithDisplay(formed);
         lastUpdate = 0;
         currentEnergyNet = new WeakReference<>(null);
         activeNodes = new ArrayList<>();
         netCovers = new HashSet<>();
         remoteCovers = new HashSet<>();
         inputEnergy = new EnergyContainerList(this.getAbilities(MultiblockAbility.INPUT_ENERGY));
-        width = dimensions.width;
         checkCovers();
         screens = new MetaTileEntityMonitorScreen[width][height];
         for (IMultiblockPart part : this.getMultiblockParts()) {
@@ -740,7 +767,10 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
             GlStateManager.pushMatrix();
             RenderUtil.moveToFace(x, y, z, this.frontFacing);
             RenderUtil.rotateToFace(this.frontFacing, this.upwardsFacing);
-            RenderUtil.renderRect(0.5f, -0.5f - (height - 2), width, height, 0.001f, 0xFF000000);
+            // rotateToFace maps the structure's RIGHT direction to local -X.
+            // Anchor the mask at the far edge so width changes keep it on the screen wall.
+            RenderUtil.renderRect(-0.5f - width, -0.5f - (height - 2),
+                    width, height, 0.001f, 0xFF000000);
             GlStateManager.popMatrix();
         }, () -> {
             if (isActive) {
@@ -914,6 +944,11 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         @Override
         public int hashCode() {
             return 31 * width + height;
+        }
+
+        @Override
+        public String toString() {
+            return width + "x" + height;
         }
     }
 

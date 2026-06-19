@@ -29,6 +29,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.lwjgl.opengl.GL11;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +41,7 @@ import java.util.function.Predicate;
 /**
  * Shared utility methods for multiblock preview rendering, used by both
  * {@link MultiblockPreviewRenderer} (VBO-based controller preview) and
- * {@link GhostBlockRenderer} (immediate-mode projector preview).
+ * {@link GhostBlockRenderer} (VBO-based projector preview).
  */
 @SideOnly(Side.CLIENT)
 public final class PreviewRenderUtils {
@@ -58,12 +60,8 @@ public final class PreviewRenderUtils {
      * Transform a local preview offset into world-space offset using the controller's pattern template.
      * Used for main pattern preview where the controller defines the coordinate mapping.
      *
-     * <p>Uses {@link MultiblockControllerBase#getFrontFacingForStructure()} so the projected
-     * structure is placed behind the controller for both
-     * {@link RelativeDirection#FRONT} and {@link RelativeDirection#BACK} templates,
-     * matching the build/check direction used by
-     * {@link MultiblockState#checkPatternAt} and
-     * {@link gregtech.api.pattern.MultiblockState#autoBuildAt}.</p>
+     * <p>Uses the same facing as structure check/build so the projected cells map to
+     * exactly the same world positions as runtime traversal.</p>
      */
     public static BlockPos transformPreviewOffset(MultiblockControllerBase controller, BlockPos previewOffset) {
         RelativeDirection[] structureDir = controller.getStructureDirForPreview();
@@ -82,10 +80,7 @@ public final class PreviewRenderUtils {
     /**
      * Transform a local preview offset for a piece into world-space offset using the piece's structure directions.
      *
-     * <p>Caller is expected to pass the value of
-     * {@link MultiblockControllerBase#getFrontFacingForStructure()} for {@code frontFacing},
-     * keeping the piece preview consistent with the controller preview and the build/check
-     * direction.</p>
+     * <p>The supplied facing must be the runtime structure-facing value.</p>
      */
     public static BlockPos transformPieceOffset(BlockPos previewOffset, RelativeDirection[] structureDir,
                                                 EnumFacing frontFacing, EnumFacing upwardsFacing,
@@ -351,6 +346,7 @@ public final class PreviewRenderUtils {
 
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
         BlockPos controllerPos = findControllerInPreview(blocks, controller);
+        if (controllerPos == null) return;
 
         // Build expected blocks map in world coordinates
         Map<BlockPos, IBlockState> expectedBlocks = new HashMap<>();
@@ -386,8 +382,9 @@ public final class PreviewRenderUtils {
      *
      * @param blocks         the preview block array [x][y][z]
      * @param controllerBase the actual controller in the world
-     * @return the controller's position in the array, or BlockPos.ORIGIN if not found
+     * @return the controller's position in the array, or null if not found
      */
+    @Nullable
     public static BlockPos findControllerInPreview(BlockInfo[][][] blocks,
                                                    MultiblockControllerBase controllerBase) {
         BlockPos classFallback = null;
@@ -410,7 +407,7 @@ public final class PreviewRenderUtils {
                 }
             }
         }
-        return classFallback != null ? classFallback : BlockPos.ORIGIN;
+        return classFallback;
     }
 
     // ========== IBlockAccess Adapter ==========

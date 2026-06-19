@@ -8,8 +8,9 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
-import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
@@ -253,18 +254,21 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Right-click: Show hologram preview / error info
             if (world.isRemote) {
                 GhostBlockRenderer.setCompareMode(compareMode);
+                GhostBlockRenderer.setNoHatch(noHatch);
                 GhostBlockRenderer.setChannelValues(channelValues);
                 GhostBlockRenderer.renderGhostPreview(multiblock, 10000);
                 return EnumActionResult.SUCCESS;
             }
 
             // Server-side: store supported channel ranges into NBT for GUI use
+            PatternError structureError = multiblock.isStructureFormed() ?
+                    null : multiblock.getLastStructureError();
             saveControllerChannelRanges(heldStack, multiblock);
             spawnStructureHints(multiblock, player, heldStack, channelValues);
 
             // Server-side: show error info if structure is not formed
             if (!multiblock.isStructureFormed()) {
-                PatternError error = multiblock.getLastStructureError();
+                PatternError error = structureError != null ? structureError : multiblock.getLastStructureError();
                 if (error != null) {
                     player.sendMessage(new TextComponentString("============================"));
                     player.sendMessage(
@@ -308,7 +312,8 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     private static void buildStructure(@NotNull MultiblockControllerBase multiblock,
                                        @NotNull StructureOperationRequest request) {
         var runtime = multiblock.getOrCreateStructureRuntime();
-        runtime.buildAllPieces(request);
+        StructureBuildResult result = runtime.buildAllPieces(request);
+        logBuildResult(multiblock, 0, request.skipHatches(), result);
     }
 
     private static void buildPiece(@NotNull MultiblockControllerBase multiblock,
@@ -326,9 +331,18 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                     pieceIndex, multiblock.getMetaName());
             return;
         }
-        runtime.buildPiece(StructureOperationRequest.buildPiece(
+        StructureBuildResult result = runtime.buildPiece(StructureOperationRequest.buildPiece(
                 compiledPieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
                 channels, noHatch, triggerStack));
+        logBuildResult(multiblock, compiledPieceIndex, noHatch, result);
+    }
+
+    private static void logBuildResult(@NotNull MultiblockControllerBase multiblock,
+                                       int pieceIndex,
+                                       boolean noHatch,
+                                       @NotNull StructureBuildResult result) {
+        GTLog.logger.info("[StructureProjector] build result controller={} pos={} piece={} noHatch={}, {}",
+                multiblock.getMetaName(), multiblock.getPos(), pieceIndex, noHatch, result.describeCounts());
     }
 
     private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,

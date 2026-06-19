@@ -30,6 +30,8 @@ import java.util.Map;
  */
 public final class MultiPiecePreviewAssembler {
 
+    public static final int DEFAULT_TOOLING_PIECES = -1;
+
     private static final EnumFacing CANONICAL_FRONT = EnumFacing.SOUTH;
     private static final EnumFacing CANONICAL_UPWARDS = EnumFacing.NORTH;
     private static final StructureOrientation CANONICAL_PREVIEW_ORIENTATION = StructureOrientation.of(
@@ -41,7 +43,7 @@ public final class MultiPiecePreviewAssembler {
     public static Result assemble(@NotNull MultiPiecePattern pattern,
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable Map<String, Integer> channelValues) {
-        return assemble(pattern, runtimes, channelValues, null);
+        return assemble(pattern, runtimes, channelValues, null, false);
     }
 
     @NotNull
@@ -49,6 +51,25 @@ public final class MultiPiecePreviewAssembler {
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable Map<String, Integer> channelValues,
                                   @Nullable MultiblockControllerBase controller) {
+        return assemble(pattern, runtimes, channelValues, controller, false);
+    }
+
+    @NotNull
+    public static Result assemble(@NotNull MultiPiecePattern pattern,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable Map<String, Integer> channelValues,
+                                  @Nullable MultiblockControllerBase controller,
+                                  boolean skipHatches) {
+        return assemble(pattern, runtimes, channelValues, controller, skipHatches, 0);
+    }
+
+    @NotNull
+    public static Result assemble(@NotNull MultiPiecePattern pattern,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable Map<String, Integer> channelValues,
+                                  @Nullable MultiblockControllerBase controller,
+                                  boolean skipHatches,
+                                  int forcedToolingPieceIndex) {
         Map<BlockPos, BlockInfo> allBlocks = new HashMap<>();
         Map<BlockPos, TraceabilityPredicate> allPredicates = new HashMap<>();
         Map<BlockPos, StructureElementPreviewEntry> allPreviewEntries = new HashMap<>();
@@ -56,6 +77,7 @@ public final class MultiPiecePreviewAssembler {
         Map<String, BlockPos> pieceCenters = new HashMap<>();
         List<PieceResult> pieceResults = new ArrayList<>();
         AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
+        int toolingPieceIndex = 0;
 
         for (StructurePiece piece : pattern.getPieceList()) {
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
@@ -63,7 +85,18 @@ public final class MultiPiecePreviewAssembler {
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, null, BlockPos.ORIGIN, prior, null);
             boolean toolingVisible = piece.isToolingVisible();
-            if (!piece.isActive(activation)) {
+            if (toolingVisible) {
+                toolingPieceIndex++;
+            }
+            boolean defaultToolingSelection = forcedToolingPieceIndex == DEFAULT_TOOLING_PIECES;
+            if (defaultToolingSelection && toolingVisible && toolingPieceIndex > 2) {
+                pieceResults.add(PieceResult.empty());
+                continue;
+            }
+            boolean forcedActive = toolingVisible &&
+                    (toolingPieceIndex == forcedToolingPieceIndex ||
+                            (defaultToolingSelection && toolingPieceIndex <= 2));
+            if (!forcedActive && !piece.isActive(activation)) {
                 if (toolingVisible) {
                     pieceResults.add(PieceResult.empty());
                 }
@@ -84,7 +117,7 @@ public final class MultiPiecePreviewAssembler {
             }
 
             PieceRuntimeState.PreviewCells preview = runtime.getState().createPreviewCells(
-                    internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION);
+                    internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION, null, skipHatches);
             Map<BlockPos, BlockInfo> pieceBlocks = new HashMap<>();
             forEachExternalRepeat(piece, externalRepetitions, localShift -> {
                 BlockPos canonicalShift = RelativeDirection.setActualRelativeOffset(
@@ -109,7 +142,10 @@ public final class MultiPiecePreviewAssembler {
                         }
                         abilityTracker.record(selected);
                         pieceBlocks.put(relative, selected);
-                        allBlocks.put(global, selected);
+                        BlockInfo existing = allBlocks.get(global);
+                        if (isOccupied(selected) || !isOccupied(existing)) {
+                            allBlocks.put(global, selected);
+                        }
                     }
                 }
 
@@ -163,7 +199,9 @@ public final class MultiPiecePreviewAssembler {
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 pieceRepeats, channelValues == null ? Collections.emptyMap() : channelValues,
                 pieceCenters);
-        return new Result(combined.shape, normalizedPredicates, normalizedPreviewEntries, pieceResults, metadata);
+        BlockPos center = new BlockPos(-combined.minX, -combined.minY, -combined.minZ);
+        return new Result(
+                combined.shape, center, normalizedPredicates, normalizedPreviewEntries, pieceResults, metadata);
     }
 
     /**
@@ -419,17 +457,20 @@ public final class MultiPiecePreviewAssembler {
     public static final class Result {
 
         private final MultiblockShapeInfo shape;
+        private final BlockPos center;
         private final Map<BlockPos, TraceabilityPredicate> predicates;
         private final Map<BlockPos, StructureElementPreviewEntry> previewEntries;
         private final List<PieceResult> pieces;
         private final FormedStructureMetadata metadata;
 
         private Result(@NotNull MultiblockShapeInfo shape,
+                       @NotNull BlockPos center,
                        @NotNull Map<BlockPos, TraceabilityPredicate> predicates,
                        @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries,
                        @NotNull List<PieceResult> pieces,
                        @NotNull FormedStructureMetadata metadata) {
             this.shape = shape;
+            this.center = center;
             this.predicates = predicates;
             this.previewEntries = previewEntries;
             this.pieces = pieces;
@@ -439,6 +480,12 @@ public final class MultiPiecePreviewAssembler {
         @NotNull
         public MultiblockShapeInfo getShape() {
             return shape;
+        }
+
+        /** Position of the controller origin in the normalized combined preview array. */
+        @NotNull
+        public BlockPos getCenter() {
+            return center;
         }
 
         public boolean isEmpty() {

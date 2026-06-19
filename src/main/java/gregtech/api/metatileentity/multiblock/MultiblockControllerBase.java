@@ -1453,6 +1453,13 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return MultiblockStructureOperations.getMatchingPreviewPiece(this, pieceIndex, channelValues);
     }
 
+    /** Returns the active tooling pieces merged around the controller origin. */
+    @Nullable
+    public MultiPiecePreviewAssembler.Result getMatchingMultiPiecePreview(
+            @Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructureOperations.getMatchingMultiPiecePreview(this, channelValues);
+    }
+
     @SideOnly(Side.CLIENT)
     public String[] getDescription() {
         return MultiblockControllerClientHooks.getDescription(this);

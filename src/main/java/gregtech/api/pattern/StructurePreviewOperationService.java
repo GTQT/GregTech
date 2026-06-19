@@ -36,7 +36,7 @@ final class StructurePreviewOperationService {
             abilityTracker = runtimeView.pattern.createAbilityPlacementTracker();
         }
         return StructurePreviewResult.single(runtime.getState().createPreviewCells(
-                request.requireRepetitions(), request.getChannelValues(), abilityTracker))
+                request.requireRepetitions(), request.getChannelValues(), abilityTracker, request.skipHatches()))
                 .withDiagnostics(runtimeView.diagnostics(request.getEvaluationOperation()));
     }
 
@@ -63,7 +63,8 @@ final class StructurePreviewOperationService {
         StructureOperationRuntime runtime = context.runtime();
         return StructurePreviewResult.multi(MultiPiecePreviewAssembler.assemble(
                 runtime.pattern, runtime.runtimes,
-                request.getChannelValues(), request.getController()))
+                request.getChannelValues(), request.getController(), request.skipHatches(),
+                request.getPieceIndex()))
                 .withDiagnostics(runtime.diagnostics(request.getEvaluationOperation()));
     }
 }

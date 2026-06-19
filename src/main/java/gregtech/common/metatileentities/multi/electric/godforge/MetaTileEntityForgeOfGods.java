@@ -137,16 +137,18 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
     // ==================== Multi-Piece Pattern (Canonical Structure) ====================
 
-    // Piece offsets in structure-relative coordinates (right, up, back from controller)
+    // Piece offsets use OffsetMode.RELATIVE coordinates (right, up, back).
+    // The source templates advance toward FRONT after the beam shaft, so their
+    // positive forward distances are negative values on the BACK axis here.
     // Derived from GT5 structurelib checkPiece offsets:
     //   beam_shaft: controller is at template [63, 14, 1] → offset (0, 0, 0)
-    //   first_ring: controller maps to template [63, 14, 0] → 59 aisles behind controller
-    //   second_ring: controller maps to template [55, 11, 0] → 67 aisles behind controller
-    //   third_ring: controller maps to template [47, 13, 0] → 76 aisles behind controller
+    //   first_ring: controller maps to template [63, 14, 0] → 59 FRONT aisles after controller
+    //   second_ring: controller maps to template [55, 11, 0] → 67 FRONT aisles after controller
+    //   third_ring: controller maps to template [47, 13, 0] → 76 FRONT aisles after controller
     private static final Vec3i BEAM_SHAFT_OFFSET = Vec3i.NULL_VECTOR;
-    private static final Vec3i FIRST_RING_OFFSET = new Vec3i(0, 0, 59);
-    private static final Vec3i SECOND_RING_OFFSET = new Vec3i(0, 0, 67);
-    private static final Vec3i THIRD_RING_OFFSET = new Vec3i(0, 0, 76);
+    private static final Vec3i FIRST_RING_OFFSET = new Vec3i(0, 0, -59);
+    private static final Vec3i SECOND_RING_OFFSET = new Vec3i(0, 0, -67);
+    private static final Vec3i THIRD_RING_OFFSET = new Vec3i(0, 0, -76);
     private static final RelativeDirection[] GODFORGE_STRUCTURE_DIRECTIONS = { RIGHT, UP, FRONT };
 
     // External center offsets [x, y, z, minZ, maxZ] for sub-piece templates without selfPredicate
@@ -550,12 +552,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
 
         if (error == null) {
-            GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, up={}, renderActive={}, " +
+            GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, structureFront={}, up={}, " +
+                            "renderActive={}, " +
                             "rendererDisabled={}, battery={}, formedRings={}, desiredRings={}, clearedRings={}, " +
                             "structureTarget={}, renderedMask={}, renderOwner={}, tracePath={}, traceOperation={}, " +
                             "traceResult={}, traceErrorPos={}, traceExpected={}, traceActual={}, missingAbilities={}, " +
                             "renderPos={}, renderState={}, no pattern error",
-                    getPos(), getFrontFacing(), getUpwardsFacing(), data.isRenderActive(), data.isRendererDisabled(),
+                    getPos(), getFrontFacing(), getFrontFacingForStructure(), getUpwardsFacing(),
+                    data.isRenderActive(), data.isRendererDisabled(),
                     data.getInternalBattery(), getFormedRingAmount(), getDesiredRingAmount(),
                     data.getClearedRingAmount(), getStructureRingTargetAmount(), getRenderedRingTemplateMask(),
                     describeRendererOwnershipForLog(), describeFailurePath(failure), describeFailureOperation(failure),
@@ -570,12 +574,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 null;
         TileEntity actualTile = actualState != null ? getWorld().getTileEntity(errorPos) : null;
 
-        GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, up={}, renderActive={}, " +
+        GTLog.logger.warn("[FOG] structure check failed at controller={}, front={}, structureFront={}, up={}, " +
+                        "renderActive={}, " +
                         "rendererDisabled={}, battery={}, formedRings={}, desiredRings={}, clearedRings={}, " +
                         "structureTarget={}, renderedMask={}, renderOwner={}, tracePath={}, traceOperation={}, " +
                         "traceResult={}, traceExpected={}, traceActual={}, missingAbilities={}, renderPos={}, " +
                         "renderState={}, errorType={}, errorPos={}, actualState={}, actualTile={}, candidates={}",
-                getPos(), getFrontFacing(), getUpwardsFacing(), data.isRenderActive(), data.isRendererDisabled(),
+                getPos(), getFrontFacing(), getFrontFacingForStructure(), getUpwardsFacing(),
+                data.isRenderActive(), data.isRendererDisabled(),
                 data.getInternalBattery(), getFormedRingAmount(), getDesiredRingAmount(),
                 data.getClearedRingAmount(), getStructureRingTargetAmount(), getRenderedRingTemplateMask(),
                 describeRendererOwnershipForLog(), describeFailurePath(failure), describeFailureOperation(failure),
@@ -1325,6 +1331,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     public boolean allowsExtendedFacing() {
         return true;
+    }
+
+    /** FOG templates advance from the controller toward the star at its physical back. */
+    @Override
+    public EnumFacing getFrontFacingForStructure() {
+        return getFrontFacing().getOpposite();
     }
 
     @Override

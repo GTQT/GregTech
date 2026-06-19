@@ -404,6 +404,13 @@ public class MultiblockState {
     @NotNull
     public PreviewCells createPreviewCells(@NotNull int[] repetition,
                                            @Nullable Map<String, Integer> channelValues,
+                                           boolean skipHatches) {
+        return wrap(backing.createPreviewCells(repetition, channelValues, null, skipHatches));
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues,
                                            @NotNull StructureOrientation previewOrientation) {
         return wrap(backing.createPreviewCells(repetition, channelValues, previewOrientation));
     }

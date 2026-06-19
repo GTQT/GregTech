@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
@@ -241,6 +242,54 @@ class StructureBuildAccountingTest {
         assertEquals(1, result.getPlacedCells());
         assertEquals(dirtItem.getItem(), result.getConsumedItems().get(0).getStack().getItem());
         assertEquals(Blocks.DIRT.getDefaultState(), mutableWorld.getBlockState(BlockPos.ORIGIN));
+    }
+
+    @Test
+    void previewCountSelectsOptionalBuildCandidateBeforeFallback() {
+        MutableWorld mutableWorld = mutableWorld();
+        TestPlayer player = player(true, mutableWorld);
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new PreviewCountElement(stoneInfo, dirtInfo)));
+
+        StructureBuildResult result = state.autoBuildAtWithResult(
+                player, controller(mutableWorld), BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0, null, false, null, CREATIVE_BUILD, ItemStack.EMPTY);
+
+        assertEquals(1, result.getPlacedCells());
+        assertEquals(Blocks.DIRT.getDefaultState(), mutableWorld.getBlockState(BlockPos.ORIGIN));
+    }
+
+    @Test
+    void skipHatchesOverridesPreviewCountCandidate() {
+        MutableWorld mutableWorld = mutableWorld();
+        TestPlayer player = player(true, mutableWorld);
+        BlockInfo hatchInfo = new BlockInfo(
+                Blocks.CHEST.getDefaultState(), new MetaTileEntityHolder());
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new PreviewCountElement(stoneInfo, hatchInfo)));
+
+        StructureBuildResult result = state.autoBuildAtWithResult(
+                player, controller(mutableWorld), BlockPos.ORIGIN,
+                StructureOrientation.of(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, false, false),
+                0, 0, 0, null, true, null, CREATIVE_BUILD, ItemStack.EMPTY);
+
+        assertEquals(1, result.getPlacedCells());
+        assertEquals(1, result.getSkippedHatchCells());
+        assertEquals(Blocks.STONE.getDefaultState(), mutableWorld.getBlockState(BlockPos.ORIGIN));
+    }
+
+    @Test
+    void noHatchPreviewUsesNonHatchFallback() {
+        BlockInfo hatchInfo = new BlockInfo(
+                Blocks.CHEST.getDefaultState(), new MetaTileEntityHolder());
+        MultiblockState state = new MultiblockState(singleCellTemplate(
+                new PreviewCountElement(stoneInfo, hatchInfo)));
+
+        MultiblockState.PreviewCells preview = state.createPreviewCells(new int[] { 1 }, null, true);
+
+        assertEquals(Blocks.STONE.getDefaultState(),
+                preview.getBlocks().get(BlockPos.ORIGIN).getBlockState());
     }
 
     @Test
@@ -745,6 +794,44 @@ class StructureBuildAccountingTest {
                                   @NotNull EntityPlayer player, boolean skipHatches) {
             World world = context.getWorld();
             return world != null && world.setBlockState(context.getPos(), first.getBlockState());
+        }
+    }
+
+    private static final class PreviewCountElement implements IStructureElement<Object> {
+
+        @NotNull
+        private final BlockInfo fallback;
+        @NotNull
+        private final BlockInfo optional;
+        @NotNull
+        private final StructureElementPreview preview;
+
+        private PreviewCountElement(@NotNull BlockInfo fallback, @NotNull BlockInfo optional) {
+            this.fallback = fallback;
+            this.optional = optional;
+            this.preview = StructureElementPreview.builder()
+                    .limited(StructureElementPreview.CandidateGroup.of(new BlockInfo[] { fallback }))
+                    .limited(StructureElementPreview.CandidateGroup.builder(new BlockInfo[] { optional })
+                            .previewCount(1)
+                            .build())
+                    .build();
+        }
+
+        @Override
+        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
+            IBlockState state = context.getBlockState();
+            return state == fallback.getBlockState() || state == optional.getBlockState();
+        }
+
+        @Override
+        public BlockInfo[] getCandidates() {
+            return new BlockInfo[] { fallback, optional };
+        }
+
+        @NotNull
+        @Override
+        public StructureElementPreview getPreview() {
+            return preview;
         }
     }
 

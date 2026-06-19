@@ -142,17 +142,40 @@ public final class StructureOperationRequest {
     public static StructureOperationRequest preview(@NotNull int[] repetitions,
                                                     @Nullable Map<String, Integer> channelValues,
                                                     @Nullable AbilityPlacementTracker abilityTracker) {
+        return preview(repetitions, channelValues, abilityTracker, false);
+    }
+
+    @NotNull
+    public static StructureOperationRequest preview(@NotNull int[] repetitions,
+                                                    @Nullable Map<String, Integer> channelValues,
+                                                    @Nullable AbilityPlacementTracker abilityTracker,
+                                                    boolean skipHatches) {
         return new StructureOperationRequest(
                 Kind.PREVIEW, null, null, null, null, null, null, null,
-                channelValues, repetitions, abilityTracker, ItemStack.EMPTY, false, false, 0);
+                channelValues, repetitions, abilityTracker, ItemStack.EMPTY, false, skipHatches, 0);
     }
 
     @NotNull
     public static StructureOperationRequest previewMultiPiece(@Nullable Map<String, Integer> channelValues,
                                                               @Nullable MultiblockControllerBase controller) {
+        return previewMultiPiece(channelValues, controller, false);
+    }
+
+    @NotNull
+    public static StructureOperationRequest previewMultiPiece(@Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              boolean skipHatches) {
+        return previewMultiPiece(channelValues, controller, skipHatches, 0);
+    }
+
+    @NotNull
+    public static StructureOperationRequest previewMultiPiece(@Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              boolean skipHatches,
+                                                              int toolingPieceIndex) {
         return new StructureOperationRequest(
                 Kind.PREVIEW, null, null, null, null, null, controller, null,
-                channelValues, null, null, ItemStack.EMPTY, false, false, 0);
+                channelValues, null, null, ItemStack.EMPTY, false, skipHatches, toolingPieceIndex);
     }
 
     @NotNull

@@ -55,6 +55,18 @@ final class MultiblockStructurePreviews {
         return Collections.singletonList(preview.getShape());
     }
 
+    @Nullable
+    static MultiPiecePreviewAssembler.Result getMatchingMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            @Nullable Map<String, Integer> channelValues) {
+        if (multiPiecePattern == null) return null;
+        return assembleMultiPiecePreview(
+                controller, multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
+    }
+
     @NotNull
     static Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap(
             @NotNull MultiblockControllerBase controller,

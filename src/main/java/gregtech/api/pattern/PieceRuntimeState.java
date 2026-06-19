@@ -1216,6 +1216,33 @@ public final class PieceRuntimeState {
         }
         if (!find) {
             for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
+                int previewCount = limit.getPreviewCount();
+                if (previewCount <= 0) {
+                    continue;
+                }
+                int global = buildState.cacheGlobal.getOrDefault(limit, 0);
+                int layer = cacheLayer.getOrDefault(limit, 0);
+                if (global >= previewCount ||
+                        (limit.getMaxGlobalCount() != -1 && global >= limit.getMaxGlobalCount()) ||
+                        (limit.getMaxLayerCount() != -1 && layer >= limit.getMaxLayerCount())) {
+                    continue;
+                }
+                if (!buildState.cacheInfos.containsKey(limit)) {
+                    buildState.cacheInfos.put(limit, limit.getCandidates());
+                }
+                infos = buildState.cacheInfos.get(limit);
+                if (!hasPlaceableCandidate(infos, abilityTracker)) {
+                    continue;
+                }
+                buildState.cacheGlobal.put(limit, global + 1);
+                cacheLayer.put(limit, layer + 1);
+                matchedGroup = limit;
+                find = true;
+                break;
+            }
+        }
+        if (!find) {
+            for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
                 if (limit.getMaxLayerCount() != -1 &&
                         cacheLayer.getOrDefault(limit, Integer.MAX_VALUE) == limit.getMaxLayerCount())
                     continue;
@@ -1904,7 +1931,8 @@ public final class PieceRuntimeState {
                                                     @NotNull Map<StructureElementPreview.CandidateGroup, Integer> cacheLayer,
                                                     @NotNull PreviewTraversalState previewState,
                                                     @Nullable Map<String, Integer> channelValues,
-                                                    @Nullable AbilityPlacementTracker abilityTracker) {
+                                                    @Nullable AbilityPlacementTracker abilityTracker,
+                                                    boolean skipHatches) {
         BlockInfo[] infos = null;
         StructureElementPreview.CandidateGroup matchedGroup = null;
         for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
@@ -2015,10 +2043,43 @@ public final class PieceRuntimeState {
         BlockInfo info = candidateIdx < 0 || infos == null || infos.length == 0
                 ? BlockInfo.EMPTY
                 : infos[candidateIdx];
+        if (skipHatches && info.getTileEntity() instanceof IGregTechTileEntity) {
+            BlockInfo fallback = findNonHatchPreviewCandidate(preview, previewState, abilityTracker);
+            if (fallback != null) {
+                info = fallback;
+            }
+        }
         if (abilityTracker != null) {
             abilityTracker.record(info);
         }
         return copyPreviewTileEntity(info);
+    }
+
+    @Nullable
+    private static BlockInfo findNonHatchPreviewCandidate(
+            @NotNull StructureElementPreview preview,
+            @NotNull PreviewTraversalState previewState,
+            @Nullable AbilityPlacementTracker abilityTracker) {
+        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+            BlockInfo fallback = firstNonHatchCandidate(getPreviewInfos(previewState, group), abilityTracker);
+            if (fallback != null) return fallback;
+        }
+        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+            BlockInfo fallback = firstNonHatchCandidate(getPreviewInfos(previewState, group), abilityTracker);
+            if (fallback != null) return fallback;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BlockInfo firstNonHatchCandidate(@Nullable BlockInfo[] infos,
+                                                    @Nullable AbilityPlacementTracker abilityTracker) {
+        for (BlockInfo info : StructurePlacementDecision.filterPlaceable(infos, abilityTracker)) {
+            if (!(info.getTileEntity() instanceof IGregTechTileEntity)) {
+                return info;
+            }
+        }
+        return null;
     }
 
     @NotNull
@@ -2100,6 +2161,15 @@ public final class PieceRuntimeState {
     @NotNull
     public PreviewCells createPreviewCells(@NotNull int[] repetition,
                                            @Nullable Map<String, Integer> channelValues,
+                                           @Nullable AbilityPlacementTracker abilityTracker,
+                                           boolean skipHatches) {
+        return createPreviewCells(
+                repetition, channelValues, DEFAULT_PREVIEW_ORIENTATION, abilityTracker, skipHatches);
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues,
                                            @NotNull StructureOrientation previewOrientation) {
         return createPreviewCells(repetition, channelValues, previewOrientation, null);
     }
@@ -2109,11 +2179,20 @@ public final class PieceRuntimeState {
                                            @Nullable Map<String, Integer> channelValues,
                                            @NotNull StructureOrientation previewOrientation,
                                            @Nullable AbilityPlacementTracker abilityTracker) {
+        return createPreviewCells(repetition, channelValues, previewOrientation, abilityTracker, false);
+    }
+
+    @NotNull
+    public PreviewCells createPreviewCells(@NotNull int[] repetition,
+                                           @Nullable Map<String, Integer> channelValues,
+                                           @NotNull StructureOrientation previewOrientation,
+                                           @Nullable AbilityPlacementTracker abilityTracker,
+                                           boolean skipHatches) {
         PreviewTraversalState previewState = new PreviewTraversalState();
         visitFixedStructureCells(repetition, BlockPos.ORIGIN, previewOrientation, 0, 0, 0, (cell, layerCounts) -> {
             StructureElementPreview preview = cell.element.getPreview();
             BlockInfo info = selectPreviewBlockInfo(
-                    preview, layerCounts, previewState, channelValues, abilityTracker);
+                    preview, layerCounts, previewState, channelValues, abilityTracker, skipHatches);
             TraceabilityPredicate predicate = cell.runtimePredicate();
             previewState.record(cell.worldPos, info, predicate,
                     StructureElementPreviewEntry.of(preview, previewTooltip(cell.element)));

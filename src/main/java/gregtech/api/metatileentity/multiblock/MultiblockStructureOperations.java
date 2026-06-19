@@ -288,6 +288,15 @@ final class MultiblockStructureOperations {
                 controller.getStructureRuntime(), pieceIndex, channelValues);
     }
 
+    @Nullable
+    static MultiPiecePreviewAssembler.Result getMatchingMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructurePreviews.getMatchingMultiPiecePreview(
+                controller, controller.multiPiecePattern, controller.pieceRuntimes,
+                controller.getStructureRuntime(), channelValues);
+    }
+
     @NotNull
     static StructureHintResult hintStructure(@NotNull MultiblockControllerBase controller,
                                              @NotNull StructureOperationRequest request) {
