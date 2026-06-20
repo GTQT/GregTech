@@ -8,12 +8,10 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
@@ -28,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:electric_implosion_compressor", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:electric_implosion_compressor", () ->
             DeclarativePatternBuilder.start()
                     .aisle("               ", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "               ")
                     .aisle("F F         F F", "F F   FFF   F F", "FBF  FFAFF  FBF", "FBF  AAAAA  FBF", "FBF  FFAFF  FBF", "F F   FFF   F F", "F F         F F")
@@ -50,7 +48,7 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
                     .custom(tieredCasing(), 1)
                     .custom(parallelCasing(), 1)
                     .where(' ', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityElectricImplosionCompressor(ResourceLocation metaTileEntityId) {
@@ -74,8 +72,8 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

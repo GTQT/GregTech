@@ -9,6 +9,7 @@ import gregtech.api.pattern.*;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
@@ -35,7 +36,7 @@ public class MetaTileEntityLargePackager extends GCYMAdvanceRecipeMapMultiblockC
         return new MetaTileEntityLargePackager(this.metaTileEntityId);
     }
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_packager", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_packager", () ->
             DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                     .aisleRepeatable(3,3,"XXX", "XAX", "XXX")
@@ -49,7 +50,7 @@ public class MetaTileEntityLargePackager extends GCYMAdvanceRecipeMapMultiblockC
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                 .where('A', air())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     @Override
@@ -63,8 +64,8 @@ public class MetaTileEntityLargePackager extends GCYMAdvanceRecipeMapMultiblockC
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
 

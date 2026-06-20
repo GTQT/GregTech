@@ -7,10 +7,8 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.*;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
@@ -23,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeThermalCentrifuge extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_thermal_centrifuge", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_thermal_centrifuge", () ->
             DeclarativePatternBuilder.start()
                     .aisle("#XXX#", "#XXX#", "#####", "#####", "#####", "#####", "#XXX#", "#XXX#")
                     .aisle("XXXXX", "XCCCX", "X#W#X", "##F##", "##F##", "X#W#X", "XCCCX", "XXXXX")
@@ -44,7 +42,7 @@ public class MetaTileEntityLargeThermalCentrifuge extends GCYMAdvanceRecipeMapMu
                     .where('F', frames(Materials.RedSteel))
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeThermalCentrifuge(ResourceLocation metaTileEntityId) {
@@ -66,8 +64,8 @@ public class MetaTileEntityLargeThermalCentrifuge extends GCYMAdvanceRecipeMapMu
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

@@ -13,11 +13,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.*;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCResult;
@@ -47,7 +45,7 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:mega_cracking_unit", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_cracking_unit", () ->
             DeclarativePatternBuilder.start()
                     .aisle("CCCCCCCCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ")
                     .aisle("CCCCCCCCCCCCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC")
@@ -78,7 +76,7 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
                     )
                     .where(' ', any())
                     .where('A', air())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     private int coilTier;
@@ -99,8 +97,8 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override
@@ -152,9 +150,9 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats stats = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (stats != null) {

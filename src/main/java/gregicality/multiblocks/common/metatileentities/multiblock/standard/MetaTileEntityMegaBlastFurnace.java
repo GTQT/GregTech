@@ -17,11 +17,9 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.*;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
@@ -52,7 +50,7 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     /**
      * 目前写法
      */
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:mega_blast_furnace", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_blast_furnace", () ->
             DeclarativePatternBuilder.start()
                     .aisle("##XXXXXXXXX##", "##XXXXXXXXX##", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############")
                     .aisle("#XXXXXXXXXXX#", "#XXXXXXXXXXX#", "###F#####F###", "###F#####F###", "###FFFFFFF###", "#############", "#############", "#############", "#############", "#############", "####FFFFF####", "#############", "#############", "#############", "#############", "#############", "#############")
@@ -87,7 +85,7 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
                     .withChannel(GTCasingGroups.heatingCoils().channel())
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     private int blastFurnaceTemperature;
@@ -140,10 +138,10 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         // Retrieve coil stats from the channel's matched ICasing
-        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats type = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (type == null) {
@@ -171,8 +169,8 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

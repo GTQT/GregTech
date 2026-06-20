@@ -8,12 +8,10 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
@@ -28,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeMixer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_mixer", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_mixer", () ->
             DeclarativePatternBuilder.start()
                     .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
                     .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
@@ -48,7 +46,7 @@ public class MetaTileEntityLargeMixer extends GCYMAdvanceRecipeMapMultiblockCont
                     .where('F', frames(GCYMMaterials.HastelloyX))
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeMixer(ResourceLocation metaTileEntityId) {
@@ -73,8 +71,8 @@ public class MetaTileEntityLargeMixer extends GCYMAdvanceRecipeMapMultiblockCont
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

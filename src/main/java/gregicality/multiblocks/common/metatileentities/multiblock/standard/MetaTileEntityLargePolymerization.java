@@ -8,12 +8,10 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
@@ -29,7 +27,7 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_polymerization", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_polymerization", () ->
             DeclarativePatternBuilder.start()
                     .aisle("F   F", "XXXXX", "XXXXX", "XXXXX")
                     .aisle("     ", "XXXXX", "XPPPX", "XXXXX")
@@ -44,7 +42,7 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
                     .preset(HatchPresets.MUFFLER_IO)
                     .where('C', states(getCasingState2()))
                     .where('F', states(getFrameState()))
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
     private static IBlockState getFrameState() {
         return MetaBlocks.FRAMES.get(GCYMMaterials.WatertightSteel).getBlock(GCYMMaterials.WatertightSteel);
@@ -67,8 +65,8 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
 

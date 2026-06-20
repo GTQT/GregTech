@@ -12,11 +12,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.*;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCResult;
@@ -43,7 +41,7 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_pyrolyser", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_pyrolyser", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXXXX", "XXXXX", "XXMXX", "XXXXX", "XXXXX")
                     .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
@@ -62,7 +60,7 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                     .where('P', states(getCasingState3()))
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('A', air())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
     private int coilTier;
 
@@ -85,8 +83,8 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override
@@ -105,9 +103,9 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats stats = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (stats != null) {

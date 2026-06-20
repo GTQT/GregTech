@@ -7,12 +7,10 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
@@ -27,8 +25,8 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_sifter", () ->
-            DeclarativePatternBuilder.start(RIGHT, FRONT, UP)
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_sifter", () ->
+            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                     .aisle("#X#X#", "XXXXX", "#XXX#", "XXXXX", "#X#X#")
                     .aisle("#X#X#", "XAXAX", "#XXX#", "XAXAX", "#X#X#")
                     .aisle("#XXX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
@@ -45,7 +43,7 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
                     .where('C', states(getCasingState2()))
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSifter(ResourceLocation metaTileEntityId) {
@@ -75,8 +73,8 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

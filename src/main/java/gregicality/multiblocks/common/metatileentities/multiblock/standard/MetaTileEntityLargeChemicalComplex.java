@@ -5,13 +5,11 @@ import gregicality.multiblocks.api.metatileentity.GCYMRecipeMapMultiblockControl
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.TooltipBuilder;
@@ -37,7 +35,7 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_chemical_complex", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_chemical_complex", () ->
             DeclarativePatternBuilder.start()
                     .aisle("X###X", "XXXXX", "X###X", "XXXXX", "X###X")
                     .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
@@ -55,7 +53,7 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeChemicalComplex(ResourceLocation metaTileEntityId) {
@@ -81,8 +79,8 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)

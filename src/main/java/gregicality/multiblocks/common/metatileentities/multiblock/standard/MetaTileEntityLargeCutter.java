@@ -9,12 +9,10 @@ import gregicality.multiblocks.common.block.blocks.BlockUniqueCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
@@ -30,7 +28,7 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_cutter", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_cutter", () ->
             DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
                     .aisle("XXXX", "XXXX", "XXXX", "####")
                     .aisle("XXXX", "SXAX", "XXXX", "####")
@@ -49,7 +47,7 @@ public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockCon
                     .where('C', states(getCasingState3()))
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeCutter(ResourceLocation metaTileEntityId) {
@@ -82,8 +80,8 @@ public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockCon
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

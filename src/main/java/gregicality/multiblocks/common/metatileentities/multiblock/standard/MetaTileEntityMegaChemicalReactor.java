@@ -7,12 +7,10 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.tooltips.InformationHandler;
@@ -36,7 +34,7 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:mega_chemical_reactor", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_chemical_reactor", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
                     .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
@@ -64,7 +62,7 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
                     .custom(tieredCasing(), 1)
                     .custom(parallelCasing(), 1)
                     .where('H', states(getCasingState()))
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityMegaChemicalReactor(ResourceLocation metaTileEntityId) {
@@ -93,8 +91,8 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)

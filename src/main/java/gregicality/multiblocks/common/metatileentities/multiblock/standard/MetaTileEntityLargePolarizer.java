@@ -8,12 +8,10 @@ import gregicality.multiblocks.common.block.blocks.BlockUniqueCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
@@ -24,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargePolarizer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_polarizer", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_polarizer", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXXXX", "XXXXX", "XXXXX")
                     .aisle("XXXXX", "XCACX", "XCXCX")
@@ -41,7 +39,7 @@ public class MetaTileEntityLargePolarizer extends GCYMAdvanceRecipeMapMultiblock
                     .where('C', states(getCasingState2()))
                     .where('T', tieredCasing().or(air()))
                     .where('A', air())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargePolarizer(ResourceLocation metaTileEntityId) {
@@ -64,8 +62,8 @@ public class MetaTileEntityLargePolarizer extends GCYMAdvanceRecipeMapMultiblock
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

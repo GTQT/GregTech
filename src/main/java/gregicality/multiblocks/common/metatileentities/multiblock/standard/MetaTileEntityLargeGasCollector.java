@@ -7,12 +7,10 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
@@ -28,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_gas_collector", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_gas_collector", () ->
             DeclarativePatternBuilder.start()
                     .aisle("F   F", "F   F", "CCCCC", "CCCCC", "CCCCC")
                     .aisle("     ", "     ", "CCCCC", "GACAG", "CCCCC")
@@ -44,7 +42,7 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
                     .where('G', states(getGlassState()))
                     .where('F', states(getFrameState()))
                     .where(' ', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeGasCollector(ResourceLocation metaTileEntityId) {
@@ -73,8 +71,8 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
 

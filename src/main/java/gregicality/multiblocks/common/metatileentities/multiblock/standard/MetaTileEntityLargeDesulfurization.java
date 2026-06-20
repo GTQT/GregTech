@@ -11,11 +11,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
+import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.*;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
@@ -43,7 +41,7 @@ import static gregtech.api.util.RelativeDirection.*;
 //此系列设备不给多线程
 public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_desulfurizer", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_desulfurizer", () ->
             DeclarativePatternBuilder.start()
                     .aisle("CCCCC", "CCCCC", "CCCCC", " CCC ", " CCC ")
                     .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
@@ -64,7 +62,7 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
                     .withChannel(GTCasingGroups.heatingCoils().channel())
                     .where('F', states(getFrameState()))
                     .where(' ', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
     private int coilTier;
 
@@ -86,9 +84,9 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats stats = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (stats != null) {
@@ -162,8 +160,8 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

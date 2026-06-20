@@ -9,12 +9,10 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.cube.OrientedOverlayRenderer;
@@ -24,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_arc_furnace", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_arc_furnace", () ->
             DeclarativePatternBuilder.start()
                     .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#")
                     .aisle("XXXXX", "XCACX", "XCACX", "XXXXX")
@@ -43,7 +41,7 @@ public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultibloc
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeArcFurnace(ResourceLocation metaTileEntityId) {
@@ -65,8 +63,8 @@ public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultibloc
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @Override

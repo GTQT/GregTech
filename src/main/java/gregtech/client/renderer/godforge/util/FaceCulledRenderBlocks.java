@@ -1,5 +1,7 @@
 package gregtech.client.renderer.godforge.util;
 
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.List;
 
 import net.minecraft.block.state.IBlockState;
@@ -8,6 +10,7 @@ import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -61,6 +64,11 @@ public class FaceCulledRenderBlocks {
     public void renderBlockScaled(IBlockState state, BlockPos localPos, BlockPos worldPos,
                                   float scale, float offset,
                                   FaceVisibility faceVisibility, BufferBuilder buffer) {
+        if (state.getRenderType() == EnumBlockRenderType.LIQUID) {
+            renderFluidScaled(state, localPos, worldPos, scale, offset, buffer);
+            return;
+        }
+
         IBakedModel model = resolveModel(state, localPos);
         IBlockState renderState = resolveRenderState(state, localPos);
         long rand = MathHelper.getPositionRandom(localPos);
@@ -81,6 +89,27 @@ public class FaceCulledRenderBlocks {
     }
 
     // ========== Internal Helpers ==========
+
+    private void renderFluidScaled(IBlockState state, BlockPos localPos, BlockPos worldPos,
+                                   float scale, float offset, BufferBuilder buffer) {
+        int firstVertex = buffer.getVertexCount();
+        dispatcher.renderBlock(state, localPos, blockAccess, buffer);
+        int lastVertex = buffer.getVertexCount();
+        int vertexSize = buffer.getVertexFormat().getIntegerSize();
+        IntBuffer vertices = buffer.getByteBuffer().duplicate()
+                .order(ByteOrder.nativeOrder()).asIntBuffer();
+
+        for (int vertex = firstVertex; vertex < lastVertex; vertex++) {
+            int base = vertex * vertexSize;
+            float x = Float.intBitsToFloat(vertices.get(base)) - localPos.getX();
+            float y = Float.intBitsToFloat(vertices.get(base + 1)) - localPos.getY();
+            float z = Float.intBitsToFloat(vertices.get(base + 2)) - localPos.getZ();
+            vertices.put(base, Float.floatToRawIntBits(worldPos.getX() + offset + x * scale));
+            vertices.put(base + 1, Float.floatToRawIntBits(worldPos.getY() + offset + y * scale));
+            vertices.put(base + 2, Float.floatToRawIntBits(worldPos.getZ() + offset + z * scale));
+            vertices.put(base + vertexSize - 1, FULL_BRIGHT);
+        }
+    }
 
     private IBakedModel resolveModel(IBlockState state, BlockPos pos) {
         IBlockState renderState = state;

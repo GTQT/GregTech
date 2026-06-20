@@ -8,12 +8,10 @@ import gregicality.multiblocks.common.block.blocks.BlockUniqueCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.common.blocks.BlockBoilerCasing;
@@ -27,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_sonicator", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_sonicator", () ->
             DeclarativePatternBuilder.start()
                     .aisle("XXXXX", "XXXXX", "XXXXX", "     ")
                     .aisle("XXXXX", "XCCCX", "XGGGX", "     ")
@@ -48,7 +46,7 @@ public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblock
                     .where('C', states(getUniqueCasingState()))
                     .where('G', states(getGlassState()))
                     .where(' ', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSonicator(ResourceLocation metaTileEntityId) {
@@ -77,8 +75,8 @@ public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblock
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)

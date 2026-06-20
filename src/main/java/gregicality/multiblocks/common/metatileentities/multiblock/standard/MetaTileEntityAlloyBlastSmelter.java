@@ -19,6 +19,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockDisplayText;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.*;
 import gregtech.api.pattern.casing.*;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.properties.impl.TemperatureProperty;
 import gregtech.api.util.GTUtility;
@@ -95,10 +96,10 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
     }
 
     @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
+    protected void formStructure(@NotNull FormedStructureView formed) {
+        formRecipeMapStructure(formed);
         // Retrieve coil stats from the channel's matched ICasing
-        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(context);
+        ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats type = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
         if (type == null) {
@@ -127,7 +128,7 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
 
 
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:alloy_blast_smelter", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:alloy_blast_smelter", () ->
             DeclarativePatternBuilder.start()
                     .aisle("#XXX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#")
                     .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX")
@@ -146,12 +147,12 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
                     .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                     .where('A', air())
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,

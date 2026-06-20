@@ -7,12 +7,10 @@ import gregicality.multiblocks.common.block.blocks.BlockLargeMultiblockCasing;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.SoftTemplate;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.cube.OrientedOverlayRenderer;
@@ -25,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register("gcym:large_extruder", () ->
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_extruder", () ->
             DeclarativePatternBuilder.start()
                     .aisle("##XXX", "##XXX", "##XXX")
                     .aisleRepeatable(2, 2, "##XXX", "##XPX", "##XGX")
@@ -43,7 +41,7 @@ public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockC
                     .where('P', states(getCasingState2()))
                     .where('G', states(getCasingState3()))
                     .where('#', any())
-                    .buildTemplate()
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeExtruder(ResourceLocation metaTileEntityId) {
@@ -69,8 +67,8 @@ public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockC
     }
 
     @Override
-    protected @NotNull BlockPatternTemplate createStructureTemplate() {
-        return TEMPLATE.get();
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
 
