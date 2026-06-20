@@ -3,9 +3,6 @@ package gregtech.loaders.recipe.handlers;
 import gregtech.api.GTValues;
 import gregtech.api.recipes.ModHandler;
 import gregtech.api.unification.material.MarkerMaterial;
-import gregtech.api.util.Mods;
-
-import net.minecraft.item.ItemStack;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
@@ -15,9 +12,6 @@ import static gregtech.api.util.MaterialHelper.Plastic;
 import static gregtech.common.metatileentities.GTQTMetaTileEntities.*;
 
 public class HatchHandlers {
-
-    static ItemStack normalInterface = Mods.AppliedEnergistics2.getItem("interface");
-    static ItemStack fluidInterface = Mods.AppliedEnergistics2.getItem("fluid_interface");
 
     public static void init() {
         for (int i = 0; i < DUAL_IMPORT_HATCH.length; i++) {
@@ -109,20 +103,5 @@ public class HatchHandlers {
                     .duration(400).EUt(VA[ULV + i]).buildAndRegister();
         }
 
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(ITEM_IMPORT_BUS_ME)
-                .input(FLUID_IMPORT_HATCH_ME)
-                .input(DUAL_IMPORT_HATCH[LuV])
-                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 4)
-                .output(ME_DUAL_IMPORT_HATCH)
-                .duration(100).EUt(VA[IV]).buildAndRegister();
-
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(ITEM_EXPORT_BUS_ME)
-                .input(FLUID_EXPORT_HATCH_ME)
-                .input(DUAL_EXPORT_HATCH[LuV])
-                .input(circuit, MarkerMaterial.create(GTValues.VN[LuV].toLowerCase()), 4)
-                .output(ME_DUAL_EXPORT_HATCH)
-                .duration(100).EUt(VA[IV]).buildAndRegister();
     }
 }

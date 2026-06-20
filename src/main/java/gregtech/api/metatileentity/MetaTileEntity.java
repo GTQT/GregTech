@@ -76,18 +76,12 @@ import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fml.common.Optional.Method;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import appeng.api.util.AECableType;
-import appeng.api.util.AEPartLocation;
-import appeng.client.render.BlockPosHighlighter;
-import appeng.me.helpers.AENetworkProxy;
-import appeng.util.BlockPosUtils;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.raytracer.IndexedCuboid6;
 import codechicken.lib.render.CCRenderState;
@@ -1792,21 +1786,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return false;
     }
 
-    @NotNull
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public AECableType getCableConnectionType(@NotNull AEPartLocation part) {
-        return AECableType.NONE;
-    }
-
-    @Nullable
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public AENetworkProxy getProxy() {
-        return null;
-    }
-
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public void gridChanged() {}
-
     /**
      * Add MTE to a creative tab. Ensure that the creative tab has been registered via
      * {@link gregtech.api.block.machines.MachineItemBlock#addCreativeTab(CreativeTabs)
@@ -1859,7 +1838,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         if (player == null) return;
 
         player.sendMessage(new TextComponentTranslation(s));
-        highlightBlockForPlayer(player);
+        MachineBlockHighlighter.highlight(player, getPos());
     }
 
     // 私有辅助方法
@@ -1873,15 +1852,4 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return world.getPlayerEntityByUUID(ownerGT);
     }
 
-    private void highlightBlockForPlayer(EntityPlayer player) {
-        BlockPos blockPos = getPos();
-        BlockPos blockPos2 = player.getPosition();
-        int playerDim = player.world.provider.getDimension();
-
-        long currentTime = System.currentTimeMillis();
-        double distance = BlockPosUtils.getDistance(blockPos, blockPos2);
-        long highlightTime = (long) (currentTime + 500 * distance);
-
-        BlockPosHighlighter.hilightBlock(blockPos, highlightTime, playerDim);
-    }
 }

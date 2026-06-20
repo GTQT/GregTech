@@ -1,7 +1,6 @@
 package gregtech.common.items.tool.rotation;
 
 import gregtech.api.cover.CoverRayTracer;
-import gregtech.api.util.Mods;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirectional;
@@ -32,10 +31,6 @@ public class CustomBlockRotations {
         registerCustomRotation(BLOCK_DIRECTIONAL_BEHAVIOR);
         registerCustomRotation(HOPPER_BEHAVIOR);
 
-        // Mod-specific custom rotation logic
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            AECustomBlockRotations.init();
-        }
     }
 
     public static void registerCustomRotation(ICustomRotationBehavior behavior) {

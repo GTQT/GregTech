@@ -526,12 +526,6 @@ public class MetaTileEntities {
     public static MetaTileEntityClipboard CLIPBOARD_TILE;
     public static MetaTileEntityMonitorScreen MONITOR_SCREEN;
     public static MetaTileEntityCentralMonitor CENTRAL_MONITOR;
-    public static MetaTileEntity FLUID_EXPORT_HATCH_ME;
-    public static MetaTileEntity ITEM_EXPORT_BUS_ME;
-    public static MetaTileEntity FLUID_IMPORT_HATCH_ME;
-    public static MetaTileEntity ITEM_IMPORT_BUS_ME;
-    public static MetaTileEntity STOCKING_BUS_ME;
-    public static MetaTileEntity STOCKING_HATCH_ME;
     public static MetaTileEntityLDItemEndpoint LONG_DIST_ITEM_ENDPOINT;
     public static MetaTileEntityLDFluidEndpoint LONG_DIST_FLUID_ENDPOINT;
     public static MetaTileEntityAlarm ALARM;

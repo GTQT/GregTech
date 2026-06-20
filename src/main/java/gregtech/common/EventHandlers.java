@@ -65,7 +65,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemHandlerHelper;
 
-import appeng.entity.EntitySingularity;
 
 @Mod.EventBusSubscriber(modid = GTValues.MODID)
 public class EventHandlers {
@@ -383,6 +382,6 @@ public class EventHandlers {
     }
 
     private static boolean checkAEEntity(Entity entity) {
-        return Mods.AppliedEnergistics2.isModLoaded() && entity instanceof EntitySingularity;
+        return "appeng.entity.EntitySingularity".equals(entity.getClass().getName());
     }
 }

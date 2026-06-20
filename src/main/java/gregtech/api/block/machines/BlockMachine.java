@@ -323,12 +323,6 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
                 }
             }
         }
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            if (metaTileEntity.getProxy() != null) {
-                metaTileEntity.getProxy().setOwner((EntityPlayer) placer);
-            }
-        }
-
         // Color machines on place if holding spray can in off-hand
         if (placer instanceof EntityPlayer player) {
             AbstractSprayBehavior.handleExternalSpray(player, EnumHand.OFF_HAND, worldIn, pos, EnumFacing.UP);

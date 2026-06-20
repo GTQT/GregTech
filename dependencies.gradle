@@ -69,8 +69,6 @@ dependencies {
 
     implementation rfg.deobf("curse.maven:lolasm-460609:7267368")
 
-    implementation rfg.deobf(files("libs/appliedenergistics2-v1.0.5-gtqt.jar"))
-    implementation rfg.deobf(files("libs/ae2fc-2.7.10-unofficial.jar"))
     compileOnly("curse.maven:better-questing-unofficial-629629:5875712")
     // Mods with Soft compat but which have no need to be in code, such as isModLoaded() checks and getModItem() recipes.
     // Uncomment any of these to test them in-game.

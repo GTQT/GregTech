@@ -24,16 +24,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMoldI
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityThreadHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessController;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualExportHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEDualInputHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEGasHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEMufflerHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOreDictBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOrePrefixPatternProvider;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternManager;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProviderProxy;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityPatternProviderMappingSlave;
 import gregtech.common.metatileentities.store.MetaTileEntityHugeBuffer;
 
 import static gregtech.api.GTValues.VN;
@@ -52,24 +42,7 @@ public class GTQTMetaTileEntities {
     public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.V.length - 2];
     public static final MetaTileEntityHugeComplexDualHatch[] HUGE_COMPLEX_DUAL_HATCH = new MetaTileEntityHugeComplexDualHatch[GTValues.V.length - 2];
 
-    public static MetaTileEntityMEDualInputHatch ME_DUAL_IMPORT_HATCH;
-    public static MetaTileEntityMEDualExportHatch ME_DUAL_EXPORT_HATCH;
-    public static MetaTileEntityMEOreDictBus ME_ORE_DICT_BUS;
-    public static MetaTileEntityMEPatternManager ME_PATTERN_MANAGER;
-
-    // ME样板总成（主控）从HV开始
-    public static MetaTileEntityMEPatternProvider[] ME_PATTERN_PROVIDER = new MetaTileEntityMEPatternProvider[GTValues.V.length - 1 - GTValues.HV];
-    // 样板映射区 从属样板槽位扩展，从HV开始
-    public static MetaTileEntityPatternProviderMappingSlave[] PATTERN_MAPPING_SLAVE = new MetaTileEntityPatternProviderMappingSlave[GTValues.V.length - 1 - GTValues.HV];
-    // ME样板提供器代理 可以同时为多个多方块结构提供材料输入能力
-    public static MetaTileEntityMEPatternProviderProxy ME_PATTERN_PROVIDER_PROXY;
-    // 矿石前缀样板提供器
-    public static MetaTileEntityMEOrePrefixPatternProvider ME_ORE_PREFIX_PATTERN_PROVIDER;
-
-
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length-1];
-    public static final MetaTileEntityMEMufflerHatch[] ME_MUFFLER_HATCH = new MetaTileEntityMEMufflerHatch[GTValues.UHV + 1]; // LV-UHV
-    public static final MetaTileEntityMEGasHatch[] ME_GAS_HATCH = new MetaTileEntityMEGasHatch[GTValues.V.length - 1];
     public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[GTValues.V.length - 1];
     public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[10];
     public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[10];
@@ -171,37 +144,6 @@ public class GTQTMetaTileEntities {
             registerMetaTileEntity(2660 + i, HUGE_COMPLEX_DUAL_HATCH[i]);
         }
 
-        ME_DUAL_IMPORT_HATCH = new MetaTileEntityMEDualInputHatch(gregtechId("me_dual_hatch.import"));
-        ME_DUAL_EXPORT_HATCH = new MetaTileEntityMEDualExportHatch(gregtechId("me_dual_hatch.export"));
-        ME_ORE_DICT_BUS = new MetaTileEntityMEOreDictBus(gregtechId("me_ore_dict_bus"), GTValues.IV);
-
-        ME_PATTERN_MANAGER = new MetaTileEntityMEPatternManager(gregtechId("me_pattern_manager"), GTValues.UV, false);
-        ME_ORE_PREFIX_PATTERN_PROVIDER = new MetaTileEntityMEOrePrefixPatternProvider(gregtechId("me_ore_prefix_pattern_provider"), GTValues.UHV);
-        ME_PATTERN_PROVIDER_PROXY= new MetaTileEntityMEPatternProviderProxy(gregtechId("me_pattern_provider_proxy"), GTValues.UHV);
-
-        // ME设备, IDs 2700-
-        registerMetaTileEntity(2700, ME_DUAL_IMPORT_HATCH);
-        registerMetaTileEntity(2701, ME_DUAL_EXPORT_HATCH);
-        registerMetaTileEntity(2702, ME_ORE_DICT_BUS);
-        registerMetaTileEntity(2703, ME_PATTERN_MANAGER);
-        registerMetaTileEntity(2704, ME_PATTERN_PROVIDER_PROXY);
-        registerMetaTileEntity(2705, ME_ORE_PREFIX_PATTERN_PROVIDER);
-
-        for (int i = 0; i < ME_PATTERN_PROVIDER.length; i++) {
-            int tier = GTValues.HV + i;
-            String voltageName = GTValues.VN[tier].toLowerCase();
-            ME_PATTERN_PROVIDER[i] = new MetaTileEntityMEPatternProvider(
-                    gregtechId("me_pattern_provider." + voltageName), tier);
-            registerMetaTileEntity(2710 + i, ME_PATTERN_PROVIDER[i]);
-        }
-        for (int i = 0; i < PATTERN_MAPPING_SLAVE.length; i++) {
-            int tier = GTValues.HV + i;
-            String voltageName = GTValues.VN[tier].toLowerCase();
-            PATTERN_MAPPING_SLAVE[i] = new MetaTileEntityPatternProviderMappingSlave(
-                    gregtechId("pattern_mapping_slave." + voltageName), tier);
-            registerMetaTileEntity(2730 + i, PATTERN_MAPPING_SLAVE[i]);
-        }
-
         // Gas Hatches, IDs 2760-2775
         for (int i = 0; i < GAS_HATCH.length - 1; i++) {
             int tier = i+1;
@@ -237,22 +179,6 @@ public class GTQTMetaTileEntities {
             int tier = i+1;
             THREAD_HATCH[i] = registerMetaTileEntity(2860 + i, new MetaTileEntityThreadHatch(
                     gregtechId(String.format("thread_hatch.%s", GTValues.VN[tier])), tier));
-        }
-
-        // ME Muffler Hatches, IDs 2875-2890
-        for (int i = 0; i < ME_MUFFLER_HATCH.length; i++) {
-            int tier = i+1;
-            String voltageName = GTValues.VN[tier].toLowerCase();
-            ME_MUFFLER_HATCH[i] = new MetaTileEntityMEMufflerHatch(gregtechId("me_muffler_hatch." + voltageName), tier);
-            registerMetaTileEntity(2875 + i, ME_MUFFLER_HATCH[i]);
-        }
-
-        // ME Gas Hatch, IDs 2890-2905
-        for (int i = 0; i < ME_GAS_HATCH.length; i++) {
-            int tier = i+1;
-            String voltageName = GTValues.VN[tier].toLowerCase();
-            ME_GAS_HATCH[i] = new MetaTileEntityMEGasHatch(gregtechId("me_gas_hatch." + voltageName), tier);
-            registerMetaTileEntity(2890 + i, ME_GAS_HATCH[i]);
         }
 
         // 热力输入输出仓

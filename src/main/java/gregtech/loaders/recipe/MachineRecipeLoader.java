@@ -1676,17 +1676,6 @@ public class MachineRecipeLoader {
             }
         }
 
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            ModHandler.addShapedRecipe("me_fluid_hatch_output_to_input", FLUID_IMPORT_HATCH_ME.getStackForm(), "d", "B",
-                    'B', FLUID_EXPORT_HATCH_ME.getStackForm());
-            ModHandler.addShapedRecipe("me_fluid_hatch_input_to_output", FLUID_EXPORT_HATCH_ME.getStackForm(), "d", "B",
-                    'B', FLUID_IMPORT_HATCH_ME.getStackForm());
-            ModHandler.addShapedRecipe("me_item_bus_output_to_input", ITEM_IMPORT_BUS_ME.getStackForm(), "d", "B", 'B',
-                    ITEM_EXPORT_BUS_ME.getStackForm());
-            ModHandler.addShapedRecipe("me_item_bus_input_to_output", ITEM_EXPORT_BUS_ME.getStackForm(), "d", "B", 'B',
-                    ITEM_IMPORT_BUS_ME.getStackForm());
-        }
-
         if (STEAM_EXPORT_BUS != null && STEAM_IMPORT_BUS != null) {
             // Steam
             ModHandler.addShapedRecipe("steam_bus_output_to_input_" + STEAM_EXPORT_BUS.getTier(),

@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.StructureEvaluationContext.Operation;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.Mods;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
@@ -13,15 +12,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-
-import appeng.api.AEApi;
-import appeng.api.config.Actionable;
-import appeng.api.networking.storage.IStorageGrid;
-import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.channels.IItemStorageChannel;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.util.PlayerWirelessGridHelper;
-import appeng.me.helpers.BaseActionSource;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,7 +54,7 @@ final class StructurePlacementDecision {
             if (inventory != null) {
                 return inventory;
             }
-            return selectAeCandidate(player, infos, candidates);
+            return selectExternalCandidate(player, infos, candidates);
         }
 
         int preferredIndex = requiredAbilityIndex >= 0 ? requiredAbilityIndex : preferredCandidateIndex;
@@ -103,7 +93,7 @@ final class StructurePlacementDecision {
             if (inventory != null) {
                 return inventory;
             }
-            return selectAeCandidate(player, infos, candidates);
+            return selectExternalCandidate(player, infos, candidates);
         }
 
         int preferredIndex = requiredAbilityIndex >= 0 ? requiredAbilityIndex : preferredCandidateIndex;
@@ -387,8 +377,9 @@ final class StructurePlacementDecision {
         if (hasInInventory(player, candidate)) {
             return Selection.inventory(candidate, infos[candidateIndex]);
         }
-        if (hasInAENetwork(player, candidate)) {
-            return Selection.ae(candidate, infos[candidateIndex]);
+        StructureItemSource source = findExternalSource(player, candidate);
+        if (source != null) {
+            return Selection.external(candidate, infos[candidateIndex], source);
         }
         return null;
     }
@@ -407,13 +398,27 @@ final class StructurePlacementDecision {
     }
 
     @Nullable
-    private static Selection selectAeCandidate(@NotNull EntityPlayer player,
-                                               @NotNull BlockInfo[] infos,
-                                               @NotNull List<ItemStack> candidates) {
+    private static Selection selectExternalCandidate(@NotNull EntityPlayer player,
+                                                      @NotNull BlockInfo[] infos,
+                                                      @NotNull List<ItemStack> candidates) {
         for (int i = 0; i < candidates.size(); i++) {
             ItemStack candidate = candidates.get(i);
-            if (!candidate.isEmpty() && hasInAENetwork(player, candidate)) {
-                return Selection.ae(candidate, infos[i]);
+            if (!candidate.isEmpty()) {
+                StructureItemSource source = findExternalSource(player, candidate);
+                if (source != null) {
+                    return Selection.external(candidate, infos[i], source);
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static StructureItemSource findExternalSource(@NotNull EntityPlayer player,
+                                                          @NotNull ItemStack candidate) {
+        for (StructureItemSource source : StructureItemSourceRegistry.getSources()) {
+            if (source.extract(player, candidate, true)) {
+                return source;
             }
         }
         return null;
@@ -444,50 +449,6 @@ final class StructurePlacementDecision {
         return false;
     }
 
-    private static boolean hasInAENetwork(@NotNull EntityPlayer player,
-                                          @NotNull ItemStack candidate) {
-        return extractFromAENetwork(player, candidate, Actionable.SIMULATE);
-    }
-
-    private static boolean takeFromAENetwork(@NotNull EntityPlayer player,
-                                             @NotNull ItemStack candidate) {
-        return extractFromAENetwork(player, candidate, Actionable.MODULATE);
-    }
-
-    private static boolean extractFromAENetwork(@NotNull EntityPlayer player,
-                                                @NotNull ItemStack candidate,
-                                                @NotNull Actionable action) {
-        if (!isAeLoaded()) {
-            return false;
-        }
-        try {
-            if (player.world.isRemote || candidate.isEmpty()) return false;
-
-            IStorageGrid storageGrid = PlayerWirelessGridHelper.getStorageGrid(player);
-            if (storageGrid == null) return false;
-
-            IItemStorageChannel channel = AEApi.instance().storage()
-                    .getStorageChannel(IItemStorageChannel.class);
-            IMEMonitor<IAEItemStack> monitor = storageGrid.getInventory(channel);
-            if (monitor == null) return false;
-
-            IAEItemStack request = channel.createStack(candidate);
-            request.setStackSize(1);
-            IAEItemStack extracted = monitor.extractItems(request, action, new BaseActionSource());
-            return extracted != null && extracted.getStackSize() > 0;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private static boolean isAeLoaded() {
-        try {
-            return Mods.AppliedEnergistics2.isModLoaded();
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
     private static boolean itemMatches(@NotNull ItemStack expected,
                                        @Nullable ItemStack actual) {
         return !expected.isEmpty() && actual != null && !actual.isEmpty() && expected.isItemEqual(actual);
@@ -511,13 +472,23 @@ final class StructurePlacementDecision {
         private final BlockInfo matchedInfo;
         @NotNull
         private final Source source;
+        @Nullable
+        private final StructureItemSource externalSource;
 
         private Selection(@NotNull ItemStack requiredStack,
                           @NotNull BlockInfo matchedInfo,
                           @NotNull Source source) {
+            this(requiredStack, matchedInfo, source, null);
+        }
+
+        private Selection(@NotNull ItemStack requiredStack,
+                          @NotNull BlockInfo matchedInfo,
+                          @NotNull Source source,
+                          @Nullable StructureItemSource externalSource) {
             this.requiredStack = one(requiredStack);
             this.matchedInfo = matchedInfo;
             this.source = source;
+            this.externalSource = externalSource;
         }
 
         @NotNull
@@ -533,9 +504,10 @@ final class StructurePlacementDecision {
         }
 
         @NotNull
-        static Selection ae(@NotNull ItemStack requiredStack,
-                            @NotNull BlockInfo matchedInfo) {
-            return new Selection(requiredStack, matchedInfo, Source.AE);
+        static Selection external(@NotNull ItemStack requiredStack,
+                                  @NotNull BlockInfo matchedInfo,
+                                  @NotNull StructureItemSource source) {
+            return new Selection(requiredStack, matchedInfo, Source.EXTERNAL, source);
         }
 
         @NotNull
@@ -558,8 +530,8 @@ final class StructurePlacementDecision {
                     return true;
                 case INVENTORY:
                     return takeFromInventory(player, requiredStack);
-                case AE:
-                    return takeFromAENetwork(player, requiredStack);
+                case EXTERNAL:
+                    return externalSource != null && externalSource.extract(player, requiredStack, false);
                 default:
                     return false;
             }
@@ -569,6 +541,6 @@ final class StructurePlacementDecision {
     private enum Source {
         CREATIVE,
         INVENTORY,
-        AE
+        EXTERNAL
     }
 }
