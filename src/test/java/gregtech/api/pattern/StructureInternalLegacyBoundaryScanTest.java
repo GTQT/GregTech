@@ -19,7 +19,6 @@ class StructureInternalLegacyBoundaryScanTest {
 
     private static final Path SOURCE_ROOT = Paths.get("src/main/java");
     private static final Path COMMON_CONTROLLER_ROOT = SOURCE_ROOT.resolve("gregtech/common/metatileentities");
-    private static final Path GTQT_CONTROLLER_ROOT = SOURCE_ROOT.resolve("gtqt");
 
     private static final List<String> INTERNAL_MAIN_PATHS = Arrays.asList(
             "gregtech/api/pattern/StructureRuntime.java",
@@ -128,7 +127,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechControllersUseTypedFormationCallbacksAndDefinitions() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT), (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             String text = String.join("\n", lines);
             if (!text.contains("extends ") || !text.contains("Multiblock")) {
                 return;
@@ -154,7 +153,7 @@ class StructureInternalLegacyBoundaryScanTest {
         });
 
         if (!violations.isEmpty()) {
-            fail("GregTech-owned controllers must use StructureDefinition and FormedStructureView:\n"
+            fail("GregTech/GCYM-owned controllers must use StructureDefinition and FormedStructureView:\n"
                     + String.join("\n", violations));
         }
     }
@@ -185,7 +184,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechOwnedCodeDoesNotUsePatternMatchContextInternally() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT), (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (isCommentOnlyLine(line)) {
@@ -199,7 +198,7 @@ class StructureInternalLegacyBoundaryScanTest {
         });
 
         if (!violations.isEmpty()) {
-            fail("GregTech-owned common/gtqt code must use typed structure contexts; "
+            fail("GregTech/GCYM-owned controller code must use typed structure contexts; "
                     + "PatternMatchContext is restricted to API compatibility adapters:\n"
                     + String.join("\n", violations));
         }
@@ -208,7 +207,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechControllersUseTypedFormedStructureViewAccessors() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT), (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (isCommentOnlyLine(line)) {
@@ -222,7 +221,7 @@ class StructureInternalLegacyBoundaryScanTest {
         });
 
         if (!violations.isEmpty()) {
-            fail("GregTech-owned controllers should read FormedStructureView through typed accessors:\n"
+            fail("GregTech/GCYM-owned controllers should read FormedStructureView through typed accessors:\n"
                     + String.join("\n", violations));
         }
     }
@@ -290,9 +289,36 @@ class StructureInternalLegacyBoundaryScanTest {
     }
 
     @Test
+    void gcymFrontMountedControllersExtendBehindTheController() throws IOException {
+        List<String> violations = new ArrayList<>();
+        List<String> controllerPaths = Arrays.asList(
+                "gregtech/common/metatileentities/multiblock/standard/"
+                        + "MetaTileEntityLargeChemicalBath.java",
+                "gregtech/common/metatileentities/multiblock/standard/"
+                        + "MetaTileEntityLargeCentrifuge.java",
+                "gregtech/common/metatileentities/multiblock/standard/"
+                        + "MetaTileEntityLargeExtractor.java",
+                "gregtech/common/metatileentities/multiblock/standard/"
+                        + "MetaTileEntityLargeSifter.java",
+                "gregtech/common/metatileentities/multiblock/standard/"
+                        + "MetaTileEntityLargeSolidifier.java");
+
+        for (String path : controllerPaths) {
+            if (!readSource(path).contains("DeclarativePatternBuilder.start(RIGHT, BACK, UP)")) {
+                violations.add(path + ": controller depth must extend along BACK");
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            fail("Front-mounted GCYM controllers must extend behind their front face:\n"
+                    + String.join("\n", violations));
+        }
+    }
+
+    @Test
     void gregTechControllersDoNotBuildLegacyTemplatesInternally() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT), (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (isCommentOnlyLine(line)) {
@@ -306,7 +332,7 @@ class StructureInternalLegacyBoundaryScanTest {
         });
 
         if (!violations.isEmpty()) {
-            fail("GregTech-owned controllers must build StructureDefinition directly; "
+            fail("GregTech/GCYM-owned controllers must build StructureDefinition directly; "
                     + "DeclarativePatternBuilder.start() is allowed, but FactoryBlockPattern.start() "
                     + "and builder .buildTemplate() are not:\n"
                     + String.join("\n", violations));

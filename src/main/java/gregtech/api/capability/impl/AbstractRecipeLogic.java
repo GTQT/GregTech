@@ -45,7 +45,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import gtqt.api.util.GTQTUtility;
+import gregtech.api.util.GTQTUtility;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;

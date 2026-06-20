@@ -4,7 +4,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
-import gtqt.common.metatileentities.multi.multiblockpart.appeng.IMEPatternProviderPart;
+import gregtech.common.metatileentities.multi.multiblockpart.appeng.IMEPatternProviderPart;
 
 import java.util.List;
 

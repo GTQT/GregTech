@@ -2,8 +2,8 @@ package gregtech.integration.ae2;
 
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 
-import gtqt.common.items.GTQTMetaItems;
-import gtqt.common.items.behaviors.ProgrammableCircuit;
+import gregtech.common.items.MetaItems;
+import gregtech.common.items.behaviors.ProgrammableCircuit;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -65,10 +65,10 @@ public class GTCircuitHelper extends CircuitHelper {
 
     @Override
     public boolean isProgrammableCircuit(ItemStack stack) {
-        return GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null
+        return MetaItems.PROGRAMMABLE_CIRCUIT != null
                 && stack != null
                 && !stack.isEmpty()
-                && GTQTMetaItems.PROGRAMMABLE_CIRCUIT.isItemEqual(stack);
+                && MetaItems.PROGRAMMABLE_CIRCUIT.isItemEqual(stack);
     }
 
     @Override
@@ -96,7 +96,7 @@ public class GTCircuitHelper extends CircuitHelper {
             return null;
         }
 
-        if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT == null) {
+        if (MetaItems.PROGRAMMABLE_CIRCUIT == null) {
             return sourceItem.copy();
         }
 
@@ -109,20 +109,20 @@ public class GTCircuitHelper extends CircuitHelper {
             wrappedItem.setCount(1);
         }
 
-        final ItemStack programmable = GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
+        final ItemStack programmable = MetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
         ProgrammableCircuit.wrap(wrappedItem, programmable);
         return programmable;
     }
 
     @Override
     public boolean hasToolkitInInventory(@Nullable EntityPlayer player) {
-        if (player == null || GTQTMetaItems.PROGRAMMING_TOOLKIT == null) {
+        if (player == null || MetaItems.PROGRAMMING_TOOLKIT == null) {
             return false;
         }
 
         for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
             final ItemStack invStack = player.inventory.getStackInSlot(i);
-            if (!invStack.isEmpty() && GTQTMetaItems.PROGRAMMING_TOOLKIT.isItemEqual(invStack)) {
+            if (!invStack.isEmpty() && MetaItems.PROGRAMMING_TOOLKIT.isItemEqual(invStack)) {
                 return true;
             }
         }
@@ -132,15 +132,15 @@ public class GTCircuitHelper extends CircuitHelper {
     @Nullable
     @Override
     public ItemStack getProgrammableCircuitStack() {
-        if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT == null) {
+        if (MetaItems.PROGRAMMABLE_CIRCUIT == null) {
             return null;
         }
-        return GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
+        return MetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
     }
 
     @Override
     public boolean isProgrammableCircuitAvailable() {
-        return GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null;
+        return MetaItems.PROGRAMMABLE_CIRCUIT != null;
     }
 
     @Nullable

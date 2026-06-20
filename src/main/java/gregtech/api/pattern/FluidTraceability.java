@@ -3,11 +3,15 @@ package gregtech.api.pattern;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -16,9 +20,12 @@ import net.minecraftforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class FluidTraceability {
     public static final String FLUID_BLOCKS_KEY = "FluidBlocks";
+    public static final StructureContributionKey<BlockPos, List<BlockPos>> FLUID_BLOCK_POSITIONS =
+            StructureContributionKey.orderedList("gregtech:fluid_block_positions");
 
     public static TraceabilityPredicate fluid(FluidStack fluidStack) {
         return fluid(fluidStack.getFluid());
@@ -52,6 +59,57 @@ public class FluidTraceability {
                         ConfigHolder.misc.showFluidsForAutoFillingMultiblocks ?
                                 new BlockInfo(stillState) : new BlockInfo(Blocks.AIR)
                 });
+    }
+
+    /**
+     * Typed V3 structure element for fluid-filled cells. Air and matching fluid
+     * blocks are accepted; cells that still need filling are emitted as a typed
+     * aggregate for the controller formation callback.
+     */
+    public static IStructureElement<Object> fluidElement(net.minecraftforge.fluids.Fluid fluid) {
+        Block fluidBlock = fluid.getBlock();
+        String fluidName = fluid.getName();
+        if (fluidBlock == null) {
+            throw new IllegalArgumentException("Fluid \"" + fluidName + "\" has no associated block!");
+        }
+        IBlockState stillState = fluidBlock.getDefaultState();
+
+        return new ITypedStructureElement<Object>() {
+
+            @Override
+            public boolean check(StructureEvaluationContext<Object> context) {
+                IBlockState blockState = context.getBlockState();
+                if (blockState == stillState) return true;
+                if (blockState.getBlock().isAir(blockState, context.getBlockAccess(), context.getPos()) ||
+                        blockState.getBlock() == fluidBlock) {
+                    context.getCollector().emit(FLUID_BLOCK_POSITIONS, context.getPos());
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public Set<StructureElementCapability> getCapabilities() {
+                return StructureElementCapability.snapshotSafe();
+            }
+
+            @Override
+            public BlockInfo[] getCandidates() {
+                IBlockState state = ConfigHolder.misc.showFluidsForAutoFillingMultiblocks ?
+                        stillState : Blocks.AIR.getDefaultState();
+                return new BlockInfo[]{new BlockInfo(state)};
+            }
+
+            @Override
+            public boolean placeBlock(StructureEvaluationContext<Object> context,
+                                      EntityPlayer player, boolean skipHatches) {
+                World world = context.getWorld();
+                if (world == null) return false;
+                IBlockState state = ConfigHolder.misc.showFluidsForAutoFillingMultiblocks ?
+                        stillState : Blocks.AIR.getDefaultState();
+                return world.setBlockState(context.getPos(), state);
+            }
+        };
     }
 
     public static void fillFluid(MultiblockControllerBase multi, List<BlockPos> toFill, FluidStack fluidStack) {

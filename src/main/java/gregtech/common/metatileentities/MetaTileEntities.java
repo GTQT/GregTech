@@ -2,6 +2,7 @@ package gregtech.common.metatileentities;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
+import gregtech.api.block.machines.MachineItemBlock;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SimpleGeneratorMetaTileEntity;
 import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
@@ -118,6 +119,7 @@ import gregtech.common.metatileentities.steam.SteamHammer;
 import gregtech.common.metatileentities.steam.SteamMacerator;
 import gregtech.common.metatileentities.steam.SteamMiner;
 import gregtech.common.metatileentities.steam.SteamRoaster;
+import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.metatileentities.steam.SteamRockBreaker;
 import gregtech.common.metatileentities.steam.SteamVulcanizingPress;
 import gregtech.common.metatileentities.steam.boiler.SteamCoalBoiler;
@@ -541,6 +543,10 @@ public class MetaTileEntities {
 
     public static void init() {
         GTLog.logger.info("Registering MetaTileEntities");
+
+        // Register the multiblock creative tab so multiblock controllers appear in their own tab
+        MachineItemBlock.addCreativeTab(GTCreativeTabs.TAB_GREGTECH_MULTIBLOCKS);
+        MachineItemBlock.addCreativeTab(GTCreativeTabs.TAB_GREGTECH_MULTIBLOCK_PARTS);
 
         MachineRegistration.init();
         InfrastructureRegistration.init();

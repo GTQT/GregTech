@@ -9,7 +9,7 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.me.cache.CraftingGridCache;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
-import gtqt.common.items.GTQTMetaItems;
+import gregtech.common.items.MetaItems;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -40,7 +40,7 @@ public abstract class MixinCraftingCPUCluster {
             if (only != null) {
                 ItemStack stack = only.getDefinition();
                 Item item = stack.getItem();
-                if (item == GTQTMetaItems.GTQT_META_ITEM && stack.getMetadata() == GTQTMetaItems.ORDER.getMetaValue()) {
+                if (item == MetaItems.GT_META_ITEM_2 && stack.getMetadata() == MetaItems.ORDER.getMetaValue()) {
                     completeJob();
                 }
             }

@@ -50,7 +50,7 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import gtqt.common.metatileentities.electric.MetaTileEntityDustCollector;
+import gregtech.common.metatileentities.electric.MetaTileEntityDustCollector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

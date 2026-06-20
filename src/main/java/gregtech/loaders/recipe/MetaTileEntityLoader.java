@@ -32,7 +32,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fml.common.Loader;
 
-import gtqt.api.util.recipeUtility;
+import gregtech.api.util.recipeUtility;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
@@ -55,7 +55,7 @@ import static gregtech.common.blocks.BlockWarningSign1.SignType.*;
 import static gregtech.common.blocks.BlockWireCoil.CoilType.CUPRONICKEL;
 import static gregtech.common.metatileentities.MetaTileEntities.VULCANIZING_PRESS;
 import static gregtech.loaders.recipe.CraftingComponent.*;
-import static gtqt.common.items.GTQTMetaItems.CASTING_MOLD_EMPTY;
+import static gregtech.common.items.MetaItems.CASTING_MOLD_EMPTY;
 
 public class MetaTileEntityLoader {
 

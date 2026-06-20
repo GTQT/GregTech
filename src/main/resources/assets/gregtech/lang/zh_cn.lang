@@ -3299,6 +3299,8 @@ tile.long_distance_fluid_pipeline.name=长距离流体管道
 # Creative tabs
 itemGroup.gregtech.main=格雷科技
 itemGroup.gregtech.machines=格雷科技 | 机器
+itemGroup.gregtech.multiblocks=格雷科技 | 多方块结构
+itemGroup.gregtech.multiblock_parts=格雷科技 | 多方块部件
 itemGroup.gregtech.cables=格雷科技 | 线缆
 itemGroup.gregtech.pipes=格雷科技 | 管道
 itemGroup.gregtech.tools=格雷科技 | 工具

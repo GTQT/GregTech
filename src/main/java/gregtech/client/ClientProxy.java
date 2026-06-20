@@ -80,7 +80,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.oredict.OreDictionary;
 
-import gtqt.api.util.wireless.ClientWirelessHUD;
+import gregtech.api.wireless.ClientWirelessHUD;
 import org.jetbrains.annotations.NotNull;
 import paulscode.sound.SoundSystemConfig;
 

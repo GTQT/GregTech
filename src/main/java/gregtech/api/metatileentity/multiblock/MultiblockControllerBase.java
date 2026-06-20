@@ -46,6 +46,7 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.creativetab.GTCreativeTabs;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -91,6 +92,12 @@ import java.util.function.Supplier;
 import static gregtech.api.capability.GregtechDataCodes.*;
 
 public abstract class MultiblockControllerBase extends MetaTileEntity implements IMultiblockController {
+
+    // Move multiblock controllers from the generic machines tab into their own tab
+    {
+        creativeTabs.add(GTCreativeTabs.TAB_GREGTECH_MULTIBLOCKS);
+        creativeTabs.remove(GTCreativeTabs.TAB_GREGTECH_MACHINES);
+    }
 
     private final Map<MultiblockAbility<Object>, AbilityInstances> multiblockAbilities = new HashMap<>();
     private final List<IMultiblockPart> multiblockParts = new ArrayList<>();

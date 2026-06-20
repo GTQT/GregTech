@@ -29,11 +29,17 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 
-import gtqt.common.Difficulty;
+import gregtech.common.Difficulty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import static gtqt.common.Difficulty.fromLevel;
+import gregtech.api.util.GCYMLog;
+import gregtech.client.renderer.texture.GCYMTextures;
+import gregtech.common.blocks.GCYMMetaBlocks;
+import gregtech.common.metatileentities.GCYMMetaTileEntities;
+import gregtech.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
+
+import static gregtech.common.Difficulty.fromLevel;
 
 @Mod(modid = GTValues.MODID,
      name = GTValues.MOD_NAME,
@@ -77,6 +83,17 @@ public class GregTechMod {
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         moduleManager.onPreInit(event);
+
+        // GCYM (Gregicality Multiblocks) initialization
+        // Must be called after module preInit, which sets up mteManager and material registries
+        GCYMLog.init(LOGGER);
+        GCYMMetaBlocks.init();
+        GCYMMetaTileEntities.init();
+        if (FMLCommonHandler.instance().getSide().isClient()) {
+            GCYMTextures.preInit();
+        }
+        GCYMMaterialRecipeHandler.register();
+
         // 注册 AE2 集成的 CircuitHelper
         if (Mods.AppliedEnergistics2.isModLoaded()) {
             appeng.integration.modules.gregtech.CircuitHelper.setInstance(new GTCircuitHelper());

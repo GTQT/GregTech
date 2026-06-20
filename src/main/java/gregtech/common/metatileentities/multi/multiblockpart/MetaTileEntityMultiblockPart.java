@@ -9,6 +9,7 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.client.renderer.texture.custom.FireboxActiveRenderer;
+import gregtech.common.creativetab.GTCreativeTabs;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.PacketBuffer;
@@ -29,6 +30,12 @@ import static gregtech.api.capability.GregtechDataCodes.SYNC_CONTROLLER;
 
 public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
                                                    implements IMultiblockPart, ITieredMetaTileEntity {
+
+    // Move multiblock parts from the generic machines tab into their own tab
+    {
+        creativeTabs.add(GTCreativeTabs.TAB_GREGTECH_MULTIBLOCK_PARTS);
+        creativeTabs.remove(GTCreativeTabs.TAB_GREGTECH_MACHINES);
+    }
 
     private final int tier;
     private BlockPos controllerPos;
