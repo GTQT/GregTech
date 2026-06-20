@@ -1,12 +1,10 @@
 package gregtech.api.color;
 
-import gregtech.api.color.containers.AE2ColorContainer;
 import gregtech.api.color.containers.BedColorContainer;
 import gregtech.api.color.containers.GTPipeColorContainer;
 import gregtech.api.color.containers.MTEColorContainer;
 import gregtech.api.color.containers.VanillaColorContainer;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.Mods;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumDyeColor;
@@ -66,9 +64,6 @@ public abstract class ColoredBlockContainer {
     public static void registerCEuContainers() {
         registerContainer(new GTPipeColorContainer(GTUtility.gregtechId("pipe")));
         registerContainer(new MTEColorContainer(GTUtility.gregtechId("mte")));
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            registerContainer(new AE2ColorContainer(GTUtility.gregtechId("ae2")));
-        }
         registerContainer(new VanillaColorContainer(GTUtility.gregtechId("vanilla")));
         registerContainer(new BedColorContainer(GTUtility.gregtechId("bed")));
     }

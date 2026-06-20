@@ -24,7 +24,6 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
-import appeng.core.Api;
 import com.google.common.collect.ImmutableMap;
 import forestry.api.recipes.ICentrifugeRecipe;
 import forestry.api.recipes.RecipeManagers;
@@ -293,7 +292,7 @@ public class CombRecipes {
         if (Mods.AppliedEnergistics2.isModLoaded()) {
             ItemStack fluixDust = OreDictUnifier.get("dustFluix");
             if (fluixDust == ItemStack.EMPTY) {
-                fluixDust = Api.INSTANCE.definitions().materials().fluixDust().maybeStack(1).orElse(ItemStack.EMPTY);
+                fluixDust = Mods.AppliedEnergistics2.getItem("material", 7);
             }
             if (fluixDust != ItemStack.EMPTY) {
                 addCentrifugeToItemStack(GTCombType.FLUIX,

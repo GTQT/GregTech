@@ -3,13 +3,11 @@ package gregtech.common.metatileentities.electric;
 import gregtech.api.GTValues;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.impl.EnergyContainerHandler;
-import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IPassthroughHatch;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.PipelineUtil;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
@@ -19,11 +17,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.Optional;
-
-import appeng.api.util.AECableType;
-import appeng.api.util.AEPartLocation;
-import appeng.me.helpers.AENetworkProxy;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
@@ -36,7 +29,6 @@ public class MetaTileEntityHull extends MetaTileEntityMultiblockPart
                                 implements IPassthroughHatch, IMultiblockAbilityPart<IPassthroughHatch> {
 
     protected IEnergyContainer energyContainer;
-    private AENetworkProxy gridProxy;
 
     public MetaTileEntityHull(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
@@ -78,31 +70,6 @@ public class MetaTileEntityHull extends MetaTileEntityMultiblockPart
         tooltip.add(
                 I18n.format("gregtech.universal.tooltip.voltage_in_out", energyContainer.getInputVoltage(), tierName));
         tooltip.add(I18n.format("gregtech.universal.tooltip.amperage_in_out", 1));
-    }
-
-    @Override
-    public void update() {
-        super.update();
-        if (isFirstTick() && Mods.AppliedEnergistics2.isModLoaded()) {
-            if (getProxy() != null) getProxy().onReady();
-        }
-    }
-
-    @NotNull
-    @Override
-    @Optional.Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public AECableType getCableConnectionType(@NotNull AEPartLocation part) {
-        return AECableType.SMART;
-    }
-
-    @Nullable
-    @Override
-    @Optional.Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public AENetworkProxy getProxy() {
-        if (gridProxy == null && getHolder() instanceof MetaTileEntityHolder) {
-            gridProxy = new AENetworkProxy((MetaTileEntityHolder) getHolder(), "proxy", getStackForm(), true);
-        }
-        return gridProxy;
     }
 
     @Override

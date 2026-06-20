@@ -2,7 +2,6 @@ package gregtech.common.metatileentities.registration;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.util.Mods;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComputationHatch;
@@ -25,12 +24,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityReser
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityRotorHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntitySterileCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntitySubstationEnergyHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEInputBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEInputHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOutputBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEOutputHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEStockingBus;
-import gregtech.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEStockingHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAAdvancedComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAAdvancedCooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCABridge;
@@ -76,7 +69,6 @@ public final class MultiblockPartRegistration {
         registerLaserHatches();
         registerMaintenanceHatches();
         registerSpecialHatches();
-        registerMEHatches();
         registerDataHatches();
         registerComputationHatches();
         registerSteamHatches();
@@ -268,26 +260,6 @@ public final class MultiblockPartRegistration {
             String voltageName = GTValues.VN[tier].toLowerCase();
             MUFFLER_HATCH[i] = new MetaTileEntityMufflerHatch(gregtechId("muffler_hatch." + voltageName), tier);
             registerMetaTileEntity(1775 + i, MUFFLER_HATCH[i]);
-        }
-    }
-
-    // ---- ME Hatches (AE2 integration) ----
-
-    private static void registerMEHatches() {
-        // ME Hatches, IDs 1900-
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            FLUID_EXPORT_HATCH_ME = registerMetaTileEntity(1900,
-                    new MetaTileEntityMEOutputHatch(gregtechId("me_export_fluid_hatch")));
-            ITEM_EXPORT_BUS_ME = registerMetaTileEntity(1901,
-                    new MetaTileEntityMEOutputBus(gregtechId("me_export_item_bus")));
-            FLUID_IMPORT_HATCH_ME = registerMetaTileEntity(1902,
-                    new MetaTileEntityMEInputHatch(gregtechId("me_import_fluid_hatch"), GTValues.EV));
-            ITEM_IMPORT_BUS_ME = registerMetaTileEntity(1903,
-                    new MetaTileEntityMEInputBus(gregtechId("me_import_item_bus"), GTValues.EV));
-            STOCKING_BUS_ME = registerMetaTileEntity(1904,
-                    new MetaTileEntityMEStockingBus(gregtechId("me_stocking_item_bus"), GTValues.IV));
-            STOCKING_HATCH_ME = registerMetaTileEntity(1905,
-                    new MetaTileEntityMEStockingHatch(gregtechId("me_stocking_fluid_hatch"), GTValues.IV));
         }
     }
 

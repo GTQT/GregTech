@@ -64,7 +64,6 @@ import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.implementations.items.IAEWrench;
 import buildcraft.api.tools.IToolWrench;
 import cofh.api.item.IToolHammer;
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -105,8 +104,6 @@ import static gregtech.api.items.toolitem.ToolHelper.*;
  * Backing of every variation of a GT Tool
  */
 @Optional.InterfaceList({
-        @Optional.Interface(modid = Mods.Names.APPLIED_ENERGISTICS2,
-                            iface = "appeng.api.implementations.items.IAEWrench"),
         @Optional.Interface(modid = Mods.Names.BUILD_CRAFT_CORE,
                             iface = "buildcraft.api.tools.IToolWrench"),
         @Optional.Interface(modid = Mods.Names.COFH_CORE,
@@ -121,7 +118,7 @@ import static gregtech.api.items.toolitem.ToolHelper.*;
                             iface = "mods.railcraft.api.items.IToolCrowbar"),
         @Optional.Interface(modid = Mods.Names.ENDER_CORE,
                             iface = "com.enderio.core.common.interfaces.IOverlayRenderAware") })
-public interface IGTTool extends ItemUIFactory, IAEWrench, IToolWrench, IToolHammer, ITool, IToolGrafter,
+public interface IGTTool extends ItemUIFactory, IToolWrench, IToolHammer, ITool, IToolGrafter,
                                  IOverlayRenderAware, IScrewdriver, IToolCrowbar {
 
     /**
@@ -1041,20 +1038,6 @@ public interface IGTTool extends ItemUIFactory, IAEWrench, IToolWrench, IToolHam
     Set<String> getToolClasses(ItemStack stack);
 
     // Extended Interfaces
-
-    // IAEWrench
-
-    /**
-     * Check if the wrench can be used.
-     *
-     * @param player wrenching player
-     * @param pos    of block.
-     * @return true if wrench can be used
-     */
-    @Override
-    default boolean canWrench(ItemStack wrench, EntityPlayer player, BlockPos pos) {
-        return get().getToolClasses(wrench).contains(ToolClasses.WRENCH);
-    }
 
     // IToolWrench
 

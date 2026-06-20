@@ -655,60 +655,6 @@ public class MetaTileEntityMachineRecipeLoader {
                 .output(LD_FLUID_PIPE, 64)
                 .duration(600).EUt(24).buildAndRegister();
 
-        // ME Parts
-
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-
-            ItemStack fluidInterface = Mods.AppliedEnergistics2.getItem("fluid_interface");
-            ItemStack normalInterface = Mods.AppliedEnergistics2.getItem("interface");
-            ItemStack accelerationCard = Mods.AppliedEnergistics2.getItem("material", 30, 2);
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(FLUID_EXPORT_HATCH[EV])
-                    .inputs(fluidInterface.copy())
-                    .inputs(accelerationCard.copy())
-                    .output(FLUID_EXPORT_HATCH_ME)
-                    .duration(300).EUt(VA[HV]).buildAndRegister();
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(FLUID_IMPORT_HATCH[EV])
-                    .inputs(fluidInterface.copy())
-                    .inputs(accelerationCard.copy())
-                    .output(FLUID_IMPORT_HATCH_ME)
-                    .duration(300).EUt(VA[HV]).buildAndRegister();
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(ITEM_EXPORT_BUS[EV])
-                    .inputs(normalInterface.copy())
-                    .inputs(accelerationCard.copy())
-                    .output(ITEM_EXPORT_BUS_ME)
-                    .duration(300).EUt(VA[HV]).buildAndRegister();
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(ITEM_IMPORT_BUS[EV])
-                    .inputs(normalInterface.copy())
-                    .inputs(accelerationCard.copy())
-                    .output(ITEM_IMPORT_BUS_ME)
-                    .duration(300).EUt(VA[HV]).buildAndRegister();
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(ITEM_IMPORT_BUS[IV])
-                    .inputs(normalInterface.copy())
-                    .input(CONVEYOR_MODULE_IV)
-                    .input(SENSOR_IV)
-                    .inputs(GTUtility.copy(4, accelerationCard))
-                    .output(STOCKING_BUS_ME)
-                    .duration(300).EUt(VA[IV]).buildAndRegister();
-
-            ASSEMBLER_RECIPES.recipeBuilder()
-                    .input(FLUID_IMPORT_HATCH[IV])
-                    .inputs(fluidInterface.copy())
-                    .input(ELECTRIC_PUMP_IV)
-                    .input(SENSOR_IV)
-                    .inputs(GTUtility.copy(4, accelerationCard))
-                    .output(STOCKING_HATCH_ME)
-                    .duration(300).EUt(VA[IV]).buildAndRegister();
-        }
     }
 
     public static void registerHatchBusRecipe(int tier, MetaTileEntity inputBus, MetaTileEntity outputBus,

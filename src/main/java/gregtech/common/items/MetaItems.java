@@ -32,6 +32,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static gregtech.api.unification.material.Materials.*;
+
+import net.minecraft.init.Items;
+
 public final class MetaItems {
 
     private MetaItems() {}
@@ -711,7 +715,6 @@ public final class MetaItems {
         orePrefixes.add(OrePrefix.toolHeadBuzzSaw);
         orePrefixes.add(OrePrefix.toolHeadScrewdriver);
     }
-    public static MetaItem<?>.MetaValueItem ORDER;
     public static MetaItem<?>.MetaValueItem COVER_PROGRAMMABLE_CIRCUIT;
     public static MetaItem<?>.MetaValueItem PROGRAMMABLE_CIRCUIT;
     public static MetaItem<?>.MetaValueItem PROGRAMMING_TOOLKIT;
@@ -798,14 +801,12 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_OPV;
     public static MetaItem<?>.MetaValueItem WIRELESS_ENERGY_COVER_OUTPUT_MAX;
 
-    public static MetaItem1 GT_META_ITEM;
-    public static MetaItem2 GT_META_ITEM_2;
+    public static GregTechMetaItem GT_META_ITEM;
     public static MetaArmor GT_ARMOR;
 
     public static void init() {
-        GT_META_ITEM = new MetaItem1();
+        GT_META_ITEM = new GregTechMetaItem();
         GT_META_ITEM.setRegistryName("meta_item_1");
-        GT_META_ITEM_2 = new MetaItem2();
         GT_ARMOR = new MetaArmor();
         GT_ARMOR.setRegistryName("gt_armor");
         for (OrePrefix prefix : orePrefixes) {
@@ -877,4 +878,6 @@ public final class MetaItems {
     public static void addOrePrefix(OrePrefix... prefixes) {
         orePrefixes.addAll(Arrays.asList(prefixes));
     }
+
+
 }

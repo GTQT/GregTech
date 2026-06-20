@@ -13,11 +13,11 @@ import gregtech.integration.forestry.mutation.MaterialMutationCondition;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.Optional;
 
-import appeng.core.Api;
 import forestry.api.apiculture.BeeManager;
 import forestry.api.apiculture.EnumBeeType;
 import forestry.api.apiculture.IAlleleBeeSpecies;
@@ -355,8 +355,10 @@ public enum GTBeeDefinition implements IBeeDefinition {
             template -> AlleleHelper.getInstance().set(template, SPEED, EnumAllele.Speed.SLOWER),
             dis -> {
                 IBeeMutationBuilder mutation = dis.registerMutation(REDSTONE, LAPIS, 7);
-                Api.INSTANCE.definitions().blocks().fluixBlock().maybeBlock()
-                        .ifPresent(block -> mutation.requireResource(block.getDefaultState()));
+                ItemStack fluixBlock = Mods.AppliedEnergistics2.getItem("quartz_block", 0);
+                if (!fluixBlock.isEmpty()) {
+                    mutation.requireResource(Block.getBlockFromItem(fluixBlock.getItem()).getDefaultState());
+                }
             },
             Mods.AppliedEnergistics2::isModLoaded),
     DIAMOND(GTBranchDefinition.GT_GEM, "Adamas", false, 0xCCFFFF, 0xA3CCCC,

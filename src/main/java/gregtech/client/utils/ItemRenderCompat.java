@@ -7,7 +7,6 @@ import gregtech.api.util.world.DummyWorld;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import appeng.items.misc.ItemEncodedPattern;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,18 +15,25 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class ItemRenderCompat {
 
     private static @Nullable ItemRenderCompat.RepresentativeStackExtractor rsHandler;
-    private static @Nullable ItemRenderCompat.RepresentativeStackExtractor ae2Handler;
+    private static final List<RepresentativeStackExtractor> EXTRACTORS = new CopyOnWriteArrayList<>();
 
     private ItemRenderCompat() {}
 
     @ApiStatus.Internal
     public static void init() {
-        ae2Handler = AE2StackExtractor.create();
         rsHandler = RSStackExtractor.create();
+        if (rsHandler != null) {
+            registerExtractor(rsHandler);
+        }
+    }
+
+    public static void registerExtractor(@NotNull RepresentativeStackExtractor extractor) {
+        EXTRACTORS.add(extractor);
     }
 
     /**
@@ -39,11 +45,10 @@ public final class ItemRenderCompat {
      * @return the actual represented ItemStack
      */
     public static @NotNull ItemStack getRepresentedStack(@NotNull ItemStack stack) {
-        if (ae2Handler != null && ae2Handler.canHandleStack(stack)) {
-            return ae2Handler.getActualStack(stack);
-        }
-        if (rsHandler != null && rsHandler.canHandleStack(stack)) {
-            return rsHandler.getActualStack(stack);
+        for (RepresentativeStackExtractor extractor : EXTRACTORS) {
+            if (extractor.canHandleStack(stack)) {
+                return extractor.getActualStack(stack);
+            }
         }
         return stack;
     }
@@ -65,32 +70,6 @@ public final class ItemRenderCompat {
          */
         @NotNull
         ItemStack getActualStack(@NotNull ItemStack stack);
-    }
-
-    /**
-     * Extracts the output stack from AE2 Patterns
-     */
-    private static final class AE2StackExtractor implements RepresentativeStackExtractor {
-
-        public static @Nullable ItemRenderCompat.AE2StackExtractor create() {
-            if (!Mods.AppliedEnergistics2.isModLoaded()) return null;
-            GTLog.logger.info("AppliedEnergistics2 found; enabling render integration.");
-            return new AE2StackExtractor();
-        }
-
-        @Override
-        public boolean canHandleStack(@NotNull ItemStack stack) {
-            return stack.getItem() instanceof ItemEncodedPattern;
-        }
-
-        @Override
-        public @NotNull ItemStack getActualStack(@NotNull ItemStack stack) {
-            if (stack.isEmpty()) return ItemStack.EMPTY;
-            if (stack.getItem() instanceof ItemEncodedPattern encodedPattern) {
-                return encodedPattern.getOutput(stack);
-            }
-            return stack;
-        }
     }
 
     /**

@@ -4,7 +4,6 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.cover.Cover;
-import gregtech.api.cover.IAECover;
 import gregtech.api.gui.IUIHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
@@ -37,19 +36,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants.NBT;
-import net.minecraftforge.fml.common.Optional.Interface;
-import net.minecraftforge.fml.common.Optional.InterfaceList;
-import net.minecraftforge.fml.common.Optional.Method;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.security.IActionHost;
-import appeng.api.util.AECableType;
-import appeng.api.util.AEPartLocation;
-import appeng.api.util.DimensionalCoord;
-import appeng.me.helpers.AENetworkProxy;
-import appeng.me.helpers.IGridProxyable;
 import com.google.common.base.Preconditions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,16 +48,8 @@ import java.util.ArrayList;
 
 import static gregtech.api.capability.GregtechDataCodes.INITIALIZE_MTE;
 
-@InterfaceList(value = {
-        @Interface(iface = "appeng.api.networking.security.IActionHost",
-                   modid = Mods.Names.APPLIED_ENERGISTICS2,
-                   striprefs = true),
-        @Interface(iface = "appeng.me.helpers.IGridProxyable",
-                   modid = Mods.Names.APPLIED_ENERGISTICS2,
-                   striprefs = true) })
 public class MetaTileEntityHolder extends TickableTileEntityBase implements IGregTechTileEntity, IUIHolder,
-                                                                            IWorldNameable, IActionHost,
-                                                                            IGridProxyable {
+                                                                            IWorldNameable {
 
     public static final int TRACKED_TICKS = 20;
     protected static final DecimalFormat tricorderFormat = new DecimalFormat("#.#########");
@@ -160,9 +141,6 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
             } else {
                 GTLog.logger.error("Failed to load MetaTileEntity with invalid ID {}", metaTileEntityIdRaw);
             }
-            if (Mods.AppliedEnergistics2.isModLoaded()) {
-                readFromNBT_AENetwork(compound);
-            }
         }
     }
 
@@ -176,9 +154,6 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
             NBTTagCompound metaTileEntityData = new NBTTagCompound();
             metaTileEntity.writeToNBT(metaTileEntityData);
             compound.setTag("MetaTileEntity", metaTileEntityData);
-            if (Mods.AppliedEnergistics2.isModLoaded()) {
-                writeToNBT_AENetwork(compound);
-            }
         }
         return compound;
     }
@@ -189,9 +164,6 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
             metaTileEntity.invalidate();
         }
         super.invalidate();
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            invalidateAE();
-        }
     }
 
     @Override
@@ -458,9 +430,6 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
         if (metaTileEntity != null) {
             metaTileEntity.onUnload();
         }
-        if (Mods.AppliedEnergistics2.isModLoaded()) {
-            onChunkUnloadAE();
-        }
     }
 
     @Override
@@ -586,106 +555,4 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
                         new TextComponentString(this.getName());
     }
 
-    @Nullable
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public IGridNode getGridNode(@NotNull AEPartLocation part) {
-        MetaTileEntity te = this.getMetaTileEntity();
-        if (te != null) {
-            Cover cover = te.getCoverAtSide(part.getFacing());
-            if (cover != null) {
-                if (cover instanceof IAECover aeCover && aeCover.getGridNode(part) != null) {
-                    return aeCover.getGridNode(part);
-                }
-            }
-        }
-
-        // Forbid it connects the faces it shouldn't connect.
-        if (this.getCableConnectionType(part) == AECableType.NONE) {
-            return null;
-        }
-        AENetworkProxy proxy = getProxy();
-        return proxy == null ? null : proxy.getNode();
-    }
-
-    @NotNull
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public AECableType getCableConnectionType(@NotNull AEPartLocation part) {
-        MetaTileEntity te = this.getMetaTileEntity();
-        if (te != null) {
-            Cover cover = te.getCoverAtSide(part.getFacing());
-            if (cover != null) {
-                if (cover instanceof IAECover aeCover && aeCover.getCableConnectionType(part) != AECableType.NONE) {
-                    return aeCover.getCableConnectionType(part);
-                }
-            }
-        }
-
-        return metaTileEntity == null ? AECableType.NONE : metaTileEntity.getCableConnectionType(part);
-    }
-
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public void securityBreak() {}
-
-    @NotNull
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public IGridNode getActionableNode() {
-        AENetworkProxy proxy = getProxy();
-        return proxy == null ? null : proxy.getNode();
-    }
-
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public AENetworkProxy getProxy() {
-        return metaTileEntity == null ? null : metaTileEntity.getProxy();
-    }
-
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public DimensionalCoord getLocation() {
-        return new DimensionalCoord(this);
-    }
-
-    @Override
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public void gridChanged() {
-        if (metaTileEntity != null) {
-            metaTileEntity.gridChanged();
-        }
-    }
-
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public void readFromNBT_AENetwork(NBTTagCompound data) {
-        AENetworkProxy proxy = getProxy();
-        if (proxy != null) {
-            proxy.readFromNBT(data);
-        }
-    }
-
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    public void writeToNBT_AENetwork(NBTTagCompound data) {
-        AENetworkProxy proxy = getProxy();
-        if (proxy != null) {
-            proxy.writeToNBT(data);
-        }
-    }
-
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    void onChunkUnloadAE() {
-        AENetworkProxy proxy = getProxy();
-        if (proxy != null) {
-            proxy.onChunkUnload();
-        }
-    }
-
-    @Method(modid = Mods.Names.APPLIED_ENERGISTICS2)
-    void invalidateAE() {
-        AENetworkProxy proxy = getProxy();
-        if (proxy != null) {
-            proxy.invalidate();
-        }
-    }
 }
