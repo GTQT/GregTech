@@ -359,7 +359,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             float max = Math.max(Math.max(Math.max(size.x, size.y), size.z), 1);
             this.zoom = (float) (3.5 * Math.sqrt(max));
             this.rotationYaw = 20.0f;
-            this.rotationPitch = 50f;
+            this.rotationPitch = getDefaultHorizontalCameraAngle();
             setNextLayer(-1);
         } else {
             zoom = (float) MathHelper.clamp(zoom + (Mouse.getEventDWheel() < 0 ? 0.5 : -0.5), 3, 999);
@@ -424,6 +424,36 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             center.y = minPos.y + layerIndex + 0.5f;
         }
         getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
+    }
+
+    private float getDefaultHorizontalCameraAngle() {
+        EnumFacing frontFacing = getPreviewControllerFacing();
+        if (frontFacing.getAxis().isVertical()) {
+            return 50.0f;
+        }
+
+        float frontAngle = (float) Math.toDegrees(Math.atan2(frontFacing.getZOffset(), frontFacing.getXOffset()));
+        // Keep the old 40-degree side offset while placing the camera on the controller's front side.
+        return (frontAngle + 320.0f) % 360.0f;
+    }
+
+    @NotNull
+    private EnumFacing getPreviewControllerFacing() {
+        MultiblockControllerBase classFallback = null;
+        WorldSceneRenderer renderer = getCurrentRenderer();
+        for (BlockPos pos : renderer.renderedBlocks) {
+            TileEntity tileEntity = renderer.world.getTileEntity(pos);
+            if (!(tileEntity instanceof IGregTechTileEntity gregTechTile)) continue;
+            MetaTileEntity metaTileEntity = gregTechTile.getMetaTileEntity();
+            if (!(metaTileEntity instanceof MultiblockControllerBase previewController)) continue;
+            if (controller.metaTileEntityId.equals(previewController.metaTileEntityId)) {
+                return previewController.getFrontFacing();
+            }
+            if (classFallback == null && controller.getClass().isInstance(previewController)) {
+                classFallback = previewController;
+            }
+        }
+        return classFallback == null ? EnumFacing.SOUTH : classFallback.getFrontFacing();
     }
 
     private void updateChannelValue(int channelIndex, int delta) {
