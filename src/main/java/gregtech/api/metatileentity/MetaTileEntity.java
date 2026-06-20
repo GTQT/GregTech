@@ -137,7 +137,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     private final int[] sidedRedstoneOutput = new int[6];
     private final int[] sidedRedstoneInput = new int[6];
     private final EnumMap<EnumFacing, Cover> covers = new EnumMap<>(EnumFacing.class);
-    private final Set<CreativeTabs> creativeTabs = new ObjectArraySet<>();
+    protected final Set<CreativeTabs> creativeTabs = new ObjectArraySet<>();
     protected IItemHandlerModifiable importItems;
     protected IItemHandlerModifiable exportItems;
     protected IItemHandler itemInventory;

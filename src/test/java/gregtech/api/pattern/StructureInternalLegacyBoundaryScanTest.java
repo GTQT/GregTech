@@ -19,9 +19,6 @@ class StructureInternalLegacyBoundaryScanTest {
 
     private static final Path SOURCE_ROOT = Paths.get("src/main/java");
     private static final Path COMMON_CONTROLLER_ROOT = SOURCE_ROOT.resolve("gregtech/common/metatileentities");
-    private static final Path GCYM_CONTROLLER_ROOT =
-            SOURCE_ROOT.resolve("gregicality/multiblocks/common/metatileentities");
-    private static final Path GTQT_CONTROLLER_ROOT = SOURCE_ROOT.resolve("gtqt");
 
     private static final List<String> INTERNAL_MAIN_PATHS = Arrays.asList(
             "gregtech/api/pattern/StructureRuntime.java",
@@ -130,8 +127,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechControllersUseTypedFormationCallbacksAndDefinitions() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GCYM_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT),
-                (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             String text = String.join("\n", lines);
             if (!text.contains("extends ") || !text.contains("Multiblock")) {
                 return;
@@ -188,8 +184,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechOwnedCodeDoesNotUsePatternMatchContextInternally() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GCYM_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT),
-                (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (isCommentOnlyLine(line)) {
@@ -212,8 +207,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechControllersUseTypedFormedStructureViewAccessors() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GCYM_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT),
-                (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (isCommentOnlyLine(line)) {
@@ -298,15 +292,15 @@ class StructureInternalLegacyBoundaryScanTest {
     void gcymFrontMountedControllersExtendBehindTheController() throws IOException {
         List<String> violations = new ArrayList<>();
         List<String> controllerPaths = Arrays.asList(
-                "gregicality/multiblocks/common/metatileentities/multiblock/standard/"
+                "gregtech/common/metatileentities/multiblock/standard/"
                         + "MetaTileEntityLargeChemicalBath.java",
-                "gregicality/multiblocks/common/metatileentities/multiblock/standard/"
+                "gregtech/common/metatileentities/multiblock/standard/"
                         + "MetaTileEntityLargeCentrifuge.java",
-                "gregicality/multiblocks/common/metatileentities/multiblock/standard/"
+                "gregtech/common/metatileentities/multiblock/standard/"
                         + "MetaTileEntityLargeExtractor.java",
-                "gregicality/multiblocks/common/metatileentities/multiblock/standard/"
+                "gregtech/common/metatileentities/multiblock/standard/"
                         + "MetaTileEntityLargeSifter.java",
-                "gregicality/multiblocks/common/metatileentities/multiblock/standard/"
+                "gregtech/common/metatileentities/multiblock/standard/"
                         + "MetaTileEntityLargeSolidifier.java");
 
         for (String path : controllerPaths) {
@@ -324,8 +318,7 @@ class StructureInternalLegacyBoundaryScanTest {
     @Test
     void gregTechControllersDoNotBuildLegacyTemplatesInternally() throws IOException {
         List<String> violations = new ArrayList<>();
-        scanJavaFiles(Arrays.asList(COMMON_CONTROLLER_ROOT, GCYM_CONTROLLER_ROOT, GTQT_CONTROLLER_ROOT),
-                (source, lines) -> {
+        scanJavaFiles(COMMON_CONTROLLER_ROOT, (source, lines) -> {
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (isCommentOnlyLine(line)) {

@@ -16,7 +16,12 @@ public final class GTCreativeTabs {
     public static final BaseCreativeTab TAB_GREGTECH = new BaseCreativeTab(GTValues.MODID + ".main",
             () -> MetaItems.LOGO.getStackForm(), false);
     public static final BaseCreativeTab TAB_GREGTECH_MACHINES = new BaseCreativeTab(GTValues.MODID + ".machines",
+            () -> MetaTileEntities.ELECTRIC_FURNACE[1].getStackForm(), false);
+    public static final BaseCreativeTab TAB_GREGTECH_MULTIBLOCKS = new BaseCreativeTab(GTValues.MODID + ".multiblocks",
             () -> MetaTileEntities.ELECTRIC_BLAST_FURNACE.getStackForm(), false);
+    public static final BaseCreativeTab TAB_GREGTECH_MULTIBLOCK_PARTS = new BaseCreativeTab(
+            GTValues.MODID + ".multiblock_parts",
+            () -> MetaTileEntities.MAINTENANCE_HATCH.getStackForm(), false);
     public static final BaseCreativeTab TAB_GREGTECH_CABLES = new BaseCreativeTab(GTValues.MODID + ".cables",
             () -> OreDictUnifier.get(OrePrefix.cableGtDouble, Materials.TungstenSteel), false);
     public static final BaseCreativeTab TAB_GREGTECH_PIPES = new BaseCreativeTab(GTValues.MODID + ".pipes",
@@ -29,6 +34,8 @@ public final class GTCreativeTabs {
             () -> OreDictUnifier.get(OrePrefix.ore, Materials.TungstenSteel), false);
     public static final BaseCreativeTab TAB_GREGTECH_DECORATIONS = new BaseCreativeTab(GTValues.MODID + ".decorations",
             () -> MetaBlocks.WARNING_SIGN.getItemVariant(BlockWarningSign.SignType.YELLOW_STRIPES), false);
+    public static final BaseCreativeTab TAB_GREGTECH_PROGRAMMABLE = new BaseCreativeTab("gtqt_programmable",
+            () -> MetaItems.INTEGRATED_CIRCUIT.getStackForm(), false);
 
     private GTCreativeTabs() {}
 }

@@ -35,8 +35,11 @@ import gregtech.common.blocks.MaterialItemBlock;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.OreItemBlock;
 import gregtech.common.blocks.StoneVariantBlock;
+import gregtech.common.covers.GTQTCoverBehavior;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
+import gregtech.common.metatileentities.GTQTMetaTileEntities;
+import gregtech.common.network.NetworkHandler;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.ItemBlockCable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
@@ -50,12 +53,15 @@ import gregtech.common.pipelike.laser.ItemBlockLaserPipe;
 import gregtech.common.pipelike.optical.BlockOpticalPipe;
 import gregtech.common.pipelike.optical.ItemBlockOpticalPipe;
 import gregtech.common.wireless.WirelessEnergyServiceImpl;
+import gregtech.common.villager.VillageEngineersHouse;
+import gregtech.common.villager.VillagerHandler;
 import gregtech.datafix.GTDataFixers;
 import gregtech.integration.groovy.GroovyScriptModule;
 import gregtech.loaders.MaterialInfoLoader;
 import gregtech.loaders.OreDictionaryLoader;
 import gregtech.loaders.recipe.CraftingComponent;
 import gregtech.loaders.recipe.GTRecipeManager;
+import gregtech.loaders.recipe.RecipeManager;
 import gregtech.modules.GregTechModules;
 
 import net.minecraft.block.Block;
@@ -66,6 +72,7 @@ import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.gen.structure.MapGenStructureIO;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Config.Type;
 import net.minecraftforge.common.config.ConfigManager;
@@ -78,9 +85,9 @@ import net.minecraftforge.fml.common.LoaderState;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.VillagerRegistry;
 import net.minecraftforge.registries.IForgeRegistry;
 
-import gtqt.common.GTQTCommonProxy;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
@@ -269,13 +276,8 @@ public class CommonProxy {
     }
 
     @SubscribeEvent
-    public static void registerRecipeHandlers(RegistryEvent.Register<IRecipe> event) {
-        GTQTCommonProxy.registerRecipeHandlers(event);
-    }
-
-    @SubscribeEvent
     public static void registerCoverBehavior(GregTechAPI.RegisterEvent<CoverDefinition> event) {
-        GTQTCommonProxy.registerCoverBehavior();
+        GTQTCoverBehavior.init();
     }
 
     @SubscribeEvent
@@ -429,7 +431,8 @@ public class CommonProxy {
         GTLog.logger.info("Registering recipes...");
 
         GTRecipeManager.load();
-        GTQTCommonProxy.registerRecipes();
+        RecipeManager.register();
+        VillagerHandler.registerTrade();
     }
 
     // this is called almost last, to make sure all mods registered their ore dictionary
@@ -498,12 +501,14 @@ public class CommonProxy {
     }
 
     public void onPreLoad() {
-        GTQTCommonProxy.preInit();
+        GTQTMetaTileEntities.initialization();
+        NetworkHandler.registerMessages();
     }
 
     public void onLoad() {
         GTDataFixers.init();
-        GTQTCommonProxy.init();
+        MapGenStructureIO.registerStructureComponent(VillageEngineersHouse.class, "gtqt:village_engineers_house");
+        VillagerRegistry.instance().registerVillageCreationHandler(new VillageEngineersHouse.VillageManager());
         MinecraftForge.EVENT_BUS.register(new WirelessEnergyServiceImpl());
     }
 

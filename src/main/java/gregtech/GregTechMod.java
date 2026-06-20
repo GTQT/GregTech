@@ -29,17 +29,17 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 
-import gtqt.common.Difficulty;
+import gregtech.common.Difficulty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import gregicality.multiblocks.api.utils.GCYMLog;
-import gregicality.multiblocks.api.render.GCYMTextures;
-import gregicality.multiblocks.common.block.GCYMMetaBlocks;
-import gregicality.multiblocks.common.metatileentities.GCYMMetaTileEntities;
-import gregicality.multiblocks.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
+import gregtech.api.util.GCYMLog;
+import gregtech.client.renderer.texture.GCYMTextures;
+import gregtech.common.blocks.GCYMMetaBlocks;
+import gregtech.common.metatileentities.GCYMMetaTileEntities;
+import gregtech.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
 
-import static gtqt.common.Difficulty.fromLevel;
+import static gregtech.common.Difficulty.fromLevel;
 
 @Mod(modid = GTValues.MODID,
      name = GTValues.MOD_NAME,

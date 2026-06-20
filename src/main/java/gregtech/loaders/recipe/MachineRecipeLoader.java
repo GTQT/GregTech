@@ -44,7 +44,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.oredict.OreDictionary;
 
-import gtqt.api.util.recipeUtility;
+import gregtech.api.util.recipeUtility;
 
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -61,8 +61,8 @@ import static gregtech.common.blocks.BlockMetalCasing.MetalCasingType.BRONZE_BRI
 import static gregtech.common.blocks.MetaBlocks.METAL_CASING;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
-import static gtqt.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_EXPORT_BUS;
-import static gtqt.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_IMPORT_BUS;
+import static gregtech.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_EXPORT_BUS;
+import static gregtech.common.metatileentities.GTQTMetaTileEntities.HUGE_ITEM_IMPORT_BUS;
 
 public class MachineRecipeLoader {
 

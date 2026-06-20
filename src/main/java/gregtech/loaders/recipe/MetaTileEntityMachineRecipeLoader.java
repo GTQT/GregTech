@@ -26,7 +26,7 @@ import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.blocks.MetaBlocks.*;
 import static gregtech.common.items.MetaItems.*;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
-import static gtqt.api.util.MaterialHelper.*;
+import static gregtech.api.util.MaterialHelper.*;
 
 public class MetaTileEntityMachineRecipeLoader {
 

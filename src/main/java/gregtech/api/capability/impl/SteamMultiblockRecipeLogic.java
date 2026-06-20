@@ -29,8 +29,8 @@ import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import gtqt.api.util.GTQTUtility;
-import gtqt.api.capability.IPatternBufferIsolatedHandler;
+import gregtech.api.util.GTQTUtility;
+import gregtech.api.capability.IPatternBufferIsolatedHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
