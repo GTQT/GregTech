@@ -109,7 +109,7 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
 
     /**
      * Override to use {@code maxStoredEU} as the handler capacity instead of the
-     * default {@code tierVoltage * 64} buffer, and to allow output on all sides.
+     * default {@code tierVoltage * 64} buffer, and to emit through the marked front face.
      */
     @Override
     protected void reinitializeEnergyContainer() {
@@ -122,9 +122,9 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
         long tierVoltage = GTValues.V[getTier()];
         this.energyContainer = EnergyContainerHandler.emitterContainer(
                 this, maxStoredEU, tierVoltage, OUTPUT_AMPERAGE);
-        // Output on five sides; the front face (control face) does not emit energy
+        // Match the rendered output overlay and the direction convention used by generators.
         ((EnergyContainerHandler) this.energyContainer)
-                .setSideOutputCondition(side -> side != getFrontFacing());
+                .setSideOutputCondition(side -> side == getFrontFacing());
     }
 
     // -------------------------------------------------------------------------
