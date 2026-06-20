@@ -33,6 +33,12 @@ import gtqt.common.Difficulty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import gregicality.multiblocks.api.utils.GCYMLog;
+import gregicality.multiblocks.api.render.GCYMTextures;
+import gregicality.multiblocks.common.block.GCYMMetaBlocks;
+import gregicality.multiblocks.common.metatileentities.GCYMMetaTileEntities;
+import gregicality.multiblocks.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
+
 import static gtqt.common.Difficulty.fromLevel;
 
 @Mod(modid = GTValues.MODID,
@@ -77,6 +83,17 @@ public class GregTechMod {
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         moduleManager.onPreInit(event);
+
+        // GCYM (Gregicality Multiblocks) initialization
+        // Must be called after module preInit, which sets up mteManager and material registries
+        GCYMLog.init(LOGGER);
+        GCYMMetaBlocks.init();
+        GCYMMetaTileEntities.init();
+        if (FMLCommonHandler.instance().getSide().isClient()) {
+            GCYMTextures.preInit();
+        }
+        GCYMMaterialRecipeHandler.register();
+
         // 注册 AE2 集成的 CircuitHelper
         if (Mods.AppliedEnergistics2.isModLoaded()) {
             appeng.integration.modules.gregtech.CircuitHelper.setInstance(new GTCircuitHelper());

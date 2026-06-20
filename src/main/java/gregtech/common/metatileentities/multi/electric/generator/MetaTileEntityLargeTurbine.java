@@ -126,7 +126,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                                 Elements.abilities(1, 1, MultiblockAbility.OUTPUT_ENERGY),
                                 () -> getDefaultEnergyOutputHatch(type))))
                 .casing('H', type.getCasingState())
-                .optionalHatch(MultiblockAbility.MAINTENANCE_HATCH, 1)
+                .maintenance()
                 .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
