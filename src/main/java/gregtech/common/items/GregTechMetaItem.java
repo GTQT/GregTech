@@ -1,38 +1,25 @@
 package gregtech.common.items;
 
-import gregtech.api.GregTechAPI;
-import gregtech.api.items.metaitem.MetaItem;
-import gregtech.api.items.metaitem.MetaItem.MetaValueItem;
-import gregtech.api.items.metaitem.StandardMetaItem;
-import gregtech.api.unification.OreDictUnifier;
-import gregtech.api.unification.material.MarkerMaterial;
-import gregtech.api.unification.ore.OrePrefix;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.EnumDyeColor;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
-import org.jetbrains.annotations.NotNull;
-import gregtech.common.items.behaviors.TooltipBehavior;
-import gregtech.common.items.behaviors.ProgrammableCircuit;
-import gregtech.common.items.behaviors.ProgrammingToolkit;
-import gregtech.common.items.behaviors.VeinScanBehavior;
-import static gregtech.api.unification.material.Materials.Steel;
-import static gregtech.api.unification.material.Materials.*;
 import gregtech.api.GTValues;
+import gregtech.api.GregTechAPI;
 import gregtech.api.capability.impl.CommonFluidFilters;
 import gregtech.api.items.metaitem.ElectricStats;
 import gregtech.api.items.metaitem.FilteredFluidStats;
 import gregtech.api.items.metaitem.FoodStats;
+import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.MusicDiscStats;
+import gregtech.api.items.metaitem.StandardMetaItem;
 import gregtech.api.items.metaitem.stats.IItemComponent;
 import gregtech.api.items.metaitem.stats.IItemContainerItemProvider;
 import gregtech.api.items.metaitem.stats.ItemFluidContainer;
+import gregtech.api.unification.OreDictUnifier;
+import gregtech.api.unification.material.MarkerMaterial;
 import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.api.unification.material.MarkerMaterials.Component;
 import gregtech.api.unification.material.MarkerMaterials.Tier;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.PropertyKey;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.MaterialStack;
 import gregtech.api.unification.stack.RecyclingData;
 import gregtech.api.util.GTUtility;
@@ -62,13 +49,17 @@ import gregtech.common.items.behaviors.MultiblockBuilderBehavior;
 import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
 import gregtech.common.items.behaviors.PipeNetPainterBehavior;
+import gregtech.common.items.behaviors.ProgrammableCircuit;
+import gregtech.common.items.behaviors.ProgrammingToolkit;
 import gregtech.common.items.behaviors.ProspectorScannerBehavior;
 import gregtech.common.items.behaviors.ScrapBoxBehavior;
 import gregtech.common.items.behaviors.StructureProjectorBehavior;
 import gregtech.common.items.behaviors.Terminal2Behavior;
+import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
+import gregtech.common.items.behaviors.VeinScanBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -80,12 +71,22 @@ import gregtech.common.items.behaviors.monitorplugin.TextPluginBehavior;
 import gregtech.common.items.behaviors.spray.CreativeSprayBehavior;
 import gregtech.common.items.behaviors.spray.DurabilitySprayBehavior;
 import gregtech.core.sound.GTSoundEvents;
+
 import net.minecraft.client.resources.I18n;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Items;
 import net.minecraft.init.MobEffects;
+import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.EnumRarity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.NotNull;
+
 import static gregtech.api.GTValues.M;
 import static gregtech.api.GTValues.MAX;
+import static gregtech.api.unification.material.Materials.Steel;
 import static gregtech.api.util.DyeUtil.getOredictColorName;
 import static gregtech.common.items.MetaItems.*;
 
@@ -267,6 +268,15 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Titanium, M * 6))) // ingot * 6
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
+        FLUID_CELL_CHROME = addItem(81, "large_fluid_cell.chrome")
+                .addComponents(new FilteredFluidStats(2_048_000,
+                        Materials.Chrome.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                        true, true, false, false, true),
+                        new ItemFluidContainer(true))
+                .setMaxStackSize(32)
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Chrome, M * 8)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
         FLUID_CELL_LARGE_TUNGSTEN_STEEL = addItem(82, "large_fluid_cell.tungstensteel")
                 .addComponents(new FilteredFluidStats(512000,
                         Materials.TungstenSteel.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true,
@@ -276,10 +286,46 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.TungstenSteel, M * 8))) // ingot * 8
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
+        FLUID_CELL_IRIDIUM = addItem(83, "large_fluid_cell.iridium")
+                .addComponents(new FilteredFluidStats(8_192_000,
+                        Materials.Iridium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                        true, true, true, false, true),
+                        new ItemFluidContainer(true))
+                .setMaxStackSize(32)
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Iridium, M * 8)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        FLUID_CELL_NAQUADAH_ALLOY = addItem(84, "large_fluid_cell.naquadah_alloy")
+                .addComponents(new FilteredFluidStats(32_768_000,
+                        Materials.NaquadahAlloy.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                        true, true, true, true, true),
+                        new ItemFluidContainer(true))
+                .setMaxStackSize(32)
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.NaquadahAlloy, M * 8)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
         FLUID_CELL_GLASS_VIAL = addItem(85, "fluid_cell.glass_vial")
                 .addComponents(new FilteredFluidStats(1000, 1200, false, true, false, false, true),
                         new ItemFluidContainer())
                 .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Glass, M / 4))) // small dust
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        FLUID_CELL_NEUTRONIUM = addItem(86, "large_fluid_cell.neutronium")
+                .addComponents(new FilteredFluidStats(131_072_000,
+                        Materials.Neutronium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                        true, true, true, true, true),
+                        new ItemFluidContainer(true))
+                .setMaxStackSize(32)
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Neutronium, M * 8)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        WOODEN_BUCKET = addItem(89, "wooden_bucket")
+                .addComponents(new FilteredFluidStats(1000,
+                        Materials.Wood.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
+                        true, false, false, false, true),
+                        new ItemFluidContainer())
+                .setMaxStackSize(1)
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Wood, M * 8)))
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // Spray Cans: ID 90-110
@@ -693,6 +739,9 @@ public final class GregTechMetaItem extends StandardMetaItem {
                     lines.add(I18n.format("metaitem.cover.air_vent.tooltip.2", 100));
                 }));
 
+        COVER_PROGRAMMABLE_CIRCUIT = addItem(297, "cover.programmable_circuit")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
+
         COVER_MACHINE_CONTROLLER = addItem(301, "cover.controller");
         COVER_ACTIVITY_DETECTOR = addItem(302, "cover.activity.detector");
         COVER_ACTIVITY_DETECTOR_ADVANCED = addItem(303, "cover.activity.detector_advanced");
@@ -965,6 +1014,18 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
+        PROGRAMMABLE_CIRCUIT = addItem(466, "programmable_circuit")
+                .addComponents(new ProgrammableCircuit()).addOreDict("oreProgrammableCircuit")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
+
+        PROGRAMMING_TOOLKIT = addItem(467, "programming_toolkit")
+                .addComponents(new ProgrammingToolkit()).setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
+
+        VEIN_SCANNER = addItem(468, "tool.scanner")
+                .addComponents(new VeinScanBehavior())
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
         TRICORDER_SCANNER = addItem(469, "tricorder_scanner")
                 .addComponents(ElectricStats.createElectricItem(100_000L, GTValues.MV), new TricorderBehavior(2))
                 .setMaxStackSize(1)
@@ -1181,6 +1242,53 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 Tier.UV).setTier(7);
         WETWARE_MAINFRAME_UHV = addItem(647, "circuit.wetware_mainframe").setUnificationData(OrePrefix.circuit,
                 Tier.UHV).setTier(7);
+
+        // General Circuits: ID 648-662
+        GENERAL_CIRCUIT_ULV = addItem(648, "general_circuit.ulv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ULV).setTier(0)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_LV = addItem(649, "general_circuit.lv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LV).setTier(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_MV = addItem(650, "general_circuit.mv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MV).setTier(2)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_HV = addItem(651, "general_circuit.hv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.HV).setTier(3)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_EV = addItem(652, "general_circuit.ev")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.EV).setTier(4)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_IV = addItem(653, "general_circuit.iv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.IV).setTier(5)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_LuV = addItem(654, "general_circuit.luv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LuV).setTier(6)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_ZPM = addItem(655, "general_circuit.zpm")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ZPM).setTier(7)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_UV = addItem(656, "general_circuit.uv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UV).setTier(8)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_UHV = addItem(657, "general_circuit.uhv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UHV).setTier(9)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_UEV = addItem(658, "general_circuit.uev")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UEV).setTier(10)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_UIV = addItem(659, "general_circuit.uiv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UIV).setTier(11)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_UXV = addItem(660, "general_circuit.uxv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UXV).setTier(12)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_OpV = addItem(661, "general_circuit.opv")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.OpV).setTier(13)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        GENERAL_CIRCUIT_MAX = addItem(662, "general_circuit.max")
+                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MAX).setTier(14)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // T8: Bioware
 
@@ -1437,291 +1545,172 @@ public final class GregTechMetaItem extends StandardMetaItem {
         // Forge of the Gods - Stellar Fuel catalyst for battery startup
         STELLAR_FUEL = addItem(1007, "stellar_fuel").setRarity(EnumRarity.EPIC);
 
-        registerExtendedSubItems();
-    }
+        registerWirelessCoverInput(1100);
+        registerWirelessCoverOutput(1115);
 
-    private void registerExtendedSubItems() {
-
-        MetaItems.COVER_PROGRAMMABLE_CIRCUIT = addItem(1009, "cover.programmable_circuit").setCreativeTabs(
-                GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
-
-        // 通用可编程电路（通过 NBT 包裹任意物品）
-        MetaItems.PROGRAMMABLE_CIRCUIT = addItem(1010, "programmable_circuit")
-                .addComponents(new ProgrammableCircuit()).addOreDict("oreProgrammableCircuit")
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
-
-        // 可编程工具箱（右键打开 GUI，将物品包裹到可编程电路中）
-        MetaItems.PROGRAMMING_TOOLKIT = addItem(1011, "programming_toolkit")
-                .addComponents(new ProgrammingToolkit()).setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
-
-        // Wireless Energy Covers - Input
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_ULV = addItem(1018, "wireless_energy_cover_input.ulv")
-                .setTier(0).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_LV = addItem(1019, "wireless_energy_cover_input.lv")
-                .setTier(1).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_MV = addItem(1020, "wireless_energy_cover_input.mv").setTier(2)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_HV = addItem(1021, "wireless_energy_cover_input.hv").setTier(3)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_EV = addItem(1022, "wireless_energy_cover_input.ev").setTier(4)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_IV = addItem(1023, "wireless_energy_cover_input.iv").setTier(5)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_LUV = addItem(1024, "wireless_energy_cover_input.luv").setTier(6)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_ZPM = addItem(1025, "wireless_energy_cover_input.zpm").setTier(7)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UV = addItem(1026, "wireless_energy_cover_input.uv").setTier(8)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UHV = addItem(1027, "wireless_energy_cover_input.uhv").setTier(9)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UEV = addItem(1028, "wireless_energy_cover_input.uev").setTier(10)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UIV = addItem(1029, "wireless_energy_cover_input.uiv").setTier(11)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UXV = addItem(1030, "wireless_energy_cover_input.uxv").setTier(12)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_OPV = addItem(1031, "wireless_energy_cover_input.opv").setTier(13)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_INPUT_MAX = addItem(1032, "wireless_energy_cover_input.max").setTier(14)
-                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        // Wireless Energy Covers - Output
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_ULV = addItem(1033, "wireless_energy_cover_output.ulv")
-                .setTier(0).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_LV = addItem(1034, "wireless_energy_cover_output.lv")
-                .setTier(1).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_MV = addItem(1035, "wireless_energy_cover_output.mv")
-                .setTier(2).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_HV = addItem(1036, "wireless_energy_cover_output.hv")
-                .setTier(3).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_EV = addItem(1037, "wireless_energy_cover_output.ev")
-                .setTier(4).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_IV = addItem(1038, "wireless_energy_cover_output.iv")
-                .setTier(5).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_LUV = addItem(1039, "wireless_energy_cover_output.luv")
-                .setTier(6).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_ZPM = addItem(1040, "wireless_energy_cover_output.zpm")
-                .setTier(7).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UV = addItem(1041, "wireless_energy_cover_output.uv")
-                .setTier(8).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UHV = addItem(1042, "wireless_energy_cover_output.uhv")
-                .setTier(9).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UEV = addItem(1043, "wireless_energy_cover_output.uev")
-                .setTier(10).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UIV = addItem(1044, "wireless_energy_cover_output.uiv")
-                .setTier(11).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UXV = addItem(1045, "wireless_energy_cover_output.uxv")
-                .setTier(12).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_OPV = addItem(1046, "wireless_energy_cover_output.opv")
-                .setTier(13).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_MAX = addItem(1047, "wireless_energy_cover_output.max")
-                .setTier(14).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        //  General Circuits
-        MetaItems.GENERAL_CIRCUIT_ULV = addItem(1078, "general_circuit.ulv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ULV).setTier(0)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_LV = addItem(1079, "general_circuit.lv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LV).setTier(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_MV = addItem(1080, "general_circuit.mv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MV).setTier(2)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_HV = addItem(1081, "general_circuit.hv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.HV).setTier(3)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_EV = addItem(1082, "general_circuit.ev")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.EV).setTier(4)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_IV = addItem(1083, "general_circuit.iv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.IV).setTier(5)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_LuV = addItem(1084, "general_circuit.luv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.LuV).setTier(6)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_ZPM = addItem(1085, "general_circuit.zpm")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.ZPM).setTier(7)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_UV = addItem(1086, "general_circuit.uv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UV).setTier(8)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_UHV = addItem(1087, "general_circuit.uhv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UHV).setTier(9)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_UEV = addItem(1088, "general_circuit.uev")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UEV).setTier(10)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_UIV = addItem(1089, "general_circuit.uiv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UIV).setTier(11)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_UXV = addItem(1090, "general_circuit.uxv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.UXV).setTier(12)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_OpV = addItem(1091, "general_circuit.opv")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.OpV).setTier(13)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MetaItems.GENERAL_CIRCUIT_MAX = addItem(1092, "general_circuit.max")
-                .setUnificationData(OrePrefix.circuit, MarkerMaterials.Tier.MAX).setTier(14)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        //流体单元90
-        MetaItems.WOODEN_BUCKET = addItem(1098, "wooden_bucket").addComponents(
-                        new FilteredFluidStats(1000, Wood.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true,
-                                false, false, false, true), new ItemFluidContainer()).setMaxStackSize(1)
-                .setRecyclingData(new RecyclingData(new MaterialStack(Wood, M * 8))) // ingot * 8
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.FLUID_CELL_CHROME = addItem(1099, "large_fluid_cell.chrome").addComponents(
-                        new FilteredFluidStats(2_048_000, Chrome.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
-                                true, true, false, false, true), new ItemFluidContainer()).setMaxStackSize(32)
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Chrome, M * 8))) // ingot * 8
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.FLUID_CELL_IRIDIUM = addItem(1100, "large_fluid_cell.iridium").addComponents(
-                        new FilteredFluidStats(8_192_000, Iridium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(),
-                                true, true, true, false, true), new ItemFluidContainer()).setMaxStackSize(32)
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Iridium, M * 8))) // ingot * 8
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.FLUID_CELL_NAQUADAH_ALLOY = addItem(1101, "large_fluid_cell.naquadah_alloy").addComponents(
-                        new FilteredFluidStats(32_768_000,
-                                NaquadahAlloy.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, true, true,
-                                true, true), new ItemFluidContainer()).setMaxStackSize(32)
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.NaquadahAlloy, M * 8))) // ingot * 8
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.FLUID_CELL_NEUTRONIUM = addItem(1102, "large_fluid_cell.neutronium").addComponents(
-                        new FilteredFluidStats(131_072_000,
-                                Neutronium.getProperty(PropertyKey.FLUID_PIPE).getMaxFluidTemperature(), true, true, true, true,
-                                true), new ItemFluidContainer()).setMaxStackSize(32)
-                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.Neutronium, M * 8))) // ingot * 8
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        // 200-: Vanadium Steel Molds & Extruders.
-        MetaItems.CASTING_MOLD_EMPTY = addItem(1208, "shape.mold.vanadium_steel.empty").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_SAW = addItem(1209, "shape.mold.vanadium_steel.saw").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_HARD_HAMMER = addItem(1210, "shape.mold.vanadium_steel.hard_hammer").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_SOFT_MALLET = addItem(1211, "shape.mold.vanadium_steel.soft_mallet").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_WRENCH = addItem(1212, "shape.mold.vanadium_steel.wrench").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_FILE = addItem(1213, "shape.mold.vanadium_steel.file").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_CROWBAR = addItem(1214, "shape.mold.vanadium_steel.crowbar").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_SCREWDRIVER = addItem(1215, "shape.mold.vanadium_steel.screwdriver").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_MORTAR = addItem(1216, "shape.mold.vanadium_steel.mortar").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_WIRE_CUTTER = addItem(1217, "shape.mold.vanadium_steel.wire_cutter").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_KNIFE = addItem(1218, "shape.mold.vanadium_steel.knife").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_BUTCHERY_KNIFE = addItem(1219,
-                "shape.mold.vanadium_steel.butchery_knife").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.CASTING_MOLD_ROLLING_PIN = addItem(1220, "shape.mold.vanadium_steel.rolling_pin").setRecyclingData(
-                        new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        // 601-700: Tools.
-        MetaItems.DISPOSABLE_SAW = addItem(1228, "tool.disposable.saw").addOreDict("toolSaw")
+        // Disposable Tools (A6+): ID 2000
+        MetaItems.DISPOSABLE_SAW = addItem(2000, "tool.disposable.saw").addOreDict("toolSaw")
                 .addOreDict("craftingToolSaw").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_HARD_HAMMER = addItem(1229, "tool.disposable.hard_hammer").addOreDict("toolHammer")
+        MetaItems.DISPOSABLE_HARD_HAMMER = addItem(2001, "tool.disposable.hard_hammer").addOreDict("toolHammer")
                 .addOreDict("craftingToolHardHammer").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_SOFT_MALLET = addItem(1230, "tool.disposable.soft_mallet").addOreDict("toolMallet")
+        MetaItems.DISPOSABLE_SOFT_MALLET = addItem(2002, "tool.disposable.soft_mallet").addOreDict("toolMallet")
                 .addOreDict("craftingToolSoftHammer").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_WRENCH = addItem(1231, "tool.disposable.wrench").addOreDict("toolWrench")
+        MetaItems.DISPOSABLE_WRENCH = addItem(2003, "tool.disposable.wrench").addOreDict("toolWrench")
                 .addOreDict("craftingToolWrench").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_FILE = addItem(1232, "tool.disposable.file").addOreDict("toolFile")
+        MetaItems.DISPOSABLE_FILE = addItem(2004, "tool.disposable.file").addOreDict("toolFile")
                 .addOreDict("craftingToolFile").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_CROWBAR = addItem(1233, "tool.disposable.crowbar").addOreDict("toolCrowbar")
+        MetaItems.DISPOSABLE_CROWBAR = addItem(2005, "tool.disposable.crowbar").addOreDict("toolCrowbar")
                 .addOreDict("craftingToolCrowbar").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_SCREWDRIVER = addItem(1234, "tool.disposable.screwdriver").addOreDict("toolScrewdriver")
+        MetaItems.DISPOSABLE_SCREWDRIVER = addItem(2006, "tool.disposable.screwdriver").addOreDict("toolScrewdriver")
                 .addOreDict("craftingToolScrewdriver").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_MORTAR = addItem(1235, "tool.disposable.mortar").addOreDict("toolMortar")
+        MetaItems.DISPOSABLE_MORTAR = addItem(2007, "tool.disposable.mortar").addOreDict("toolMortar")
                 .addOreDict("craftingToolMortar").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_WIRE_CUTTER = addItem(1236, "tool.disposable.wire_cutter").addOreDict("toolWireCutter")
+        MetaItems.DISPOSABLE_WIRE_CUTTER = addItem(2008, "tool.disposable.wire_cutter").addOreDict("toolWireCutter")
                 .addOreDict("craftingToolWireCutter").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_KNIFE = addItem(1237, "tool.disposable.knife").addOreDict("toolKnife")
+        MetaItems.DISPOSABLE_KNIFE = addItem(2009, "tool.disposable.knife").addOreDict("toolKnife")
                 .addOreDict("craftingToolKnife").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_BUTCHERY_KNIFE = addItem(1238, "tool.disposable.butchery_knife").addOreDict(
-                        "toolButcheryKnife").addOreDict("craftingToolButcheryKnife")
+        MetaItems.DISPOSABLE_BUTCHERY_KNIFE = addItem(2010, "tool.disposable.butchery_knife")
+                .addOreDict("toolButcheryKnife").addOreDict("craftingToolButcheryKnife")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
-        MetaItems.DISPOSABLE_ROLLING_PIN = addItem(1239, "tool.disposable.rolling_pin").addOreDict("toolRollingPin")
+        MetaItems.DISPOSABLE_ROLLING_PIN = addItem(2011, "tool.disposable.rolling_pin").addOreDict("toolRollingPin")
                 .addOreDict("craftingToolRollingPin").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        MetaItems.VEIN_SCANNER = addItem(1240, "tool.scanner").addComponents(new VeinScanBehavior());
+        MetaItems.CASTING_MOLD_EMPTY = addItem(2020, "shape.mold.vanadium_steel.empty")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_SAW = addItem(2021, "shape.mold.vanadium_steel.saw")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_HARD_HAMMER = addItem(2022, "shape.mold.vanadium_steel.hard_hammer")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_SOFT_MALLET = addItem(2023, "shape.mold.vanadium_steel.soft_mallet")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_WRENCH = addItem(2024, "shape.mold.vanadium_steel.wrench")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_FILE = addItem(2025, "shape.mold.vanadium_steel.file")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_CROWBAR = addItem(2026, "shape.mold.vanadium_steel.crowbar")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_SCREWDRIVER = addItem(2027, "shape.mold.vanadium_steel.screwdriver")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_MORTAR = addItem(2028, "shape.mold.vanadium_steel.mortar")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_WIRE_CUTTER = addItem(2029, "shape.mold.vanadium_steel.wire_cutter")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_KNIFE = addItem(2030, "shape.mold.vanadium_steel.knife")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_BUTCHERY_KNIFE = addItem(2031, "shape.mold.vanadium_steel.butchery_knife")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.CASTING_MOLD_ROLLING_PIN = addItem(2032, "shape.mold.vanadium_steel.rolling_pin")
+                .setRecyclingData(new RecyclingData(new MaterialStack(Materials.VanadiumSteel, GTValues.M * 4)))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+
     }
 
+    private void registerWirelessCoverInput(int baseId) {
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_ULV = addItem(baseId++, "wireless_energy_cover_input.ulv")
+                .setTier(0).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_LV = addItem(baseId++, "wireless_energy_cover_input.lv")
+                .setTier(1).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_MV = addItem(baseId++, "wireless_energy_cover_input.mv").setTier(2)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_HV = addItem(baseId++, "wireless_energy_cover_input.hv").setTier(3)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_EV = addItem(baseId++, "wireless_energy_cover_input.ev").setTier(4)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_IV = addItem(baseId++, "wireless_energy_cover_input.iv").setTier(5)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_LUV = addItem(baseId++, "wireless_energy_cover_input.luv").setTier(6)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_ZPM = addItem(baseId++, "wireless_energy_cover_input.zpm").setTier(7)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UV = addItem(baseId++, "wireless_energy_cover_input.uv").setTier(8)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UHV = addItem(baseId++, "wireless_energy_cover_input.uhv").setTier(9)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UEV = addItem(baseId++, "wireless_energy_cover_input.uev").setTier(10)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UIV = addItem(baseId++, "wireless_energy_cover_input.uiv").setTier(11)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_UXV = addItem(baseId++, "wireless_energy_cover_input.uxv").setTier(12)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_OPV = addItem(baseId++, "wireless_energy_cover_input.opv").setTier(13)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_INPUT_MAX = addItem(baseId, "wireless_energy_cover_input.max").setTier(14)
+                .addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_input.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+    }
+
+    private void registerWirelessCoverOutput(int baseId) {
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_ULV = addItem(baseId++, "wireless_energy_cover_output.ulv")
+                .setTier(0).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_LV = addItem(baseId++, "wireless_energy_cover_output.lv")
+                .setTier(1).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_MV = addItem(baseId++, "wireless_energy_cover_output.mv")
+                .setTier(2).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_HV = addItem(baseId++, "wireless_energy_cover_output.hv")
+                .setTier(3).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_EV = addItem(baseId++, "wireless_energy_cover_output.ev")
+                .setTier(4).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_IV = addItem(baseId++, "wireless_energy_cover_output.iv")
+                .setTier(5).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_LUV = addItem(baseId++, "wireless_energy_cover_output.luv")
+                .setTier(6).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_ZPM = addItem(baseId++, "wireless_energy_cover_output.zpm")
+                .setTier(7).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UV = addItem(baseId++, "wireless_energy_cover_output.uv")
+                .setTier(8).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UHV = addItem(baseId++, "wireless_energy_cover_output.uhv")
+                .setTier(9).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UEV = addItem(baseId++, "wireless_energy_cover_output.uev")
+                .setTier(10).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UIV = addItem(baseId++, "wireless_energy_cover_output.uiv")
+                .setTier(11).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UXV = addItem(baseId++, "wireless_energy_cover_output.uxv")
+                .setTier(12).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_OPV = addItem(baseId++, "wireless_energy_cover_output.opv")
+                .setTier(13).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_MAX = addItem(baseId, "wireless_energy_cover_output.max")
+                .setTier(14).addComponents(new TooltipBehavior(lines -> lines.add(I18n.format("metaitem.wireless_energy_cover_output.tooltip"))))
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+    }
 }
